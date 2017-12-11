@@ -1,7 +1,7 @@
-ppsim
-=====
+pyte
+====
 
 .. toctree::
    :maxdepth: 4
 
-   ppsim
+   pyte

@@ -3,9 +3,9 @@
 
 """
 
-from ppsim.components import (components as cmp,
+from pyte.components import (components as cmp,
                               characteristics as cmp_char,
                               subsystems as subsys)
-from ppsim import connections as con
-from ppsim import helpers as hlp
-from ppsim import networks as nwk
+from pyte import connections as con
+from pyte import helpers as hlp
+from pyte import networks as nwk

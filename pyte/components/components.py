@@ -19,7 +19,7 @@ from pyte.helpers import (
     molar_masses, err
 )
 
-from ppsim.components import characteristics as cmp_char
+from pyte.components import characteristics as cmp_char
 
 
 def init_target(nw, c, start):
@@ -28,12 +28,12 @@ def init_target(nw, c, start):
     ends when reaching sink, merge or combustion chamber
 
     :param nw: network to operate on
-    :type nw: ppsim.networks.network object
+    :type nw: pyte.networks.network
     :param c: connection to initialise
-    :type c: ppsim.connections.connections object
+    :type c: pyte.connections.connection
     :param start: fluid propagation startingpoint, in some cases needed
         to exit the recursion
-    :type start: ppsim.connections.connections object
+    :type start: pyte.connections.connection
     :returns: no return value
 
     .. note::
@@ -777,7 +777,7 @@ class turbomachine(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: ppsim.networks.network object
+        :type nw: pyte.networks.network object
 
         **equations**
 
@@ -822,7 +822,7 @@ class turbomachine(component):
         component
 
         :param nw: network using this component object
-        :type nw: ppsim.networks.network object
+        :type nw: pyte.networks.network
         :returns: vec_res (*list*) - vector of residual values
         """
         return []
@@ -833,7 +833,7 @@ class turbomachine(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: ppsim.networks.network object
+        :type nw: pyte.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
 
         **example**
@@ -899,7 +899,7 @@ class turbomachine(component):
         equations of this component
 
         :param nw: network using this component object
-        :type nw: ppsim.networks.network object
+        :type nw: pyte.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
         return []

@@ -1,29 +1,29 @@
-ppsim package
-=============
+pyte package
+============
 
 Submodules
 ----------
 
-ppsim.connections module
-------------------------
+pyte.connections module
+-----------------------
 
-.. automodule:: ppsim.connections
+.. automodule:: pyte.connections
     :members:
     :undoc-members:
     :show-inheritance:
 
-ppsim.helpers module
+pyte.helpers module
+-------------------
+
+.. automodule:: pyte.helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyte.networks module
 --------------------
 
-.. automodule:: ppsim.helpers
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-ppsim.networks module
----------------------
-
-.. automodule:: ppsim.networks
+.. automodule:: pyte.networks
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,7 +32,7 @@ ppsim.networks module
 Module contents
 ---------------
 
-.. automodule:: ppsim
+.. automodule:: pyte
     :members:
     :undoc-members:
     :show-inheritance:

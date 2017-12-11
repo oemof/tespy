@@ -145,7 +145,7 @@ class network:
         of components
 
         :param c: connections object to check
-        :type c: ppsim.connections
+        :type c: pyte.connections.connection
         :returns: no return value
         :raises:
             - :code:`TypeError`, if c is not a connections object
@@ -949,7 +949,7 @@ class network:
         pressure and/or enthalpy
 
         :param c: connections object to apply calculations on
-        :type c: ppsim.connections object
+        :type c: pyte.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix
@@ -979,7 +979,7 @@ class network:
               is skipped if residuals become very small (speeds up calculation)
 
         :param c: connections object to apply calculations on
-        :type c: ppsim.connections object
+        :type c: pyte.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix
@@ -1046,7 +1046,7 @@ class network:
         fraction
 
         :param c: connections object to apply calculations on
-        :type c: ppsim.connections object
+        :type c: pyte.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix
@@ -1218,19 +1218,13 @@ class network:
 
     def save(self, filename):
         """
-        method save
-            stores the results in two files as filename_*.csv:
-                result file for connections
-                file for components
-        --------
-        arguments
-            nw: ppsim.network
-                network to save
-            filename: str
-                suffix for the files
-        --------
-        returns
-            None
+        saves the results in two files:
+            - results file and
+            - components file
+
+        :param filename: suffix for the .csv-file
+        :type filename: str
+        :returns: no return value
         """
         self.save_connections(filename)
         self.save_components(filename)

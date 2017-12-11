@@ -9,8 +9,8 @@
 import numpy as np
 import pandas as pd
 
-from ppsim.helpers import MyConnectionError
-from ppsim.components import components as cmp
+from pyte.helpers import MyConnectionError
+from pyte.components import components as cmp
 
 
 class connection:
@@ -28,11 +28,11 @@ class connection:
             - set attributes to specified values
 
         :param comp1: connections source
-        :type comp1: ppsim.components object
+        :type comp1: pyte.components.components.component
         :param outlet_id: outlet id at the connections source
         :type outlet_id: str
         :param comp2: connections target
-        :type comp2: ppsim.components object
+        :type comp2: pyte.components.components.component
         :param inlet_id: inlet id at the connections target
         :type inlet_id: str
 
@@ -257,20 +257,21 @@ class ref:
     """
     def __init__(self, ref_obj, factor, delta):
         """
-        method __init__
-
         object initialisation
-        --------
-        arguments
-            ref_obj: ppsim.connection
-                connection to be referenced
-            factor: float
-                factor for referenced value
-            delta: float
-                delta for referenced value
-        --------
-        returns
-            None
+
+        :param ref_obj: connection to be referenced
+        :type ref_obj: pyte.connections.connection
+        :param factor: factor for the reference
+        :type factor: numeric
+        :param delta: delta for the reference
+        :type delta: numeric
+        :returns: no return value
+
+        **example**
+
+        .. math::
+            \dot{m} = \dot{m}_\mathrm{ref} \cdot factor + delta
+
         """
         if not isinstance(ref_obj, connection):
             msg = 'First parameter must be object of type connection.'

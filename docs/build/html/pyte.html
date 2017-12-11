@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>ppsim package &mdash; ppsim 1.0 documentation</title>
+    <title>pyte package &mdash; ppsim 1.0 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -37,46 +37,46 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="ppsim-package">
-<h1>ppsim package<a class="headerlink" href="#ppsim-package" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="pyte-package">
+<h1>pyte package<a class="headerlink" href="#pyte-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-ppsim.connections">
-<span id="ppsim-connections-module"></span><h2>ppsim.connections module<a class="headerlink" href="#module-ppsim.connections" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pyte.connections">
+<span id="pyte-connections-module"></span><h2>pyte.connections module<a class="headerlink" href="#module-pyte.connections" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="ppsim.connections.bus">
-<em class="property">class </em><code class="descclassname">ppsim.connections.</code><code class="descname">bus</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.bus" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.bus">
+<em class="property">class </em><code class="descclassname">pyte.connections.</code><code class="descname">bus</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>establish power connection between turbines, pumps, heat exchanger</p>
 <dl class="method">
-<dt id="ppsim.connections.bus.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.bus.__init__" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.bus.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus.__init__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.bus.add_comp">
-<code class="descname">add_comp</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.bus.add_comp" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.bus.add_comp">
+<code class="descname">add_comp</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus.add_comp" title="Permalink to this definition">¶</a></dt>
 <dd><p>add component to bus</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.bus.check_comp">
-<code class="descname">check_comp</code><span class="sig-paren">(</span><em>comp</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.bus.check_comp" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.bus.check_comp">
+<code class="descname">check_comp</code><span class="sig-paren">(</span><em>comp</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus.check_comp" title="Permalink to this definition">¶</a></dt>
 <dd><p>check component</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="ppsim.connections.connection">
-<em class="property">class </em><code class="descclassname">ppsim.connections.</code><code class="descname">connection</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection">
+<em class="property">class </em><code class="descclassname">pyte.connections.</code><code class="descname">connection</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>class connection</p>
 <p>creates connection between two components</p>
 <dl class="method">
-<dt id="ppsim.connections.connection.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection.__init__" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>object initialisation</dt>
 <dd><ul class="first last simple">
@@ -90,9 +90,9 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>comp1</strong> (<em>ppsim.components object</em>) &#8211; connections source</li>
+<li><strong>comp1</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) &#8211; connections source</li>
 <li><strong>outlet_id</strong> (<em>str</em>) &#8211; outlet id at the connections source</li>
-<li><strong>comp2</strong> (<em>ppsim.components object</em>) &#8211; connections target</li>
+<li><strong>comp2</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) &#8211; connections target</li>
 <li><strong>inlet_id</strong> (<em>str</em>) &#8211; inlet id at the connections target</li>
 </ul>
 </td>
@@ -138,8 +138,8 @@ values for mass flow and pressure</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.connection.as_list">
-<code class="descname">as_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection.as_list" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection.as_list">
+<code class="descname">as_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>create a list containing the connections fluid information</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -152,8 +152,8 @@ values for mass flow and pressure</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.connection.attr">
-<code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection.attr" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection.attr">
+<code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.attr" title="Permalink to this definition">¶</a></dt>
 <dd><p>get the list of attributes allowed for a connection object</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -166,8 +166,8 @@ values for mass flow and pressure</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.connection.get_attr">
-<code class="descname">get_attr</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection.get_attr" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection.get_attr">
+<code class="descname">get_attr</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.get_attr" title="Permalink to this definition">¶</a></dt>
 <dd><p>get the value of a connection attribute</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -186,8 +186,8 @@ values for mass flow and pressure</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.connections.connection.set_attr">
-<code class="descname">set_attr</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.connection.set_attr" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.connection.set_attr">
+<code class="descname">set_attr</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.set_attr" title="Permalink to this definition">¶</a></dt>
 <dd><p>sets, resets or unsets attributes of a connection, for the keyword
 arguments, return values and errors see object initialisation</p>
 </dd></dl>
@@ -195,59 +195,62 @@ arguments, return values and errors see object initialisation</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="ppsim.connections.ref">
-<em class="property">class </em><code class="descclassname">ppsim.connections.</code><code class="descname">ref</code><span class="sig-paren">(</span><em>ref_obj</em>, <em>factor</em>, <em>delta</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.ref" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.connections.ref">
+<em class="property">class </em><code class="descclassname">pyte.connections.</code><code class="descname">ref</code><span class="sig-paren">(</span><em>ref_obj</em>, <em>factor</em>, <em>delta</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.ref" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>class reference</p>
 <p>creates reference object for network parametetrisation</p>
 <dl class="method">
-<dt id="ppsim.connections.ref.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>ref_obj</em>, <em>factor</em>, <em>delta</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.connections.ref.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>method __init__</p>
-<dl class="docutils">
-<dt>arguments</dt>
-<dd><dl class="first last docutils">
-<dt>ref_obj: ppsim.connection</dt>
-<dd>connection to be referenced</dd>
-<dt>factor: float</dt>
-<dd>factor for referenced value</dd>
-<dt>delta: float</dt>
-<dd>delta for referenced value</dd>
-</dl>
-</dd>
-</dl>
-<dl class="docutils">
-<dt>returns</dt>
-<dd>None</dd>
-</dl>
+<dt id="pyte.connections.ref.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>ref_obj</em>, <em>factor</em>, <em>delta</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.ref.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>object initialisation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ref_obj</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to be referenced</li>
+<li><strong>factor</strong> (<em>numeric</em>) &#8211; factor for the reference</li>
+<li><strong>delta</strong> (<em>numeric</em>) &#8211; delta for the reference</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">no return value</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>example</strong></p>
+<div class="math">
+\[\dot{m} = \dot{m}_\mathrm{ref} \cdot factor + delta\]</div>
 </dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-ppsim.helpers">
-<span id="ppsim-helpers-module"></span><h2>ppsim.helpers module<a class="headerlink" href="#module-ppsim.helpers" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pyte.helpers">
+<span id="pyte-helpers-module"></span><h2>pyte.helpers module<a class="headerlink" href="#module-pyte.helpers" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
-<dt id="ppsim.helpers.MyComponentError">
-<em class="property">exception </em><code class="descclassname">ppsim.helpers.</code><code class="descname">MyComponentError</code><a class="headerlink" href="#ppsim.helpers.MyComponentError" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.MyComponentError">
+<em class="property">exception </em><code class="descclassname">pyte.helpers.</code><code class="descname">MyComponentError</code><a class="headerlink" href="#pyte.helpers.MyComponentError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
 </dd></dl>
 
 <dl class="exception">
-<dt id="ppsim.helpers.MyConnectionError">
-<em class="property">exception </em><code class="descclassname">ppsim.helpers.</code><code class="descname">MyConnectionError</code><a class="headerlink" href="#ppsim.helpers.MyConnectionError" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.MyConnectionError">
+<em class="property">exception </em><code class="descclassname">pyte.helpers.</code><code class="descname">MyConnectionError</code><a class="headerlink" href="#pyte.helpers.MyConnectionError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
 </dd></dl>
 
 <dl class="exception">
-<dt id="ppsim.helpers.MyNetworkError">
-<em class="property">exception </em><code class="descclassname">ppsim.helpers.</code><code class="descname">MyNetworkError</code><a class="headerlink" href="#ppsim.helpers.MyNetworkError" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.MyNetworkError">
+<em class="property">exception </em><code class="descclassname">pyte.helpers.</code><code class="descname">MyNetworkError</code><a class="headerlink" href="#pyte.helpers.MyNetworkError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.T_mix_ph">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">T_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.T_mix_ph" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.T_mix_ph">
+<code class="descclassname">pyte.helpers.</code><code class="descname">T_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.T_mix_ph" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the temperature from pressure and enthalpy,
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -263,8 +266,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.T_mix_ps">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">T_mix_ps</code><span class="sig-paren">(</span><em>flow</em>, <em>s</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.T_mix_ps" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.T_mix_ps">
+<code class="descclassname">pyte.helpers.</code><code class="descname">T_mix_ps</code><span class="sig-paren">(</span><em>flow</em>, <em>s</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.T_mix_ps" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the temperature from pressure and entropy,
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -285,8 +288,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.dT_mix_dph">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">dT_mix_dph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.dT_mix_dph" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.dT_mix_dph">
+<code class="descclassname">pyte.helpers.</code><code class="descname">dT_mix_dph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.dT_mix_dph" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates partial derivate of temperature to pressure at
 constant enthalpy and fluid composition</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -302,8 +305,8 @@ constant enthalpy and fluid composition</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.dT_mix_pdh">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">dT_mix_pdh</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.dT_mix_pdh" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.dT_mix_pdh">
+<code class="descclassname">pyte.helpers.</code><code class="descname">dT_mix_pdh</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.dT_mix_pdh" title="Permalink to this definition">¶</a></dt>
 <dd><p>method to calculate partial derivate of temperature to enthalpy at
 constant pressure and fluid composition</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -319,8 +322,8 @@ constant pressure and fluid composition</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.dT_mix_ph_dfluid">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">dT_mix_ph_dfluid</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.dT_mix_ph_dfluid" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.dT_mix_ph_dfluid">
+<code class="descclassname">pyte.helpers.</code><code class="descname">dT_mix_ph_dfluid</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.dT_mix_ph_dfluid" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates partial derivates of temperature to fluid composition at
 constant pressure and enthalpy</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -336,8 +339,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.dh_mix_dpQ">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">dh_mix_dpQ</code><span class="sig-paren">(</span><em>flow</em>, <em>Q</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.dh_mix_dpQ" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.dh_mix_dpQ">
+<code class="descclassname">pyte.helpers.</code><code class="descname">dh_mix_dpQ</code><span class="sig-paren">(</span><em>flow</em>, <em>Q</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.dh_mix_dpQ" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates partial derivative of enthalpy to pressure at constant quality</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -361,8 +364,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.dh_mix_pdT">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">dh_mix_pdT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.dh_mix_pdT" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.dh_mix_pdT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">dh_mix_pdT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.dh_mix_pdT" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates partial derivate of enthalpy to temperature at constant pressure</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -382,8 +385,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.ds_mix_pdT">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">ds_mix_pdT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.ds_mix_pdT" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.ds_mix_pdT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">ds_mix_pdT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.ds_mix_pdT" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates partial derivate of entropy to temperature at constant pressure</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -403,8 +406,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.fluid_structure">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">fluid_structure</code><span class="sig-paren">(</span><em>fluid</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.fluid_structure" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.fluid_structure">
+<code class="descclassname">pyte.helpers.</code><code class="descname">fluid_structure</code><span class="sig-paren">(</span><em>fluid</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.fluid_structure" title="Permalink to this definition">¶</a></dt>
 <dd><p>gets the chemical formular of a fluid</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -419,8 +422,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.h_mix_pQ">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">h_mix_pQ</code><span class="sig-paren">(</span><em>flow</em>, <em>Q</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.h_mix_pQ" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.h_mix_pQ">
+<code class="descclassname">pyte.helpers.</code><code class="descname">h_mix_pQ</code><span class="sig-paren">(</span><em>flow</em>, <em>Q</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.h_mix_pQ" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates enthalpy from pressure and quality</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -444,8 +447,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.h_mix_pT">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">h_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.h_mix_pT" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.h_mix_pT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">h_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.h_mix_pT" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates enthalpy from pressure and temperature</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -465,8 +468,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.lamb">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">lamb</code><span class="sig-paren">(</span><em>re</em>, <em>ks</em>, <em>d</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.lamb" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.lamb">
+<code class="descclassname">pyte.helpers.</code><code class="descname">lamb</code><span class="sig-paren">(</span><em>re</em>, <em>ks</em>, <em>d</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.lamb" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates darcy friction factor</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -487,8 +490,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.molar_massflow">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">molar_massflow</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.molar_massflow" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.molar_massflow">
+<code class="descclassname">pyte.helpers.</code><code class="descname">molar_massflow</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.molar_massflow" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates molar massflow</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -503,8 +506,8 @@ constant pressure and enthalpy</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.newton">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">newton</code><span class="sig-paren">(</span><em>func</em>, <em>deriv</em>, <em>flow</em>, <em>k</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.newton" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.newton">
+<code class="descclassname">pyte.helpers.</code><code class="descname">newton</code><span class="sig-paren">(</span><em>func</em>, <em>deriv</em>, <em>flow</em>, <em>k</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.newton" title="Permalink to this definition">¶</a></dt>
 <dd><p>find zero crossings of function func with 1-D newton algorithm,
 required for reverse functions of fluid mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -527,8 +530,8 @@ required for reverse functions of fluid mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.num_fluids">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">num_fluids</code><span class="sig-paren">(</span><em>fluids</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.num_fluids" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.num_fluids">
+<code class="descclassname">pyte.helpers.</code><code class="descname">num_fluids</code><span class="sig-paren">(</span><em>fluids</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.num_fluids" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates number of fluids in fluid vector</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -543,8 +546,8 @@ required for reverse functions of fluid mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.query_yes_no">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">query_yes_no</code><span class="sig-paren">(</span><em>question</em>, <em>default='yes'</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.query_yes_no" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.query_yes_no">
+<code class="descclassname">pyte.helpers.</code><code class="descname">query_yes_no</code><span class="sig-paren">(</span><em>question</em>, <em>default='yes'</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.query_yes_no" title="Permalink to this definition">¶</a></dt>
 <dd><p>in prompt query</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -564,8 +567,8 @@ required for reverse functions of fluid mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.s_mix_pT">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">s_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.s_mix_pT" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.s_mix_pT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">s_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.s_mix_pT" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates entropy from pressure and temperature
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -586,8 +589,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.s_mix_ph">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">s_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.s_mix_ph" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.s_mix_ph">
+<code class="descclassname">pyte.helpers.</code><code class="descname">s_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.s_mix_ph" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates entropy from pressure and enthalpy
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -603,8 +606,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.v_mix_pT">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">v_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.v_mix_pT" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.v_mix_pT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">v_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.v_mix_pT" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates specific volume from pressure and temperature
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -625,8 +628,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="ppsim.helpers.v_mix_ph">
-<code class="descclassname">ppsim.helpers.</code><code class="descname">v_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.helpers.v_mix_ph" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.helpers.v_mix_ph">
+<code class="descclassname">pyte.helpers.</code><code class="descname">v_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.v_mix_ph" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates specific volume from pressure and enthalpy
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -642,11 +645,11 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-ppsim.networks">
-<span id="ppsim-networks-module"></span><h2>ppsim.networks module<a class="headerlink" href="#module-ppsim.networks" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pyte.networks">
+<span id="pyte-networks-module"></span><h2>pyte.networks module<a class="headerlink" href="#module-pyte.networks" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="ppsim.networks.load_nw">
-<code class="descclassname">ppsim.networks.</code><code class="descname">load_nw</code><span class="sig-paren">(</span><em>nw_name</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.load_nw" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.load_nw">
+<code class="descclassname">pyte.networks.</code><code class="descname">load_nw</code><span class="sig-paren">(</span><em>nw_name</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.load_nw" title="Permalink to this definition">¶</a></dt>
 <dd><p>generate network class providing result files
 Required files:</p>
 <blockquote>
@@ -659,23 +662,23 @@ Required files:</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="ppsim.networks.network">
-<em class="property">class </em><code class="descclassname">ppsim.networks.</code><code class="descname">network</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network">
+<em class="property">class </em><code class="descclassname">pyte.networks.</code><code class="descname">network</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>class network aggregates information on components, connections and busses</p>
 <dl class="attribute">
-<dt id="ppsim.networks.network.T_unit">
-<code class="descname">T_unit</code><em class="property"> = {'K': [0, 1], 'C': [273.15, 1], 'F': [459.67, 0.5555555555555556]}</em><a class="headerlink" href="#ppsim.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.T_unit">
+<code class="descname">T_unit</code><em class="property"> = {'K': [0, 1], 'C': [273.15, 1], 'F': [459.67, 0.5555555555555556]}</em><a class="headerlink" href="#pyte.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.__init__" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.__init__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.add_busses">
-<code class="descname">add_busses</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.add_busses" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.add_busses">
+<code class="descname">add_busses</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.add_busses" title="Permalink to this definition">¶</a></dt>
 <dd><p>adds busses to the network, if check_busses returns <code class="code docutils literal"><span class="pre">True</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -691,8 +694,8 @@ Required files:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.add_conns">
-<code class="descname">add_conns</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.add_conns" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.add_conns">
+<code class="descname">add_conns</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.add_conns" title="Permalink to this definition">¶</a></dt>
 <dd><p>add connections to the network, calls check_conns method</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -708,8 +711,8 @@ Required files:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.add_subsys">
-<code class="descname">add_subsys</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.add_subsys" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.add_subsys">
+<code class="descname">add_subsys</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.add_subsys" title="Permalink to this definition">¶</a></dt>
 <dd><p>adds connections to the network, calls check_conns method</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -725,15 +728,15 @@ Required files:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.check_busses">
-<code class="descname">check_busses</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.check_busses" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.check_busses">
+<code class="descname">check_busses</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.check_busses" title="Permalink to this definition">¶</a></dt>
 <dd><p>checks the networks connections for multiple usage of inlets or outlets
 of components</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<em>ppsim.busses</em>) &#8211; busses object to check</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) &#8211; busses object to check</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
@@ -750,15 +753,15 @@ of components</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.check_conns">
-<code class="descname">check_conns</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.check_conns" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.check_conns">
+<code class="descname">check_conns</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.check_conns" title="Permalink to this definition">¶</a></dt>
 <dd><p>checks the networks connections for multiple usage of inlets or outlets
 of components</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#module-ppsim.connections" title="ppsim.connections"><em>ppsim.connections</em></a>) &#8211; connections object to check</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to check</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
@@ -776,8 +779,8 @@ already connected to another connections object</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.check_network">
-<code class="descname">check_network</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.check_network" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.check_network">
+<code class="descname">check_network</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.check_network" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>checks the network consistency: are all components connected?</dt>
 <dd><ul class="first last simple">
@@ -802,14 +805,14 @@ network does not match number of connections required</td>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.del_busses">
-<code class="descname">del_busses</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.del_busses" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.del_busses">
+<code class="descname">del_busses</code><span class="sig-paren">(</span><em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.del_busses" title="Permalink to this definition">¶</a></dt>
 <dd><p>delets busses from a network</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>b</strong> (<em>ppsim.busses</em>) &#8211; bus object to delete</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>b</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) &#8211; bus object to delete</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -820,14 +823,14 @@ network does not match number of connections required</td>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.del_conns">
-<code class="descname">del_conns</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.del_conns" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.del_conns">
+<code class="descname">del_conns</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.del_conns" title="Permalink to this definition">¶</a></dt>
 <dd><p>delets connections from a network</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#module-ppsim.connections" title="ppsim.connections"><em>ppsim.connections</em></a>) &#8211; connections object to delete</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<em>pyte.connection</em>) &#8211; connections object to delete</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -838,19 +841,19 @@ network does not match number of connections required</td>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="ppsim.networks.network.h_unit">
-<code class="descname">h_unit</code><em class="property"> = {'kJ / kg': 1000.0, 'MJ / kg': 1000000.0, 'J / kg': 1}</em><a class="headerlink" href="#ppsim.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.h_unit">
+<code class="descname">h_unit</code><em class="property"> = {'MJ / kg': 1000000.0, 'J / kg': 1, 'kJ / kg': 1000.0}</em><a class="headerlink" href="#pyte.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_components">
-<code class="descname">init_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_components" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_components">
+<code class="descname">init_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>writes the networks components into dataframe</p>
 <p>dataframe <code class="code docutils literal"><span class="pre">network.comps</span></code>:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="36%" />
-<col width="51%" />
+<col width="35%" />
+<col width="52%" />
 <col width="13%" />
 </colgroup>
 <thead valign="bottom">
@@ -865,7 +868,7 @@ network does not match number of connections required</td>
 <td>see i</td>
 </tr>
 <tr class="row-odd"><td>value: comp.label</td>
-<td>values: ppsim.connections</td>
+<td>values: connection objects</td>
 <td>&nbsp;</td>
 </tr>
 </tbody>
@@ -881,8 +884,8 @@ network does not match number of connections required</td>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_csv">
-<code class="descname">init_csv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_csv" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_csv">
+<code class="descname">init_csv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_csv" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>initialise network from .csv file, used for</dt>
 <dd><ul class="first last simple">
@@ -902,8 +905,8 @@ network does not match number of connections required</td>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_fluids">
-<code class="descname">init_fluids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_fluids" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_fluids">
+<code class="descname">init_fluids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_fluids" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>initialises the fluid vector on every connection of the network</dt>
 <dd><ul class="first last simple">
@@ -930,8 +933,8 @@ other components</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_h0">
-<code class="descname">init_h0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_h0" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_h0">
+<code class="descname">init_h0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_h0" title="Permalink to this definition">¶</a></dt>
 <dd><p>sets standard initialisation values for enthalpy
 values for enthalpy deriven by</p>
 <blockquote>
@@ -945,7 +948,7 @@ values for enthalpy deriven by</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<em>ppsim.connections.connections</em>) &#8211; connection to initialise</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -954,8 +957,8 @@ values for enthalpy deriven by</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_offdesign">
-<code class="descname">init_offdesign</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_offdesign" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_offdesign">
+<code class="descname">init_offdesign</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_offdesign" title="Permalink to this definition">¶</a></dt>
 <dd><p>auto switches components from design to offdesign mode, if
 <code class="code docutils literal"><span class="pre">comp.mode</span> <span class="pre">==</span> <span class="pre">'auto'</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -969,8 +972,8 @@ values for enthalpy deriven by</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_p0">
-<code class="descname">init_p0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_p0" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_p0">
+<code class="descname">init_p0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_p0" title="Permalink to this definition">¶</a></dt>
 <dd><p>sets standard initialisation values for pressure
 values for pressure deriven by</p>
 <blockquote>
@@ -984,7 +987,7 @@ values for pressure deriven by</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<em>ppsim.connections.connections</em>) &#8211; connection to initialise</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -993,8 +996,8 @@ values for pressure deriven by</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_properties">
-<code class="descname">init_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_properties" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_properties">
+<code class="descname">init_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_properties" title="Permalink to this definition">¶</a></dt>
 <dd><p>initialises the fluid properties on every connection of the network</p>
 <blockquote>
 <div><ul class="simple">
@@ -1017,8 +1020,8 @@ temperature</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_refobj">
-<code class="descname">init_refobj</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_refobj" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_refobj">
+<code class="descname">init_refobj</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_refobj" title="Permalink to this definition">¶</a></dt>
 <dd><p>initialise reference objects as fluid properties</p>
 <blockquote>
 <div><ul class="simple">
@@ -1037,8 +1040,8 @@ temperature</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_source">
-<code class="descname">init_source</code><span class="sig-paren">(</span><em>c</em>, <em>start</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_source" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_source">
+<code class="descname">init_source</code><span class="sig-paren">(</span><em>c</em>, <em>start</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_source" title="Permalink to this definition">¶</a></dt>
 <dd><p>propagates the fluids towards connections source,
 ends when reaching source, merge or combustion chamber</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1046,8 +1049,8 @@ ends when reaching source, merge or combustion chamber</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<em>ppsim.connections.connections object</em>) &#8211; connection to initialise</li>
-<li><strong>start</strong> (<em>ppsim.connections.connections object</em>) &#8211; fluid propagation startingpoint, in some cases needed
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</li>
+<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; fluid propagation startingpoint, in some cases needed
 to exit the recursion</li>
 </ul>
 </td>
@@ -1060,8 +1063,8 @@ to exit the recursion</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.init_target">
-<code class="descname">init_target</code><span class="sig-paren">(</span><em>c</em>, <em>start</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.init_target" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.init_target">
+<code class="descname">init_target</code><span class="sig-paren">(</span><em>c</em>, <em>start</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_target" title="Permalink to this definition">¶</a></dt>
 <dd><p>propagates the fluids towards connections target,
 ends when reaching sink, merge or combustion chamber</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1069,8 +1072,8 @@ ends when reaching sink, merge or combustion chamber</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<em>ppsim.connections.connections object</em>) &#8211; connection to initialise</li>
-<li><strong>start</strong> (<em>ppsim.connections.connections object</em>) &#8211; fluid propagation startingpoint, in some cases needed
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</li>
+<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; fluid propagation startingpoint, in some cases needed
 to exit the recursion</li>
 </ul>
 </td>
@@ -1083,8 +1086,8 @@ to exit the recursion</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.initialise">
-<code class="descname">initialise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.initialise" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.initialise">
+<code class="descname">initialise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.initialise" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>initilialises the network</dt>
 <dd><ul class="first last simple">
@@ -1107,18 +1110,18 @@ to exit the recursion</li>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="ppsim.networks.network.m_unit">
-<code class="descname">m_unit</code><em class="property"> = {'kg / s': 1, 't / h': 3.6}</em><a class="headerlink" href="#ppsim.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.m_unit">
+<code class="descname">m_unit</code><em class="property"> = {'t / h': 3.6, 'kg / s': 1}</em><a class="headerlink" href="#pyte.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="ppsim.networks.network.p_unit">
-<code class="descname">p_unit</code><em class="property"> = {'bar': 100000.0, 'MPa': 1000000.0, 'psi': 6894.8, 'Pa': 1}</em><a class="headerlink" href="#ppsim.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.p_unit">
+<code class="descname">p_unit</code><em class="property"> = {'psi': 6894.8, 'bar': 100000.0, 'MPa': 1000000.0, 'Pa': 1}</em><a class="headerlink" href="#pyte.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.plot_convergence">
-<code class="descname">plot_convergence</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.plot_convergence" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.plot_convergence">
+<code class="descname">plot_convergence</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.plot_convergence" title="Permalink to this definition">¶</a></dt>
 <dd><p>plots the convergence history of all mass flows, pressures and
 enthalpies as absolute values or relative to last value</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1136,8 +1139,8 @@ enthalpies as absolute values or relative to last value</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.process_components">
-<code class="descname">process_components</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.process_components" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.process_components">
+<code class="descname">process_components</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.process_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>preprocessing or postprocessing for components: calculation of
 components attributes</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1153,8 +1156,8 @@ components attributes</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.process_post_calc">
-<code class="descname">process_post_calc</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.process_post_calc" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.process_post_calc">
+<code class="descname">process_post_calc</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.process_post_calc" title="Permalink to this definition">¶</a></dt>
 <dd><p>postprocessing: calculate components attributes</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1169,8 +1172,8 @@ components attributes</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.process_post_print">
-<code class="descname">process_post_print</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.process_post_print" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.process_post_print">
+<code class="descname">process_post_print</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.process_post_print" title="Permalink to this definition">¶</a></dt>
 <dd><p>postprocessing: calculate components attributes and print them to
 prompt</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1186,8 +1189,8 @@ prompt</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.process_pre">
-<code class="descname">process_pre</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.process_pre" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.process_pre">
+<code class="descname">process_pre</code><span class="sig-paren">(</span><em>cols</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.process_pre" title="Permalink to this definition">¶</a></dt>
 <dd><p>preprocessing: calculate components attributes</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1202,36 +1205,31 @@ prompt</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.save" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
-<dt>method save</dt>
-<dd><dl class="first last docutils">
-<dt>stores the results in two files as filename_*.csv:</dt>
-<dd>result file for connections
-file for components</dd>
-</dl>
+<dt>saves the results in two files:</dt>
+<dd><ul class="first last simple">
+<li>results file and</li>
+<li>components file</li>
+</ul>
 </dd>
 </dl>
-<dl class="docutils">
-<dt>arguments</dt>
-<dd><dl class="first last docutils">
-<dt>nw: ppsim.network</dt>
-<dd>network to save</dd>
-<dt>filename: str</dt>
-<dd>suffix for the files</dd>
-</dl>
-</dd>
-</dl>
-<dl class="docutils">
-<dt>returns</dt>
-<dd>None</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) &#8211; suffix for the .csv-file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.save_components">
-<code class="descname">save_components</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.save_components" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.save_components">
+<code class="descname">save_components</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save_components" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>saves the components to filename_comps.csv</dt>
 <dd><ul class="first last">
@@ -1262,8 +1260,8 @@ file for components</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.save_connections">
-<code class="descname">save_connections</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.save_connections" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.save_connections">
+<code class="descname">save_connections</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save_connections" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>saves the results to filename_results.csv</dt>
 <dd><ul class="first last">
@@ -1299,8 +1297,8 @@ file for components</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>mode</em>, <em>init_file=None</em>, <em>design_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve">
+<code class="descname">solve</code><span class="sig-paren">(</span><em>mode</em>, <em>init_file=None</em>, <em>design_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>solves the network:</dt>
 <dd><ul class="first last simple">
@@ -1329,8 +1327,8 @@ file for components</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_T">
-<code class="descname">solve_T</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_T" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_T">
+<code class="descname">solve_T</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_T" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>calculate residuals and partial derivatives for given temperature</dt>
 <dd><ul class="first last simple">
@@ -1344,7 +1342,7 @@ is skipped if residuals become very small (speeds up calculation)</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<em>ppsim.connections object</em>) &#8211; connections object to apply calculations on</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
 <li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
 <li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
 </ul>
@@ -1358,8 +1356,8 @@ is skipped if residuals become very small (speeds up calculation)</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_busses">
-<code class="descname">solve_busses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_busses" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_busses">
+<code class="descname">solve_busses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_busses" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 busses.</p>
 <blockquote>
@@ -1381,8 +1379,8 @@ derivatives</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_check_row">
-<code class="descname">solve_check_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_check_row" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_check_row">
+<code class="descname">solve_check_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_check_row" title="Permalink to this definition">¶</a></dt>
 <dd><p>check row index increment for jacobian matrix</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1400,8 +1398,8 @@ the number of total variables in the network (overdetermined).</td>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_components">
-<code class="descname">solve_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_components" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_components">
+<code class="descname">solve_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 components.</p>
 <blockquote>
@@ -1423,8 +1421,8 @@ derivatives</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_connections">
-<code class="descname">solve_connections</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_connections" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_connections">
+<code class="descname">solve_connections</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_connections" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 connectons.</p>
 <blockquote>
@@ -1446,8 +1444,8 @@ derivatives</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_loop">
-<code class="descname">solve_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_loop" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_loop">
+<code class="descname">solve_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the solution of the network with n-dimensional newton
 algorithm:</p>
 <blockquote>
@@ -1471,8 +1469,8 @@ algorithm:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_m_p_h">
-<code class="descname">solve_m_p_h</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em>, <em>var</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_m_p_h" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_m_p_h">
+<code class="descname">solve_m_p_h</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em>, <em>var</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_m_p_h" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculate residuals and partial derivatives for given mass flow,
 pressure and/or enthalpy</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1480,7 +1478,7 @@ pressure and/or enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<em>ppsim.connections object</em>) &#8211; connections object to apply calculations on</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
 <li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
 <li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
 <li><strong>var</strong> (<em>str</em>) &#8211; variable to perform calculation (m, p, h)</li>
@@ -1495,8 +1493,8 @@ pressure and/or enthalpy</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.solve_x">
-<code class="descname">solve_x</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.solve_x" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.solve_x">
+<code class="descname">solve_x</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_x" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculate residuals and partial derivatives for given vapour mass
 fraction</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1504,7 +1502,7 @@ fraction</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<em>ppsim.connections object</em>) &#8211; connections object to apply calculations on</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
 <li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
 <li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
 </ul>
@@ -1518,15 +1516,15 @@ fraction</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="ppsim.networks.network.var">
-<code class="descname">var</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ppsim.networks.network.var" title="Permalink to this definition">¶</a></dt>
+<dt id="pyte.networks.network.var">
+<code class="descname">var</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.var" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-ppsim">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ppsim" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pyte">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyte" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -1538,12 +1536,12 @@ fraction</p>
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">ppsim package</a><ul>
+<li><a class="reference internal" href="#">pyte package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-ppsim.connections">ppsim.connections module</a></li>
-<li><a class="reference internal" href="#module-ppsim.helpers">ppsim.helpers module</a></li>
-<li><a class="reference internal" href="#module-ppsim.networks">ppsim.networks module</a></li>
-<li><a class="reference internal" href="#module-ppsim">Module contents</a></li>
+<li><a class="reference internal" href="#module-pyte.connections">pyte.connections module</a></li>
+<li><a class="reference internal" href="#module-pyte.helpers">pyte.helpers module</a></li>
+<li><a class="reference internal" href="#module-pyte.networks">pyte.networks module</a></li>
+<li><a class="reference internal" href="#module-pyte">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -1557,7 +1555,7 @@ fraction</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/ppsim.txt"
+      <li><a href="_sources/pyte.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -1586,7 +1584,7 @@ fraction</p>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
       
       |
-      <a href="_sources/ppsim.txt"
+      <a href="_sources/pyte.txt"
           rel="nofollow">Page source</a>
     </div>
 

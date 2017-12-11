@@ -9,7 +9,7 @@
 import numpy as np
 import math
 
-from ppsim.helpers import (
+from pyte.helpers import (
     MyComponentError, MyNetworkError
 )
 

@@ -1,36 +1,38 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pyte package &mdash; ppsim 1.0 documentation</title>
-    
+    <title>pyte package &#8212; ppsim 1.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
         VERSION:     '1.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="ppsim 1.0 documentation" href="index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
    
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head>
-  <body role="document">  
+  <body>
+  
 
     <div class="document">
       <div class="documentwrapper">
@@ -50,11 +52,6 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>establish power connection between turbines, pumps, heat exchanger</p>
 <dl class="method">
-<dt id="pyte.connections.bus.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="pyte.connections.bus.add_comp">
 <code class="descname">add_comp</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.bus.add_comp" title="Permalink to this definition">¶</a></dt>
 <dd><p>add component to bus</p>
@@ -72,53 +69,27 @@
 <dt id="pyte.connections.connection">
 <em class="property">class </em><code class="descclassname">pyte.connections.</code><code class="descname">connection</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>class connection</p>
 <p>creates connection between two components</p>
-<dl class="method">
-<dt id="pyte.connections.connection.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>comp1</em>, <em>outlet_id</em>, <em>comp2</em>, <em>inlet_id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>object initialisation</dt>
-<dd><ul class="first last simple">
+<ul class="simple">
 <li>check argument consistency</li>
 <li>set attributes to specified values</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>comp1</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) &#8211; connections source</li>
-<li><strong>outlet_id</strong> (<em>str</em>) &#8211; outlet id at the connections source</li>
-<li><strong>comp2</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) &#8211; connections target</li>
-<li><strong>inlet_id</strong> (<em>str</em>) &#8211; inlet id at the connections target</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>comp1</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) – connections source</li>
+<li><strong>outlet_id</strong> (<em>str</em>) – outlet id at the connections source</li>
+<li><strong>comp2</strong> (<a class="reference internal" href="pyte.components.html#pyte.components.components.component" title="pyte.components.components.component"><em>pyte.components.components.component</em></a>) – connections target</li>
+<li><strong>inlet_id</strong> (<em>str</em>) – inlet id at the connections target</li>
 </ul>
 </td>
 </tr>
-</tbody>
-</table>
-<dl class="docutils">
-<dt>allowed keywords in kwargs (also see connections.attr()):</dt>
-<dd><ul class="first last simple">
-<li>m, m0</li>
-<li>p, p0</li>
-<li>h, h0</li>
-<li>T</li>
-<li>x</li>
-<li>fluid</li>
-</ul>
-</dd>
-</dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
 <li><code class="code docutils literal"><span class="pre">TypeError</span></code>, if comp1 and comp2 are not of type
 components</li>
 <li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if comp1 and comp2 are the same object</li>
@@ -129,14 +100,18 @@ for ids for comp1 or comp2</li>
 </tr>
 </tbody>
 </table>
-<dl class="docutils">
-<dt>example</dt>
-<dd></dd>
-</dl>
+<p><strong>allowed keywords</strong> in kwargs (also see connections.attr()):</p>
+<ul class="simple">
+<li>m, m0</li>
+<li>p, p0</li>
+<li>h, h0</li>
+<li>T</li>
+<li>x</li>
+<li>fluid</li>
+</ul>
+<p><strong>example</strong></p>
 <p>creates component from turbine to condenser (hot side inlet) and sets
 values for mass flow and pressure</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="pyte.connections.connection.as_list">
 <code class="descname">as_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.connection.as_list" title="Permalink to this definition">¶</a></dt>
@@ -173,7 +148,7 @@ values for mass flow and pressure</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>str</em>) &#8211; attribute to return its value</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>str</em>) – attribute to return its value</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
 <li><code class="code docutils literal"><span class="pre">self.__dict__[key]</span></code> if object has attribute key</li>
@@ -200,31 +175,6 @@ arguments, return values and errors see object initialisation</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>class reference</p>
 <p>creates reference object for network parametetrisation</p>
-<dl class="method">
-<dt id="pyte.connections.ref.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>ref_obj</em>, <em>factor</em>, <em>delta</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.connections.ref.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>object initialisation</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>ref_obj</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to be referenced</li>
-<li><strong>factor</strong> (<em>numeric</em>) &#8211; factor for the reference</li>
-<li><strong>delta</strong> (<em>numeric</em>) &#8211; delta for the reference</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">no return value</p>
-</td>
-</tr>
-</tbody>
-</table>
-<p><strong>example</strong></p>
-<div class="math">
-\[\dot{m} = \dot{m}_\mathrm{ref} \cdot factor + delta\]</div>
-</dd></dl>
-
 </dd></dl>
 
 </div>
@@ -257,7 +207,7 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">T (float) - temperature in K</td>
 </tr>
@@ -275,8 +225,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>s</strong> (<em>numeric</em>) &#8211; entropy in J / (kg * K)</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>s</strong> (<em>numeric</em>) – entropy in J / (kg * K)</li>
 </ul>
 </td>
 </tr>
@@ -296,7 +246,7 @@ constant enthalpy and fluid composition</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">dT / dp (float) - derivative in K / Pa</td>
 </tr>
@@ -313,7 +263,7 @@ constant pressure and fluid composition</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">dT / dh (float) - derivative in (K * kg) / J</td>
 </tr>
@@ -330,7 +280,7 @@ constant pressure and enthalpy</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">dT / dfluid (np.array of floats) - derivatives in K</td>
 </tr>
@@ -351,8 +301,8 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>Q</strong> (<em>numeric</em>) &#8211; fraction of vapour mass to total mass in 1</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>Q</strong> (<em>numeric</em>) – fraction of vapour mass to total mass in 1</li>
 </ul>
 </td>
 </tr>
@@ -372,8 +322,8 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>T</strong> (<em>numeric</em>) &#8211; temperature in K</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
 </ul>
 </td>
 </tr>
@@ -393,8 +343,8 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>T</strong> (<em>numeric</em>) &#8211; temperature in K</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
 </ul>
 </td>
 </tr>
@@ -413,7 +363,7 @@ constant pressure and enthalpy</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fluid</strong> (<em>str</em>) &#8211; alias of the fluid</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fluid</strong> (<em>str</em>) – alias of the fluid</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">parts (dict) - returns the elements of the fluid {element: n}</td>
 </tr>
@@ -434,8 +384,8 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>Q</strong> (<em>numeric</em>) &#8211; fraction of vapour mass to total mass in 1</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>Q</strong> (<em>numeric</em>) – fraction of vapour mass to total mass in 1</li>
 </ul>
 </td>
 </tr>
@@ -455,8 +405,8 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>T</strong> (<em>numeric</em>) &#8211; temperature in K</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
 </ul>
 </td>
 </tr>
@@ -476,9 +426,9 @@ constant pressure and enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>re</strong> (<em>numeric</em>) &#8211; reynolds number in 1</li>
-<li><strong>ks</strong> (<em>numeric</em>) &#8211; roughness in m</li>
-<li><strong>d</strong> (<em>numeric</em>) &#8211; pipe diameter in m</li>
+<li><strong>re</strong> (<em>numeric</em>) – reynolds number in 1</li>
+<li><strong>ks</strong> (<em>numeric</em>) – roughness in m</li>
+<li><strong>d</strong> (<em>numeric</em>) – pipe diameter in m</li>
 </ul>
 </td>
 </tr>
@@ -489,6 +439,12 @@ constant pressure and enthalpy</p>
 </table>
 </dd></dl>
 
+<dl class="class">
+<dt id="pyte.helpers.memorise">
+<em class="property">class </em><code class="descclassname">pyte.helpers.</code><code class="descname">memorise</code><span class="sig-paren">(</span><em>num_fl</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.memorise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="pyte.helpers.molar_massflow">
 <code class="descclassname">pyte.helpers.</code><code class="descname">molar_massflow</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.molar_massflow" title="Permalink to this definition">¶</a></dt>
@@ -497,7 +453,7 @@ constant pressure and enthalpy</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">mm (float) - molar massflow in mol / s</td>
 </tr>
@@ -515,10 +471,10 @@ required for reverse functions of fluid mixtures</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>func</strong> (<em>function</em>) &#8211; function to find zero crossing in</li>
-<li><strong>deriv</strong> (<em>function</em>) &#8211; derivative of the function</li>
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>k</strong> (<em>numeric</em>) &#8211; target value for function func</li>
+<li><strong>func</strong> (<em>function</em>) – function to find zero crossing in</li>
+<li><strong>deriv</strong> (<em>function</em>) – derivative of the function</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>k</strong> (<em>numeric</em>) – target value for function func</li>
 </ul>
 </td>
 </tr>
@@ -537,7 +493,7 @@ required for reverse functions of fluid mixtures</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fluids</strong> (<em>dict</em>) &#8211; fluid vector {fluid: mass fraction}</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fluids</strong> (<em>dict</em>) – fluid vector {fluid: mass fraction}</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">n (int) - number of fluids in fluid vector in 1</td>
 </tr>
@@ -554,8 +510,8 @@ required for reverse functions of fluid mixtures</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>question</strong> (<em>str</em>) &#8211; question to ask in prompt</li>
-<li><strong>default</strong> (<em>str</em>) &#8211; default answer</li>
+<li><strong>question</strong> (<em>str</em>) – question to ask in prompt</li>
+<li><strong>default</strong> (<em>str</em>) – default answer</li>
 </ul>
 </td>
 </tr>
@@ -576,8 +532,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>T</strong> (<em>numeric</em>) &#8211; temperature in K</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
 </ul>
 </td>
 </tr>
@@ -597,7 +553,7 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">s (float) - entropy in J / (kg * K)</td>
 </tr>
@@ -615,8 +571,8 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</li>
-<li><strong>T</strong> (<em>numeric</em>) &#8211; temperature in K</li>
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
 </ul>
 </td>
 </tr>
@@ -636,7 +592,46 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) &#8211; vector containing [mass flow, pressure, enthalpy, fluid]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">v (float) - specific volume in kg / m <sup>3</sup></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyte.helpers.visc_mix_pT">
+<code class="descclassname">pyte.helpers.</code><code class="descname">visc_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.visc_mix_pT" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates specific volume from pressure and temperature
+uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</li>
+<li><strong>T</strong> (<em>numeric</em>) – temperature in K</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">v (float) - specific volume in kg / m <sup>3</sup></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyte.helpers.visc_mix_ph">
+<code class="descclassname">pyte.helpers.</code><code class="descname">visc_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.helpers.visc_mix_ph" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates specific volume from pressure and enthalpy
+uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">v (float) - specific volume in kg / m <sup>3</sup></td>
 </tr>
@@ -652,12 +647,10 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <code class="descclassname">pyte.networks.</code><code class="descname">load_nw</code><span class="sig-paren">(</span><em>nw_name</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.load_nw" title="Permalink to this definition">¶</a></dt>
 <dd><p>generate network class providing result files
 Required files:</p>
-<blockquote>
-<div><ul class="simple">
-<li>..._comps.csv</li>
-<li>..._results.csv</li>
+<ul class="simple">
+<li>…_comps.csv</li>
+<li>…_results.csv</li>
 </ul>
-</div></blockquote>
 <p>TODO: REDO!</p>
 </dd></dl>
 
@@ -668,12 +661,7 @@ Required files:</p>
 <p>class network aggregates information on components, connections and busses</p>
 <dl class="attribute">
 <dt id="pyte.networks.network.T_unit">
-<code class="descname">T_unit</code><em class="property"> = {'K': [0, 1], 'C': [273.15, 1], 'F': [459.67, 0.5555555555555556]}</em><a class="headerlink" href="#pyte.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pyte.networks.network.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="descname">T_unit</code><em class="property"> = {'F': [459.67, 0.5555555555555556], 'K': [0, 1], 'C': [273.15, 1]}</em><a class="headerlink" href="#pyte.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -684,7 +672,7 @@ Required files:</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> &#8211; <p>bus objects bi <code class="code docutils literal"><span class="pre">add_conn(b1,</span> <span class="pre">b2,</span> <span class="pre">b3,</span> <span class="pre">...)</span></code></p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – <p>bus objects bi <code class="code docutils literal"><span class="pre">add_conn(b1,</span> <span class="pre">b2,</span> <span class="pre">b3,</span> <span class="pre">...)</span></code></p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
@@ -701,7 +689,7 @@ Required files:</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> &#8211; <p>connections objects ci <code class="code docutils literal"><span class="pre">add_conn(c1,</span> <span class="pre">c2,</span> <span class="pre">c3,</span> <span class="pre">...)</span></code></p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – <p>connections objects ci <code class="code docutils literal"><span class="pre">add_conn(c1,</span> <span class="pre">c2,</span> <span class="pre">c3,</span> <span class="pre">...)</span></code></p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
@@ -718,7 +706,7 @@ Required files:</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> &#8211; <p>subsystem objects si <code class="code docutils literal"><span class="pre">add_subsys(s1,</span> <span class="pre">s2,</span> <span class="pre">s3,</span> <span class="pre">...)</span></code></p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – <p>subsystem objects si <code class="code docutils literal"><span class="pre">add_subsys(s1,</span> <span class="pre">s2,</span> <span class="pre">s3,</span> <span class="pre">...)</span></code></p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
@@ -736,7 +724,7 @@ of components</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) &#8211; busses object to check</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) – busses object to check</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
@@ -761,7 +749,7 @@ of components</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to check</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connections object to check</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
@@ -781,16 +769,13 @@ already connected to another connections object</li>
 <dl class="method">
 <dt id="pyte.networks.network.check_network">
 <code class="descname">check_network</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.check_network" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>checks the network consistency: are all components connected?</dt>
-<dd><ul class="first last simple">
+<dd><p>checks the network consistency: are all components connected?</p>
+<ul class="simple">
 <li>iterates through components of the network</li>
 <li>substract the number of connections in the network going in
 and out of the component from number of connections the component
 requires.</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -812,7 +797,7 @@ network does not match number of connections required</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>b</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) &#8211; bus object to delete</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>b</strong> (<a class="reference internal" href="#pyte.connections.bus" title="pyte.connections.bus"><em>pyte.connections.bus</em></a>) – bus object to delete</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -830,7 +815,7 @@ network does not match number of connections required</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<em>pyte.connection</em>) &#8211; connections object to delete</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<em>pyte.connection</em>) – connections object to delete</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -842,7 +827,7 @@ network does not match number of connections required</td>
 
 <dl class="attribute">
 <dt id="pyte.networks.network.h_unit">
-<code class="descname">h_unit</code><em class="property"> = {'MJ / kg': 1000000.0, 'J / kg': 1, 'kJ / kg': 1000.0}</em><a class="headerlink" href="#pyte.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">h_unit</code><em class="property"> = {'kJ / kg': 1000.0, 'MJ / kg': 1000000.0, 'J / kg': 1}</em><a class="headerlink" href="#pyte.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -869,7 +854,7 @@ network does not match number of connections required</td>
 </tr>
 <tr class="row-odd"><td>value: comp.label</td>
 <td>values: connection objects</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 </tr>
 </tbody>
 </table>
@@ -886,14 +871,11 @@ network does not match number of connections required</td>
 <dl class="method">
 <dt id="pyte.networks.network.init_csv">
 <code class="descname">init_csv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_csv" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>initialise network from .csv file, used for</dt>
-<dd><ul class="first last simple">
+<dd><p>initialise network from .csv file, used for</p>
+<ul class="simple">
 <li>preprocessing before offdesign-calculations (design_file)</li>
 <li>fluid properties and fluid initialisation (init_file)</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -907,9 +889,8 @@ network does not match number of connections required</td>
 <dl class="method">
 <dt id="pyte.networks.network.init_fluids">
 <code class="descname">init_fluids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_fluids" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>initialises the fluid vector on every connection of the network</dt>
-<dd><ul class="first last simple">
+<dd><p>initialises the fluid vector on every connection of the network</p>
+<ul class="simple">
 <li>create fluid vector for every component as dict,
 index: nw.fluids,
 values: 0 if not set by user</li>
@@ -920,8 +901,6 @@ values: False if not set by user</li>
 <li>propagate fluid vector in direction of sources and targets for
 other components</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -937,18 +916,16 @@ other components</li>
 <code class="descname">init_h0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_h0" title="Permalink to this definition">¶</a></dt>
 <dd><p>sets standard initialisation values for enthalpy
 values for enthalpy deriven by</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>user specification,</li>
 <li>attached components or</li>
 <li>unspecific value (1e6 for enthalpy)</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connection to initialise</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -976,18 +953,16 @@ values for enthalpy deriven by</p>
 <code class="descname">init_p0</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_p0" title="Permalink to this definition">¶</a></dt>
 <dd><p>sets standard initialisation values for pressure
 values for pressure deriven by</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>user specification,</li>
 <li>attached components or</li>
 <li>unspecific value (1e5 for pressure)</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connection to initialise</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -999,8 +974,7 @@ values for pressure deriven by</p>
 <dt id="pyte.networks.network.init_properties">
 <code class="descname">init_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_properties" title="Permalink to this definition">¶</a></dt>
 <dd><p>initialises the fluid properties on every connection of the network</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>sets standard values for <code class="code docutils literal"><span class="pre">m0,</span> <span class="pre">p0,</span> <span class="pre">h0</span></code> if not user specified</li>
 <li>sets <code class="code docutils literal"><span class="pre">var</span> <span class="pre">=</span> <span class="pre">var0</span></code> if var_set is False</li>
 <li>initialises reference objects</li>
@@ -1008,7 +982,6 @@ values for pressure deriven by</p>
 <li>sets initial values for enthalpy at given vapour mass fraction or
 temperature</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1023,12 +996,10 @@ temperature</li>
 <dt id="pyte.networks.network.init_refobj">
 <code class="descname">init_refobj</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.init_refobj" title="Permalink to this definition">¶</a></dt>
 <dd><p>initialise reference objects as fluid properties</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>adds a ref-attributes to connection (of type connections)</li>
 <li>sets starting value for the variable</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1049,8 +1020,8 @@ ends when reaching source, merge or combustion chamber</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</li>
-<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; fluid propagation startingpoint, in some cases needed
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connection to initialise</li>
+<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – fluid propagation startingpoint, in some cases needed
 to exit the recursion</li>
 </ul>
 </td>
@@ -1072,8 +1043,8 @@ ends when reaching sink, merge or combustion chamber</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</li>
-<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; fluid propagation startingpoint, in some cases needed
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connection to initialise</li>
+<li><strong>start</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – fluid propagation startingpoint, in some cases needed
 to exit the recursion</li>
 </ul>
 </td>
@@ -1088,17 +1059,14 @@ to exit the recursion</li>
 <dl class="method">
 <dt id="pyte.networks.network.initialise">
 <code class="descname">initialise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.initialise" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>initilialises the network</dt>
-<dd><ul class="first last simple">
+<dd><p>initilialises the network</p>
+<ul class="simple">
 <li>component initlialisation</li>
 <li>fluid propagation on all connections</li>
 <li>initilialise fluid properties</li>
 <li>initialisiation from .csv-files</li>
 <li>switch components to offdesign mode for offedesign calculation</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1116,7 +1084,7 @@ to exit the recursion</li>
 
 <dl class="attribute">
 <dt id="pyte.networks.network.p_unit">
-<code class="descname">p_unit</code><em class="property"> = {'psi': 6894.8, 'bar': 100000.0, 'MPa': 1000000.0, 'Pa': 1}</em><a class="headerlink" href="#pyte.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">p_unit</code><em class="property"> = {'psi': 6894.8, 'Pa': 1, 'MPa': 1000000.0, 'bar': 100000.0}</em><a class="headerlink" href="#pyte.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1128,11 +1096,11 @@ enthalpies as absolute values or relative to last value</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mode</strong> (<em>str</em>) &#8211; absolute values or relative to last value (abs, rel)</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mode</strong> (<em>str</em>) – absolute values or relative to last value (abs, rel)</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="code docutils literal"><span class="pre">ValueError</span></code> if mode is neither &#8216;abs&#8217; nor &#8216;rel&#8217;</td>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="code docutils literal"><span class="pre">ValueError</span></code> if mode is neither ‘abs’ nor ‘rel’</td>
 </tr>
 </tbody>
 </table>
@@ -1147,7 +1115,7 @@ components attributes</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mode</strong> (<em>str</em>) &#8211; mode selection (pre/post) for pre- or postprocessing</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mode</strong> (<em>str</em>) – mode selection (pre/post) for pre- or postprocessing</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1163,7 +1131,7 @@ components attributes</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) &#8211; cols are the components of the network</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) – cols are the components of the network</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1180,7 +1148,7 @@ prompt</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) &#8211; cols are the components of the network</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) – cols are the components of the network</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1196,7 +1164,7 @@ prompt</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) &#8211; cols are the components of the network</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cols</strong> (<em>landas dataframe index object</em>) – cols are the components of the network</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1207,19 +1175,16 @@ prompt</p>
 <dl class="method">
 <dt id="pyte.networks.network.save">
 <code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>saves the results in two files:</dt>
-<dd><ul class="first last simple">
+<dd><p>saves the results in two files:</p>
+<ul class="simple">
 <li>results file and</li>
 <li>components file</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) &#8211; suffix for the .csv-file</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – suffix for the .csv-file</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1230,14 +1195,12 @@ prompt</p>
 <dl class="method">
 <dt id="pyte.networks.network.save_components">
 <code class="descname">save_components</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save_components" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>saves the components to filename_comps.csv</dt>
-<dd><ul class="first last">
-<li><p class="first">uses components labels as row identifier</p>
-</li>
+<dd><p>saves the components to filename_comps.csv</p>
+<ul class="simple">
+<li>uses components labels as row identifier</li>
 <li><dl class="first docutils">
 <dt>writes:</dt>
-<dd><ul class="first last simple">
+<dd><ul class="first last">
 <li>components incomming and outgoing connections (object id)</li>
 <li>components parametrisation</li>
 </ul>
@@ -1245,13 +1208,11 @@ prompt</p>
 </dl>
 </li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) &#8211; suffix for the .csv-file</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – suffix for the .csv-file</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1262,14 +1223,12 @@ prompt</p>
 <dl class="method">
 <dt id="pyte.networks.network.save_connections">
 <code class="descname">save_connections</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.save_connections" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>saves the results to filename_results.csv</dt>
-<dd><ul class="first last">
-<li><p class="first">uses connections object id as row identifier</p>
-</li>
+<dd><p>saves the results to filename_results.csv</p>
+<ul class="simple">
+<li>uses connections object id as row identifier</li>
 <li><dl class="first docutils">
 <dt>writes:</dt>
-<dd><ul class="first last simple">
+<dd><ul class="first last">
 <li>properties (value and property_set: False/True)</li>
 <li>fluid vector</li>
 <li>fluid_set vector</li>
@@ -1279,16 +1238,13 @@ prompt</p>
 </dd>
 </dl>
 </li>
-<li><p class="first">connections source and target identified by its labels</p>
-</li>
+<li>connections source and target identified by its labels</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) &#8211; suffix for the .csv-file</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – suffix for the .csv-file</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
 </tr>
@@ -1299,23 +1255,20 @@ prompt</p>
 <dl class="method">
 <dt id="pyte.networks.network.solve">
 <code class="descname">solve</code><span class="sig-paren">(</span><em>mode</em>, <em>init_file=None</em>, <em>design_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>solves the network:</dt>
-<dd><ul class="first last simple">
+<dd><p>solves the network:</p>
+<ul class="simple">
 <li>checks network consistency</li>
 <li>initialises network</li>
 <li>calculates network</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>mode</strong> (<em>str</em>) &#8211; calculation mode (design, offdesign)</li>
-<li><strong>init_file</strong> (<em>str</em>) &#8211; .csv-file to use for initialisation</li>
-<li><strong>design_file</strong> (<em>str</em>) &#8211; .csv-file containing network design point</li>
+<li><strong>mode</strong> (<em>str</em>) – calculation mode (design, offdesign)</li>
+<li><strong>init_file</strong> (<em>str</em>) – .csv-file to use for initialisation</li>
+<li><strong>design_file</strong> (<em>str</em>) – .csv-file containing network design point</li>
 </ul>
 </td>
 </tr>
@@ -1329,22 +1282,19 @@ prompt</p>
 <dl class="method">
 <dt id="pyte.networks.network.solve_T">
 <code class="descname">solve_T</code><span class="sig-paren">(</span><em>c</em>, <em>row</em>, <em>col</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_T" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>calculate residuals and partial derivatives for given temperature</dt>
-<dd><ul class="first last simple">
+<dd><p>calculate residuals and partial derivatives for given temperature</p>
+<ul class="simple">
 <li>the calculation of partial derivatives of temperature to fluids
 is skipped if residuals become very small (speeds up calculation)</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
-<li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
-<li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connections object to apply calculations on</li>
+<li><strong>row</strong> (<em>int</em>) – index of row to insert into jacobian matrix</li>
+<li><strong>col</strong> (<em>int</em>) – index of column for connection c in jacobian matrix</li>
 </ul>
 </td>
 </tr>
@@ -1360,14 +1310,12 @@ is skipped if residuals become very small (speeds up calculation)</li>
 <code class="descname">solve_busses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_busses" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 busses.</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>iterate through busses in network to get residuals and
 derivatives</li>
 <li>append residuals to residual vector</li>
 <li>place partial derivatives in jacobian matrix</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1386,7 +1334,7 @@ derivatives</li>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>row</strong> (<em>int</em>) &#8211; index of last row inserted into jacobian matrix</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>row</strong> (<em>int</em>) – index of last row inserted into jacobian matrix</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">row + 1 (int) - row increment</td>
 </tr>
@@ -1402,14 +1350,12 @@ the number of total variables in the network (overdetermined).</td>
 <code class="descname">solve_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 components.</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>iterate through components in network to get residuals and
 derivatives</li>
 <li>append residuals to residual vector</li>
 <li>place partial derivatives in jacobian matrix</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1425,14 +1371,12 @@ derivatives</li>
 <code class="descname">solve_connections</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_connections" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the equations and the partial derivatives for the networks
 connectons.</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>iterate through connections in network to get residuals and
 derivatives</li>
 <li>append residuals to residual vector</li>
 <li>place partial derivatives in jacobian matrix</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1448,14 +1392,12 @@ derivatives</li>
 <code class="descname">solve_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.networks.network.solve_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the solution of the network with n-dimensional newton
 algorithm:</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li>calculate the residual value for each equation</li>
 <li>calculate the jacobian matrix</li>
 <li>calculate new values for variables</li>
 <li>check fluid properties and check values for consistency</li>
 </ul>
-</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1478,10 +1420,10 @@ pressure and/or enthalpy</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
-<li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
-<li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
-<li><strong>var</strong> (<em>str</em>) &#8211; variable to perform calculation (m, p, h)</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connections object to apply calculations on</li>
+<li><strong>row</strong> (<em>int</em>) – index of row to insert into jacobian matrix</li>
+<li><strong>col</strong> (<em>int</em>) – index of column for connection c in jacobian matrix</li>
+<li><strong>var</strong> (<em>str</em>) – variable to perform calculation (m, p, h)</li>
 </ul>
 </td>
 </tr>
@@ -1502,9 +1444,9 @@ fraction</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connections object to apply calculations on</li>
-<li><strong>row</strong> (<em>int</em>) &#8211; index of row to insert into jacobian matrix</li>
-<li><strong>col</strong> (<em>int</em>) &#8211; index of column for connection c in jacobian matrix</li>
+<li><strong>c</strong> (<a class="reference internal" href="#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connections object to apply calculations on</li>
+<li><strong>row</strong> (<em>int</em>) – index of row to insert into jacobian matrix</li>
+<li><strong>col</strong> (<em>int</em>) – index of column for connection c in jacobian matrix</li>
 </ul>
 </td>
 </tr>
@@ -1555,21 +1497,18 @@ fraction</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/pyte.txt"
+      <li><a href="_sources/pyte.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -1580,11 +1519,11 @@ fraction</p>
       &copy;2017, Francesco Witte.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
-      <a href="_sources/pyte.txt"
+      <a href="_sources/pyte.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

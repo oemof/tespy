@@ -1,36 +1,38 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pyte.components package &mdash; ppsim 1.0 documentation</title>
-    
+    <title>pyte.components package &#8212; ppsim 1.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
         VERSION:     '1.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="ppsim 1.0 documentation" href="index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
    
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head>
-  <body role="document">  
+  <body>
+  
 
     <div class="document">
       <div class="documentwrapper">
@@ -49,11 +51,6 @@
 <em class="property">class </em><code class="descclassname">pyte.components.characteristics.</code><code class="descname">compressor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.compressor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>establish power connection between turbines, pumps, heat exchanger</p>
-<dl class="method">
-<dt id="pyte.components.characteristics.compressor.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.compressor.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="pyte.components.characteristics.compressor.add_speedline">
 <code class="descname">add_speedline</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.compressor.add_speedline" title="Permalink to this definition">¶</a></dt>
@@ -111,11 +108,6 @@
 <em class="property">class </em><code class="descclassname">pyte.components.characteristics.</code><code class="descname">pump</code><span class="sig-paren">(</span><em>v_opt</em>, <em>eta_s</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.pump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <dl class="method">
-<dt id="pyte.components.characteristics.pump.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>v_opt</em>, <em>eta_s</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.pump.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="pyte.components.characteristics.pump.eta">
 <code class="descname">eta</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.pump.eta" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -126,11 +118,6 @@
 <dt id="pyte.components.characteristics.turbine">
 <em class="property">class </em><code class="descclassname">pyte.components.characteristics.</code><code class="descname">turbine</code><span class="sig-paren">(</span><em>eta_s0</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.turbine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<dl class="method">
-<dt id="pyte.components.characteristics.turbine.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>eta_s0</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.turbine.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="pyte.components.characteristics.turbine.eta">
 <code class="descname">eta</code><span class="sig-paren">(</span><em>nu</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.characteristics.turbine.eta" title="Permalink to this definition">¶</a></dt>
@@ -145,8 +132,22 @@
 <dt id="pyte.components.components.combustion_chamber">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">combustion_chamber</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<p>Component combustion chamber.
-TODO:</p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>fuel: fuel for combustion chamber</li>
+<li>lamb: air to stoichiometric air ratio</li>
+</ul>
+<p><strong>available fuels</strong></p>
+<ul class="simple">
+<li>methane</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1, in2</li>
+<li>out1</li>
+</ul>
+<a class="reference internal image-reference" href="_images/combustion_chamber.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/combustion_chamber.svg" /></div>
+</a>
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.attr" title="Permalink to this definition">¶</a></dt>
@@ -170,7 +171,13 @@ TODO:</p>
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.convergence_check">
 <code class="descname">convergence_check</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.convergence_check" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>prevent impossible fluid properties in calculation</p>
+<ul class="simple">
+<li>check if mass fractions of fluid components at combustion chambers
+outlet are within typical range</li>
+<li>propagate the corrected fluid composition towards target</li>
+</ul>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.derivatives">
@@ -180,17 +187,90 @@ TODO:</p>
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.drb_dx">
 <code class="descname">drb_dx</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em>, <em>dx</em>, <em>pos</em>, <em>fluid</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.drb_dx" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculates derivative of the reaction balance to dx at components inlet
+or outlet in position pos for the fluid fluid</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+<li><strong>dx</strong> (<em>str</em>) – dx</li>
+<li><strong>pos</strong> (<em>int</em>) – position of inlet or outlet, logic: [‘in1’, ‘in2’, …,
+‘out1’, …] -&gt; 0, 1, …, n, n + 1, …</li>
+<li><strong>fluid</strong> (<em>str</em>) – calculate reaction balance for this fluid</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">deriv (<em>list</em> or <em>float</em>) - partial derivative of the
+function reaction balance to dx</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[\frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}
+{2 \cdot d}\]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.energy_balance">
 <code class="descname">energy_balance</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.energy_balance" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculates the energy balance of the adiabatic combustion chamber</p>
+<ul class="simple">
+<li>reference temperature: 500 K</li>
+<li>reference pressure: 1 bar</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">res (<em>float</em>) - residual value of energy balance</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
+\dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
+H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
+\dot{m}_{out,j} \cdot x_{f,j} \right)\]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.equations">
 <code class="descname">equations</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.equations" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>returns vector vec_res with result of equations for this component</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - vector of residual values</td>
+</tr>
+</tbody>
+</table>
+<p><strong>mandatory equations</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.combustion_chamber.reaction_balance" title="pyte.components.components.combustion_chamber.reaction_balance"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.combustion_chamber.reaction_balance()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.component.mass_flow_res" title="pyte.components.components.component.mass_flow_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.mass_flow_res()</span></code></a></li>
+</ul>
+<div class="math">
+\[0 = p_{in,i} - p_{out} \;
+\forall i \in \mathrm{inlets}\]</div>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.combustion_chamber.energy_balance" title="pyte.components.components.combustion_chamber.energy_balance"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.combustion_chamber.energy_balance()</span></code></a></li>
+</ul>
+<p><strong>equations</strong></p>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.fuels">
@@ -200,7 +280,25 @@ TODO:</p>
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.initialise_fluids">
 <code class="descname">initialise_fluids</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.initialise_fluids" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculates reaction balance with given lambda for good generic
+starting values</p>
+<ul class="simple">
+<li>sets the fluid composition at the combustion chambers outlet</li>
+</ul>
+<blockquote>
+<div>for the reaction balance equations see
+<a class="reference internal" href="#pyte.components.components.combustion_chamber.reaction_balance" title="pyte.components.components.combustion_chamber.reaction_balance"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.combustion_chamber.reaction_balance()</span></code></a></div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.initialise_source_h">
@@ -228,6 +326,31 @@ TODO:</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="pyte.components.components.combustion_chamber.lamb_func">
+<code class="descname">lamb_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.lamb_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates the residual for specified lambda</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">res (<em>float</em>) - residual value of equation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[ \begin{align}\begin{aligned}\begin{split}\dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
+{M_{fluid}} \; \forall i \in inlets\\\end{split}\\0 = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+\left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda\end{aligned}\end{align} \]</div>
+</dd></dl>
+
+<dl class="method">
 <dt id="pyte.components.components.combustion_chamber.lhv">
 <code class="descname">lhv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.lhv" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -245,7 +368,61 @@ TODO:</p>
 <dl class="method">
 <dt id="pyte.components.components.combustion_chamber.reaction_balance">
 <code class="descname">reaction_balance</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em>, <em>fluid</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.combustion_chamber.reaction_balance" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculates the reactions mass balance for one fluid</p>
+<ul class="simple">
+<li>determine molar mass flows of fuel and oxygen</li>
+<li>calculate excess fuel</li>
+<li>calculate residual value of the fluids balance</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+<li><strong>fluid</strong> (<em>str</em>) – fluid to calculate the reaction balance for</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">res (<em>float</em>) - residual value of mass balance</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>reaction balance equations</strong></p>
+<div class="math">
+\[ \begin{align}\begin{aligned}res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
+\sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
+\forall i \in inlets, \; \forall j \in outlets\\\begin{split}\dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
+{M_{fluid}} \; \forall i \in inlets\\\end{split}\\\lambda = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+\left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}\end{aligned}\end{align} \]</div>
+<p><em>fuel</em></p>
+<div class="math">
+\[ \begin{align}\begin{aligned}\begin{split}0 = res - \left(\dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m}\right)
+\cdot M_{fuel}\\\end{split}\\\begin{split}\dot{m}_{fuel,exc,m} = \begin{cases}
+0 &amp; \lambda \geq 1\\
+\dot{m}_{fuel,m} - \frac{\dot{m}_{O_2,m}}
+{n_{C,fuel} + 0.25 \cdot n_{H,fuel}} &amp; \lambda &lt; 1
+\end{cases}\end{split}\end{aligned}\end{align} \]</div>
+<p><em>oxygen</em></p>
+<div class="math">
+\[\begin{split}0 = res - \begin{cases}
+-\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} &amp; \lambda \geq 1\\
+- \dot{m}_{O_2,m} \cdot M_{O_2} &amp; \lambda &lt; 1
+\end{cases}\end{split}\]</div>
+<p><em>water</em></p>
+<div class="math">
+\[0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+\cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}\]</div>
+<p><em>carbondioxide</em></p>
+<div class="math">
+\[0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+\cdot n_{C,fuel} \cdot M_{CO_2}\]</div>
+<p><em>other</em></p>
+<div class="math">
+\[0 = res\]</div>
+</dd></dl>
 
 </dd></dl>
 
@@ -253,20 +430,13 @@ TODO:</p>
 <dt id="pyte.components.components.component">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">component</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.component" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>class component</p>
-<dl class="method">
-<dt id="pyte.components.components.component.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.component.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>object initialisation</p>
-<p>allowed keywords in kwargs are &#8216;mode&#8217; and additional keywords depending
-on the type of component you want to specify</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>label</strong> (<em>str</em>) &#8211; label for component</li>
-<li><strong>**kwargs</strong> &#8211; <p>for the keyword arguments see <code class="code docutils literal"><span class="pre">component.attr()</span></code></p>
+<li><strong>label</strong> (<em>str</em>) – label for component</li>
+<li><strong>**kwargs</strong> – <p>for the keyword arguments see <code class="code docutils literal"><span class="pre">component.attr()</span></code></p>
 </li>
 </ul>
 </td>
@@ -278,7 +448,7 @@ on the type of component you want to specify</p>
 <li><code class="code docutils literal"><span class="pre">TypeError</span></code>, if label is not of type str
 components</li>
 <li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if label contains forbidden characters
-(&#8216;;&#8217;, &#8216;,&#8217;, &#8216;.&#8217;)</li>
+(‘;’, ‘,’, ‘.’)</li>
 <li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if outlet_id or inlet_id are not allowed
 for ids for comp1 or comp2</li>
 </ul>
@@ -287,14 +457,16 @@ for ids for comp1 or comp2</li>
 </tbody>
 </table>
 <p><strong>example</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">cond</span> <span class="o">=</span> <span class="n">condenser</span><span class="p">(</span><span class="s1">&#39;main condenser&#39;</span><span class="p">,</span> <span class="n">ttd_u</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">cond</span> <span class="o">=</span> <span class="n">condenser</span><span class="p">(</span><span class="s1">&#39;main condenser&#39;</span><span class="p">,</span> <span class="n">ttd_u</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>creates component condenser labeled &#8216;main condenser&#8217; and sets the
+<p>creates component condenser labeled ‘main condenser’ and sets the
 terminal temperature difference at the upper side (hot side inlet to
 cold side outlet) to 5 K</p>
-</dd></dl>
-
+<p><strong>initialisation method is used for instances of class component and its
+children</strong></p>
+<p>allowed keywords in kwargs are ‘mode’ and additional keywords depending
+on the type of component you want to create</p>
 <dl class="method">
 <dt id="pyte.components.components.component.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.component.attr" title="Permalink to this definition">¶</a></dt>
@@ -325,12 +497,12 @@ outlet in position pos</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
-<li><strong>func</strong> (<em>function</em>) &#8211; function to calculate derivative</li>
-<li><strong>dx</strong> (<em>str</em>) &#8211; dx</li>
-<li><strong>pos</strong> (<em>int</em>) &#8211; position of inlet or outlet, logic: [&#8216;in1&#8217;, &#8216;in2&#8217;, ...,
-&#8216;out1&#8217;, ...] -&gt; 0, 1, ..., n, n + 1, ...</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+<li><strong>func</strong> (<em>function</em>) – function to calculate derivative</li>
+<li><strong>dx</strong> (<em>str</em>) – dx</li>
+<li><strong>pos</strong> (<em>int</em>) – position of inlet or outlet, logic: [‘in1’, ‘in2’, …,
+‘out1’, …] -&gt; 0, 1, …, n, n + 1, …</li>
 </ul>
 </td>
 </tr>
@@ -369,8 +541,8 @@ func to dx</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -382,22 +554,22 @@ func to dx</p>
 <p><strong>example:</strong></p>
 <p>component with one inlet and one outlet and 3 fluids in fluid vector</p>
 <div class="math">
-\[\begin{split}\left(
+\[ \begin{align}\begin{aligned}\begin{split}\left(
 \begin{array}{cccccc}
     0 &amp; 0 &amp; 0 &amp; 1 &amp; 0 &amp; 0\\
     0 &amp; 0 &amp; 0 &amp; -1 &amp; 0 &amp; 0\\
 \end{array}
-\right)\end{split}\]\[\begin{split}\left(
+\right)\end{split}\\\begin{split}\left(
 \begin{array}{cccccc}
     0 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; 0\\
     0 &amp; 0 &amp; 0 &amp; 0 &amp; -1 &amp; 0\\
 \end{array}
-\right)\end{split}\]\[\begin{split}\left(
+\right)\end{split}\\\begin{split}\left(
 \begin{array}{cccccc}
     0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 1\\
     0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; -1\\
 \end{array}
-\right)\end{split}\]</div>
+\right)\end{split}\end{aligned}\end{align} \]</div>
 </dd></dl>
 
 <dl class="method">
@@ -409,8 +581,8 @@ func to dx</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -455,7 +627,7 @@ func to dx</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>str</em>) &#8211; attribute to return its value</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>str</em>) – attribute to return its value</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
 <li><code class="code docutils literal"><span class="pre">self.__dict__[key]</span></code> if object has attribute key</li>
@@ -506,8 +678,8 @@ func to dx</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -538,8 +710,8 @@ func to dx</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -600,8 +772,8 @@ arguments, return values and errors see object initialisation</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; components connections at inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; components connections at outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – components connections at inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – components connections at outlets</li>
 </ul>
 </td>
 </tr>
@@ -626,18 +798,33 @@ calculation, it is possible to handle this the following way:</p>
 <dt id="pyte.components.components.compressor">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">compressor</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.compressor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.turbomachine" title="pyte.components.components.turbomachine"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.turbomachine</span></code></a></p>
-<dl class="docutils">
-<dt>component compressor</dt>
-<dd><ul class="first last simple">
-<li>for parametetrisation see parent class turbomachine</li>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>P: power</li>
+<li>eta_s: isentropic efficiency</li>
+<li>dp: inlet to outlet pressure ratio</li>
+<li>char: characteristic curve to use, characteristics are generated in
+preprocessing of offdesign calculations</li>
 </ul>
-</dd>
-<dt><strong>additional parameter</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>additional parameter</strong></p>
+<ul class="simple">
 <li>vigv: variable inlet guide vane angle</li>
 </ul>
-</dd>
-</dl>
+<p><strong>design parameters</strong></p>
+<ul class="simple">
+<li>dp, eta_s</li>
+</ul>
+<p><strong>offdesign parameters</strong></p>
+<ul class="simple">
+<li>char</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1</li>
+<li>out1</li>
+</ul>
+<a class="reference internal image-reference" href="_images/compressor.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/compressor.svg" /></div>
+</a>
 <dl class="method">
 <dt id="pyte.components.components.compressor.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.compressor.attr" title="Permalink to this definition">¶</a></dt>
@@ -646,20 +833,17 @@ calculation, it is possible to handle this the following way:</p>
 <dl class="method">
 <dt id="pyte.components.components.compressor.char_deriv">
 <code class="descname">char_deriv</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.compressor.char_deriv" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>calculates the derivatives for the characteristics</dt>
-<dd><ul class="first last simple">
+<dd><p>calculates the derivatives for the characteristics</p>
+<ul class="simple">
 <li>if vigv is set two sets of equations are used</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -670,46 +854,39 @@ calculation, it is possible to handle this the following way:</p>
 </table>
 <p><strong>example</strong></p>
 <p>see method char_deriv of class pump for an example</p>
-<dl class="docutils">
-<dt>TODO:</dt>
-<dd><ul class="first last simple">
+<p>TODO:</p>
+<ul class="simple">
 <li>improve asthetics, this part of code looks horrible</li>
 </ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.compressor.char_func">
 <code class="descname">char_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.compressor.char_func" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>equation(s) for characteristics of compressor</dt>
-<dd><ul class="first last simple">
+<dd><p>equation(s) for characteristics of compressor</p>
+<ul class="simple">
 <li>returns one value, if vigv is not set</li>
 <li>returns two values, if vigv is set</li>
 </ul>
-</dd>
-</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>val (<em>numpy array</em>) - residual value(s) of equation(s):</p>
-<ul class="simple">
-<li><code class="code docutils literal"><span class="pre">np.array([val1,</span> <span class="pre">val2])</span></code> if vigv_set</li>
-<li><code class="code docutils literal"><span class="pre">np.array([val2])</span></code> else</li>
-</ul>
-</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">val (<em>numpy array</em>) - residual value(s) of equation(s):</p>
 </td>
 </tr>
 </tbody>
 </table>
+<ul class="simple">
+<li><code class="code docutils literal"><span class="pre">np.array([val1,</span> <span class="pre">val2])</span></code> if vigv_set</li>
+<li><code class="code docutils literal"><span class="pre">np.array([val2])</span></code> else</li>
+</ul>
 <div class="math">
 \[\begin{split}n = \sqrt{\frac{T_{in,ref}}{T_{in}}}\\
 m = \frac{\dot{m}_{in} \cdot \sqrt{T_{in}} \cdot p_{in,ref}}
@@ -717,25 +894,28 @@ m = \frac{\dot{m}_{in} \cdot \sqrt{T_{in}} \cdot p_{in,ref}}
 val_1 = \frac{p_{out} \cdot p_{in,ref}}{p_{in} \cdot p_{out,ref}} -
 pr_{c}(char(m))\\
 val_2 = \frac{\eta_{s,c}}{\eta_{s,c,ref}} - \eta_{s,c}(char(m))\end{split}\]</div>
-<dl class="docutils">
-<dt><strong>parameters</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>parameters</strong></p>
+<ul class="simple">
 <li>n: speedline index (rotational speed is constant)</li>
 <li>m: nondimensional mass flow</li>
-<li>val1: change ratio to reference case in mass flow and pressure</li>
+<li><dl class="first docutils">
+<dt>val1: change ratio to reference case in mass flow and pressure</dt>
+<dd><ul class="first last">
 <li>val2: change of isentropic efficiency to reference case</li>
 </ul>
 </dd>
-<dt><strong>logic</strong></dt>
-<dd><ul class="first last simple">
+</dl>
+</li>
+</ul>
+<p><strong>logic</strong></p>
+<ul class="simple">
 <li>calculate n</li>
 <li>calculate m</li>
 <li>calculate dn for convergence stability reasons (move speedline
 inside of feasible range of compressor map)</li>
 </ul>
-</dd>
-<dt><strong>if vigv is set</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>if vigv is set</strong></p>
+<ul class="simple">
 <li>calculate possible vigv range and adjust user specified vigv
 angle, if not inside feasible range (throws warning in post-
 processing)</li>
@@ -743,19 +923,15 @@ processing)</li>
 <li>val1, val2 are relative factors for pressure ratio and isentropic
 efficiency</li>
 </ul>
-</dd>
-<dt><strong>else</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>else</strong></p>
+<ul class="simple">
 <li>set vigv (from compressor map with pressure ratio)</li>
 <li>calculate relative factor for isentropic efficiency</li>
 </ul>
-</dd>
-<dt>TODO:</dt>
-<dd><ul class="first last simple">
+<p>TODO:</p>
+<ul class="simple">
 <li>parameter memorisation for improved performance</li>
 </ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
@@ -813,11 +989,6 @@ pump, see documentation of component pump</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pyte.components.components.condenser.dT_log_func">
-<code class="descname">dT_log_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.condenser.dT_log_func" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="pyte.components.components.condenser.design">
 <code class="descname">design</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.condenser.design" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -830,6 +1001,11 @@ pump, see documentation of component pump</p>
 <dl class="method">
 <dt id="pyte.components.components.condenser.offdesign">
 <code class="descname">offdesign</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.condenser.offdesign" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyte.components.components.condenser.td_log_func">
+<code class="descname">td_log_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.condenser.td_log_func" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -946,7 +1122,7 @@ TODO:</p>
 <p>component heat exchanger
 TODO:   adjust calculation of ttd and kA with phase shifts</p>
 <blockquote>
-<div>check dT_G derivatives - &gt;  fluid derivative necessary?</div></blockquote>
+<div>check ttd derivatives - &gt;  fluid derivative necessary?</div></blockquote>
 <dl class="method">
 <dt id="pyte.components.components.heat_exchanger.additional_derivatives">
 <code class="descname">additional_derivatives</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger.additional_derivatives" title="Permalink to this definition">¶</a></dt>
@@ -976,11 +1152,6 @@ TODO:   adjust calculation of ttd and kA with phase shifts</p>
 <dl class="method">
 <dt id="pyte.components.components.heat_exchanger.convergence_check">
 <code class="descname">convergence_check</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger.convergence_check" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pyte.components.components.heat_exchanger.dT_log_func">
-<code class="descname">dT_log_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger.dT_log_func" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1044,6 +1215,11 @@ TODO:   adjust calculation of ttd and kA with phase shifts</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="pyte.components.components.heat_exchanger.td_log_func">
+<code class="descname">td_log_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger.td_log_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="pyte.components.components.heat_exchanger.ttd_l_deriv">
 <code class="descname">ttd_l_deriv</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger.ttd_l_deriv" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1092,6 +1268,11 @@ TODO:   adjust calculation of ttd and kA with phase shifts</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="pyte.components.components.heat_exchanger_simple.convergence_check">
+<code class="descname">convergence_check</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger_simple.convergence_check" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="pyte.components.components.heat_exchanger_simple.derivatives">
 <code class="descname">derivatives</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger_simple.derivatives" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1132,6 +1313,11 @@ TODO:   adjust calculation of ttd and kA with phase shifts</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="pyte.components.components.heat_exchanger_simple.kA_func">
+<code class="descname">kA_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger_simple.kA_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="pyte.components.components.heat_exchanger_simple.lamb_func">
 <code class="descname">lamb_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.heat_exchanger_simple.lamb_func" title="Permalink to this definition">¶</a></dt>
 <dd><p>add calculation for viscosity of ideal gas mixtures</p>
@@ -1164,9 +1350,9 @@ ends when reaching sink, merge or combustion chamber</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) &#8211; network to operate on</li>
-<li><strong>c</strong> (<a class="reference internal" href="pyte.html#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; connection to initialise</li>
-<li><strong>start</strong> (<a class="reference internal" href="pyte.html#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) &#8211; fluid propagation startingpoint, in some cases needed
+<li><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network to operate on</li>
+<li><strong>c</strong> (<a class="reference internal" href="pyte.html#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – connection to initialise</li>
+<li><strong>start</strong> (<a class="reference internal" href="pyte.html#pyte.connections.connection" title="pyte.connections.connection"><em>pyte.connections.connection</em></a>) – fluid propagation startingpoint, in some cases needed
 to exit the recursion</li>
 </ul>
 </td>
@@ -1190,8 +1376,22 @@ avoided in a more elegant way.</p>
 <dt id="pyte.components.components.merge">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">merge</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.merge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<p>component merge
-has two inlets and one outlet</p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>num_in: number of inlets (default value: 2)</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>specify number of inlets with <code class="code docutils literal"><span class="pre">num_in</span></code></li>
+<li>out1</li>
+</ul>
+<a class="reference internal image-reference" href="_images/merge.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/merge.svg" /></div>
+</a>
+<dl class="method">
+<dt id="pyte.components.components.merge.attr">
+<code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.merge.attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="pyte.components.components.merge.component">
 <code class="descname">component</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.merge.component" title="Permalink to this definition">¶</a></dt>
@@ -1205,7 +1405,27 @@ has two inlets and one outlet</p>
 <dl class="method">
 <dt id="pyte.components.components.merge.equations">
 <code class="descname">equations</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.merge.equations" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>returns vector vec_res with result of equations for this component</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - vector of residual values</td>
+</tr>
+</tbody>
+</table>
+<p><strong>mandatory equations</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.component.fluid_res" title="pyte.components.components.component.fluid_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.fluid_res()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.component.mass_flow_res" title="pyte.components.components.component.mass_flow_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.mass_flow_res()</span></code></a></li>
+</ul>
+<div class="math">
+\[ \begin{align}\begin{aligned}0 = - \dot{m}_{out} \cdot h_{out} + \sum_{i} \dot{m}_{in,i} \cdot
+h_{in,i} \; \forall i \in \mathrm{inlets}\\0 = p_{in,i} - p_{out} \;
+\forall i \in \mathrm{inlets}\end{aligned}\end{align} \]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.merge.initialise_fluids">
@@ -1265,13 +1485,29 @@ has two inlets and one outlet</p>
 <dt id="pyte.components.components.pump">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">pump</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.pump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.turbomachine" title="pyte.components.components.turbomachine"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.turbomachine</span></code></a></p>
-<dl class="docutils">
-<dt>component pump</dt>
-<dd><ul class="first last simple">
-<li>for parametetrisation see parent class turbomachine</li>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>P: power</li>
+<li>eta_s: isentropic efficiency</li>
+<li>dp: inlet to outlet pressure ratio</li>
+<li>char: characteristic curve to use, characteristics are generated in
+preprocessing of offdesign calculations</li>
 </ul>
-</dd>
-</dl>
+<p><strong>design parameters</strong></p>
+<ul class="simple">
+<li>dp, eta_s</li>
+</ul>
+<p><strong>offdesign parameters</strong></p>
+<ul class="simple">
+<li>char</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1</li>
+<li>out1</li>
+</ul>
+<a class="reference internal image-reference" href="_images/pump.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/pump.svg" /></div>
+</a>
 <dl class="method">
 <dt id="pyte.components.components.pump.char_deriv">
 <code class="descname">char_deriv</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.pump.char_deriv" title="Permalink to this definition">¶</a></dt>
@@ -1281,8 +1517,8 @@ has two inlets and one outlet</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -1291,16 +1527,16 @@ has two inlets and one outlet</p>
 </tr>
 </tbody>
 </table>
-<p><strong>example</strong>
-one fluid in fluid vector</p>
+<p><strong>example</strong></p>
+<p>one fluid in fluid vector</p>
 <div class="math">
 \[\begin{split}\left(
 \begin{array}{cccc}
     \frac{\partial char}{\partial \dot{m}_{in}} &amp;
-    \frac{\partial char}{\partial p_{in} &amp;
-    \frac{\partial char}{\partial h_{in} &amp; 0\\
-    0 &amp; \frac{\partial char}{\partial p_{out} &amp;
-    \frac{\partial char}{\partial h_{out} &amp; 0\\
+    \frac{\partial char}{\partial p_{in}} &amp;
+    \frac{\partial char}{\partial h_{in}} &amp; 0\\
+    0 &amp; \frac{\partial char}{\partial p_{out}} &amp;
+    \frac{\partial char}{\partial h_{out}} &amp; 0\\
 \end{array}
 \right)\end{split}\]</div>
 </dd></dl>
@@ -1314,8 +1550,8 @@ one fluid in fluid vector</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -1343,8 +1579,8 @@ one fluid in fluid vector</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -1395,13 +1631,10 @@ one fluid in fluid vector</p>
 <dt id="pyte.components.components.sink">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">sink</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.sink" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<dl class="docutils">
-<dt>component sink</dt>
-<dd><ul class="first last simple">
+<p>component sink</p>
+<ul class="simple">
 <li>a flow drains in this component</li>
 </ul>
-</dd>
-</dl>
 <dl class="method">
 <dt id="pyte.components.components.sink.component">
 <code class="descname">component</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.sink.component" title="Permalink to this definition">¶</a></dt>
@@ -1418,13 +1651,10 @@ one fluid in fluid vector</p>
 <dt id="pyte.components.components.source">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">source</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.source" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<dl class="docutils">
-<dt>component source</dt>
-<dd><ul class="first last simple">
+<p>component source</p>
+<ul class="simple">
 <li>a flow originates from this component</li>
 </ul>
-</dd>
-</dl>
 <dl class="method">
 <dt id="pyte.components.components.source.component">
 <code class="descname">component</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.source.component" title="Permalink to this definition">¶</a></dt>
@@ -1441,9 +1671,26 @@ one fluid in fluid vector</p>
 <dt id="pyte.components.components.split">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">split</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.split" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<p>component split
-has one inlet and two outlets
-TODO: demixture (separator) requires power and cooling, add equations</p>
+<p>component split</p>
+<ul class="simple">
+<li>can be subdivided in splitter and separator</li>
+</ul>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>num_out: number of outlets (default value: 2)</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1</li>
+<li>specify number of outlets with <code class="code docutils literal"><span class="pre">num_out</span></code></li>
+</ul>
+<a class="reference internal image-reference" href="_images/split.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/split.svg" /></div>
+</a>
+<dl class="method">
+<dt id="pyte.components.components.split.attr">
+<code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.split.attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="pyte.components.components.split.component">
 <code class="descname">component</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.split.component" title="Permalink to this definition">¶</a></dt>
@@ -1452,12 +1699,100 @@ TODO: demixture (separator) requires power and cooling, add equations</p>
 <dl class="method">
 <dt id="pyte.components.components.split.derivatives">
 <code class="descname">derivatives</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.split.derivatives" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculate matrix of partial derivatives towards mass flow, pressure,
+enthalpy and fluid composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">mat_deriv (<em>numpy array</em>) - matrix of partial derivatives</td>
+</tr>
+</tbody>
+</table>
+<p><strong>example</strong></p>
+<p>matrix of partial derivatives for a splitter with two outlets and one
+fluid in the fluid vector</p>
+<div class="math">
+\[\begin{split}\left(
+\begin{array}{c&#64;{}}
+    \left[\begin{array}{cccc}
+        0 &amp; 0 &amp; 0 &amp; 1\\
+        0 &amp; 0 &amp; 0 &amp; -1\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+    \end{array}\right]\\
+    \left[\begin{array}{cccc}
+        0 &amp; 0 &amp; 0 &amp; 1\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+        0 &amp; 0 &amp; 0 &amp; -1\\
+    \end{array}\right]\\
+    \left[\begin{array}{cccc}
+        1 &amp; 0 &amp; 0 &amp; 0\\
+        -1 &amp; 0 &amp; 0 &amp; 0\\
+        -1 &amp; 0 &amp; 0 &amp; 0\\
+    \end{array}\right]\\
+    \left[\begin{array}{cccc}
+        0 &amp; 1 &amp; 0 &amp; 0\\
+        0 &amp; -1 &amp; 0 &amp; 0\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+    \end{array}\right]\\
+    \left[\begin{array}{cccc}
+        0 &amp; 1 &amp; 0 &amp; 0\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+        0 &amp; -1 &amp; 0 &amp; 0\\
+    \end{array}\right]
+    \left[\begin{array}{cccc}
+        0 &amp; 0 &amp; 1 &amp; 0\\
+        0 &amp; 0 &amp; -1 &amp; 0\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+    \end{array}\right]\\
+    \left[\begin{array}{cccc}
+        0 &amp; 0 &amp; 1 &amp; 0\\
+        0 &amp; 0 &amp; 0 &amp; 0\\
+        0 &amp; 0 &amp; -1 &amp; 0\\
+    \end{array}\right]\\
+\end{array}
+\right)\end{split}\]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.split.equations">
 <code class="descname">equations</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.split.equations" title="Permalink to this definition">¶</a></dt>
-<dd><p>equations for splitter</p>
+<dd><p>returns vector vec_res with result of equations for this component</p>
+<ul class="simple">
+<li>equations are different for splitter and separator</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - vector of residual values</td>
+</tr>
+</tbody>
+</table>
+<p><strong>mandatory equations</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.component.fluid_res" title="pyte.components.components.component.fluid_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.fluid_res()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.component.mass_flow_res" title="pyte.components.components.component.mass_flow_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.mass_flow_res()</span></code></a></li>
+</ul>
+<div class="math">
+\[0 = p_{in} - p_{out,i} \;
+\forall i \in \mathrm{outlets}\]</div>
+<p><strong>equations for splitter</strong></p>
+<div class="math">
+\[\begin{split}0 = h_{in} - h_{out,i} \;
+\forall i \in \mathrm{outlets}\\\end{split}\]</div>
+<p><strong>equations for separator</strong></p>
+<div class="math">
+\[\begin{split}0 = T_{in} - T_{out,i} \;
+\forall i \in \mathrm{outlets}\\\end{split}\]</div>
+<p>TODO:
+- fluid separation requires power and cooling, equations have not</p>
+<blockquote>
+<div>been implemented!</div></blockquote>
 </dd></dl>
 
 <dl class="method">
@@ -1549,15 +1884,72 @@ TODO: demixture (separator) requires power and cooling, add equations</p>
 <dt id="pyte.components.components.turbine">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">turbine</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.turbomachine" title="pyte.components.components.turbomachine"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.turbomachine</span></code></a></p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>P: power</li>
+<li>eta_s: isentropic efficiency</li>
+<li>dp: inlet to outlet pressure ratio</li>
+<li>char: characteristic curve to use, characteristics are generated in
+preprocessing of offdesign calculations</li>
+</ul>
+<p><strong>additional parameter</strong></p>
+<ul class="simple">
+<li>cone: cone law to apply in offdesign calculation</li>
+</ul>
+<p><strong>design parameters</strong></p>
+<ul class="simple">
+<li>dp, eta_s</li>
+</ul>
+<p><strong>offdesign parameters</strong></p>
+<ul class="simple">
+<li>char</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1</li>
+<li>out1</li>
+</ul>
+<a class="reference internal image-reference" href="_images/turbine.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/turbine.svg" /></div>
+</a>
 <dl class="method">
 <dt id="pyte.components.components.turbine.additional_derivatives">
 <code class="descname">additional_derivatives</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.additional_derivatives" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>calculate matrix of partial derivatives towards mass flow, pressure,
+enthalpy and fluid composition for the additional equations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">mat_deriv (<em>list</em>) - matrix of partial derivatives</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.additional_equations">
 <code class="descname">additional_equations</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.additional_equations" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>additional equations for turbines</p>
+<ul class="simple">
+<li>applies stodolas law in offdesign calculation</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - residual value vector</td>
+</tr>
+</tbody>
+</table>
+<p><strong>optional equations</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.turbine.cone_func" title="pyte.components.components.turbine.cone_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.turbine.cone_func()</span></code></a></li>
+</ul>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.attr">
@@ -1567,12 +1959,52 @@ TODO: demixture (separator) requires power and cooling, add equations</p>
 <dl class="method">
 <dt id="pyte.components.components.turbine.char_deriv">
 <code class="descname">char_deriv</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.char_deriv" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>partial derivatives for turbine characteristics</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">mat_deriv (<em>list</em>) - matrix of partial derivatives</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.char_func">
 <code class="descname">char_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.char_func" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>equation for turbine characteristics</p>
+<ul class="simple">
+<li>calculate the isentropic efficiency as function of isentropic
+enthalpy difference</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">val (<em>numpy array</em>) - residual value of equation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[0 = - \left( h_{out} - h_{in} \right) + \eta_{s,e,0} \cdot f\left(
+\sqrt{\frac{\Delta h_{s,0}}{\Delta h_{s}}} \right) \cdot
+\Delta h_{s}\]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.component">
@@ -1582,18 +2014,62 @@ TODO: demixture (separator) requires power and cooling, add equations</p>
 <dl class="method">
 <dt id="pyte.components.components.turbine.cone_func">
 <code class="descname">cone_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.cone_func" title="Permalink to this definition">¶</a></dt>
-<dd><p>Formulation with (p0 * v0) / (p * v)</p>
+<dd><p>equation for stodolas cone law</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">val (<em>float</em>) - residual value of equation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[0 = \frac{\dot{m}_{in,0} \cdot p_{in}}{p_{in,0}} \cdot
+\sqrt{\frac{p_{in,0} \cdot v_{in}}{p_{in} \cdot v_{in,0}}} \cdot
+\sqrt{\frac{1 - \left(\frac{p_{out}}{p_{in}} \right)^{2}}
+{1 - \left(\frac{p_{out,0}}{p_{in,0}} \right)^{2}}} - \dot{m}_{in}\]</div>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.convergence_check">
 <code class="descname">convergence_check</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.convergence_check" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>prevent impossible fluid properties in calculation</p>
+<ul class="simple">
+<li>set <span class="math">\(p_{out} = \frac{p_{in}}{2}\)</span> if <span class="math">\(p_{out}&gt;p_{in}\)</span></li>
+<li>set <span class="math">\(h_{out} = 0,9 \cdot h_{in}\)</span> if <span class="math">\(h_{out}&gt;h_{in}\)</span></li>
+</ul>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.eta_s_func">
 <code class="descname">eta_s_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbine.eta_s_func" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>equation for isentropic efficiency of a turbine</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">val (<em>float</em>) - residual value of equation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[0 = -\left( h_{out} - h_{in} \right) +
+\left( h_{out,s} -  h_{in} \right) \cdot \eta_{s,e}\]</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbine.initialise_source_h">
@@ -1626,45 +2102,28 @@ TODO: demixture (separator) requires power and cooling, add equations</p>
 <dt id="pyte.components.components.turbomachine">
 <em class="property">class </em><code class="descclassname">pyte.components.components.</code><code class="descname">turbomachine</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbomachine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pyte.components.components.component" title="pyte.components.components.component"><code class="xref py py-class docutils literal"><span class="pre">pyte.components.components.component</span></code></a></p>
-<dl class="docutils">
-<dt>component turbomachine</dt>
-<dd><ul class="first last simple">
-<li>can be subdivided in pump, compressor and turbine</li>
+<p>component turbomachine can be subdivided in pump, compressor and turbine</p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>P: power</li>
+<li>eta_s: isentropic efficiency</li>
+<li>dp: inlet to outlet pressure ratio</li>
+<li>char: characteristic curve to use, characteristics are generated in
+preprocessing of offdesign calculations</li>
 </ul>
-</dd>
-<dt><strong>available parameters</strong></dt>
-<dd><ul class="first last">
-<li><p class="first">P: power</p>
-</li>
-<li><p class="first">eta_s: isentropic efficiency</p>
-</li>
-<li><p class="first">dp: inlet to outlet pressure ratio</p>
-</li>
-<li><dl class="first docutils">
-<dt>char: characteristic curve to use, characteristics are generated in</dt>
-<dd><p class="first last">preprocessing of offdesign calculations</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt><strong>design parameters</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>design parameters</strong></p>
+<ul class="simple">
 <li>dp, eta_s</li>
 </ul>
-</dd>
-<dt><strong>offdesign parameters</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>offdesign parameters</strong></p>
+<ul class="simple">
 <li>char</li>
 </ul>
-</dd>
-<dt><strong>inlets and outlets</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
 <li>in1</li>
 <li>out1</li>
 </ul>
-</dd>
-</dl>
 <dl class="method">
 <dt id="pyte.components.components.turbomachine.additional_derivatives">
 <code class="descname">additional_derivatives</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbomachine.additional_derivatives" title="Permalink to this definition">¶</a></dt>
@@ -1674,7 +2133,7 @@ equations of this component</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) &#8211; network using this component object</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">mat_deriv (<em>numpy array</em>) - matrix of partial derivatives</td>
 </tr>
@@ -1691,7 +2150,7 @@ component</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) &#8211; network using this component object</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - vector of residual values</td>
 </tr>
@@ -1708,29 +2167,24 @@ component</p>
 <dt id="pyte.components.components.turbomachine.calc_parameters">
 <code class="descname">calc_parameters</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em>, <em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbomachine.calc_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>parameter calculation pre- or postprocessing</p>
-<dl class="docutils">
-<dt><strong>postprocessing</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>postprocessing</strong></p>
+<ul class="simple">
 <li>calculate power P</li>
 <li>calculate isentropic efficiency</li>
 <li>calculate pressure ratio</li>
 </ul>
-</dd>
-<dt><strong>preprocessing</strong></dt>
-<dd><ul class="first last simple">
+<p><strong>preprocessing</strong></p>
+<ul class="simple">
 <li>set references for inlet <code class="code docutils literal"><span class="pre">self.i0</span></code> and outlet
 <code class="code docutils literal"><span class="pre">self.o0</span></code> flows</li>
 <li>set attribute for isentropic enthalpy difference
 <code class="code docutils literal"><span class="pre">self.dh_s0</span></code> at reference</li>
 <li>generate characteristics for components</li>
 </ul>
-</dd>
-<dt>TODO:</dt>
-<dd><ul class="first last simple">
+<p>TODO:</p>
+<ul class="simple">
 <li>check if component specific parts are well located in subclasses</li>
 </ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
@@ -1751,15 +2205,12 @@ component</p>
 <dl class="method">
 <dt id="pyte.components.components.turbomachine.convergence_check">
 <code class="descname">convergence_check</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbomachine.convergence_check" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>performs a convergence check (class turbine overwrites this method)</dt>
-<dd><ul class="first last simple">
+<dd><p>performs a convergence check (class turbine overwrites this method)</p>
+<ul class="simple">
 <li>check if isentropic efficiency or characteristic is set</li>
 <li>manipulate enthalpies at inlet and outlet if not specified by
 user, if function for isentropic efficiency cannot be calculated</li>
 </ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
@@ -1771,7 +2222,7 @@ enthalpy and fluid composition</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) &#8211; network using this component object</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">mat_deriv (<em>numpy array</em>) - matrix of partial derivatives</td>
 </tr>
@@ -1813,31 +2264,41 @@ parametrisation</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<em>pyte.networks.network object</em>) &#8211; network using this component object</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="pyte.html#pyte.networks.network" title="pyte.networks.network"><em>pyte.networks.network</em></a>) – network using this component object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vec_res (<em>list</em>) - vector of residual values</td>
 </tr>
 </tbody>
 </table>
-<p><strong>equations</strong></p>
+<p><strong>mandatory equations</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.component.fluid_res" title="pyte.components.components.component.fluid_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.fluid_res()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.component.mass_flow_res" title="pyte.components.components.component.mass_flow_res"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.component.mass_flow_res()</span></code></a></li>
+</ul>
+<p><strong>optional equations</strong></p>
 <div class="math">
 \[\begin{split}0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
 0 = dp \cdot p_{in} - p_{out}\end{split}\]</div>
-<p>for isentropic efficiency, characteristics and additional equations
-see the subclasses:</p>
-<blockquote>
-<div><ul class="simple">
-<li>turbine</li>
-<li>compressor</li>
-<li>pump</li>
+<p>isentropic efficiency</p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.pump.eta_s_func" title="pyte.components.components.pump.eta_s_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.pump.eta_s_func()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.compressor.eta_s_func" title="pyte.components.components.compressor.eta_s_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.compressor.eta_s_func()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.turbine.eta_s_func" title="pyte.components.components.turbine.eta_s_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.turbine.eta_s_func()</span></code></a></li>
 </ul>
-</div></blockquote>
+<p>characteristics</p>
+<ul class="simple">
+<li><a class="reference internal" href="#pyte.components.components.pump.char_func" title="pyte.components.components.pump.char_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.pump.char_func()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.compressor.char_func" title="pyte.components.components.compressor.char_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.compressor.char_func()</span></code></a></li>
+<li><a class="reference internal" href="#pyte.components.components.turbine.char_func" title="pyte.components.components.turbine.char_func"><code class="xref py py-func docutils literal"><span class="pre">pyte.components.components.turbine.char_func()</span></code></a></li>
+</ul>
+<p>for additional equations see the subclasses</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyte.components.components.turbomachine.eta_s_deriv">
 <code class="descname">eta_s_deriv</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.components.turbomachine.eta_s_deriv" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>calculates partial derivatives of the isentropic efficiency function</dt>
-<dd><ul class="first last simple">
+<dd><p>calculates partial derivatives of the isentropic efficiency function</p>
+<ul class="simple">
 <li>if the residual value for this equation is lower than the square
 value of the global error tolerance skip calculation</li>
 <li>calculates the partial derivatives for enthalpy and pressure at
@@ -1846,8 +2307,6 @@ inlet and for pressure at outlet numerically</li>
 analytically, <code class="code docutils literal"><span class="pre">-1</span></code> for expansion and <code class="code docutils literal"><span class="pre">-self.eta_s</span></code>
 for compression</li>
 </ul>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
@@ -1866,8 +2325,8 @@ isentropic</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inlets</strong> (<em>list</em>) &#8211; the components connections at the inlets</li>
-<li><strong>outlets</strong> (<em>list</em>) &#8211; the components connections at the outlets</li>
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
 </ul>
 </td>
 </tr>
@@ -2117,11 +2576,6 @@ TODO: add zeta</p>
 <em class="property">class </em><code class="descclassname">pyte.components.subsystems.</code><code class="descname">subsystem</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.subsystems.subsystem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <dl class="method">
-<dt id="pyte.components.subsystems.subsystem.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.subsystems.subsystem.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="pyte.components.subsystems.subsystem.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyte.components.subsystems.subsystem.attr" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2203,21 +2657,18 @@ TODO: add zeta</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/pyte.components.txt"
+      <li><a href="_sources/pyte.components.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -2228,11 +2679,11 @@ TODO: add zeta</p>
       &copy;2017, Francesco Witte.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
-      <a href="_sources/pyte.components.txt"
+      <a href="_sources/pyte.components.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

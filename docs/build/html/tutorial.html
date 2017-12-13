@@ -1,37 +1,39 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>PyTE - Python Thermal Engineering &mdash; ppsim 1.0 documentation</title>
-    
+    <title>PyTE - Python Thermal Engineering &#8212; ppsim 1.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
         VERSION:     '1.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="ppsim 1.0 documentation" href="index.html" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Welcome to PyTE’s documentation!" href="index.html" />
    
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head>
-  <body role="document">  
+  <body>
+  
 
     <div class="document">
       <div class="documentwrapper">
@@ -62,7 +64,7 @@
 <h3><a class="toc-backref" href="#contents">Set up a plant</a><a class="headerlink" href="#set-up-a-plant" title="Permalink to this headline">¶</a></h3>
 <p>In order to simulate a plant you will have to create a pyte.network. The network is the main container for the model.</p>
 <p>You need to specify a list of the fluids you need for the calculation in your plant. The whole list of available fluids can be found in the docs. If you want to work with fluid mixtures, for now, it is only possible to use ideal mixtures of real gases. Mixtures of liquids and gases or two liquids are not available. For more information on the fluid properties see the CoolProp documentation on <a class="reference external" href="http://www.coolprop.org/fluid_properties/PurePseudoPure.html">Pure and Pseudo-Pure fluid properties</a>. Further it is possible to choose a unit system for mass flow, temperature and pressure.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pyte</span> <span class="kn">as</span> <span class="nn">pp</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyte</span> <span class="kn">as</span> <span class="nn">pp</span>
 <span class="n">my_plant</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">network</span><span class="p">(</span><span class="n">fluids</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;air&#39;</span><span class="p">,</span> <span class="s1">&#39;water&#39;</span><span class="p">],</span> <span class="n">T</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -71,12 +73,12 @@
 <div class="section" id="set-up-the-components">
 <h3><a class="toc-backref" href="#contents">Set up the components</a><a class="headerlink" href="#set-up-the-components" title="Permalink to this headline">¶</a></h3>
 <p>All components can be found in the package components.components. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference dT_G_u of a heat exchanger. You get a full list of parameters for a specific component (e. g. a vessel) by typing:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pyte.components.components</span> <span class="kn">as</span> <span class="nn">comp</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyte.components.components</span> <span class="kn">as</span> <span class="nn">comp</span>
 <span class="k">print</span><span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">vessel</span><span class="o">.</span><span class="n">variables</span><span class="p">())</span>
 </pre></div>
 </div>
 <p>All parameters besides the label and the fuel for combustion chambers are optional, thus if not set, they will be a result of the plant simulation. In this way, the set of equations a component returns is determined by which parameters you specify. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:</p>
-<div class="highlight-python" id="pump-parametrisation"><div class="highlight"><pre><span class="n">my_pump</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">pump</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span> <span class="c1"># create pump</span>
+<div class="highlight-python" id="pump-parametrisation"><div class="highlight"><pre><span></span><span class="n">my_pump</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">pump</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span> <span class="c1"># create pump</span>
 <span class="n">my_pump</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="mf">2e3</span><span class="p">,</span> <span class="n">eta_s</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span> <span class="c1"># reset power, set isentropic efficiency</span>
 <span class="n">my_pump</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="c1"># unset power</span>
 </pre></div>
@@ -97,7 +99,7 @@
 </ul>
 </div></blockquote>
 <p>All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the same pressure in two parts of your network but you do not know the pressure prior to the plant simulation.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pyte.connections.connections</span> <span class="kn">as</span> <span class="nn">conn</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyte.connections.connections</span> <span class="kn">as</span> <span class="nn">conn</span>
 <span class="kn">import</span> <span class="nn">pyte.connections.references</span> <span class="kn">as</span> <span class="nn">ref</span>
 <span class="n">a</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">waste_steam_source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span> <span class="c1"># waste steam source to condenser hot side inlet and setting vapour mass fraction</span>
 <span class="n">b</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;air&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span> <span class="c1"># setting a fluid vector: {&#39;fluid i&#39;: mass fraction i}</span>
@@ -109,7 +111,7 @@
 </pre></div>
 </div>
 <p>If you want to set, reset or unset a connection parameter the same logic as for the components is applied.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">a</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span> <span class="c1"># reset vapour mass fraction, set pressure</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">a</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span> <span class="c1"># reset vapour mass fraction, set pressure</span>
 <span class="n">d</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="c1"># unset pressure</span>
 </pre></div>
 </div>
@@ -117,19 +119,19 @@
 <div class="section" id="busses-power-connections">
 <h3><a class="toc-backref" href="#contents">Busses: power connections</a><a class="headerlink" href="#busses-power-connections" title="Permalink to this headline">¶</a></h3>
 <p>Busses can be used to add up the power of different turbomachinery or to add up heat flux of different heat exchangers within your network. This can be used either for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network. If you want to use the busses for postprocessing only, you do not specify the sum of the power or heat flux on your bus. For establishing relations between different components, for instance when using a steam turbine powered feed water pump, you have to set the total power on this bus. In the code example the power of the turbine and the feed water pump is added up and set to zero, as the turbines and feed water pumps power have to be equal in absolute value but have different sign. The sign can be manipulated, e. g. in order to design two turbines with equal power output.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">pyte</span> <span class="kn">import</span> <span class="n">connections</span> <span class="k">as</span> <span class="n">con</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyte</span> <span class="kn">import</span> <span class="n">connections</span> <span class="k">as</span> <span class="n">con</span>
 <span class="n">a</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">bus</span><span class="p">(</span><span class="s1">&#39;feed water pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">a</span><span class="o">.</span><span class="n">add_comp</span><span class="p">([</span><span class="n">turbine_fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 <span class="n">b</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">bus</span><span class="p">(</span><span class="s1">&#39;turbines&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">b</span><span class="o">.</span><span class="n">add_comp</span><span class="p">([</span><span class="n">turbine_hp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">turbine_lp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>Two labels for busses have a predefined function in the postprocessing analysis: &#8216;P&#8217; and &#8216;Q_diss&#8217;. If you specify these labels for your busses, &#8216;P&#8217; will be interpreted as the total power of your process and &#8216;Q_diss&#8217; as total amount of dissipated heat flux (from the process, not internally). Given these key figures, thermal efficiency and COP will be calculated and an entropy analysis for your systems components will be performed.</p>
+<p>Two labels for busses have a predefined function in the postprocessing analysis: ‘P’ and ‘Q_diss’. If you specify these labels for your busses, ‘P’ will be interpreted as the total power of your process and ‘Q_diss’ as total amount of dissipated heat flux (from the process, not internally). Given these key figures, thermal efficiency and COP will be calculated and an entropy analysis for your systems components will be performed.</p>
 </div>
 <div class="section" id="subsystems">
 <h3><a class="toc-backref" href="#contents">Subsystems</a><a class="headerlink" href="#subsystems" title="Permalink to this headline">¶</a></h3>
 <p>Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater. The subsystems interfaces are subsys.inlet and subsys.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
 <span class="n">sink</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink1&#39;</span><span class="p">)</span>
 <span class="n">source2</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source2&#39;</span><span class="p">)</span>
 <span class="n">sink2</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink2&#39;</span><span class="p">)</span>
@@ -189,7 +191,7 @@
 <div class="section" id="solve-the-network">
 <h4>Solve the network<a class="headerlink" href="#solve-the-network" title="Permalink to this headline">¶</a></h4>
 <p>Starting with the subsystem example, in order to start your calculation you need to add the following line to your code:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">solve</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="n">nw</span><span class="p">,</span> <span class="n">init_file</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">design_file</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;design&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">solve</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="n">nw</span><span class="p">,</span> <span class="n">init_file</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">design_file</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;design&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This starts the initialisation of your network and proceeds to its calculation.</p>
@@ -335,28 +337,25 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to PyTE&#8217;s documentation!</a></li>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to PyTE’s documentation!</a></li>
   </ul></li>
 </ul>
 </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/tutorial.txt"
+      <li><a href="_sources/tutorial.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -367,11 +366,11 @@
       &copy;2017, Francesco Witte.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
-      <a href="_sources/tutorial.txt"
+      <a href="_sources/tutorial.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

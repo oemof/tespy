@@ -4,24 +4,24 @@ pyte package
 Submodules
 ----------
 
-pyte.connections module
------------------------
+pyte\.connections module
+------------------------
 
 .. automodule:: pyte.connections
     :members:
     :undoc-members:
     :show-inheritance:
 
-pyte.helpers module
--------------------
+pyte\.helpers module
+--------------------
 
 .. automodule:: pyte.helpers
     :members:
     :undoc-members:
     :show-inheritance:
 
-pyte.networks module
---------------------
+pyte\.networks module
+---------------------
 
 .. automodule:: pyte.networks
     :members:

@@ -15,50 +15,44 @@ from pyte.components import components as cmp
 
 class connection:
     """
-    class connection
-
     creates connection between two components
 
-    .. note::
+    - check argument consistency
+    - set attributes to specified values
+
+    :param comp1: connections source
+    :type comp1: pyte.components.components.component
+    :param outlet_id: outlet id at the connections source
+    :type outlet_id: str
+    :param comp2: connections target
+    :type comp2: pyte.components.components.component
+    :param inlet_id: inlet id at the connections target
+    :type inlet_id: str
+    :returns: no return value
+    :raises: - :code:`TypeError`, if comp1 and comp2 are not of type
+               components
+             - :code:`ValueError`, if comp1 and comp2 are the same object
+             - :code:`ValueError`, if outlet_id or inlet_id are not allowed
+               for ids for comp1 or comp2
+
+    **allowed keywords** in kwargs (also see connections.attr()):
+
+    - m, m0
+    - p, p0
+    - h, h0
+    - T
+    - x
+    - fluid
+
+    **example**
+
+    .. code-block:: python
+        conn = connections(turbine, 'out1', condenser, 'in1', m=10, p=0.05)
+
+    creates component from turbine to condenser (hot side inlet) and sets
+    values for mass flow and pressure
     """
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
-        """
-        object initialisation
-            - check argument consistency
-            - set attributes to specified values
-
-        :param comp1: connections source
-        :type comp1: pyte.components.components.component
-        :param outlet_id: outlet id at the connections source
-        :type outlet_id: str
-        :param comp2: connections target
-        :type comp2: pyte.components.components.component
-        :param inlet_id: inlet id at the connections target
-        :type inlet_id: str
-
-        allowed keywords in kwargs (also see connections.attr()):
-            - m, m0
-            - p, p0
-            - h, h0
-            - T
-            - x
-            - fluid
-
-        :returns: no return value
-        :raises: - :code:`TypeError`, if comp1 and comp2 are not of type
-                   components
-                 - :code:`ValueError`, if comp1 and comp2 are the same object
-                 - :code:`ValueError`, if outlet_id or inlet_id are not allowed
-                   for ids for comp1 or comp2
-
-        example
-            .. code-block:: python
-                conn = connections(turbine, 'out1', condenser, 'in1', m=10,
-                p=0.05)
-
-        creates component from turbine to condenser (hot side inlet) and sets
-        values for mass flow and pressure
-        """
 
         # check input parameters
         if not (isinstance(comp1, cmp.component) and

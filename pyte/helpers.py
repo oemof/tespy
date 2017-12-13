@@ -21,6 +21,17 @@ err = 1e-6
 global molar_masses
 molar_masses = {}
 
+
+class memorise:
+
+    def __init__(self, num_fl):
+        memorise.T_ph = np.empty((0, num_fl + 3), float)
+        memorise.T_ps = np.empty((0, num_fl + 4), float)
+        memorise.v_ph = np.empty((0, num_fl + 3), float)
+        memorise.visc_ph = np.empty((0, num_fl + 3), float)
+        memorise.s_ph = np.empty((0, num_fl + 3), float)
+
+
 class MyNetworkError(Exception):
     pass
 
@@ -109,12 +120,23 @@ def T_mix_ph(flow):
     :type flow: list
     :returns: T (float) - temperature in K
     """
-    if num_fluids(flow[3]) > 1:
-        return newton(h_mix_pT, dh_mix_pdT, flow, flow[2])
+    a = memorise.T_ph[:, 0:-1]
+    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    if ix.size == 1:
+        return memorise.T_ph[ix, -1][0]
     else:
-        for fluid, x in flow[3].items():
-            if x > err:
-                return CPPSI('T', 'H', flow[2], 'P', flow[1], fluid)
+        if num_fluids(flow[3]) > 1:
+            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2])
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
+                            [val]])
+            memorise.T_ph = np.append(memorise.T_ph, new, axis=0)
+            return val
+        else:
+            for fluid, x in flow[3].items():
+                if x > err:
+                    val = CPPSI('T', 'H', flow[2], 'P', flow[1], fluid)
+                    return val
 
 
 def T_mix_ps(flow, s):
@@ -128,12 +150,26 @@ def T_mix_ps(flow, s):
     :type s: numeric
     :returns: T (float) - temperature in K
     """
-    if num_fluids(flow[3]) > 1:
-        return newton(s_mix_pT, ds_mix_pdT, flow, s)
+    a = memorise.T_ps[:, 0:-1]
+    b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
+    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    if ix.size == 1:
+        return memorise.T_ps[ix, -1][0]
     else:
-        for fluid, x in flow[3].items():
-            if x > err:
-                return CPPSI('T', 'S', s, 'P', flow[1], fluid)
+        if num_fluids(flow[3]) > 1:
+            val = newton(s_mix_pT, ds_mix_pdT, flow, s)
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
+                            [s, val]])
+            memorise.T_ps = np.append(memorise.T_ps, new, axis=0)
+            return val
+        else:
+            for fluid, x in flow[3].items():
+                if x > err:
+                    val = CPPSI('T', 'S', s, 'P', flow[1], fluid)
+                    new = np.array([[flow[1], flow[2]] +
+                                    list(flow[3].values()) + [s, val]])
+                    memorise.T_ps = np.append(memorise.T_ps, new, axis=0)
+                    return val
 
 
 def dT_mix_dph(flow):
@@ -184,7 +220,7 @@ def dT_mix_ph_dfluid(flow):
     l = flow.copy()
     vec_deriv = []
     for fluid, x in flow[3].items():
-        if x > 1e-5:
+        if x > err:
             u[3][fluid] += d
             l[3][fluid] -= d
             vec_deriv += [(T_mix_ph(u) - T_mix_ph(l)) / (2 * d)]
@@ -301,12 +337,26 @@ def v_mix_ph(flow):
     :type flow: list
     :returns: v (float) - specific volume in kg / m :sup:`3`
     """
-    if num_fluids(flow[3]) > 1:
-        return v_mix_pT(flow, T_mix_ph(flow))
+    a = memorise.v_ph[:, 0:-1]
+    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    if ix.size == 1:
+        return memorise.v_ph[ix, -1][0]
     else:
-        for fluid, x in flow[3].items():
-            if x > err:
-                return 1 / CPPSI('D', 'P', flow[1], 'H', flow[2], fluid)
+        if num_fluids(flow[3]) > 1:
+            val = v_mix_pT(flow, T_mix_ph(flow))
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
+                            [val]])
+            memorise.v_ph = np.append(memorise.v_ph, new, axis=0)
+            return val
+        else:
+            for fluid, x in flow[3].items():
+                if x > err:
+                    val = 1 / CPPSI('D', 'P', flow[1], 'H', flow[2], fluid)
+                    new = np.array([[flow[1], flow[2]] +
+                                    list(flow[3].values()) + [val]])
+                    memorise.v_ph = np.append(memorise.v_ph, new, axis=0)
+                    return val
 
 
 def v_mix_pT(flow, T):
@@ -331,6 +381,47 @@ def v_mix_pT(flow, T):
     return 1 / d
 
 
+def visc_mix_ph(flow):
+    """
+    calculates specific volume from pressure and enthalpy
+    uses CoolProp reverse functions for pure fluids, newton for mixtures
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :returns: v (float) - specific volume in kg / m :sup:`3`
+    """
+    if num_fluids(flow[3]) > 1:
+        return visc_mix_pT(flow, T_mix_ph(flow))
+    else:
+        for fluid, x in flow[3].items():
+            if x > err:
+                return CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
+
+
+def visc_mix_pT(flow, T):
+    """
+    calculates specific volume from pressure and temperature
+    uses CoolProp reverse functions for pure fluids, newton for mixtures
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :param T: temperature in K
+    :type T: numeric
+    :returns: v (float) - specific volume in kg / m :sup:`3`
+    """
+    n = molar_massflow(flow[3])
+
+    a = 0
+    b = 0
+    for fluid, x in flow[3].items():
+        if x > err:
+            bi = x * math.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
+            b += bi
+            a += bi * CPPSI('V', 'P', flow[1], 'T', T, fluid)
+
+    return a / b
+
+
 def s_mix_ph(flow):
     """
     calculates entropy from pressure and enthalpy
@@ -340,12 +431,26 @@ def s_mix_ph(flow):
     :type flow: list
     :returns: s (float) - entropy in J / (kg * K)
     """
-    if num_fluids(flow[3]) > 1:
-        return s_mix_pT(flow, T_mix_ph(flow))
+    a = memorise.s_ph[:, 0:-1]
+    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    if ix.size == 1:
+        return memorise.s_ph[ix, -1][0]
     else:
-        for fluid, x in flow[3].items():
-            if x > err:
-                return CPPSI('S', 'P', flow[1], 'H', flow[2], fluid)
+        if num_fluids(flow[3]) > 1:
+            val = s_mix_pT(flow, T_mix_ph(flow))
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
+                            [val]])
+            memorise.s_ph = np.append(memorise.s_ph, new, axis=0)
+            return val
+        else:
+            for fluid, x in flow[3].items():
+                if x > err:
+                    val = CPPSI('S', 'P', flow[1], 'H', flow[2], fluid)
+                    new = np.array([[flow[1], flow[2]] +
+                                    list(flow[3].values()) + [val]])
+                    memorise.s_ph = np.append(memorise.s_ph, new, axis=0)
+                    return val
 
 
 def s_mix_pT(flow, T):
@@ -466,13 +571,13 @@ def lamb(re, ks, d):
                 return 0.0032 + 0.221 * re ** (-0.237)
             else:
                 l0 = 0.0001
-                func = lambda l: (2 * math.log(re * math.sqrt(l)) - 0.8 - 1 /
-                                  math.sqrt(l))
+                func = lambda l: (2 * math.log(re * math.sqrt(l), 10) -
+                                  0.8 - 1 / math.sqrt(l))
                 return fsolve(func, l0)
         elif re * ks / d > 1300:
-            return 1 / (2 * math.log(3.71 * d / ks)) ** 2
+            return 1 / (2 * math.log(3.71 * d / ks, 10)) ** 2
         else:
             l0 = 0.002
             func = lambda l: (2 * math.log(2.51 / (re * math.sqrt(l)) +
-                              ks / d * 0.269) + 1 / math.sqrt(l))
+                              ks / d * 0.269, 10) + 1 / math.sqrt(l))
             return fsolve(func, l0)

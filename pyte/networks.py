@@ -102,6 +102,8 @@ class network:
         for f in self.fluids:
             hlp.molar_masses[f] = CPPSI('M', f)
 
+        hlp.memorise(len(self.fluids))
+
     def var(self):
         return ['m', 'p', 'h', 'T', 'fluids']
 
@@ -153,7 +155,8 @@ class network:
               already connected to another connections object
         """
         if not isinstance(c, con.connection):
-            raise TypeError('Must provide connections objects as parameters.')
+            raise TypeError('Must provide pyte.connections.connection objects '
+                            'as parameters.')
 
         self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
 
@@ -217,10 +220,12 @@ class network:
     def check_network(self):
         """
         checks the network consistency: are all components connected?
-            - iterates through components of the network
-            - substract the number of connections in the network going in
-              and out of the component from number of connections the component
-              requires.
+
+        - iterates through components of the network
+        - substract the number of connections in the network going in
+          and out of the component from number of connections the component
+          requires.
+
         :returns: no return value
         :raises: :code:`hlp.MyNetworkError`, if number of connections in the
                  network does not match number of connections required
@@ -247,11 +252,12 @@ class network:
     def initialise(self):
         """
         initilialises the network
-            - component initlialisation
-            - fluid propagation on all connections
-            - initilialise fluid properties
-            - initialisiation from .csv-files
-            - switch components to offdesign mode for offedesign calculation
+
+        - component initlialisation
+        - fluid propagation on all connections
+        - initilialise fluid properties
+        - initialisiation from .csv-files
+        - switch components to offdesign mode for offedesign calculation
 
         :returns: no return value
         """
@@ -299,15 +305,16 @@ class network:
     def init_fluids(self):
         """
         initialises the fluid vector on every connection of the network
-            - create fluid vector for every component as dict,
-              index: nw.fluids,
-              values: 0 if not set by user
-            - create fluid_set vector with same logic,
-              index: nw.fluids,
-              values: False if not set by user
-            - calculate fluid vector starting from combustions chambers
-            - propagate fluid vector in direction of sources and targets for
-              other components
+
+        - create fluid vector for every component as dict,
+          index: nw.fluids,
+          values: 0 if not set by user
+        - create fluid_set vector with same logic,
+          index: nw.fluids,
+          values: False if not set by user
+        - calculate fluid vector starting from combustions chambers
+        - propagate fluid vector in direction of sources and targets for
+          other components
 
         :returns: no return value
         """
@@ -422,12 +429,12 @@ class network:
         """
         initialises the fluid properties on every connection of the network
 
-            - sets standard values for :code:`m0, p0, h0` if not user specified
-            - sets :code:`var = var0` if var_set is False
-            - initialises reference objects
-            - performs target fluid propagation from merges
-            - sets initial values for enthalpy at given vapour mass fraction or
-              temperature
+        - sets standard values for :code:`m0, p0, h0` if not user specified
+        - sets :code:`var = var0` if var_set is False
+        - initialises reference objects
+        - performs target fluid propagation from merges
+        - sets initial values for enthalpy at given vapour mass fraction or
+          temperature
 
         :returns: no return value
         """
@@ -472,9 +479,10 @@ class network:
         """
         sets standard initialisation values for pressure
         values for pressure deriven by
-            - user specification,
-            - attached components or
-            - unspecific value (1e5 for pressure)
+
+        - user specification,
+        - attached components or
+        - unspecific value (1e5 for pressure)
 
         :param c: connection to initialise
         :type c: pyte.connections.connection
@@ -499,9 +507,10 @@ class network:
         """
         sets standard initialisation values for enthalpy
         values for enthalpy deriven by
-            - user specification,
-            - attached components or
-            - unspecific value (1e6 for enthalpy)
+
+        - user specification,
+        - attached components or
+        - unspecific value (1e6 for enthalpy)
 
         :param c: connection to initialise
         :type c: pyte.connections.connection
@@ -526,8 +535,8 @@ class network:
         """
         initialise reference objects as fluid properties
 
-            - adds a ref-attributes to connection (of type connections)
-            - sets starting value for the variable
+        - adds a ref-attributes to connection (of type connections)
+        - sets starting value for the variable
 
         :returns: no return value
         """
@@ -549,8 +558,9 @@ class network:
     def init_csv(self):
         """
         initialise network from .csv file, used for
-            - preprocessing before offdesign-calculations (design_file)
-            - fluid properties and fluid initialisation (init_file)
+
+        - preprocessing before offdesign-calculations (design_file)
+        - fluid properties and fluid initialisation (init_file)
 
         :returns: no return value
         """
@@ -638,9 +648,10 @@ class network:
     def solve(self, mode, init_file=None, design_file=None):
         """
         solves the network:
-            - checks network consistency
-            - initialises network
-            - calculates network
+
+        - checks network consistency
+        - initialises network
+        - calculates network
 
         :param mode: calculation mode (design, offdesign)
         :type mode: str
@@ -666,9 +677,9 @@ class network:
         print('Network initialised.')
 
 # vectors for convergence history (massflow, pressure, enthalpy)
-#        self.convergence[0] = np.zeros((len(self.conns), 0))
-#        self.convergence[1] = np.zeros((len(self.conns), 0))
-#        self.convergence[2] = np.zeros((len(self.conns), 0))
+        self.convergence[0] = np.zeros((len(self.conns), 0))
+        self.convergence[1] = np.zeros((len(self.conns), 0))
+        self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
         print('Solving network.')
@@ -683,24 +694,24 @@ class network:
 
         print('iter\t| residual')
         for self.iter in range(250):
-#            self.convergence[0] = np.column_stack((self.convergence[0],
-#                                                   [0] * len(self.conns)))
-#            self.convergence[1] = np.column_stack((self.convergence[1],
-#                                                   [0] * len(self.conns)))
-#            self.convergence[2] = np.column_stack((self.convergence[2],
-#                                                   [0] * len(self.conns)))
+            self.convergence[0] = np.column_stack((self.convergence[0],
+                                                   [0] * len(self.conns)))
+            self.convergence[1] = np.column_stack((self.convergence[1],
+                                                   [0] * len(self.conns)))
+            self.convergence[2] = np.column_stack((self.convergence[2],
+                                                   [0] * len(self.conns)))
 
             self.solve_loop()
             self.res = np.append(self.res, norm(self.vec_res))
 
             print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
 
-#            k = 0
-#            for c in self.conns.index:
-#                self.convergence[0][k][self.iter] = c.m
-#                self.convergence[1][k][self.iter] = c.p
-#                self.convergence[2][k][self.iter] = c.h
-#                k += 1
+            k = 0
+            for c in self.conns.index:
+                self.convergence[0][k][self.iter] = c.m
+                self.convergence[1][k][self.iter] = c.p
+                self.convergence[2][k][self.iter] = c.h
+                k += 1
 
             self.iter += 1
 
@@ -735,10 +746,11 @@ class network:
         """
         calculates the solution of the network with n-dimensional newton
         algorithm:
-            - calculate the residual value for each equation
-            - calculate the jacobian matrix
-            - calculate new values for variables
-            - check fluid properties and check values for consistency
+
+        - calculate the residual value for each equation
+        - calculate the jacobian matrix
+        - calculate new values for variables
+        - check fluid properties and check values for consistency
 
         :returns: no return value
         :raises: :code:`hlp.MyNetworkError` if network is under-determined.
@@ -782,7 +794,7 @@ class network:
                        'but not zero) starting value.')
                 raise hlp.MyNetworkError(msg)
 
-# calculate properties from increment
+        # calculate properties from increment
         i = 0
 
         for c in self.conns.index:
@@ -793,7 +805,7 @@ class network:
             if not c.h_set or hasattr(c, 'h_ref'):
                 c.h += vec_z[i * (self.num_vars) + 2] * self.relax
 
-# prevent bad changes within solution process
+            # prevent bad changes within solution process
             if c.p <= 0.01 * 1e5:
                 c.p = 0.02 * 1e5
             if c.p >= 500 * 1e5:
@@ -814,19 +826,20 @@ class network:
                 l += 1
             i += 1
 
-# check if state is within fluid properties, if not: change values
-        for cp in self.comps.index:
-            if self.init_file is None and self.iter < 10:
+        # check properties for consistency
+        if self.init_file is None and self.iter < 5:
+            for cp in self.comps.index:
                 cp.convergence_check(self)
 
     def solve_components(self):
         """
         calculates the equations and the partial derivatives for the networks
         components.
-            - iterate through components in network to get residuals and
-              derivatives
-            - append residuals to residual vector
-            - place partial derivatives in jacobian matrix
+
+        - iterate through components in network to get residuals and
+          derivatives
+        - append residuals to residual vector
+        - place partial derivatives in jacobian matrix
 
         :returns: no return value
         """
@@ -842,8 +855,9 @@ class network:
                 inlets = self.comps.loc[cp].i.tolist()
                 outlets = self.comps.loc[cp].o.tolist()
                 self.debug += [cp] * (len(vec_deriv))
+                # insert derivatives row - wise
+                # loc is the location of c in the jacobian matrix
                 for c in inlets + outlets:
-# insert derivatives row - wise, loc is the location of c in the jacobian matrix
                     loc = self.conns.index.get_loc(c)
                     self.mat_deriv[num_eq:len(self.vec_res),
                                    loc * (self.num_vars):
@@ -857,10 +871,11 @@ class network:
         """
         calculates the equations and the partial derivatives for the networks
         connectons.
-            - iterate through connections in network to get residuals and
-              derivatives
-            - append residuals to residual vector
-            - place partial derivatives in jacobian matrix
+
+        - iterate through connections in network to get residuals and
+          derivatives
+        - append residuals to residual vector
+        - place partial derivatives in jacobian matrix
 
         :returns: no return value
         """
@@ -897,10 +912,11 @@ class network:
         """
         calculates the equations and the partial derivatives for the networks
         busses.
-            - iterate through busses in network to get residuals and
-              derivatives
-            - append residuals to residual vector
-            - place partial derivatives in jacobian matrix
+
+        - iterate through busses in network to get residuals and
+          derivatives
+        - append residuals to residual vector
+        - place partial derivatives in jacobian matrix
 
         :returns: no return value
         """
@@ -975,8 +991,9 @@ class network:
     def solve_T(self, c, row, col):
         """
         calculate residuals and partial derivatives for given temperature
-            - the calculation of partial derivatives of temperature to fluids
-              is skipped if residuals become very small (speeds up calculation)
+
+        - the calculation of partial derivatives of temperature to fluids
+          is skipped if residuals become very small (speeds up calculation)
 
         :param c: connections object to apply calculations on
         :type c: pyte.connections.connection
@@ -987,26 +1004,28 @@ class network:
         :returns: no return value
         """
         flow = c.as_list()
+        # if is reference to other connection
         if hasattr(c, 'T_ref'):
             ref_col = self.conns.index.get_loc(c.T_ref.obj) * (self.num_vars)
             flow_ref = c.T_ref.obj.as_list()
-# residual
+            # residual
             res = hlp.T_mix_ph(flow) - (hlp.T_mix_ph(flow_ref) *
                                         c.T_ref.f + c.T_ref.d)
             self.vec_res += [res]
-# derivatives
-# dT / dp
+
+            # derivatives
             if abs(res) > hlp.err ** 3:
+                # dT / dp
                 self.mat_deriv[row, col + 1] = hlp.dT_mix_dph(flow)
                 self.mat_deriv[row, ref_col + 1] = (
                     -hlp.dT_mix_dph(flow_ref) * c.T_ref.f)
-# dT / dh
+                # dT / dh
                 self.mat_deriv[row, col + 2] = hlp.dT_mix_pdh(flow)
                 self.mat_deriv[row, ref_col + 2] = (
                     -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f)
-# dT / dFluid
-# stop calculating temperature derivatives if residuals in temperature are
-# small (very time consuming)
+                # dT / dFluid
+                # stop calculating temperature derivatives if residuals in
+                # temperature are small (very time consuming)
                 dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
                 dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
                 for i in range(self.num_vars - 3):
@@ -1022,12 +1041,13 @@ class network:
                     self.mat_deriv[row, col + 3 + i] = 1
                     self.mat_deriv[row, ref_col + 3 + i] = -1
 
+        # if value is set for temperature
         else:
-# residual
+            # residual
             res = c.T - hlp.T_mix_ph(flow)
             self.vec_res += [res]
+            # derivatives
             if abs(res) > hlp.err ** 3:
-# derivatives
                 self.mat_deriv[row, col + 1] = -hlp.dT_mix_dph(flow)
                 self.mat_deriv[row, col + 2] = -hlp.dT_mix_pdh(flow)
 
@@ -1219,8 +1239,9 @@ class network:
     def save(self, filename):
         """
         saves the results in two files:
-            - results file and
-            - components file
+
+        - results file and
+        - components file
 
         :param filename: suffix for the .csv-file
         :type filename: str
@@ -1232,14 +1253,15 @@ class network:
     def save_connections(self, filename):
         """
         saves the results to filename_results.csv
-            - uses connections object id as row identifier
-            - writes:
-                * properties (value and property_set: False/True)
-                * fluid vector
-                * fluid_set vector
-                * connections source and target
-                * connections parametrisation
-            - connections source and target identified by its labels
+
+        - uses connections object id as row identifier
+        - writes:
+            * properties (value and property_set: False/True)
+            * fluid vector
+            * fluid_set vector
+            * connections source and target
+            * connections parametrisation
+        - connections source and target identified by its labels
 
         :param filename: suffix for the .csv-file
         :type filename: str
@@ -1273,10 +1295,11 @@ class network:
     def save_components(self, filename):
         """
         saves the components to filename_comps.csv
-            - uses components labels as row identifier
-            - writes:
-                * components incomming and outgoing connections (object id)
-                * components parametrisation
+
+        - uses components labels as row identifier
+        - writes:
+            * components incomming and outgoing connections (object id)
+            * components parametrisation
 
         :param filename: suffix for the .csv-file
         :type filename: str
@@ -1312,8 +1335,10 @@ def load_nw(nw_name):
     """
     generate network class providing result files
     Required files:
-        - ..._comps.csv
-        - ..._results.csv
+
+    - ..._comps.csv
+    - ..._results.csv
+
     TODO: REDO!
     """
 

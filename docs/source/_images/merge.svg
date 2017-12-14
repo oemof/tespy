@@ -23,8 +23,8 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2505"
-     inkscape:window-height="1416"
+     inkscape:window-width="1625"
+     inkscape:window-height="1026"
      id="namedview15"
      showgrid="true"
      inkscape:snap-bbox="true"
@@ -33,10 +33,10 @@
      inkscape:snap-bbox-edge-midpoints="true"
      inkscape:snap-bbox-midpoints="true"
      inkscape:zoom="2.8284271"
-     inkscape:cx="200.07006"
+     inkscape:cx="100.89833"
      inkscape:cy="-22.951759"
-     inkscape:window-x="1735"
-     inkscape:window-y="24"
+     inkscape:window-x="55"
+     inkscape:window-y="414"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="5"
@@ -90,7 +90,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -106,7 +106,9 @@
        sodipodi:linespacing="125%"><tspan
          y="963.36218"
          x="7.3585625"
-         id="tspan4156">in2</tspan></text>
+         id="tspan4156">in<tspan
+   style="font-size:65.00000387%;baseline-shift:sub"
+   id="tspan9799">2</tspan></tspan></text>
     <text
        id="text4158"
        y="953.14978"
@@ -116,7 +118,9 @@
        sodipodi:linespacing="125%"><tspan
          y="953.14978"
          x="32.202312"
-         id="tspan4160">in1</tspan></text>
+         id="tspan4160">in<tspan
+   style="font-size:65.00000387%;baseline-shift:sub"
+   id="tspan9797">1</tspan></tspan></text>
     <circle
        style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
        id="path4149"
@@ -152,7 +156,9 @@
        sodipodi:linespacing="125%"><tspan
          y="993.14978"
          x="63.158127"
-         id="tspan4160-5-2">out1</tspan></text>
+         id="tspan4160-5-2">out<tspan
+   style="font-size:65.00000387%;baseline-shift:sub"
+   id="tspan9805">1</tspan></tspan></text>
     <text
        id="text4158-3-9"
        y="1052.1498"
@@ -162,7 +168,9 @@
        sodipodi:linespacing="125%"><tspan
          y="1052.1498"
          x="31.202311"
-         id="tspan4160-5-1">inn</tspan></text>
+         id="tspan4160-5-1">in<tspan
+   style="font-size:65.00000387%;baseline-shift:sub"
+   id="tspan9803">n</tspan></tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 50.000002,997.36218 39,0"
@@ -177,7 +185,9 @@
        sodipodi:linespacing="125%"><tspan
          y="993.36218"
          x="7.5721855"
-         id="tspan4156-1">in3</tspan></text>
+         id="tspan4156-1">in<tspan
+   style="font-size:65.00000387%;baseline-shift:sub"
+   id="tspan9801">3</tspan></tspan></text>
   </g>
   <path
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow2Mend)"

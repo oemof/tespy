@@ -23,15 +23,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2505"
-     inkscape:window-height="1416"
+     inkscape:window-width="1625"
+     inkscape:window-height="1026"
      id="namedview22"
      showgrid="true"
      inkscape:zoom="3.7703257"
-     inkscape:cx="129.31393"
-     inkscape:cy="25.657231"
-     inkscape:window-x="1735"
-     inkscape:window-y="24"
+     inkscape:cx="54.917174"
+     inkscape:cy="99.921372"
+     inkscape:window-x="55"
+     inkscape:window-y="414"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1">
     <inkscape:grid
@@ -63,7 +63,9 @@
        xml:space="preserve"><tspan
          y="972.14984"
          x="100.18661"
-         id="tspan4160">out2</tspan></text>
+         id="tspan4160">out<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9775">2</tspan></tspan></text>
     <path
        id="path4164"
        d="m 95.014244,977.36215 39.999996,0"
@@ -92,7 +94,9 @@
        xml:space="preserve"><tspan
          y="947.36218"
          x="23.159182"
-         id="tspan4156-6">in1</tspan></text>
+         id="tspan4156-6">in<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9773">1</tspan></tspan></text>
     <text
        id="text4158-7"
        y="1073.3115"
@@ -101,7 +105,9 @@
        xml:space="preserve"><tspan
          y="1073.3115"
          x="54.172363"
-         id="tspan4160-5">out1</tspan></text>
+         id="tspan4160-5">out<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9779">1</tspan></tspan></text>
     <rect
        y="1042.3622"
        x="40.000004"
@@ -117,7 +123,9 @@
        xml:space="preserve"><tspan
          y="1012.1497"
          x="100.18661"
-         id="tspan4160-56">in2</tspan></text>
+         id="tspan4160-56">in<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9777">2</tspan></tspan></text>
     <path
        id="path4164-2"
        d="m 95.014244,1017.3622 39.999996,0"

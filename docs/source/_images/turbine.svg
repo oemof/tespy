@@ -25,9 +25,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="4"
-     inkscape:cx="27.949091"
-     inkscape:cy="48.308308"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="80.452058"
+     inkscape:cy="-34.98996"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -41,10 +41,10 @@
      inkscape:snap-bbox-edge-midpoints="true"
      inkscape:snap-bbox-midpoints="true"
      inkscape:bbox-paths="true"
-     inkscape:window-width="2505"
-     inkscape:window-height="1416"
-     inkscape:window-x="1735"
-     inkscape:window-y="24"
+     inkscape:window-width="1625"
+     inkscape:window-height="1026"
+     inkscape:window-x="55"
+     inkscape:window-y="414"
      inkscape:window-maximized="1">
     <inkscape:grid
        type="xygrid"
@@ -60,7 +60,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -79,7 +79,9 @@
          sodipodi:role="line"
          id="tspan4156"
          x="7.1591802"
-         y="952.36218">in1</tspan></text>
+         y="952.36218">in<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9821">1</tspan></tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -90,7 +92,9 @@
          sodipodi:role="line"
          id="tspan4160"
          x="70.186607"
-         y="1047.1498">out1</tspan></text>
+         y="1047.1498">out<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9823">1</tspan></tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 5.0000009,957.36203 29.9999991,0 10e-7,15.00012"

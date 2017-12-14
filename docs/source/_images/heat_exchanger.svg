@@ -23,15 +23,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2505"
-     inkscape:window-height="1416"
+     inkscape:window-width="1625"
+     inkscape:window-height="1026"
      id="namedview21"
      showgrid="true"
-     inkscape:zoom="5.8261343"
-     inkscape:cx="123.13476"
-     inkscape:cy="58.308555"
-     inkscape:window-x="1735"
-     inkscape:window-y="24"
+     inkscape:zoom="2.9130672"
+     inkscape:cx="98.451832"
+     inkscape:cy="77.104722"
+     inkscape:window-x="55"
+     inkscape:window-y="414"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="5"
@@ -54,7 +54,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -70,7 +70,9 @@
        sodipodi:linespacing="125%"><tspan
          y="992.36218"
          x="-22.84082"
-         id="tspan4156">in2</tspan></text>
+         id="tspan4156">in<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9791">2</tspan></tspan></text>
     <text
        id="text4158"
        y="992.14978"
@@ -80,7 +82,9 @@
        sodipodi:linespacing="125%"><tspan
          y="992.14978"
          x="100.17236"
-         id="tspan4160">out2</tspan></text>
+         id="tspan4160">out<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9793">2</tspan></tspan></text>
     <path
        id="path4162"
        d="m 5,997.36215 -30,0"
@@ -123,7 +127,9 @@
        sodipodi:linespacing="125%"><tspan
          y="947.36218"
          x="23.159182"
-         id="tspan4156-6">in1</tspan></text>
+         id="tspan4156-6">in<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9789">1</tspan></tspan></text>
     <text
        id="text4158-7"
        y="1058.2972"
@@ -133,6 +139,8 @@
        sodipodi:linespacing="125%"><tspan
          y="1058.2972"
          x="54.172363"
-         id="tspan4160-5">out1</tspan></text>
+         id="tspan4160-5">out<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan9795">1</tspan></tspan></text>
   </g>
 </svg>

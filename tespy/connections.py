@@ -9,8 +9,8 @@
 import numpy as np
 import pandas as pd
 
-from pyte.helpers import MyConnectionError
-from pyte.components import components as cmp
+from tespy.helpers import MyConnectionError
+from tespy.components import components as cmp
 
 
 class connection:
@@ -21,11 +21,11 @@ class connection:
     - set attributes to specified values
 
     :param comp1: connections source
-    :type comp1: pyte.components.components.component
+    :type comp1: tespy.components.components.component
     :param outlet_id: outlet id at the connections source
     :type outlet_id: str
     :param comp2: connections target
-    :type comp2: pyte.components.components.component
+    :type comp2: tespy.components.components.component
     :param inlet_id: inlet id at the connections target
     :type inlet_id: str
     :returns: no return value
@@ -254,7 +254,7 @@ class ref:
         object initialisation
 
         :param ref_obj: connection to be referenced
-        :type ref_obj: pyte.connections.connection
+        :type ref_obj: tespy.connections.connection
         :param factor: factor for the reference
         :type factor: numeric
         :param delta: delta for the reference

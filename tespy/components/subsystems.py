@@ -9,13 +9,13 @@
 import numpy as np
 import math
 
-from pyte.helpers import (
+from tespy.helpers import (
     MyComponentError, MyNetworkError
 )
 
-from pyte import networks as nwk
-from pyte.connections import connection, ref
-from pyte.components import components as comp
+from tespy import networks as nwk
+from tespy.connections import connection, ref
+from tespy.components import components as comp
 
 
 class subsystem:

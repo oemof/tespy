@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ppsim documentation build configuration file, created by
+# tespy documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov 18 11:20:45 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'ppsim'
+project = 'tespy'
 copyright = '2017, Francesco Witte'
 author = 'Francesco Witte'
 
@@ -202,7 +202,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ppsimdoc'
+htmlhelp_basename = 'tespydoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -224,7 +224,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'ppsim.tex', 'ppsim Documentation',
+    (master_doc, 'tespy.tex', 'tespy Documentation',
      'Francesco Witte', 'manual'),
 ]
 
@@ -254,7 +254,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'ppsim', 'ppsim Documentation',
+    (master_doc, 'tespy', 'tespy Documentation',
      [author], 1)
 ]
 
@@ -268,8 +268,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'ppsim', 'ppsim Documentation',
-     author, 'ppsim', 'One line description of project.',
+    (master_doc, 'tespy', 'tespy Documentation',
+     author, 'tespy', 'One line description of project.',
      'Miscellaneous'),
 ]
 

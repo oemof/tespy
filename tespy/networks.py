@@ -16,10 +16,10 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.linalg import norm
 
-from pyte.components import components as cmp
-from pyte import connections as con
+from tespy.components import components as cmp
+from tespy import connections as con
 
-from pyte import helpers as hlp
+from tespy import helpers as hlp
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as mplcm
@@ -112,7 +112,7 @@ class network:
         adds connections to the network, calls check_conns method
 
         :param *args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type *args: pyte.components.subsystem
+        :type *args: tespy.components.subsystem
         :returns: no return value
         """
         for subsys in args:
@@ -124,7 +124,7 @@ class network:
         add connections to the network, calls check_conns method
 
         :param *args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
-        :type *args: pyte.connection
+        :type *args: tespy.connection
         :returns: no return value
         """
         for c in args:
@@ -135,7 +135,7 @@ class network:
         delets connections from a network
 
         :param c: connections object to delete
-        :type c: pyte.connection
+        :type c: tespy.connection
         :returns: no return value
         :raises: :code:`KeyError` if connections object c is not in the network
         """
@@ -147,7 +147,7 @@ class network:
         of components
 
         :param c: connections object to check
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: no return value
         :raises:
             - :code:`TypeError`, if c is not a connections object
@@ -155,7 +155,7 @@ class network:
               already connected to another connections object
         """
         if not isinstance(c, con.connection):
-            raise TypeError('Must provide pyte.connections.connection objects '
+            raise TypeError('Must provide tespy.connections.connection objects '
                             'as parameters.')
 
         self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
@@ -174,7 +174,7 @@ class network:
         adds busses to the network, if check_busses returns :code:`True`
 
         :param *args: bus objects bi :code:`add_conn(b1, b2, b3, ...)`
-        :type *args: pyte.connections.bus
+        :type *args: tespy.connections.bus
         :returns: no return value
         """
         for b in args:
@@ -186,7 +186,7 @@ class network:
         delets busses from a network
 
         :param b: bus object to delete
-        :type b: pyte.connections.bus
+        :type b: tespy.connections.bus
         :returns: no return value
         :raises: :code:`KeyError` if bus object b is not in the network
         """
@@ -199,7 +199,7 @@ class network:
         of components
 
         :param c: busses object to check
-        :type c: pyte.connections.bus
+        :type c: tespy.connections.bus
         :returns: bool
         :raises:
             - :code:`TypeError`, if b is not a busses object
@@ -346,10 +346,10 @@ class network:
         ends when reaching sink, merge or combustion chamber
 
         :param c: connection to initialise
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :param start: fluid propagation startingpoint, in some cases needed
             to exit the recursion
-        :type start: pyte.connections.connection
+        :type start: tespy.connections.connection
         :returns: no return value
         """
         if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
@@ -389,10 +389,10 @@ class network:
         ends when reaching source, merge or combustion chamber
 
         :param c: connection to initialise
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :param start: fluid propagation startingpoint, in some cases needed
             to exit the recursion
-        :type start: pyte.connections.connection
+        :type start: tespy.connections.connection
         :returns: no return value
         """
         if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
@@ -485,7 +485,7 @@ class network:
         - unspecific value (1e5 for pressure)
 
         :param c: connection to initialise
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: no return value
         """
         if math.isnan(c.p0):
@@ -513,7 +513,7 @@ class network:
         - unspecific value (1e6 for enthalpy)
 
         :param c: connection to initialise
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: no return value
         """
         if math.isnan(c.h0):
@@ -965,7 +965,7 @@ class network:
         pressure and/or enthalpy
 
         :param c: connections object to apply calculations on
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix
@@ -996,7 +996,7 @@ class network:
           is skipped if residuals become very small (speeds up calculation)
 
         :param c: connections object to apply calculations on
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix
@@ -1066,7 +1066,7 @@ class network:
         fraction
 
         :param c: connections object to apply calculations on
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :param row: index of row to insert into jacobian matrix
         :type row: int
         :param col: index of column for connection c in jacobian matrix

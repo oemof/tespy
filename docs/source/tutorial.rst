@@ -1,10 +1,10 @@
-.. _pyte_label:
+.. _tespy_label:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-PyTE -  Python Thermal Engineering
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TESPy -  Thermal Engineering Systems in Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PyTE is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. It is possible to derive plant characteristics which can be used in energy network simulations. In the :ref:`pyte_examples_label` section you can find a short introduction how to use PyTE.
+TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. It is possible to derive plant characteristics which can be used in energy network simulations. In the :ref:`tespy_examples_label` section you can find a short introduction how to use TESPy.
 
 .. contents::
     :depth: 2
@@ -12,21 +12,21 @@ PyTE is an oemof-package for the simulation of thermal process plants, such as t
     :backlinks: top
 
 
-How can I use PyTE?
+How can I use TESPy?
 --------------------
 
-To use PyTE you have to install PyTE. The installation provides some examples for testing purposes. Once the examples work you are close to your first power plant simulation.
+To use TESPy you have to install TESPy. The installation provides some examples for testing purposes. Once the examples work you are close to your first power plant simulation.
 
 Set up a plant
 ^^^^^^^^^^^^^^
 
-In order to simulate a plant you will have to create a pyte.network. The network is the main container for the model.
+In order to simulate a plant you will have to create a tespy.network. The network is the main container for the model.
 
 You need to specify a list of the fluids you need for the calculation in your plant. The whole list of available fluids can be found in the docs. If you want to work with fluid mixtures, for now, it is only possible to use ideal mixtures of real gases. Mixtures of liquids and gases or two liquids are not available. For more information on the fluid properties see the CoolProp documentation on `Pure and Pseudo-Pure fluid properties <http://www.coolprop.org/fluid_properties/PurePseudoPure.html>`_. Further it is possible to choose a unit system for mass flow, temperature and pressure.
 
 .. code-block:: python
 
-    import pyte as pp
+    import tespy as pp
     my_plant = pp.network(fluids=['air', 'water'], T='C', p='bar')
 
 Now you can start to create the components of the network.
@@ -39,7 +39,7 @@ All components can be found in the package components.components. If you set up 
 
 .. code-block:: python
 
-    import pyte.components.components as comp
+    import tespy.components.components as comp
     print(comp.vessel.variables())
 	
 All parameters besides the label and the fuel for combustion chambers are optional, thus if not set, they will be a result of the plant simulation. In this way, the set of equations a component returns is determined by which parameters you specify. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
@@ -69,8 +69,8 @@ All parameters but the fluid vector have to be numeric values. The fluid vector 
 
 .. code-block:: python
 	
-	import pyte.connections.connections as conn
-	import pyte.connections.references as ref
+	import tespy.connections.connections as conn
+	import tespy.connections.references as ref
 	a = conn(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
 	b = conn(condenser, 'out1', feed_water_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
 	c = conn(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
@@ -93,7 +93,7 @@ Busses can be used to add up the power of different turbomachinery or to add up 
 
 .. code-block:: python
 	
-	from pyte import connections as con
+	from tespy import connections as con
 	a = con.bus('feed water pump', P=0)
 	a.add_comp([turbine_fwp, 1], [fwp, 1])
 	b = con.bus('turbines', P=0)
@@ -132,7 +132,7 @@ Before learning how to start the simulation a short introduction on how the solu
 Introduction
 ++++++++++++
 
-A pyte.network can be represented as a linear system of non-linear equations, consequently the solution is obtained with numerical methods. PyTE uses the n-dimensional newton algorithm to find the systems solution, which may only be found, if the network is parameterized correctly. The variables of the system are mass flow, pressure, enthalpy and the fluid components on each connection of the network. Thus, the number of fluids you specify in the fluid list for the network and the number of connections determine the number of variables in the system:
+A tespy.network can be represented as a linear system of non-linear equations, consequently the solution is obtained with numerical methods. TESPy uses the n-dimensional newton algorithm to find the systems solution, which may only be found, if the network is parameterized correctly. The variables of the system are mass flow, pressure, enthalpy and the fluid components on each connection of the network. Thus, the number of fluids you specify in the fluid list for the network and the number of connections determine the number of variables in the system:
 
 .. math:: num_{var} = num_{conn} \cdot (3 + num_{fluids}).
 
@@ -239,7 +239,7 @@ After designing your process you might want to gain information on offdesign beh
 
 2: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only
 
-PyTE examples
+TESPy examples
 --------------
 
 

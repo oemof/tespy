@@ -1,7 +1,7 @@
-pyte
-====
+tespy
+=====
 
 .. toctree::
    :maxdepth: 4
 
-   pyte
+   tespy

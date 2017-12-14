@@ -12,7 +12,7 @@ import math
 import CoolProp.CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
-from pyte.helpers import (
+from tespy.helpers import (
     num_fluids, fluid_structure, MyComponentError,
     v_mix_ph, h_mix_pT, s_mix_pT, s_mix_ph, T_mix_ph, T_mix_ps, visc_mix_ph,
     dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ,
@@ -20,7 +20,7 @@ from pyte.helpers import (
     molar_masses, err
 )
 
-from pyte.components import characteristics as cmp_char
+from tespy.components import characteristics as cmp_char
 
 
 def init_target(nw, c, start):
@@ -29,12 +29,12 @@ def init_target(nw, c, start):
     ends when reaching sink, merge or combustion chamber
 
     :param nw: network to operate on
-    :type nw: pyte.networks.network
+    :type nw: tespy.networks.network
     :param c: connection to initialise
-    :type c: pyte.connections.connection
+    :type c: tespy.connections.connection
     :param start: fluid propagation startingpoint, in some cases needed
         to exit the recursion
-    :type start: pyte.connections.connection
+    :type start: tespy.connections.connection
     :returns: no return value
 
     .. note::
@@ -242,7 +242,7 @@ class component:
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 0 \; \text{Pa}`
         """
@@ -253,7 +253,7 @@ class component:
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 0 \; \text{Pa}`
         """
@@ -264,7 +264,7 @@ class component:
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 0 \; \frac{\text{J}}{\text{kg}}`
@@ -276,7 +276,7 @@ class component:
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 0 \; \frac{\text{J}}{\text{kg}}`
@@ -812,13 +812,13 @@ class turbomachine(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         **optional equations**
 
@@ -829,20 +829,20 @@ class turbomachine(component):
 
         isentropic efficiency
 
-        - :func:`pyte.components.components.pump.eta_s_func`
-        - :func:`pyte.components.components.compressor.eta_s_func`
-        - :func:`pyte.components.components.turbine.eta_s_func`
+        - :func:`tespy.components.components.pump.eta_s_func`
+        - :func:`tespy.components.components.compressor.eta_s_func`
+        - :func:`tespy.components.components.turbine.eta_s_func`
 
         characteristics
 
-        - :func:`pyte.components.components.pump.char_func`
-        - :func:`pyte.components.components.compressor.char_func`
-        - :func:`pyte.components.components.turbine.char_func`
+        - :func:`tespy.components.components.pump.char_func`
+        - :func:`tespy.components.components.compressor.char_func`
+        - :func:`tespy.components.components.turbine.char_func`
 
         **additional equations**
 
-        - :func:`pyte.components.components.turbomachine.additional_equations`
-        - :func:`pyte.components.components.turbine.additional_equations`
+        - :func:`tespy.components.components.turbomachine.additional_equations`
+        - :func:`tespy.components.components.turbine.additional_equations`
         """
 
         vec_res = []
@@ -875,7 +875,7 @@ class turbomachine(component):
         component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
         """
         return []
@@ -886,7 +886,7 @@ class turbomachine(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
 
         **example**
@@ -952,7 +952,7 @@ class turbomachine(component):
         equations of this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
         return []
@@ -1252,7 +1252,7 @@ class pump(turbomachine):
           user, if function for isentropic efficiency cannot be calculated
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
 
          **TODO:**
@@ -1282,7 +1282,7 @@ class pump(turbomachine):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 10^6 \; \text{Pa}`
         """
@@ -1293,7 +1293,7 @@ class pump(turbomachine):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -1304,7 +1304,7 @@ class pump(turbomachine):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -1316,7 +1316,7 @@ class pump(turbomachine):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -1537,7 +1537,7 @@ class compressor(turbomachine):
           user, if function for isentropic efficiency cannot be calculated
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
 
          **TODO:**
@@ -1567,7 +1567,7 @@ class compressor(turbomachine):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 10^6 \; \text{Pa}`
         """
@@ -1578,7 +1578,7 @@ class compressor(turbomachine):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -1589,7 +1589,7 @@ class compressor(turbomachine):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 6 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -1601,7 +1601,7 @@ class compressor(turbomachine):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 4 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -1659,12 +1659,12 @@ class turbine(turbomachine):
         - applies stodolas law in offdesign calculation
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - residual value vector
 
         **optional equations**
 
-        - :func:`pyte.components.components.turbine.cone_func`
+        - :func:`tespy.components.components.turbine.cone_func`
         """
         vec_res = []
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
@@ -1681,7 +1681,7 @@ class turbine(turbomachine):
         enthalpy and fluid composition for the additional equations
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
@@ -1827,7 +1827,7 @@ class turbine(turbomachine):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 0,5 \cdot 10^5 \; \text{Pa}`
         """
@@ -1838,7 +1838,7 @@ class turbine(turbomachine):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 2,5 \cdot 10^6 \; \text{Pa}`
         """
@@ -1849,7 +1849,7 @@ class turbine(turbomachine):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 1,5 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
@@ -1861,7 +1861,7 @@ class turbine(turbomachine):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 2 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
@@ -1913,13 +1913,13 @@ class split(component):
         - equations are different for splitter and separator
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
             0 = p_{in} - p_{out,i} \;
@@ -1975,7 +1975,7 @@ class split(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
 
         **example**
@@ -2090,7 +2090,7 @@ class split(component):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -2101,7 +2101,7 @@ class split(component):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -2112,7 +2112,7 @@ class split(component):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -2124,7 +2124,7 @@ class split(component):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -2228,13 +2228,13 @@ class merge(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
             0 = - \dot{m}_{out} \cdot h_{out} + \sum_{i} \dot{m}_{in,i} \cdot
@@ -2266,7 +2266,7 @@ class merge(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -2306,7 +2306,7 @@ class merge(component):
         - it is recommended to specify starting values for mass flows at merges
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
         """
         for outconn in nw.comps.loc[self].o:
@@ -2326,7 +2326,7 @@ class merge(component):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -2337,7 +2337,7 @@ class merge(component):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -2348,7 +2348,7 @@ class merge(component):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -2360,7 +2360,7 @@ class merge(component):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -2436,24 +2436,24 @@ class combustion_chamber(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.combustion_chamber.reaction_balance`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.combustion_chamber.reaction_balance`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
 
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`pyte.components.components.combustion_chamber.energy_balance`
+        - :func:`tespy.components.components.combustion_chamber.energy_balance`
 
         **optional equations**
 
-        - :func:`pyte.components.components.combustion_chamber.lamb_func`
+        - :func:`tespy.components.components.combustion_chamber.lamb_func`
 
         """
 
@@ -2485,7 +2485,7 @@ class combustion_chamber(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -2797,10 +2797,10 @@ class combustion_chamber(component):
         - sets the fluid composition at the combustion chambers outlet
 
          for the reaction balance equations see
-         :func:`pyte.components.components.combustion_chamber.reaction_balance`
+         :func:`tespy.components.components.combustion_chamber.reaction_balance`
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
         """
         N2 = 0.7655
@@ -2837,7 +2837,7 @@ class combustion_chamber(component):
         - propagate the corrected fluid composition towards target
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
         """
         for o in nw.comps.loc[self].o:
@@ -2870,7 +2870,7 @@ class combustion_chamber(component):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
         """
@@ -2881,7 +2881,7 @@ class combustion_chamber(component):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
         """
@@ -2892,7 +2892,7 @@ class combustion_chamber(component):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 1 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
@@ -2904,7 +2904,7 @@ class combustion_chamber(component):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -2936,7 +2936,7 @@ class vessel(component):
     - dp: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
 
     **design parameters**
 
@@ -2980,13 +2980,13 @@ class vessel(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
 
@@ -2998,7 +2998,7 @@ class vessel(component):
 
             0 = p_{in} \cdot dp - p_{out}
 
-        - :func:`pyte.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta_func`
 
         """
         vec_res = []
@@ -3024,7 +3024,7 @@ class vessel(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -3068,7 +3068,7 @@ class vessel(component):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 4 \cdot 10^5 \; \text{Pa}`
         """
@@ -3079,7 +3079,7 @@ class vessel(component):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
         """
@@ -3090,7 +3090,7 @@ class vessel(component):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet,
                   :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -3102,7 +3102,7 @@ class vessel(component):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet,
                   :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
@@ -3136,7 +3136,7 @@ class heat_exchanger_simple(component):
     - dp: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
     - D: diameter of the pipes
     - L: length of the pipes
     - ks: pipes roughness
@@ -3200,13 +3200,13 @@ class heat_exchanger_simple(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         **optional equations**
 
@@ -3218,9 +3218,9 @@ class heat_exchanger_simple(component):
 
             0 = p_{in} \cdot dp - p_{out}
 
-        - :func:`pyte.components.components.component.zeta_func`
-        - :func:`pyte.components.components.component.lamb_func`
-        - :func:`pyte.components.components.component.kA_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.lamb_func`
+        - :func:`tespy.components.components.component.kA_func`
 
         """
 
@@ -3254,7 +3254,7 @@ class heat_exchanger_simple(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -3405,7 +3405,7 @@ class heat_exchanger_simple(component):
           so fluids do not perform phase changes
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
         """
         i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
@@ -3420,7 +3420,7 @@ class heat_exchanger_simple(component):
         returns a starting value for pressure at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -3431,7 +3431,7 @@ class heat_exchanger_simple(component):
         returns a starting value for pressure at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlet, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -3442,7 +3442,7 @@ class heat_exchanger_simple(component):
         returns a starting value for enthalpy at components outlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlet
 
@@ -3465,7 +3465,7 @@ class heat_exchanger_simple(component):
         returns a starting value for enthalpy at components inlet
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlet
 
@@ -3532,7 +3532,7 @@ class pipe(heat_exchanger_simple):
     - dp: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
     - D: diameter of the pipes
     - L: length of the pipes
     - ks: pipes roughness
@@ -3583,10 +3583,10 @@ class heat_exchanger(component):
     - dp2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.heat_exchanger.zeta2_func`
+      :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **design parameters**
 
@@ -3642,13 +3642,13 @@ class heat_exchanger(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
 
@@ -3661,23 +3661,23 @@ class heat_exchanger(component):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :func:`pyte.components.components.component.kA_func`
-        - :func:`pyte.components.components.component.ttd_u_func`
-        - :func:`pyte.components.components.component.ttd_l_func`
+        - :func:`tespy.components.components.component.kA_func`
+        - :func:`tespy.components.components.component.ttd_u_func`
+        - :func:`tespy.components.components.component.ttd_l_func`
 
         .. math::
 
             0 = p_{1,in} \cdot dp1 - p_{1,out}\\
             0 = p_{2,in} \cdot dp2 - p_{2,out}
 
-        - :func:`pyte.components.components.component.zeta_func`
-        - :func:`pyte.components.components.component.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`pyte.components.components.heat_exchanger.additional_equations`
-        - :func:`pyte.components.components.condenser.additional_equations`
-        - :func:`pyte.components.components.desuperheater.additional_equations`
+        - :func:`tespy.components.components.heat_exchanger.additional_equations`
+        - :func:`tespy.components.components.condenser.additional_equations`
+        - :func:`tespy.components.components.desuperheater.additional_equations`
 
         """
 
@@ -3729,7 +3729,7 @@ class heat_exchanger(component):
         component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
         """
         return []
@@ -3740,7 +3740,7 @@ class heat_exchanger(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -3852,7 +3852,7 @@ class heat_exchanger(component):
         enthalpy and fluid composition for additional equations
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         return []
@@ -4032,7 +4032,7 @@ class heat_exchanger(component):
         enthalpy for upper terminal temperature equation
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 4, len(inlets[0].fluid) + 3))
@@ -4049,7 +4049,7 @@ class heat_exchanger(component):
         enthalpy for lower terminal temperature equation
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 4, len(inlets[0].fluid) + 3))
@@ -4068,7 +4068,7 @@ class heat_exchanger(component):
         - :math:`h_{2,in} < h_{2,out}`?
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: no return value
         """
         i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
@@ -4107,7 +4107,7 @@ class heat_exchanger(component):
         returns a starting value for pressure at components outlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
         """
@@ -4118,7 +4118,7 @@ class heat_exchanger(component):
         returns a starting value for pressure at components inlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
         """
@@ -4134,7 +4134,7 @@ class heat_exchanger(component):
               * :math:`T_{1,out} < T_{2,in}`?
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: h (*float*) - starting value for enthalpy at components
                   outlets,
 
@@ -4157,7 +4157,7 @@ class heat_exchanger(component):
         returns a starting value for enthalpy at components inlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: h (*float*) - starting value for enthalpy at components
                   inlets,
 
@@ -4255,10 +4255,10 @@ class condenser(heat_exchanger):
     - dp2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.heat_exchanger.zeta2_func`
+      :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **design parameters**
 
@@ -4298,7 +4298,7 @@ class condenser(heat_exchanger):
         component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
@@ -4322,7 +4322,7 @@ class condenser(heat_exchanger):
         enthalpy and fluid composition for additional equations
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
 
@@ -4465,10 +4465,10 @@ class desuperheater(heat_exchanger):
     - dp2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.component.zeta_func`
+      :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`pyte.components.components.heat_exchanger.zeta2_func`
+      :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **design parameters**
 
@@ -4508,7 +4508,7 @@ class desuperheater(heat_exchanger):
         component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
@@ -4533,7 +4533,7 @@ class desuperheater(heat_exchanger):
         enthalpy and fluid composition for additional equations
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
 
@@ -4582,13 +4582,13 @@ class drum(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
 
@@ -4630,7 +4630,7 @@ class drum(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 
@@ -4679,7 +4679,7 @@ class drum(component):
         returns a starting value for pressure at components outlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   outlets, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -4690,7 +4690,7 @@ class drum(component):
         returns a starting value for pressure at components inlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for pressure at components
                   inlets, :math:`val = 10^5 \; \text{Pa}`
         """
@@ -4701,7 +4701,7 @@ class drum(component):
         returns a starting value for enthalpy at components outlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   outlets,
 
@@ -4721,7 +4721,7 @@ class drum(component):
         returns a starting value for enthalpy at components inlets
 
         :param c: connection to apply initialisation
-        :type c: pyte.connections.connection
+        :type c: tespy.connections.connection
         :returns: val (*float*) - starting value for enthalpy at components
                   inlets,
 
@@ -4780,13 +4780,13 @@ class subsys_interface(component):
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: vec_res (*list*) - vector of residual values
 
         **mandatory equations**
 
-        - :func:`pyte.components.components.component.fluid_res`
-        - :func:`pyte.components.components.component.mass_flow_res`
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
 
@@ -4819,7 +4819,7 @@ class subsys_interface(component):
         enthalpy and fluid composition
 
         :param nw: network using this component object
-        :type nw: pyte.networks.network
+        :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
         """
 

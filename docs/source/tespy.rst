@@ -1,29 +1,29 @@
-pyte package
-============
+tespy package
+=============
 
 Submodules
 ----------
 
-pyte\.connections module
-------------------------
+tespy\.connections module
+-------------------------
 
-.. automodule:: pyte.connections
+.. automodule:: tespy.connections
     :members:
     :undoc-members:
     :show-inheritance:
 
-pyte\.helpers module
---------------------
-
-.. automodule:: pyte.helpers
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyte\.networks module
+tespy\.helpers module
 ---------------------
 
-.. automodule:: pyte.networks
+.. automodule:: tespy.helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy\.networks module
+----------------------
+
+.. automodule:: tespy.networks
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,7 +32,7 @@ pyte\.networks module
 Module contents
 ---------------
 
-.. automodule:: pyte
+.. automodule:: tespy
     :members:
     :undoc-members:
     :show-inheritance:

@@ -203,6 +203,12 @@ arguments, return values and errors see object initialisation</p>
 <code class="descclassname">tespy.helpers.</code><code class="descname">T_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.helpers.T_mix_ph" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculates the temperature from pressure and enthalpy,
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
+<blockquote>
+<div><ul class="simple">
+<li>check if property has already been memorised</li>
+<li>calculate property otherwise</li>
+</ul>
+</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -213,6 +219,11 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<p><strong>fluid mixtures</strong></p>
+<div class="math">
+\[ \begin{align}\begin{aligned}\begin{split}T_{mix}\left(p,h\right) = T_{i}\left(pp_{i},h_{i}\right)\;
+\forall i \in \text{fluid components}\\\end{split}\\\begin{split}h_{i} = h \left(pp_{i}, T_{mix} \right)\\
+pp: \text{partial pressure}\end{split}\end{aligned}\end{align} \]</div>
 </dd></dl>
 
 <dl class="function">
@@ -235,6 +246,11 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<p><strong>fluid mixtures</strong></p>
+<div class="math">
+\[ \begin{align}\begin{aligned}\begin{split}T_{mix}\left(p,s\right) = T_{i}\left(pp_{i},s_{i}\right)\;
+\forall i \in \text{fluid components}\\\end{split}\\\begin{split}s_{i} = s \left(pp_{i}, T_{mix} \right)\\
+pp: \text{partial pressure}\end{split}\end{aligned}\end{align} \]</div>
 </dd></dl>
 
 <dl class="function">
@@ -252,6 +268,9 @@ constant enthalpy and fluid composition</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\frac{\partial T_{mix}}{\partial p} = \frac{T_{mix}(p+d,h)-
+T_{mix}(p-d,h)}{2 \cdot d}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -269,6 +288,9 @@ constant pressure and fluid composition</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\frac{\partial T_{mix}}{\partial h} = \frac{T_{mix}(p,h+d)-
+T_{mix}(p,h-d)}{2 \cdot d}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -286,6 +308,10 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\frac{\partial T_{mix}}{\partial fluid_{i}} =
+\frac{T_{mix}(p,h,fluid_{i}+d)-
+T_{mix}(p,h,fluid_{i}-d)}{2 \cdot d}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -311,6 +337,10 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}\frac{\partial h_{mix}}{\partial p} =
+\frac{h_{mix}(p+d,Q)-h_{mix}(p-d,Q)}{2 \cdot d}\\
+Q: \text{vapour mass fraction}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -332,6 +362,9 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\frac{\partial h_{mix}}{\partial T} =
+\frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -353,6 +386,9 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\frac{\partial s_{mix}}{\partial T} =
+\frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -365,7 +401,7 @@ constant pressure and enthalpy</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fluid</strong> (<em>str</em>) – alias of the fluid</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">parts (dict) - returns the elements of the fluid {element: n}</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">parts (dict) - returns the elements of the fluid {‘element’: n}</td>
 </tr>
 </tbody>
 </table>
@@ -415,6 +451,10 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}h_{mix}(p,T)=\sum_{i} h(pp_{i},T,fluid_{i})\;
+\forall i \in \text{fluid components}\\
+pp: \text{partial pressure}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -437,6 +477,26 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<p><strong>laminar flow:</strong> <span class="math">\(re \leq 2320\)</span></p>
+<div class="math">
+\[\lambda = \frac{64}{re}\]</div>
+<p><strong>turbulent flow:</strong> <span class="math">\(re &gt; 2320\)</span></p>
+<p><em>hydraulically smooth:</em> <span class="math">\(\frac{re \cdot k_{s}}{d} &lt; 65\)</span></p>
+<div class="math">
+\[\begin{split}\lambda = \begin{cases}
+0.03164 \cdot re^{-0.25} &amp; re \leq 10^5\\
+0.0032 + 0.221 \cdot re^{-0.237} &amp; 10^5 &lt; re &lt; 5 \cdot 10^6\\
+solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
+- \frac{1}{\sqrt{\lambda}}\right) &amp; re \geq 5 \cdot 10^6 \\
+\end{cases}\end{split}\]</div>
+<p><em>transition zone:</em> <span class="math">\(65 \leq \frac{re \cdot k_{s}}{d} \leq 1300\)</span></p>
+<div class="math">
+\[\lambda = solve \left( 0 = 2 \cdot \log \left( \frac{2.51}{re \cdot
+\sqrt{\lambda}} + \frac{k_{s}}{d} \cdot 0.269 \right) -
+\frac{1}{\sqrt{\lambda}} \right)\]</div>
+<p><em>hydraulically rough:</em> <span class="math">\(\frac{re \cdot k_{s}}{d} &gt; 1300\)</span></p>
+<div class="math">
+\[\lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}} \right) \right)}\]</div>
 </dd></dl>
 
 <dl class="class">
@@ -459,6 +519,8 @@ constant pressure and enthalpy</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -483,6 +545,10 @@ required for reverse functions of fluid mixtures</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
+f(x_{n}) \leq \epsilon, \; n &lt; 10\\
+n: \text{number of iterations}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -499,6 +565,12 @@ required for reverse functions of fluid mixtures</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}n = \sum_{i} \left( \begin{cases}
+0 &amp; x_{i} &lt; \epsilon \\
+1 &amp; x_{i} \geq \epsilon
+\end{cases} \right)\;
+\forall i \in \text{network fluids}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -542,6 +614,10 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}s_{mix}(p,T)=\sum_{i} s(pp_{i},T,fluid_{i})\;
+\forall i \in \text{fluid components}\\
+pp: \text{partial pressure}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -559,13 +635,15 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<p><strong>fluid mixtures</strong></p>
+<div class="math">
+\[s_{mix}\left(p,h\right) = s\left(p,T_{mix}(p,h)\right)\]</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="tespy.helpers.v_mix_pT">
 <code class="descclassname">tespy.helpers.</code><code class="descname">v_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.helpers.v_mix_pT" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculates specific volume from pressure and temperature
-uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
+<dd><p>calculates specific volume from pressure and temperature</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -581,6 +659,10 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}v_{mix}(p,T)=\sum_{i} v(pp_{i},T,fluid_{i})\;
+\forall i \in \text{fluid components}\\
+pp: \text{partial pressure}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -598,13 +680,15 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<p><strong>fluid mixtures</strong></p>
+<div class="math">
+\[v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)\]</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="tespy.helpers.visc_mix_pT">
 <code class="descclassname">tespy.helpers.</code><code class="descname">visc_mix_pT</code><span class="sig-paren">(</span><em>flow</em>, <em>T</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.helpers.visc_mix_pT" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculates specific volume from pressure and temperature
-uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
+<dd><p>calculates dynamic viscosity from pressure and temperature</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -620,12 +704,19 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tr>
 </tbody>
 </table>
+<div class="math">
+\[\begin{split}\eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
+\cdot M_{i} \right)}
+{\sum_{i} \left(y_{i} \cdot M_{i} \right)}\;
+\forall i \in \text{fluid components}\\
+y: \text{volume fraction}\\
+M: \text{molar mass}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="tespy.helpers.visc_mix_ph">
 <code class="descclassname">tespy.helpers.</code><code class="descname">visc_mix_ph</code><span class="sig-paren">(</span><em>flow</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.helpers.visc_mix_ph" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculates specific volume from pressure and enthalpy
+<dd><p>calculates dynamic viscosity from pressure and enthalpy,
 uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -633,10 +724,13 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flow</strong> (<em>list</em>) – vector containing [mass flow, pressure, enthalpy, fluid]</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">v (float) - specific volume in kg / m <sup>3</sup></td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">v (float) - specific volume in Pa s</td>
 </tr>
 </tbody>
 </table>
+<p><strong>fluid mixtures</strong></p>
+<div class="math">
+\[\eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)\]</div>
 </dd></dl>
 
 </div>
@@ -661,7 +755,7 @@ Required files:</p>
 <p>class network aggregates information on components, connections and busses</p>
 <dl class="attribute">
 <dt id="tespy.networks.network.T_unit">
-<code class="descname">T_unit</code><em class="property"> = {'K': [0, 1], 'F': [459.67, 0.5555555555555556], 'C': [273.15, 1]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">T_unit</code><em class="property"> = {'F': [459.67, 0.5555555555555556], 'C': [273.15, 1], 'K': [0, 1]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -827,7 +921,7 @@ network does not match number of connections required</td>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.h_unit">
-<code class="descname">h_unit</code><em class="property"> = {'kJ / kg': 1000.0, 'J / kg': 1, 'MJ / kg': 1000000.0}</em><a class="headerlink" href="#tespy.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">h_unit</code><em class="property"> = {'J / kg': 1, 'MJ / kg': 1000000.0, 'kJ / kg': 1000.0}</em><a class="headerlink" href="#tespy.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1079,12 +1173,12 @@ to exit the recursion</li>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.m_unit">
-<code class="descname">m_unit</code><em class="property"> = {'kg / s': 1, 't / h': 3.6}</em><a class="headerlink" href="#tespy.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">m_unit</code><em class="property"> = {'t / h': 3.6, 'kg / s': 1}</em><a class="headerlink" href="#tespy.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.p_unit">
-<code class="descname">p_unit</code><em class="property"> = {'MPa': 1000000.0, 'bar': 100000.0, 'psi': 6894.8, 'Pa': 1}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">p_unit</code><em class="property"> = {'psi': 6894.8, 'MPa': 1000000.0, 'Pa': 1, 'bar': 100000.0}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

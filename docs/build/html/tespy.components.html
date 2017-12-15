@@ -421,7 +421,7 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 </table>
 <div class="math">
 \[ \begin{align}\begin{aligned}\begin{split}\dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-{M_{fluid}} \; \forall i \in inlets\\\end{split}\\0 = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+{M_{fluid}} \; \forall i \in inlets\\\end{split}\\0 = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
 \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda\end{aligned}\end{align} \]</div>
 </dd></dl>
 
@@ -470,14 +470,14 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 \[ \begin{align}\begin{aligned}res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
 \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
 \forall i \in inlets, \; \forall j \in outlets\\\begin{split}\dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-{M_{fluid}} \; \forall i \in inlets\\\end{split}\\\lambda = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+{M_{fluid}} \; \forall i \in inlets\\\end{split}\\\lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
 \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}\end{aligned}\end{align} \]</div>
 <p><em>fuel</em></p>
 <div class="math">
-\[ \begin{align}\begin{aligned}\begin{split}0 = res - \left(\dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m}\right)
-\cdot M_{fuel}\\\end{split}\\\begin{split}\dot{m}_{fuel,exc,m} = \begin{cases}
+\[ \begin{align}\begin{aligned}\begin{split}0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
+\cdot M_{fuel}\\\end{split}\\\begin{split}\dot{m}_{f,exc,m} = \begin{cases}
 0 &amp; \lambda \geq 1\\
-\dot{m}_{fuel,m} - \frac{\dot{m}_{O_2,m}}
+\dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
 {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} &amp; \lambda &lt; 1
 \end{cases}\end{split}\end{aligned}\end{align} \]</div>
 <p><em>oxygen</em></p>
@@ -488,11 +488,11 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 \end{cases}\end{split}\]</div>
 <p><em>water</em></p>
 <div class="math">
-\[0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+\[0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
 \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}\]</div>
 <p><em>carbondioxide</em></p>
 <div class="math">
-\[0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+\[0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
 \cdot n_{C,fuel} \cdot M_{CO_2}\]</div>
 <p><em>other</em></p>
 <div class="math">

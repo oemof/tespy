@@ -21,6 +21,9 @@ from tespy.components import components as comp
 class subsystem:
     """
 
+    **TODO**
+
+    - add documentation
     """
 
     def __init__(self, **kwargs):

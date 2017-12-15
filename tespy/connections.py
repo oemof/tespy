@@ -187,6 +187,14 @@ class connection:
 class bus:
     """
     establish power connection between turbines, pumps, heat exchanger
+
+    **TODO**
+
+    - add documentation
+
+    **Improvements**
+
+    - improve architecture (e. g. make it similar to connections)
     """
 
     def __init__(self, name,  ** kwargs):
@@ -221,6 +229,10 @@ class bus:
     def check_comp(self, comp):
         """
         check component
+
+        **TODO**
+
+        - add documentation
         """
         for c in self.comps.index:
             if type(comp) != type(c):
@@ -244,29 +256,25 @@ class bus:
 
 
 class ref:
-    """
-    class reference
-
+    r"""
     creates reference object for network parametetrisation
+
+    :param ref_obj: connection to be referenced
+    :type ref_obj: tespy.connections.connection
+    :param factor: factor for the reference
+    :type factor: numeric
+    :param delta: delta for the reference
+    :type delta: numeric
+    :returns: no return value
+
+    **example**
+
+    .. math::
+        \dot{m} = \dot{m}_\mathrm{ref} \cdot factor + delta\\
+        m_{ref}: \text{mass flow of referenced connection}
+
     """
     def __init__(self, ref_obj, factor, delta):
-        """
-        object initialisation
-
-        :param ref_obj: connection to be referenced
-        :type ref_obj: tespy.connections.connection
-        :param factor: factor for the reference
-        :type factor: numeric
-        :param delta: delta for the reference
-        :type delta: numeric
-        :returns: no return value
-
-        **example**
-
-        .. math::
-            \dot{m} = \dot{m}_\mathrm{ref} \cdot factor + delta
-
-        """
         if not isinstance(ref_obj, connection):
             msg = 'First parameter must be object of type connection.'
             raise TypeError(msg)

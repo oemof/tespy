@@ -4,6 +4,14 @@
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+**TODO**
+
+- add documentation
+
+**Improvements**
+
+- build generic architecture for characteristics
 """
 
 from scipy.interpolate import interp1d

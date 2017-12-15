@@ -1056,7 +1056,7 @@ class turbomachine(component):
           :code:`self.dh_s0` at reference
         - generate characteristics for components
 
-        TODO:
+        **Improvements**
 
         - check if component specific parts are well located in subclasses
         """
@@ -1255,7 +1255,7 @@ class pump(turbomachine):
         :type nw: tespy.networks.network
         :returns: no return value
 
-         **TODO:**
+         **Improvements**
 
          - work on this convergence check as there is no guarantee for
            successful performance
@@ -1423,10 +1423,6 @@ class compressor(turbomachine):
 
         - set vigv (from compressor map with pressure ratio)
         - calculate relative factor for isentropic efficiency
-
-        TODO:
-
-        - parameter memorisation for improved performance
         """
         if isinstance(inlets[0], float):
             i = inlets
@@ -1491,7 +1487,7 @@ class compressor(turbomachine):
 
         see method char_deriv of class pump for an example
 
-        TODO:
+        **Improvements**
 
         - improve asthetics, this part of code looks horrible
         """
@@ -1540,7 +1536,7 @@ class compressor(turbomachine):
         :type nw: tespy.networks.network
         :returns: no return value
 
-         **TODO:**
+         **Improvements:**
 
          - work on this convergence check as there is no guarantee for
            successful performance
@@ -1937,7 +1933,8 @@ class split(component):
             0 = T_{in} - T_{out,i} \;
             \forall i \in \mathrm{outlets}\\
 
-        TODO:
+        **TODO**
+
         - fluid separation requires power and cooling, equations have not
           been implemented!
         """
@@ -2572,18 +2569,18 @@ class combustion_chamber(component):
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
             {M_{fluid}} \; \forall i \in inlets\\
 
-            \lambda = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+            \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
 
         *fuel*
 
         .. math::
-            0 = res - \left(\dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m}\right)
+            0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
             \cdot M_{fuel}\\
 
-            \dot{m}_{fuel,exc,m} = \begin{cases}
+            \dot{m}_{f,exc,m} = \begin{cases}
             0 & \lambda \geq 1\\
-            \dot{m}_{fuel,m} - \frac{\dot{m}_{O_2,m}}
+            \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
             {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} & \lambda < 1
             \end{cases}
 
@@ -2598,13 +2595,13 @@ class combustion_chamber(component):
         *water*
 
         .. math::
-            0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
             \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}
 
         *carbondioxide*
 
         .. math::
-            0 = res + \left( \dot{m}_{fuel,m} - \dot{m}_{fuel,exc,m} \right)
+            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
             \cdot n_{C,fuel} \cdot M_{CO_2}
 
         *other*
@@ -2702,7 +2699,7 @@ class combustion_chamber(component):
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
             {M_{fluid}} \; \forall i \in inlets\\
 
-            0 = \frac{\dot{m}_{fuel,m}}{\dot{m}_{O_2,m} \cdot
+            0 = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda
         """
         n_fuel = 0
@@ -3171,7 +3168,7 @@ class heat_exchanger_simple(component):
        :alt: alternative text
        :align: center
 
-    **TODO**
+    **Improvements**
 
     - check design and offdesign parameters
     """
@@ -3558,7 +3555,7 @@ class pipe(heat_exchanger_simple):
        :alt: alternative text
        :align: center
 
-    **TODO**
+    **Improvements**
 
     - check design and offdesign parameters
     """
@@ -3606,7 +3603,7 @@ class heat_exchanger(component):
        :alt: alternative text
        :align: center
 
-    **TODO**
+    **Improvements**
 
     - add the partial derivatives for specified logarithmic temperature
       difference
@@ -4278,7 +4275,7 @@ class condenser(heat_exchanger):
        :alt: alternative text
        :align: center
 
-    **TODO**
+    **Improvements**
 
     - see parent class
     """
@@ -4488,7 +4485,7 @@ class desuperheater(heat_exchanger):
        :alt: alternative text
        :align: center
 
-    **TODO**
+    **Improvements**
 
     - see parent class
     """

@@ -79,7 +79,7 @@ def query_yes_no(question, default='yes'):
 
 
 def newton(func, deriv, flow, k):
-    """
+    r"""
     find zero crossings of function func with 1-D newton algorithm,
     required for reverse functions of fluid mixtures
 
@@ -92,6 +92,13 @@ def newton(func, deriv, flow, k):
     :param k: target value for function func
     :type k: numeric
     :returns: val (float) - val, so that func(flow, val) = k
+
+    .. math::
+
+        x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
+        f(x_{n}) \leq \epsilon, \; n < 10\\
+        n: \text{number of iterations}
+
     """
     res = 1
     val = 300
@@ -112,13 +119,26 @@ def newton(func, deriv, flow, k):
 
 
 def T_mix_ph(flow):
-    """
+    r"""
     calculates the temperature from pressure and enthalpy,
     uses CoolProp reverse functions for pure fluids, newton for mixtures
+        - check if property has already been memorised
+        - calculate property otherwise
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: T (float) - temperature in K
+
+    **fluid mixtures**
+
+    .. math::
+
+        T_{mix}\left(p,h\right) = T_{i}\left(pp_{i},h_{i}\right)\;
+        \forall i \in \text{fluid components}\\
+
+        h_{i} = h \left(pp_{i}, T_{mix} \right)\\
+        pp: \text{partial pressure}
+
     """
     a = memorise.T_ph[:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
@@ -140,7 +160,7 @@ def T_mix_ph(flow):
 
 
 def T_mix_ps(flow, s):
-    """
+    r"""
     calculates the temperature from pressure and entropy,
     uses CoolProp reverse functions for pure fluids, newton for mixtures
 
@@ -149,6 +169,16 @@ def T_mix_ps(flow, s):
     :param s: entropy in J / (kg * K)
     :type s: numeric
     :returns: T (float) - temperature in K
+
+    **fluid mixtures**
+
+    .. math::
+
+        T_{mix}\left(p,s\right) = T_{i}\left(pp_{i},s_{i}\right)\;
+        \forall i \in \text{fluid components}\\
+
+        s_{i} = s \left(pp_{i}, T_{mix} \right)\\
+        pp: \text{partial pressure}
     """
     a = memorise.T_ps[:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
@@ -173,15 +203,20 @@ def T_mix_ps(flow, s):
 
 
 def dT_mix_dph(flow):
-    """
+    r"""
     calculates partial derivate of temperature to pressure at
     constant enthalpy and fluid composition
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: dT / dp (float) - derivative in K / Pa
+
+    .. math::
+
+        \frac{\partial T_{mix}}{\partial p} = \frac{T_{mix}(p+d,h)-
+        T_{mix}(p-d,h)}{2 \cdot d}
     """
-    d = 1e-5
+    d = 1
     u = flow.copy()
     l = flow.copy()
     u[1] += d
@@ -190,13 +225,18 @@ def dT_mix_dph(flow):
 
 
 def dT_mix_pdh(flow):
-    """
+    r"""
     method to calculate partial derivate of temperature to enthalpy at
     constant pressure and fluid composition
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: dT / dh (float) - derivative in (K * kg) / J
+
+    .. math::
+
+        \frac{\partial T_{mix}}{\partial h} = \frac{T_{mix}(p,h+d)-
+        T_{mix}(p,h-d)}{2 \cdot d}
     """
     d = 1
     u = flow.copy()
@@ -207,13 +247,19 @@ def dT_mix_pdh(flow):
 
 
 def dT_mix_ph_dfluid(flow):
-    """
+    r"""
     calculates partial derivates of temperature to fluid composition at
     constant pressure and enthalpy
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: dT / dfluid (np.array of floats) - derivatives in K
+
+    .. math::
+
+        \frac{\partial T_{mix}}{\partial fluid_{i}} =
+        \frac{T_{mix}(p,h,fluid_{i}+d)-
+        T_{mix}(p,h,fluid_{i}-d)}{2 \cdot d}
     """
     d = 1e-5
     u = flow.copy()
@@ -233,7 +279,7 @@ def dT_mix_ph_dfluid(flow):
 
 
 def h_mix_pT(flow, T):
-    """
+    r"""
     calculates enthalpy from pressure and temperature
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
@@ -241,6 +287,12 @@ def h_mix_pT(flow, T):
     :param T: temperature in K
     :type T: numeric
     :returns: h (float) - enthalpy in J / kg
+
+    .. math::
+        h_{mix}(p,T)=\sum_{i} h(pp_{i},T,fluid_{i})\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
+
     """
 
     n = molar_massflow(flow[3])
@@ -255,7 +307,7 @@ def h_mix_pT(flow, T):
 
 
 def dh_mix_pdT(flow, T):
-    """
+    r"""
     calculates partial derivate of enthalpy to temperature at constant pressure
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
@@ -263,6 +315,11 @@ def dh_mix_pdT(flow, T):
     :param T: temperature in K
     :type T: numeric
     :returns: dh / dT (float) - derivative in J / (kg * K)
+
+    .. math::
+
+        \frac{\partial h_{mix}}{\partial T} =
+        \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
     n = molar_massflow(flow[3])
     d = 2
@@ -307,7 +364,7 @@ def h_mix_pQ(flow, Q):
 
 
 def dh_mix_dpQ(flow, Q):
-    """
+    r"""
     calculates partial derivative of enthalpy to pressure at constant quality
 
     .. note::
@@ -319,8 +376,14 @@ def dh_mix_dpQ(flow, Q):
     :param Q: fraction of vapour mass to total mass in 1
     :type Q: numeric
     :returns: dh / dp (float) - derivative in J / (kg * Pa)
+
+    .. math::
+
+        \frac{\partial h_{mix}}{\partial p} =
+        \frac{h_{mix}(p+d,Q)-h_{mix}(p-d,Q)}{2 \cdot d}\\
+        Q: \text{vapour mass fraction}
     """
-    d = 1e-5
+    d = 1
     u = flow.copy()
     l = flow.copy()
     u[1] += d
@@ -329,13 +392,19 @@ def dh_mix_dpQ(flow, Q):
 
 
 def v_mix_ph(flow):
-    """
+    r"""
     calculates specific volume from pressure and enthalpy
     uses CoolProp reverse functions for pure fluids, newton for mixtures
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: v (float) - specific volume in kg / m :sup:`3`
+
+    **fluid mixtures**
+
+    .. math::
+
+        v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)
     """
     a = memorise.v_ph[:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
@@ -360,15 +429,19 @@ def v_mix_ph(flow):
 
 
 def v_mix_pT(flow, T):
-    """
+    r"""
     calculates specific volume from pressure and temperature
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :param T: temperature in K
     :type T: numeric
     :returns: v (float) - specific volume in kg / m :sup:`3`
+
+    .. math::
+        v_{mix}(p,T)=\sum_{i} v(pp_{i},T,fluid_{i})\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
     """
     n = molar_massflow(flow[3])
 
@@ -382,13 +455,19 @@ def v_mix_pT(flow, T):
 
 
 def visc_mix_ph(flow):
-    """
-    calculates specific volume from pressure and enthalpy
+    r"""
+    calculates dynamic viscosity from pressure and enthalpy,
     uses CoolProp reverse functions for pure fluids, newton for mixtures
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
-    :returns: v (float) - specific volume in kg / m :sup:`3`
+    :returns: v (float) - specific volume in Pa s
+
+    **fluid mixtures**
+
+    .. math::
+
+        \eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)
     """
     if num_fluids(flow[3]) > 1:
         return visc_mix_pT(flow, T_mix_ph(flow))
@@ -399,15 +478,22 @@ def visc_mix_ph(flow):
 
 
 def visc_mix_pT(flow, T):
-    """
-    calculates specific volume from pressure and temperature
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    r"""
+    calculates dynamic viscosity from pressure and temperature
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :param T: temperature in K
     :type T: numeric
     :returns: v (float) - specific volume in kg / m :sup:`3`
+
+    .. math::
+        \eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
+        \cdot M_{i} \right)}
+        {\sum_{i} \left(y_{i} \cdot M_{i} \right)}\;
+        \forall i \in \text{fluid components}\\
+        y: \text{volume fraction}\\
+        M: \text{molar mass}
     """
     n = molar_massflow(flow[3])
 
@@ -423,13 +509,19 @@ def visc_mix_pT(flow, T):
 
 
 def s_mix_ph(flow):
-    """
+    r"""
     calculates entropy from pressure and enthalpy
     uses CoolProp reverse functions for pure fluids, newton for mixtures
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: s (float) - entropy in J / (kg * K)
+
+    **fluid mixtures**
+
+    .. math::
+
+        s_{mix}\left(p,h\right) = s\left(p,T_{mix}(p,h)\right)
     """
     a = memorise.s_ph[:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
@@ -454,7 +546,7 @@ def s_mix_ph(flow):
 
 
 def s_mix_pT(flow, T):
-    """
+    r"""
     calculates entropy from pressure and temperature
     uses CoolProp reverse functions for pure fluids, newton for mixtures
 
@@ -463,6 +555,11 @@ def s_mix_pT(flow, T):
     :param T: temperature in K
     :type T: numeric
     :returns: s (float) - entropy in J / (kg * K)
+
+    .. math::
+        s_{mix}(p,T)=\sum_{i} s(pp_{i},T,fluid_{i})\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
     """
     n = molar_massflow(flow[3])
 
@@ -476,7 +573,7 @@ def s_mix_pT(flow, T):
 
 
 def ds_mix_pdT(flow, T):
-    """
+    r"""
     calculates partial derivate of entropy to temperature at constant pressure
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
@@ -484,6 +581,11 @@ def ds_mix_pdT(flow, T):
     :param T: temperature in K
     :type T: numeric
     :returns: ds / dT (float) - derivative in J / (kg * K :sup:`2`)
+
+    .. math::
+
+        \frac{\partial s_{mix}}{\partial T} =
+        \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
     n = molar_massflow(flow[3])
     d = 2
@@ -499,12 +601,15 @@ def ds_mix_pdT(flow, T):
 
 
 def molar_massflow(flow):
-    """
+    r"""
     calculates molar massflow
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
     :returns: mm (float) - molar massflow in mol / s
+
+    .. math::
+        mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
     """
     mm = 0
     for fluid, x in flow.items():
@@ -518,12 +623,20 @@ def molar_massflow(flow):
 
 
 def num_fluids(fluids):
-    """
+    r"""
     calculates number of fluids in fluid vector
 
     :param fluids: fluid vector {fluid: mass fraction}
     :type fluids: dict
     :returns: n (int) - number of fluids in fluid vector in 1
+
+    .. math::
+
+        n = \sum_{i} \left( \begin{cases}
+        0 & x_{i} < \epsilon \\
+        1 & x_{i} \geq \epsilon
+        \end{cases} \right)\;
+        \forall i \in \text{network fluids}
     """
     n = 0
     for fluid, x in fluids.items():
@@ -539,7 +652,7 @@ def fluid_structure(fluid):
 
     :param fluid: alias of the fluid
     :type fluid: str
-    :returns: parts (dict) - returns the elements of the fluid {element: n}
+    :returns: parts (dict) - returns the elements of the fluid {'element': n}
     """
     parts = {}
     for element in CP.get_fluid_param_string(fluid, 'formula').split('}'):
@@ -550,7 +663,7 @@ def fluid_structure(fluid):
     return parts
 
 def lamb(re, ks, d):
-    """
+    r"""
     calculates darcy friction factor
 
     :param re: reynolds number in 1
@@ -560,6 +673,37 @@ def lamb(re, ks, d):
     :param d: pipe diameter in m
     :type d: numeric
     :returns: lambda (float) - darcy friction factor in 1
+
+    **laminar flow:** :math:`re \leq 2320`
+
+    .. math::
+        \lambda = \frac{64}{re}
+
+    **turbulent flow:** :math:`re > 2320`
+
+    *hydraulically smooth:* :math:`\frac{re \cdot k_{s}}{d} < 65`
+
+    .. math::
+        \lambda = \begin{cases}
+        0.03164 \cdot re^{-0.25} & re \leq 10^5\\
+        0.0032 + 0.221 \cdot re^{-0.237} & 10^5 < re < 5 \cdot 10^6\\
+        solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
+        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 5 \cdot 10^6 \\
+        \end{cases}
+
+    *transition zone:* :math:`65 \leq \frac{re \cdot k_{s}}{d} \leq 1300`
+
+    .. math::
+        \lambda = solve \left( 0 = 2 \cdot \log \left( \frac{2.51}{re \cdot
+        \sqrt{\lambda}} + \frac{k_{s}}{d} \cdot 0.269 \right) -
+        \frac{1}{\sqrt{\lambda}} \right)
+
+    *hydraulically rough:* :math:`\frac{re \cdot k_{s}}{d} > 1300`
+
+    .. math::
+        \lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}} \right) \right)}
+
+
     """
     if re <= 2320:
         return 64 / re

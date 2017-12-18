@@ -45,16 +45,16 @@
 <p>TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. It is possible to derive plant characteristics which can be used in energy network simulations. In the <span class="xref std std-ref">tespy_examples_label</span> section you can find a short introduction how to use TESPy.</p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#how-can-i-use-tespy" id="id5">How can I use TESPy?</a><ul>
-<li><a class="reference internal" href="#set-up-a-plant" id="id6">Set up a plant</a></li>
-<li><a class="reference internal" href="#set-up-the-components" id="id7">Set up the components</a></li>
-<li><a class="reference internal" href="#establish-connections" id="id8">Establish connections</a></li>
-<li><a class="reference internal" href="#busses-power-connections" id="id9">Busses: power connections</a></li>
-<li><a class="reference internal" href="#subsystems" id="id10">Subsystems</a></li>
-<li><a class="reference internal" href="#simulate-your-plant" id="id11">Simulate your plant</a></li>
+<li><a class="reference internal" href="#how-can-i-use-tespy" id="id7">How can I use TESPy?</a><ul>
+<li><a class="reference internal" href="#set-up-a-plant" id="id8">Set up a plant</a></li>
+<li><a class="reference internal" href="#set-up-the-components" id="id9">Set up the components</a></li>
+<li><a class="reference internal" href="#establish-connections" id="id10">Establish connections</a></li>
+<li><a class="reference internal" href="#busses-power-connections" id="id11">Busses: power connections</a></li>
+<li><a class="reference internal" href="#subsystems" id="id12">Subsystems</a></li>
+<li><a class="reference internal" href="#simulate-your-plant" id="id13">Simulate your plant</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#tespy-examples" id="id12">TESPy examples</a></li>
+<li><a class="reference internal" href="#how-can-tespy-contribute-to-your-energy-system-calculations" id="id14">How can TESPy contribute to your energy system calculations?</a></li>
 </ul>
 </div>
 <div class="section" id="how-can-i-use-tespy">
@@ -64,22 +64,21 @@
 <h3><a class="toc-backref" href="#contents">Set up a plant</a><a class="headerlink" href="#set-up-a-plant" title="Permalink to this headline">¶</a></h3>
 <p>In order to simulate a plant you will have to create a tespy.network. The network is the main container for the model.</p>
 <p>You need to specify a list of the fluids you need for the calculation in your plant. The whole list of available fluids can be found in the docs. If you want to work with fluid mixtures, for now, it is only possible to use ideal mixtures of real gases. Mixtures of liquids and gases or two liquids are not available. For more information on the fluid properties see the CoolProp documentation on <a class="reference external" href="http://www.coolprop.org/fluid_properties/PurePseudoPure.html">Pure and Pseudo-Pure fluid properties</a>. Further it is possible to choose a unit system for mass flow, temperature and pressure.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tespy</span> <span class="kn">as</span> <span class="nn">pp</span>
-<span class="n">my_plant</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">network</span><span class="p">(</span><span class="n">fluids</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;air&#39;</span><span class="p">,</span> <span class="s1">&#39;water&#39;</span><span class="p">],</span> <span class="n">T</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">nwk</span>
+    <span class="c1"># create a network object with air and water as fluids</span>
+    <span class="c1"># set the unitsystem for temperatures to °C and for pressure to bar</span>
+<span class="n">my_plant</span> <span class="o">=</span> <span class="n">nwk</span><span class="o">.</span><span class="n">network</span><span class="p">(</span><span class="n">fluids</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;air&#39;</span><span class="p">,</span> <span class="s1">&#39;water&#39;</span><span class="p">],</span> <span class="n">T</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Now you can start to create the components of the network.</p>
 </div>
 <div class="section" id="set-up-the-components">
 <h3><a class="toc-backref" href="#contents">Set up the components</a><a class="headerlink" href="#set-up-the-components" title="Permalink to this headline">¶</a></h3>
-<p>All components can be found in the package components.components. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference dT_G_u of a heat exchanger. You get a full list of parameters for a specific component (e. g. a vessel) by typing:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tespy.components.components</span> <span class="kn">as</span> <span class="nn">comp</span>
-<span class="k">print</span><span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">vessel</span><span class="o">.</span><span class="n">variables</span><span class="p">())</span>
-</pre></div>
-</div>
-<p>All parameters besides the label and the fuel for combustion chambers are optional, thus if not set, they will be a result of the plant simulation. In this way, the set of equations a component returns is determined by which parameters you specify. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:</p>
-<div class="highlight-python" id="pump-parametrisation"><div class="highlight"><pre><span></span><span class="n">my_pump</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">pump</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span> <span class="c1"># create pump</span>
-<span class="n">my_pump</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="mf">2e3</span><span class="p">,</span> <span class="n">eta_s</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span> <span class="c1"># reset power, set isentropic efficiency</span>
+<p>All components can be found in the components submodule. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger. The full list of parameters for a specific component (e. g. a vessel) is stated in its class documentation.</p>
+<p>Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide. If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify. You can find all equations in the components documentation as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:</p>
+<div class="highlight-python" id="pump-parametrisation"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="nb">cmp</span>
+<span class="n">my_pump</span> <span class="o">=</span> <span class="nb">cmp</span><span class="o">.</span><span class="n">pump</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;hp pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span> <span class="c1"># create pump labeled &#39;hp pump&#39; with a power of 1000 W</span>
+<span class="n">my_pump</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="mf">2e3</span><span class="p">,</span> <span class="n">eta_s</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span> <span class="c1"># reset power to 2000 W, set isentropic efficiency to 90 %</span>
 <span class="n">my_pump</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="c1"># unset power</span>
 </pre></div>
 </div>
@@ -87,7 +86,7 @@
 </div>
 <div class="section" id="establish-connections">
 <h3><a class="toc-backref" href="#contents">Establish connections</a><a class="headerlink" href="#establish-connections" title="Permalink to this headline">¶</a></h3>
-<p>Connections are used to link two components (outlet of component 1 to inlet of component 2, source to target). If two components are connected to each other the fluid properties at the source will be equal to the properties at the target. It is possible to set the properties on each connection in a similar way as parameters are set for components. It is possible to specify:</p>
+<p>Connections are used to link two components (outlet of component 1 to inlet of component 2, source to target). If two components are connected to each other the fluid properties at the source will be equal to the properties at the target. It is possible to set the properties on each connection in a similar way as parameters are set for components. You may specify:</p>
 <blockquote>
 <div><ul class="simple">
 <li>mass flow*,</li>
@@ -98,16 +97,15 @@
 <li>a fluid vector.</li>
 </ul>
 </div></blockquote>
-<p>All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the same pressure in two parts of your network but you do not know the pressure prior to the plant simulation.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tespy.connections.connections</span> <span class="kn">as</span> <span class="nn">conn</span>
-<span class="kn">import</span> <span class="nn">tespy.connections.references</span> <span class="kn">as</span> <span class="nn">ref</span>
-<span class="n">a</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">waste_steam_source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span> <span class="c1"># waste steam source to condenser hot side inlet and setting vapour mass fraction</span>
-<span class="n">b</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;air&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span> <span class="c1"># setting a fluid vector: {&#39;fluid i&#39;: mass fraction i}</span>
-<span class="n">c</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">feed_water_tank</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">)</span> <span class="c1"># connection without parameter specification</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;in2&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span> <span class="c1">#  setting pressure</span>
-<span class="n">e</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;out2&#39;</span><span class="p">,</span> <span class="n">drum</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">ref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="c1"># setting temperature and pressure via reference object</span>
-<span class="n">f</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">evaporator</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">350</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="c1"># setting temperature and mass flow</span>
-<span class="n">g</span> <span class="o">=</span> <span class="n">conn</span><span class="p">(</span><span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">flue_gas_sink</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;air&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.013</span><span class="p">)</span> <span class="c1"># setting fluid vector and pressure</span>
+<p>All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">con</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">waste_steam_source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span> <span class="c1"># waste steam source to condenser hot side inlet and setting vapour mass fraction</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;air&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span> <span class="c1"># setting a fluid vector: {&#39;fluid i&#39;: mass fraction i}</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">feed_water_tank</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">)</span> <span class="c1"># connection without parameter specification</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">feed_water_pump</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;in2&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span> <span class="c1">#  setting pressure</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;out2&#39;</span><span class="p">,</span> <span class="n">drum</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">con</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="c1"># setting temperature and pressure via reference object</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">evaporator</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">350</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="c1"># setting temperature and mass flow</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">economiser</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">flue_gas_sink</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;air&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.013</span><span class="p">)</span> <span class="c1"># setting fluid vector and pressure</span>
 </pre></div>
 </div>
 <p>If you want to set, reset or unset a connection parameter the same logic as for the components is applied.</p>
@@ -119,32 +117,37 @@
 <div class="section" id="busses-power-connections">
 <h3><a class="toc-backref" href="#contents">Busses: power connections</a><a class="headerlink" href="#busses-power-connections" title="Permalink to this headline">¶</a></h3>
 <p>Busses can be used to add up the power of different turbomachinery or to add up heat flux of different heat exchangers within your network. This can be used either for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network. If you want to use the busses for postprocessing only, you do not specify the sum of the power or heat flux on your bus. For establishing relations between different components, for instance when using a steam turbine powered feed water pump, you have to set the total power on this bus. In the code example the power of the turbine and the feed water pump is added up and set to zero, as the turbines and feed water pumps power have to be equal in absolute value but have different sign. The sign can be manipulated, e. g. in order to design two turbines with equal power output.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">connections</span> <span class="k">as</span> <span class="n">con</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">con</span>
 <span class="n">a</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">bus</span><span class="p">(</span><span class="s1">&#39;feed water pump&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">a</span><span class="o">.</span><span class="n">add_comp</span><span class="p">([</span><span class="n">turbine_fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">a</span><span class="o">.</span><span class="n">add_comps</span><span class="p">([</span><span class="n">turbine_fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">fwp</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 <span class="n">b</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">bus</span><span class="p">(</span><span class="s1">&#39;turbines&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">b</span><span class="o">.</span><span class="n">add_comp</span><span class="p">([</span><span class="n">turbine_hp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">turbine_lp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">b</span><span class="o">.</span><span class="n">add_comps</span><span class="p">([</span><span class="n">turbine_hp</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">turbine_lp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
 <p>Two labels for busses have a predefined function in the postprocessing analysis: ‘P’ and ‘Q_diss’. If you specify these labels for your busses, ‘P’ will be interpreted as the total power of your process and ‘Q_diss’ as total amount of dissipated heat flux (from the process, not internally). Given these key figures, thermal efficiency and COP will be calculated and an entropy analysis for your systems components will be performed.</p>
 </div>
 <div class="section" id="subsystems">
 <h3><a class="toc-backref" href="#contents">Subsystems</a><a class="headerlink" href="#subsystems" title="Permalink to this headline">¶</a></h3>
-<p>Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater. The subsystems interfaces are subsys.inlet and subsys.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
+<p>Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (<code class="code docutils literal"><span class="pre">ph_desup()</span></code>). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">for now, custom subsystems can not be loaded from a csv-file, as the network csv-loader is not ready yet.</p>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">subsys</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
 <span class="n">sink</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink1&#39;</span><span class="p">)</span>
 <span class="n">source2</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source2&#39;</span><span class="p">)</span>
 <span class="n">sink2</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink2&#39;</span><span class="p">)</span>
 
-<span class="n">subsys</span> <span class="o">=</span> <span class="n">ph_desup</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sub1&#39;</span><span class="p">,</span> <span class="n">dT_G</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">dp1_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp1_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">subsystem</span> <span class="o">=</span> <span class="n">subsys</span><span class="o">.</span><span class="n">ph_desup</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sub1&#39;</span><span class="p">,</span> <span class="n">dT_G</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">dp1_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp1_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="n">a</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">subsys</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">29e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
-<span class="n">b</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsys</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">sink</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">)</span>
-<span class="n">c</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source2</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span><span class="n">subsys</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span><span class="s1">&#39;in2&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">3e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsys</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out2&#39;</span><span class="p">,</span> <span class="n">sink2</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">subsystem</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">29e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsystem</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">sink</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source2</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span><span class="n">subsystem</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span><span class="s1">&#39;in2&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">3e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsystem</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out2&#39;</span><span class="p">,</span> <span class="n">sink2</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
 
 <span class="n">nw</span> <span class="o">=</span> <span class="n">network</span><span class="p">(</span><span class="n">fluids</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;water&#39;</span><span class="p">],</span> <span class="n">T</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
-<span class="n">nw</span><span class="o">.</span><span class="n">add_conn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+<span class="n">nw</span><span class="o">.</span><span class="n">add_conns</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 <span class="n">nw</span><span class="o">.</span><span class="n">add_subsys</span><span class="p">(</span><span class="n">subsys</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -235,8 +238,8 @@
 </tr>
 <tr class="row-odd"><td>pipe</td>
 <td><div class="first last line-block">
-<div class="line">zeta <sup>1</sup></div>
-<div class="line">dimensions <sup>1</sup></div>
+<div class="line">zeta</div>
+<div class="line">dimensions</div>
 </div>
 </td>
 <td><div class="first last line-block">
@@ -282,7 +285,7 @@
 <tr class="row-even"><td>compressor</td>
 <td><div class="first last line-block">
 <div class="line">characteristic</div>
-<div class="line">vigv angle <sup>2</sup></div>
+<div class="line">vigv angle <sup>1</sup></div>
 </div>
 </td>
 <td><div class="first last line-block">
@@ -293,14 +296,98 @@
 </tr>
 </tbody>
 </table>
-<p>1: If you set both parameters the length or the diameter must be a free parameter.</p>
-<p>2: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only</p>
+<p>1: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only</p>
 </div>
 </div>
 </div>
-<div class="section" id="tespy-examples">
-<h2><a class="toc-backref" href="#contents">TESPy examples</a><a class="headerlink" href="#tespy-examples" title="Permalink to this headline">¶</a></h2>
-<p>(<code class="xref download docutils literal"><span class="pre">source</span> <span class="pre">file</span></code>, <code class="xref download docutils literal"><span class="pre">data</span> <span class="pre">file</span></code>)</p>
+<div class="section" id="how-can-tespy-contribute-to-your-energy-system-calculations">
+<h2><a class="toc-backref" href="#contents">How can TESPy contribute to your energy system calculations?</a><a class="headerlink" href="#how-can-tespy-contribute-to-your-energy-system-calculations" title="Permalink to this headline">¶</a></h2>
+<p>In this part you learn how you can use TESPy for your energy system calculations: Basically TESPy performs component based simulation of thermal power plants and e. g. heating networks. In energy system calculations, for instance in oemof-solph, plants are usually modelled as abstract components on a much lower level of detail. In order to represent a plant within an abstract component it is possible to supply characteristics establishing a connection between your energy system model and a specific plant model. Thus the characteristics are a representation of a specific plant layout in terms of topology and process parameters.</p>
+<p>The following part will show how to generate characteristics for a CHP unit. There are various technologies and concepts, for this example we will generate characteristics for a simple CHP with a backpressure steam turbine and a regenerative reheating unit as shown in the figure below. We want the characteristics to provide a correlation between output power and output heat flux at different temperatures of flow into a district heating system.</p>
+<div class="figure align-center" id="id5">
+<span id="topology"></span><img alt="_images/CHP.svg" src="_images/CHP.svg" /><p class="caption"><span class="caption-text">Topology of the power plant.</span></p>
+</div>
+<p>Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the mass flow in the main steam cycle has been changed stepwise from a slight overload of 50 kg/s to lower part loads (30 kg/s) with a stepwidth of 5 kg/s. Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="37%" />
+<col width="17%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">location</th>
+<th class="head">parameter</th>
+<th class="head">value</th>
+<th class="head">unit</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>fs</td>
+<td><div class="first last line-block">
+<div class="line">pressure</div>
+<div class="line">temperature</div>
+<div class="line">mass flow</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">100</div>
+<div class="line">550</div>
+<div class="line">47</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">bar</div>
+<div class="line">°C</div>
+<div class="line">kg/s</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td>extr</td>
+<td>pressure</td>
+<td>10</td>
+<td>bar</td>
+</tr>
+<tr class="row-even"><td>condenser</td>
+<td>ttd_u <sup>2</sup></td>
+<td>7</td>
+<td>K</td>
+</tr>
+<tr class="row-odd"><td>reheater</td>
+<td>ttd_u <sup>2</sup></td>
+<td>7</td>
+<td>K</td>
+</tr>
+<tr class="row-even"><td>from_hs</td>
+<td><div class="first last line-block">
+<div class="line">pressure</div>
+<div class="line">temperature</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">10</div>
+<div class="line">60</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">bar</div>
+<div class="line">°C</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td>to_hs</td>
+<td>temperature</td>
+<td>110</td>
+<td>°C</td>
+</tr>
+</tbody>
+</table>
+<p>2: ttd_u is the upper terminal temperature difference, defined as temperature difference between hot side inlet and cold side outlet.</p>
+<p>As a result we get the PQ-diagram of this power plant containing the characteristics at different temperatures in the heating system. Within your oemof-solph energy system it is now possible to implement the characteristic lines as a function of the temperature level in the heating system.</p>
+<div class="figure align-center" id="id6">
+<span id="diagram"></span><img alt="_images/PQ_diagram.svg" src="_images/PQ_diagram.svg" /><p class="caption"><span class="caption-text">PQ-diagram for a CHP unit.</span></p>
+</div>
+<p>Download the <a class="reference download internal" href="_downloads/chp_unit.py" download=""><code class="xref download docutils literal"><span class="pre">source</span> <span class="pre">file</span></code></a> of this example.</p>
 </div>
 </div>
 
@@ -329,7 +416,7 @@
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#tespy-examples">TESPy examples</a></li>
+<li><a class="reference internal" href="#how-can-tespy-contribute-to-your-energy-system-calculations">How can TESPy contribute to your energy system calculations?</a></li>
 </ul>
 </li>
 </ul>

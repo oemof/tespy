@@ -26,8 +26,10 @@ You need to specify a list of the fluids you need for the calculation in your pl
 
 .. code-block:: python
 
-    import tespy as pp
-    my_plant = pp.network(fluids=['air', 'water'], T='C', p='bar')
+    from tespy import nwk
+	# create a network object with air and water as fluids
+	# set the unitsystem for temperatures to °C and for pressure to bar
+    my_plant = nwk.network(fluids=['air', 'water'], T='C', p='bar')
 
 Now you can start to create the components of the network.
 
@@ -35,20 +37,16 @@ Now you can start to create the components of the network.
 Set up the components
 ^^^^^^^^^^^^^^^^^^^^^
 
-All components can be found in the package components.components. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference dT_G_u of a heat exchanger. You get a full list of parameters for a specific component (e. g. a vessel) by typing:
+All components can be found in the components submodule. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger. The full list of parameters for a specific component (e. g. a vessel) is stated in its class documentation.
 
-.. code-block:: python
-
-    import tespy.components.components as comp
-    print(comp.vessel.variables())
-	
-All parameters besides the label and the fuel for combustion chambers are optional, thus if not set, they will be a result of the plant simulation. In this way, the set of equations a component returns is determined by which parameters you specify. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
+Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide. If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify. You can find all equations in the components documentation as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
 
 .. _pump-parametrisation:
 .. code-block:: python
 
-	my_pump = comp.pump(label='pump', P=1e3) # create pump
-	my_pump.set_attr(P=2e3, eta_s=0.9) # reset power, set isentropic efficiency
+	from tespy import cmp
+	my_pump = cmp.pump(label='hp pump', P=1e3) # create pump labeled 'hp pump' with a power of 1000 W
+	my_pump.set_attr(P=2e3, eta_s=0.9) # reset power to 2000 W, set isentropic efficiency to 90 %
 	my_pump.set_attr(P=math.nan) # unset power
 	
 After setting up the components the next step is to connect the components in our network.
@@ -56,7 +54,7 @@ After setting up the components the next step is to connect the components in ou
 Establish connections
 ^^^^^^^^^^^^^^^^^^^^^
 
-Connections are used to link two components (outlet of component 1 to inlet of component 2, source to target). If two components are connected to each other the fluid properties at the source will be equal to the properties at the target. It is possible to set the properties on each connection in a similar way as parameters are set for components. It is possible to specify:
+Connections are used to link two components (outlet of component 1 to inlet of component 2, source to target). If two components are connected to each other the fluid properties at the source will be equal to the properties at the target. It is possible to set the properties on each connection in a similar way as parameters are set for components. You may specify:
 
  * mass flow*,
  * pressure*,
@@ -65,19 +63,18 @@ Connections are used to link two components (outlet of component 1 to inlet of c
  * vapour mass fraction for pure fluids and
  * a fluid vector.
 
-All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the same pressure in two parts of your network but you do not know the pressure prior to the plant simulation.
+All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.
 
 .. code-block:: python
 	
-	import tespy.connections.connections as conn
-	import tespy.connections.references as ref
-	a = conn(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
-	b = conn(condenser, 'out1', feed_water_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
-	c = conn(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
-	d = conn(feed_water_pump, 'out1', economiser, 'in2', p=150) #  setting pressure
-	e = conn(economiser, 'out2', drum, 'in1', T=320, p=ref.ref(d, 0.98, 0)) # setting temperature and pressure via reference object
-	f = conn(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
-	g = conn(economiser, 'out1', flue_gas_sink, 'in1', fluid={'water': 0, 'air': 1}, p=1.013) # setting fluid vector and pressure
+	from tespy import con
+	a = con.connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
+	b = con.connection(condenser, 'out1', feed_water_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
+	c = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
+	d = con.connection(feed_water_pump, 'out1', economiser, 'in2', p=150) #  setting pressure
+	e = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(d, 0.98, 0)) # setting temperature and pressure via reference object
+	f = con.connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
+	g = con.connection(economiser, 'out1', flue_gas_sink, 'in1', fluid={'water': 0, 'air': 1}, p=1.013) # setting fluid vector and pressure
 
 If you want to set, reset or unset a connection parameter the same logic as for the components is applied.
 
@@ -93,36 +90,41 @@ Busses can be used to add up the power of different turbomachinery or to add up 
 
 .. code-block:: python
 	
-	from tespy import connections as con
+	from tespy import con
 	a = con.bus('feed water pump', P=0)
-	a.add_comp([turbine_fwp, 1], [fwp, 1])
+	a.add_comps([turbine_fwp, 1], [fwp, 1])
 	b = con.bus('turbines', P=0)
-	b.add_comp([turbine_hp, 1], [turbine_lp, -1])
+	b.add_comps([turbine_hp, 1], [turbine_lp, -1])
 	
 Two labels for busses have a predefined function in the postprocessing analysis: 'P' and 'Q_diss'. If you specify these labels for your busses, 'P' will be interpreted as the total power of your process and 'Q_diss' as total amount of dissipated heat flux (from the process, not internally). Given these key figures, thermal efficiency and COP will be calculated and an entropy analysis for your systems components will be performed.
 
 Subsystems
 ^^^^^^^^^^
 
-Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater. The subsystems interfaces are subsys.inlet and subsys.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
+Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
+
+.. note::
+	for now, custom subsystems can not be loaded from a csv-file, as the network csv-loader is not ready yet.
 
 .. code-block:: python
 
+	from tespy import subsys
 	source = source(label='source1')
 	sink = sink(label='sink1')
 	source2 = source(label='source2')
 	sink2 = sink(label='sink2')
 
-	subsys = ph_desup(label='sub1', dT_G=8, dp1_desup=1, dp2_desup=1, dp1_cond=1, dp2_cond=1)
+	subsystem = subsys.ph_desup(label='sub1', dT_G=8, dp1_desup=1, dp2_desup=1, dp1_cond=1, dp2_cond=1)
 
-	a = connection(source, 'out1', subsys.inlet, 'in1', m=5, p=4, h=29e5, fluid={'water': 1})
-	b = connection(subsys.outlet, 'out1', sink, 'in1')
-	c = connection(source2, 'out1',subsys.inlet,'in2', p=50, h=3e5, fluid={'water': 1})
-	d = connection(subsys.outlet, 'out2', sink2, 'in1', p0=50)
+	a = connection(source, 'out1', subsystem.inlet, 'in1', m=5, p=4, h=29e5, fluid={'water': 1})
+	b = connection(subsystem.outlet, 'out1', sink, 'in1')
+	c = connection(source2, 'out1',subsystem.inlet,'in2', p=50, h=3e5, fluid={'water': 1})
+	d = connection(subsystem.outlet, 'out2', sink2, 'in1', p0=50)
 
 	nw = network(fluids=['water'], T='C')
-	nw.add_conn(a, b, c, d)
+	nw.add_conns(a, b, c, d)
 	nw.add_subsys(subsys)
+	
 
 Simulate your plant
 ^^^^^^^^^^^^^^^^^^^
@@ -217,8 +219,8 @@ After designing your process you might want to gain information on offdesign beh
 =======================	======================	===================================================
  vessel                	 zeta                  	 pressure drop
 -----------------------	----------------------	---------------------------------------------------
- pipe                  	 | zeta :sup:`1`       	 | pressure drop
-                       	 | dimensions :sup:`1` 	 | pressure drop
+ pipe                  	 | zeta                	 | pressure drop
+                       	 | dimensions          	 | pressure drop
 -----------------------	----------------------	---------------------------------------------------
  simple heat exchanger 	 zeta                 	 pressure drop
 -----------------------	----------------------	---------------------------------------------------
@@ -232,17 +234,53 @@ After designing your process you might want to gain information on offdesign beh
                        	 | characteristic     	 | isentropic efficiency
 -----------------------	----------------------	---------------------------------------------------
  compressor            	 | characteristic     	 | mass flow, pressure rise, isentropic efficiency
-                       	 | vigv angle :sup:`2` 	 | see above, one arbitrary parameter less
+                       	 | vigv angle :sup:`1` 	 | see above, one arbitrary parameter less
 =======================	======================	===================================================
 
-1: If you set both parameters the length or the diameter must be a free parameter.
+1: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only
 
-2: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only
+How can TESPy contribute to your energy system calculations?
+------------------------------------------------------------
 
-TESPy examples
---------------
+In this part you learn how you can use TESPy for your energy system calculations: Basically TESPy performs component based simulation of thermal power plants and e. g. heating networks. In energy system calculations, for instance in oemof-solph, plants are usually modelled as abstract components on a much lower level of detail. In order to represent a plant within an abstract component it is possible to supply characteristics establishing a connection between your energy system model and a specific plant model. Thus the characteristics are a representation of a specific plant layout in terms of topology and process parameters.
 
+The following part will show how to generate characteristics for a CHP unit. There are various technologies and concepts, for this example we will generate characteristics for a simple CHP with a backpressure steam turbine and a regenerative reheating unit as shown in the figure below. We want the characteristics to provide a correlation between output power and output heat flux at different temperatures of flow into a district heating system.
 
+.. _topology:
+.. figure:: _images/CHP.svg
+    :align: center
+	
+    Topology of the power plant.
 
-(:download:`source file <../examples/solph/variable_chp/variable_chp.py>`, :download:`data file <../examples/solph/variable_chp/variable_chp.csv>`)
+Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the mass flow in the main steam cycle has been changed stepwise from a slight overload of 50 kg/s to lower part loads (30 kg/s) with a stepwidth of 5 kg/s. Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.
 
+=========== =============== ======= ========
+ location    parameter       value   unit
+=========== =============== ======= ========
+ fs          | pressure      | 100   | bar
+             | temperature   | 550   | °C
+             | mass flow     | 47    | kg/s
+----------- --------------- ------- --------
+ extr        pressure        10      bar
+----------- --------------- ------- --------
+ condenser   ttd_u :sup:`2`  7       K
+----------- --------------- ------- --------
+ reheater    ttd_u :sup:`2`  7       K
+----------- --------------- ------- --------
+ from_hs     | pressure      | 10    | bar
+             | temperature   | 60    | °C
+----------- --------------- ------- --------
+ to_hs       temperature     110     °C
+=========== =============== ======= ========
+
+2: ttd_u is the upper terminal temperature difference, defined as temperature difference between hot side inlet and cold side outlet.
+
+As a result we get the PQ-diagram of this power plant containing the characteristics at different temperatures in the heating system. Within your oemof-solph energy system it is now possible to implement the characteristic lines as a function of the temperature level in the heating system.
+
+.. _diagram:
+.. figure:: _images/PQ_diagram.svg
+    :align: center
+	
+    PQ-diagram for a CHP unit.
+	
+Download the :download:`source file <../../examples/chp_unit.py>` of this example.

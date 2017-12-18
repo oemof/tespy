@@ -46,6 +46,14 @@
 </div>
 <div class="section" id="module-tespy.components.characteristics">
 <span id="tespy-components-characteristics-module"></span><h2>tespy.components.characteristics module<a class="headerlink" href="#module-tespy.components.characteristics" title="Permalink to this headline">¶</a></h2>
+<p><strong>TODO</strong></p>
+<ul class="simple">
+<li>add documentation</li>
+</ul>
+<p><strong>Improvements</strong></p>
+<ul class="simple">
+<li>build generic architecture for characteristics</li>
+</ul>
 <dl class="class">
 <dt id="tespy.components.characteristics.compressor">
 <em class="property">class </em><code class="descclassname">tespy.components.characteristics.</code><code class="descname">compressor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.characteristics.compressor" title="Permalink to this definition">¶</a></dt>
@@ -979,7 +987,7 @@ preprocessing of offdesign calculations</li>
 </table>
 <p><strong>example</strong></p>
 <p>see method char_deriv of class pump for an example</p>
-<p>TODO:</p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>improve asthetics, this part of code looks horrible</li>
 </ul>
@@ -1053,10 +1061,6 @@ efficiency</li>
 <li>set vigv (from compressor map with pressure ratio)</li>
 <li>calculate relative factor for isentropic efficiency</li>
 </ul>
-<p>TODO:</p>
-<ul class="simple">
-<li>parameter memorisation for improved performance</li>
-</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1079,7 +1083,7 @@ user, if function for isentropic efficiency cannot be calculated</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="tespy.html#tespy.networks.network" title="tespy.networks.network"><em>tespy.networks.network</em></a>) – network using this component object</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value<p><strong>TODO:</strong></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value<p><strong>Improvements:</strong></p>
 <ul class="simple">
 <li>work on this convergence check as there is no guarantee for
 successful performance</li>
@@ -1210,7 +1214,7 @@ and upper terminal temperature difference compared to parent class</li>
 </ul>
 <a class="reference internal image-reference" href="_images/condenser.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/condenser.svg" /></div>
 </a>
-<p><strong>TODO</strong></p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>see parent class</li>
 </ul>
@@ -1377,7 +1381,7 @@ T_{2,out}}
 </ul>
 <a class="reference internal image-reference" href="_images/heat_exchanger.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/heat_exchanger.svg" /></div>
 </a>
-<p><strong>TODO</strong></p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>see parent class</li>
 </ul>
@@ -1623,7 +1627,7 @@ inlets, <span class="math">\(val = 10^5 \; \text{Pa}\)</span></td>
 </ul>
 <a class="reference internal image-reference" href="_images/heat_exchanger.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/heat_exchanger.svg" /></div>
 </a>
-<p><strong>TODO</strong></p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>add the partial derivatives for specified logarithmic temperature
 difference</li>
@@ -2103,7 +2107,7 @@ ambient conditions</li>
 </ul>
 <a class="reference internal image-reference" href="_images/pipe.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/pipe.svg" /></div>
 </a>
-<p><strong>TODO</strong></p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>check design and offdesign parameters</li>
 </ul>
@@ -2602,7 +2606,7 @@ inlet, <span class="math">\(val = 10^5 \; \text{Pa}\)</span></td>
 </ul>
 <a class="reference internal image-reference" href="_images/pipe.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/pipe.svg" /></div>
 </a>
-<p><strong>TODO</strong></p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>check design and offdesign parameters</li>
 </ul>
@@ -2717,7 +2721,7 @@ user, if function for isentropic efficiency cannot be calculated</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nw</strong> (<a class="reference internal" href="tespy.html#tespy.networks.network" title="tespy.networks.network"><em>tespy.networks.network</em></a>) – network using this component object</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value<p><strong>TODO:</strong></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">no return value<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>work on this convergence check as there is no guarantee for
 successful performance</li>
@@ -3008,10 +3012,11 @@ fluid in the fluid vector</p>
 <div class="math">
 \[\begin{split}0 = T_{in} - T_{out,i} \;
 \forall i \in \mathrm{outlets}\\\end{split}\]</div>
-<p>TODO:
-- fluid separation requires power and cooling, equations have not</p>
-<blockquote>
-<div>been implemented!</div></blockquote>
+<p><strong>TODO</strong></p>
+<ul class="simple">
+<li>fluid separation requires power and cooling, equations have not
+been implemented!</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -3554,7 +3559,7 @@ component</p>
 <code class="code docutils literal"><span class="pre">self.dh_s0</span></code> at reference</li>
 <li>generate characteristics for components</li>
 </ul>
-<p>TODO:</p>
+<p><strong>Improvements</strong></p>
 <ul class="simple">
 <li>check if component specific parts are well located in subclasses</li>
 </ul>
@@ -4046,6 +4051,10 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 <dt id="tespy.components.subsystems.subsystem">
 <em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">subsystem</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p><strong>TODO</strong></p>
+<ul class="simple">
+<li>add documentation</li>
+</ul>
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.attr" title="Permalink to this definition">¶</a></dt>

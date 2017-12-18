@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from tespy import con, cmp, nwk, hlp
 from CoolProp.CoolProp import PropsSI
 import math
@@ -63,9 +65,11 @@ nw.add_conns(fs_in,fs,ext,ext_pre,ext_turb,ext_cond,cond_ws,turb_ws,ws,cond,fw_c
 
 # %% busses
 
+# power bus
 power_bus=con.bus('power')
 power_bus.add_comp([turbine_hp,-1],[turbine_lp,-1],[pump,-1])
 
+# heating bus
 heat_bus=con.bus('heat')
 heat_bus.add_comp([condenser,-1])
 
@@ -86,10 +90,10 @@ mode='offdesign'
 fs.set_attr(p=math.nan)
 ext.set_attr(p=math.nan)
 
-# overload to partload
+# representation of part loads
 m=[50,45,40,35,30]
 
-# temperature level for heating system
+# temperatures for the heating system
 t_vl=[80,90,100,110,120]
 
 P={}
@@ -100,7 +104,7 @@ for i in t_vl:
     cw_out.set_attr(T=i)
     P[i]=[]
     Q[i]=[]
-	# iterate over mass flow
+    # iterate over mass flows
     for j in m:
         fs.set_attr(m=j)
 
@@ -119,7 +123,8 @@ for i in t_vl:
     j+=1
 ax.set_ylabel('$P$ in W')
 ax.set_xlabel('$\dot{Q}$ in W')
-plt.legend(loc='upper left')
+plt.title('P-Q diagram for CHP with backpressure steam turbine')
+plt.legend(loc='lower left')
 
 ax.set_ylim([0, 1e8])
 ax.set_xlim([0, 1e8])

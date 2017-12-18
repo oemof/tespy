@@ -283,4 +283,4 @@ As a result we get the PQ-diagram of this power plant containing the characteris
 	
     PQ-diagram for a CHP unit.
 	
-Download the :download:`source file <../../examples/chp_unit.py>` of this example.
+Download the :download:`source file <../../examples/CHP.py>` of this example.

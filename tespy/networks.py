@@ -570,6 +570,7 @@ class network:
                 c.m_tmp = c.m
                 c.p_tmp = c.p
                 c.h_tmp = c.h
+                c.fluid_tmp = c.fluid.copy()
 
             df = pd.read_csv(self.design_file, index_col=0, delimiter=';')
             for c in self.conns.index:
@@ -599,6 +600,7 @@ class network:
                 c.m = c.m_tmp
                 c.p = c.p_tmp
                 c.h = c.h_tmp
+                c.fluid = c.fluid_tmp
 
         if self.init_file is not None:
 

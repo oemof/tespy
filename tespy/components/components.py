@@ -1815,6 +1815,9 @@ class turbine(turbomachine):
 
         if i[0].p < o[0].p:
             o[0].p = i[0].p / 2
+
+        if i[0].h < 5e5:
+            i[0].h = 10e5
         if i[0].h <= o[0].h:
             o[0].h = i[0].h * 0.9
 
@@ -4068,6 +4071,7 @@ class heat_exchanger(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
+
         i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
 
         if i[0].h < o[0].h and not o[0].h_set:
@@ -4209,13 +4213,13 @@ class heat_exchanger(component):
     def print_parameters(self, inlets, outlets):
 
         print('##### ', self.label, ' #####')
-        if self.ttd_u < 0 and (self.td_log_set or self.kA_set):
+        if self.ttd_u < 0 and self.kA_set:
             print('!!!!! ERROR calculating condenser: !!!!!\n'
                   'Negative value for TTD at given logarithmic temperature '
                   'difference or kA, result may be wrong.')
         print('Q = ', self.Q, 'W; '
               'ttd_u = ', self.ttd_u, 'K; '
-              'ttd_u = ', self.ttd_l, 'K; '
+              'ttd_l = ', self.ttd_l, 'K; '
               'td_log = ', self.td_log, 'K; '
               'kA = ', self.kA, 'W / K; '
               'dp1 = ', self.dp1, '; '

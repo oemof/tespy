@@ -42,7 +42,7 @@
             
   <div class="section" id="tespy-thermal-engineering-systems-in-python">
 <span id="tespy-label"></span><h1>TESPy -  Thermal Engineering Systems in Python<a class="headerlink" href="#tespy-thermal-engineering-systems-in-python" title="Permalink to this headline">¶</a></h1>
-<p>TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. It is possible to derive plant characteristics which can be used in energy network simulations. In the <span class="xref std std-ref">tespy_examples_label</span> section you can find a short introduction how to use TESPy.</p>
+<p>TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. For example, in this way it is possible to derive plant characteristics which can be used in energy system simulations.</p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
 <li><a class="reference internal" href="#how-can-i-use-tespy" id="id7">How can I use TESPy?</a><ul>
@@ -133,19 +133,22 @@
 <p class="first admonition-title">Note</p>
 <p class="last">for now, custom subsystems can not be loaded from a csv-file, as the network csv-loader is not ready yet.</p>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">subsys</span>
-<span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
-<span class="n">sink</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink1&#39;</span><span class="p">)</span>
-<span class="n">source2</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source2&#39;</span><span class="p">)</span>
-<span class="n">sink2</span> <span class="o">=</span> <span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink2&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">subsys</span><span class="p">,</span> <span class="nb">cmp</span>
+<span class="n">source</span> <span class="o">=</span> <span class="nb">cmp</span><span class="o">.</span><span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source1&#39;</span><span class="p">)</span>
+<span class="n">sink</span> <span class="o">=</span> <span class="nb">cmp</span><span class="o">.</span><span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink1&#39;</span><span class="p">)</span>
+<span class="n">source2</span> <span class="o">=</span> <span class="nb">cmp</span><span class="o">.</span><span class="n">source</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;source2&#39;</span><span class="p">)</span>
+<span class="n">sink2</span> <span class="o">=</span> <span class="nb">cmp</span><span class="o">.</span><span class="n">sink</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sink2&#39;</span><span class="p">)</span>
 
+<span class="c1"># a preheater with desuperheater part</span>
 <span class="n">subsystem</span> <span class="o">=</span> <span class="n">subsys</span><span class="o">.</span><span class="n">ph_desup</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;sub1&#39;</span><span class="p">,</span> <span class="n">dT_G</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">dp1_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_desup</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp1_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp2_cond</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
+<span class="c1"># connections into the subsystem are attached to subsystem.inlet, connections out of the subsystem to subsystem.outlet</span>
 <span class="n">a</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">subsystem</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">29e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 <span class="n">b</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsystem</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">sink</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">)</span>
 <span class="n">c</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">source2</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span><span class="n">subsystem</span><span class="o">.</span><span class="n">inlet</span><span class="p">,</span><span class="s1">&#39;in2&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">3e5</span><span class="p">,</span> <span class="n">fluid</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 <span class="n">d</span> <span class="o">=</span> <span class="n">connection</span><span class="p">(</span><span class="n">subsystem</span><span class="o">.</span><span class="n">outlet</span><span class="p">,</span> <span class="s1">&#39;out2&#39;</span><span class="p">,</span> <span class="n">sink2</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
 
+<span class="c1"># create the network and connections and subsystems</span>
 <span class="n">nw</span> <span class="o">=</span> <span class="n">network</span><span class="p">(</span><span class="n">fluids</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;water&#39;</span><span class="p">],</span> <span class="n">T</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
 <span class="n">nw</span><span class="o">.</span><span class="n">add_conns</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 <span class="n">nw</span><span class="o">.</span><span class="n">add_subsys</span><span class="p">(</span><span class="n">subsys</span><span class="p">)</span>
@@ -240,17 +243,19 @@
 <td><div class="first last line-block">
 <div class="line">zeta</div>
 <div class="line">dimensions</div>
+<div class="line">kA, amb temperature</div>
 </div>
 </td>
 <td><div class="first last line-block">
 <div class="line">pressure drop</div>
 <div class="line">pressure drop</div>
+<div class="line">heat flux</div>
 </div>
 </td>
 </tr>
 <tr class="row-even"><td>simple heat exchanger</td>
-<td>zeta</td>
-<td>pressure drop</td>
+<td>see pipe</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>heat exchanger</td>
 <td><div class="first last line-block">

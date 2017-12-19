@@ -4,7 +4,7 @@
 TESPy -  Thermal Engineering Systems in Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. It is possible to derive plant characteristics which can be used in energy network simulations. In the :ref:`tespy_examples_label` section you can find a short introduction how to use TESPy.
+TESPy is an oemof-package for the simulation of thermal process plants, such as thermal power plants or heat pumps. The package can be used to calculate stationary plant operation for design and offdesign cases. For example, in this way it is possible to derive plant characteristics which can be used in energy system simulations.
 
 .. contents::
     :depth: 2
@@ -108,19 +108,22 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 
 .. code-block:: python
 
-	from tespy import subsys
-	source = source(label='source1')
-	sink = sink(label='sink1')
-	source2 = source(label='source2')
-	sink2 = sink(label='sink2')
+	from tespy import subsys, cmp
+	source = cmp.source(label='source1')
+	sink = cmp.sink(label='sink1')
+	source2 = cmp.source(label='source2')
+	sink2 = cmp.sink(label='sink2')
 
+	# a preheater with desuperheater part
 	subsystem = subsys.ph_desup(label='sub1', dT_G=8, dp1_desup=1, dp2_desup=1, dp1_cond=1, dp2_cond=1)
 
+	# connections into the subsystem are attached to subsystem.inlet, connections out of the subsystem to subsystem.outlet
 	a = connection(source, 'out1', subsystem.inlet, 'in1', m=5, p=4, h=29e5, fluid={'water': 1})
 	b = connection(subsystem.outlet, 'out1', sink, 'in1')
 	c = connection(source2, 'out1',subsystem.inlet,'in2', p=50, h=3e5, fluid={'water': 1})
 	d = connection(subsystem.outlet, 'out2', sink2, 'in1', p0=50)
 
+	# create the network and connections and subsystems
 	nw = network(fluids=['water'], T='C')
 	nw.add_conns(a, b, c, d)
 	nw.add_subsys(subsys)
@@ -221,8 +224,9 @@ After designing your process you might want to gain information on offdesign beh
 -----------------------	----------------------	---------------------------------------------------
  pipe                  	 | zeta                	 | pressure drop
                        	 | dimensions          	 | pressure drop
+                       	 | kA, amb temperature 	 | heat flux
 -----------------------	----------------------	---------------------------------------------------
- simple heat exchanger 	 zeta                 	 pressure drop
+ simple heat exchanger 	 see pipe              	  
 -----------------------	----------------------	---------------------------------------------------
  heat exchanger        	 | zeta1              	 | pressure drop hot side
                        	 | zeta2              	 | pressure drop cold side
@@ -239,6 +243,7 @@ After designing your process you might want to gain information on offdesign beh
 
 1: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only
 
+.. _example:
 How can TESPy contribute to your energy system calculations?
 ------------------------------------------------------------
 

@@ -91,7 +91,7 @@ class connection:
         self.T = kwargs.get('T', np.nan)
         self.x = kwargs.get('x', np.nan)
 
-        self.fluid = kwargs.get('fluid', {})
+        self.fluid = {}
         self.fluid_set = {}
 
         self.m0 = kwargs.get('m0', 1)
@@ -111,7 +111,8 @@ class connection:
                 isinstance(kwargs[key], ref)):
                 self.__dict__.update({key + '_set': True})
             if key == 'fluid':
-                for fluid in sorted(kwargs[key].keys()):
+                for fluid, x in sorted(kwargs[key].items()):
+                    self.fluid[fluid] = x
                     self.fluid_set[fluid] = True
 
         if self.m_set and not isinstance(self.m, ref):

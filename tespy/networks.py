@@ -832,7 +832,6 @@ class network:
         if self.init_file is None and self.iter < 5:
             for cp in self.comps.index:
                 cp.convergence_check(self)
-
     def solve_components(self):
         """
         calculates the equations and the partial derivatives for the networks

@@ -7,7 +7,6 @@
 """
 
 import numpy as np
-import math
 
 from tespy.helpers import (
     MyComponentError, MyNetworkError

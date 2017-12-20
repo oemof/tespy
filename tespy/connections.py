@@ -93,6 +93,7 @@ class connection:
 
         self.fluid = {}
         self.fluid_set = {}
+        self.fluid_balance = kwargs.get('fl_balance', False)
 
         self.m0 = kwargs.get('m0', 1)
         self.p0 = kwargs.get('p0', np.nan)
@@ -144,9 +145,11 @@ class connection:
                         self.__dict__.update({key + '_set': True})
 
             if key == 'fluid':
-                for fluid, x in kwargs[key].items():
+                self.fluid = {}
+                for fluid, x in sorted(kwargs[key].items()):
                     self.fluid[fluid] = x
                     self.fluid_set[fluid] = True
+
 
         if len(invalid_keys) > 0:
             print(invalid_keys, 'are invalid attributes.',
@@ -174,7 +177,8 @@ class connection:
 
         :returns: list object
         """
-        return ['m', 'p', 'h', 'T', 'x', 'm0', 'p0', 'h0', 'fluid']
+        return ['m', 'p', 'h', 'T', 'x', 'm0', 'p0', 'h0', 'fluid',
+                'fluid_balance']
 
     def as_list(self):
         """

@@ -724,7 +724,7 @@ class network:
                         hlp.err ** (1 / 2))):
                     break
 
-            if self.iter > 6:
+            if self.iter > 10:
                 if all(self.res[(self.iter - 5):] >= self.res[-4]):
                     print('Convergence is making no progress, '
                           'calculation stopped.')
@@ -912,6 +912,18 @@ class network:
                     row = self.solve_check_row(row)
                     self.debug += [c]
                 l += 1
+
+            if c.fluid_balance:
+                l = 0
+                res = 1
+                for f, x in c.fluid.items():
+                    res -= x
+                    self.mat_deriv[row, col + 3 + l] = -1
+                    l += 1
+
+                self.vec_res += [res]
+                row = self.solve_check_row(row)
+                self.debug += [c]
 
     def solve_busses(self):
         """

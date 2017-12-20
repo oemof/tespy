@@ -101,6 +101,7 @@ class network:
 
         for f in self.fluids:
             hlp.molar_masses[f] = CPPSI('M', f)
+            hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
 
         hlp.memorise(len(self.fluids))
 
@@ -722,9 +723,12 @@ class network:
                 if (all(self.res[(self.iter - 4):] <
                         hlp.err ** (1 / 2))):
                     break
-#            else:
-#                if self.res[self.iter - 1] < hlp.err ** (1 / 2):
-#                    break
+
+            if self.iter > 6:
+                if all(self.res[(self.iter - 5):] >= self.res[-4]):
+                    print('Convergence is making no progress, '
+                          'calculation stopped.')
+                    break
 
         end_time = time.time()
 

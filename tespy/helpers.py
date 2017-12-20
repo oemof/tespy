@@ -20,6 +20,8 @@ global err
 err = 1e-6
 global molar_masses
 molar_masses = {}
+global gas_constants
+gas_constants = {}
 
 
 class memorise:
@@ -41,6 +43,10 @@ class MyConnectionError(Exception):
 
 
 class MyComponentError(Exception):
+    pass
+
+
+class MyConvergenceError(Exception):
     pass
 
 
@@ -557,9 +563,11 @@ def s_mix_pT(flow, T):
     :returns: s (float) - entropy in J / (kg * K)
 
     .. math::
-        s_{mix}(p,T)=\sum_{i} s(pp_{i},T,fluid_{i})\;
+        s_{mix}(p,T)=\sum_{i} x_{i} \cdot s(pp_{i},T,fluid_{i})-
+        \sum_{i} x_{i} \cdot R_{i} \cdot \ln \frac{pp_{i}}{p}\;
         \forall i \in \text{fluid components}\\
-        pp: \text{partial pressure}
+        pp: \text{partial pressure}\\
+        R: \text{gas constant}
     """
     n = molar_massflow(flow[3])
 
@@ -568,6 +576,8 @@ def s_mix_pT(flow, T):
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
             s += CPPSI('S', 'P', pp, 'T', T, fluid) * x
+            s -= (x * gas_constants[fluid] / molar_masses[fluid] *
+                  math.log(pp / flow[1]))
 
     return s
 

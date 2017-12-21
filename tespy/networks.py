@@ -180,7 +180,7 @@ class network:
         """
         for b in args:
             if self.check_busses(b):
-                self.busses[b.name] = b
+                self.busses[b.label] = b
 
     def del_busses(self, b):
         """
@@ -191,8 +191,8 @@ class network:
         :returns: no return value
         :raises: :code:`KeyError` if bus object b is not in the network
         """
-        if b.name in self.busses.keys():
-            del self.busses[b.name]
+        if b.label in self.busses.keys():
+            del self.busses[b.label]
 
     def check_busses(self, b):
         """
@@ -977,7 +977,7 @@ class network:
             raise hlp.MyNetworkError('You provide too many parameters!')
 
     def solve_m_p_h(self, c, row, col, var):
-        """
+        r"""
         calculate residuals and partial derivatives for given mass flow,
         pressure and/or enthalpy
 
@@ -990,6 +990,31 @@ class network:
         :param var: variable to perform calculation (m, p, h)
         :type var: str
         :returns: no return value
+
+        **equation for numeric values**
+
+        .. math::
+            0 = 0
+
+        **derivative for numeric values**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
+            \text{for equation i, connection j}\\
+            \text{pressure and enthalpy analogously}
+
+        **equation for referenced values**
+
+        .. math::
+            0 = m_{j} - m_{j,ref} \cdot a + b
+
+        **derivatives for referenced values**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
+            J\left(\frac{\partial f_{i}}{\partial m_{j,ref}}\right) = - a\\
+            \text{for equation i, connection j}\\
+            \text{pressure and enthalpy analogously}
         """
         pos = {'m': 0, 'p': 1, 'h': 2}
         if hasattr(c, (var + '_ref')):
@@ -1006,7 +1031,7 @@ class network:
         self.debug += [c]
 
     def solve_T(self, c, row, col):
-        """
+        r"""
         calculate residuals and partial derivatives for given temperature
 
         - the calculation of partial derivatives of temperature to fluids
@@ -1019,6 +1044,48 @@ class network:
         :param col: index of column for connection c in jacobian matrix
         :type col: int
         :returns: no return value
+
+        **equation for numeric values**
+
+        .. math::
+            0 = T_{j} - T \left( p_{j}, h_{j}, fluid_{j} \right)
+
+        **derivative for numeric values**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            -\frac{dT_{j}}{dp_{j}}\\
+            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            -\frac{dT_{j}}{dh_{j}}\\
+            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
+            - \frac{dT_{j}}{dfluid_{j,k}}
+            \; , \forall k \in \text{fluid components}\\
+            \text{for equation i, connection j}
+
+        **equation for numeric values**
+
+        .. math::
+            0 = T \left( p_{j}, h_{j}, fluid_{j} \right) -
+            T \left( p_{j}, h_{j}, fluid_{j} \right) \cdot a + b
+
+        **derivative for numeric values**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            \frac{dT_{j}}{dp_{j}}\\
+            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            \frac{dT_{j}}{dh_{j}}\\
+            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
+            \frac{dT_{j}}{dfluid_{j,k}}
+            \; , \forall k \in \text{fluid components}\\
+            J\left(\frac{\partial f_{i}}{\partial p_{j,ref}}\right) =
+            \frac{dT_{j,ref}}{dp_{j,ref}} \cdot a \\
+            J\left(\frac{\partial f_{i}}{\partial h_{j,ref}}\right) =
+            \frac{dT_{j,ref}}{dh_{j,ref}} \cdot a \\
+            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k,ref}}\right) =
+            \frac{dT_{j}}{dfluid_{j,k,ref}} \cdot a
+            \; , \forall k \in \text{fluid components}\\
+            \text{for equation i, connection j}
         """
         flow = c.as_list()
         # if is reference to other connection
@@ -1078,7 +1145,7 @@ class network:
         self.debug += [c]
 
     def solve_x(self, c, row, col):
-        """
+        r"""
         calculate residuals and partial derivatives for given vapour mass
         fraction
 
@@ -1089,6 +1156,23 @@ class network:
         :param col: index of column for connection c in jacobian matrix
         :type col: int
         :returns: no return value
+
+        .. note::
+            works with pure fluids only!
+
+        **equation for numeric values**
+
+        .. math::
+            0 = h_{j} - h \left( p_{j}, x_{j}, fluid_{j} \right)
+
+        **derivative for numeric values**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            -\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
+            {\partial p_{j}}\\
+            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
+            \text{for equation i, connection j, x: vapour mass fraction}
         """
         flow = c.as_list()
         self.mat_deriv[row, col + 1] = -hlp.dh_mix_dpQ(flow, c.x)

@@ -37,19 +37,29 @@ class connection:
 
     **allowed keywords** in kwargs (also see connections.attr()):
 
-    - m, m0
-    - p, p0
-    - h, h0
-    - T
-    - x
-    - fluid
+    - m (*numeric*, *ref object*), m0 (*numeric*)
+    - p (*numeric*, *ref object*), p0 (*numeric*)
+    - h (*numeric*, *ref object*), h0 (*numeric*)
+    - T (*numeric*, *ref object*)
+    - x (*numeric*)
+    - fluid (*dict*), fluid_balance (*bool*)
+
+    .. note::
+        The fluid balance parameter applies a balancing of the fluid vector on
+        the specified conntion to 100 %. For example, you have four fluid
+        components (a, b, c and d) in your vector, you set two of them
+        (a and b) and want the other two (components c and d) to be a result of
+        your calculation. If you set this parameter, the equation
+        (0 = 1 - a - b - c - d) will be applied.
 
     **example**
 
     .. code-block:: python
-        conn = connections(turbine, 'out1', condenser, 'in1', m=10, p=0.05)
 
-    creates component from turbine to condenser (hot side inlet) and sets
+        from tespy import con
+        conn = con.connection(turbine, 'out1', condenser, 'in1', m=10, p=0.05)
+
+    creates connection from turbine to condenser (hot side inlet) and sets
     values for mass flow and pressure
     """
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -202,8 +212,8 @@ class bus:
     - improve architecture (e. g. make it similar to connections)
     """
 
-    def __init__(self, name,  ** kwargs):
-        self.name = name
+    def __init__(self, label,  ** kwargs):
+        self.label = label
         self.comps = pd.DataFrame(columns=['factor'])
         self.P = np.nan
         self.P_set = False

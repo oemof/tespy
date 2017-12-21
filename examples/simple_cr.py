@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug  4 10:37:36 2017
-
 @author: witte
 """
 from tespy import con, nwk, cmp

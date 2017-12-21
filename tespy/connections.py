@@ -49,7 +49,7 @@ class connection:
         the specified conntion to 100 %. For example, you have four fluid
         components (a, b, c and d) in your vector, you set two of them
         (a and b) and want the other two (components c and d) to be a result of
-        your calculation. If you set this parameter, the equation
+        your calculation. If you set this parameter to True, the equation
         (0 = 1 - a - b - c - d) will be applied.
 
     **example**
@@ -103,7 +103,7 @@ class connection:
 
         self.fluid = {}
         self.fluid_set = {}
-        self.fluid_balance = kwargs.get('fl_balance', False)
+        self.fluid_balance = False
 
         self.m0 = kwargs.get('m0', 1)
         self.p0 = kwargs.get('p0', np.nan)
@@ -125,6 +125,8 @@ class connection:
                 for fluid, x in sorted(kwargs[key].items()):
                     self.fluid[fluid] = x
                     self.fluid_set[fluid] = True
+            if key == 'fluid_balance':
+                self.fluid_balance = kwargs[key]
 
         if self.m_set and not isinstance(self.m, ref):
             self.m0 = self.m
@@ -148,6 +150,8 @@ class connection:
                 self.__dict__.update({key: kwargs[key]})
                 if isinstance(kwargs[key], ref):
                     self.__dict__.update({key + '_set': True})
+                elif key == 'fluid_balance':
+                    self.fluid_balance = kwargs[key]
                 else:
                     if np.isnan(kwargs[key]):
                         self.__dict__.update({key + '_set': False})
@@ -159,7 +163,6 @@ class connection:
                 for fluid, x in sorted(kwargs[key].items()):
                     self.fluid[fluid] = x
                     self.fluid_set[fluid] = True
-
 
         if len(invalid_keys) > 0:
             print(invalid_keys, 'are invalid attributes.',

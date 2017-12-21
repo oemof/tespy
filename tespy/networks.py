@@ -320,8 +320,22 @@ class network:
         :returns: no return value
         """
         for c in self.conns.index:
+            if any(c.fluid_set.values()):
+                fluid_tmp = c.fluid.copy()
+                fluid_set_tmp = c.fluid_set.copy()
+                c.fluid = {}
+                c.fluid_set = {}
+            else:
+                fluid_tmp = {}
+                fluid_set_tmp = {}
             for fluid in self.fluids:
-                if fluid not in c.fluid.keys():
+                if fluid in fluid_tmp.keys():
+                    c.fluid[fluid] = fluid_tmp[fluid]
+                    if fluid_set_tmp[fluid]:
+                        c.fluid_set[fluid] = True
+                    else:
+                        c.fluid_set[fluid] = False
+                else:
                     c.fluid[fluid] = 0
                     c.fluid_set[fluid] = False
 
@@ -1426,13 +1440,27 @@ class network:
                             parset += [var, cp.get_attr(var)]
 
                 f.writerow([cp.label,
-                            self.comps.index[i].component(),
+                            type(cp),
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.i],
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.o],
                             cp.mode,
                             *parset])
 
-def load_nw(nw_name):
+
+class process_director:
+    """
+    documentation
+    """
+    def __init__(self):
+        self.imported_comps = pd.DataFrame(columns=['comp'])
+
+    def construct_component(self, component, label):
+        target_class = getattr(cmp, component)
+        instance = target_class(label)
+        self.imported_comps.loc[label] = [instance]
+
+
+def load_nw(filename):
     """
     generate network class providing result files
     Required files:
@@ -1444,15 +1472,14 @@ def load_nw(nw_name):
     """
 
 # open csv component file and generate component objects
-    director = ProcessDirector()
-    with open(nw_name + '_comps.csvcomps', 'r') as csvfile:
+    director = process_director()
+    with open(filename + '_comps.csv', 'r') as csvfile:
         f = csv.reader(csvfile, delimiter=';')
         next(f, None)
         i = 0
         for row in f:
             numel = (len(row) - 7) / 2
             director.construct_component(row[1], row[0])
-            director.importedComps['comp'].iloc[i].label = row[6]
 # set attributes (P,Q,eta, ...) of the component
             if numel != 0:
                 for k in range(int(numel)):
@@ -1462,7 +1489,7 @@ def load_nw(nw_name):
 
 # create network object, open csv file with results
     nw = network()
-    conns = pd.read_csv(nw_name + '_results.csv', sep = ';', decimal = '.')
+    conns = pd.read_csv(filename + '_results.csv', sep = ';', decimal = '.')
 
     importedConns = []
     for i in range(len(conns)):

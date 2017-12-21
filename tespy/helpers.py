@@ -118,7 +118,6 @@ def newton(func, deriv, flow, k):
         i += 1
 
         if i > 10:
-            print(flow)
             raise ValueError('No value found.')
 
     return val

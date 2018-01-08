@@ -123,6 +123,12 @@ class compressor:
 
 # default values
     def default(self, key):
+        """
+        source of map:
+            Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
+            axial compressor in a gas turbine cycle. Journal of Power
+            Technologies 96 (3), pp. 194-199.
+        """
 
         # default map
         default_map = {}
@@ -195,6 +201,10 @@ class compressor:
 
 # get speedline as interpolation object
     def get_speedline(self, n, vigv):
+        """
+        source of speedline adaption by igv:
+            GasTurb GmbH (2015): GasTurb 12.
+        """
         n = round(n, 3)
         self.add_speedline(n)
         pr = interp1d(self.pr[n].x * (1 - vigv / 100),

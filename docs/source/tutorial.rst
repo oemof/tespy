@@ -214,7 +214,6 @@ The plotting function is designed to use for trouble shooting when your calculat
 Offdesign calculations
 ++++++++++++++++++++++
 	
-
 After designing your process you might want to gain information on offdesign behaviour. By stating :code:`'offdesing'` as calculation mode, you can switch the component behaviour to offdesign. For example, this means that pressure drop in a pipe will be the result of reynolds number and the pipes dimensions. The table below shows all offdesign parameters available.
 
 =======================	======================	===================================================

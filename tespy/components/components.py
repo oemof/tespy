@@ -93,8 +93,6 @@ class component:
                components
              - :code:`ValueError`, if label contains forbidden characters
                (';', ',', '.')
-             - :code:`ValueError`, if outlet_id or inlet_id are not allowed
-               for ids for comp1 or comp2
 
     **example**
 

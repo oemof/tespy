@@ -18,22 +18,40 @@ from tespy.components import components as comp
 
 
 class subsystem:
+    r"""
+
+    :param label: label for subsystem
+    :type label: str
+    :param **kwargs: for the keyword arguments see :code:`subsystem.attr()`
+    :returns: no return value
+    :raises: - :code:`TypeError`, if label is not of type str
+               components
+             - :code:`ValueError`, if label contains forbidden characters
+               (';', ',', '.')
+
+    **example**
+
+    .. code-block:: python
+
+        ph_desup = ph_desup_cond('preheater 1', ttd=5)
+
+    creates a subsystem of a desuperheater and a condenser with a vessel at
+    the hot outlet labeled "preheater 1" and sets the
+    terminal temperature difference (hot side inlet at condenser to
+    cold side outlet after condenser) to 5 K
+
+    **initialisation method is used for instances of class component and its
+    children**
+
+    allowed keywords in kwargs are 'mode' and additional keywords depending
+    on the type of subsystem you want to create
     """
+    def __init__(self, label, **kwargs):
 
-    **TODO**
-
-    - add documentation
-    """
-
-    def __init__(self, **kwargs):
-
-        if 'label' not in kwargs:
-            raise MyComponentError('Subsystems must have a label!')
-
-        if not isinstance(kwargs['label'], str):
+        if not isinstance(label, str):
             raise MyComponentError('Subsystem label must be of type str!')
 
-        if len([x for x in [';', ', ', '.'] if x in kwargs['label']]) > 0:
+        if len([x for x in [';', ', ', '.'] if x in label]) > 0:
             raise MyComponentError('Can\'t use ' + str([';', ', ', '.']) + ' ',
                                    'in label.')
 
@@ -52,8 +70,6 @@ class subsystem:
                 if type(kwargs[key]) == float or type(kwargs[key]) == int:
                     self.__dict__.update({key: kwargs[key]})
                     self.__dict__.update({key + '_set': True})
-                elif key == 'label':
-                    self.label = kwargs['label']
                 else:
                     raise MyComponentError('Specified value does not match '
                                            'requirements. Only numbers are '
@@ -86,7 +102,7 @@ class subsystem:
         print(self.__dict__)
 
     def attr(self):
-        return ['label', 'num_i', 'num_o']
+        return ['num_i', 'num_o']
 
     def from_network(self, nw):
         num_inter = 0
@@ -119,6 +135,26 @@ class subsystem:
 
 
 class dr_eva_forced(subsystem):
+    """
+    **available parameters**
+
+    - dp1_eva: pressure drop at hot side of evaporator
+    - dp2_eva: pressure drop at cold side of evaporator
+    - eta_s: isentropic efficiency of the pump
+    - PP: pinch point
+    - circ_num: circulation number, ratio of mass flow through cold side of
+      evaporator to mass flow at the drum inlet
+
+    **inlets and outlets**
+
+    - in1, in2
+    - out1, out2
+
+    .. image:: _images/subsys_dr_eva_forced.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
 
     def attr(self):
         return ([n for n in subsystem.attr(self) if
@@ -165,6 +201,24 @@ class dr_eva_forced(subsystem):
 
 
 class dr_eva_natural(subsystem):
+    """
+    **available parameters**
+
+    - dp1_eva: pressure drop at hot side of evaporator
+    - PP: pinch point
+    - circ_num: circulation number, ratio of mass flow through cold side of
+      evaporator to mass flow at the drum inlet
+
+    **inlets and outlets**
+
+    - in1, in2
+    - out1, out2
+
+    .. image:: _images/subsys_dr_eva_forced.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
 
     def attr(self):
         return ([n for n in subsystem.attr(self) if
@@ -205,6 +259,26 @@ class dr_eva_natural(subsystem):
 
 
 class ph_desup_cond(subsystem):
+    """
+    **available parameters**
+
+    - ttd: upper terminal temperature difference of condenser
+    - dp1_desup: pressure drop at hot side of desuperheater
+    - dp2_desup: pressure drop at cold side of desuperheater
+    - dp1_cond: pressure drop at hot side of condenser
+    - dp2_cond: pressure drop at cold side of condenser
+
+    **inlets and outlets**
+
+    - in1, in2
+    - out1, out2
+
+    .. image:: _images/subsys_dr_eva_forced.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
+
 
     def attr(self):
         return ([n for n in subsystem.attr(self) if
@@ -347,7 +421,7 @@ class ph_desup_inl_cond_subc(subsystem):
     def conns(self):
         conns = [connection(self.inlet, 'out1', self.desup, 'in1'),
                  connection(self.desup, 'out1', self.merge, 'in1'),
-                 connection(self.inlet, 'out2', self.merge, 'in2'),
+                 connection(self.inlet, 'out3', self.merge, 'in2'),
                  connection(self.merge, 'out1', self.condenser, 'in1'),
                  connection(self.condenser, 'out1', self.subcooler, 'in1'),
                  connection(self.subcooler, 'out1', self.vessel, 'in1'),

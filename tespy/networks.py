@@ -81,7 +81,7 @@ class network:
 
         if self.m not in network.m_unit.keys():
             msg = ('Allowed units for mass flow are: ' +
-                   str(network.p_unit.keys()))
+                   str(network.m_unit.keys()))
             raise hlp.MyNetworkError(msg)
 
         if self.p not in network.p_unit.keys():
@@ -91,12 +91,12 @@ class network:
 
         if self.h not in network.h_unit.keys():
             msg = ('Allowed units for enthalpy are: ' +
-                   str(network.p_unit.keys()))
+                   str(network.h_unit.keys()))
             raise hlp.MyNetworkError(msg)
 
         if self.T not in network.T_unit.keys():
             msg = ('Allowed units for temperature are: ' +
-                   str(network.p_unit.keys()))
+                   str(network.T_unit.keys()))
             raise hlp.MyNetworkError(msg)
 
         for f in self.fluids:
@@ -644,7 +644,7 @@ class network:
                 if c.T_set:
                     c.h = hlp.h_mix_pT(c.as_list(), c.T)
                 if c.x_set:
-                    c.x = hlp.h_mix_pQ(c.as_list(), c.x)
+                    c.h = hlp.h_mix_pQ(c.as_list(), c.x)
 
     def init_offdesign(self):
         """
@@ -1440,77 +1440,8 @@ class network:
                             parset += [var, cp.get_attr(var)]
 
                 f.writerow([cp.label,
-                            type(cp),
+                            cp.__class__.__name__,
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.i],
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.o],
                             cp.mode,
                             *parset])
-
-
-class process_director:
-    """
-    documentation
-    """
-    def __init__(self):
-        self.imported_comps = pd.DataFrame(columns=['comp'])
-
-    def construct_component(self, component, label):
-        target_class = getattr(cmp, component)
-        instance = target_class(label)
-        self.imported_comps.loc[label] = [instance]
-
-
-def load_nw(filename):
-    """
-    generate network class providing result files
-    Required files:
-
-    - ..._comps.csv
-    - ..._results.csv
-
-    TODO: REDO!
-    """
-
-# open csv component file and generate component objects
-    director = process_director()
-    with open(filename + '_comps.csv', 'r') as csvfile:
-        f = csv.reader(csvfile, delimiter=';')
-        next(f, None)
-        i = 0
-        for row in f:
-            numel = (len(row) - 7) / 2
-            director.construct_component(row[1], row[0])
-# set attributes (P,Q,eta, ...) of the component
-            if numel != 0:
-                for k in range(int(numel)):
-                    director.importedComps['comp'].iloc[i].set_attr(
-                         **{row[7 + 2 * k]: float(row[7 + 2 * k + 1])})
-            i += 1
-
-# create network object, open csv file with results
-    nw = network()
-    conns = pd.read_csv(filename + '_results.csv', sep = ';', decimal = '.')
-
-    importedConns = []
-    for i in range(len(conns)):
-# create connection
-        importedConns += [connection(
-                        director.importedComps.loc[conns['s'].iloc[i]].comp,
-                        conns['s_id'].iloc[i],
-                        director.importedComps.loc[conns['t'].iloc[i]].comp,
-                        conns['t_id'].iloc[i])]
-# set properties
-        if conns['m_set'].iloc[i]:
-            importedConns[i].set_flow(m = conns['m'].iloc[i])
-        if conns['p_set'].iloc[i]:
-            importedConns[i].set_flow(p = conns['p'].iloc[i])
-        if conns['h_set'].iloc[i]:
-            importedConns[i].set_flow(h = conns['h'].iloc[i])
-        if conns['T_set'].iloc[i]:
-            importedConns[i].set_flow(T = conns['T'].iloc[i])
-        if conns['x_set'].iloc[i]:
-            importedConns[i].set_flow(x = conns['x'].iloc[i])
-# add connections to network
-        nw.addConn(importedConns[i])
-
-    return nw

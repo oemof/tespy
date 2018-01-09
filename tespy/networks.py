@@ -1112,32 +1112,52 @@ class network:
             self.vec_res += [res]
 
             # derivatives
-            if abs(res) > hlp.err ** 3:
+            # dT / dp
+            self.mat_deriv[row, col + 1] = hlp.dT_mix_dph(flow)
+            self.mat_deriv[row, ref_col + 1] = (
+                -hlp.dT_mix_dph(flow_ref) * c.T_ref.f)
+            # dT / dh
+            self.mat_deriv[row, col + 2] = hlp.dT_mix_pdh(flow)
+            self.mat_deriv[row, ref_col + 2] = (
+                -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f)
+            # dT / dFluid
+            dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+            dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
+            for i in range(self.num_vars - 3):
+                self.mat_deriv[row, col + 3 + i] = dT_dfluid[i]
+                self.mat_deriv[row, ref_col + 3 + i] = (
+                    -dT_dfluid_ref[i] * c.T_ref.f)
+
+            # this part is speeding up calculation, but might lead to
+            # singularities
+#            if abs(res) > hlp.err ** 3:
                 # dT / dp
-                self.mat_deriv[row, col + 1] = hlp.dT_mix_dph(flow)
-                self.mat_deriv[row, ref_col + 1] = (
-                    -hlp.dT_mix_dph(flow_ref) * c.T_ref.f)
+#                self.mat_deriv[row, col + 1] = hlp.dT_mix_dph(flow)
+#                self.mat_deriv[row, ref_col + 1] = (
+#                    -hlp.dT_mix_dph(flow_ref) * c.T_ref.f)
                 # dT / dh
-                self.mat_deriv[row, col + 2] = hlp.dT_mix_pdh(flow)
-                self.mat_deriv[row, ref_col + 2] = (
-                    -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f)
+#                self.mat_deriv[row, col + 2] = hlp.dT_mix_pdh(flow)
+#                self.mat_deriv[row, ref_col + 2] = (
+#                    -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f)
                 # dT / dFluid
                 # stop calculating temperature derivatives if residuals in
                 # temperature are small (very time consuming)
-                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
-                dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
-                for i in range(self.num_vars - 3):
-                    self.mat_deriv[row, col + 3 + i] = dT_dfluid[i]
-                    self.mat_deriv[row, ref_col + 3 + i] = (
-                        -dT_dfluid_ref[i] * c.T_ref.f)
-            else:
-                self.mat_deriv[row, col + 1] = 1
-                self.mat_deriv[row, ref_col + 1] = -c.T_ref.f
-                self.mat_deriv[row, col + 2] = 1
-                self.mat_deriv[row, ref_col + 2] = -c.T_ref.f
-                for i in range(self.num_vars - 3):
-                    self.mat_deriv[row, col + 3 + i] = 1
-                    self.mat_deriv[row, ref_col + 3 + i] = -1
+#                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+#                dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
+#                for i in range(self.num_vars - 3):
+#                    self.mat_deriv[row, col + 3 + i] = dT_dfluid[i]
+#                    self.mat_deriv[row, ref_col + 3 + i] = (
+#                        -dT_dfluid_ref[i] * c.T_ref.f)
+#            else:
+                # values do not matter, just set differently to prevent
+                # singularity
+#                self.mat_deriv[row, col + 1] = 0.5
+#                self.mat_deriv[row, ref_col + 1] = -c.T_ref.f * 0.7
+#                self.mat_deriv[row, col + 2] = 2
+#                self.mat_deriv[row, ref_col + 2] = -c.T_ref.f * 1.6
+#                for i in range(self.num_vars - 3):
+#                    self.mat_deriv[row, col + 3 + i] = 1.2
+#                    self.mat_deriv[row, ref_col + 3 + i] = -0.8
 
         # if value is set for temperature
         else:
@@ -1145,16 +1165,26 @@ class network:
             res = c.T - hlp.T_mix_ph(flow)
             self.vec_res += [res]
             # derivatives
-            if abs(res) > hlp.err ** 3:
-                self.mat_deriv[row, col + 1] = -hlp.dT_mix_dph(flow)
-                self.mat_deriv[row, col + 2] = -hlp.dT_mix_pdh(flow)
+            self.mat_deriv[row, col + 1] = -hlp.dT_mix_dph(flow)
+            self.mat_deriv[row, col + 2] = -hlp.dT_mix_pdh(flow)
 
-                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
-                self.mat_deriv[row, col + 3:col + self.num_vars] = -dT_dfluid
-            else:
-                self.mat_deriv[row, col + 1] = -1
-                self.mat_deriv[row, col + 2] = -1
-                self.mat_deriv[row, col + 3:col + self.num_vars] = -1
+            dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+            self.mat_deriv[row, col + 3:col + self.num_vars] = -dT_dfluid
+
+            # this part is speeding up calculation, but might lead to
+            # singularities
+#            if abs(res) > hlp.err ** 3:
+#                self.mat_deriv[row, col + 1] = -hlp.dT_mix_dph(flow)
+#                self.mat_deriv[row, col + 2] = -hlp.dT_mix_pdh(flow)
+#
+#                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+#                self.mat_deriv[row, col + 3:col + self.num_vars] = -dT_dfluid
+#            else:
+                # values do not matter, just set differently to prevent
+                # singularity
+#                self.mat_deriv[row, col + 1] = -0.1
+#                self.mat_deriv[row, col + 2] = -2
+#                self.mat_deriv[row, col + 3:col + self.num_vars] = -0.7
 
         self.debug += [c]
 

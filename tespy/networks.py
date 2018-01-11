@@ -846,6 +846,27 @@ class network:
                 l += 1
             i += 1
 
+        # make sure, that at given temperatures values stay within feasible
+        # enthalpy range: calculate maximum enthalpy and compare with acutal
+        # value
+        if self.iter < 5:
+            for c in self.conns.index:
+                if c.T_set:
+                    if hlp.num_fluids(c.fluid) == 1:
+                        for fluid, x in c.fluid.items():
+                            T_max = 2000
+                            H_max = CPPSI('H', 'T', T_max, 'P', c.p, fluid)
+                            if c.h > H_max:
+                                c.h = H_max * 0.98
+                    if hasattr(c, 'T_ref'):
+                        c = c.T_ref.obj
+                        if hlp.num_fluids(c.fluid) == 1:
+                            for fluid, x in c.fluid.items():
+                                T_max = 2000
+                                H_max = CPPSI('H', 'T', T_max, 'P', c.p, fluid)
+                                if c.h > H_max:
+                                    c.h = H_max * 0.98
+
         # check properties for consistency
         if self.init_file is None and self.iter < 5:
             for cp in self.comps.index:

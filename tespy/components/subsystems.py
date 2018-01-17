@@ -51,9 +51,11 @@ class subsystem:
         if not isinstance(label, str):
             raise MyComponentError('Subsystem label must be of type str!')
 
-        if len([x for x in [';', ', ', '.'] if x in label]) > 0:
+        elif len([x for x in [';', ', ', '.'] if x in label]) > 0:
             raise MyComponentError('Can\'t use ' + str([';', ', ', '.']) + ' ',
                                    'in label.')
+        else:
+            self.label = label
 
 # set default values
         for key in self.attr():
@@ -116,7 +118,8 @@ class subsystem:
                                  'and one outlet interface!')
 
     def comp_init(self):
-        return
+        self.comps()
+        self.create_network()
 
     def comps(self):
         return
@@ -161,14 +164,9 @@ class dr_eva_forced(subsystem):
                  n != 'num_i' and n != 'num_o'] +
                 ['dp1_eva', 'dp2_eva', 'eta_s', 'PP', 'circ_num'])
 
-    def comp_init(self):
+    def comps(self):
         self.num_i = 2
         self.num_o = 2
-        self.comps()
-        self.conns()
-        self.create_network()
-
-    def comps(self):
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
                                            num_inter=self.num_i)
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',
@@ -225,14 +223,9 @@ class dr_eva_natural(subsystem):
                  n != 'num_i' and n != 'num_o'] +
                 ['dp1_eva', 'PP', 'circ_num'])
 
-    def comp_init(self):
+    def comps(self):
         self.num_i = 2
         self.num_o = 2
-        self.comps()
-        self.conns()
-        self.create_network()
-
-    def comps(self):
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
                                            num_inter=self.num_i)
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',
@@ -285,14 +278,9 @@ class ph_desup_cond(subsystem):
                  n != 'num_i' and n != 'num_o'] +
                 ['ttd', 'dp1_desup', 'dp2_desup', 'dp1_cond', 'dp2_cond'])
 
-    def comp_init(self):
+    def comps(self):
         self.num_i = 2
         self.num_o = 2
-        self.comps()
-        self.conns()
-        self.create_network()
-
-    def comps(self):
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
                                            num_inter=self.num_i)
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',
@@ -332,14 +320,9 @@ class ph_desup_cond_subc(subsystem):
                 ['ttd', 'dp1_desup', 'dp2_desup',
                  'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
 
-    def comp_init(self):
+    def comps(self):
         self.num_i = 2
         self.num_o = 2
-        self.comps()
-        self.conns()
-        self.create_network()
-
-    def comps(self):
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
                                            num_inter=self.num_i)
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',
@@ -386,14 +369,9 @@ class ph_desup_inl_cond_subc(subsystem):
                 ['ttd', 'dp1_desup', 'dp2_desup',
                  'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
 
-    def comp_init(self):
+    def comps(self):
         self.num_i = 3
         self.num_o = 2
-        self.comps()
-        self.conns()
-        self.create_network()
-
-    def comps(self):
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
                                            num_inter=self.num_i)
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',

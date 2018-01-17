@@ -832,8 +832,8 @@ class network:
                 c.p = 500 * 1e5
             if c.h < 0:
                 c.h = -c.h
-            if c.h > 7e6:
-                c.h = 7e6
+            if c.h > 10e6:
+                c.h = 10e6
 
             l = 0
             for fluid in c.fluid.keys():

@@ -12,6 +12,14 @@ tespy\.connections module
     :undoc-members:
     :show-inheritance:
 
+tespy\.csv\_reader module
+-------------------------
+
+.. automodule:: tespy.csv_reader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy\.helpers module
 ---------------------
 

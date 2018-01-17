@@ -48,7 +48,7 @@
 <span id="tespy-connections-module"></span><h2>tespy.connections module<a class="headerlink" href="#module-tespy.connections" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tespy.connections.bus">
-<em class="property">class </em><code class="descclassname">tespy.connections.</code><code class="descname">bus</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.connections.bus" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.connections.</code><code class="descname">bus</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.connections.bus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>establish power connection between turbines, pumps, heat exchanger</p>
 <p><strong>TODO</strong></p>
@@ -114,15 +114,28 @@ for ids for comp1 or comp2</li>
 </table>
 <p><strong>allowed keywords</strong> in kwargs (also see connections.attr()):</p>
 <ul class="simple">
-<li>m, m0</li>
-<li>p, p0</li>
-<li>h, h0</li>
-<li>T</li>
-<li>x</li>
-<li>fluid</li>
+<li>m (<em>numeric</em>, <em>ref object</em>), m0 (<em>numeric</em>)</li>
+<li>p (<em>numeric</em>, <em>ref object</em>), p0 (<em>numeric</em>)</li>
+<li>h (<em>numeric</em>, <em>ref object</em>), h0 (<em>numeric</em>)</li>
+<li>T (<em>numeric</em>, <em>ref object</em>)</li>
+<li>x (<em>numeric</em>)</li>
+<li>fluid (<em>dict</em>), fluid_balance (<em>bool</em>)</li>
 </ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The fluid balance parameter applies a balancing of the fluid vector on
+the specified conntion to 100 %. For example, you have four fluid
+components (a, b, c and d) in your vector, you set two of them
+(a and b) and want the other two (components c and d) to be a result of
+your calculation. If you set this parameter to True, the equation
+(0 = 1 - a - b - c - d) will be applied.</p>
+</div>
 <p><strong>example</strong></p>
-<p>creates component from turbine to condenser (hot side inlet) and sets
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tespy</span> <span class="kn">import</span> <span class="n">con</span>
+<span class="n">conn</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">connection</span><span class="p">(</span><span class="n">turbine</span><span class="p">,</span> <span class="s1">&#39;out1&#39;</span><span class="p">,</span> <span class="n">condenser</span><span class="p">,</span> <span class="s1">&#39;in1&#39;</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>creates connection from turbine to condenser (hot side inlet) and sets
 values for mass flow and pressure</p>
 <dl class="method">
 <dt id="tespy.connections.connection.as_list">
@@ -209,6 +222,33 @@ m_{ref}: \text{mass flow of referenced connection}\end{split}\]</div>
 </dd></dl>
 
 </div>
+<div class="section" id="module-tespy.csv_reader">
+<span id="tespy-csv-reader-module"></span><h2>tespy.csv_reader module<a class="headerlink" href="#module-tespy.csv_reader" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tespy.csv_reader.load_nw">
+<code class="descclassname">tespy.csv_reader.</code><code class="descname">load_nw</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.csv_reader.load_nw" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate network class providing result files
+Required files:</p>
+<ul class="simple">
+<li>…_comps.csv</li>
+<li>…_results.csv</li>
+</ul>
+<p>TODO: REDO!</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tespy.csv_reader.process_director">
+<em class="property">class </em><code class="descclassname">tespy.csv_reader.</code><code class="descname">process_director</code><a class="headerlink" href="#tespy.csv_reader.process_director" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>documentation</p>
+<dl class="method">
+<dt id="tespy.csv_reader.process_director.construct_component">
+<code class="descname">construct_component</code><span class="sig-paren">(</span><em>component</em>, <em>label</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.csv_reader.process_director.construct_component" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-tespy.helpers">
 <span id="tespy-helpers-module"></span><h2>tespy.helpers module<a class="headerlink" href="#module-tespy.helpers" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
@@ -220,6 +260,12 @@ m_{ref}: \text{mass flow of referenced connection}\end{split}\]</div>
 <dl class="exception">
 <dt id="tespy.helpers.MyConnectionError">
 <em class="property">exception </em><code class="descclassname">tespy.helpers.</code><code class="descname">MyConnectionError</code><a class="headerlink" href="#tespy.helpers.MyConnectionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="tespy.helpers.MyConvergenceError">
+<em class="property">exception </em><code class="descclassname">tespy.helpers.</code><code class="descname">MyConvergenceError</code><a class="headerlink" href="#tespy.helpers.MyConvergenceError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
 </dd></dl>
 
@@ -646,9 +692,11 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </tbody>
 </table>
 <div class="math">
-\[\begin{split}s_{mix}(p,T)=\sum_{i} s(pp_{i},T,fluid_{i})\;
+\[\begin{split}s_{mix}(p,T)=\sum_{i} x_{i} \cdot s(pp_{i},T,fluid_{i})-
+\sum_{i} x_{i} \cdot R_{i} \cdot \ln \frac{pp_{i}}{p}\;
 \forall i \in \text{fluid components}\\
-pp: \text{partial pressure}\end{split}\]</div>
+pp: \text{partial pressure}\\
+R: \text{gas constant}\end{split}\]</div>
 </dd></dl>
 
 <dl class="function">
@@ -767,18 +815,6 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 </div>
 <div class="section" id="module-tespy.networks">
 <span id="tespy-networks-module"></span><h2>tespy.networks module<a class="headerlink" href="#module-tespy.networks" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="tespy.networks.load_nw">
-<code class="descclassname">tespy.networks.</code><code class="descname">load_nw</code><span class="sig-paren">(</span><em>nw_name</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.networks.load_nw" title="Permalink to this definition">¶</a></dt>
-<dd><p>generate network class providing result files
-Required files:</p>
-<ul class="simple">
-<li>…_comps.csv</li>
-<li>…_results.csv</li>
-</ul>
-<p>TODO: REDO!</p>
-</dd></dl>
-
 <dl class="class">
 <dt id="tespy.networks.network">
 <em class="property">class </em><code class="descclassname">tespy.networks.</code><code class="descname">network</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.networks.network" title="Permalink to this definition">¶</a></dt>
@@ -786,7 +822,7 @@ Required files:</p>
 <p>class network aggregates information on components, connections and busses</p>
 <dl class="attribute">
 <dt id="tespy.networks.network.T_unit">
-<code class="descname">T_unit</code><em class="property"> = {'F': [459.67, 0.5555555555555556], 'K': [0, 1], 'C': [273.15, 1]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">T_unit</code><em class="property"> = {'C': [273.15, 1], 'K': [0, 1], 'F': [459.67, 0.5555555555555556]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1209,7 +1245,7 @@ to exit the recursion</li>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.p_unit">
-<code class="descname">p_unit</code><em class="property"> = {'MPa': 1000000.0, 'bar': 100000.0, 'Pa': 1, 'psi': 6894.8}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">p_unit</code><em class="property"> = {'Pa': 1, 'bar': 100000.0, 'psi': 6894.8, 'MPa': 1000000.0}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1428,6 +1464,40 @@ is skipped if residuals become very small (speeds up calculation)</li>
 </tr>
 </tbody>
 </table>
+<p><strong>equation for numeric values</strong></p>
+<div class="math">
+\[0 = T_{j} - T \left( p_{j}, h_{j}, fluid_{j} \right)\]</div>
+<p><strong>derivative for numeric values</strong></p>
+<div class="math">
+\[\begin{split}J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+-\frac{dT_{j}}{dp_{j}}\\
+J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+-\frac{dT_{j}}{dh_{j}}\\
+J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
+- \frac{dT_{j}}{dfluid_{j,k}}
+\; , \forall k \in \text{fluid components}\\
+\text{for equation i, connection j}\end{split}\]</div>
+<p><strong>equation for numeric values</strong></p>
+<div class="math">
+\[0 = T \left( p_{j}, h_{j}, fluid_{j} \right) -
+T \left( p_{j}, h_{j}, fluid_{j} \right) \cdot a + b\]</div>
+<p><strong>derivative for numeric values</strong></p>
+<div class="math">
+\[\begin{split}J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+\frac{dT_{j}}{dp_{j}}\\
+J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+\frac{dT_{j}}{dh_{j}}\\
+J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
+\frac{dT_{j}}{dfluid_{j,k}}
+\; , \forall k \in \text{fluid components}\\
+J\left(\frac{\partial f_{i}}{\partial p_{j,ref}}\right) =
+\frac{dT_{j,ref}}{dp_{j,ref}} \cdot a \\
+J\left(\frac{\partial f_{i}}{\partial h_{j,ref}}\right) =
+\frac{dT_{j,ref}}{dh_{j,ref}} \cdot a \\
+J\left(\frac{\partial f_{i}}{\partial fluid_{j,k,ref}}\right) =
+\frac{dT_{j}}{dfluid_{j,k,ref}} \cdot a
+\; , \forall k \in \text{fluid components}\\
+\text{for equation i, connection j}\end{split}\]</div>
 </dd></dl>
 
 <dl class="method">
@@ -1557,6 +1627,23 @@ pressure and/or enthalpy</p>
 </tr>
 </tbody>
 </table>
+<p><strong>equation for numeric values</strong></p>
+<div class="math">
+\[0 = 0\]</div>
+<p><strong>derivative for numeric values</strong></p>
+<div class="math">
+\[\begin{split}J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
+\text{for equation i, connection j}\\
+\text{pressure and enthalpy analogously}\end{split}\]</div>
+<p><strong>equation for referenced values</strong></p>
+<div class="math">
+\[0 = m_{j} - m_{j,ref} \cdot a + b\]</div>
+<p><strong>derivatives for referenced values</strong></p>
+<div class="math">
+\[\begin{split}J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
+J\left(\frac{\partial f_{i}}{\partial m_{j,ref}}\right) = - a\\
+\text{for equation i, connection j}\\
+\text{pressure and enthalpy analogously}\end{split}\]</div>
 </dd></dl>
 
 <dl class="method">
@@ -1580,6 +1667,20 @@ fraction</p>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">works with pure fluids only!</p>
+</div>
+<p><strong>equation for numeric values</strong></p>
+<div class="math">
+\[0 = h_{j} - h \left( p_{j}, x_{j}, fluid_{j} \right)\]</div>
+<p><strong>derivative for numeric values</strong></p>
+<div class="math">
+\[\begin{split}J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+-\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
+{\partial p_{j}}\\
+J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
+\text{for equation i, connection j, x: vapour mass fraction}\end{split}\]</div>
 </dd></dl>
 
 <dl class="method">
@@ -1606,6 +1707,7 @@ fraction</p>
 <li><a class="reference internal" href="#">tespy package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-tespy.connections">tespy.connections module</a></li>
+<li><a class="reference internal" href="#module-tespy.csv_reader">tespy.csv_reader module</a></li>
 <li><a class="reference internal" href="#module-tespy.helpers">tespy.helpers module</a></li>
 <li><a class="reference internal" href="#module-tespy.networks">tespy.networks module</a></li>
 <li><a class="reference internal" href="#module-tespy">Module contents</a></li>

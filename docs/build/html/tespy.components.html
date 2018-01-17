@@ -67,7 +67,13 @@
 <dl class="method">
 <dt id="tespy.components.characteristics.compressor.default">
 <code class="descname">default</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.characteristics.compressor.default" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><dl class="docutils">
+<dt>source of map:</dt>
+<dd>Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
+axial compressor in a gas turbine cycle. Journal of Power
+Technologies 96 (3), pp. 194-199.</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="tespy.components.characteristics.compressor.get_eta">
@@ -82,7 +88,11 @@
 <dl class="method">
 <dt id="tespy.components.characteristics.compressor.get_speedline">
 <code class="descname">get_speedline</code><span class="sig-paren">(</span><em>n</em>, <em>vigv</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.characteristics.compressor.get_speedline" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><dl class="docutils">
+<dt>source of speedline adaption by igv:</dt>
+<dd>GasTurb GmbH (2015): GasTurb 12.</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="tespy.components.characteristics.compressor.get_vigv">
@@ -532,8 +542,6 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 components</li>
 <li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if label contains forbidden characters
 (‘;’, ‘,’, ‘.’)</li>
-<li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if outlet_id or inlet_id are not allowed
-for ids for comp1 or comp2</li>
 </ul>
 </td>
 </tr>
@@ -3919,16 +3927,27 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 <span id="tespy-components-subsystems-module"></span><h2>tespy.components.subsystems module<a class="headerlink" href="#module-tespy.components.subsystems" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tespy.components.subsystems.dr_eva_forced">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">dr_eva_forced</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">dr_eva_forced</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tespy.components.subsystems.subsystem" title="tespy.components.subsystems.subsystem"><code class="xref py py-class docutils literal"><span class="pre">tespy.components.subsystems.subsystem</span></code></a></p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>dp1_eva: pressure drop at hot side of evaporator</li>
+<li>dp2_eva: pressure drop at cold side of evaporator</li>
+<li>eta_s: isentropic efficiency of the pump</li>
+<li>PP: pinch point</li>
+<li>circ_num: circulation number, ratio of mass flow through cold side of
+evaporator to mass flow at the drum inlet</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1, in2</li>
+<li>out1, out2</li>
+</ul>
+<a class="reference internal image-reference" href="_images/subsys_dr_eva_forced.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/subsys_dr_eva_forced.svg" /></div>
+</a>
 <dl class="method">
 <dt id="tespy.components.subsystems.dr_eva_forced.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.attr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_forced.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.comp_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -3945,16 +3964,25 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 
 <dl class="class">
 <dt id="tespy.components.subsystems.dr_eva_natural">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">dr_eva_natural</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">dr_eva_natural</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tespy.components.subsystems.subsystem" title="tespy.components.subsystems.subsystem"><code class="xref py py-class docutils literal"><span class="pre">tespy.components.subsystems.subsystem</span></code></a></p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>dp1_eva: pressure drop at hot side of evaporator</li>
+<li>PP: pinch point</li>
+<li>circ_num: circulation number, ratio of mass flow through cold side of
+evaporator to mass flow at the drum inlet</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1, in2</li>
+<li>out1, out2</li>
+</ul>
+<a class="reference internal image-reference" href="_images/subsys_dr_eva_forced.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/subsys_dr_eva_forced.svg" /></div>
+</a>
 <dl class="method">
 <dt id="tespy.components.subsystems.dr_eva_natural.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.attr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_natural.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.comp_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -3971,16 +3999,26 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 
 <dl class="class">
 <dt id="tespy.components.subsystems.ph_desup_cond">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_cond</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_cond</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tespy.components.subsystems.subsystem" title="tespy.components.subsystems.subsystem"><code class="xref py py-class docutils literal"><span class="pre">tespy.components.subsystems.subsystem</span></code></a></p>
+<p><strong>available parameters</strong></p>
+<ul class="simple">
+<li>ttd: upper terminal temperature difference of condenser</li>
+<li>dp1_desup: pressure drop at hot side of desuperheater</li>
+<li>dp2_desup: pressure drop at cold side of desuperheater</li>
+<li>dp1_cond: pressure drop at hot side of condenser</li>
+<li>dp2_cond: pressure drop at cold side of condenser</li>
+</ul>
+<p><strong>inlets and outlets</strong></p>
+<ul class="simple">
+<li>in1, in2</li>
+<li>out1, out2</li>
+</ul>
+<a class="reference internal image-reference" href="_images/subsys_dr_eva_forced.svg"><div align="center" class="align-center"><img alt="alternative text" src="_images/subsys_dr_eva_forced.svg" /></div>
+</a>
 <dl class="method">
 <dt id="tespy.components.subsystems.ph_desup_cond.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.attr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.comp_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -3997,16 +4035,11 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 
 <dl class="class">
 <dt id="tespy.components.subsystems.ph_desup_cond_subc">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_cond_subc</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_cond_subc</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tespy.components.subsystems.subsystem" title="tespy.components.subsystems.subsystem"><code class="xref py py-class docutils literal"><span class="pre">tespy.components.subsystems.subsystem</span></code></a></p>
 <dl class="method">
 <dt id="tespy.components.subsystems.ph_desup_cond_subc.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.attr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond_subc.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.comp_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -4023,16 +4056,11 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 
 <dl class="class">
 <dt id="tespy.components.subsystems.ph_desup_inl_cond_subc">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_inl_cond_subc</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">ph_desup_inl_cond_subc</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tespy.components.subsystems.subsystem" title="tespy.components.subsystems.subsystem"><code class="xref py py-class docutils literal"><span class="pre">tespy.components.subsystems.subsystem</span></code></a></p>
 <dl class="method">
 <dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.attr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.comp_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -4049,12 +4077,44 @@ inlet, <span class="math">\(val = 5 \cdot 10^5 \; \text{Pa}\)</span></td>
 
 <dl class="class">
 <dt id="tespy.components.subsystems.subsystem">
-<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">subsystem</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tespy.components.subsystems.</code><code class="descname">subsystem</code><span class="sig-paren">(</span><em>label</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p><strong>TODO</strong></p>
-<ul class="simple">
-<li>add documentation</li>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>label</strong> (<em>str</em>) – label for subsystem</li>
+<li><strong>**kwargs</strong> – <p>for the keyword arguments see <code class="code docutils literal"><span class="pre">subsystem.attr()</span></code></p>
+</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="code docutils literal"><span class="pre">TypeError</span></code>, if label is not of type str
+components</li>
+<li><code class="code docutils literal"><span class="pre">ValueError</span></code>, if label contains forbidden characters
+(‘;’, ‘,’, ‘.’)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>example</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">ph_desup</span> <span class="o">=</span> <span class="n">ph_desup_cond</span><span class="p">(</span><span class="s1">&#39;preheater 1&#39;</span><span class="p">,</span> <span class="n">ttd</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>creates a subsystem of a desuperheater and a condenser with a vessel at
+the hot outlet labeled “preheater 1” and sets the
+terminal temperature difference (hot side inlet at condenser to
+cold side outlet after condenser) to 5 K</p>
+<p><strong>initialisation method is used for instances of class component and its
+children</strong></p>
+<p>allowed keywords in kwargs are ‘mode’ and additional keywords depending
+on the type of subsystem you want to create</p>
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.attr">
 <code class="descname">attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.attr" title="Permalink to this definition">¶</a></dt>

@@ -101,10 +101,7 @@ Two labels for busses have a predefined function in the postprocessing analysis:
 Subsystems
 ^^^^^^^^^^
 
-Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself from a network object. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
-
-.. note::
-	for now, custom subsystems can not be loaded from a csv-file, as the network csv-loader is not ready yet.
+Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or create a subsytem yourself. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
 
 .. code-block:: python
 
@@ -115,7 +112,7 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 	sink2 = cmp.sink(label='sink2')
 
 	# a preheater with desuperheater part
-	subsystem = subsys.ph_desup(label='sub1', dT_G=8, dp1_desup=1, dp2_desup=1, dp1_cond=1, dp2_cond=1)
+	subsystem = subsys.ph_desup(label='sub1', ttd=8, dp1_desup=1, dp2_desup=1, dp1_cond=1, dp2_cond=1)
 
 	# connections into the subsystem are attached to subsystem.inlet, connections out of the subsystem to subsystem.outlet
 	a = connection(source, 'out1', subsystem.inlet, 'in1', m=5, p=4, h=29e5, fluid={'water': 1})
@@ -128,6 +125,67 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 	nw.add_conns(a, b, c, d)
 	nw.add_subsys(subsys)
 	
+If you want to define your own subsystem, just create a .py file in your working-directory with the class-definition of your custom subsystem. This usually includes the following methods:
+
+ * attr: list of subsystem attributes,
+ * comps: define the number of interfaces and create the necessary components and define, to which properties the subsystems attributes in attr(self) refer as well as
+ * conns: create the subsystems connections and put them into a python list which will be returned.
+ 
+In the following example a feedwater preheater with desuperheater is defined (this subsystem is included in the predefined subsystems, this is just to demonstrate, how to create your own subsystem):
+
+.. code-block:: python
+
+	from tespy import con, cmp
+
+	class ph_desup_cond(subsystem):
+		
+		# define the attributes you want to be able to specify within your subsystem
+		def attr(self):
+			return ([n for n in subsystem.attr(self) if
+					 n != 'num_i' and n != 'num_o'] +
+					['ttd', 'dp1_desup', 'dp2_desup', 'dp1_cond', 'dp2_cond'])
+
+		# define the components
+		def comps(self):
+			self.num_i = 2
+			self.num_o = 2
+			self.inlet = cmp.subsys_interface(label=self.label + 'inlet', num_inter=self.num_i)
+			self.outlet = cmp.subsys_interface(label=self.label + 'outlet', num_inter=self.num_o)
+			self.desup = cmp.desuperheater(label=self.label + 'desup')
+			self.condenser = cmp.condenser(label=self.label + 'condenser')
+			self.vessel = cmp.vessel(label=self.label + 'vessel', mode='man')
+			if self.ttd_set:
+				self.condenser.set_attr(ttd_u=self.ttd)
+			if self.dp1_desup_set:
+				self.desup.set_attr(dp1=self.dp1_desup)
+			if self.dp2_desup_set:
+				self.desup.set_attr(dp2=self.dp2_desup)
+			if self.dp1_cond_set:
+				self.condenser.set_attr(dp1=self.dp1_cond)
+			if self.dp2_cond_set:
+				self.condenser.set_attr(dp2=self.dp2_cond)
+
+		# define the connections
+		def conns(self):
+			conns = []
+			conns += [con.connection(self.inlet, 'out1', self.desup, 'in1')],
+			conns += [con.connection(self.desup, 'out1', self.condenser, 'in1')]
+			conns += [con.connection(self.condenser, 'out1', self.vessel, 'in1')]
+			conns += [con.connection(self.vessel, 'out1', self.outlet, 'in1')]
+			conns += [con.connection(self.inlet, 'out2', self.condenser, 'in2')]
+			conns += [con.connection(self.condenser, 'out2', self.desup, 'in2')]
+			conns += [con.connection(self.desup, 'out2', self.outlet, 'in2')]
+			
+			return conns
+
+
+Finally just import your subsystem into your project and implement it:
+
+.. code-block:: python
+
+	from my_custom_subsystems import ph_desup_cond
+	
+	a = ph_desup_cond('Preheater 2', ttd=5, dp1_desup=0.995)
 
 Simulate your plant
 ^^^^^^^^^^^^^^^^^^^

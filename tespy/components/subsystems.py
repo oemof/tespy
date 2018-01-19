@@ -59,9 +59,8 @@ class subsystem:
 
 # set default values
         for key in self.attr():
-            if key not in subsystem.attr(self):
-                self.__dict__.update({key: 0})
-                self.__dict__.update({key + '_set': False})
+            self.__dict__.update({key: np.nan})
+            self.__dict__.update({key + '_set': False})
 
 # set provided values,  check for invalid keys
         invalid_keys = np.array([])
@@ -83,12 +82,43 @@ class subsystem:
                   'Available attributes for object \'', self,
                   '\' are:',  self.attr())
 
-        self.nw = nwk.network()
-        self.comp_init()
+        self.subsys_init()
+
+    def set_attr(self, **kwargs):
+        """
+        set attribute of subsystem
+        """
+
+        invalid_keys = np.array([])
+        for key in kwargs:
+            if key not in self.attr():
+                invalid_keys = np.append(invalid_keys, key)
+            else:
+                if np.isnan(kwargs[key]):
+                    self.__dict__.update({key: np.nan})
+                    self.__dict__.update({key + '_set': False})
+                elif (type(kwargs[key]) == float or
+                      type(kwargs[key]) == np.float64 or
+                      type(kwargs[key]) == int or
+                      key == 'fuel'):
+                    self.__dict__.update({key: kwargs[key]})
+                    self.__dict__.update({key + '_set': True})
+                else:
+                    msg = ('Specified value does not match requirements. '
+                           'Only numeric parameters are allowed.')
+                    raise TypeError(msg)
+
+        if len(invalid_keys) > 0:
+            print('\'', invalid_keys, '\' are invalid attributes. '
+                  'Available attributes for object \'',
+                  self.__class__.__name__, '\' are:', self.attr())
+
+        self.set_comps()
+        self.set_conns()
 
     def get_attr(self, key):
         """
-        Print specific attribute of component
+        get attribute of subsystem
         """
         if key in self.__dict__:
             return self.__dict__[key]
@@ -99,7 +129,7 @@ class subsystem:
 
     def display_information(self):
         """
-        Print all attributes of component
+        print all attributes of subsystem
         """
         print(self.__dict__)
 
@@ -107,6 +137,12 @@ class subsystem:
         return ['num_i', 'num_o']
 
     def from_network(self, nw):
+        """
+        create a subsystem from a network
+
+        .. note::
+            Does not work by now!
+        """
         num_inter = 0
         for c in nw.conns.index:
             self.nw.add_conns(c)
@@ -117,18 +153,37 @@ class subsystem:
             raise MyNetworkError('A subsystem must exactly have one inlet '
                                  'and one outlet interface!')
 
-    def comp_init(self):
-        self.comps()
+    def subsys_init(self):
+        """
+        subsystem initialisation:
+
+        - create components and connections
+        - set components and connections parameters
+        - create network
+        """
+        self.create_comps()
+        self.set_comps()
+
+        self.create_conns()
+        self.set_conns()
+
         self.create_network()
 
-    def comps(self):
+    def create_comps(self):
         return
 
-    def conns(self):
+    def create_conns(self):
+        return
+
+    def set_comps(self):
+        return
+
+    def set_conns(self):
         return
 
     def create_network(self):
-        for c in self.conns():
+        self.nw = nwk.network()
+        for c in self.conns:
             self.nw.add_conns(c)
 
     def get_network(self):
@@ -164,7 +219,8 @@ class dr_eva_forced(subsystem):
                  n != 'num_i' and n != 'num_o'] +
                 ['dp1_eva', 'dp2_eva', 'eta_s', 'PP', 'circ_num'])
 
-    def comps(self):
+    def create_comps(self):
+
         self.num_i = 2
         self.num_o = 2
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
@@ -174,26 +230,32 @@ class dr_eva_forced(subsystem):
         self.pump = comp.pump(label=self.label + 'pump')
         self.drum = comp.drum(label=self.label + 'drum')
         self.evaporator = comp.heat_exchanger(label=self.label + 'evaporator')
-        if self.PP_set:
-            self.evaporator.set_attr(ttd_l=self.PP)
-        if self.dp1_eva_set:
-            self.evaporator.set_attr(dp1=self.dp1_eva)
-        if self.dp2_eva_set:
-            self.evaporator.set_attr(dp2=self.dp2_eva)
-        if self.eta_s_set:
-            self.pump.set_attr(eta_s=self.eta_s)
 
-    def conns(self):
-        conns = [connection(self.inlet, 'out1', self.evaporator, 'in1'),
-                 connection(self.evaporator, 'out1', self.outlet, 'in1'),
-                 connection(self.inlet, 'out2', self.drum, 'in1'),
-                 connection(self.drum, 'out1', self.pump, 'in1'),
-                 connection(self.pump, 'out1', self.evaporator, 'in2'),
-                 connection(self.evaporator, 'out2', self.drum, 'in2'),
-                 connection(self.drum, 'out2', self.outlet, 'in2')]
+    def set_comps(self):
+
+        self.evaporator.set_attr(ttd_l=self.PP)
+        self.evaporator.set_attr(dp1=self.dp1_eva)
+        self.evaporator.set_attr(dp2=self.dp2_eva)
+        self.pump.set_attr(eta_s=self.eta_s)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.evaporator, 'in1')]
+        self.conns += [connection(self.evaporator, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.drum, 'in1')]
+        self.conns += [connection(self.drum, 'out1', self.pump, 'in1')]
+        self.conns += [connection(self.pump, 'out1', self.evaporator, 'in2')]
+        self.conns += [connection(self.evaporator, 'out2', self.drum, 'in2')]
+        self.conns += [connection(self.drum, 'out2', self.outlet, 'in2')]
+
+    def set_conns(self):
+
         if self.circ_num_set:
-            conns[3].set_attr(m=ref(conns[-1], self.circ_num, 0))
-        return conns
+            self.conns[3].set_attr(m=ref(self.conns[-1], self.circ_num, 0))
+        else:
+            self.conns[3].set_attr(m=np.nan)
 
 # %%
 
@@ -223,7 +285,8 @@ class dr_eva_natural(subsystem):
                  n != 'num_i' and n != 'num_o'] +
                 ['dp1_eva', 'PP', 'circ_num'])
 
-    def comps(self):
+    def create_comps(self):
+
         self.num_i = 2
         self.num_o = 2
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
@@ -231,22 +294,31 @@ class dr_eva_natural(subsystem):
         self.outlet = comp.subsys_interface(label=self.label + 'outlet',
                                             num_inter=self.num_o)
         self.drum = comp.drum(label=self.label + 'drum')
-        self.evaporator = comp.heat_exchanger(label=self.label + 'evaporator', mode='man')
-        if self.PP_set:
-            self.evaporator.set_attr(ttd_l=self.PP)
-        if self.dp1_eva_set:
-            self.evaporator.set_attr(dp1=self.dp1_eva)
+        self.evaporator = comp.heat_exchanger(label=self.label + 'evaporator',
+                                              mode='man')
 
-    def conns(self):
-        conns = [connection(self.inlet, 'out1', self.evaporator, 'in1'),
-                 connection(self.evaporator, 'out1', self.outlet, 'in1'),
-                 connection(self.inlet, 'out2', self.drum, 'in1'),
-                 connection(self.drum, 'out1', self.evaporator, 'in2'),
-                 connection(self.evaporator, 'out2', self.drum, 'in2'),
-                 connection(self.drum, 'out2', self.outlet, 'in2')]
+    def set_comps(self):
+
+        self.evaporator.set_attr(ttd_l=self.PP)
+        self.evaporator.set_attr(dp1=self.dp1_eva)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.evaporator, 'in1')]
+        self.conns += [connection(self.evaporator, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.drum, 'in1')]
+        self.conns += [connection(self.drum, 'out1', self.evaporator, 'in2')]
+        self.conns += [connection(self.evaporator, 'out2', self.drum, 'in2')]
+        self.conns += [connection(self.drum, 'out2', self.outlet, 'in2')]
+
+    def set_conns(self):
+
         if self.circ_num_set:
-            conns[3].set_attr(m=ref(conns[-1], self.circ_num, 0))
-        return conns
+            self.conns[3].set_attr(m=ref(self.conns[-1], self.circ_num, 0))
+        else:
+            self.conns[3].set_attr(m=np.nan)
 
 # %%
 
@@ -272,13 +344,13 @@ class ph_desup_cond(subsystem):
        :align: center
     """
 
-
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
                 ['ttd', 'dp1_desup', 'dp2_desup', 'dp1_cond', 'dp2_cond'])
 
-    def comps(self):
+    def create_comps(self):
+
         self.num_i = 2
         self.num_o = 2
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
@@ -288,26 +360,26 @@ class ph_desup_cond(subsystem):
         self.desup = comp.desuperheater(label=self.label + 'desup')
         self.condenser = comp.condenser(label=self.label + 'condenser')
         self.vessel = comp.vessel(label=self.label + 'vessel', mode='man')
-        if self.ttd_set:
-            self.condenser.set_attr(ttd_u=self.ttd)
-        if self.dp1_desup_set:
-            self.desup.set_attr(dp1=self.dp1_desup)
-        if self.dp2_desup_set:
-            self.desup.set_attr(dp2=self.dp2_desup)
-        if self.dp1_cond_set:
-            self.condenser.set_attr(dp1=self.dp1_cond)
-        if self.dp2_cond_set:
-            self.condenser.set_attr(dp2=self.dp2_cond)
 
-    def conns(self):
-        conns = [connection(self.inlet, 'out1', self.desup, 'in1'),
-                 connection(self.desup, 'out1', self.condenser, 'in1'),
-                 connection(self.condenser, 'out1', self.vessel, 'in1'),
-                 connection(self.vessel, 'out1', self.outlet, 'in1'),
-                 connection(self.inlet, 'out2', self.condenser, 'in2'),
-                 connection(self.condenser, 'out2', self.desup, 'in2'),
-                 connection(self.desup, 'out2', self.outlet, 'in2')]
-        return conns
+    def set_comps(self):
+
+        self.condenser.set_attr(ttd_u=self.ttd)
+        self.desup.set_attr(dp1=self.dp1_desup)
+        self.desup.set_attr(dp2=self.dp2_desup)
+        self.condenser.set_attr(dp1=self.dp1_cond)
+        self.condenser.set_attr(dp2=self.dp2_cond)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
+        self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
+        self.conns += [connection(self.condenser, 'out1', self.vessel, 'in1')]
+        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.condenser, 'in2')]
+        self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
+        self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
 
 # %%
 
@@ -320,7 +392,8 @@ class ph_desup_cond_subc(subsystem):
                 ['ttd', 'dp1_desup', 'dp2_desup',
                  'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
 
-    def comps(self):
+    def create_comps(self):
+
         self.num_i = 2
         self.num_o = 2
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
@@ -331,32 +404,32 @@ class ph_desup_cond_subc(subsystem):
         self.condenser = comp.condenser(label=self.label + 'condenser')
         self.subcooler = comp.heat_exchanger(label=self.label + 'subcooler')
         self.vessel = comp.vessel(label=self.label + 'vessel', mode='man')
-        if self.ttd_set:
-            self.condenser.set_attr(ttd_u=self.ttd)
-        if self.dp1_desup_set:
-            self.desup.set_attr(dp1=self.dp1_desup)
-        if self.dp2_desup_set:
-            self.desup.set_attr(dp2=self.dp2_desup)
-        if self.dp1_cond_set:
-            self.condenser.set_attr(dp1=self.dp1_cond)
-        if self.dp2_cond_set:
-            self.condenser.set_attr(dp2=self.dp2_cond)
-        if self.dp1_subc_set:
-            self.subcooler.set_attr(dp1=self.dp1_cond)
-        if self.dp2_subc_set:
-            self.subcooler.set_attr(dp2=self.dp2_cond)
 
-    def conns(self):
-        conns = [connection(self.inlet, 'out1', self.desup, 'in1'),
-                 connection(self.desup, 'out1', self.condenser, 'in1'),
-                 connection(self.condenser, 'out1', self.subcooler, 'in1'),
-                 connection(self.subcooler, 'out1', self.vessel, 'in1'),
-                 connection(self.vessel, 'out1', self.outlet, 'in1'),
-                 connection(self.inlet, 'out2', self.subcooler, 'in2'),
-                 connection(self.subcooler, 'out2', self.condenser, 'in2'),
-                 connection(self.condenser, 'out2', self.desup, 'in2'),
-                 connection(self.desup, 'out2', self.outlet, 'in2')]
-        return conns
+    def set_comps(self):
+
+        self.condenser.set_attr(ttd_u=self.ttd)
+        self.desup.set_attr(dp1=self.dp1_desup)
+        self.desup.set_attr(dp2=self.dp2_desup)
+        self.condenser.set_attr(dp1=self.dp1_cond)
+        self.condenser.set_attr(dp2=self.dp2_cond)
+        self.subcooler.set_attr(dp1=self.dp1_cond)
+        self.subcooler.set_attr(dp2=self.dp2_cond)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
+        self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
+        self.conns += [connection(self.condenser, 'out1',
+                                  self.subcooler, 'in1')]
+        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
+        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
+        self.conns += [connection(self.subcooler, 'out2',
+                                  self.condenser, 'in2')]
+        self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
+        self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
 
 # %%
 
@@ -369,7 +442,8 @@ class ph_desup_inl_cond_subc(subsystem):
                 ['ttd', 'dp1_desup', 'dp2_desup',
                  'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
 
-    def comps(self):
+    def create_comps(self):
+
         self.num_i = 3
         self.num_o = 2
         self.inlet = comp.subsys_interface(label=self.label + 'inlet',
@@ -381,31 +455,31 @@ class ph_desup_inl_cond_subc(subsystem):
         self.subcooler = comp.heat_exchanger(label=self.label + 'subcooler')
         self.vessel = comp.vessel(label=self.label + 'vessel', mode='man')
         self.merge = comp.merge(label=self.label + 'merge')
-        if self.ttd_set:
-            self.condenser.set_attr(ttd_u=self.ttd)
-        if self.dp1_desup_set:
-            self.desup.set_attr(dp1=self.dp1_desup)
-        if self.dp2_desup_set:
-            self.desup.set_attr(dp2=self.dp2_desup)
-        if self.dp1_cond_set:
-            self.condenser.set_attr(dp1=self.dp1_cond)
-        if self.dp2_cond_set:
-            self.condenser.set_attr(dp2=self.dp2_cond)
-        if self.dp1_subc_set:
-            self.subcooler.set_attr(dp1=self.dp1_cond)
-        if self.dp2_subc_set:
-            self.subcooler.set_attr(dp2=self.dp2_cond)
 
-    def conns(self):
-        conns = [connection(self.inlet, 'out1', self.desup, 'in1'),
-                 connection(self.desup, 'out1', self.merge, 'in1'),
-                 connection(self.inlet, 'out3', self.merge, 'in2'),
-                 connection(self.merge, 'out1', self.condenser, 'in1'),
-                 connection(self.condenser, 'out1', self.subcooler, 'in1'),
-                 connection(self.subcooler, 'out1', self.vessel, 'in1'),
-                 connection(self.vessel, 'out1', self.outlet, 'in1'),
-                 connection(self.inlet, 'out2', self.subcooler, 'in2'),
-                 connection(self.subcooler, 'out2', self.condenser, 'in2'),
-                 connection(self.condenser, 'out2', self.desup, 'in2'),
-                 connection(self.desup, 'out2', self.outlet, 'in2')]
-        return conns
+    def set_comps(self):
+
+        self.condenser.set_attr(ttd_u=self.ttd)
+        self.desup.set_attr(dp1=self.dp1_desup)
+        self.desup.set_attr(dp2=self.dp2_desup)
+        self.condenser.set_attr(dp1=self.dp1_cond)
+        self.condenser.set_attr(dp2=self.dp2_cond)
+        self.subcooler.set_attr(dp1=self.dp1_cond)
+        self.subcooler.set_attr(dp2=self.dp2_cond)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
+        self.conns += [connection(self.desup, 'out1', self.merge, 'in1')]
+        self.conns += [connection(self.inlet, 'out3', self.merge, 'in2')]
+        self.conns += [connection(self.merge, 'out1', self.condenser, 'in1')]
+        self.conns += [connection(self.condenser, 'out1',
+                                  self.subcooler, 'in1')]
+        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
+        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
+        self.conns += [connection(self.subcooler, 'out2',
+                                  self.condenser, 'in2')]
+        self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
+        self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]

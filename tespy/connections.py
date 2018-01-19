@@ -155,6 +155,8 @@ class connection:
                 else:
                     if np.isnan(kwargs[key]):
                         self.__dict__.update({key + '_set': False})
+                        if hasattr(self, key + '_ref'):
+                            delattr(self, key + '_ref')
                     else:
                         self.__dict__.update({key + '_set': True})
 

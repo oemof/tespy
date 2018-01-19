@@ -117,7 +117,7 @@ class network:
         :returns: no return value
         """
         for subsys in args:
-            for c in subsys.conns():
+            for c in subsys.conns:
                 self.add_conns(c)
 
     def add_conns(self, *args):
@@ -156,8 +156,8 @@ class network:
               already connected to another connections object
         """
         if not isinstance(c, con.connection):
-            raise TypeError('Must provide tespy.connections.connection objects '
-                            'as parameters.')
+            raise TypeError('Must provide tespy.connections.connection objects'
+                            ' as parameters.')
 
         self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
 

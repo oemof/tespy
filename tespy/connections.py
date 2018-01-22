@@ -217,33 +217,42 @@ class bus:
     - improve architecture (e. g. make it similar to connections)
     """
 
-    def __init__(self, label,  ** kwargs):
-        self.label = label
+    def __init__(self, label, **kwargs):
+
         self.comps = pd.DataFrame(columns=['factor'])
-        self.P = np.nan
+
+        self.label = label
         self.P_set = False
-        if 'P' in kwargs:
-            self.P = kwargs['P']
+        self.P = kwargs.get('P', np.nan)
+
+        if not np.isnan(self.P):
             self.P_set = True
 
-    def add_comp(self,  * args):
+    def set_attr(self, **kwargs):
+
+        self.label = kwargs.get('label')
+        self.P = kwargs.get('P')
+
+        if not np.isnan(self.P):
+            self.P_set = True
+        else:
+            self.P_set = False
+
+    def add_comp(self, *args):
         """
         add component to bus
         """
         for c in args:
             if isinstance(c, list):
                 if len(c) == 2:
-                    if c[1] in (-1, 1):
-                        self.comps.loc[c[0]] = [c[1]]
-                        if not self.check_comp(c[0]):
-                            self.comps = self.comps[: - 1]
-                    else:
-                        raise ValueError('Factor must be 1 or  - 1.')
+                    self.comps.loc[c[0]] = [c[1]]
+                    if not self.check_comp(c[0]):
+                        self.comps = self.comps[:-1]
                 else:
-                    msg = 'Provide parameters as follows: [component, factor].'
+                    msg = 'List must have two elements: [component, factor].'
                     raise MyConnectionError(msg)
             else:
-                msg = 'Provide parameters as follows: [component, factor].'
+                msg = 'Provide argument as list: [component, factor].'
                 raise MyConnectionError(msg)
 
     def check_comp(self, comp):
@@ -269,9 +278,7 @@ class bus:
                                'This bus accepts components of type ' +
                                str(type(c).__bases__[0]) + '.')
                         raise TypeError(msg)
-
                 return False
-
         return True
 
 

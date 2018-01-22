@@ -25,6 +25,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as mplcm
 import matplotlib.colors as colors
 
+import collections
+
 import time
 from CoolProp.CoolProp import PropsSI as CPPSI
 
@@ -58,11 +60,10 @@ class network:
 
     def __init__(self, **kwargs):
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
-        self.comps = pd.DataFrame(columns=['i', 'o'])
         self.fluids = []
 
         self.convergence = np.array([0, 0, 0], dtype=object)
-        self.busses = {}
+        self.busses = []
 
         # standard unit set
         self.m = 'kg / s'
@@ -180,7 +181,7 @@ class network:
         """
         for b in args:
             if self.check_busses(b):
-                self.busses[b.label] = b
+                self.busses += [b]
 
     def del_busses(self, b):
         """
@@ -191,8 +192,8 @@ class network:
         :returns: no return value
         :raises: :code:`KeyError` if bus object b is not in the network
         """
-        if b.label in self.busses.keys():
-            del self.busses[b.label]
+        if b in self.busses:
+            self.busses.remove(b)
 
     def check_busses(self, b):
         """
@@ -207,8 +208,13 @@ class network:
             - :code:`hlp.MyNetworkError`, if bus is already in the network
         """
         if isinstance(b, con.bus):
-            if b not in self.busses.values():
-                return True
+            if b not in self.busses:
+                if b.label not in [x.label for x in self.busses]:
+                    return True
+                else:
+                    msg = ('Network already has a bus with the name ' +
+                           b.label + '.')
+                    raise hlp.MyNetworkError(msg)
             else:
                 msg = 'Network contains this bus (' + str(b) + ') already.'
                 raise hlp.MyNetworkError(msg)
@@ -284,24 +290,39 @@ class network:
         """
         writes the networks components into dataframe
 
+        .. note::
+
+            This data is deriven from the network, thus it holds no additional
+            information. Instead it is used to simplify the code only.
+
         dataframe :code:`network.comps`:
 
-        =================== ============================ =======
-         index               i                            o
-        =================== ============================ =======
-         type: str           type: list                   see i
-         value: comp.label   values: connection objects
-        =================== ============================ =======
+        ======================== ============================ =======
+         index                    i                            o
+        ======================== ============================ =======
+         type: component object   type: list                   see i
+         value: object id         values: connection objects
+        ======================== ============================ =======
 
         :returns: no return value
         """
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
+
+        labels = []
         for comp in self.comps.index:
             s = self.conns[self.conns.s == comp]
             t = self.conns[self.conns.t == comp]
             self.comps.loc[comp] = [t.t_id.sort_values().index,
                                     s.s_id.sort_values().index]
+            labels += [comp.label]
+
+        if len(labels) != len(list(set(labels))):
+            duplicates = [item for item, count in
+                          collections.Counter(labels).items() if count > 1]
+            msg = ('All Components must have unique labels, duplicates are: ' +
+                   str(duplicates))
+            raise hlp.MyNetworkError(msg)
 
     def init_fluids(self):
         """
@@ -973,7 +994,7 @@ class network:
         :returns: no return value
         """
         row = len(self.vec_res)
-        for b in self.busses.values():
+        for b in self.busses:
             if b.P_set:
                 P_res = 0
                 for c in b.comps.index:
@@ -1275,7 +1296,7 @@ class network:
                        network.T_unit[self.T][1])
 
 # process key figures
-            for b in self.busses.values():
+            for b in self.busses:
                 b.P = 0
                 for c in b.comps.index:
                     i = self.comps.loc[c].i[0]
@@ -1285,16 +1306,13 @@ class network:
 
                     b.P += i.m * (o.h - i.h) * factor
 
-            if 'P_res' in self.busses.keys():
-                P = self.busses['P_res'].P
-            if 'Q_diss' in self.busses.keys():
-                Q_diss = self.busses['Q_diss'].P
+            P = [x.P for x in self.busses if x.label == 'P_res']
+            Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
 
             print('Postprocessing.')
 
             print('##### Kennzahlen des Kreisprozesses #####')
-            if ('P_res' in self.busses.keys() and
-                'Q_diss' in self.busses.keys()):
+            if len(P) != 0 and len(Q_diss) != 0:
                 print('eta_th = ', 1 - Q_diss / (P + Q_diss))
             msg = 'Do you want to print the components parammeters?'
             if hlp.query_yes_no(msg):

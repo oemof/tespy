@@ -75,6 +75,11 @@
 </ul>
 </dd></dl>
 
+<dl class="method">
+<dt id="tespy.connections.bus.set_attr">
+<code class="descname">set_attr</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.connections.bus.set_attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -822,7 +827,7 @@ uses CoolProp reverse functions for pure fluids, newton for mixtures</p>
 <p>class network aggregates information on components, connections and busses</p>
 <dl class="attribute">
 <dt id="tespy.networks.network.T_unit">
-<code class="descname">T_unit</code><em class="property"> = {'C': [273.15, 1], 'K': [0, 1], 'F': [459.67, 0.5555555555555556]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">T_unit</code><em class="property"> = {'F': [459.67, 0.5555555555555556], 'K': [0, 1], 'C': [273.15, 1]}</em><a class="headerlink" href="#tespy.networks.network.T_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -988,19 +993,24 @@ network does not match number of connections required</td>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.h_unit">
-<code class="descname">h_unit</code><em class="property"> = {'kJ / kg': 1000.0, 'J / kg': 1, 'MJ / kg': 1000000.0}</em><a class="headerlink" href="#tespy.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">h_unit</code><em class="property"> = {'MJ / kg': 1000000.0, 'kJ / kg': 1000.0, 'J / kg': 1}</em><a class="headerlink" href="#tespy.networks.network.h_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="tespy.networks.network.init_components">
 <code class="descname">init_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.networks.network.init_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>writes the networks components into dataframe</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This data is deriven from the network, thus it holds no additional
+information. Instead it is used to simplify the code only.</p>
+</div>
 <p>dataframe <code class="code docutils literal"><span class="pre">network.comps</span></code>:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="35%" />
-<col width="52%" />
-<col width="13%" />
+<col width="41%" />
+<col width="47%" />
+<col width="12%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">index</th>
@@ -1009,11 +1019,11 @@ network does not match number of connections required</td>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>type: str</td>
+<tr class="row-even"><td>type: component object</td>
 <td>type: list</td>
 <td>see i</td>
 </tr>
-<tr class="row-odd"><td>value: comp.label</td>
+<tr class="row-odd"><td>value: object id</td>
 <td>values: connection objects</td>
 <td>&#160;</td>
 </tr>
@@ -1240,12 +1250,12 @@ to exit the recursion</li>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.m_unit">
-<code class="descname">m_unit</code><em class="property"> = {'kg / s': 1, 't / h': 3.6}</em><a class="headerlink" href="#tespy.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">m_unit</code><em class="property"> = {'t / h': 3.6, 'kg / s': 1}</em><a class="headerlink" href="#tespy.networks.network.m_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tespy.networks.network.p_unit">
-<code class="descname">p_unit</code><em class="property"> = {'Pa': 1, 'bar': 100000.0, 'psi': 6894.8, 'MPa': 1000000.0}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">p_unit</code><em class="property"> = {'psi': 6894.8, 'Pa': 1, 'bar': 100000.0, 'MPa': 1000000.0}</em><a class="headerlink" href="#tespy.networks.network.p_unit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

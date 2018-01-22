@@ -1105,8 +1105,25 @@ successful performance</li>
 <dl class="method">
 <dt id="tespy.components.components.compressor.eta_s_func">
 <code class="descname">eta_s_func</code><span class="sig-paren">(</span><em>inlets</em>, <em>outlets</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.components.compressor.eta_s_func" title="Permalink to this definition">¶</a></dt>
-<dd><p>equation for isentropic efficiency of a compressor is the same as for a
-pump, see documentation of component pump</p>
+<dd><p>equation for isentropic efficiency of a compressor</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inlets</strong> (<em>list</em>) – the components connections at the inlets</li>
+<li><strong>outlets</strong> (<em>list</em>) – the components connections at the outlets</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">val (<em>float</em>) - residual value of equation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="math">
+\[0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
+\left( h_{out,s} -  h_{in} \right)\]</div>
 </dd></dl>
 
 <dl class="method">
@@ -3951,13 +3968,23 @@ evaporator to mass flow at the drum inlet</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_forced.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.comps" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.dr_eva_forced.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_forced.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.dr_eva_forced.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.create_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.dr_eva_forced.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.set_comps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.dr_eva_forced.set_conns">
+<code class="descname">set_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_forced.set_conns" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -3986,13 +4013,23 @@ evaporator to mass flow at the drum inlet</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_natural.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.comps" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.dr_eva_natural.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.dr_eva_natural.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.dr_eva_natural.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.create_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.dr_eva_natural.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.set_comps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.dr_eva_natural.set_conns">
+<code class="descname">set_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.dr_eva_natural.set_conns" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4022,13 +4059,18 @@ evaporator to mass flow at the drum inlet</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.comps" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_cond.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_cond.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.create_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.ph_desup_cond.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond.set_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4043,13 +4085,18 @@ evaporator to mass flow at the drum inlet</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond_subc.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.comps" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_cond_subc.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_cond_subc.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_cond_subc.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.create_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.ph_desup_cond_subc.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_cond_subc.set_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4064,13 +4111,18 @@ evaporator to mass flow at the drum inlet</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.comps" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.create_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.ph_desup_inl_cond_subc.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.ph_desup_inl_cond_subc.set_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4121,18 +4173,13 @@ on the type of subsystem you want to create</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.subsystem.comp_init">
-<code class="descname">comp_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.comp_init" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.subsystem.create_comps">
+<code class="descname">create_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.create_comps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tespy.components.subsystems.subsystem.comps">
-<code class="descname">comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.comps" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tespy.components.subsystems.subsystem.conns">
-<code class="descname">conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.conns" title="Permalink to this definition">¶</a></dt>
+<dt id="tespy.components.subsystems.subsystem.create_conns">
+<code class="descname">create_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.create_conns" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -4143,24 +4190,56 @@ on the type of subsystem you want to create</p>
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.display_information">
 <code class="descname">display_information</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.display_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print all attributes of component</p>
+<dd><p>print all attributes of subsystem</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.from_network">
 <code class="descname">from_network</code><span class="sig-paren">(</span><em>nw</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.from_network" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>create a subsystem from a network</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Does not work by now!</p>
+</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.get_attr">
 <code class="descname">get_attr</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.get_attr" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print specific attribute of component</p>
+<dd><p>get attribute of subsystem</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tespy.components.subsystems.subsystem.get_network">
 <code class="descname">get_network</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.get_network" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.subsystem.set_attr">
+<code class="descname">set_attr</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.set_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>set attribute of subsystem</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.subsystem.set_comps">
+<code class="descname">set_comps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.set_comps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.subsystem.set_conns">
+<code class="descname">set_conns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.set_conns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tespy.components.subsystems.subsystem.subsys_init">
+<code class="descname">subsys_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tespy.components.subsystems.subsystem.subsys_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>subsystem initialisation:</p>
+<ul class="simple">
+<li>create components and connections</li>
+<li>set components and connections parameters</li>
+<li>create network</li>
+</ul>
+</dd></dl>
 
 </dd></dl>
 

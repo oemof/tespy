@@ -1369,8 +1369,17 @@ class compressor(turbomachine):
 
     def eta_s_func(self, inlets, outlets):
         r"""
-        equation for isentropic efficiency of a compressor is the same as for a
-        pump, see documentation of component pump
+        equation for isentropic efficiency of a compressor
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+            0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
+            \left( h_{out,s} -  h_{in} \right)
         """
         return (-(outlets[0].h - inlets[0].h) * self.eta_s +
                 (self.h_os(inlets, outlets) - inlets[0].h))

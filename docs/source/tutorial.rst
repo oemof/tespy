@@ -131,61 +131,68 @@ If you want to define your own subsystem, just create a .py file in your working
  * comps: define the number of interfaces and create the necessary components and define, to which properties the subsystems attributes in attr(self) refer as well as
  * conns: create the subsystems connections and put them into a python list which will be returned.
  
-In the following example a feedwater preheater with desuperheater is defined (this subsystem is included in the predefined subsystems, this is just to demonstrate, how to create your own subsystem):
+In the following example a drum with evaporator in natural flow is defined (this subsystem is included in the predefined subsystems, this is just to demonstrate, how to create your own subsystem):
 
 .. code-block:: python
 
-	from tespy import con, cmp
-
-	class ph_desup_cond(subsystem):
-		
-		# define the attributes you want to be able to specify within your subsystem
+	from tespy import con, cmp, subsys
+	
+	class dr_eva_natural (subsys.subsystem):
+	
 		def attr(self):
-			return ([n for n in subsystem.attr(self) if
+			# define available attributes for subsystem
+			# num_i and num_o are excluded, as they are predefined in this subsystem
+			return ([n for n in subsys.subsystem.attr(self) if
 					 n != 'num_i' and n != 'num_o'] +
-					['ttd', 'dp1_desup', 'dp2_desup', 'dp1_cond', 'dp2_cond'])
+					['dp1_eva', 'PP', 'circ_num'])
 
-		# define the components
-		def comps(self):
+		def create_comps(self):
+			# create the components
+
 			self.num_i = 2
 			self.num_o = 2
-			self.inlet = cmp.subsys_interface(label=self.label + 'inlet', num_inter=self.num_i)
-			self.outlet = cmp.subsys_interface(label=self.label + 'outlet', num_inter=self.num_o)
-			self.desup = cmp.desuperheater(label=self.label + 'desup')
-			self.condenser = cmp.condenser(label=self.label + 'condenser')
-			self.vessel = cmp.vessel(label=self.label + 'vessel', mode='man')
-			if self.ttd_set:
-				self.condenser.set_attr(ttd_u=self.ttd)
-			if self.dp1_desup_set:
-				self.desup.set_attr(dp1=self.dp1_desup)
-			if self.dp2_desup_set:
-				self.desup.set_attr(dp2=self.dp2_desup)
-			if self.dp1_cond_set:
-				self.condenser.set_attr(dp1=self.dp1_cond)
-			if self.dp2_cond_set:
-				self.condenser.set_attr(dp2=self.dp2_cond)
+			self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+											   num_inter=self.num_i)
+			self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+												num_inter=self.num_o)
+			self.drum = cmp.drum(label=self.label + '_drum')
+			self.evaporator = cmp.heat_exchanger(label=self.label + '_evaporator',
+												  mode='man')
 
-		# define the connections
-		def conns(self):
-			conns = []
-			conns += [con.connection(self.inlet, 'out1', self.desup, 'in1')],
-			conns += [con.connection(self.desup, 'out1', self.condenser, 'in1')]
-			conns += [con.connection(self.condenser, 'out1', self.vessel, 'in1')]
-			conns += [con.connection(self.vessel, 'out1', self.outlet, 'in1')]
-			conns += [con.connection(self.inlet, 'out2', self.condenser, 'in2')]
-			conns += [con.connection(self.condenser, 'out2', self.desup, 'in2')]
-			conns += [con.connection(self.desup, 'out2', self.outlet, 'in2')]
-			
-			return conns
+		def set_comps(self):
+			# set component parameters
+
+			self.evaporator.set_attr(ttd_l=self.PP)
+			self.evaporator.set_attr(dp1=self.dp1_eva)
+
+		def create_conns(self):
+			# create the connections
+
+			self.conns = []
+
+			self.conns += [con.connection(self.inlet, 'out1', self.evaporator, 'in1')]
+			self.conns += [con.connection(self.evaporator, 'out1', self.outlet, 'in1')]
+			self.conns += [con.connection(self.inlet, 'out2', self.drum, 'in1')]
+			self.conns += [con.connection(self.drum, 'out1', self.evaporator, 'in2')]
+			self.conns += [con.connection(self.evaporator, 'out2', self.drum, 'in2')]
+			self.conns += [con.connection(self.drum, 'out2', self.outlet, 'in2')]
+
+		def set_conns(self):
+			# set connection parameters
+
+			if self.circ_num_set:
+				self.conns[3].set_attr(m=ref(self.conns[-1], self.circ_num, 0))
+			else:
+				self.conns[3].set_attr(m=np.nan)
 
 
 Finally just import your subsystem into your project and implement it:
 
 .. code-block:: python
 
-	from my_custom_subsystems import ph_desup_cond
+	from my_custom_subsystems import dr_eva_natural
 	
-	a = ph_desup_cond('Preheater 2', ttd=5, dp1_desup=0.995)
+	a = dr_eva_natural('drum with evaporator', PP=15, dp1_eva=0.995)
 
 Simulate your plant
 ^^^^^^^^^^^^^^^^^^^

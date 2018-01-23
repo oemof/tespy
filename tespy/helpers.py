@@ -118,7 +118,8 @@ def newton(func, deriv, flow, k):
         i += 1
 
         if i > 10:
-            raise ValueError('No value found.')
+            raise ValueError('Newton algorithm was not able to find a feasible'
+                             ' value for function '+str(func)+'.')
 
     return val
 

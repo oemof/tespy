@@ -2424,8 +2424,14 @@ class combustion_chamber(component):
         self.n2 = [x for x in nw.fluids if x in
                    [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
 
-        self.n_c = fluid_structure(self.fuel)['C']
-        self.n_h = fluid_structure(self.fuel)['H']
+        structure = fluid_structure(self.fuel)
+
+        self.n = {}
+        for el in ['C', 'H', 'O']:
+            if el in structure.keys():
+                self.n[el] = structure[el]
+            else:
+                self.n[el] = 0
 
         self.hi = self.lhv()
 
@@ -2439,7 +2445,8 @@ class combustion_chamber(component):
         return component.attr(self) + ['fuel', 'lamb']
 
     def fuels(self):
-        return ['methane']
+        return ['methane', 'ethane', 'propane', 'butane',
+                'hydrogen']
 
     def component(self):
         return 'combustion chamber'
@@ -2466,7 +2473,7 @@ class combustion_chamber(component):
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_chamber.lamb_func`
+        - :func:`tespy.components.components.combustion_chamber.lambda_func`
 
         """
 
@@ -2488,7 +2495,7 @@ class combustion_chamber(component):
         vec_res += [self.energy_balance(inlets, outlets)]
 
         if self.lamb_set:
-            vec_res += [self.lamb_func(inlets, outlets)]
+            vec_res += [self.lambda_func(inlets, outlets)]
 
         return vec_res
 
@@ -2548,15 +2555,36 @@ class combustion_chamber(component):
             lamb_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             for i in range(num_i):
                 lamb_deriv[0, i, 0] = (
-                    self.ddx_func(inlets, outlets, self.lamb_func, 'm', i))
+                    self.ddx_func(inlets, outlets, self.lambda_func, 'm', i))
                 lamb_deriv[0, i, 3:] = (
-                    self.ddx_func(inlets, outlets, self.lamb_func, 'fluid', i))
+                    self.ddx_func(inlets, outlets, self.lambda_func,
+                                  'fluid', i))
             mat_deriv += lamb_deriv.tolist()
 
         return np.asarray(mat_deriv)
 
     def lhv(self):
-        val = 50.015e6
+        r"""
+        calculates the reactions mass balance for one fluid
+
+        """
+
+        hf = {}
+        hf['hydrogen'] = 0
+        hf['methane'] = -74.85
+        hf['ethane'] = -84.68
+        hf['propane'] = -103.8
+        hf['butane'] = -124.51
+        hf[self.o2] = 0
+        hf[self.co2] = -393.5
+        # water (gaseous)
+        hf[self.h2o] = -241.8
+
+        val = (-(self.n['H'] / 2 * hf[self.h2o] + self.n['C'] * hf[self.co2] -
+                 ((self.n['C'] + self.n['H'] / 4) * hf[self.o2] +
+                  hf[self.fuel])) /
+               molar_masses[self.fuel] * 1000)
+
         return val
 
     def reaction_balance(self, inlets, outlets, fluid):
@@ -2637,18 +2665,18 @@ class combustion_chamber(component):
             n_oxygen += (i.m * i.fluid[self.o2] /
                          molar_masses[self.o2])
         if not self.lamb_set:
-            self.lamb = n_oxygen / (n_fuel * (self.n_c + self.n_h / 4))
+            self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
 
         n_fuel_exc = 0
         if self.lamb < 1:
-            n_fuel_exc = n_fuel - n_oxygen / (self.n_c + self.n_h / 4)
+            n_fuel_exc = n_fuel - n_oxygen / (self.n['C'] + self.n['H'] / 4)
 
         if fluid == self.co2:
             dm = ((n_fuel - n_fuel_exc) *
-                  self.n_c * molar_masses[self.co2])
+                  self.n['C'] * molar_masses[self.co2])
         elif fluid == self.h2o:
             dm = ((n_fuel - n_fuel_exc) *
-                  self.n_h / 2 * molar_masses[self.h2o])
+                  self.n['H'] / 2 * molar_masses[self.h2o])
         elif fluid == self.o2:
             if self.lamb < 1:
                 dm = -n_oxygen * molar_masses[self.o2]
@@ -2700,7 +2728,7 @@ class combustion_chamber(component):
 
         return res
 
-    def lamb_func(self, inlets, outlets):
+    def lambda_func(self, inlets, outlets):
         r"""
         calculates the residual for specified lambda
 
@@ -2727,7 +2755,7 @@ class combustion_chamber(component):
         for i in inlets:
             n_oxygen += (i.m * i.fluid[self.o2] /
                          molar_masses[self.o2])
-        return n_oxygen / (n_fuel * (self.n_c + self.n_h / 4)) - self.lamb
+        return n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) - self.lamb
 
     def drb_dx(self, inlets, outlets, dx, pos, fluid):
         r"""
@@ -2821,10 +2849,10 @@ class combustion_chamber(component):
 
         n_fuel = 1
         lamb = 2
-        m_o2 = (n_fuel * (self.n_c + self.n_h / 4) *
+        m_o2 = (n_fuel * (self.n['C'] + self.n['H'] / 4) *
                 molar_masses[self.o2] * lamb)
-        m_co2 = n_fuel * self.n_c * molar_masses[self.co2]
-        m_h2o = n_fuel * self.n_h / 2 * molar_masses[self.h2o]
+        m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
+        m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
         m_n2 = m_o2 / O2 * N2
         m_o2 /= lamb
         m = m_n2 + m_h2o + m_co2 + m_o2

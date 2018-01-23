@@ -789,10 +789,16 @@ class network:
         - calculate the residual value for each equation
         - calculate the jacobian matrix
         - calculate new values for variables
-        - check fluid properties and check values for consistency
+        - restrict fluid properties to predefined range
+        - check component parameters for consistency
 
         :returns: no return value
         :raises: :code:`hlp.MyNetworkError` if network is under-determined.
+
+        **Improvememts**
+
+        - add the possibility for user specified property ranges:
+          min and max pressure, enthalpy and temperature
         """
         self.vec_res = []
         self.solve_components()
@@ -808,18 +814,6 @@ class network:
                        len(self.vec_res), 'given.')
                 raise hlp.MyNetworkError(msg)
             else:
-                for i in range(self.mat_deriv.shape[0]):
-                    for j in range(self.mat_deriv.shape[0]):
-                        if i != j:
-                            inner_product = np.inner(
-                                self.mat_deriv[i, :], self.mat_deriv[j, :]
-                            )
-                            norm_i = np.linalg.norm(self.mat_deriv[i, :])
-                            norm_j = np.linalg.norm(self.mat_deriv[j, :])
-                            val = np.abs(inner_product - norm_j * norm_i)
-                            if val < hlp.err:
-                                print('Dependent:', i, j)
-
                 msg = ('error calculating the network:\n'
                        'singularity in jacobian matrix, possible reasons are\n'
                        '-> given Temperature with given pressure in two phase '
@@ -833,7 +827,7 @@ class network:
                        'but not zero) starting value.')
                 raise hlp.MyNetworkError(msg)
 
-        # calculate properties from increment
+        # add increment
         i = 0
 
         for c in self.conns.index:
@@ -844,6 +838,21 @@ class network:
             if not c.h_set or hasattr(c, 'h_ref'):
                 c.h += vec_z[i * (self.num_vars) + 2] * self.relax
 
+            l = 0
+            for fluid in c.fluid.keys():
+                # add increment
+                if not c.fluid_set[fluid]:
+                    c.fluid[fluid] += vec_z[i * (self.num_vars) + 3 + l]
+
+                # prevent bad changes within solution process
+                if c.fluid[fluid] < hlp.err:
+                    c.fluid[fluid] = 0
+                if c.fluid[fluid] > 1 - hlp.err:
+                    c.fluid[fluid] = 1
+
+                l += 1
+            i += 1
+
             # prevent bad changes within solution process
             if c.p <= 0.01 * 1e5:
                 c.p = 0.02 * 1e5
@@ -851,25 +860,13 @@ class network:
                 c.p = 500 * 1e5
             if c.h < 0:
                 c.h = -c.h
-            if c.h > 5e6:
-                c.h = 5e6
+            if c.h > 7e6:
+                c.h = 7e6
 
-            l = 0
-            for fluid in c.fluid.keys():
-                if not c.fluid_set[fluid]:
-                    c.fluid[fluid] += vec_z[i * (self.num_vars) + 3 + l]
-                if c.fluid[fluid] < hlp.err:
-                    c.fluid[fluid] = 0
-                if c.fluid[fluid] > 1 - hlp.err:
-                    c.fluid[fluid] = 1
-                l += 1
-            i += 1
-
-        # make sure, that at given temperatures values stay within feasible
-        # enthalpy range: calculate maximum enthalpy and compare with acutal
-        # value
-        if self.iter < 5:
-            for c in self.conns.index:
+            # make sure, that at given temperatures values stay within feasible
+            # enthalpy range: calculate maximum enthalpy and compare with
+            # acutal value
+            if self.iter < 5:
                 if c.T_set:
                     if hlp.num_fluids(c.fluid) == 1:
                         for fluid, x in c.fluid.items():
@@ -886,10 +883,12 @@ class network:
                                 if c.h > H_max:
                                     c.h = H_max * 0.98
 
+
         # check properties for consistency
         if self.init_file is None and self.iter < 5:
             for cp in self.comps.index:
                 cp.convergence_check(self)
+
     def solve_components(self):
         """
         calculates the equations and the partial derivatives for the networks

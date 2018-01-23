@@ -2402,6 +2402,10 @@ class combustion_chamber(component):
     **available fuels**
 
     - methane
+    - ethane
+    - propane
+    - butane
+    - hydrogen
 
     **inlets and outlets**
 
@@ -2415,6 +2419,26 @@ class combustion_chamber(component):
     """
 
     def comp_init(self, nw):
+
+        if not self.fuel_set:
+            msg = 'Must specify fuel for combustion chamber.'
+            raise MyComponentError(msg)
+
+        if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
+                 CP.get_aliases(self.fuel)]]) == 0):
+            msg = ('The fuel you specified does not match the fuels available'
+                   ' within the network.')
+            raise MyComponentError(msg)
+
+        if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
+                 CP.get_aliases(self.fuel)]])) == 0:
+            msg = ('The fuel you specified is not available. Available fuels '
+                   'are: ' + str(self.fuels()) + '.')
+            raise MyComponentError(msg)
+
+        self.fuel = [x for x in nw.fluids if x in [a.replace(' ', '') for a in
+                     CP.get_aliases(self.fuel)]][0]
+
         self.o2 = [x for x in nw.fluids if x in
                    [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
         self.co2 = [x for x in nw.fluids if x in
@@ -2480,9 +2504,6 @@ class combustion_chamber(component):
         vec_res = []
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
-
-        if not self.fuel_set:
-            raise MyComponentError('Must specify fuel for combustion chamber.')
 
         for fluid in inlets[0].fluid.keys():
             vec_res += [self.reaction_balance(inlets, outlets, fluid)]
@@ -2565,7 +2586,33 @@ class combustion_chamber(component):
 
     def lhv(self):
         r"""
-        calculates the reactions mass balance for one fluid
+        calculates the lower heating value of the combustion chambers fuel
+
+        :returns: val (*float*) - lhv of the specified fuel
+
+        **equation**
+
+        .. math::
+            LHV = -\frac{\sum_i {\Delta H_f^0}_i -
+            \sum_j {\Delta H_f^0}_j }
+            {M_{fuel}}\\
+            \forall i \in \text{reation products},\\
+            \forall j \in \text{reation educts},\\
+            \Delta H_f^0: \text{molar formation enthalpy}
+
+        =============== =====================================
+         substance       :math:`\frac{\Delta H_f^0}{kJ/mol}`
+        =============== =====================================
+         hydrogen        0
+         methane         -74.85
+         ethane          -84.68
+         propane         -103.8
+         butane          -124.51
+        --------------- -------------------------------------
+         oxygen          0
+         carbondioxide   -393.5
+         water (g)       -241.8
+        =============== =====================================
 
         """
 
@@ -2580,9 +2627,12 @@ class combustion_chamber(component):
         # water (gaseous)
         hf[self.h2o] = -241.8
 
+        key = set(list(hf.keys())).intersection(
+                set([a.replace(' ', '') for a in CP.get_aliases(self.fuel)]))
+
         val = (-(self.n['H'] / 2 * hf[self.h2o] + self.n['C'] * hf[self.co2] -
                  ((self.n['C'] + self.n['H'] / 4) * hf[self.o2] +
-                  hf[self.fuel])) /
+                  hf[list(key)[0]])) /
                molar_masses[self.fuel] * 1000)
 
         return val

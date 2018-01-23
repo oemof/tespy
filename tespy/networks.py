@@ -505,7 +505,7 @@ class network:
                 flow = [c.m, c.p, c.h, c.fluid]
                 c.h = hlp.h_mix_pQ(flow, c.x)
 
-            if c.T_set:
+            if c.T_set and not isinstance(c.T, con.ref):
                 c.T = ((c.T + network.T_unit[self.T][0]) *
                        network.T_unit[self.T][1])
                 flow = [c.m, c.p, c.h, c.fluid]
@@ -587,9 +587,7 @@ class network:
                 c.h_ref = c.h
                 c.h = c.h_ref.obj.h * c.h.f + c.h.d
             if isinstance(c.T, con.ref):
-                flow = [c.T.obj.m, c.T.obj.p, c.T.obj.h, c.T.obj.fluid]
                 c.T_ref = c.T
-                c.T = hlp.T_mix_ph(flow) * c.T.f + c.T.d
 
     def init_csv(self):
         """
@@ -853,8 +851,8 @@ class network:
                 c.p = 500 * 1e5
             if c.h < 0:
                 c.h = -c.h
-            if c.h > 10e6:
-                c.h = 10e6
+            if c.h > 5e6:
+                c.h = 5e6
 
             l = 0
             for fluid in c.fluid.keys():

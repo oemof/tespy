@@ -357,11 +357,7 @@ class network:
                     else:
                         c.fluid_set[fluid] = False
                 else:
-                    # this is a hotfix, must find generic solution!
-                    if len(self.fluids) == 1:
-                        c.fluid[fluid] = 1
-                    else:
-                        c.fluid[fluid] = 0
+                    c.fluid[fluid] = 0
                     c.fluid_set[fluid] = False
 
         for cp in self.comps.index:
@@ -498,11 +494,35 @@ class network:
 
         self.init_refobj()
 
+        # propate fluids towards merges targets
+        # add merge cp to list redo, if number of fluids at merges outlet is
+        # still zero
+        redo = []
         for cp in self.comps.index:
             if isinstance(cp, cmp.merge):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
-                    self.init_target(c, c.t)
+                    if hlp.num_fluids(c.fluid) != 0:
+                        self.init_target(c, c.t)
+                    else:
+                        redo += [cp]
+
+        # propagete fluids towards merges targets of the redo list
+        # do this, while the list is not empty
+        # if the iteration number is over 50, stop calculation
+        i = 0
+        while len(redo) != 0:
+            for cp in redo:
+                cp.initialise_fluids(self)
+                for c in self.comps.loc[cp].o:
+                    if hlp.num_fluids(c.fluid) != 0:
+                        self.init_target(c, c.t)
+                        redo.remove(cp)
+
+            if i > 50:
+                msg = 'Media propagation failed.'
+                raise hlp.MyNetworkError(msg)
+            i += 1
 
         for c in self.conns.index:
             if c.x_set:

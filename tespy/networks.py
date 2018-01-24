@@ -882,8 +882,8 @@ class network:
                 c.p = 0.02 * 1e5
             if c.p >= 500 * 1e5:
                 c.p = 500 * 1e5
-            if c.h < 0:
-                c.h = -c.h
+            if c.h < 1e5:
+                c.h = 1e5
             if c.h > 7e6:
                 c.h = 7e6
 

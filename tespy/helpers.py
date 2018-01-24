@@ -32,6 +32,7 @@ class memorise:
         memorise.v_ph = np.empty((0, num_fl + 3), float)
         memorise.visc_ph = np.empty((0, num_fl + 3), float)
         memorise.s_ph = np.empty((0, num_fl + 3), float)
+        memorise.count = 0
 
 
 class MyNetworkError(Exception):
@@ -475,12 +476,26 @@ def visc_mix_ph(flow):
 
         \eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)
     """
-    if num_fluids(flow[3]) > 1:
-        return visc_mix_pT(flow, T_mix_ph(flow))
+    a = memorise.visc_ph[:, 0:-1]
+    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    if ix.size == 1:
+        return memorise.visc_ph[ix, -1][0]
     else:
-        for fluid, x in flow[3].items():
-            if x > err:
-                return CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
+        if num_fluids(flow[3]) > 1:
+            val = visc_mix_pT(flow, T_mix_ph(flow))
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
+                            [val]])
+            memorise.visc_ph = np.append(memorise.visc_ph, new, axis=0)
+            return val
+        else:
+            for fluid, x in flow[3].items():
+                if x > err:
+                    val = CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
+                    new = np.array([[flow[1], flow[2]] +
+                                    list(flow[3].values()) + [val]])
+                    memorise.visc_ph = np.append(memorise.visc_ph, new, axis=0)
+                    return val
 
 
 def visc_mix_pT(flow, T):

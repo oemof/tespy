@@ -357,7 +357,11 @@ class network:
                     else:
                         c.fluid_set[fluid] = False
                 else:
-                    c.fluid[fluid] = 0
+                    # this is a hotfix, must find generic solution!
+                    if len(self.fluids) == 1:
+                        c.fluid[fluid] = 1
+                    else:
+                        c.fluid[fluid] = 0
                     c.fluid_set[fluid] = False
 
         for cp in self.comps.index:
@@ -660,7 +664,7 @@ class network:
                             c.fluid[fluid] = df.loc[conn][fluid]
 
             for c in self.conns.index:
-                if c.T_set:
+                if c.T_set and not isinstance(c.T, con.ref):
                     c.h = hlp.h_mix_pT(c.as_list(), c.T)
                 if c.x_set:
                     c.h = hlp.h_mix_pQ(c.as_list(), c.x)

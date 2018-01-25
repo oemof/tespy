@@ -71,6 +71,11 @@ class network:
         self.h = 'J / kg'
         self.T = 'K'
 
+        # standard value range
+        self.p_range = [0.02, 300]
+        self.h_range = [1e5, 7e6]
+        self.T_range = [273.15, 1773.15]
+
         for key in kwargs:
             if key in self.var():
                 self.__dict__.update({key: kwargs[key]})
@@ -100,6 +105,29 @@ class network:
                    str(network.T_unit.keys()))
             raise hlp.MyNetworkError(msg)
 
+        if not isinstance(self.p_range, list):
+            msg = ('Specify the value range as list: [p_min, p_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.p_range[0] *= network.p_unit[self.p]
+            self.p_range[1] *= network.p_unit[self.p]
+
+        if not isinstance(self.h_range, list):
+            msg = ('Specify the value range as list: [h_min, h_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.h_range[0] *= network.h_unit[self.h]
+            self.h_range[1] *= network.h_unit[self.h]
+
+        if not isinstance(self.T_range, list):
+            msg = ('Specify the value range as list: [T_min, T_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.T_range[0] = ((self.T_range[0] + network.T_unit[self.T][0]) *
+                               network.T_unit[self.T][1])
+            self.T_range[1] = ((self.T_range[1] + network.T_unit[self.T][0]) *
+                               network.T_unit[self.T][1])
+
         for f in self.fluids:
             hlp.molar_masses[f] = CPPSI('M', f)
             hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
@@ -107,7 +135,7 @@ class network:
         hlp.memorise(len(self.fluids))
 
     def var(self):
-        return ['m', 'p', 'h', 'T', 'fluids']
+        return ['m', 'p', 'h', 'T', 'p_range', 'h_range', 'T_range',  'fluids']
 
     def add_subsys(self, *args):
         """
@@ -268,6 +296,10 @@ class network:
 
         :returns: no return value
         """
+
+        print('Have you adjusted the value ranges for pressure, enthalpy and '
+              'temperature according to the specified unit system?')
+
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids '
                    'on network creation.')
@@ -760,7 +792,6 @@ class network:
                                                    [0] * len(self.conns)))
             self.convergence[2] = np.column_stack((self.convergence[2],
                                                    [0] * len(self.conns)))
-
             self.solve_loop()
             self.res = np.append(self.res, norm(self.vec_res))
 
@@ -856,11 +887,11 @@ class network:
 
         for c in self.conns.index:
             if not c.m_set or hasattr(c, 'm_ref'):
-                c.m += vec_z[i * (self.num_vars)] * self.relax
+                c.m += vec_z[i * (self.num_vars)]
             if not c.p_set or hasattr(c, 'p_ref'):
                 c.p += vec_z[i * (self.num_vars) + 1] * self.relax
             if not c.h_set or hasattr(c, 'h_ref'):
-                c.h += vec_z[i * (self.num_vars) + 2] * self.relax
+                c.h += vec_z[i * (self.num_vars) + 2]
 
             l = 0
             for fluid in c.fluid.keys():
@@ -878,35 +909,36 @@ class network:
             i += 1
 
             # prevent bad changes within solution process
-            if c.p <= 0.01 * 1e5:
-                c.p = 0.02 * 1e5
-            if c.p >= 500 * 1e5:
-                c.p = 500 * 1e5
-            if c.h < 1e5:
-                c.h = 1e5
-            if c.h > 7e6:
-                c.h = 7e6
+            if c.p <= self.p_range[0]:
+                c.p = self.p_range[0]
+            if c.p >= self.p_range[1]:
+                c.p = self.p_range[1]
+            if c.h < self.h_range[0]:
+                c.h = self.h_range[0]
+            if c.h > self.h_range[1]:
+                c.h = self.h_range[1]
 
             # make sure, that at given temperatures values stay within feasible
             # enthalpy range: calculate maximum enthalpy and compare with
             # acutal value
-            if self.iter < 5:
-                if c.T_set:
-                    if hlp.num_fluids(c.fluid) == 1:
-                        for fluid, x in c.fluid.items():
-                            T_max = 2000
-                            H_max = CPPSI('H', 'T', T_max, 'P', c.p, fluid)
-                            if c.h > H_max:
-                                c.h = H_max * 0.98
-                    if hasattr(c, 'T_ref'):
-                        c = c.T_ref.obj
-                        if hlp.num_fluids(c.fluid) == 1:
-                            for fluid, x in c.fluid.items():
-                                T_max = 2000
-                                H_max = CPPSI('H', 'T', T_max, 'P', c.p, fluid)
-                                if c.h > H_max:
-                                    c.h = H_max * 0.98
+            if self.iter < 5 and c.T_set:
+                h_max = hlp.h_mix_pT(c.as_list(), self.T_range[1])
+                if c.h > h_max:
+                    c.h = h_max * 0.98
+                if hasattr(c, 'T_ref'):
+                    c = c.T_ref.obj
+                    h_max = hlp.h_mix_pT(c.as_list(), self.T_range[1])
+                    if c.h > h_max:
+                        c.h = h_max * 0.98
 
+                h_min = hlp.h_mix_pT(c.as_list(), self.T_range[0])
+                if c.h < h_min:
+                    c.h = h_min * 1.02
+                if hasattr(c, 'T_ref'):
+                    c = c.T_ref.obj
+                    h_min = hlp.h_mix_pT(c.as_list(), self.T_range[0])
+                    if c.h < h_min:
+                        c.h = h_min * 1.02
 
         # check properties for consistency
         if self.init_file is None and self.iter < 5:

@@ -167,8 +167,6 @@ class subsystem:
         self.create_conns()
         self.set_conns()
 
-        self.create_network()
-
     def create_comps(self):
         return
 

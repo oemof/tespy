@@ -421,9 +421,8 @@ class network:
         :returns: no return value
         """
         if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
-            isinstance(c.t, cmp.heat_exchanger) or
-            isinstance(c.t, cmp.subsys_interface)):
-
+                isinstance(c.t, cmp.heat_exchanger) or
+                isinstance(c.t, cmp.subsys_interface)):
             inconn = [x for x in self.comps.loc[c.s].o if
                       x in self.comps.loc[c.t].i]
             inconn_id = self.comps.loc[c.t].i.tolist().index(inconn[0])
@@ -464,8 +463,8 @@ class network:
         :returns: no return value
         """
         if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
-            isinstance(c.s, cmp.heat_exchanger) or
-            isinstance(c.s, cmp.subsys_interface)):
+                isinstance(c.s, cmp.heat_exchanger) or
+                isinstance(c.s, cmp.subsys_interface)):
             outconn = [x for x in self.comps.loc[c.t].i if
                        x in self.comps.loc[c.s].o]
             outconn_id = self.comps.loc[c.s].o.tolist().index(outconn[0])
@@ -723,19 +722,37 @@ class network:
 
     def init_offdesign(self):
         """
-        auto switches components from design to offdesign mode, if
-        :code:`comp.mode == 'auto'`
+        auto switches components and connections from design to offdesign mode.
+
+        **components**
+
+        If :code:`cp.mode == 'auto'` all parameters stated the components
+        method :code:`cp.design()` will be unset and all parameters stated in
+        the components method :code:`cp.offdesign()` will be set instead.
+
+        The auto-switch can be deactivated by using
+        :code:`your_component.set_attr(mode='man')`
+
+        **connections**
+
+        All parameters given in the connections attribute :code:`c.design`
+        will be unset.
 
         :returns: no return value
         """
-        for comp in self.comps.index:
-            if comp.mode == 'auto':
-                for var in comp.design():
-                    if comp.__dict__[var + '_set']:
-                        comp.__dict__[var + '_set'] = False
-                for var in comp.offdesign():
-                    if not comp.__dict__[var + '_set']:
-                        comp.__dict__[var + '_set'] = True
+        for cp in self.comps.index:
+            if cp.mode == 'auto':
+                for var in cp.design():
+                    if cp.__dict__[var + '_set']:
+                        cp.__dict__[var + '_set'] = False
+                for var in cp.offdesign():
+                    if not cp.__dict__[var + '_set']:
+                        cp.__dict__[var + '_set'] = True
+
+        for c in self.conns.index:
+            for var in c.design:
+                if c.__dict__[var + '_set']:
+                    c.__dict__[var + '_set'] = False
 
     def solve(self, mode, init_file=None, design_file=None):
         """
@@ -817,7 +834,6 @@ class network:
                     print('Convergence is making no progress, '
                           'calculation stopped.')
                     break
-
         end_time = time.time()
 
         for c in self.conns.index:
@@ -1216,12 +1232,13 @@ class network:
             self.mat_deriv[row, ref_col + 2] = (
                 -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f)
             # dT / dFluid
-            dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
-            dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
-            for i in range(self.num_vars - 3):
-                self.mat_deriv[row, col + 3 + i] = dT_dfluid[i]
-                self.mat_deriv[row, ref_col + 3 + i] = (
-                    -dT_dfluid_ref[i] * c.T_ref.f)
+            if len(self.fluids) != 1:
+                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+                dT_dfluid_ref = hlp.dT_mix_ph_dfluid(flow_ref)
+                for i in range(self.num_vars - 3):
+                    self.mat_deriv[row, col + 3 + i] = dT_dfluid[i]
+                    self.mat_deriv[row, ref_col + 3 + i] = (
+                        -dT_dfluid_ref[i] * c.T_ref.f)
 
             # this part is speeding up calculation, but might lead to
             # singularities
@@ -1263,8 +1280,9 @@ class network:
             self.mat_deriv[row, col + 1] = -hlp.dT_mix_dph(flow)
             self.mat_deriv[row, col + 2] = -hlp.dT_mix_pdh(flow)
 
-            dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
-            self.mat_deriv[row, col + 3:col + self.num_vars] = -dT_dfluid
+            if len(self.fluids) != 1:
+                dT_dfluid = hlp.dT_mix_ph_dfluid(flow)
+                self.mat_deriv[row, col + 3:col + self.num_vars] = -dT_dfluid
 
             # this part is speeding up calculation, but might lead to
             # singularities

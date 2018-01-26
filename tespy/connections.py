@@ -61,6 +61,12 @@ class connection:
 
     creates connection from turbine to condenser (hot side inlet) and sets
     values for mass flow and pressure
+
+    **improvements**
+
+    - add a "design" attribute, specifing the attributes of the connections
+      to be set "False" in offdesing calculation
+
     """
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
 

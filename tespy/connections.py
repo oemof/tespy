@@ -121,6 +121,8 @@ class connection:
         self.T_set = False
         self.x_set = False
 
+        self.design = kwargs.get('design', [])
+
         # setters for specified values
         for key in kwargs:
             if (isinstance(kwargs[key], float) or

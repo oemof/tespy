@@ -73,7 +73,7 @@ class network:
 
         # standard value range
         self.p_range = [0.02, 300]
-        self.h_range = [1e5, 7e6]
+        self.h_range = [1e3, 7e6]
         self.T_range = [273.15, 1773.15]
 
         for key in kwargs:

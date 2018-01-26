@@ -1,0 +1,9 @@
+id;comp;i;o;mode
+source1;source;[];['0x7f75fe62f4a8'];auto
+turbine;turbine;['0x7f75fe62f4a8'];['0x7f75fe62f4e0'];auto;eta_s;0.8999999999999966
+condenser;condenser;['0x7f75fe62f4e0', '0x7f75fe62f630'];['0x7f75fe62f518', '0x7f75fe62f668'];auto;dp1;1.0;dp2;1.0
+pump;pump;['0x7f75fe62f518'];['0x7f75fe62f550'];auto;eta_s;0.7999999999999992
+steam generator;heat_exchanger_simple;['0x7f75fe62f550'];['0x7f75fe62f5f8'];man;dp;0.95
+source2;source;[];['0x7f75fe62f630'];auto
+sink2;sink;['0x7f75fe62f668'];[];auto
+sink1;sink;['0x7f75fe62f5f8'];[];auto

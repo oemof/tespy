@@ -1,0 +1,8 @@
+id;m;p;h;T;x;water;m_set;p_set;h_set;T_set;x_set;water_set;s;s_id;t;t_id
+0x7f75fe62f4a8;100.0;100.0;3375127.4298515837;499.99999999999727;nan;1;True;True;False;True;False;True;source1;out1;turbine;in1
+0x7f75fe62f4e0;100.0;1.0;2490209.050149549;99.60592889712325;nan;1;False;True;False;False;False;False;turbine;out1;condenser;in1
+0x7f75fe62f518;100.0;1.0;417503.91083365487;99.60592889712325;nan;1;False;False;False;False;False;False;condenser;out1;pump;in1
+0x7f75fe62f550;100.0;105.26315789473685;431068.56923953485;100.96722806767838;nan;1;False;False;False;False;False;False;pump;out1;steam generator;in1
+0x7f75fe62f630;4958.192854414403;5.0;84382.40998804808;19.99999999997658;nan;1;False;True;False;True;False;True;source2;out1;condenser;in2
+0x7f75fe62f668;4958.192854414403;5.0;126186.05095514988;30.000000000019952;nan;1;False;False;False;True;False;False;condenser;out2;sink2;in1
+0x7f75fe62f5f8;100.0;100.0;3375127.4298515837;499.99999999999727;nan;1;False;True;True;False;False;False;steam generator;out1;sink1;in1

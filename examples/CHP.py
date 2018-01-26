@@ -60,7 +60,7 @@ cw_out=con.connection(condenser,'out2',sink_cw,'in1',T=110)
 
 fluids=['water']
 
-nw=nwk.network(fluids=fluids,p='bar',T='C')
+nw=nwk.network(fluids=fluids,p='bar',T='C',p_range=[0.02, 150], T_range=[20, 800])
 nw.add_conns(fs_in,fs,ext,ext_pre,ext_turb,ext_cond,cond_ws,turb_ws,ws,cond,fw_c,fw_w,cw_in,cw_out,out)
 
 # %% busses

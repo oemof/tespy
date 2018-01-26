@@ -1,0 +1,9 @@
+id;comp;i;o;mode
+source1;source;[];['0x7f75fe62f4a8'];auto
+turbine;turbine;['0x7f75fe62f4a8'];['0x7f75fe62f4e0'];auto;char;<tespy.components.characteristics.turbine object at 0x7f75fe601f28>;cone;0
+condenser;condenser;['0x7f75fe62f4e0', '0x7f75fe62f630'];['0x7f75fe62f518', '0x7f75fe62f668'];auto;kA;2782375.018367965;dp1;1.0;zeta2;0.0
+pump;pump;['0x7f75fe62f518'];['0x7f75fe62f550'];auto;char;<tespy.components.characteristics.pump object at 0x7f75fe601e48>
+steam generator;heat_exchanger_simple;['0x7f75fe62f550'];['0x7f75fe62f5f8'];man;dp;0.95
+source2;source;[];['0x7f75fe62f630'];auto
+sink2;sink;['0x7f75fe62f668'];[];auto
+sink1;sink;['0x7f75fe62f5f8'];[];auto

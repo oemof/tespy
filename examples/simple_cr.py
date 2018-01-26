@@ -40,7 +40,7 @@ cw_out=con.connection(condenser,'out2',sink_cw,'in1',T=30)
 
 fluids=['water']
 
-nw=nwk.network(fluids=fluids,p='bar',T='C')
+nw=nwk.network(fluids=fluids,p='bar',T='C',p_range=[0.01, 150], T_range=[5, 800])
 nw.add_conns(fs,ws,cond,fw,cw_in,cw_out,out)
 # %% solving
 

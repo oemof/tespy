@@ -1,0 +1,16 @@
+id;m;p;h;T;x;water;m_set;p_set;h_set;T_set;x_set;water_set;s;s_id;t;t_id
+0x7f7892fd1128;47.0;100.0;3501958.85250153;549.999999999999;nan;1;False;True;False;True;False;False;source;out1;vessel_turb;in1
+0x7f7892fd1160;47.0;100.0;3501958.85250153;549.999999999999;nan;1;True;True;False;False;False;True;vessel_turb;out1;turbine_hp;in1
+0x7f7892fd1198;47.0;10.0;2922779.2683058106;240.84372474679583;nan;1;False;True;False;False;False;False;turbine_hp;out1;splitter1;in1
+0x7f7892fd11d0;5.172533041874123;10.0;2922779.2683058106;240.84372474679583;nan;1;False;False;False;False;False;False;splitter1;out1;preheater;in1
+0x7f7892fd1240;41.827466958125875;10.0;2922779.2683058106;240.84372474679583;nan;1;False;False;False;False;False;False;splitter1;out2;turbine_lp;in1
+0x7f7892fd12b0;5.172533041874123;9.5;752735.5080816082;177.66122716829727;nan;1;False;False;False;False;False;False;preheater;out1;vessel1;in1
+0x7f7892fd12e8;5.172533041874123;1.8051564140056298;752735.5080816082;116.99999999999926;nan;1;False;False;False;False;False;False;vessel1;out1;merge1;in2
+0x7f7892fd1358;41.827466958125875;1.8051564140056298;2627500.575882757;116.99999999999926;nan;1;False;False;False;False;False;False;turbine_lp;out1;merge1;in1
+0x7f7892fd1320;47.0;1.8051564140056298;2421175.378883761;116.99999999999926;nan;1;False;False;False;False;False;False;merge1;out1;condenser;in1
+0x7f7892fd13c8;47.0;1.7148985933053482;484356.7587381964;115.41591740003162;nan;1;False;False;False;False;False;False;condenser;out1;pump;in1
+0x7f7892fd1390;47.0;106.32642211589581;498136.2725527523;116.90649120939418;nan;1;False;False;False;False;False;False;pump;out1;preheater;in2
+0x7f7892fd1438;47.0;105.26315789473685;736958.0396181237;172.87800788167527;nan;1;False;False;False;False;False;False;preheater;out2;steam generator;in1
+0x7f7892fd1518;433.48066446042736;10.0;252003.3099405212;60.00000000000182;nan;1;False;True;False;True;False;True;source_cw;out1;condenser;in2
+0x7f7892fd1550;433.48066446042736;9.5;462002.2386358788;110.00000000000051;nan;1;False;False;False;True;False;False;condenser;out2;sink_cw;in1
+0x7f7892fd14e0;47.0;100.0;3501958.85250153;549.999999999999;nan;1;False;True;True;False;False;False;steam generator;out1;sink;in1

@@ -43,6 +43,15 @@ class connection:
     - T (*numeric*, *ref object*)
     - x (*numeric*)
     - fluid (*dict*), fluid_balance (*bool*)
+    - design (*list*), offdesign (*list*)
+
+    **(off-)design parameters**
+
+    The specification of values for design and/or offdesign is used for
+    automatic switch from design to offdesign calculation: All parameters given
+    in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
+    calculation, parameters given in 'offdesign' are set for offdesign
+    calculation.
 
     .. note::
         The fluid balance parameter applies a balancing of the fluid vector on
@@ -63,9 +72,6 @@ class connection:
     values for mass flow and pressure
 
     **improvements**
-
-    - add a "design" attribute, specifing the attributes of the connections
-      to be set "False" in offdesing calculation
 
     """
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -121,13 +127,14 @@ class connection:
         self.T_set = False
         self.x_set = False
 
-        self.design = kwargs.get('design', [])
+        self.design = []
+        self.offdesign = []
 
         # setters for specified values
         for key in kwargs:
             if (isinstance(kwargs[key], float) or
-                isinstance(kwargs[key], int) or
-                isinstance(kwargs[key], ref)):
+                    isinstance(kwargs[key], int) or
+                    isinstance(kwargs[key], ref)):
                 self.__dict__.update({key + '_set': True})
             if key == 'fluid':
                 for fluid, x in sorted(kwargs[key].items()):
@@ -135,6 +142,16 @@ class connection:
                     self.fluid_set[fluid] = True
             if key == 'fluid_balance':
                 self.fluid_balance = kwargs[key]
+            if key == 'design' or key == 'offdesign':
+                if not isinstance(self.design, list):
+                    msg = 'Please provide the design parameters as list!'
+                    raise ValueError(msg)
+                if set(kwargs[key]).issubset(self.attr()):
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = ('Available parameters for (off-)design'
+                           'specification are: ' + str(self.attr()) + '.')
+                    raise ValueError(msg)
 
         if self.m_set and not isinstance(self.m, ref):
             self.m0 = self.m
@@ -153,13 +170,24 @@ class connection:
             if key not in self.attr():
                 invalid_keys = np.append(invalid_keys, key)
             if (isinstance(kwargs[key], float) or
-                isinstance(kwargs[key], int) or
-                isinstance(kwargs[key], ref)):
+                    isinstance(kwargs[key], int) or
+                    isinstance(kwargs[key], ref)):
                 self.__dict__.update({key: kwargs[key]})
                 if isinstance(kwargs[key], ref):
                     self.__dict__.update({key + '_set': True})
                 elif key == 'fluid_balance':
                     self.fluid_balance = kwargs[key]
+                elif key == 'design' or key == 'offdesign':
+                    if not isinstance(self.design, list):
+                        msg = ('Please provide the (off-)design parameters as'
+                               ' list!')
+                        raise ValueError(msg)
+                    if set(kwargs[key]).issubset(self.attr()):
+                        self.__dict__.update({key: kwargs[key]})
+                    else:
+                        msg = ('Available parameters for (off-)design'
+                               'specification are: ' + str(self.attr()) + '.')
+                        raise ValueError(msg)
                 else:
                     if np.isnan(kwargs[key]):
                         self.__dict__.update({key + '_set': False})
@@ -201,7 +229,7 @@ class connection:
         :returns: list object
         """
         return ['m', 'p', 'h', 'T', 'x', 'm0', 'p0', 'h0', 'fluid',
-                'fluid_balance']
+                'fluid_balance', 'design', 'offdesign']
 
     def as_list(self):
         """
@@ -274,7 +302,7 @@ class bus:
         for c in self.comps.index:
             if type(comp) != type(c):
                 if (type(comp).__bases__[0] == type(c).__bases__[0] and
-                    type(comp).__bases__[0] == cmp.component):
+                        type(comp).__bases__[0] == cmp.component):
 
                     if type(c).__bases__[0] == cmp.component:
                         msg = ('Error adding component to power bus. '

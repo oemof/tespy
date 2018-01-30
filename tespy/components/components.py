@@ -21,12 +21,6 @@ from tespy.helpers import (
 )
 
 from tespy.components import characteristics as cmp_char
-#
-#from numba import double
-#from numba.decorators import jit, autojit
-#
-#s_mix_pT = autojit(s_mix_pT)
-#h_mix_pT = autojit(h_mix_pT)
 
 
 def init_target(nw, c, start):

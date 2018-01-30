@@ -14,7 +14,7 @@ from tespy.helpers import (
 
 from tespy import networks as nwk
 from tespy.connections import connection, ref
-from tespy.components import components as comp
+from tespy.components import components as cmp
 
 
 class subsystem:
@@ -146,7 +146,7 @@ class subsystem:
         num_inter = 0
         for c in nw.conns.index:
             self.nw.add_conns(c)
-            if isinstance(c, comp.subsys_interface):
+            if isinstance(c, cmp.subsys_interface):
                 num_inter += 1
 
         if num_inter != 2:
@@ -221,13 +221,13 @@ class dr_eva_forced(subsystem):
 
         self.num_i = 2
         self.num_o = 2
-        self.inlet = comp.subsys_interface(label=self.label + '_inlet',
-                                           num_inter=self.num_i)
-        self.outlet = comp.subsys_interface(label=self.label + '_outlet',
-                                            num_inter=self.num_o)
-        self.pump = comp.pump(label=self.label + '_pump')
-        self.drum = comp.drum(label=self.label + '_drum')
-        self.evaporator = comp.heat_exchanger(label=self.label + '_evaporator')
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.pump = cmp.pump(label=self.label + '_pump')
+        self.drum = cmp.drum(label=self.label + '_drum')
+        self.evaporator = cmp.heat_exchanger(label=self.label + '_evaporator')
 
     def set_comps(self):
 
@@ -287,13 +287,13 @@ class dr_eva_natural(subsystem):
 
         self.num_i = 2
         self.num_o = 2
-        self.inlet = comp.subsys_interface(label=self.label + '_inlet',
-                                           num_inter=self.num_i)
-        self.outlet = comp.subsys_interface(label=self.label + '_outlet',
-                                            num_inter=self.num_o)
-        self.drum = comp.drum(label=self.label + '_drum')
-        self.evaporator = comp.heat_exchanger(label=self.label + '_evaporator',
-                                              mode='man')
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.drum = cmp.drum(label=self.label + '_drum')
+        self.evaporator = cmp.heat_exchanger(label=self.label + '_evaporator',
+                                             mode='man')
 
     def set_comps(self):
 
@@ -351,13 +351,13 @@ class ph_desup_cond(subsystem):
 
         self.num_i = 2
         self.num_o = 2
-        self.inlet = comp.subsys_interface(label=self.label + '_inlet',
-                                           num_inter=self.num_i)
-        self.outlet = comp.subsys_interface(label=self.label + '_outlet',
-                                            num_inter=self.num_o)
-        self.desup = comp.desuperheater(label=self.label + '_desup')
-        self.condenser = comp.condenser(label=self.label + '_condenser')
-        self.vessel = comp.vessel(label=self.label + '_vessel', mode='man')
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.desup = cmp.desuperheater(label=self.label + '_desup')
+        self.condenser = cmp.condenser(label=self.label + '_condenser')
+        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
 
     def set_comps(self):
 
@@ -394,14 +394,14 @@ class ph_desup_cond_subc(subsystem):
 
         self.num_i = 2
         self.num_o = 2
-        self.inlet = comp.subsys_interface(label=self.label + '_inlet',
-                                           num_inter=self.num_i)
-        self.outlet = comp.subsys_interface(label=self.label + '_outlet',
-                                            num_inter=self.num_o)
-        self.desup = comp.desuperheater(label=self.label + '_desup')
-        self.condenser = comp.condenser(label=self.label + '_condenser')
-        self.subcooler = comp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = comp.vessel(label=self.label + '_vessel', mode='man')
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.desup = cmp.desuperheater(label=self.label + '_desup')
+        self.condenser = cmp.condenser(label=self.label + '_condenser')
+        self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
+        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
 
     def set_comps(self):
 
@@ -444,15 +444,15 @@ class ph_desup_inl_cond_subc(subsystem):
 
         self.num_i = 3
         self.num_o = 2
-        self.inlet = comp.subsys_interface(label=self.label + '_inlet',
-                                           num_inter=self.num_i)
-        self.outlet = comp.subsys_interface(label=self.label + '_outlet',
-                                            num_inter=self.num_o)
-        self.desup = comp.desuperheater(label=self.label + '_desup')
-        self.condenser = comp.condenser(label=self.label + '_condenser')
-        self.subcooler = comp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = comp.vessel(label=self.label + '_vessel', mode='man')
-        self.merge = comp.merge(label=self.label + '_merge')
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.desup = cmp.desuperheater(label=self.label + '_desup')
+        self.condenser = cmp.condenser(label=self.label + '_condenser')
+        self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
+        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.merge = cmp.merge(label=self.label + '_merge')
 
     def set_comps(self):
 

@@ -18,7 +18,6 @@ from numpy.linalg import norm
 
 from tespy.components import components as cmp
 from tespy import connections as con
-
 from tespy import helpers as hlp
 
 import matplotlib.pyplot as plt

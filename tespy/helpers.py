@@ -11,7 +11,6 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 
 import math
 import numpy as np
-import pandas as pd
 import sys
 
 from scipy.optimize import fsolve

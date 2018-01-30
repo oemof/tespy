@@ -1,6 +1,5 @@
 """
 .. module:: connections
-    :platforms: all
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>

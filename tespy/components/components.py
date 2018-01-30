@@ -1,6 +1,5 @@
 """
 .. module:: components
-    :platforms: all
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
@@ -81,7 +80,7 @@ class component:
 
     :param label: label for component
     :type label: str
-    :param **kwargs: for the keyword arguments see :code:`component.attr()`
+    :param kwargs: for the keyword arguments see :code:`component.attr()`
     :returns: no return value
     :raises: - :code:`TypeError`, if label is not of type str
                components
@@ -98,8 +97,8 @@ class component:
     terminal temperature difference at the upper side (hot side inlet to
     cold side outlet) to 5 K
 
-    **initialisation method is used for instances of class component and its
-    children**
+    initialisation method is used for instances of class component and
+    its children`
 
     allowed keywords in kwargs are 'mode' and additional keywords depending
     on the type of component you want to create
@@ -547,8 +546,8 @@ class component:
         .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
             \forall i \in inlets, \forall j \in outlets
 
-        **heat exchanger and subsystem interface (same number of inlets and
-        outlets)**
+        heat exchanger and subsystem interface (same number of inlets and
+        outlets
 
         .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
             \forall i \in inlets/outlets

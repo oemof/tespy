@@ -1,6 +1,5 @@
 """
 .. module:: networks
-    :platforms: all
     :synopsis: contains logic of the network
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
@@ -140,8 +139,8 @@ class network:
         """
         adds connections to the network, calls check_conns method
 
-        :param *args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type *args: tespy.components.subsystem
+        :param args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
+        :type args: tespy.components.subsystem
         :returns: no return value
         """
         for subsys in args:
@@ -152,8 +151,8 @@ class network:
         """
         add connections to the network, calls check_conns method
 
-        :param *args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
-        :type *args: tespy.connection
+        :param args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
+        :type args: tespy.connection
         :returns: no return value
         """
         for c in args:
@@ -202,8 +201,8 @@ class network:
         """
         adds busses to the network, if check_busses returns :code:`True`
 
-        :param *args: bus objects bi :code:`add_conn(b1, b2, b3, ...)`
-        :type *args: tespy.connections.bus
+        :param args: bus objects bi :code:`add_conn(b1, b2, b3, ...)`
+        :type args: tespy.connections.bus
         :returns: no return value
         """
         for b in args:

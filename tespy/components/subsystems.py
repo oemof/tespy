@@ -1,6 +1,5 @@
 """
 .. module:: components
-    :platforms: all
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
@@ -22,7 +21,7 @@ class subsystem:
 
     :param label: label for subsystem
     :type label: str
-    :param **kwargs: for the keyword arguments see :code:`subsystem.attr()`
+    :param kwargs: for the keyword arguments see :code:`subsystem.attr()`
     :returns: no return value
     :raises: - :code:`TypeError`, if label is not of type str
                components
@@ -40,8 +39,8 @@ class subsystem:
     terminal temperature difference (hot side inlet at condenser to
     cold side outlet after condenser) to 5 K
 
-    **initialisation method is used for instances of class component and its
-    children**
+    initialisation method is used for instances of class component and its
+    children
 
     allowed keywords in kwargs are 'mode' and additional keywords depending
     on the type of subsystem you want to create
@@ -272,7 +271,7 @@ class dr_eva_natural(subsystem):
     - in1, in2
     - out1, out2
 
-    .. image:: _images/subsys_dr_eva_forced.svg
+    .. image:: _images/subsys_dr_eva_natural.svg
        :scale: 100 %
        :alt: alternative text
        :align: center
@@ -336,7 +335,7 @@ class ph_desup_cond(subsystem):
     - in1, in2
     - out1, out2
 
-    .. image:: _images/subsys_dr_eva_forced.svg
+    .. image:: _images/subsys_ph_desup_cond.svg
        :scale: 100 %
        :alt: alternative text
        :align: center
@@ -383,6 +382,27 @@ class ph_desup_cond(subsystem):
 
 
 class ph_desup_cond_subc(subsystem):
+    """
+    **available parameters**
+
+    - ttd: upper terminal temperature difference of condenser
+    - dp1_desup: pressure drop at hot side of desuperheater
+    - dp2_desup: pressure drop at cold side of desuperheater
+    - dp1_cond: pressure drop at hot side of condenser
+    - dp2_cond: pressure drop at cold side of condenser
+    - dp1_subc: pressure drop at hot side of subcooler
+    - dp2_subc: pressure drop at cold side of subcooler
+
+    **inlets and outlets**
+
+    - in1, in2
+    - out1, out2
+
+    .. image:: _images/subsys_ph_desup_cond_subc.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
 
     def attr(self):
         return ([n for n in subsystem.attr(self) if
@@ -433,6 +453,27 @@ class ph_desup_cond_subc(subsystem):
 
 
 class ph_desup_inl_cond_subc(subsystem):
+    """
+    **available parameters**
+
+    - ttd: upper terminal temperature difference of condenser
+    - dp1_desup: pressure drop at hot side of desuperheater
+    - dp2_desup: pressure drop at cold side of desuperheater
+    - dp1_cond: pressure drop at hot side of condenser
+    - dp2_cond: pressure drop at cold side of condenser
+    - dp1_subc: pressure drop at hot side of subcooler
+    - dp2_subc: pressure drop at cold side of subcooler
+
+    **inlets and outlets**
+
+    - in1, in2, in3
+    - out1, out2
+
+    .. image:: _images/subsys_ph_desup_inl_cond_subc.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
 
     def attr(self):
         return ([n for n in subsystem.attr(self) if

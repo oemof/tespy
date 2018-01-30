@@ -51,8 +51,8 @@ def init_target(nw, c, start):
         avoided in a more elegant way.
     """
     if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
-        isinstance(c.t, heat_exchanger) or
-        isinstance(c.t, subsys_interface)):
+            isinstance(c.t, heat_exchanger) or
+            isinstance(c.t, subsys_interface)):
 
         inconn = [x for x in nw.comps.loc[c.s].o if
                   x in nw.comps.loc[c.t].i]
@@ -125,7 +125,7 @@ class component:
         else:
             self.label = label
 
-        self.mode = kwargs.get('mode', 'auto')
+        self.mode = 'auto'
 
         # set default values
         for key in self.attr():
@@ -136,20 +136,29 @@ class component:
         # set provided values, check for invalid keys
         invalid_keys = np.array([])
         for key in kwargs:
-            if key != 'mode':
-                if key not in self.attr():
-                    invalid_keys = np.append(invalid_keys, key)
-                else:
-                    if (type(kwargs[key]) == float or
+            if key not in self.attr():
+                invalid_keys = np.append(invalid_keys, key)
+            else:
+                if (type(kwargs[key]) == float or
                         type(kwargs[key]) == np.float64 or
                         type(kwargs[key]) == int or
+                        kwargs[key] == 'var' or
                         key == 'fuel'):
+                    self.__dict__.update({key: kwargs[key]})
+                    self.__dict__.update({key + '_set': True})
+                    if kwargs[key] == 'var':
+                        self.__dict__.update({key: 0.1})
+                        self.cust_var += [key]
+                elif key == 'mode':
+                    if kwargs[key] in ['man', 'auto']:
                         self.__dict__.update({key: kwargs[key]})
-                        self.__dict__.update({key + '_set': True})
                     else:
-                        msg = ('Specified value does not match requirements. '
-                               'Only numeric parameters are allowed.')
+                        msg = 'mode must be \'man\' or \'auto\'.'
                         raise TypeError(msg)
+                else:
+                    msg = ('Specified value does not match requirements. '
+                           'Only numeric parameters are allowed.')
+                    raise TypeError(msg)
 
         # print invalid keywords
         if len(invalid_keys) > 0:
@@ -176,14 +185,18 @@ class component:
                 elif (type(kwargs[key]) == float or
                       type(kwargs[key]) == np.float64 or
                       type(kwargs[key]) == int or
+                      kwargs[key] == 'var' or
                       key == 'fuel'):
                     self.__dict__.update({key: kwargs[key]})
                     self.__dict__.update({key + '_set': True})
-                elif type(kwargs[key]) == str and key == 'mode':
-                    if kwargs[key] != '':
+                    if kwargs[key] == 'var':
+                        self.__dict__.update({key: 0.1})
+                        self.cust_var += [key]
+                elif key == 'mode':
+                    if kwargs[key] in ['man', 'auto']:
                         self.__dict__.update({key: kwargs[key]})
                     else:
-                        msg = 'mode must be string and cannot be empty.'
+                        msg = 'mode must be \'man\' or \'auto\'.'
                         raise TypeError(msg)
 
                 else:
@@ -355,7 +368,7 @@ class component:
             return vec_res
 
         if (isinstance(self, subsys_interface) or
-            isinstance(self, heat_exchanger)):
+                isinstance(self, heat_exchanger)):
             for i in range(len(inlets)):
                 for fluid, x in inlets[i].fluid.items():
                     vec_res += [x - outlets[i].fluid[fluid]]
@@ -548,10 +561,10 @@ class component:
         """
 
         if (isinstance(self, split) or
-            isinstance(self, merge) or
-            isinstance(self, combustion_chamber) or
-            isinstance(self, drum) or
-            (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
+                isinstance(self, merge) or
+                isinstance(self, combustion_chamber) or
+                isinstance(self, drum) or
+                (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
             res = 0
             for i in inlets:
                 res += i.m
@@ -560,7 +573,7 @@ class component:
             return [res]
 
         if (isinstance(self, subsys_interface) or
-            isinstance(self, heat_exchanger)):
+                isinstance(self, heat_exchanger)):
             vec_res = []
             for i in range(len(inlets)):
                 vec_res += [inlets[i].m - outlets[i].m]
@@ -598,10 +611,10 @@ class component:
         num_fl = len(inlets[0].fluid)
 
         if (isinstance(self, split) or
-            isinstance(self, merge) or
-            isinstance(self, combustion_chamber) or
-            isinstance(self, drum) or
-            (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
+                isinstance(self, merge) or
+                isinstance(self, combustion_chamber) or
+                isinstance(self, drum) or
+                (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
             mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             j = 0
             for i in inlets:
@@ -614,7 +627,7 @@ class component:
             return mat_deriv.tolist()
 
         if (isinstance(self, subsys_interface) or
-            isinstance(self, heat_exchanger)):
+                isinstance(self, heat_exchanger)):
             mat_deriv = np.zeros((num_i, num_i + num_o, num_fl + 3))
             for i in range(num_i):
                 mat_deriv[i, i, 0] = 1
@@ -1913,7 +1926,8 @@ class split(component):
         if self.num_out_set:
             return ['out' + str(i + 1) for i in range(self.num_out)]
         else:
-            return ['out1', 'out2']
+            self.set_attr(num_out=2)
+            return self.outlets()
 
     def component(self):
         return 'split'
@@ -2228,7 +2242,8 @@ class merge(component):
         if self.num_in_set:
             return ['in' + str(i + 1) for i in range(self.num_in)]
         else:
-            return ['in1', 'in2']
+            self.set_attr(num_in=2)
+            return self.inlets()
 
     def outlets(self):
         return ['out1']
@@ -2707,13 +2722,12 @@ class combustion_chamber(component):
 
         n_fuel = 0
         for i in inlets:
-            n_fuel += (i.m * i.fluid[self.fuel] /
-                       molar_masses[self.fuel])
+            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
 
         n_oxygen = 0
         for i in inlets:
-            n_oxygen += (i.m * i.fluid[self.o2] /
-                         molar_masses[self.o2])
+            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+
         if not self.lamb_set:
             self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
 
@@ -2798,14 +2812,14 @@ class combustion_chamber(component):
         """
         n_fuel = 0
         for i in inlets:
-            n_fuel += (i.m * i.fluid[self.fuel] /
-                       molar_masses[self.fuel])
+            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
 
         n_oxygen = 0
         for i in inlets:
-            n_oxygen += (i.m * i.fluid[self.o2] /
-                         molar_masses[self.o2])
-        return n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) - self.lamb
+            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+
+        return (n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) -
+                self.lamb)
 
     def drb_dx(self, inlets, outlets, dx, pos, fluid):
         r"""
@@ -3016,6 +3030,215 @@ class combustion_chamber(component):
             print('m_in' + str(j) + ' = ', i.m, 'kg / s; ')
             j += 1
         print('m_out = ', outlets[0].m, 'kg / s; ')
+
+
+# %%
+# maybe to come
+#class combustion_chamber_stoich(combustion_chamber):
+#    """
+#    .. note::
+#        This component uses air as pseudo fluid and a mixture of air and
+#        stoichometric flue gas at the outlet. Therefore it implies some
+#        restrictions:
+#
+#        - the fuel must always be connected to in1
+#        - the fuel composition must be fixed (all fluid components have to be
+#          set)
+#
+#        - the fluids of your network must then be:
+#            - 'air',
+#            - your fuel, e. g. 'CH4' and
+#            - your fuel_fg, e. g. 'CH4_fg'.
+#
+#        In terms of this example, the fluid composition at the outlet of the
+#        combustion chamber is a mixture of 'air' and 'CH4_fg'.
+#
+#    **available parameters**
+#
+#    - fuel: fuel for combustion chamber
+#    - lamb: air to stoichiometric air ratio
+#
+#    **available fuels**
+#
+#    - methane
+#    - ethane
+#    - propane
+#    - butane
+#    - hydrogen
+#
+#    **inlets and outlets**
+#
+#    - in1, in2
+#    - out1
+#
+#    .. image:: _images/combustion_chamber.svg
+#       :scale: 100 %
+#       :alt: alternative text
+#       :align: center
+#    """
+#
+#    def comp_init(self, nw):
+#
+#        if not self.fuel_set:
+#            msg = 'Must specify fuel for combustion chamber.'
+#            raise MyComponentError(msg)
+#
+#        if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
+#                 CP.get_aliases(self.fuel)]]) == 0):
+#            msg = ('The fuel you specified does not match the fuels available'
+#                   ' within the network.')
+#            raise MyComponentError(msg)
+#
+#        if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
+#                 CP.get_aliases(self.fuel)]])) == 0:
+#            msg = ('The fuel you specified is not available. Available fuels '
+#                   'are: ' + str(self.fuels()) + '.')
+#            raise MyComponentError(msg)
+#
+#        self.fuel = [x for x in nw.fluids if x in [a.replace(' ', '') for a in
+#                     CP.get_aliases(self.fuel)]][0]
+#
+#        self.o2 = [x for x in nw.fluids if x in
+#                   [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
+#        self.co2 = [x for x in nw.fluids if x in
+#                    [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
+#        self.h2o = [x for x in nw.fluids if x in
+#                    [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
+#        self.n2 = [x for x in nw.fluids if x in
+#                   [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
+#
+#        structure = fluid_structure(self.fuel)
+#
+#        self.n = {}
+#        for el in ['C', 'H', 'O']:
+#            if el in structure.keys():
+#                self.n[el] = structure[el]
+#            else:
+#                self.n[el] = 0
+#
+#        self.hi = self.lhv()
+#
+#    def inlets(self):
+#        return ['in1', 'in2']
+#
+#    def outlets(self):
+#        return ['out1']
+#
+#    def attr(self):
+#        return component.attr(self) + ['fuel', 'lamb']
+#
+#    def fuels(self):
+#        return ['methane', 'ethane', 'propane', 'butane',
+#                'hydrogen']
+#
+#    def component(self):
+#        return 'combustion chamber stoichometric flue gas'
+#
+#    def reaction_balance(self, inlets, outlets, fluid):
+#        r"""
+#        calculates the reactions mass balance for one fluid
+#
+#        - determine molar mass flows of fuel and fresh air
+#        - calculate excess fuel
+#        - calculate residual value of the fluids balance
+#
+#        :param inlets: the components connections at the inlets
+#        :type inlets: list
+#        :param outlets: the components connections at the outlets
+#        :type outlets: list
+#        :param fluid: fluid to calculate the reaction balance for
+#        :type fluid: str
+#        :returns: res (*float*) - residual value of mass balance
+#
+#        **reaction balance equations**
+#
+#        .. math::
+#            res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
+#            \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
+#            \forall i \in inlets, \; \forall j \in outlets
+#
+#            \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
+#            {M_{fluid}} \; \forall i \in inlets\\
+#
+#            \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
+#            \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
+#
+#        *fuel*
+#
+#        .. math::
+#            0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
+#            \cdot M_{fuel}\\
+#
+#            \dot{m}_{f,exc,m} = \begin{cases}
+#            0 & \lambda \geq 1\\
+#            \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
+#            {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} & \lambda < 1
+#            \end{cases}
+#
+#        *oxygen*
+#
+#        .. math::
+#            0 = res - \begin{cases}
+#            -\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} & \lambda \geq 1\\
+#            - \dot{m}_{O_2,m} \cdot M_{O_2} & \lambda < 1
+#            \end{cases}
+#
+#        *water*
+#
+#        .. math::
+#            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
+#            \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}
+#
+#        *carbondioxide*
+#
+#        .. math::
+#            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
+#            \cdot n_{C,fuel} \cdot M_{CO_2}
+#
+#        *other*
+#
+#        .. math::
+#            0 = res
+#
+#        """
+#
+#        n_fuel = 0
+#        for i in inlets:
+#            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
+#
+#        n_oxygen = 0
+#        for i in inlets:
+#            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+#        if not self.lamb_set:
+#            self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
+#
+#        n_fuel_exc = 0
+#        if self.lamb < 1:
+#            n_fuel_exc = n_fuel - n_oxygen / (self.n['C'] + self.n['H'] / 4)
+#
+#        if fluid == self.co2:
+#            dm = ((n_fuel - n_fuel_exc) *
+#                  self.n['C'] * molar_masses[self.co2])
+#        elif fluid == self.h2o:
+#            dm = ((n_fuel - n_fuel_exc) *
+#                  self.n['H'] / 2 * molar_masses[self.h2o])
+#        elif fluid == self.o2:
+#            if self.lamb < 1:
+#                dm = -n_oxygen * molar_masses[self.o2]
+#            else:
+#                dm = -n_oxygen / self.lamb * molar_masses[self.o2]
+#        elif fluid == self.fuel:
+#            dm = -(n_fuel - n_fuel_exc) * molar_masses[self.fuel]
+#        else:
+#            dm = 0
+#
+#        res = dm
+#
+#        for i in inlets:
+#            res += i.fluid[fluid] * i.m
+#        for o in outlets:
+#            res -= o.fluid[fluid] * o.m
+#        return res
 
 # %%
 
@@ -3269,7 +3492,7 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return component.attr(self) + ['Q', 'dp', 'zeta', 'D', 'L', 'ks',
-                                       'kA', 't_a']
+                                       'kA', 't_a', 't_a_design']
 
     def design(self):
         return ['dp']
@@ -3488,24 +3711,6 @@ class heat_exchanger_simple(component):
         return (i.m * (o.h - i.h) + self.kA * ((ttd_u - ttd_l) /
                                                math.log(ttd_u / ttd_l)))
 
-    def convergence_check(self, nw):
-        r"""
-        prevent bad values for fluid properties in calculation
-
-        - make sure the pressure in the first calculation steps is quite high,
-          so fluids do not perform phase changes
-
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: no return value
-        """
-        i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
-
-        if i[0].p < 8e5:
-            i[0].p = 8e5
-        if o[0].p < 8e5:
-            o[0].p = 8e5
-
     def initialise_source_p(self, c):
         r"""
         returns a starting value for pressure at components outlet
@@ -3583,16 +3788,22 @@ class heat_exchanger_simple(component):
                      (v_mix_ph(inlets[0].as_list()) +
                       v_mix_ph(outlets[0].as_list())) / 2))
 
-        if self.t_a_set:
+        if self.t_a_design_set:
             T_i = T_mix_ph(inlets[0].as_list())
             T_o = T_mix_ph(outlets[0].as_list())
-
-            if self.t_a > T_i:
-                ttd_u = self.t_a - T_o
-                ttd_l = self.t_a - T_i
+            if mode == 'pre':
+                t_a = self.t_a_design
+            elif mode == 'post' and self.kA_set:
+                t_a = self.t_a
             else:
-                ttd_u = T_i - self.t_a
-                ttd_l = T_o - self.t_a
+                t_a = self.t_a_design
+
+            if t_a > T_i:
+                ttd_u = t_a - T_o
+                ttd_l = t_a - T_i
+            else:
+                ttd_u = T_i - t_a
+                ttd_l = T_o - t_a
 
             self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
 
@@ -3606,7 +3817,7 @@ class heat_exchanger_simple(component):
               'Sq = ', inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
                                       s_mix_ph(inlets[0].as_list())), 'W / K; '
               )
-        if self.t_a_set:
+        if self.t_a_set or self.t_a_design_set:
             print('kA = ', self.kA, 'W / (m^2 * K)')
 
 # %%

@@ -31,7 +31,7 @@ If you want to use the latest features, you might want to install the **develope
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction ' <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
+For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
 
 License
 =======

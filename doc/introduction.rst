@@ -316,7 +316,7 @@ In this part you learn how you can use TESPy for your energy system calculations
 The following part will show how to generate characteristics for a CHP unit. There are various technologies and concepts, for this example we will generate characteristics for a simple CHP with a backpressure steam turbine and a regenerative reheating unit as shown in the figure below. We want the characteristics to provide a correlation between output power and output heat flux at different temperatures of flow into a district heating system.
 
 .. _topology:
-.. figure:: _images/CHP.svg
+.. figure:: api/_images/CHP.svg
     :align: center
 	
     Topology of the power plant.
@@ -347,7 +347,7 @@ Important design information can be obtained from the table below, the locations
 As a result we get the PQ-diagram of this power plant containing the characteristics at different temperatures in the heating system. Within your oemof-solph energy system it is now possible to implement the characteristic lines as a function of the temperature level in the heating system.
 
 .. _diagram:
-.. figure:: _images/PQ_diagram.svg
+.. figure:: api/_images/PQ_diagram.svg
     :align: center
 	
     PQ-diagram for a CHP unit.

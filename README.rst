@@ -1,4 +1,4 @@
-TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engneering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ but may also be used as a standalone package.
+TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engneering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ and can be used as a standalone package.
 
 With the TESPy package you are able to calculate stationary operation in order to design the process of your plant. From that point it is possible to calculate the offdesign behaviour of your plant using underlying characteristics for each of the plants components. For now, the package inlcudes basic components, such as turbines, pumps, compressors, heat exchangers, pipes, mixers and splitters as well as some advanced components (derivatives of heat exchangers, drum).
 
@@ -13,7 +13,7 @@ Everybody is welcome to use and/or develop TESPy. Contribution is already possib
 Documentation
 =============
 
-You can find the full documentation at `readthedocs insert correct link here <http://oemof.readthedocs.org>`_. Use the `project site insert correct link here <http://readthedocs.org/projects/oemof>`_ of readthedocs to choose the version of the documentation. Go to the `download page insert correct link here <http://readthedocs.org/projects/oemof/downloads/>`_ to download different versions and formats (pdf, html, epub) of the documentation.
+You can find the full documentation at `readthedocs <http://tespy.readthedocs.org>`_. Use the `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to choose the version of the documentation. Go to the `download page <http://readthedocs.org/projects/tespy/downloads/>`_ to download different versions and formats (pdf, html, epub) of the documentation. Currently, only the dev branch is available.
 
 To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 
@@ -31,7 +31,7 @@ If you want to use the latest features, you might want to install the **develope
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it is provided by the `Tutorial insert correct link here ' <http://oemof.readthedocs.io/en/latest/developing_oemof.html>`_. Also, you can download the scripts for the example plants from the tespy.examples folder.
+For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction ' <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
 
 License
 =======

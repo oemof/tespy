@@ -4,6 +4,10 @@ tespy package
 Submodules
 ----------
 
+.. toctree::
+
+   tespy.components
+
 tespy\.connections module
 -------------------------
 

@@ -1,4 +1,4 @@
-TESPy.components package
+tespy.components package
 ========================
 
 Submodules

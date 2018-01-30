@@ -1,6 +1,5 @@
 """
 .. module:: helpers
-    :platforms: all
     :synopsis: helpers for frequently used functionalities
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
@@ -12,8 +11,6 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 import math
 import numpy as np
 import sys
-
-from scipy.optimize import fsolve
 
 global err
 err = 1e-6
@@ -84,7 +81,7 @@ def query_yes_no(question, default='yes'):
                              '(or \'y\' or \'n\').\n')
 
 
-def newton(func, deriv, flow, k):
+def newton(func, deriv, params, k, **kwargs):
     r"""
     find zero crossings of function func with 1-D newton algorithm,
     required for reverse functions of fluid mixtures
@@ -93,11 +90,18 @@ def newton(func, deriv, flow, k):
     :type func: function
     :param deriv: derivative of the function
     :type deriv: function
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
+    :param params: vector containing parameters for func
+    :type params: list
     :param k: target value for function func
     :type k: numeric
-    :returns: val (float) - val, so that func(flow, val) = k
+    :returns: val (float) - val, so that func(params, val) = k
+
+    **allowed keywords** in kwargs:
+
+    - val0 (*numeric*) - starting value
+    - valmin (*numeric*) - minimum value
+    - valmax (*numeric*) - maximum value
+    - imax (*numeric*) - maximum number of iterations
 
     .. math::
 
@@ -107,17 +111,22 @@ def newton(func, deriv, flow, k):
 
     """
     res = 1
-    val = 300
+    val = kwargs.get('val0', 300)
+    valmin = kwargs.get('valmin', 70)
+    valmax = kwargs.get('valmax', 3000)
+    imax = kwargs.get('imax', 10)
     i = 0
     while abs(res) >= err:
-        res = k - func(flow, val)
-        val += res / deriv(flow, val)
+        res = k - func(params, val)
+        val += res / deriv(params, val)
 
-        if val < 69:
-            val = 69
+        if val < valmin:
+            val = valmin
+        if val > valmax:
+            val = valmax
         i += 1
 
-        if i > 10:
+        if i > imax:
             raise ValueError('Newton algorithm was not able to find a feasible'
                              ' value for function '+str(func)+'.')
 
@@ -128,8 +137,9 @@ def T_mix_ph(flow):
     r"""
     calculates the temperature from pressure and enthalpy,
     uses CoolProp reverse functions for pure fluids, newton for mixtures
-        - check if property has already been memorised
-        - calculate property otherwise
+
+    - check if property has already been memorised
+    - calculate property otherwise
 
     :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
     :type flow: list
@@ -153,7 +163,8 @@ def T_mix_ph(flow):
         return memorise.T_ph[ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
-            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2])
+            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2],
+                         val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
             memorise.T_ph = np.append(memorise.T_ph, new, axis=0)
@@ -193,7 +204,8 @@ def T_mix_ps(flow, s):
         return memorise.T_ps[ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
-            val = newton(s_mix_pT, ds_mix_pdT, flow, s)
+            val = newton(s_mix_pT, ds_mix_pdT, flow, s,
+                         val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [s, val]])
             memorise.T_ps = np.append(memorise.T_ps, new, axis=0)
@@ -725,7 +737,8 @@ def lamb(re, ks, d):
     *hydraulically rough:* :math:`\frac{re \cdot k_{s}}{d} > 1300`
 
     .. math::
-        \lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}} \right) \right)}
+        \lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}}
+        \right) \right)}
 
 
     """
@@ -739,13 +752,33 @@ def lamb(re, ks, d):
                 return 0.0032 + 0.221 * re ** (-0.237)
             else:
                 l0 = 0.0001
-                func = lambda l: (2 * math.log(re * math.sqrt(l), 10) -
-                                  0.8 - 1 / math.sqrt(l))
-                return fsolve(func, l0)
+                return newton(lamb_smooth, dlamb_smooth_dl, [re], 0,
+                              val0=l0, valmin=0.00001, valmax=0.2)
+
         elif re * ks / d > 1300:
             return 1 / (2 * math.log(3.71 * d / ks, 10)) ** 2
+
         else:
             l0 = 0.002
-            func = lambda l: (2 * math.log(2.51 / (re * math.sqrt(l)) +
-                              ks / d * 0.269, 10) + 1 / math.sqrt(l))
-            return fsolve(func, l0)
+            return newton(lamb_trans, dlamb_trans_dl, [re, ks, d], 0,
+                          val0=l0, valmin=0.0001, valmax=0.2)
+
+
+def lamb_smooth(params, l):
+    re = params[0]
+    return 2 * math.log(re * math.sqrt(l), 10) - 0.8 - 1 / math.sqrt(l)
+
+
+def dlamb_smooth_dl(params, l):
+    return 1 / (l * math.log(10)) + 1 / 2 * l ** (-1.5)
+
+
+def lamb_trans(params, l):
+    re, ks, d = params[0], params[1], params[2]
+    return (2 * math.log(2.51 / (re * math.sqrt(l)) + ks / d * 0.269, 10) +
+            1 / math.sqrt(l))
+
+
+def dlamb_trans_dl(params, l):
+    d = 0.001
+    return (lamb_trans(params, l+d) - lamb_trans(params, l-d)) / (2 * d)

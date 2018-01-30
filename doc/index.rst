@@ -6,7 +6,7 @@
 Welcome to TESPy's documentation!
 =================================
 
-TESPy (**T**hermal **E**ngineering **S**ystems in **Py**thon) provides a powerful simulation package for thermal processes.
+TESPy (Thermal Engineering Systems in Python) provides a powerful simulation package for thermal processes.
 
 Requirements:
 

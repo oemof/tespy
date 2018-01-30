@@ -1,8 +1,5 @@
-tespy.components package
+tespy.components module
 ========================
-
-Submodules
-----------
 
 tespy.components.characteristics module
 ---------------------------------------

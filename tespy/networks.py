@@ -751,6 +751,9 @@ class network:
             for var in c.design:
                 if c.__dict__[var + '_set']:
                     c.__dict__[var + '_set'] = False
+            for var in c.offdesign:
+                if not c.__dict__[var + '_set']:
+                    c.__dict__[var + '_set'] = True
 
     def solve(self, mode, init_file=None, design_file=None):
         """
@@ -798,6 +801,7 @@ class network:
         self.relax = 1
 # number of variables
         self.num_vars = len(self.fluids) + 3
+        self.solve_determination()
 
         print('iter\t| residual')
         for self.iter in range(250):
@@ -1008,31 +1012,32 @@ class network:
         :returns: no return value
         """
         row = len(self.vec_res)
+
         for c in self.conns.index:
             col = self.conns.index.get_loc(c) * (self.num_vars)
 
             if c.m_set:
                 self.solve_m_p_h(c, row, col, 'm')
-                row = self.solve_check_row(row)
+                row += 1
             if c.p_set:
                 self.solve_m_p_h(c, row, col, 'p')
-                row = self.solve_check_row(row)
+                row += 1
             if c.h_set:
                 self.solve_m_p_h(c, row, col, 'h')
-                row = self.solve_check_row(row)
+                row += 1
             if c.T_set:
                 self.solve_T(c, row, col)
-                row = self.solve_check_row(row)
+                row += 1
             if c.x_set:
                 self.solve_x(c, row, col)
-                row = self.solve_check_row(row)
+                row += 1
 
             l = 0
             for f in c.fluid.keys():
                 if c.fluid_set[f]:
                     self.mat_deriv[row, col + 3 + l] = 1
                     self.vec_res += [0]
-                    row = self.solve_check_row(row)
+                    row += 1
                     self.debug += [c]
                 l += 1
 
@@ -1045,7 +1050,7 @@ class network:
                     l += 1
 
                 self.vec_res += [res]
-                row = self.solve_check_row(row)
+                row += 1
                 self.debug += [c]
 
     def solve_busses(self):
@@ -1082,22 +1087,7 @@ class network:
 
                 self.vec_res += [b.P - P_res]
 
-                row = self.solve_check_row(row)
-
-    def solve_check_row(self, row):
-        """
-        check row index increment for jacobian matrix
-
-        :param row: index of last row inserted into jacobian matrix
-        :type row: int
-        :returns: row + 1 (int) - row increment
-        :raises: :code:`hlp.MyNetworkError`, if the row count is higher than
-                 the number of total variables in the network (overdetermined).
-        """
-        if row < self.num_vars * len(self.conns.index):
-            return row + 1
-        else:
-            raise hlp.MyNetworkError('You provide too many parameters!')
+                row += 1
 
     def solve_m_p_h(self, c, row, col, var):
         r"""
@@ -1335,6 +1325,37 @@ class network:
         self.vec_res += [(c.h - hlp.h_mix_pQ(flow, c.x))]
 
         self.debug += [c]
+
+    def solve_determination(self):
+        r"""
+        calculates the number of given parameters
+
+        :returns: no return value
+        :raises: :code:`MyNetworkError`
+        """
+        n = 0
+        for cp in self.comps.index:
+            n += len(cp.equations(self))
+
+        for c in self.conns.index:
+            n += [c.m_set, c.p_set, c.h_set, c.T_set, c.x_set].count(True)
+            n += list(c.fluid_set.values()).count(True)
+
+        for b in self.busses:
+            n += [b.P_set].count(True)
+
+        if n > self.num_vars * len(self.conns.index):
+            msg = ('You have provided too many parameters:',
+                   self.num_vars * len(self.conns.index), 'required, ',
+                   n, 'given.')
+            raise hlp.MyNetworkError(msg)
+        elif n < self.num_vars * len(self.conns.index):
+            msg = ('You have not provided enough parameters:',
+                   self.num_vars * len(self.conns.index), 'required, ',
+                   n, 'given.')
+            raise hlp.MyNetworkError(msg)
+        else:
+            return
 
     def process_components(self, mode):
         """

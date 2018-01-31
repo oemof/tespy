@@ -273,7 +273,7 @@ class bus:
         else:
             self.P_set = False
 
-    def add_comp(self, *args):
+    def add_comps(self, *args):
         """
         add component to bus
         """

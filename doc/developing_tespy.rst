@@ -50,22 +50,27 @@ within your environment.
 
   pip install --upgrade -e /path/to/the/repository
   
+Your contribution
+-----------------
+
+There are different ways you can contribute
+  
 Contribute to the documentation
--------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you come across typos or grammatical mistakes or want to improve comprehensibility of the
 documentation, make your adjustments or suggestions and create a pull request for the dev branch.
 We appreciate your contribution!
 
 Improve or add new equations
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The components equations represent the behaviour of each component. Are we missing any equations?
 Or do you see possibilities to improve the formulation? Add them to your code and run some the
 tests. If your tests are succesful create a pull request on the dev branch.
 
 Share your subsystems
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 You have encountered component groups that are frequently required? Make a subsystem to simplify
 your own work and share your subsystem by adding it to the tespy.components.subsystems file.
@@ -76,7 +81,7 @@ if you want to make the code more comprehensible. In general, your code should f
 to TESPy permanently.
 
 Add component characteristics
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The component characteristics represent large added value for your calculation. If you have detailed
 information on components offdesign behaviour - even for specific cases - it will improve the results.

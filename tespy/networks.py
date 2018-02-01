@@ -1728,13 +1728,3 @@ class network:
 
     def save_fluids_set(c, *args):
         return c.name.fluid_set[args[0]]
-
-    def save_get_refs(c, *args):
-        if hasattr(c.name, args[0]):
-            if '_ref' in args[0]:
-                ref = c.name.get_attr(args[0])
-                return str(ref)[str(ref).find(' at ') + 4:-1]
-            else:
-                return c.name.get_attr(args[0])
-        else:
-            return ''

@@ -273,6 +273,22 @@ class bus:
         else:
             self.P_set = False
 
+    def get_attr(self, key):
+        """
+        get the value of a bus attribute
+
+        :param key: attribute to return its value
+        :type key: str
+        :returns:
+            - :code:`self.__dict__[key]` if object has attribute key
+            - :code:`None` if object has no attribute key
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            print(self.bus(), ' has no attribute \"', key, '\"')
+            return None
+
     def add_comps(self, *args):
         """
         add component to bus
@@ -352,3 +368,19 @@ class ref:
         self.obj = ref_obj
         self.f = factor
         self.d = delta
+
+    def get_attr(self, key):
+        """
+        get the value of a ref attribute
+
+        :param key: attribute to return its value
+        :type key: str
+        :returns:
+            - :code:`self.__dict__[key]` if object has attribute key
+            - :code:`None` if object has no attribute key
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            print(self.bus(), ' has no attribute \"', key, '\"')
+            return None

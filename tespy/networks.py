@@ -387,8 +387,15 @@ class network:
                     else:
                         c.fluid_set[fluid] = False
                 else:
-                    c.fluid[fluid] = 0
+                    if len(self.fluids) == 1:
+                        c.fluid[fluid] = 1
+                    else:
+                        c.fluid[fluid] = 0
+
                     c.fluid_set[fluid] = False
+
+        if len(self.fluids) == 1:
+            return
 
         for cp in self.comps.index:
             cp.comp_init(self)
@@ -527,14 +534,15 @@ class network:
         # add merge cp to list redo, if number of fluids at merges outlet is
         # still zero
         redo = []
-        for cp in self.comps.index:
-            if isinstance(cp, cmp.merge):
-                cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
-                    if hlp.num_fluids(c.fluid) != 0:
-                        self.init_target(c, c.t)
-                    else:
-                        redo += [cp]
+        if len(self.fluids) >= 1:
+            for cp in self.comps.index:
+                if isinstance(cp, cmp.merge):
+                    cp.initialise_fluids(self)
+                    for c in self.comps.loc[cp].o:
+                        if hlp.num_fluids(c.fluid) != 0:
+                            self.init_target(c, c.t)
+                        else:
+                            redo += [cp]
 
         # propagete fluids towards merges targets of the redo list
         # do this, while the list is not empty
@@ -659,7 +667,9 @@ class network:
                 c.h_tmp = c.h
                 c.fluid_tmp = c.fluid.copy()
 
-            df = pd.read_csv(self.design_file, index_col=0, delimiter=';')
+            df = pd.read_csv(self.design_file, index_col=0, delimiter=';',
+                             decimal=self.dec)
+
             for c in self.conns.index:
                 # match connection (source, source_id, target, target_id) on connection objects
                 # of design file
@@ -673,12 +683,12 @@ class network:
                 t = df_tmp['t'] == True
                 t_id = df_tmp['t_id'] == True
                 # overwrite all properties with design file
-                for conn in df_tmp.index[s & s_id & t & t_id]:
-                    c.m = df.loc[conn].m * network.m_unit[self.m]
-                    c.p = df.loc[conn].p * network.p_unit[self.p]
-                    c.h = df.loc[conn].h * network.h_unit[self.h]
-                    for fluid in self.fluids:
-                        c.fluid[fluid] = df.loc[conn][fluid]
+                conn = df_tmp.index[s & s_id & t & t_id][0]
+                c.m = df.loc[conn].m * network.m_unit[self.m]
+                c.p = df.loc[conn].p * network.p_unit[self.p]
+                c.h = df.loc[conn].h * network.h_unit[self.h]
+                for fluid in self.fluids:
+                    c.fluid[fluid] = df.loc[conn][fluid]
 
             # component characteristics creation for offdesign calculation
             self.process_components('pre')
@@ -691,7 +701,8 @@ class network:
 
         if self.init_file is not None:
 
-            df = pd.read_csv(self.init_file, index_col=0, delimiter=';')
+            df = pd.read_csv(self.init_file, index_col=0, delimiter=';',
+                             decimal=self.dec)
             for c in self.conns.index:
                 df_tmp = (df.s == c.s.label).to_frame()
                 df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
@@ -701,16 +712,16 @@ class network:
                 s_id = df_tmp['s_id'] == True
                 t = df_tmp['t'] == True
                 t_id = df_tmp['t_id'] == True
-                for conn in df_tmp.index[s & s_id & t & t_id]:
-                    if not c.m_set:
-                        c.m = df.loc[conn].m * network.m_unit[self.m]
-                    if not c.p_set:
-                        c.p = df.loc[conn].p * network.p_unit[self.p]
-                    if not c.h_set:
-                        c.h = df.loc[conn].h * network.h_unit[self.h]
-                    for fluid in self.fluids:
-                        if not c.fluid_set[fluid]:
-                            c.fluid[fluid] = df.loc[conn][fluid]
+                conn = df_tmp.index[s & s_id & t & t_id][0]
+                if not c.m_set:
+                    c.m = df.loc[conn].m * network.m_unit[self.m]
+                if not c.p_set:
+                    c.p = df.loc[conn].p * network.p_unit[self.p]
+                if not c.h_set:
+                    c.h = df.loc[conn].h * network.h_unit[self.h]
+                for fluid in self.fluids:
+                    if not c.fluid_set[fluid]:
+                        c.fluid[fluid] = df.loc[conn][fluid]
 
             for c in self.conns.index:
                 if c.T_set and not isinstance(c.T, con.ref):
@@ -755,7 +766,7 @@ class network:
                 if not c.__dict__[var + '_set']:
                     c.__dict__[var + '_set'] = True
 
-    def solve(self, mode, init_file=None, design_file=None):
+    def solve(self, mode, init_file=None, design_file=None, dec='.'):
         """
         solves the network:
 
@@ -774,6 +785,7 @@ class network:
 
         self.init_file = init_file
         self.design_file = design_file
+        self.dec = dec
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1510,7 +1522,7 @@ class network:
         f.subplots_adjust(right=0.8, hspace=0.2)
         plt.show()
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """
         saves the results in two files:
 
@@ -1521,54 +1533,65 @@ class network:
         :type filename: str
         :returns: no return value
         """
-        self.save_connections(filename)
-        self.save_components(filename)
 
-    def save_connections(self, filename):
+        dec = kwargs.get('dec', '.')
+
+        self.save_connections(filename, dec)
+        self.save_components(filename, dec)
+        self.save_busses(filename, dec)
+        self.save_references(filename, dec)
+
+    def save_connections(self, filename, dec):
         """
-        saves the results to filename_results.csv
+        saves the connection logic and parametrisation to filename_conn.csv
 
         - uses connections object id as row identifier
-        - writes:
-            * properties (value and property_set: False/True)
-            * fluid vector
-            * fluid_set vector
+            * properties and property_set (False/True)
+            * referenced objects
+            * fluids and fluid_set vector
             * connections source and target
-            * connections parametrisation
-        - connections source and target identified by its labels
+        - connections source and target are identified by its labels
 
         :param filename: suffix for the .csv-file
         :type filename: str
+        :param dec: decimal separator
+        :type dec: str
         :returns: no return value
         """
 
-# create / overwrite csv file
-        fn = filename + '_results.csv'
-        with open(fn, 'w') as csvfile:
-            f = csv.writer(csvfile, delimiter=';')
+        # save fluids and property information of connections from dataframe
+        fn = filename + '_conn.csv'
 
-# write collumn headings
-            cols = (['id', 'm', 'p', 'h', 'T', 'x'] + sorted(self.fluids) +
-                    ['m_set', 'p_set', 'h_set', 'T_set', 'x_set'] +
-                    ['{}_{}'.format(fluid, 'set')
-                        for fluid in sorted(self.fluids)] +
-                    ['s', 's_id', 't', 't_id'])
-            f.writerow(cols)
+        df = pd.DataFrame()
+        df['id'] = self.conns.apply(network.save_id, axis=1)
 
-# write data in csv - file
-            for i in range(len(self.conns)):
-                c = self.conns.index[i]
-                cp = self.conns.iloc[i]
-                f.writerow([str(c)[str(c).find(' at ') + 4:-1],
-                            c.m, c.p, c.h, c.T, c.x] +
-                           [x for fluid, x in sorted(c.fluid.items())] +
-                           [c.m_set, c.p_set, c.h_set, c.T_set, c.x_set] +
-                           [fluid_set for fluid_set in c.fluid_set.values()] +
-                           [cp.s.label, cp.s_id, cp.t.label, cp.t_id])
+        cols = ['m', 'p', 'h', 'T', 'x',
+                'm_set', 'p_set', 'h_set', 'T_set', 'x_set',
+                'm_ref', 'p_ref', 'h_ref', 'T_ref']
+        for val in cols:
+            df[val] = self.conns.apply(network.save_props, axis=1,
+                                       args=(val,))
+        for val in sorted(self.fluids):
+            df[val] = self.conns.apply(network.save_fluids, axis=1,
+                                       args=(val,))
+            df[val + '_set'] = self.conns.apply(network.save_fluids_set,
+                                                axis=1, args=(val,))
 
-    def save_components(self, filename):
+        df['s'] = self.conns.apply(network.save_comps_label, axis=1,
+                                   args=('s',))
+        df['s_id'] = self.conns.apply(network.save_props, axis=1,
+                                      args=('s_id',))
+
+        df['t'] = self.conns.apply(network.save_comps_label, axis=1,
+                                   args=('t',))
+        df['t_id'] = self.conns.apply(network.save_props, axis=1,
+                                      args=('t_id',))
+
+        df.to_csv(fn, sep=';', decimal=dec, index=False, na_rep='nan')
+
+    def save_components(self, filename, dec):
         """
-        saves the components to filename_comps.csv
+        saves the components to filename_comp.csv
 
         - uses components labels as row identifier
         - writes:
@@ -1580,27 +1603,138 @@ class network:
         :returns: no return value
         """
 
-# create / overwrite csv file
-        fn = filename + '_comps.csv'
+        # create / overwrite csv file
+        fn = filename + '_comp.csv'
         with open(fn, 'w') as csvfile:
             f = csv.writer(csvfile, delimiter=';')
 
-# write collumn heading
-            f.writerow(['id', 'comp', 'i', 'o', 'mode'])
+            # write collumn heading
+            f.writerow(['id', 'comp', 'i', 'o', 'mode', 'busses'])
 
-# write data in csv - file
+            # write data in csv - file
             for i in range(len(self.comps)):
                 c = self.comps.iloc[i]
                 cp = self.comps.index[i]
+                busses = []
+                for b in self.busses:
+                    if cp in b.comps.index.tolist():
+                        busses += [str(b)[str(b).find(' at ') + 4:-1],
+                                  str(b.comps.loc[cp][0]).replace('.', dec)]
                 parset = []
                 for var in cp.attr():
                     if var != 'label' and var != 'mode':
+                        val = str(cp.get_attr(var)).replace('.', dec)
+                        parset += [var, val]
                         if cp.get_attr(var + '_set'):
-                            parset += [var, cp.get_attr(var)]
+                            parset += [True]
+                        else:
+                            parset += [False]
 
                 f.writerow([cp.label,
                             cp.__class__.__name__,
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.i],
                             [str(x)[str(x).find(' at ') + 4:-1] for x in c.o],
                             cp.mode,
+                            busses,
                             *parset])
+
+    def save_busses(self, filename, dec):
+        """
+        saves the busses parametrisation to filename_bus.csv
+
+        - uses connections object id as row identifier
+            * properties and property_set (False/True)
+            * referenced objects
+            * fluids and fluid_set vector
+            * connections source and target
+        - connections source and target are identified by its labels
+
+        :param filename: suffix for the .csv-file
+        :type filename: str
+        :param dec: decimal separator
+        :type dec: str
+        :returns: no return value
+        """
+
+        # save fluids and property information of connections from dataframe
+        fn = filename + '_bus.csv'
+
+        df = pd.DataFrame({'id': self.busses}, index=self.busses)
+        df['id'] = df.apply(network.save_id, axis=1)
+
+        cols = ['label', 'P']
+        for val in cols:
+            df[val] = df.apply(network.save_props, axis=1,
+                               args=(val,))
+
+        df.to_csv(fn, sep=';', decimal=dec, index=False, na_rep='nan')
+
+    def save_references(self, filename, dec):
+        """
+        saves the busses parametrisation to filename_bus.csv
+
+        - uses connections object id as row identifier
+            * properties and property_set (False/True)
+            * referenced objects
+            * fluids and fluid_set vector
+            * connections source and target
+        - connections source and target are identified by its labels
+
+        :param filename: suffix for the .csv-file
+        :type filename: str
+        :param dec: decimal separator
+        :type dec: str
+        :returns: no return value
+        """
+
+        # save fluids and property information of connections from dataframe
+        fn = filename + '_bus.csv'
+
+        refs = []
+
+        for c in self.conns.index:
+            for attr in ['m_ref', 'p_ref', 'h_ref', 'T_ref']:
+                if hasattr(c, attr):
+                    refs += [c.get_attr(attr)]
+
+        df = pd.DataFrame({'id': refs}, index=refs)
+        df['id'] = df.apply(network.save_id, axis=1)
+
+        cols = ['label', 'P']
+        for val in cols:
+            df[val] = df.apply(network.save_props, axis=1,
+                               args=(val,))
+
+        df.to_csv(fn, sep=';', decimal=dec, index=False, na_rep='nan')
+
+    def save_id(c):
+        return str(c.name)[str(c.name).find(' at ') + 4:-1]
+
+    def save_props(c, *args):
+        if hasattr(c.name, args[0]):
+            if '_ref' in args[0]:
+                ref = c.name.get_attr(args[0])
+                return str(ref)[str(ref).find(' at ') + 4:-1]
+            else:
+                return c.name.get_attr(args[0])
+        else:
+            return ''
+
+    def save_comps_label(c, *args):
+        return c.name.get_attr(args[0]).label
+
+    def save_fluids(c, *args):
+        return c.name.fluid[args[0]]
+
+    def save_fluids_set(c, *args):
+        return c.name.fluid_set[args[0]]
+
+    def save_get_refs(c, *args):
+        if hasattr(c.name, args[0]):
+            if '_ref' in args[0]:
+                ref = c.name.get_attr(args[0])
+                return str(ref)[str(ref).find(' at ') + 4:-1]
+            else:
+                return c.name.get_attr(args[0])
+        else:
+            return ''

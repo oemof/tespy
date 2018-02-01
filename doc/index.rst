@@ -16,6 +16,7 @@ Contents:
 	:maxdepth: 2
 
 	introduction
+	developing_tespy
 	api
 
 

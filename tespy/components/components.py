@@ -1097,8 +1097,11 @@ class turbomachine(component):
             print('Creating characteristics for component ', self)
 
             if isinstance(self, pump):
-                self.char = cmp_char.pump(self.i0[0] * v_mix_ph(self.i0),
-                                          self.eta_s)
+                v_opt = (self.i0[0] *
+                         (v_mix_ph(self.i0) + v_mix_ph(self.i0)) / 2)
+                H_opt = ((self.o0[1] - self.i0[1]) /
+                         (9.81 * 2 / (v_mix_ph(self.i0) + v_mix_ph(self.i0))))
+                self.char = cmp_char.pump(v_opt, self.eta_s, H_opt)
 
             if isinstance(self, turbine):
                 self.char = cmp_char.turbine(self.eta_s)

@@ -344,7 +344,6 @@ class pump:
     def __init__(self, v_opt, eta_s, H_opt):
 
         n_q = 3000 * math.sqrt(v_opt) / ((H_opt) ** 0.75)
-        n_q = 55
         v_0 = v_opt * 3.1 * n_q ** (-0.15)
         self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
         self.a = eta_s / ((v_opt ** 2 - v_0 * v_opt) *

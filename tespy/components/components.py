@@ -1055,7 +1055,6 @@ class turbomachine(component):
         **postprocessing**
 
         - calculate power P
-        - calculate isentropic efficiency
         - calculate pressure ratio
 
         **preprocessing**
@@ -1064,28 +1063,12 @@ class turbomachine(component):
           :code:`self.o0` flows
         - set attribute for isentropic enthalpy difference
           :code:`self.dh_s0` at reference
-        - generate characteristics for components
 
-        **Improvements**
-
-        - check if component specific parts are well located in subclasses
         """
 
         if mode == 'post':
 
             self.P = inlets[0].m * (outlets[0].h - inlets[0].h)
-
-            if isinstance(self, pump) or isinstance(self, compressor):
-                self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
-                              (outlets[0].h - inlets[0].h))
-            elif isinstance(self, turbine):
-                self.eta_s = ((outlets[0].h - inlets[0].h) /
-                              (self.h_os(inlets, outlets) - inlets[0].h))
-            else:
-                raise MyComponentError('If you want to use eta_s as parameter,'
-                                       ' please specify which type of '
-                                       'turbomachine you are using.')
-
             self.dp = outlets[0].p / inlets[0].p
 
         if mode == 'pre':
@@ -1095,22 +1078,6 @@ class turbomachine(component):
             self.dh_s0 = (self.h_os(self.i0, self.o0) - self.i0[2])
 
             print('Creating characteristics for component ', self)
-
-            if isinstance(self, pump):
-                v_opt = (self.i0[0] *
-                         (v_mix_ph(self.i0) + v_mix_ph(self.i0)) / 2)
-                H_opt = ((self.o0[1] - self.i0[1]) /
-                         (9.81 * 2 / (v_mix_ph(self.i0) + v_mix_ph(self.i0))))
-                self.char = cmp_char.pump(v_opt, self.eta_s, H_opt)
-
-            if isinstance(self, turbine):
-                self.char = cmp_char.turbine(self.eta_s)
-                nu_new = np.linspace(self.char.nu[0],
-                                     self.char.nu[-1], 1001)
-                self.nu0 = nu_new[np.argmax(self.char.eta(nu_new))]
-
-            if isinstance(self, compressor):
-                self.char = cmp_char.compressor()
 
     def print_parameters(self, inlets, outlets):
         i1 = inlets[0].as_list()
@@ -1124,26 +1091,6 @@ class turbomachine(component):
               'dp = ', self.dp, '; '
               'm = ', inlets[0].m, 'kg / s; '
               'Sirr = ', inlets[0].m * (s_mix_ph(o1) - s_mix_ph(i1)), 'W / K')
-
-        if isinstance(self, compressor) and not isinstance(self.char, int):
-            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
-            m = (
-                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
-                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
-                )
-            vigv = self.char.get_vigv(n, m, (o1[1] *
-                                      self.i0[1]) / (i1[1] * self.o0[1]))
-            if abs(self.vigv - vigv) > err:
-                print('!!!!! Selected inlet guide vane angle is not feasible '
-                      '!!!!!')
-                if self.vigv > vigv:
-                    print('calculated maximum angle:', vigv,
-                          'selected:', self.vigv)
-                else:
-                    print('calculated minimum angle:', vigv,
-                          'selected:', self.vigv)
-            else:
-                print('vigv = ', self.vigv)
 
 # %%
 
@@ -1165,6 +1112,12 @@ class pump(turbomachine):
     **offdesign parameters**
 
     - char
+
+    .. note::
+
+        Using the characteristic function for isentropic efficiency of the pump
+        (char) is partly leading to unstable calculations, it is recommended
+        to use a constant values for now.
 
     **inlets and outlets**
 
@@ -1335,6 +1288,33 @@ class pump(turbomachine):
                   :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
         return 2.9e5
+
+    def calc_parameters(self, inlets, outlets, mode):
+        """
+        component specific parameter calculation pre- or postprocessing
+
+        **postprocessing**
+
+        - calculate isentropic efficiency
+
+        **preprocessing**
+
+        - generate characteristics for component
+        """
+
+        turbomachine.calc_parameters(self, inlets, outlets, mode)
+
+        if mode == 'post':
+            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
+                          (outlets[0].h - inlets[0].h))
+
+        if mode == 'pre':
+            v_opt = (self.i0[0] *
+                     (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
+            H_opt = ((self.o0[1] - self.i0[1]) /
+                     (9.81 * 2 / (v_mix_ph(self.i0) + v_mix_ph(self.o0))))
+            self.char = cmp_char.pump(v_opt, self.eta_s, H_opt)
+
 # %%
 
 
@@ -1626,6 +1606,51 @@ class compressor(turbomachine):
         """
         return 4e5
 
+    def calc_parameters(self, inlets, outlets, mode):
+        """
+        component specific parameter calculation pre- or postprocessing
+
+        **postprocessing**
+
+        - calculate isentropic efficiency
+
+        **preprocessing**
+
+        - generate characteristics for component
+        """
+
+        turbomachine.calc_parameters(self, inlets, outlets, mode)
+
+        if mode == 'pre':
+            self.char = cmp_char.compressor()
+
+    def print_parameters(self, inlets, outlets):
+
+        turbomachine.print_parameters(self, inlets, outlets)
+
+        i1 = inlets[0].as_list()
+        o1 = outlets[0].as_list()
+
+        if not isinstance(self.char, int):
+            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
+            m = (
+                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
+                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
+                )
+            vigv = self.char.get_vigv(n, m, (o1[1] *
+                                      self.i0[1]) / (i1[1] * self.o0[1]))
+            if abs(self.vigv - vigv) > err:
+                print('!!!!! Selected inlet guide vane angle is not feasible '
+                      '!!!!!')
+                if self.vigv > vigv:
+                    print('calculated maximum angle:', vigv,
+                          'selected:', self.vigv)
+                else:
+                    print('calculated minimum angle:', vigv,
+                          'selected:', self.vigv)
+            else:
+                print('vigv = ', self.vigv)
+
 # %%
 
 
@@ -1888,6 +1913,31 @@ class turbine(turbomachine):
                   :math:`val = 2 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
         """
         return 20e5
+
+    def calc_parameters(self, inlets, outlets, mode):
+        """
+        component specific parameter calculation pre- or postprocessing
+
+        **postprocessing**
+
+        - calculate isentropic efficiency
+
+        **preprocessing**
+
+        - generate characteristics for component
+        """
+
+        turbomachine.calc_parameters(self, inlets, outlets, mode)
+
+        if mode == 'post':
+            self.eta_s = ((outlets[0].h - inlets[0].h) /
+                          (self.h_os(inlets, outlets) - inlets[0].h))
+
+        if mode == 'pre':
+            self.char = cmp_char.turbine(self.eta_s)
+            nu_new = np.linspace(self.char.nu[0],
+                                 self.char.nu[-1], 1001)
+            self.nu0 = nu_new[np.argmax(self.char.eta(nu_new))]
 
 # %%
 

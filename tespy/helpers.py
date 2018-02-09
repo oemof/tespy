@@ -682,6 +682,23 @@ def num_fluids(fluids):
     return n
 
 
+def single_fluid(fluids):
+    r"""
+    returns the name of the single fluid (x=1) in a fluid vector
+
+    :param fluids: fluid vector {fluid: mass fraction}
+    :type fluids: dict
+    :returns: fluid (str) - name of the fluid
+    """
+
+    if num_fluids(fluids) == 1:
+        for fluid, x in fluids.items():
+            if x > err:
+                return fluid
+    else:
+        return []
+
+
 def fluid_structure(fluid):
     """
     gets the chemical formular of a fluid

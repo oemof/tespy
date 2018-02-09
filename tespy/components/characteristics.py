@@ -285,7 +285,7 @@ class compressor:
                 (len(z_hist) > 5 and
                 z_hist[(len(z_hist) - 5):] == 5 * [z_hist[-1]])):
                 raise ValueError('Given pressure ratio can not be archieved'
-                                 'with given speedline.')
+                                 ' with given speedline.')
 
 #        print(time.time() - tmp)
         return vigv

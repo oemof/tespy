@@ -4437,7 +4437,7 @@ class heat_exchanger(component):
                     if not i[0].h_set:
                         i[0].h *= 1.05
                     if not o[1].h_set:
-                        o[1].h *= 1.05
+                        o[1].h *= 0.95
 
         if self.ttd_l_set:
             expr = False
@@ -4449,7 +4449,7 @@ class heat_exchanger(component):
                     if not i[1].h_set:
                         i[1].h *= 1.05
                     if not o[0].h_set:
-                        o[0].h *= 1.05
+                        o[0].h *= 0.95
 
     def initialise_source_p(self, c):
         r"""

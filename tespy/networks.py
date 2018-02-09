@@ -127,8 +127,16 @@ class network:
                                network.T_unit[self.T][1])
 
         for f in self.fluids:
-            hlp.molar_masses[f] = CPPSI('M', f)
-            hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+            try:
+                hlp.molar_masses[f] = CPPSI('M', f)
+            except:
+                hlp.molar_masses[f] = 1
+
+            try:
+                hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+            except:
+                hlp.gas_constants[f] = np.nan
+
 
         hlp.memorise(len(self.fluids))
 
@@ -410,8 +418,14 @@ class network:
                 self.init_source(c, c.s)
 
         for c in self.conns.index:
-            self.init_target(c, c.t)
-            self.init_source(c, c.s)
+            if hlp.num_fluids(c.fluid) != 0:
+                self.init_target(c, c.t)
+                self.init_source(c, c.s)
+
+        for c in self.conns.index[::-1]:
+            if hlp.num_fluids(c.fluid) != 0:
+                self.init_source(c, c.s)
+                self.init_target(c, c.t)
 
     def init_target(self, c, start):
         """
@@ -428,15 +442,18 @@ class network:
         if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
                 isinstance(c.t, cmp.heat_exchanger) or
                 isinstance(c.t, cmp.subsys_interface)):
-            inconn = [x for x in self.comps.loc[c.s].o if
-                      x in self.comps.loc[c.t].i]
-            inconn_id = self.comps.loc[c.t].i.tolist().index(inconn[0])
-            outconn = self.comps.loc[c.t].o.tolist()[inconn_id]
-            for fluid, x in c.fluid.items():
-                if not outconn.fluid_set[fluid]:
-                    outconn.fluid[fluid] = x
 
-            self.init_target(outconn, start)
+            outc = pd.DataFrame()
+            outc['s'] = self.conns.s == c.t
+            outc['s_id'] = self.conns.s_id == c.t_id.replace('in', 'out')
+            conn, cid = outc['s'] == True, outc['s_id'] == True
+            outc = outc.index[conn & cid][0]
+
+            for fluid, x in c.fluid.items():
+                if not outc.fluid_set[fluid]:
+                    outc.fluid[fluid] = x
+
+            self.init_target(outc, start)
 
         if isinstance(c.t, cmp.splitter):
             for outconn in self.comps.loc[c.t].o:
@@ -470,15 +487,18 @@ class network:
         if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
                 isinstance(c.s, cmp.heat_exchanger) or
                 isinstance(c.s, cmp.subsys_interface)):
-            outconn = [x for x in self.comps.loc[c.t].i if
-                       x in self.comps.loc[c.s].o]
-            outconn_id = self.comps.loc[c.s].o.tolist().index(outconn[0])
-            inconn = self.comps.loc[c.s].i.tolist()[outconn_id]
-            for fluid, x in c.fluid.items():
-                if not inconn.fluid_set[fluid]:
-                    inconn.fluid[fluid] = x
 
-            self.init_source(inconn, start)
+            inc = pd.DataFrame()
+            inc['t'] = self.conns.t == c.s
+            inc['t_id'] = self.conns.t_id == c.s_id.replace('out', 'in')
+            conn, cid = inc['t'] == True, inc['t_id'] == True
+            inc = inc.index[conn & cid][0]
+
+            for fluid, x in c.fluid.items():
+                if not inc.fluid_set[fluid]:
+                    inc.fluid[fluid] = x
+
+            self.init_source(inc, start)
 
         if isinstance(c.s, cmp.splitter):
             for inconn in self.comps.loc[c.s].i:
@@ -712,16 +732,17 @@ class network:
                 s_id = df_tmp['s_id'] == True
                 t = df_tmp['t'] == True
                 t_id = df_tmp['t_id'] == True
-                conn = df_tmp.index[s & s_id & t & t_id][0]
-                if not c.m_set:
-                    c.m = df.loc[conn].m * network.m_unit[self.m]
-                if not c.p_set:
-                    c.p = df.loc[conn].p * network.p_unit[self.p]
-                if not c.h_set:
-                    c.h = df.loc[conn].h * network.h_unit[self.h]
-                for fluid in self.fluids:
-                    if not c.fluid_set[fluid]:
-                        c.fluid[fluid] = df.loc[conn][fluid]
+                if len(df_tmp.index[s & s_id & t & t_id]) > 0:
+                    conn = df_tmp.index[s & s_id & t & t_id][0]
+                    if not c.m_set:
+                        c.m = df.loc[conn].m * network.m_unit[self.m]
+                    if not c.p_set:
+                        c.p = df.loc[conn].p * network.p_unit[self.p]
+                    if not c.h_set:
+                        c.h = df.loc[conn].h * network.h_unit[self.h]
+                    for fluid in self.fluids:
+                        if not c.fluid_set[fluid]:
+                            c.fluid[fluid] = df.loc[conn][fluid]
 
             for c in self.conns.index:
                 if c.T_set and not isinstance(c.T, con.ref):
@@ -893,24 +914,18 @@ class network:
         try:
             vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
         except:
-            if self.num_vars * len(self.conns.index) > len(self.vec_res):
-                msg = ('You have not provided enough parameters:',
-                       self.num_vars * len(self.conns.index), 'required, ',
-                       len(self.vec_res), 'given.')
-                raise hlp.MyNetworkError(msg)
-            else:
-                msg = ('error calculating the network:\n'
-                       'singularity in jacobian matrix, possible reasons are\n'
-                       '-> given Temperature with given pressure in two phase '
-                       'region, try setting enthalpy instead or '
-                       'provide accurate starting value for pressure.\n'
-                       '-> given logarithmic temperature differences '
-                       'or kA-values for heat exchangers, \n'
-                       '-> support better starting values.\n'
-                       '-> bad starting value for fuel mass flow of '
-                       'combustion chamber, provide small (near to zero, '
-                       'but not zero) starting value.')
-                raise hlp.MyNetworkError(msg)
+            msg = ('error calculating the network:\n'
+                   'singularity in jacobian matrix, possible reasons are\n'
+                   '-> given Temperature with given pressure in two phase '
+                   'region, try setting enthalpy instead or '
+                   'provide accurate starting value for pressure.\n'
+                   '-> given logarithmic temperature differences '
+                   'or kA-values for heat exchangers, \n'
+                   '-> support better starting values.\n'
+                   '-> bad starting value for fuel mass flow of '
+                   'combustion chamber, provide small (near to zero, '
+                   'but not zero) starting value.')
+            raise hlp.MyNetworkError(msg)
 
         # add increment
         i = 0
@@ -951,22 +966,53 @@ class network:
             # make sure, that at given temperatures values stay within feasible
             # enthalpy range: calculate maximum enthalpy and compare with
             # acutal value
-            if self.iter < 5 and c.T_set:
-                h_max = hlp.h_mix_pT(c.as_list(), self.T_range[1])
+            if self.iter < 5 and c.T_set and not c.h_set:
+                try:
+                    T_max = CPPSI('Tmax', 'T', 0,  'P', 0,
+                                  hlp.single_fluid(c.fluid)) * 0.99
+                except:
+                    T_max = self.T_range[1]
+
+                if T_max > self.T_range[1]:
+                    T_max = self.T_range[1]
+
+                p_temp = c.p
+                if 'INCOMP::' in hlp.single_fluid(c.fluid):
+                    c.p = CPPSI('P', 'T', T_max, 'Q', 0,
+                                hlp.single_fluid(c.fluid)) * 1.01
+
+                h_max = hlp.h_mix_pT(c.as_list(), T_max)
+                c.p = p_temp
                 if c.h > h_max:
                     c.h = h_max * 0.98
+
                 if hasattr(c, 'T_ref'):
                     c = c.T_ref.obj
-                    h_max = hlp.h_mix_pT(c.as_list(), self.T_range[1])
+                    p_temp = c.p
+                    if 'INCOMP::' in hlp.single_fluid(c.fluid):
+                        c.p = CPPSI('P', 'T', T_max, 'Q', 0,
+                                    hlp.single_fluid(c.fluid)) * 1.01
+
+                    h_max = hlp.h_mix_pT(c.as_list(), T_max)
+                    c.p = p_temp
                     if c.h > h_max:
                         c.h = h_max * 0.98
 
-                h_min = hlp.h_mix_pT(c.as_list(), self.T_range[0])
+                try:
+                    T_min = CPPSI('Tmin', 'T', 0,  'P', 0,
+                                  hlp.single_fluid(c.fluid)) * 1.01
+                except:
+                    T_min = self.T_range[0]
+
+                if T_min < self.T_range[0]:
+                    T_min = self.T_range[0]
+
+                h_min = hlp.h_mix_pT(c.as_list(), T_min)
                 if c.h < h_min:
                     c.h = h_min * 1.02
                 if hasattr(c, 'T_ref'):
                     c = c.T_ref.obj
-                    h_min = hlp.h_mix_pT(c.as_list(), self.T_range[0])
+                    h_min = hlp.h_mix_pT(c.as_list(), T_min)
                     if c.h < h_min:
                         c.h = h_min * 1.02
 

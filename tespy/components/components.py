@@ -118,11 +118,18 @@ class component:
         else:
             self.label = label
 
-        self.mode = 'auto'
+        self.mode = kwargs.get('mode', 'auto')
+
+        if self.mode not in ['man', 'auto']:
+            msg = 'Mode must be \'man\' or \'auto\'.'
+            raise TypeError(msg)
+
+        self.design = self.default_design()
+        self.offdesign = self.default_offdesign()
 
         # set default values
         for key in self.attr():
-            if key != 'mode':
+            if key != 'mode' and key != 'design' and key != 'offdesign':
                 self.__dict__.update({key: 0})
                 self.__dict__.update({key + '_set': False})
 
@@ -148,6 +155,16 @@ class component:
                     else:
                         msg = 'mode must be \'man\' or \'auto\'.'
                         raise TypeError(msg)
+                elif key == 'design' or key == 'offdesign':
+                    if not isinstance(kwargs[key], list):
+                        msg = 'Please provide the design parameters as list!'
+                        raise ValueError(msg)
+                    if set(kwargs[key]).issubset(self.attr()):
+                        self.__dict__.update({key: kwargs[key]})
+                    else:
+                        msg = ('Available parameters for (off-)design'
+                               'specification are: ' + str(self.attr()) + '.')
+                        raise ValueError(msg)
                 else:
                     msg = ('Specified value does not match requirements. '
                            'Only numeric parameters are allowed.')
@@ -173,13 +190,11 @@ class component:
             if key not in self.attr():
                 invalid_keys = np.append(invalid_keys, key)
             else:
-                if np.isnan(kwargs[key]):
-                    self.__dict__.update({key + '_set': False})
-                elif (type(kwargs[key]) == float or
-                      type(kwargs[key]) == np.float64 or
-                      type(kwargs[key]) == int or
-                      kwargs[key] == 'var' or
-                      key == 'fuel'):
+                if (type(kwargs[key]) == float or
+                        type(kwargs[key]) == np.float64 or
+                        type(kwargs[key]) == int or
+                        kwargs[key] == 'var' or
+                        key == 'fuel'):
                     self.__dict__.update({key: kwargs[key]})
                     self.__dict__.update({key + '_set': True})
                     if kwargs[key] == 'var':
@@ -191,6 +206,18 @@ class component:
                     else:
                         msg = 'mode must be \'man\' or \'auto\'.'
                         raise TypeError(msg)
+                elif key == 'design' or key == 'offdesign':
+                    if not isinstance(kwargs[key], list):
+                        msg = 'Please provide the design parameters as list!'
+                        raise ValueError(msg)
+                    if set(kwargs[key]).issubset(self.attr()):
+                        self.__dict__.update({key: kwargs[key]})
+                    else:
+                        msg = ('Available parameters for (off-)design'
+                               'specification are: ' + str(self.attr()) + '.')
+                        raise ValueError(msg)
+                elif np.isnan(kwargs[key]):
+                    self.__dict__.update({key + '_set': False})
 
                 else:
                     msg = ('Specified value does not match requirements. '
@@ -227,7 +254,7 @@ class component:
         return
 
     def attr(self):
-        return ['mode']
+        return ['mode', 'design', 'offdesign']
 
     def inlets(self):
         return []
@@ -235,10 +262,10 @@ class component:
     def outlets(self):
         return []
 
-    def design(self):
+    def default_design(self):
         return []
 
-    def offdesign(self):
+    def default_offdesign(self):
         return []
 
     def equations(self, nw):
@@ -785,11 +812,11 @@ class turbomachine(component):
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
-    **design parameters**
+    **default design parameters**
 
     - pr, eta_s
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - char
 
@@ -802,10 +829,10 @@ class turbomachine(component):
     def attr(self):
         return (component.attr(self) + ['P', 'eta_s', 'pr', 'char'])
 
-    def design(self):
+    def default_design(self):
         return ['pr', 'eta_s']
 
-    def offdesign(self):
+    def default_offdesign(self):
         return ['char']
 
     def inlets(self):
@@ -1105,11 +1132,11 @@ class pump(turbomachine):
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
-    **design parameters**
+    **default design parameters**
 
     - pr, eta_s
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - char
 
@@ -1328,11 +1355,11 @@ class compressor(turbomachine):
 
     - vigv: variable inlet guide vane angle
 
-    **design parameters**
+    **default design parameters**
 
     - pr, eta_s
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - char
 
@@ -1660,11 +1687,11 @@ class turbine(turbomachine):
 
     - cone: cone law to apply in offdesign calculation
 
-    **design parameters**
+    **default design parameters**
 
     - pr, eta_s
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - char
 
@@ -1684,8 +1711,8 @@ class turbine(turbomachine):
     def attr(self):
         return turbomachine.attr(self) + ['cone']
 
-    def offdesign(self):
-        return turbomachine.offdesign(self) + ['cone']
+    def default_offdesign(self):
+        return turbomachine.default_offdesign(self) + ['cone']
 
     def additional_equations(self, nw):
         r"""
@@ -3290,11 +3317,11 @@ class vessel(component):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
 
-    **design parameters**
+    **default design parameters**
 
     - pr
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - zeta
 
@@ -3312,10 +3339,10 @@ class vessel(component):
     def attr(self):
         return component.attr(self) + ['pr', 'zeta']
 
-    def design(self):
+    def default_design(self):
         return ['pr']
 
-    def offdesign(self):
+    def default_offdesign(self):
         return ['zeta']
 
     def inlets(self):
@@ -3505,11 +3532,11 @@ class heat_exchanger_simple(component):
         - kA and t_a, if you want to calculate the heat flux on basis of the
           ambient conditions
 
-    **design parameters**
+    **default design parameters**
 
     - pr
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - kA
 
@@ -3525,17 +3552,17 @@ class heat_exchanger_simple(component):
 
     **Improvements**
 
-    - check design and offdesign parameters
+    - check design and default offdesign parameters
     """
 
     def attr(self):
         return component.attr(self) + ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
                                        'kA', 't_a', 't_a_design']
 
-    def design(self):
+    def default_design(self):
         return ['pr']
 
-    def offdesign(self):
+    def default_offdesign(self):
         return ['kA']
 
     def inlets(self):
@@ -3880,11 +3907,11 @@ class pipe(heat_exchanger_simple):
       :math:`kA=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in K
 
-    **design parameters**
+    **default design parameters**
 
     - pr
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - kA
 
@@ -3900,7 +3927,7 @@ class pipe(heat_exchanger_simple):
 
     **Improvements**
 
-    - check design and offdesign parameters
+    - check design and default offdesign parameters
     """
     def component(self):
         return 'pipe'
@@ -3928,11 +3955,11 @@ class heat_exchanger(component):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
-    **design parameters**
+    **default design parameters**
 
     - pr1, pr2, ttd_u, ttd_l
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - zeta1, zeta2, kA
 
@@ -3968,10 +3995,10 @@ class heat_exchanger(component):
     def outlets(self):
         return ['out1', 'out2']
 
-    def design(self):
+    def default_design(self):
         return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
 
-    def offdesign(self):
+    def default_offdesign(self):
         return ['kA', 'zeta1', 'zeta2']
 
     def component(self):
@@ -4601,11 +4628,11 @@ class condenser(heat_exchanger):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
-    **design parameters**
+    **default design parameters**
 
     - pr2, ttd_u, ttd_l
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - zeta2, kA
 
@@ -4627,11 +4654,11 @@ class condenser(heat_exchanger):
     def component(self):
         return 'condenser'
 
-    def design(self):
-        return [n for n in heat_exchanger.design(self) if n != 'pr1']
+    def default_design(self):
+        return [n for n in heat_exchanger.default_design(self) if n != 'pr1']
 
-    def offdesign(self):
-        return [n for n in heat_exchanger.offdesign(self) if n != 'zeta1']
+    def default_offdesign(self):
+        return [n for n in heat_exchanger.default_offdesign(self) if n != 'zeta1']
 
     def additional_equations(self, nw):
         r"""
@@ -4811,11 +4838,11 @@ class desuperheater(heat_exchanger):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
-    **design parameters**
+    **default design parameters**
 
     - pr1, pr2, ttd_u, ttd_l
 
-    **offdesign parameters**
+    **default offdesign parameters**
 
     - zeta1, zeta2, kA
 
@@ -4837,11 +4864,11 @@ class desuperheater(heat_exchanger):
     def component(self):
         return 'desuperheater'
 
-    def design(self):
-        return heat_exchanger.design(self)
+    def default_design(self):
+        return heat_exchanger.default_design(self)
 
-    def offdesign(self):
-        return heat_exchanger.offdesign(self)
+    def default_offdesign(self):
+        return heat_exchanger.default_offdesign(self)
 
     def additional_equations(self, nw):
         r"""

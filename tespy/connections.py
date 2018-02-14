@@ -142,7 +142,7 @@ class connection:
             if key == 'fluid_balance':
                 self.fluid_balance = kwargs[key]
             if key == 'design' or key == 'offdesign':
-                if not isinstance(self.design, list):
+                if not isinstance(kwargs[key], list):
                     msg = 'Please provide the design parameters as list!'
                     raise ValueError(msg)
                 if set(kwargs[key]).issubset(self.attr()):
@@ -185,7 +185,7 @@ class connection:
             elif key == 'fluid_balance':
                 self.fluid_balance = kwargs[key]
             elif key == 'design' or key == 'offdesign':
-                if not isinstance(self.design, list):
+                if not isinstance(kwargs[key], list):
                     msg = ('Please provide the (off-)design parameters as'
                            ' list!')
                     raise ValueError(msg)

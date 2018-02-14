@@ -843,9 +843,9 @@ class network:
 
         **components**
 
-        If :code:`cp.mode == 'auto'` all parameters stated the components
-        method :code:`cp.design()` will be unset and all parameters stated in
-        the components method :code:`cp.offdesign()` will be set instead.
+        If :code:`cp.mode == 'auto'` all parameters stated in the components
+        attribute :code:`cp.design` will be unset and all parameters stated in
+        the components attribute :code:`cp.offdesign` will be set instead.
 
         The auto-switch can be deactivated by using
         :code:`your_component.set_attr(mode='man')`
@@ -859,10 +859,10 @@ class network:
         """
         for cp in self.comps.index:
             if cp.mode == 'auto':
-                for var in cp.design():
+                for var in cp.design:
                     if cp.__dict__[var + '_set']:
                         cp.__dict__[var + '_set'] = False
-                for var in cp.offdesign():
+                for var in cp.offdesign:
                     if not cp.__dict__[var + '_set']:
                         cp.__dict__[var + '_set'] = True
 
@@ -1775,10 +1775,11 @@ class network:
                 for b in self.busses:
                     if cp in b.comps.index.tolist():
                         busses += [str(b)[str(b).find(' at ') + 4:-1],
-                                  str(b.comps.loc[cp][0]).replace('.', dec)]
+                                   str(b.comps.loc[cp][0]).replace('.', dec)]
                 parset = []
                 for var in cp.attr():
-                    if var != 'label' and var != 'mode':
+                    if (var != 'label' and var != 'mode' and
+                            var != 'design' and var != 'offdesign'):
                         val = str(cp.get_attr(var)).replace('.', dec)
                         parset += [var, val]
                         if cp.get_attr(var + '_set'):

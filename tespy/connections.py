@@ -174,19 +174,6 @@ class connection:
                 self.__dict__.update({key: kwargs[key]})
                 if isinstance(kwargs[key], ref):
                     self.__dict__.update({key + '_set': True})
-                elif key == 'fluid_balance':
-                    self.fluid_balance = kwargs[key]
-                elif key == 'design' or key == 'offdesign':
-                    if not isinstance(self.design, list):
-                        msg = ('Please provide the (off-)design parameters as'
-                               ' list!')
-                        raise ValueError(msg)
-                    if set(kwargs[key]).issubset(self.attr()):
-                        self.__dict__.update({key: kwargs[key]})
-                    else:
-                        msg = ('Available parameters for (off-)design'
-                               'specification are: ' + str(self.attr()) + '.')
-                        raise ValueError(msg)
                 else:
                     if np.isnan(kwargs[key]):
                         self.__dict__.update({key + '_set': False})
@@ -194,6 +181,20 @@ class connection:
                             delattr(self, key + '_ref')
                     else:
                         self.__dict__.update({key + '_set': True})
+
+            elif key == 'fluid_balance':
+                self.fluid_balance = kwargs[key]
+            elif key == 'design' or key == 'offdesign':
+                if not isinstance(self.design, list):
+                    msg = ('Please provide the (off-)design parameters as'
+                           ' list!')
+                    raise ValueError(msg)
+                if set(kwargs[key]).issubset(self.attr()):
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = ('Available parameters for (off-)design'
+                           'specification are: ' + str(self.attr()) + '.')
+                    raise ValueError(msg)
 
             if key == 'fluid':
                 self.fluid = {}

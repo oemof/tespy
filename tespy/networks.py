@@ -30,102 +30,69 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 
 
 class network:
-    """
-    class network aggregates information on components, connections and busses
+    """r
+
+    The network class aggregates information on components, connections and
+    busses and performs calculation and processing.
+
+    :param fluids: networks fluids
+    :type fluids: list
+    :returns: no return value
+    :raises: - :code:`MyNetworkError`, if the unit system for mass flow
+               pressure, enthalpy or temperature is not available
+             - :code:`TypeError`, if the ranges for pressure,
+               enthalpy or temperature are not stated as list
+
+    **allowed keywords** in kwargs (also see network.attr()):
+
+    - m_unit (*str*)
+    - p_unit (*str*), p_range (*list*)
+    - h_unit (*str*), h_range (*list*)
+    - T_unit (*str*), T_range (*list*)
+    - memo (*bool*), initialise fluid property memorisation?
+
+    **example**
+
+    .. code-block:: python
+
+        from tespy import nwk
+
+        fluid_list = ['Air', 'water']
+        nw = nwk.network(fluid_list, p_unit='bar')
+
+    **improvements**
+
     """
 
     # unit systems, calculation is alsways performed with SI-units
-    m_unit = {
+    # zu conversion/converter umbenennen?
+    m = {
         'kg / s': 1,
         't / h': 3.6
     }
-    p_unit = {
+    p = {
         'Pa': 1,
         'psi': 6.8948e3,
         'bar': 1e5,
         'MPa': 1e6
     }
-    h_unit = {
+    h = {
         'J / kg': 1,
         'kJ / kg': 1e3,
         'MJ / kg': 1e6
     }
-    T_unit = {
+    T = {
         'C': [273.15, 1],
         'F': [459.67, 5 / 9],
         'K': [0, 1]
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, fluids, **kwargs):
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
-        self.fluids = []
 
-        self.convergence = np.array([0, 0, 0], dtype=object)
-        self.busses = []
+        self.fluids = sorted(fluids)
 
-        # standard unit set
-        self.m = 'kg / s'
-        self.p = 'bar'
-        self.h = 'J / kg'
-        self.T = 'K'
-
-        # standard value range
-        self.p_range = [0.02, 300]
-        self.h_range = [1e3, 7e6]
-        self.T_range = [273.15, 1773.15]
-
-        for key in kwargs:
-            if key in self.var():
-                self.__dict__.update({key: kwargs[key]})
-
-        if not isinstance(self.fluids, list):
-            raise hlp.MyNetworkError('Fluids must be stated as list.')
-        else:
-            self.fluids = sorted(self.fluids)
-
-        if self.m not in network.m_unit.keys():
-            msg = ('Allowed units for mass flow are: ' +
-                   str(network.m_unit.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.p not in network.p_unit.keys():
-            msg = ('Allowed units for pressure are: ' +
-                   str(network.p_unit.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.h not in network.h_unit.keys():
-            msg = ('Allowed units for enthalpy are: ' +
-                   str(network.h_unit.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.T not in network.T_unit.keys():
-            msg = ('Allowed units for temperature are: ' +
-                   str(network.T_unit.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if not isinstance(self.p_range, list):
-            msg = ('Specify the value range as list: [p_min, p_max]')
-            raise hlp.MyNetworkError(msg)
-        else:
-            self.p_range[0] *= network.p_unit[self.p]
-            self.p_range[1] *= network.p_unit[self.p]
-
-        if not isinstance(self.h_range, list):
-            msg = ('Specify the value range as list: [h_min, h_max]')
-            raise hlp.MyNetworkError(msg)
-        else:
-            self.h_range[0] *= network.h_unit[self.h]
-            self.h_range[1] *= network.h_unit[self.h]
-
-        if not isinstance(self.T_range, list):
-            msg = ('Specify the value range as list: [T_min, T_max]')
-            raise hlp.MyNetworkError(msg)
-        else:
-            self.T_range[0] = ((self.T_range[0] + network.T_unit[self.T][0]) *
-                               network.T_unit[self.T][1])
-            self.T_range[1] = ((self.T_range[1] + network.T_unit[self.T][0]) *
-                               network.T_unit[self.T][1])
-
+        # initialise helpers
         for f in self.fluids:
             try:
                 hlp.molar_masses[f] = CPPSI('M', f)
@@ -137,11 +104,133 @@ class network:
             except:
                 hlp.gas_constants[f] = np.nan
 
+        # initialise memorisation function
+        if kwargs.get('memo', True):
+            hlp.memorise(len(self.fluids))
 
-        hlp.memorise(len(self.fluids))
+        self.convergence = np.array([0, 0, 0], dtype=object)
+        self.busses = []
 
-    def var(self):
-        return ['m', 'p', 'h', 'T', 'p_range', 'h_range', 'T_range',  'fluids']
+        # standard unit set
+        self.m_unit = 'kg / s'
+        self.p_unit = 'Pa'
+        self.h_unit = 'J / kg'
+        self.T_unit = 'K'
+
+        # standard value range
+        self.p_range = [2e3, 300e5]
+        self.h_range = [1e3, 7e6]
+        self.T_range = [273.16, 1773.15]
+
+        # add attributes from kwargs
+        for key in kwargs:
+            if key in self.attr():
+                self.__dict__.update({key: kwargs[key]})
+
+        # unit sets
+        if self.m_unit not in network.m.keys():
+            msg = ('Allowed units for mass flow are: ' +
+                   str(network.m.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.p_unit not in network.p.keys():
+            msg = ('Allowed units for pressure are: ' +
+                   str(network.p.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.h_unit not in network.h.keys():
+            msg = ('Allowed units for enthalpy are: ' +
+                   str(network.h.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.T_unit not in network.T.keys():
+            msg = ('Allowed units for temperature are: ' +
+                   str(network.T.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        # value ranges
+        if not isinstance(self.p_range, list):
+            msg = ('Specify the value range as list: [p_min, p_max]')
+            raise TypeError(msg)
+        else:
+            self.p_range[0] *= network.p[self.p_unit]
+            self.p_range[1] *= network.p[self.p_unit]
+
+        if not isinstance(self.h_range, list):
+            msg = ('Specify the value range as list: [h_min, h_max]')
+            raise TypeError(msg)
+        else:
+            self.h_range[0] *= network.h[self.h_unit]
+            self.h_range[1] *= network.h[self.h_unit]
+
+        if not isinstance(self.T_range, list):
+            msg = ('Specify the value range as list: [T_min, T_max]')
+            raise TypeError(msg)
+        else:
+            self.T_range[0] = ((self.T_range[0] + network.T[self.T_unit][0]) *
+                               network.T[self.T_unit][1])
+            self.T_range[1] = ((self.T_range[1] + network.T[self.T_unit][0]) *
+                               network.T[self.T_unit][1])
+
+    def set_attr(self, **kwargs):
+        """
+        allows adjustments of unit system and fluid property ranges
+        """
+
+        # add attributes from kwargs
+        for key in kwargs:
+            if key in self.attr():
+                self.__dict__.update({key: kwargs[key]})
+
+        # unit sets
+        if self.m_unit not in network.m.keys():
+            msg = ('Allowed units for mass flow are: ' +
+                   str(network.m.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.p_unit not in network.p.keys():
+            msg = ('Allowed units for pressure are: ' +
+                   str(network.p.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.h_unit not in network.h.keys():
+            msg = ('Allowed units for enthalpy are: ' +
+                   str(network.h.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.T_unit not in network.T.keys():
+            msg = ('Allowed units for temperature are: ' +
+                   str(network.T.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        # value ranges
+        if not isinstance(self.p_range, list):
+            msg = ('Specify the value range as list: [p_min, p_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.p_range[0] *= network.p[self.p_unit]
+            self.p_range[1] *= network.p[self.p_unit]
+
+        if not isinstance(self.h_range, list):
+            msg = ('Specify the value range as list: [h_min, h_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.h_range[0] *= network.h[self.h_unit]
+            self.h_range[1] *= network.h[self.h_unit]
+
+        if not isinstance(self.T_range, list):
+            msg = ('Specify the value range as list: [T_min, T_max]')
+            raise hlp.MyNetworkError(msg)
+        else:
+            self.T_range[0] = ((self.T_range[0] + network.T[self.T_unit][0]) *
+                               network.T[self.T_unit][1])
+            self.T_range[1] = ((self.T_range[1] + network.T[self.T_unit][0]) *
+                               network.T[self.T_unit][1])
+
+    def attr(self):
+        return ['m_unit', 'p_unit', 'h_unit', 'T_unit',
+                'p_range', 'h_range', 'T_range',
+                'memo']
 
     def add_subsys(self, *args):
         """
@@ -303,8 +392,8 @@ class network:
         :returns: no return value
         """
 
-        print('Have you adjusted the value ranges for pressure, enthalpy and '
-              'temperature according to the specified unit system?')
+        print('##### Have you adjusted the value ranges for pressure, enthalpy'
+              ' and temperature according to the specified unit system? #####')
 
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids '
@@ -532,19 +621,19 @@ class network:
         """
         for c in self.conns.index:
             if not isinstance(c.m, con.ref):
-                c.m *= network.m_unit[self.m]
+                c.m *= network.m[self.m_unit]
             if not c.m_set:
                 c.m = c.m0
 
             self.init_p0(c)
             if not isinstance(c.p, con.ref):
-                c.p *= network.p_unit[self.p]
+                c.p *= network.p[self.p_unit]
             if not c.p_set:
                 c.p = c.p0
 
             self.init_h0(c)
             if not isinstance(c.h, con.ref):
-                c.h *= network.h_unit[self.h]
+                c.h *= network.h[self.h_unit]
             if not c.h_set:
                 c.h = c.h0
 
@@ -587,8 +676,8 @@ class network:
                 c.h = hlp.h_mix_pQ(flow, c.x)
 
             if c.T_set and not isinstance(c.T, con.ref):
-                c.T = ((c.T + network.T_unit[self.T][0]) *
-                       network.T_unit[self.T][1])
+                c.T = ((c.T + network.T[self.T_unit][0]) *
+                       network.T[self.T_unit][1])
                 flow = [c.m, c.p, c.h, c.fluid]
                 c.h = hlp.h_mix_pT(flow, c.T)
 
@@ -618,7 +707,7 @@ class network:
                 c.p0 = (source_p + target_p) / 2
 
         else:
-            c.p0 *= network.p_unit[self.p]
+            c.p0 *= network.p[self.p_unit]
 
     def init_h0(self, c):
         """
@@ -646,7 +735,7 @@ class network:
                 c.h0 = (source_h + target_h) / 2
 
         else:
-            c.h0 *= network.h_unit[self.h]
+            c.h0 *= network.h[self.h_unit]
 
     def init_refobj(self):
         """
@@ -704,9 +793,9 @@ class network:
                 t_id = df_tmp['t_id'] == True
                 # overwrite all properties with design file
                 conn = df_tmp.index[s & s_id & t & t_id][0]
-                c.m = df.loc[conn].m * network.m_unit[self.m]
-                c.p = df.loc[conn].p * network.p_unit[self.p]
-                c.h = df.loc[conn].h * network.h_unit[self.h]
+                c.m = df.loc[conn].m * network.m[self.m_unit]
+                c.p = df.loc[conn].p * network.p[self.p_unit]
+                c.h = df.loc[conn].h * network.h[self.h_unit]
                 for fluid in self.fluids:
                     c.fluid[fluid] = df.loc[conn][fluid]
 
@@ -735,11 +824,11 @@ class network:
                 if len(df_tmp.index[s & s_id & t & t_id]) > 0:
                     conn = df_tmp.index[s & s_id & t & t_id][0]
                     if not c.m_set:
-                        c.m = df.loc[conn].m * network.m_unit[self.m]
+                        c.m = df.loc[conn].m * network.m[self.m_unit]
                     if not c.p_set:
-                        c.p = df.loc[conn].p * network.p_unit[self.p]
+                        c.p = df.loc[conn].p * network.p[self.p_unit]
                     if not c.h_set:
-                        c.h = df.loc[conn].h * network.h_unit[self.h]
+                        c.h = df.loc[conn].h * network.h[self.h_unit]
                     for fluid in self.fluids:
                         if not c.fluid_set[fluid]:
                             c.fluid[fluid] = df.loc[conn][fluid]
@@ -873,10 +962,10 @@ class network:
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /
-                   network.T_unit[self.T][1] - network.T_unit[self.T][0])
-            c.m /= network.m_unit[self.m]
-            c.p /= network.p_unit[self.p]
-            c.h /= network.h_unit[self.h]
+                   network.T[self.T_unit][1] - network.T[self.T_unit][0])
+            c.m /= network.m[self.m_unit]
+            c.p /= network.p[self.p_unit]
+            c.h /= network.h[self.h_unit]
             c.m0 = c.m
             c.p0 = c.p
             c.h0 = c.h
@@ -929,7 +1018,6 @@ class network:
 
         # add increment
         i = 0
-
         for c in self.conns.index:
             if not c.m_set or hasattr(c, 'm_ref'):
                 c.m += vec_z[i * (self.num_vars)]
@@ -953,73 +1041,96 @@ class network:
                 l += 1
             i += 1
 
-            # prevent bad changes within solution process
-            if c.p <= self.p_range[0]:
-                c.p = self.p_range[0]
-            if c.p >= self.p_range[1]:
-                c.p = self.p_range[1]
-            if c.h < self.h_range[0]:
-                c.h = self.h_range[0]
-            if c.h > self.h_range[1]:
-                c.h = self.h_range[1]
-
-            # make sure, that at given temperatures values stay within feasible
-            # enthalpy range: calculate maximum enthalpy and compare with
-            # acutal value
-            if self.iter < 5 and c.T_set and not c.h_set:
-                try:
-                    T_max = CPPSI('Tmax', 'T', 0,  'P', 0,
-                                  hlp.single_fluid(c.fluid)) * 0.99
-                except:
-                    T_max = self.T_range[1]
-
-                if T_max > self.T_range[1]:
-                    T_max = self.T_range[1]
-
-                p_temp = c.p
-                if 'INCOMP::' in hlp.single_fluid(c.fluid):
-                    c.p = CPPSI('P', 'T', T_max, 'Q', 0,
-                                hlp.single_fluid(c.fluid)) * 1.01
-
-                h_max = hlp.h_mix_pT(c.as_list(), T_max)
-                c.p = p_temp
-                if c.h > h_max:
-                    c.h = h_max * 0.98
-
-                if hasattr(c, 'T_ref'):
-                    c = c.T_ref.obj
-                    p_temp = c.p
-                    if 'INCOMP::' in hlp.single_fluid(c.fluid):
-                        c.p = CPPSI('P', 'T', T_max, 'Q', 0,
-                                    hlp.single_fluid(c.fluid)) * 1.01
-
-                    h_max = hlp.h_mix_pT(c.as_list(), T_max)
-                    c.p = p_temp
-                    if c.h > h_max:
-                        c.h = h_max * 0.98
-
-                try:
-                    T_min = CPPSI('Tmin', 'T', 0,  'P', 0,
-                                  hlp.single_fluid(c.fluid)) * 1.01
-                except:
-                    T_min = self.T_range[0]
-
-                if T_min < self.T_range[0]:
-                    T_min = self.T_range[0]
-
-                h_min = hlp.h_mix_pT(c.as_list(), T_min)
-                if c.h < h_min:
-                    c.h = h_min * 1.02
-                if hasattr(c, 'T_ref'):
-                    c = c.T_ref.obj
-                    h_min = hlp.h_mix_pT(c.as_list(), T_min)
-                    if c.h < h_min:
-                        c.h = h_min * 1.02
+            self.solve_check_properties(c)
 
         # check properties for consistency
         if self.init_file is None and self.iter < 5:
             for cp in self.comps.index:
                 cp.convergence_check(self)
+
+    def solve_check_properties(self, c):
+        """
+        checks for invalid fluid properties in solution progress and adjusts
+        values if necessary
+
+        - check pressure
+        - check enthalpy
+        - check temperature
+
+        :param c: connection object to check
+        :type c: tespy.connections.connection
+        :returns: no return value
+        """
+        # pressure
+        if c.p <= self.p_range[0]:
+            c.p = self.p_range[0]
+        if c.p >= self.p_range[1]:
+            c.p = self.p_range[1]
+
+        # enthalpy
+        if c.h < self.h_range[0]:
+            c.h = self.h_range[0]
+        if c.h > self.h_range[1]:
+            c.h = self.h_range[1]
+
+        # make sure, that at given temperatures values stay within feasible
+        # range:
+        # for mixtures: calculate maximum enthalpy and compare with
+        # acutal value
+        # for pure fluids:
+        # obtain maximum temperature from fluid properties directly
+        if self.iter < 5 and c.T_set and not c.h_set:
+            self.solve_check_temperature(c, 'min')
+            self.solve_check_temperature(c, 'max')
+
+    def solve_check_temperature(self, c, pos):
+        """
+        checks for invalid fluid temperatures in solution progress and adjusts
+        values if necessary
+
+        - check if feasible temperatures are within user specified limits and
+          adjust limits if necessary
+
+        :param c: connection object to check
+        :type c: tespy.connections.connection
+        :param pos: check at upper or lower boundary
+        :type pos: str
+        :returns: no return value
+        """
+
+        val = 'T' + pos
+        if pos == 'min':
+            fac = 1.01
+            idx = 0
+        else:
+            fac = 0.99
+            idx = 1
+
+        try:
+            T = CPPSI(val, 'T', 0, 'P', 0, hlp.single_fluid(c.fluid)) * fac
+        except:
+            T = self.T_range[idx]
+
+        if pos == 'min':
+            if T < self.T_range[idx]:
+                T = self.T_range[idx]
+        else:
+            if T > self.T_range[idx]:
+                T = self.T_range[idx]
+
+        p_temp = c.p
+        if 'INCOMP::' in hlp.single_fluid(c.fluid):
+            c.p = CPPSI('P', 'T', T, 'Q', 0, hlp.single_fluid(c.fluid))
+
+        h = hlp.h_mix_pT(c.as_list(), T)
+        c.p = p_temp
+
+        if pos == 'min':
+            if c.h < h:
+                c.h = h * fac
+        else:
+            if c.h > h:
+                c.h = h * fac
 
     def solve_components(self):
         """
@@ -1398,6 +1509,7 @@ class network:
         for c in self.conns.index:
             n += [c.m_set, c.p_set, c.h_set, c.T_set, c.x_set].count(True)
             n += list(c.fluid_set.values()).count(True)
+            n += [c.fluid_balance].count(True)
 
         for b in self.busses:
             n += [b.P_set].count(True)
@@ -1437,11 +1549,11 @@ class network:
         if mode == 'post':
             # convert to SI-units
             for c in self.conns.index:
-                c.m *= network.m_unit[self.m]
-                c.p *= network.p_unit[self.p]
-                c.h *= network.h_unit[self.h]
-                c.T = ((c.T + network.T_unit[self.T][0]) *
-                       network.T_unit[self.T][1])
+                c.m *= network.m[self.m_unit]
+                c.p *= network.p[self.p_unit]
+                c.h *= network.h[self.h_unit]
+                c.T = ((c.T + network.T[self.T_unit][0]) *
+                       network.T[self.T_unit][1])
 
 # process key figures
             for b in self.busses:
@@ -1470,11 +1582,11 @@ class network:
 
             # convert back to specified units
             for c in self.conns.index:
-                c.m /= network.m_unit[self.m]
-                c.p /= network.p_unit[self.p]
-                c.h /= network.h_unit[self.h]
-                c.T = (c.T / network.T_unit[self.T][1] -
-                       network.T_unit[self.T][0])
+                c.m /= network.m[self.m_unit]
+                c.p /= network.p[self.p_unit]
+                c.h /= network.h[self.h_unit]
+                c.T = (c.T / network.T[self.T_unit][1] -
+                       network.T[self.T_unit][0])
 
     def process_post_calc(cols):
         """

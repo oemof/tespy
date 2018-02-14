@@ -781,13 +781,13 @@ class turbomachine(component):
 
     - P: power
     - eta_s: isentropic efficiency
-    - dp: inlet to outlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
     **design parameters**
 
-    - dp, eta_s
+    - pr, eta_s
 
     **offdesign parameters**
 
@@ -800,10 +800,10 @@ class turbomachine(component):
     """
 
     def attr(self):
-        return (component.attr(self) + ['P', 'eta_s', 'dp', 'char'])
+        return (component.attr(self) + ['P', 'eta_s', 'pr', 'char'])
 
     def design(self):
-        return ['dp', 'eta_s']
+        return ['pr', 'eta_s']
 
     def offdesign(self):
         return ['char']
@@ -835,7 +835,7 @@ class turbomachine(component):
         .. math::
 
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = dp \cdot p_{in} - p_{out}
+            0 = pr \cdot p_{in} - p_{out}
 
         isentropic efficiency
 
@@ -865,8 +865,8 @@ class turbomachine(component):
         if self.P_set:
             vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) - self.P]
 
-        if self.dp_set:
-            vec_res += [self.dp * inlets[0].p - outlets[0].p]
+        if self.pr_set:
+            vec_res += [self.pr * inlets[0].p - outlets[0].p]
 
         if self.eta_s_set:
             self.eta_s_res = self.eta_s_func(inlets, outlets)
@@ -939,12 +939,12 @@ class turbomachine(component):
                 P_deriv[k, k + 1, 2] = inlets[0].m
             mat_deriv += P_deriv.tolist()
 
-        if self.dp_set:
-            dp_deriv = np.zeros((num_i + num_o - 1, num_i + num_o, num_fl + 3))
+        if self.pr_set:
+            pr_deriv = np.zeros((num_i + num_o - 1, num_i + num_o, num_fl + 3))
             for k in range(num_i + num_o - 1):
-                dp_deriv[k, 0, 1] = self.dp
-                dp_deriv[k, k + 1, 1] = -1
-            mat_deriv += dp_deriv.tolist()
+                pr_deriv[k, 0, 1] = self.pr
+                pr_deriv[k, k + 1, 1] = -1
+            mat_deriv += pr_deriv.tolist()
 
         if self.eta_s_set:
             mat_deriv += self.eta_s_deriv(inlets, outlets)
@@ -1069,7 +1069,7 @@ class turbomachine(component):
         if mode == 'post':
 
             self.P = inlets[0].m * (outlets[0].h - inlets[0].h)
-            self.dp = outlets[0].p / inlets[0].p
+            self.pr = outlets[0].p / inlets[0].p
 
         if mode == 'pre':
 
@@ -1088,7 +1088,7 @@ class turbomachine(component):
                   'eta_s higher than 1 !!!!!')
         print('P = ', self.P, 'W; '
               'eta_s = ', self.eta_s, '; '
-              'dp = ', self.dp, '; '
+              'pr = ', self.pr, '; '
               'm = ', inlets[0].m, 'kg / s; '
               'Sirr = ', inlets[0].m * (s_mix_ph(o1) - s_mix_ph(i1)), 'W / K')
 
@@ -1101,13 +1101,13 @@ class pump(turbomachine):
 
     - P: power
     - eta_s: isentropic efficiency
-    - dp: inlet to outlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
     **design parameters**
 
-    - dp, eta_s
+    - pr, eta_s
 
     **offdesign parameters**
 
@@ -1324,7 +1324,7 @@ class compressor(turbomachine):
 
     - P: power
     - eta_s: isentropic efficiency
-    - dp: inlet to outlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
@@ -1334,7 +1334,7 @@ class compressor(turbomachine):
 
     **design parameters**
 
-    - dp, eta_s
+    - pr, eta_s
 
     **offdesign parameters**
 
@@ -1660,7 +1660,7 @@ class turbine(turbomachine):
 
     - P: power
     - eta_s: isentropic efficiency
-    - dp: inlet to outlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
 
@@ -1670,7 +1670,7 @@ class turbine(turbomachine):
 
     **design parameters**
 
-    - dp, eta_s
+    - pr, eta_s
 
     **offdesign parameters**
 
@@ -1864,7 +1864,7 @@ class turbine(turbomachine):
             o[0].p = i[0].p / 2
 
         if i[0].h < 5e5:
-            i[0].h = 10e5
+            i[0].h = 5e5
         if i[0].h <= o[0].h:
             o[0].h = i[0].h * 0.9
 
@@ -3293,14 +3293,14 @@ class vessel(component):
     r"""
     **available parameters**
 
-    - dp: outlet to inlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
 
     **design parameters**
 
-    - dp
+    - pr
 
     **offdesign parameters**
 
@@ -3318,10 +3318,10 @@ class vessel(component):
     """
 
     def attr(self):
-        return component.attr(self) + ['dp', 'zeta']
+        return component.attr(self) + ['pr', 'zeta']
 
     def design(self):
-        return ['dp']
+        return ['pr']
 
     def offdesign(self):
         return ['zeta']
@@ -3356,7 +3356,7 @@ class vessel(component):
 
         .. math::
 
-            0 = p_{in} \cdot dp - p_{out}
+            0 = p_{in} \cdot pr - p_{out}
 
         - :func:`tespy.components.components.component.zeta_func`
 
@@ -3370,8 +3370,8 @@ class vessel(component):
 
         vec_res += [inlets[0].h - outlets[0].h]
 
-        if self.dp_set:
-            vec_res += [inlets[0].p * self.dp - outlets[0].p]
+        if self.pr_set:
+            vec_res += [inlets[0].p * self.pr - outlets[0].p]
 
         if self.zeta_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -3403,11 +3403,11 @@ class vessel(component):
             h_deriv[k, k + 1, 2] = -1
         mat_deriv += h_deriv.tolist()
 
-        if self.dp_set:
-            dp_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            dp_deriv[0, 0, 1] = self.dp
-            dp_deriv[0, 1, 1] = -1
-            mat_deriv += dp_deriv.tolist()
+        if self.pr_set:
+            pr_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr_deriv[0, 0, 1] = self.pr
+            pr_deriv[0, 1, 1] = -1
+            mat_deriv += pr_deriv.tolist()
 
         if self.zeta_set:
             zeta_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
@@ -3470,7 +3470,7 @@ class vessel(component):
         return 5e5
 
     def calc_parameters(self, inlets, outlets, mode):
-        self.dp = outlets[0].p / inlets[0].p
+        self.pr = outlets[0].p / inlets[0].p
         self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                      (8 * inlets[0].m ** 2 *
                      (v_mix_ph(inlets[0].as_list()) +
@@ -3478,7 +3478,7 @@ class vessel(component):
 
     def print_parameters(self, inlets, outlets):
         print('##### ', self.label, ' #####')
-        print('dp = ', self.dp, '; '
+        print('pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s ; '
               'm = ', inlets[0].m, 'kg / s ; '
               'Sirr = ', inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
@@ -3493,7 +3493,7 @@ class heat_exchanger_simple(component):
     **available parameters**
 
     - Q: heat flux
-    - dp: outlet to inlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -3515,7 +3515,7 @@ class heat_exchanger_simple(component):
 
     **design parameters**
 
-    - dp
+    - pr
 
     **offdesign parameters**
 
@@ -3537,11 +3537,11 @@ class heat_exchanger_simple(component):
     """
 
     def attr(self):
-        return component.attr(self) + ['Q', 'dp', 'zeta', 'D', 'L', 'ks',
+        return component.attr(self) + ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
                                        'kA', 't_a', 't_a_design']
 
     def design(self):
-        return ['dp']
+        return ['pr']
 
     def offdesign(self):
         return ['kA']
@@ -3576,7 +3576,7 @@ class heat_exchanger_simple(component):
 
         .. math::
 
-            0 = p_{in} \cdot dp - p_{out}
+            0 = p_{in} \cdot pr - p_{out}
 
         - :func:`tespy.components.components.component.zeta_func`
         - :func:`tespy.components.components.component.lamb_func`
@@ -3594,8 +3594,8 @@ class heat_exchanger_simple(component):
         if self.Q_set:
             vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) - self.Q]
 
-        if self.dp_set:
-            vec_res += [inlets[0].p * self.dp - outlets[0].p]
+        if self.pr_set:
+            vec_res += [inlets[0].p * self.pr - outlets[0].p]
 
         if self.zeta_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -3634,11 +3634,11 @@ class heat_exchanger_simple(component):
             Q_deriv[0, 1, 2] = inlets[0].m
             mat_deriv += Q_deriv.tolist()
 
-        if self.dp_set:
-            dp_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            dp_deriv[0, 0, 1] = self.dp
-            dp_deriv[0, 1, 1] = -1
-            mat_deriv += dp_deriv.tolist()
+        if self.pr_set:
+            pr_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr_deriv[0, 0, 1] = self.pr
+            pr_deriv[0, 1, 1] = -1
+            mat_deriv += pr_deriv.tolist()
 
         if self.zeta_set:
             zeta_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
@@ -3828,7 +3828,7 @@ class heat_exchanger_simple(component):
     def calc_parameters(self, inlets, outlets, mode):
 
         self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
-        self.dp = outlets[0].p / inlets[0].p
+        self.pr = outlets[0].p / inlets[0].p
         self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                      (8 * inlets[0].m ** 2 *
                      (v_mix_ph(inlets[0].as_list()) +
@@ -3857,7 +3857,7 @@ class heat_exchanger_simple(component):
 
         print('##### ', self.label, ' #####')
         print('Q = ', self.Q, 'W; '
-              'dp = ', self.dp, '; '
+              'pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s; '
               'm = ', inlets[0].m, 'kg / s; '
               'Sq = ', inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
@@ -3877,7 +3877,7 @@ class pipe(heat_exchanger_simple):
     **available parameters**
 
     - Q: heat flux
-    - dp: outlet to inlet pressure ratio
+    - pr: outlet to inlet pressure ratio
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -3890,7 +3890,7 @@ class pipe(heat_exchanger_simple):
 
     **design parameters**
 
-    - dp
+    - pr
 
     **offdesign parameters**
 
@@ -3927,8 +3927,8 @@ class heat_exchanger(component):
       :math:`kA=\frac{\text{W}}{\text{K}}`
     - ttd_u: upper terminal temperature difference
     - ttd_l: lower terminal temperature difference
-    - dp1: outlet to inlet pressure ratio at hot side
-    - dp2: outlet to inlet pressure ratio at cold side
+    - pr1: outlet to inlet pressure ratio at hot side
+    - pr2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -3938,7 +3938,7 @@ class heat_exchanger(component):
 
     **design parameters**
 
-    - dp1, dp2, ttd_u, ttd_l
+    - pr1, pr2, ttd_u, ttd_l
 
     **offdesign parameters**
 
@@ -3964,11 +3964,11 @@ class heat_exchanger(component):
     def attr(self):
         return (component.attr(self) +
                 ['Q', 'kA', 'ttd_u', 'ttd_l',
-                 'dp1', 'dp2', 'zeta1', 'zeta2'])
+                 'pr1', 'pr2', 'zeta1', 'zeta2'])
         # derivatives for logarithmic temperature difference not implemented
 #        return (component.attr(self) +
 #                ['Q', 'kA', 'td_log', 'ttd_u', 'ttd_l',
-#                 'dp1', 'dp2', 'zeta1', 'zeta2'])
+#                 'pr1', 'pr2', 'zeta1', 'zeta2'])
 
     def inlets(self):
         return ['in1', 'in2']
@@ -3977,7 +3977,7 @@ class heat_exchanger(component):
         return ['out1', 'out2']
 
     def design(self):
-        return ['ttd_u', 'ttd_l', 'dp1', 'dp2']
+        return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
 
     def offdesign(self):
         return ['kA', 'zeta1', 'zeta2']
@@ -4015,8 +4015,8 @@ class heat_exchanger(component):
 
         .. math::
 
-            0 = p_{1,in} \cdot dp1 - p_{1,out}\\
-            0 = p_{2,in} \cdot dp2 - p_{2,out}
+            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
+            0 = p_{2,in} \cdot pr2 - p_{2,out}
 
         - :func:`tespy.components.components.component.zeta_func`
         - :func:`tespy.components.components.component.zeta2_func`
@@ -4055,11 +4055,11 @@ class heat_exchanger(component):
         if self.ttd_l_set:
             vec_res += [self.ttd_l_func(inlets, outlets)]
 
-        if self.dp1_set:
-            vec_res += [self.dp1 * inlets[0].p - outlets[0].p]
+        if self.pr1_set:
+            vec_res += [self.pr1 * inlets[0].p - outlets[0].p]
 
-        if self.dp2_set:
-            vec_res += [self.dp2 * inlets[1].p - outlets[1].p]
+        if self.pr2_set:
+            vec_res += [self.pr2 * inlets[1].p - outlets[1].p]
 
         if self.zeta1_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -4148,17 +4148,17 @@ class heat_exchanger(component):
         if self.ttd_l_set:
             mat_deriv += self.ttd_l_deriv(inlets, outlets)
 
-        if self.dp1_set:
-            dp1_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            dp1_deriv[0, 0, 1] = self.dp1
-            dp1_deriv[0, 2, 1] = -1
-            mat_deriv += dp1_deriv.tolist()
+        if self.pr1_set:
+            pr1_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr1_deriv[0, 0, 1] = self.pr1
+            pr1_deriv[0, 2, 1] = -1
+            mat_deriv += pr1_deriv.tolist()
 
-        if self.dp2_set:
-            dp2_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            dp2_deriv[0, 1, 1] = self.dp2
-            dp2_deriv[0, 3, 1] = -1
-            mat_deriv += dp2_deriv.tolist()
+        if self.pr2_set:
+            pr2_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr2_deriv[0, 1, 1] = self.pr2
+            pr2_deriv[0, 3, 1] = -1
+            mat_deriv += pr2_deriv.tolist()
 
         if self.zeta1_set:
             zeta1_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
@@ -4547,8 +4547,8 @@ class heat_exchanger(component):
                            math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
             self.kA = -self.Q / self.td_log
 
-        self.dp1 = outlets[0].p / inlets[0].p
-        self.dp2 = outlets[1].p / inlets[1].p
+        self.pr1 = outlets[0].p / inlets[0].p
+        self.pr2 = outlets[1].p / inlets[1].p
         self.zeta1 = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                       (8 * inlets[0].m ** 2 *
                       (v_mix_ph(inlets[0].as_list()) +
@@ -4570,8 +4570,8 @@ class heat_exchanger(component):
               'ttd_l = ', self.ttd_l, 'K; '
               'td_log = ', self.td_log, 'K; '
               'kA = ', self.kA, 'W / K; '
-              'dp1 = ', self.dp1, '; '
-              'dp2 = ', self.dp2, '; '
+              'pr1 = ', self.pr1, '; '
+              'pr2 = ', self.pr2, '; '
               'zeta1 = ', self.zeta1, '; '
               'zeta2 = ', self.zeta2, '; '
               'm1 = ', inlets[0].m, 'kg / s; '
@@ -4600,8 +4600,8 @@ class condenser(heat_exchanger):
       :math:`kA=\frac{\text{W}}{\text{K}}`
     - ttd_u: upper terminal temperature difference
     - ttd_l: lower terminal temperature difference
-    - dp1: outlet to inlet pressure ratio at hot side
-    - dp2: outlet to inlet pressure ratio at cold side
+    - pr1: outlet to inlet pressure ratio at hot side
+    - pr2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -4611,7 +4611,7 @@ class condenser(heat_exchanger):
 
     **design parameters**
 
-    - dp2, ttd_u, ttd_l
+    - pr2, ttd_u, ttd_l
 
     **offdesign parameters**
 
@@ -4636,7 +4636,7 @@ class condenser(heat_exchanger):
         return 'condenser'
 
     def design(self):
-        return [n for n in heat_exchanger.design(self) if n != 'dp1']
+        return [n for n in heat_exchanger.design(self) if n != 'pr1']
 
     def offdesign(self):
         return [n for n in heat_exchanger.offdesign(self) if n != 'zeta1']
@@ -4810,8 +4810,8 @@ class desuperheater(heat_exchanger):
       :math:`kA=\frac{\text{W}}{\text{K}}`
     - ttd_u: upper terminal temperature difference
     - ttd_l: lower terminal temperature difference
-    - dp1: outlet to inlet pressure ratio at hot side
-    - dp2: outlet to inlet pressure ratio at cold side
+    - pr1: outlet to inlet pressure ratio at hot side
+    - pr2: outlet to inlet pressure ratio at cold side
     - zeta1: geometry independent friction coefficient hot side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -4821,7 +4821,7 @@ class desuperheater(heat_exchanger):
 
     **design parameters**
 
-    - dp1, dp2, ttd_u, ttd_l
+    - pr1, pr2, ttd_u, ttd_l
 
     **offdesign parameters**
 

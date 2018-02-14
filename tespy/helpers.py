@@ -22,13 +22,23 @@ gas_constants = {}
 
 class memorise:
 
-    def __init__(self, num_fl):
-        memorise.T_ph = np.empty((0, num_fl + 3), float)
-        memorise.T_ps = np.empty((0, num_fl + 4), float)
-        memorise.v_ph = np.empty((0, num_fl + 3), float)
-        memorise.visc_ph = np.empty((0, num_fl + 3), float)
-        memorise.s_ph = np.empty((0, num_fl + 3), float)
-        memorise.count = 0
+    def __init__(self, fluids):
+
+        num_fl = len(fluids)
+        if num_fl > 0:
+            memorise.T_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
+            memorise.T_ps[tuple(fluids)] = np.empty((0, num_fl + 4), float)
+            memorise.v_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
+            memorise.visc_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
+            memorise.s_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
+            memorise.count = 0
+
+
+memorise.T_ph = {}
+memorise.T_ps = {}
+memorise.v_ph = {}
+memorise.visc_ph = {}
+memorise.s_ph = {}
 
 
 class MyNetworkError(Exception):
@@ -156,23 +166,28 @@ def T_mix_ph(flow):
         pp: \text{partial pressure}
 
     """
-    a = memorise.T_ph[:, 0:-1]
+    fl = tuple(sorted(list(flow[3].keys())))
+    a = memorise.T_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.T_ph[ix, -1][0]
+        return memorise.T_ph[fl][ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
             val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2],
                          val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
-            memorise.T_ph = np.append(memorise.T_ph, new, axis=0)
+            memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
             return val
         else:
             for fluid, x in flow[3].items():
                 if x > err:
                     val = CPPSI('T', 'H', flow[2], 'P', flow[1], fluid)
+                    new = np.array([[flow[1], flow[2]] +
+                                    list(flow[3].values()) + [val]])
+                    memorise.T_ph[fl] = np.append(memorise.T_ph[fl],
+                                                  new, axis=0)
                     return val
 
 
@@ -197,18 +212,19 @@ def T_mix_ps(flow, s):
         s_{i} = s \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
     """
-    a = memorise.T_ps[:, 0:-1]
+    fl = tuple(sorted(list(flow[3].keys())))
+    a = memorise.T_ps[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.T_ps[ix, -1][0]
+        return memorise.T_ps[fl][ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
             val = newton(s_mix_pT, ds_mix_pdT, flow, s,
                          val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [s, val]])
-            memorise.T_ps = np.append(memorise.T_ps, new, axis=0)
+            memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
             return val
         else:
             for fluid, x in flow[3].items():
@@ -216,7 +232,8 @@ def T_mix_ps(flow, s):
                     val = CPPSI('T', 'S', s, 'P', flow[1], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [s, val]])
-                    memorise.T_ps = np.append(memorise.T_ps, new, axis=0)
+                    memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
+                                                  new, axis=0)
                     return val
 
 
@@ -424,17 +441,18 @@ def v_mix_ph(flow):
 
         v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)
     """
-    a = memorise.v_ph[:, 0:-1]
+    fl = tuple(sorted(list(flow[3].keys())))
+    a = memorise.v_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.v_ph[ix, -1][0]
+        return memorise.v_ph[fl][ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
             val = v_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
-            memorise.v_ph = np.append(memorise.v_ph, new, axis=0)
+            memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
             return val
         else:
             for fluid, x in flow[3].items():
@@ -442,7 +460,8 @@ def v_mix_ph(flow):
                     val = 1 / CPPSI('D', 'P', flow[1], 'H', flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
-                    memorise.v_ph = np.append(memorise.v_ph, new, axis=0)
+                    memorise.v_ph[fl] = np.append(memorise.v_ph[fl],
+                                                  new, axis=0)
                     return val
 
 
@@ -487,17 +506,18 @@ def visc_mix_ph(flow):
 
         \eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)
     """
-    a = memorise.visc_ph[:, 0:-1]
+    fl = tuple(sorted(list(flow[3].keys())))
+    a = memorise.visc_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.visc_ph[ix, -1][0]
+        return memorise.visc_ph[fl][ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
             val = visc_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
-            memorise.visc_ph = np.append(memorise.visc_ph, new, axis=0)
+            memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
             return val
         else:
             for fluid, x in flow[3].items():
@@ -505,7 +525,8 @@ def visc_mix_ph(flow):
                     val = CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
-                    memorise.visc_ph = np.append(memorise.visc_ph, new, axis=0)
+                    memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl],
+                                                     new, axis=0)
                     return val
 
 
@@ -555,17 +576,18 @@ def s_mix_ph(flow):
 
         s_{mix}\left(p,h\right) = s\left(p,T_{mix}(p,h)\right)
     """
-    a = memorise.s_ph[:, 0:-1]
+    fl = tuple(sorted(list(flow[3].keys())))
+    a = memorise.s_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.s_ph[ix, -1][0]
+        return memorise.s_ph[fl][ix, -1][0]
     else:
         if num_fluids(flow[3]) > 1:
             val = s_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
-            memorise.s_ph = np.append(memorise.s_ph, new, axis=0)
+            memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
             return val
         else:
             for fluid, x in flow[3].items():
@@ -573,7 +595,8 @@ def s_mix_ph(flow):
                     val = CPPSI('S', 'P', flow[1], 'H', flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
-                    memorise.s_ph = np.append(memorise.s_ph, new, axis=0)
+                    memorise.s_ph[fl] = np.append(memorise.s_ph[fl],
+                                                  new, axis=0)
                     return val
 
 

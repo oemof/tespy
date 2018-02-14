@@ -105,8 +105,7 @@ class network:
                 hlp.gas_constants[f] = np.nan
 
         # initialise memorisation function
-        if kwargs.get('memo', True):
-            hlp.memorise(len(self.fluids))
+        hlp.memorise(self.fluids)
 
         self.convergence = np.array([0, 0, 0], dtype=object)
         self.busses = []
@@ -229,8 +228,7 @@ class network:
 
     def attr(self):
         return ['m_unit', 'p_unit', 'h_unit', 'T_unit',
-                'p_range', 'h_range', 'T_range',
-                'memo']
+                'p_range', 'h_range', 'T_range']
 
     def add_subsys(self, *args):
         """
@@ -1044,7 +1042,7 @@ class network:
             self.solve_check_properties(c)
 
         # check properties for consistency
-        if self.init_file is None and self.iter < 5:
+        if self.init_file is None and self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
@@ -1079,7 +1077,7 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        if self.iter < 5 and c.T_set and not c.h_set:
+        if self.iter < 3 and c.T_set and not c.h_set:
             self.solve_check_temperature(c, 'min')
             self.solve_check_temperature(c, 'max')
 

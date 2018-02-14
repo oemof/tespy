@@ -179,7 +179,7 @@ class subsystem:
         return
 
     def create_network(self):
-        self.nw = nwk.network(fluids=[], memo=False)
+        self.nw = nwk.network(fluids=[])
         for c in self.conns:
             self.nw.add_conns(c)
 

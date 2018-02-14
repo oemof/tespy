@@ -1229,19 +1229,15 @@ class pump(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not self.eta_s_set and not self.char_set:
-            return
+        if not o[0].p_set and o[0].p < i[0].p:
+                o[0].p = o[0].p * 2
+        if not i[0].p_set and o[0].p < i[0].p:
+                i[0].p = o[0].p * 0.5
 
-        expr = False
-        while not expr:
-            try:
-                self.eta_s_func(i, o)
-                expr = True
-            except:
-                if not i[0].h_set:
-                    i[0].h = i[0].h * 0.8 + 2e4
-                if not o[0].h_set:
-                    o[0].o = i[0].h + 5e4
+        if not o[0].h_set and o[0].h < i[0].h:
+                o[0].h = o[0].h * 1.1
+        if not i[0].h_set and o[0].h < i[0].h:
+                i[0].h = o[0].h * 0.9
 
     def initialise_source_p(self, c):
         r"""
@@ -1546,19 +1542,15 @@ class compressor(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not self.eta_s_set and not self.char_set:
-            return
+        if not o[0].p_set and o[0].p < i[0].p:
+                o[0].p = o[0].p * 2
+        if not i[0].p_set and o[0].p < i[0].p:
+                i[0].p = o[0].p * 0.5
 
-        expr = False
-        while not expr:
-            try:
-                self.eta_s_func(i, o)
-                expr = True
-            except:
-                if not i[0].h_set:
-                    i[0].h = i[0].h * 0.8 + 2e4
-                if not o[0].h_set:
-                    o[0].o = i[0].h + 5e4
+        if not o[0].h_set and o[0].h < i[0].h:
+                o[0].h = o[0].h * 1.1
+        if not i[0].h_set and o[0].h < i[0].h:
+                i[0].h = o[0].h * 0.9
 
     def initialise_source_p(self, c):
         r"""

@@ -11,6 +11,7 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 import math
 import numpy as np
 import sys
+import time
 
 global err
 err = 1e-6
@@ -26,19 +27,59 @@ class memorise:
 
         num_fl = len(fluids)
         if num_fl > 0:
-            memorise.T_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
-            memorise.T_ps[tuple(fluids)] = np.empty((0, num_fl + 4), float)
-            memorise.v_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
-            memorise.visc_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
-            memorise.s_ph[tuple(fluids)] = np.empty((0, num_fl + 3), float)
+            fl = tuple(fluids)
+            memorise.T_ph[fl] = np.empty((0, num_fl + 3), float)
+            memorise.T_ph_f[fl] = []
+            memorise.T_ps[fl] = np.empty((0, num_fl + 4), float)
+            memorise.T_ps_f[fl] = []
+            memorise.v_ph[fl] = np.empty((0, num_fl + 3), float)
+            memorise.v_ph_f[fl] = []
+            memorise.visc_ph[fl] = np.empty((0, num_fl + 3), float)
+            memorise.visc_ph_f[fl] = []
+            memorise.s_ph[fl] = np.empty((0, num_fl + 3), float)
+            memorise.s_ph_f[fl] = []
             memorise.count = 0
+
+    def del_memory(fluids):
+
+        fl = tuple(fluids)
+
+        mask = np.isin(memorise.T_ph[fl][:, -1],
+                       memorise.T_ph_f[fl])
+        memorise.T_ph[fl] = (memorise.T_ph[fl][mask])
+        memorise.T_ph_f[fl] = []
+
+        mask = np.isin(memorise.T_ps[fl][:, -1],
+                       memorise.T_ps_f[fl])
+        memorise.T_ps[fl] = (memorise.T_ps[fl][mask])
+        memorise.T_ps_f[fl] = []
+
+        mask = np.isin(memorise.v_ph[fl][:, -1],
+                       memorise.v_ph_f[fl])
+        memorise.v_ph[fl] = (memorise.v_ph[fl][mask])
+        memorise.v_ph_f[fl] = []
+
+        mask = np.isin(memorise.visc_ph[fl][:, -1],
+                       memorise.visc_ph_f[fl])
+        memorise.visc_ph[fl] = (memorise.visc_ph[fl][mask])
+        memorise.visc_ph_f[fl] = []
+
+        mask = np.isin(memorise.s_ph[fl][:, -1],
+                       memorise.s_ph_f[fl])
+        memorise.s_ph[fl] = (memorise.s_ph[fl][mask])
+        memorise.s_ph_f[fl] = []
 
 
 memorise.T_ph = {}
+memorise.T_ph_f = {}
 memorise.T_ps = {}
+memorise.T_ps_f = {}
 memorise.v_ph = {}
+memorise.v_ph_f = {}
 memorise.visc_ph = {}
+memorise.visc_ph_f = {}
 memorise.s_ph = {}
+memorise.s_ph_f = {}
 
 
 class MyNetworkError(Exception):
@@ -171,7 +212,9 @@ def T_mix_ph(flow):
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.T_ph[fl][ix, -1][0]
+        T = memorise.T_ph[fl][ix, -1][0]
+        memorise.T_ph_f[fl] += [T]
+        return T
     else:
         if num_fluids(flow[3]) > 1:
             val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2],
@@ -217,7 +260,9 @@ def T_mix_ps(flow, s):
     b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.T_ps[fl][ix, -1][0]
+        T = memorise.T_ps[fl][ix, -1][0]
+        memorise.T_ps_f[fl] += [T]
+        return T
     else:
         if num_fluids(flow[3]) > 1:
             val = newton(s_mix_pT, ds_mix_pdT, flow, s,
@@ -446,7 +491,9 @@ def v_mix_ph(flow):
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.v_ph[fl][ix, -1][0]
+        v = memorise.v_ph[fl][ix, -1][0]
+        memorise.v_ph_f[fl] += [v]
+        return v
     else:
         if num_fluids(flow[3]) > 1:
             val = v_mix_pT(flow, T_mix_ph(flow))
@@ -511,7 +558,9 @@ def visc_mix_ph(flow):
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.visc_ph[fl][ix, -1][0]
+        visc = memorise.visc_ph[fl][ix, -1][0]
+        memorise.visc_ph_f[fl] += [visc]
+        return visc
     else:
         if num_fluids(flow[3]) > 1:
             val = visc_mix_pT(flow, T_mix_ph(flow))
@@ -581,7 +630,9 @@ def s_mix_ph(flow):
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
-        return memorise.s_ph[fl][ix, -1][0]
+        s = memorise.s_ph[fl][ix, -1][0]
+        memorise.s_ph_f[fl] += [s]
+        return s
     else:
         if num_fluids(flow[3]) > 1:
             val = s_mix_pT(flow, T_mix_ph(flow))

@@ -15,6 +15,8 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.linalg import norm
 
+import logging
+
 from tespy.components import components as cmp
 from tespy import connections as con
 from tespy import helpers as hlp
@@ -88,6 +90,10 @@ class network:
     }
 
     def __init__(self, fluids, **kwargs):
+
+        self.log = kwargs.get('log', logging.WARNING)
+        logging.basicConfig(level=self.log)
+
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
         self.fluids = sorted(fluids)
@@ -375,7 +381,7 @@ class network:
                        'network.')
                 raise hlp.MyNetworkError(msg)
 
-        print('Networkcheck successfull.')
+        logging.info('Networkcheck successfull.')
 
     def initialise(self):
         """
@@ -389,15 +395,19 @@ class network:
 
         :returns: no return value
         """
-
-        print('##### Have you adjusted the value ranges for pressure, enthalpy'
-              ' and temperature according to the specified unit system? #####')
+        msg = ('Have you adjusted the value ranges for pressure, enthalpy'
+               ' and temperature according to the specified unit system?')
+        logging.info(msg)
 
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids '
                    'on network creation.')
             raise hlp.MyNetworkError(msg)
         self.init_components()  # build the dataframe for components
+
+        if self.mode == 'offdesign':
+            self.init_offdesign()  # characteristics for offdesign
+
         self.init_fluids()  # start standard fluid initialisation
         self.init_properties()  # start standard property initialisation
 
@@ -407,9 +417,6 @@ class network:
             raise hlp.MyNetworkError(msg)  # must provide design_file
         else:
             self.init_csv()  # initialisation from csv
-
-        if self.mode == 'offdesign':
-            self.init_offdesign()  # characteristics for offdesign
 
     def init_components(self):
         """
@@ -870,9 +877,9 @@ class network:
             for var in c.design:
                 if c.__dict__[var + '_set']:
                     c.__dict__[var + '_set'] = False
+
             for var in c.offdesign:
-                if not c.__dict__[var + '_set']:
-                    c.__dict__[var + '_set'] = True
+                c.__dict__[var + '_set'] = True
 
     def solve(self, mode, init_file=None, design_file=None, dec='.'):
         """
@@ -904,7 +911,7 @@ class network:
         self.check_network()
         self.initialise()
 
-        print('Network initialised.')
+        logging.info('Network initialised.')
 
 # vectors for convergence history (massflow, pressure, enthalpy)
         self.convergence[0] = np.zeros((len(self.conns), 0))
@@ -912,7 +919,7 @@ class network:
         self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
-        print('Solving network.')
+        logging.info('Solving network.')
 
         start_time = time.time()
 
@@ -923,7 +930,7 @@ class network:
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
 
-        print('iter\t| residual')
+        logging.info('iter\t| residual')
         for self.iter in range(250):
             self.convergence[0] = np.column_stack((self.convergence[0],
                                                    [0] * len(self.conns)))
@@ -934,7 +941,7 @@ class network:
             self.solve_loop()
             self.res = np.append(self.res, norm(self.vec_res))
 
-            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
+#            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
 
             k = 0
             for c in self.conns.index:
@@ -951,12 +958,19 @@ class network:
                         hlp.err ** (1 / 2))):
                     break
 
-            if self.iter > 10:
-                if all(self.res[(self.iter - 5):] >= self.res[-4]):
-                    print('Convergence is making no progress, '
-                          'calculation stopped.')
+            if self.iter > 20:
+                if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
+                        self.res[-1] > self.res[-2]):
+                    logging.warning('Convergence is making no progress, '
+                                    'calculation stopped.')
                     break
         end_time = time.time()
+
+        # clear fluid property memory
+        hlp.memorise.del_memory(self.fluids)
+
+        # process components
+        self.comps.apply(network.process_post_calc, axis=1)
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /
@@ -968,11 +982,12 @@ class network:
             c.p0 = c.p
             c.h0 = c.h
 
-        print('Calculation complete.')
-        print('Total iterations:', self.iter, ' -  '
-              'Calculation time:', round(end_time - start_time, 1), 's - '
-              'Iterations per second:',
-              round(self.iter / (end_time - start_time), 2))
+        logging.info('Calculation complete.')
+        msg = ('Total iterations:', self.iter, ' -  '
+               'Calculation time:', round(end_time - start_time, 1), 's - '
+               'Iterations per second:',
+               round(self.iter / (end_time - start_time), 2))
+        logging.info(msg)
 
     def solve_loop(self):
         """
@@ -1542,7 +1557,7 @@ class network:
 
         if mode == 'pre':
             self.comps.apply(network.process_pre, axis=1)
-            print('Preprocessing done.')
+            logging.info('Preprocessing done.')
 
         if mode == 'post':
             # convert to SI-units
@@ -1567,11 +1582,11 @@ class network:
             P = [x.P for x in self.busses if x.label == 'P_res']
             Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
 
-            print('Postprocessing.')
+            logging.info('Postprocessing.')
 
-            print('##### Kennzahlen des Kreisprozesses #####')
             if len(P) != 0 and len(Q_diss) != 0:
-                print('eta_th = ', 1 - Q_diss / (P + Q_diss))
+                logging.info('##### Kennzahlen des Kreisprozesses #####')
+                logging.info('eta_th = ', 1 - Q_diss / (P + Q_diss))
             msg = 'Do you want to print the components parammeters?'
             if hlp.query_yes_no(msg):
                 self.comps.apply(network.process_post_print, axis=1)

@@ -8,6 +8,8 @@
 import numpy as np
 import math
 
+import logging
+
 import CoolProp.CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
@@ -103,8 +105,6 @@ class component:
     allowed keywords in kwargs are 'mode' and additional keywords depending
     on the type of component you want to create
     """
-    printOnCreate = False
-    printOnChange = False
 
     def __init__(self, label, **kwargs):
 
@@ -170,15 +170,14 @@ class component:
                            'Only numeric parameters are allowed.')
                     raise TypeError(msg)
 
-        # print invalid keywords
         if len(invalid_keys) > 0:
-            print('\'', invalid_keys, '\' are invalid attributes.',
-                  'Available attributes for object \'', self,
-                  '\' are:', self.attr())
+            msg = ('\'', invalid_keys, '\' are invalid attributes.'
+                   'Available attributes for object \'', self,
+                   '\' are:', self.attr())
+            logging.warning(msg)
 
-        if component.printOnCreate:
-            print('Created ', self, '.')
-            print(self.__dict__)
+        logging.info('Created ', self, '.')
+        logging.info(self.__dict__)
 
     def set_attr(self, **kwargs):
         """
@@ -225,13 +224,13 @@ class component:
                     raise TypeError(msg)
 
         if len(invalid_keys) > 0:
-            print('\'', invalid_keys, '\' are invalid attributes. '
-                  'Available attributes for object \'', self.component(),
-                  '\' are:', self.attr())
+            msg = ('\'', invalid_keys, '\' are invalid attributes.'
+                   'Available attributes for object \'', self,
+                   '\' are:', self.attr())
+            logging.warning(msg)
 
-        if component.printOnChange:
-            print('Updated ', self, '.')
-            print(self.__dict__)
+        logging.info('Updated ', self, '.')
+        logging.info(self.__dict__)
 
     def get_attr(self, key):
         """
@@ -1104,8 +1103,6 @@ class turbomachine(component):
             self.o0 = outlets[0].as_list()
             self.dh_s0 = (self.h_os(self.i0, self.o0) - self.i0[2])
 
-            print('Creating characteristics for component ', self)
-
     def print_parameters(self, inlets, outlets):
         i1 = inlets[0].as_list()
         o1 = outlets[0].as_list()
@@ -1330,8 +1327,13 @@ class pump(turbomachine):
         if mode == 'post':
             self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
                           (outlets[0].h - inlets[0].h))
+            if self.eta_s > 1 or self.eta_s <= 0:
+                msg = ('Invalid value for isentropic efficiency.\n'
+                      'eta_s =', self.eta_s)
+                logging.error(msg)
 
-        if mode == 'pre':
+        if mode == 'pre' and self.char_set:
+            print('Creating characteristics for component ', self)
             v_opt = (self.i0[0] *
                      (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
             H_opt = ((self.o0[1] - self.i0[1]) /
@@ -1640,7 +1642,16 @@ class compressor(turbomachine):
 
         turbomachine.calc_parameters(self, inlets, outlets, mode)
 
-        if mode == 'pre':
+        if mode == 'post':
+            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
+                          (outlets[0].h - inlets[0].h))
+            if self.eta_s > 1 or self.eta_s <= 0:
+                msg = ('Invalid value for isentropic efficiency.\n'
+                      'eta_s =', self.eta_s)
+                logging.error(msg)
+
+        if mode == 'pre' and self.char_set:
+            print('Creating characteristics for component ', self)
             self.char = cmp_char.compressor()
 
     def print_parameters(self, inlets, outlets):
@@ -1650,7 +1661,7 @@ class compressor(turbomachine):
         i1 = inlets[0].as_list()
         o1 = outlets[0].as_list()
 
-        if not isinstance(self.char, int):
+        if not isinstance(self.char, int) and self.char_set:
             n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
             m = (
                 (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
@@ -1951,8 +1962,13 @@ class turbine(turbomachine):
         if mode == 'post':
             self.eta_s = ((outlets[0].h - inlets[0].h) /
                           (self.h_os(inlets, outlets) - inlets[0].h))
+            if self.eta_s > 1 or self.eta_s <= 0:
+                msg = ('Invalid value for isentropic efficiency.\n'
+                      'eta_s =', self.eta_s)
+                logging.error(msg)
 
-        if mode == 'pre':
+        if mode == 'pre' and self.char_set:
+            print('Creating characteristics for component ', self)
             self.char = cmp_char.turbine(self.eta_s)
             nu_new = np.linspace(self.char.nu[0],
                                  self.char.nu[-1], 1001)
@@ -3870,6 +3886,13 @@ class heat_exchanger_simple(component):
                 ttd_u = T_i - t_a
                 ttd_l = T_o - t_a
 
+            if ttd_u < 0 or ttd_l < 0:
+                msg = ('Invalid value for terminal temperature '
+                       'difference.'
+                       'ttd_u =', ttd_u,
+                       'ttd_l =', ttd_l)
+                logging.error(msg)
+
             self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
 
     def print_parameters(self, inlets, outlets):
@@ -4285,20 +4308,23 @@ class heat_exchanger(component):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        ii1 = 0
-        io2 = 0
-        while T_i1 <= T_o2:
-            try:
-                T_o2 = T_mix_ph([o2[0], o2[1], o2[2] - io2 * 10000, o2[3]])
-                io2 += 1
-            except:
-                T_i1 = T_mix_ph([i1[0], i1[1], i1[2] + ii1 * 10000, i1[3]])
-                ii1 += 1
+        if T_i1 <= T_o2 and not inlets[0].T_set:
+            T_i1 = T_o2 + 1
+        if T_i1 <= T_o2 and not outlets[1].T_set:
+            T_o2 = T_i1 - 1
+        if T_i1 <= T_o2 and inlets[0].T_set and outlets[1].T_set:
+            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
+                   'temperature difference is negative!')
+            raise MyComponentError(msg)
 
-        i = 0
-        while T_o1 <= T_i2:
-            i += 1
-            T_o1 = T_mix_ph([o1[0], o1[1], o1[2] + i * 10000, o1[3]])
+        if T_o1 <= T_i2 and not outlets[0].T_set:
+            T_o1 = T_i2 + 1
+        if T_o1 <= T_i2 and not inlets[1].T_set:
+            T_i2 = T_o1 - 1
+        if T_o1 <= T_i2 and inlets[1].T_set and outlets[0].T_set:
+            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
+                   'temperature difference is negative!')
+            raise MyComponentError(msg)
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA *
                 (T_o1 - T_i2 - T_i1 + T_o2) /
@@ -4338,20 +4364,23 @@ class heat_exchanger(component):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        ii1 = 0
-        io2 = 0
-        while T_i1 <= T_o2:
-            try:
-                T_o2 = T_mix_ph([o2[0], o2[1], o2[2] - io2 * 10000, o2[3]])
-                io2 += 1
-            except:
-                T_i1 = T_mix_ph([i1[0], i1[1], i1[2] + ii1 * 10000, i1[3]])
-                ii1 += 1
+        if T_i1 <= T_o2 and not inlets[0].T_set:
+            T_i1 = T_o2 + 1
+        if T_i1 <= T_o2 and not outlets[1].T_set:
+            T_o2 = T_i1 - 1
+        if T_i1 <= T_o2 and inlets[0].T_set and outlets[1].T_set:
+            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
+                   'temperature difference is negative!')
+            raise MyComponentError(msg)
 
-        i = 0
-        while T_o1 <= T_i2:
-            i += 1
-            T_o1 = T_mix_ph([o1[0], o1[1], o1[2] + i * 10000, o1[3]])
+        if T_o1 <= T_i2 and not outlets[0].T_set:
+            T_o1 = T_i2 + 1
+        if T_o1 <= T_i2 and not inlets[1].T_set:
+            T_i2 = T_o1 - 1
+        if T_o1 <= T_i2 and inlets[1].T_set and outlets[0].T_set:
+            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
+                   'temperature difference is negative!')
+            raise MyComponentError(msg)
 
         return (self.td_log *
                 math.log((T_o1 - T_i2) / (T_i1 - T_o2)) -
@@ -4446,29 +4475,30 @@ class heat_exchanger(component):
         if i[1].h > o[1].h and not i[1].h_set:
             i[1].h = o[1].h / 2
 
-        if self.ttd_u_set:
-            expr = False
-            while not expr:
-                try:
-                    self.ttd_u_func(i, o)
-                    expr = True
-                except:
-                    if not i[0].h_set:
-                        i[0].h *= 1.05
-                    if not o[1].h_set:
-                        o[1].h *= 0.95
-
-        if self.ttd_l_set:
-            expr = False
-            while not expr:
-                try:
-                    self.ttd_l_func(i, o)
-                    expr = True
-                except:
-                    if not i[1].h_set:
-                        i[1].h *= 1.05
-                    if not o[0].h_set:
-                        o[0].h *= 0.95
+# this part may not be needed
+#        if self.ttd_u_set:
+#            expr = False
+#            while not expr:
+#                try:
+#                    self.ttd_u_func(i, o)
+#                    expr = True
+#                except:
+#                    if not i[0].h_set:
+#                        i[0].h *= 1.05
+#                    if not o[1].h_set:
+#                        o[1].h *= 0.95
+#
+#        if self.ttd_l_set:
+#            expr = False
+#            while not expr:
+#                try:
+#                    self.ttd_l_func(i, o)
+#                    expr = True
+#                except:
+#                    if not i[1].h_set:
+#                        i[1].h *= 1.05
+#                    if not o[0].h_set:
+#                        o[0].h *= 0.95
 
     def initialise_source_p(self, c):
         r"""
@@ -4554,10 +4584,18 @@ class heat_exchanger(component):
         else:
             T_i1 = T_mix_ph(inlets[0].as_list())
         T_o2 = T_mix_ph(outlets[1].as_list())
-
-        self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
         self.ttd_u = T_i1 - T_o2
         self.ttd_l = T_o1 - T_i2
+
+        self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+
+        if self.ttd_u < 0 or self.ttd_l < 0:
+            msg = ('Invalid value for terminal temperature '
+                   'difference.'
+                   'ttd_u =', self.ttd_u,
+                   'ttd_l =', self.ttd_l)
+            logging.error(msg)
+
         if T_i1 <= T_o2 or T_o1 <= T_i2:
             self.td_log = np.nan
             self.kA = np.nan
@@ -4581,7 +4619,7 @@ class heat_exchanger(component):
 
         print('##### ', self.label, ' #####')
         if self.ttd_u < 0 and self.kA_set:
-            print('!!!!! ERROR calculating condenser: !!!!!\n'
+            print('!!!!! ERROR calculating heat exchanger: !!!!!\n'
                   'Negative value for TTD at given logarithmic temperature '
                   'difference or kA, result may be wrong.')
         print('Q = ', self.Q, 'W; '
@@ -4750,18 +4788,15 @@ class condenser(heat_exchanger):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        io2 = 0
-        while T_i1 <= T_o2:
-            try:
-                T_o2 = T_mix_ph([o2[0], o2[1], o2[2] - io2 * 10000, o2[3]])
-                io2 += 1
-            except:
-                None
+        if T_i1 <= T_o2 and not inlets[0].T_set:
+            T_i1 = T_o2 + 1
+        if T_i1 <= T_o2 and not outlets[1].T_set:
+            T_o2 = T_i1 - 1
 
-        i = 0
-        while T_o1 <= T_i2:
-            i += 1
-            T_o1 = T_mix_ph([o1[0], o1[1], o1[2] + i * 10000, o1[3]])
+        if T_o1 <= T_i2 and not outlets[0].T_set:
+            T_o1 = T_i2 + 1
+        if T_o1 <= T_i2 and not inlets[1].T_set:
+            T_i2 = T_o1 - 1
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA *
                 (T_o1 - T_i2 - T_i1 + T_o2) /

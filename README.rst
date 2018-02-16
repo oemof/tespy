@@ -26,12 +26,12 @@ If you have a working Python3 environment, use pypi to install the latest tespy 
 
   pip install -e path/to/the/repository
 
-If you want to use the latest features, you might want to install the **developer version**. See section `'Developing ' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
+If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
 
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction ' <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
+For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
 
 License
 =======

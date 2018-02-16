@@ -1,17 +1,26 @@
 Tutorial – heat pump
-^^^^^^^^^^^^^^^^^^^^
+====================
+
+.. contents::
+    :depth: 1
+    :local:
+    :backlinks: top
+	
 1 Task
-^^^^^^
+------
 This tutorial deals with the creation of a heat pump model. You can see the component plan in figure 1.
 
-Figure 1
+.. figure:: api/_images/tutorial_heat_pump.svg
+    :align: center
+	
+    Figure 1: Topology of the heat pump.
 
 You have two possibilities to create the model. Either you create the whole circuit in one term or you divide it in sections, if the system gets too complex. In this tutorial the model is built up in four sections.
 In the style of “How can I use TESPy?” it is necessary to implement network, components and connections. 
 
 
 2 Set up a plant
-^^^^^^^^^^^^^^
+----------------
 
 In order to simulate a plant you have to create a tespy.network. The network is the main container for the model and is needed for all sections.
 You need to specify a list of the fluids you need for the calculation in your plant. For the heat pump you need water (H2O) and ammonia (NH3). Water is used for the cold side of the heat exchanger, for the consumer and for the hot side of the environmental temperature. In contrast the ammonia is used for the circuit of heat pump.
@@ -32,7 +41,7 @@ Because of the circuit it is unnecessary where you start to create the model. Le
 
 
 3 Compressor-system
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 3.1 Set up the components
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -94,7 +103,7 @@ Now you need to create the solver for your network. To simulate your plant, foll
 	
 
 4 Condenser/consumer
-^^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 4.1 Set up the components
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -148,7 +157,7 @@ Try to set connections in your model. If you have problems, you will look at the
 See section 3.3.
 
 5 Vessel
-^^^^^^^^
+--------
 
 5.1 Set up the components
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -195,7 +204,7 @@ Try to set connections in your model. If you have problems, you will look at the
 See section 3.3.
 
 6 Evaporator-system
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 6.1 Set up the components
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -255,7 +264,7 @@ Try to set connections in your model. If you have problems, you will look at the
 See section 3.3.
 	
 7 Linking sections to heat pump
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 Now if every separated system works, you need to link all section to one model. You are going to create your heat pump. But you need to consider following things:
 -	Set all components in one list. Attention: It isn´t allowed to label components same. (e.g.: source, source1, source2, ...)

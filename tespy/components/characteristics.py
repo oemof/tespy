@@ -28,8 +28,26 @@ def find_length(xs, ys):
 
 
 class compressor:
-    """
-    establish power connection between turbines, pumps, heat exchanger
+    r"""
+
+    generic characteristic map for axial compressors
+
+    - links mass flow to pressure rise and isentropic efficiency
+    - includes a vigv angle
+
+    the map can be plotted using :code:`map.plot()`
+
+    **literature**
+
+    compressor map:
+
+    - Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
+      axial compressor in a gas turbine cycle. Journal of Power
+      Technologies 96 (3), pp. 194-199.
+
+    vigv:
+
+    - GasTurb GmbH (2015): GasTurb 12.
     """
 
     def __init__(self,  ** kwargs):
@@ -267,7 +285,7 @@ class compressor:
                 (len(z_hist) > 5 and
                 z_hist[(len(z_hist) - 5):] == 5 * [z_hist[-1]])):
                 raise ValueError('Given pressure ratio can not be archieved'
-                                 'with given speedline.')
+                                 ' with given speedline.')
 
 #        print(time.time() - tmp)
         return vigv
@@ -288,13 +306,44 @@ class compressor:
         ax2.set_ylim([0, 1.1])
         ax1.set_ylim([0, 2])
         plt.sca(ax1)
+        plt.show()
 
 
 class pump:
+    r"""
 
-    def __init__(self, v_opt, eta_s):
+    generic characteristic for pumps
 
-        n_q = 55
+    - links isentropic efficiency :math:`\eta_{s,p}` to volumetric flow
+      :math:`\dot{V}`
+    - uses a distorted quadratic function:
+
+    .. math::
+
+        \eta_{s,p} = \left( a \cdot \dot{V}^2 + b \cdot \dot{V} \right) \cdot
+        e^{k \cdot \dot{V}}
+
+    - function parameters are deriven from design status
+    - specific rotational speed :math:`n_q`:
+
+    .. math::
+
+        n_q = \frac{n \cdot \sqrt{\dot{V}}}{H^{0,75}}
+
+    .. note::
+
+        The calculation with pump characteristics is unstable, better use
+        constant value for isentropic efficiency!
+
+    **literature**
+
+    - Wolfgang Wesche (2012): Radiale Kreiselpumpen - Berechnung und
+      Konstruktion der hydrodynamischen Komponenten. Berlin: Springer.
+    """
+
+    def __init__(self, v_opt, eta_s, H_opt):
+
+        n_q = 3000 * math.sqrt(v_opt) / ((H_opt) ** 0.75)
         v_0 = v_opt * 3.1 * n_q ** (-0.15)
         self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
         self.a = eta_s / ((v_opt ** 2 - v_0 * v_opt) *
@@ -306,6 +355,29 @@ class pump:
 
 
 class turbine:
+    r"""
+
+    generic characteristics for turbine isentropic efficiency
+
+    - links isentropic efficiency :math:`\eta_\mathrm{s,t}` to keyfigure
+      :math:`\nu`
+
+    .. math::
+
+        \eta_\mathrm{s,t}=f\left(\frac{\nu}{\nu_\mathrm{ref}} \right)
+
+        \frac{\nu}{\nu_\mathrm{ref}}=\frac{\sqrt{\Delta h_\mathrm{s,ref}}}
+        {\sqrt{\Delta h_\mathrm{s}}}
+
+    - values from Traupel (see literature)
+    - maximum value of isentropic efficiency in characteristic is assigned to
+      isentropic efficiency in reference state with
+      :math:`\frac{\nu}{\nu_{ref}}=1`.
+
+    **literature**
+
+    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
+    """
 
     def __init__(self, eta_s0):
 

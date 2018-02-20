@@ -16,6 +16,9 @@ Contents:
 	:maxdepth: 2
 
 	introduction
+	installation
+	tutorial
+	developing_tespy
 	api
 
 

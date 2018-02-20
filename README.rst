@@ -20,13 +20,13 @@ To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 Installing TESPy
 ================
 
-If you have a working Python3 environment, use pypi to install the latest oemof version.
+If you have a working Python3 environment, use pypi to install the latest tespy version: Clone the github repository and then run:
 
 .. code:: bash
 
-  pip install tespy
+  pip install -e path/to/the/repository
 
-If you want to use the latest features, you might want to install the **developer version**. See section `'Developing tespy insert correct link here ' <http://oemof.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
+If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
 
 Examples
 ========

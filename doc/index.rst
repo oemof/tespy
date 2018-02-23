@@ -18,6 +18,7 @@ Contents:
 	introduction
 	installation
 	tutorial
+	using_tespy
 	developing_tespy
 	api
 

@@ -876,7 +876,8 @@ class network:
             for var in c.offdesign:
                 c.__dict__[var + '_set'] = True
 
-    def solve(self, mode, init_file=None, design_file=None, dec='.'):
+    def solve(self, mode, init_file=None, design_file=None, dec='.',
+              max_iter=50):
         """
         solves the network:
 
@@ -895,7 +896,7 @@ class network:
 
         self.init_file = init_file
         self.design_file = design_file
-        self.dec = dec
+        self.dec = '.'
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -926,7 +927,7 @@ class network:
         self.solve_determination()
 
         print('iter\t| residual')
-        for self.iter in range(250):
+        for self.iter in range(max_iter):
             self.convergence[0] = np.column_stack((self.convergence[0],
                                                    [0] * len(self.conns)))
             self.convergence[1] = np.column_stack((self.convergence[1],
@@ -957,7 +958,7 @@ class network:
                 if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
                         self.res[-1] > self.res[-2]):
                     print('Convergence is making no progress, '
-                                    'calculation stopped.')
+                          'calculation stopped.')
                     break
         end_time = time.time()
 
@@ -965,7 +966,8 @@ class network:
         hlp.memorise.del_memory(self.fluids)
 
         # process components
-        self.comps.apply(network.process_post_calc, axis=1)
+        self.comps.apply(network.process_post_calc, axis=1,
+                         args = (self,))
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /
@@ -978,10 +980,10 @@ class network:
             c.h0 = c.h
 
         print('Calculation complete.')
-        msg = ('Total iterations:', self.iter, ' -  '
-               'Calculation time:', round(end_time - start_time, 1), 's - '
-               'Iterations per second:',
-               round(self.iter / (end_time - start_time), 2))
+        msg = ('Total iterations:' + str(self.iter) + ' - '
+               'Calculation time:' + str(round(end_time - start_time, 1)) +
+               's - Iterations per second:' +
+               str(round(self.iter / (end_time - start_time), 2)))
         print(msg)
 
     def solve_loop(self):
@@ -1584,9 +1586,11 @@ class network:
                 print('eta_th = ', 1 - Q_diss / (P + Q_diss))
             msg = 'Do you want to print the components parammeters?'
             if hlp.query_yes_no(msg):
-                self.comps.apply(network.process_post_print, axis=1)
+                self.comps.apply(network.process_post_print, axis=1,
+                                 args = (self,))
             else:
-                self.comps.apply(network.process_post_calc, axis=1)
+                self.comps.apply(network.process_post_calc, axis=1,
+                                 args = (self,))
 
             # convert back to specified units
             for c in self.conns.index:
@@ -1596,7 +1600,7 @@ class network:
                 c.T = (c.T / network.T[self.T_unit][1] -
                        network.T[self.T_unit][0])
 
-    def process_post_calc(cols):
+    def process_post_calc(cols, nw):
         """
         postprocessing: calculate components attributes
 
@@ -1604,10 +1608,10 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'post')
 
-    def process_post_print(cols):
+        cols.name.calc_parameters(nw, 'post')
+
+    def process_post_print(cols, nw):
         """
         postprocessing: calculate components attributes and print them to
         prompt
@@ -1616,11 +1620,11 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'post')
-        cols.name.print_parameters(inlets, outlets)
 
-    def process_pre(cols):
+        cols.name.calc_parameters(nw, 'post')
+        cols.name.print_parameters(nw)
+
+    def process_pre(cols, nw):
         """
         preprocessing: calculate components attributes
 
@@ -1628,8 +1632,7 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'pre')
+        cols.name.calc_parameters(nw, 'pre')
 
     def plot_convergence(self, mode):
         """

@@ -318,10 +318,10 @@ class component:
         """
         return 0
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
         return
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
         return
 
     def initialise_fluids(self, nw):
@@ -1073,7 +1073,7 @@ class turbomachine(component):
     def char_deriv(self, inlets, outlets):
         raise MyComponentError('Function not available.')
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
         """
         parameter calculation pre- or postprocessing
 
@@ -1091,6 +1091,9 @@ class turbomachine(component):
 
         """
 
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
+
         if mode == 'post':
 
             self.P = inlets[0].m * (outlets[0].h - inlets[0].h)
@@ -1102,7 +1105,10 @@ class turbomachine(component):
             self.o0 = outlets[0].as_list()
             self.dh_s0 = (self.h_os(self.i0, self.o0) - self.i0[2])
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
         i1 = inlets[0].as_list()
         o1 = outlets[0].as_list()
         print('##### ', self.label, ' #####')
@@ -1308,7 +1314,7 @@ class pump(turbomachine):
         """
         return 2.9e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
         """
         component specific parameter calculation pre- or postprocessing
 
@@ -1321,14 +1327,17 @@ class pump(turbomachine):
         - generate characteristics for component
         """
 
-        turbomachine.calc_parameters(self, inlets, outlets, mode)
+        turbomachine.calc_parameters(self, nw, mode)
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         if mode == 'post':
             self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
                           (outlets[0].h - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
-                      'eta_s =', self.eta_s)
+                       'eta_s =', self.eta_s)
                 print(msg)
 
         if mode == 'pre' and self.char_set:
@@ -1626,7 +1635,7 @@ class compressor(turbomachine):
         """
         return 4e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
         """
         component specific parameter calculation pre- or postprocessing
 
@@ -1639,23 +1648,29 @@ class compressor(turbomachine):
         - generate characteristics for component
         """
 
-        turbomachine.calc_parameters(self, inlets, outlets, mode)
+        turbomachine.calc_parameters(self, nw, mode)
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         if mode == 'post':
             self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
                           (outlets[0].h - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
-                      'eta_s =', self.eta_s)
+                       'eta_s =', self.eta_s)
                 print(msg)
 
         if mode == 'pre' and self.char_set:
             print('Creating characteristics for component ', self)
             self.char = cmp_char.compressor()
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
 
-        turbomachine.print_parameters(self, inlets, outlets)
+        turbomachine.print_parameters(self, nw)
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         i1 = inlets[0].as_list()
         o1 = outlets[0].as_list()
@@ -1943,7 +1958,7 @@ class turbine(turbomachine):
         """
         return 20e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
         """
         component specific parameter calculation pre- or postprocessing
 
@@ -1956,14 +1971,17 @@ class turbine(turbomachine):
         - generate characteristics for component
         """
 
-        turbomachine.calc_parameters(self, inlets, outlets, mode)
+        turbomachine.calc_parameters(self, nw, mode)
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         if mode == 'post':
             self.eta_s = ((outlets[0].h - inlets[0].h) /
                           (self.h_os(inlets, outlets) - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
-                      'eta_s =', self.eta_s)
+                       'eta_s =', self.eta_s)
                 print(msg)
 
         if mode == 'pre' and self.char_set:
@@ -2085,53 +2103,6 @@ class split(component):
         :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
 
-        **example**
-
-        matrix of partial derivatives for a splitter with two outlets and one
-        fluid in the fluid vector
-
-        .. math::
-
-            \left(
-            \begin{array}{c@{}}
-                \left[\begin{array}{cccc}
-                    0 & 0 & 0 & 1\\
-                    0 & 0 & 0 & -1\\
-                    0 & 0 & 0 & 0\\
-                \end{array}\right]\\
-                \left[\begin{array}{cccc}
-                    0 & 0 & 0 & 1\\
-                    0 & 0 & 0 & 0\\
-                    0 & 0 & 0 & -1\\
-                \end{array}\right]\\
-                \left[\begin{array}{cccc}
-                    1 & 0 & 0 & 0\\
-                    -1 & 0 & 0 & 0\\
-                    -1 & 0 & 0 & 0\\
-                \end{array}\right]\\
-                \left[\begin{array}{cccc}
-                    0 & 1 & 0 & 0\\
-                    0 & -1 & 0 & 0\\
-                    0 & 0 & 0 & 0\\
-                \end{array}\right]\\
-                \left[\begin{array}{cccc}
-                    0 & 1 & 0 & 0\\
-                    0 & 0 & 0 & 0\\
-                    0 & -1 & 0 & 0\\
-                \end{array}\right]
-                \left[\begin{array}{cccc}
-                    0 & 0 & 1 & 0\\
-                    0 & 0 & -1 & 0\\
-                    0 & 0 & 0 & 0\\
-                \end{array}\right]\\
-                \left[\begin{array}{cccc}
-                    0 & 0 & 1 & 0\\
-                    0 & 0 & 0 & 0\\
-                    0 & 0 & -1 & 0\\
-                \end{array}\right]\\
-            \end{array}
-            \right)
-
         """
 
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
@@ -2238,7 +2209,10 @@ class split(component):
         """
         return 5e5
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
         print('m_in = ', inlets[0].m, 'kg / s; ')
@@ -2475,7 +2449,10 @@ class merge(component):
         """
         return 5e5
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
         j = 1
@@ -3096,12 +3073,20 @@ class combustion_chamber(component):
         """
         return 5e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
+
         self.Q = 0
         for i in inlets:
             self.Q += i.m * i.fluid[self.fuel] * self.hi
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
+
         print('##### ', self.label, ' #####')
         print('Q = ', self.Q,
               'lambda = ', self.lamb)
@@ -3503,14 +3488,22 @@ class vessel(component):
         """
         return 5e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
+
         self.pr = outlets[0].p / inlets[0].p
         self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                      (8 * inlets[0].m ** 2 *
                      (v_mix_ph(inlets[0].as_list()) +
                       v_mix_ph(outlets[0].as_list())) / 2))
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
+
         print('##### ', self.label, ' #####')
         print('pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s ; '
@@ -3859,7 +3852,10 @@ class heat_exchanger_simple(component):
         else:
             return 3e5
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
         self.pr = outlets[0].p / inlets[0].p
@@ -3894,7 +3890,10 @@ class heat_exchanger_simple(component):
 
             self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
         print('Q = ', self.Q, 'W; '
@@ -4572,7 +4571,10 @@ class heat_exchanger(component):
             T = 220 + 273.15
             return h_mix_pT(flow, T)
 
-    def calc_parameters(self, inlets, outlets, mode):
+    def calc_parameters(self, nw, mode):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         T_i2 = T_mix_ph(inlets[1].as_list())
         T_o1 = T_mix_ph(outlets[0].as_list())
@@ -4614,7 +4616,10 @@ class heat_exchanger(component):
                       (v_mix_ph(inlets[1].as_list()) +
                        v_mix_ph(outlets[1].as_list())) / 2))
 
-    def print_parameters(self, inlets, outlets):
+    def print_parameters(self, nw):
+
+        inlets, outlets = (nw.comps.loc[self].i.tolist(),
+                           nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
         if self.ttd_u < 0 and self.kA_set:
@@ -4695,7 +4700,8 @@ class condenser(heat_exchanger):
         return [n for n in heat_exchanger.default_design(self) if n != 'pr1']
 
     def default_offdesign(self):
-        return [n for n in heat_exchanger.default_offdesign(self) if n != 'zeta1']
+        return [n for n in heat_exchanger.default_offdesign(self) if
+                n != 'zeta1']
 
     def additional_equations(self, nw):
         r"""

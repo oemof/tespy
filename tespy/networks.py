@@ -15,8 +15,6 @@ import numpy as np
 from numpy.linalg import inv
 from numpy.linalg import norm
 
-import logging
-
 from tespy.components import components as cmp
 from tespy import connections as con
 from tespy import helpers as hlp
@@ -90,9 +88,6 @@ class network:
     }
 
     def __init__(self, fluids, **kwargs):
-
-        self.log = kwargs.get('log', logging.WARNING)
-        logging.basicConfig(level=self.log)
 
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
@@ -381,7 +376,7 @@ class network:
                        'network.')
                 raise hlp.MyNetworkError(msg)
 
-        logging.info('Networkcheck successfull.')
+        print('Networkcheck successfull.')
 
     def initialise(self):
         """
@@ -397,7 +392,7 @@ class network:
         """
         msg = ('Have you adjusted the value ranges for pressure, enthalpy'
                ' and temperature according to the specified unit system?')
-        logging.info(msg)
+        print(msg)
 
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids '
@@ -911,7 +906,7 @@ class network:
         self.check_network()
         self.initialise()
 
-        logging.info('Network initialised.')
+        print('Network initialised.')
 
 # vectors for convergence history (massflow, pressure, enthalpy)
         self.convergence[0] = np.zeros((len(self.conns), 0))
@@ -919,7 +914,7 @@ class network:
         self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
-        logging.info('Solving network.')
+        print('Solving network.')
 
         start_time = time.time()
 
@@ -930,7 +925,7 @@ class network:
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
 
-        logging.info('iter\t| residual')
+        print('iter\t| residual')
         for self.iter in range(250):
             self.convergence[0] = np.column_stack((self.convergence[0],
                                                    [0] * len(self.conns)))
@@ -941,7 +936,7 @@ class network:
             self.solve_loop()
             self.res = np.append(self.res, norm(self.vec_res))
 
-#            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
+            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
 
             k = 0
             for c in self.conns.index:
@@ -961,7 +956,7 @@ class network:
             if self.iter > 20:
                 if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
                         self.res[-1] > self.res[-2]):
-                    logging.warning('Convergence is making no progress, '
+                    print('Convergence is making no progress, '
                                     'calculation stopped.')
                     break
         end_time = time.time()
@@ -982,12 +977,12 @@ class network:
             c.p0 = c.p
             c.h0 = c.h
 
-        logging.info('Calculation complete.')
+        print('Calculation complete.')
         msg = ('Total iterations:', self.iter, ' -  '
                'Calculation time:', round(end_time - start_time, 1), 's - '
                'Iterations per second:',
                round(self.iter / (end_time - start_time), 2))
-        logging.info(msg)
+        print(msg)
 
     def solve_loop(self):
         """
@@ -1557,7 +1552,7 @@ class network:
 
         if mode == 'pre':
             self.comps.apply(network.process_pre, axis=1)
-            logging.info('Preprocessing done.')
+            print('Preprocessing done.')
 
         if mode == 'post':
             # convert to SI-units
@@ -1582,11 +1577,11 @@ class network:
             P = [x.P for x in self.busses if x.label == 'P_res']
             Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
 
-            logging.info('Postprocessing.')
+            print('Postprocessing.')
 
             if len(P) != 0 and len(Q_diss) != 0:
-                logging.info('##### Kennzahlen des Kreisprozesses #####')
-                logging.info('eta_th = ', 1 - Q_diss / (P + Q_diss))
+                print('##### Kennzahlen des Kreisprozesses #####')
+                print('eta_th = ', 1 - Q_diss / (P + Q_diss))
             msg = 'Do you want to print the components parammeters?'
             if hlp.query_yes_no(msg):
                 self.comps.apply(network.process_post_print, axis=1)

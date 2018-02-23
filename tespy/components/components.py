@@ -8,8 +8,6 @@
 import numpy as np
 import math
 
-import logging
-
 import CoolProp.CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
@@ -174,10 +172,10 @@ class component:
             msg = ('\'', invalid_keys, '\' are invalid attributes.'
                    'Available attributes for object \'', self,
                    '\' are:', self.attr())
-            logging.warning(msg)
+            print(msg)
 
-        logging.info('Created ', self, '.')
-        logging.info(self.__dict__)
+#        print('Created ', self, '.')
+#        print(self.__dict__)
 
     def set_attr(self, **kwargs):
         """
@@ -194,8 +192,11 @@ class component:
                         type(kwargs[key]) == int or
                         kwargs[key] == 'var' or
                         key == 'fuel'):
-                    self.__dict__.update({key: kwargs[key]})
-                    self.__dict__.update({key + '_set': True})
+                    if np.isnan(kwargs[key]):
+                        self.__dict__.update({key + '_set': False})
+                    else:
+                        self.__dict__.update({key: kwargs[key]})
+                        self.__dict__.update({key + '_set': True})
                     if kwargs[key] == 'var':
                         self.__dict__.update({key: 0.1})
                         self.cust_var += [key]
@@ -215,8 +216,6 @@ class component:
                         msg = ('Available parameters for (off-)design'
                                'specification are: ' + str(self.attr()) + '.')
                         raise ValueError(msg)
-                elif np.isnan(kwargs[key]):
-                    self.__dict__.update({key + '_set': False})
 
                 else:
                     msg = ('Specified value does not match requirements. '
@@ -227,10 +226,10 @@ class component:
             msg = ('\'', invalid_keys, '\' are invalid attributes.'
                    'Available attributes for object \'', self,
                    '\' are:', self.attr())
-            logging.warning(msg)
+            print(msg)
 
-        logging.info('Updated ', self, '.')
-        logging.info(self.__dict__)
+#        print('Updated ', self, '.')
+#        print(self.__dict__)
 
     def get_attr(self, key):
         """
@@ -1330,7 +1329,7 @@ class pump(turbomachine):
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                       'eta_s =', self.eta_s)
-                logging.error(msg)
+                print(msg)
 
         if mode == 'pre' and self.char_set:
             print('Creating characteristics for component ', self)
@@ -1648,7 +1647,7 @@ class compressor(turbomachine):
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                       'eta_s =', self.eta_s)
-                logging.error(msg)
+                print(msg)
 
         if mode == 'pre' and self.char_set:
             print('Creating characteristics for component ', self)
@@ -1965,7 +1964,7 @@ class turbine(turbomachine):
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                       'eta_s =', self.eta_s)
-                logging.error(msg)
+                print(msg)
 
         if mode == 'pre' and self.char_set:
             print('Creating characteristics for component ', self)
@@ -3891,7 +3890,7 @@ class heat_exchanger_simple(component):
                        'difference.'
                        'ttd_u =', ttd_u,
                        'ttd_l =', ttd_l)
-                logging.error(msg)
+                print(msg)
 
             self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
 
@@ -4594,7 +4593,7 @@ class heat_exchanger(component):
                    'difference.'
                    'ttd_u =', self.ttd_u,
                    'ttd_l =', self.ttd_l)
-            logging.error(msg)
+            print(msg)
 
         if T_i1 <= T_o2 or T_o1 <= T_i2:
             self.td_log = np.nan

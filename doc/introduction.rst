@@ -37,7 +37,7 @@ If you want to use the latest features, you might want to install the **develope
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provide an `Introduction <http://tespy.readthedocs.io/en/dev/introduction.html>`_. You can download the python scripts of the example plants from the tespy.examples folder. On top of that, there is a `step-by-step tutorial <http://tespy.readthedocs.io/en/dev/tutorial.html>`_ on how to model a heat pump in TESPy.
+For a short introduction on how TESPy works and how you can use it, we provide an `Introduction <http://tespy.readthedocs.io/en/dev/using_tespy.html#introduction>`_. You can download the python scripts of the example plants from the tespy.examples folder. On top of that, there is a `step-by-step tutorial <http://tespy.readthedocs.io/en/dev/tutorial.html>`_ on how to model a heat pump in TESPy.
 
 License
 =======

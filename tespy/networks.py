@@ -1708,19 +1708,13 @@ class network:
 
         cols.name.print_parameters(nw)
 
-    def plot_convergence(self, mode):
+    def plot_convergence(self):
         """
         plots the convergence history of all mass flows, pressures and
-        enthalpies as absolute values or relative to last value
+        enthalpies as absolute values
 
-        :param mode: absolute values or relative to last value (abs, rel)
-        :type mode: str
         :returns: no return value
-        :raises: :code:`ValueError` if mode is neither 'abs' nor 'rel'
         """
-        if mode not in ['abs', 'rel']:
-            raise ValueError(
-                'Plotting mode must be either \'abs\' or \'rel\'.')
 
         num_flows = len(self.conns.index)
         cm = plt.get_cmap('autumn')
@@ -1741,25 +1735,14 @@ class network:
             i += 1
 
         k = 0
-        if mode == 'rel':
-            for c in self.conns.index:
-                i = 0
-                for prop in self.convergence:
-                        axarr[i].semilogy(x, prop[k][:] / prop[k][-1],
-                                          color=color[k],
-                                          label=c.s.label + ' -> ' + c.t.label)
-                        i += 1
-                k += 1
-
-        else:
-            for c in self.conns.index:
-                i = 0
-                for prop in self.convergence:
-                        axarr[i].plot(x, prop[k][:] / prop[k][-1],
-                                      color=color[k],
-                                      label=c.s.label + ' -> ' + c.t.label)
-                        i += 1
-                k += 1
+        for c in self.conns.index:
+            i = 0
+            for prop in self.convergence:
+                    axarr[i].plot(x, prop[k][:] / prop[k][-1],
+                                  color=color[k],
+                                  label=c.s.label + ' -> ' + c.t.label)
+                    i += 1
+            k += 1
 
         axarr[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         f.subplots_adjust(right=0.8, hspace=0.2)

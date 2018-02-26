@@ -166,11 +166,55 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 Start your calculation
 ----------------------
 
-At the bottom of your script add the following line and off you go! The next section provides additional/advanced information on the solving process.
+At the bottom of your script add the following line and off you go! Additional/advanced information on the solving process and which options are available are found `here <http://tespy.readthedocs.io/en/dev/using_tespy.html#solving-a-tespy-network>`_.
 
 .. code-block:: python
 
 	my_plant.solve(mode='design')
+	
+How can TESPy contribute to your energy system calculations?
+------------------------------------------------------------
+
+In this part you learn how you can use TESPy for your energy system calculations: In energy system calculations, for instance in oemof-solph, plants are usually modelled as abstract components on a much lower level of detail. In order to represent a plant within an abstract component it is possible to supply characteristics establishing a connection between your energy system model and a specific plant model. Thus the characteristics are a representation of a specific plant layout in terms of topology and process parameters.
+
+The following part will show how to generate characteristics for a CHP unit. There are various technologies and concepts, for this example we will generate characteristics for a simple CHP with a backpressure steam turbine and a regenerative reheating unit as shown in the figure below. We want the characteristics to provide a correlation between output power and output heat flux at different temperatures of flow into a district heating system.
+
+.. figure:: api/_images/CHP.svg
+    :align: center
+	
+    Topology of the power plant.
+
+Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the mass flow in the main steam cycle has been changed stepwise from a slight overload of 50 kg/s to lower part loads (30 kg/s) with a stepwidth of 5 kg/s. Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.
+
+=========== =============== ======= ========
+ location    parameter       value   unit
+=========== =============== ======= ========
+ fs          | pressure      | 100   | bar
+             | temperature   | 550   | °C
+             | mass flow     | 47    | kg/s
+----------- --------------- ------- --------
+ extr        pressure        10      bar
+----------- --------------- ------- --------
+ condenser   ttd_u :sup:`2`  10       K
+----------- --------------- ------- --------
+ reheater    ttd_u :sup:`2`  7       K
+----------- --------------- ------- --------
+ from_hs     | pressure      | 10    | bar
+             | temperature   | 60    | °C
+----------- --------------- ------- --------
+ to_hs       temperature     110     °C
+=========== =============== ======= ========
+
+2: ttd_u is the upper terminal temperature difference, defined as temperature difference between hot side inlet and cold side outlet.
+
+As a result we get the PQ-diagram of this power plant containing the characteristics at different temperatures in the heating system. Within your oemof-solph energy system it is now possible to implement the characteristic lines as a function of the temperature level in the heating system.
+
+.. figure:: api/_images/PQ_diagram.svg
+    :align: center
+	
+    PQ-diagram for a CHP unit.
+	
+Download the :download:`source file <../examples/chp.py>` of this example.
 	
 Solving a TESPy Network
 =======================

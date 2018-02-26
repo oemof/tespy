@@ -4794,9 +4794,9 @@ class condenser(heat_exchanger):
         T_o2 = T_mix_ph(o2)
 
         if T_i1 <= T_o2 and not inlets[0].T_set:
-            T_i1 = T_o2 + 1
+            T_i1 = T_o2 + 0.5
         if T_i1 <= T_o2 and not outlets[1].T_set:
-            T_o2 = T_i1 - 1
+            T_o2 = T_i1 - 0.5
 
         if T_o1 <= T_i2 and not outlets[0].T_set:
             T_o1 = T_i2 + 1

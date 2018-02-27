@@ -10,6 +10,7 @@ import math
 import csv
 
 import pandas as pd
+from multiprocessing import cpu_count, Pool
 
 import numpy as np
 from numpy.linalg import inv
@@ -184,6 +185,14 @@ class network:
             self.T_range_SI[1] = ((self.T_range[1] +
                                    network.T[self.T_unit][0]) *
                                   network.T[self.T_unit][1])
+
+    def __getstate__(self):
+        """
+        required to pass Pool object within solving loop
+        """
+        self_dict = self.__dict__.copy()
+        del self_dict['pool']
+        return self_dict
 
     def set_attr(self, **kwargs):
         """
@@ -923,7 +932,7 @@ class network:
                 c.__dict__[var + '_set'] = True
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50):
+              max_iter=50, parallel=False):
         """
         solves the network:
 
@@ -939,10 +948,10 @@ class network:
         :type design_file: str
         :returns: no return value
         """
-
         self.init_file = init_file
         self.design_file = design_file
         self.dec = '.'
+        self.parallel = parallel
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -957,7 +966,7 @@ class network:
 
         print('Network initialised.')
 
-# vectors for convergence history (massflow, pressure, enthalpy)
+        # vectors for convergence history (massflow, pressure, enthalpy)
         self.convergence[0] = np.zeros((len(self.conns), 0))
         self.convergence[1] = np.zeros((len(self.conns), 0))
         self.convergence[2] = np.zeros((len(self.conns), 0))
@@ -970,9 +979,19 @@ class network:
         self.vec_res = []
         self.iter = 0
         self.relax = 1
-# number of variables
+        # number of variables
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
+
+        # parameters for code parallelisation
+        self.cores = cpu_count()
+        self.partit = self.cores
+        self.comps_split = []
+        self.pool = Pool(self.cores)
+
+        for g, df in self.comps.groupby(np.arange(len(self.comps)) //
+                                        (len(self.comps) / self.partit)):
+            self.comps_split += [df]
 
         print('iter\t| residual')
         for self.iter in range(max_iter):
@@ -996,7 +1015,7 @@ class network:
 
             self.iter += 1
 
-# stop calculation after rediculous amount of iterations
+            # stop calculation after rediculous amount of iterations
             if self.iter > 3:
                 if (all(self.res[(self.iter - 4):] <
                         hlp.err ** (1 / 2))):
@@ -1011,6 +1030,9 @@ class network:
         end_time = time.time()
 
         self.processing('post')
+
+        self.pool.close()
+        self.pool.join()
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /
@@ -1200,26 +1222,77 @@ class network:
         self.debug = []
         self.mat_deriv = np.zeros((len(self.conns) * (self.num_vars),
                                    len(self.conns) * (self.num_vars)))
-        num_eq = 0
-        for cp in self.comps.index.values:
-            self.vec_res += cp.equations(self)
-            vec_deriv = cp.derivatives(self)
-            if not isinstance(cp, cmp.source) and not isinstance(cp, cmp.sink):
-                i = 0
-                inlets = self.comps.loc[cp].i.tolist()
-                outlets = self.comps.loc[cp].o.tolist()
-                self.debug += [cp] * (len(vec_deriv))
-                # insert derivatives row - wise
-                # loc is the location of c in the jacobian matrix
-                for c in inlets + outlets:
-                    loc = self.conns.index.get_loc(c)
-                    self.mat_deriv[num_eq:len(self.vec_res),
-                                   loc * (self.num_vars):
-                                   (loc + 1) * self.num_vars] = (
-                                       vec_deriv[:, i])
-                    i += 1
 
-            num_eq = len(self.vec_res)
+        if self.parallel:
+
+            data = self.solve_parallelize(network.solve_eq)
+
+            sum_eq = 0
+            for part in range(self.partit):
+                self.vec_res += [it for ls in data[part][0].tolist()
+                                 for it in ls]
+
+                k = 0
+                for cp in self.comps_split[part].index:
+                    if (not isinstance(cp, cmp.source) and
+                            not isinstance(cp, cmp.sink)):
+
+                        i = 0
+                        num_eq = len(data[part][1].iloc[k][0])
+                        inlets = self.comps.loc[cp].i.tolist()
+                        outlets = self.comps.loc[cp].o.tolist()
+                        for c in inlets + outlets:
+                            loc = self.conns.index.get_loc(c)
+                            self.mat_deriv[sum_eq:sum_eq + num_eq,
+                                           loc * (self.num_vars):
+                                           (loc + 1) * self.num_vars] = (
+                                               data[part][1].iloc[k][0][:, i])
+                            i += 1
+                        sum_eq += num_eq
+                    k += 1
+
+        else:
+
+            sum_eq = 0
+            for cp in self.comps.index.values:
+
+                self.vec_res += cp.equations(self)
+                vec_deriv = cp.derivatives(self)
+                if (not isinstance(cp, cmp.source) and
+                        not isinstance(cp, cmp.sink)):
+
+                    i = 0
+                    num_eq = len(vec_deriv)
+                    inlets = self.comps.loc[cp].i.tolist()
+                    outlets = self.comps.loc[cp].o.tolist()
+                    # insert derivatives row - wise
+                    # loc is the location of c in the jacobian matrix
+                    for c in inlets + outlets:
+
+                        loc = self.conns.index.get_loc(c)
+                        self.mat_deriv[sum_eq:sum_eq + num_eq,
+                                       loc * (self.num_vars):
+                                       (loc + 1) * self.num_vars] = (
+                                           vec_deriv[:, i])
+                        i += 1
+                    sum_eq += num_eq
+
+    def solve_parallelize(self, func):
+        return self.pool.map(func, [(self, [i],) for i in self.comps_split])
+
+    def solve_eq(args):
+        nw, data = args
+        return [
+                data[0].apply(network.eq, axis=1, args=(nw,)),
+                data[0].apply(network.deriv, axis=1, args=(nw,))
+        ]
+
+    def eq(cp, nw):
+        return cp.name.equations(nw)
+
+    def deriv(cp, nw):
+        return [cp.name.derivatives(nw)]
+
 
     def solve_connections(self):
         """
@@ -1636,7 +1709,6 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-
         cols.name.calc_parameters(nw, mode)
 
 # %% printing and plotting

@@ -86,9 +86,16 @@ class network:
         'F': [459.67, 5 / 9],
         'K': [0, 1]
     }
+    SI_units = {
+          'm': 'kg / s',
+          'p': 'Pa',
+          'h': 'J / kg',
+          'T': 'K'
+          }
 
     def __init__(self, fluids, **kwargs):
 
+        self.checked = False
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
         self.fluids = sorted(fluids)
@@ -112,15 +119,19 @@ class network:
         self.busses = []
 
         # standard unit set
-        self.m_unit = 'kg / s'
-        self.p_unit = 'Pa'
-        self.h_unit = 'J / kg'
-        self.T_unit = 'K'
+        self.m_unit = network.SI_units['m']
+        self.p_unit = network.SI_units['p']
+        self.h_unit = network.SI_units['h']
+        self.T_unit = network.SI_units['T']
 
         # standard value range
         self.p_range = [2e3, 300e5]
         self.h_range = [1e3, 7e6]
         self.T_range = [273.16, 1773.15]
+
+        self.p_range_SI = self.p_range[:]
+        self.h_range_SI = self.h_range[:]
+        self.T_range_SI = self.T_range[:]
 
         # add attributes from kwargs
         for key in kwargs:
@@ -153,24 +164,26 @@ class network:
             msg = ('Specify the value range as list: [p_min, p_max]')
             raise TypeError(msg)
         else:
-            self.p_range[0] *= network.p[self.p_unit]
-            self.p_range[1] *= network.p[self.p_unit]
+            self.p_range_SI[0] = self.p_range[0] * network.p[self.p_unit]
+            self.p_range_SI[1] = self.p_range[1] * network.p[self.p_unit]
 
         if not isinstance(self.h_range, list):
             msg = ('Specify the value range as list: [h_min, h_max]')
             raise TypeError(msg)
         else:
-            self.h_range[0] *= network.h[self.h_unit]
-            self.h_range[1] *= network.h[self.h_unit]
+            self.h_range_SI[0] = self.h_range[0] * network.h[self.h_unit]
+            self.h_range_SI[1] = self.h_range[1] * network.h[self.h_unit]
 
         if not isinstance(self.T_range, list):
             msg = ('Specify the value range as list: [T_min, T_max]')
             raise TypeError(msg)
         else:
-            self.T_range[0] = ((self.T_range[0] + network.T[self.T_unit][0]) *
-                               network.T[self.T_unit][1])
-            self.T_range[1] = ((self.T_range[1] + network.T[self.T_unit][0]) *
-                               network.T[self.T_unit][1])
+            self.T_range_SI[0] = ((self.T_range[0] +
+                                   network.T[self.T_unit][0]) *
+                                  network.T[self.T_unit][1])
+            self.T_range_SI[1] = ((self.T_range[1] +
+                                   network.T[self.T_unit][0]) *
+                                  network.T[self.T_unit][1])
 
     def set_attr(self, **kwargs):
         """
@@ -206,26 +219,28 @@ class network:
         # value ranges
         if not isinstance(self.p_range, list):
             msg = ('Specify the value range as list: [p_min, p_max]')
-            raise hlp.MyNetworkError(msg)
+            raise TypeError(msg)
         else:
-            self.p_range[0] *= network.p[self.p_unit]
-            self.p_range[1] *= network.p[self.p_unit]
+            self.p_range_SI[0] = self.p_range[0] * network.p[self.p_unit]
+            self.p_range_SI[1] = self.p_range[1] * network.p[self.p_unit]
 
         if not isinstance(self.h_range, list):
             msg = ('Specify the value range as list: [h_min, h_max]')
-            raise hlp.MyNetworkError(msg)
+            raise TypeError(msg)
         else:
-            self.h_range[0] *= network.h[self.h_unit]
-            self.h_range[1] *= network.h[self.h_unit]
+            self.h_range_SI[0] = self.h_range[0] * network.h[self.h_unit]
+            self.h_range_SI[1] = self.h_range[1] * network.h[self.h_unit]
 
         if not isinstance(self.T_range, list):
             msg = ('Specify the value range as list: [T_min, T_max]')
-            raise hlp.MyNetworkError(msg)
+            raise TypeError(msg)
         else:
-            self.T_range[0] = ((self.T_range[0] + network.T[self.T_unit][0]) *
-                               network.T[self.T_unit][1])
-            self.T_range[1] = ((self.T_range[1] + network.T[self.T_unit][0]) *
-                               network.T[self.T_unit][1])
+            self.T_range_SI[0] = ((self.T_range[0] +
+                                   network.T[self.T_unit][0]) *
+                                  network.T[self.T_unit][1])
+            self.T_range_SI[1] = ((self.T_range[1] +
+                                   network.T[self.T_unit][0]) *
+                                  network.T[self.T_unit][1])
 
     def attr(self):
         return ['m_unit', 'p_unit', 'h_unit', 'T_unit',
@@ -253,6 +268,7 @@ class network:
         """
         for c in args:
             self.check_conns(c)
+            self.checked = False
 
     def del_conns(self, c):
         """
@@ -264,6 +280,7 @@ class network:
         :raises: :code:`KeyError` if connections object c is not in the network
         """
         self.conns.drop(self.conns.index(c))
+        self.checked = False
 
     def check_conns(self, c):
         """
@@ -376,6 +393,7 @@ class network:
                        'network.')
                 raise hlp.MyNetworkError(msg)
 
+        self.checked = True
         print('Networkcheck successfull.')
 
     def initialise(self):
@@ -778,29 +796,11 @@ class network:
 
             df = pd.read_csv(self.design_file, index_col=0, delimiter=';',
                              decimal=self.dec)
-
-            for c in self.conns.index:
-                # match connection (source, source_id, target, target_id) on connection objects
-                # of design file
-                df_tmp = (df.s == c.s.label).to_frame()
-                df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
-                df_tmp.loc[:, 't'] = (df.t == c.t.label)
-                df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
-                # is True does not work the intended way here!
-                s = df_tmp['s'] == True
-                s_id = df_tmp['s_id'] == True
-                t = df_tmp['t'] == True
-                t_id = df_tmp['t_id'] == True
-                # overwrite all properties with design file
-                conn = df_tmp.index[s & s_id & t & t_id][0]
-                c.m = df.loc[conn].m * network.m[self.m_unit]
-                c.p = df.loc[conn].p * network.p[self.p_unit]
-                c.h = df.loc[conn].h * network.h[self.h_unit]
-                for fluid in self.fluids:
-                    c.fluid[fluid] = df.loc[conn][fluid]
+            self.conns.apply(network.init_design_file, axis=1,
+                             args=(self, df, ))
 
             # component characteristics creation for offdesign calculation
-            self.process_components('pre')
+            self.processing('pre')
 
             for c in self.conns.index:
                 c.m = c.m_tmp
@@ -809,35 +809,81 @@ class network:
                 c.fluid = c.fluid_tmp
 
         if self.init_file is not None:
-
             df = pd.read_csv(self.init_file, index_col=0, delimiter=';',
                              decimal=self.dec)
-            for c in self.conns.index:
-                df_tmp = (df.s == c.s.label).to_frame()
-                df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
-                df_tmp.loc[:, 't'] = (df.t == c.t.label)
-                df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
-                s = df_tmp['s'] == True
-                s_id = df_tmp['s_id'] == True
-                t = df_tmp['t'] == True
-                t_id = df_tmp['t_id'] == True
-                if len(df_tmp.index[s & s_id & t & t_id]) > 0:
-                    conn = df_tmp.index[s & s_id & t & t_id][0]
-                    if not c.m_set:
-                        c.m = df.loc[conn].m * network.m[self.m_unit]
-                    if not c.p_set:
-                        c.p = df.loc[conn].p * network.p[self.p_unit]
-                    if not c.h_set:
-                        c.h = df.loc[conn].h * network.h[self.h_unit]
-                    for fluid in self.fluids:
-                        if not c.fluid_set[fluid]:
-                            c.fluid[fluid] = df.loc[conn][fluid]
+            self.conns.apply(network.init_init_file, axis=1,
+                             args=(self, df, ))
 
-            for c in self.conns.index:
-                if c.T_set and not isinstance(c.T, con.ref):
-                    c.h = hlp.h_mix_pT(c.as_list(), c.T)
-                if c.x_set:
-                    c.h = hlp.h_mix_pQ(c.as_list(), c.x)
+    def init_design_file(c, nw, df):
+        """
+        overwrite variables with values from design file
+
+        :param c: c are the connections of the network
+        :type c: landas dataframe index object
+        :param nw: tespy network
+        :type nw: tespy.networks.network
+        :param df: data from csv file
+        :type df: pandas.DataFrame
+        :returns: no return value
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        df_tmp = (df.s == c.s.label).to_frame()
+        df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
+        df_tmp.loc[:, 't'] = (df.t == c.t.label)
+        df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
+        # is True does not work the intended way here!
+        s = df_tmp['s'] == True
+        s_id = df_tmp['s_id'] == True
+        t = df_tmp['t'] == True
+        t_id = df_tmp['t_id'] == True
+        # overwrite all properties with design file
+        conn = df_tmp.index[s & s_id & t & t_id][0]
+        c.name.m = df.loc[conn].m * network.m[nw.m_unit]
+        c.name.p = df.loc[conn].p * network.p[nw.p_unit]
+        c.name.h = df.loc[conn].h * network.h[nw.h_unit]
+        for fluid in nw.fluids:
+            c.name.fluid[fluid] = df.loc[conn][fluid]
+
+    def init_init_file(c, nw, df):
+        """
+        overwrite non set variables with values from initialisation file
+
+        :param c: c are the connections of the network
+        :type c: landas dataframe index object
+        :param nw: tespy network
+        :type nw: tespy.networks.network
+        :param df: data from csv file
+        :type df: pandas.DataFrame
+        :returns: no return value
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        df_tmp = (df.s == c.s.label).to_frame()
+        df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
+        df_tmp.loc[:, 't'] = (df.t == c.t.label)
+        df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
+        # is True does not work the intended way here!
+        s = df_tmp['s'] == True
+        s_id = df_tmp['s_id'] == True
+        t = df_tmp['t'] == True
+        t_id = df_tmp['t_id'] == True
+        if len(df_tmp.index[s & s_id & t & t_id]) > 0:
+            conn = df_tmp.index[s & s_id & t & t_id][0]
+            if not c.name.m_set:
+                c.name.m = df.loc[conn].m * network.m[nw.m_unit]
+            if not c.name.p_set:
+                c.name.p = df.loc[conn].p * network.p[nw.p_unit]
+            if not c.name.h_set:
+                c.name.h = df.loc[conn].h * network.h[nw.h_unit]
+            for fluid in nw.fluids:
+                if not c.name.fluid_set[fluid]:
+                    c.name.fluid[fluid] = df.loc[conn][fluid]
+
+        if c.name.T_set and not isinstance(c.name.T, con.ref):
+            c.name.h = hlp.h_mix_pT(c.name.as_list(), c.name.T)
+        if c.name.x_set:
+            c.name.h = hlp.h_mix_pQ(c.name.as_list(), c.name.x)
 
     def init_offdesign(self):
         """
@@ -876,7 +922,8 @@ class network:
             for var in c.offdesign:
                 c.__dict__[var + '_set'] = True
 
-    def solve(self, mode, init_file=None, design_file=None, dec='.'):
+    def solve(self, mode, init_file=None, design_file=None, dec='.',
+              max_iter=50):
         """
         solves the network:
 
@@ -895,7 +942,7 @@ class network:
 
         self.init_file = init_file
         self.design_file = design_file
-        self.dec = dec
+        self.dec = '.'
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -903,7 +950,9 @@ class network:
         else:
             self.mode = mode
 
-        self.check_network()
+        if not self.checked:
+            self.check_network()
+
         self.initialise()
 
         print('Network initialised.')
@@ -926,7 +975,7 @@ class network:
         self.solve_determination()
 
         print('iter\t| residual')
-        for self.iter in range(250):
+        for self.iter in range(max_iter):
             self.convergence[0] = np.column_stack((self.convergence[0],
                                                    [0] * len(self.conns)))
             self.convergence[1] = np.column_stack((self.convergence[1],
@@ -957,15 +1006,11 @@ class network:
                 if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
                         self.res[-1] > self.res[-2]):
                     print('Convergence is making no progress, '
-                                    'calculation stopped.')
+                          'calculation stopped.')
                     break
         end_time = time.time()
 
-        # clear fluid property memory
-        hlp.memorise.del_memory(self.fluids)
-
-        # process components
-        self.comps.apply(network.process_post_calc, axis=1)
+        self.processing('post')
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /
@@ -978,10 +1023,10 @@ class network:
             c.h0 = c.h
 
         print('Calculation complete.')
-        msg = ('Total iterations:', self.iter, ' -  '
-               'Calculation time:', round(end_time - start_time, 1), 's - '
-               'Iterations per second:',
-               round(self.iter / (end_time - start_time), 2))
+        msg = ('Total iterations:' + str(self.iter) + ' - '
+               'Calculation time:' + str(round(end_time - start_time, 1)) +
+               's - Iterations per second:' +
+               str(round(self.iter / (end_time - start_time), 2)))
         print(msg)
 
     def solve_loop(self):
@@ -1070,16 +1115,16 @@ class network:
         :returns: no return value
         """
         # pressure
-        if c.p <= self.p_range[0]:
-            c.p = self.p_range[0]
-        if c.p >= self.p_range[1]:
-            c.p = self.p_range[1]
+        if c.p <= self.p_range_SI[0]:
+            c.p = self.p_range_SI[0]
+        if c.p >= self.p_range_SI[1]:
+            c.p = self.p_range_SI[1]
 
         # enthalpy
-        if c.h < self.h_range[0]:
-            c.h = self.h_range[0]
-        if c.h > self.h_range[1]:
-            c.h = self.h_range[1]
+        if c.h < self.h_range_SI[0]:
+            c.h = self.h_range_SI[0]
+        if c.h > self.h_range_SI[1]:
+            c.h = self.h_range_SI[1]
 
         # make sure, that at given temperatures values stay within feasible
         # range:
@@ -1117,14 +1162,14 @@ class network:
         try:
             T = CPPSI(val, 'T', 0, 'P', 0, hlp.single_fluid(c.fluid)) * fac
         except:
-            T = self.T_range[idx]
+            T = self.T_range_SI[idx]
 
         if pos == 'min':
-            if T < self.T_range[idx]:
-                T = self.T_range[idx]
+            if T < self.T_range_SI[idx]:
+                T = self.T_range_SI[idx]
         else:
-            if T > self.T_range[idx]:
-                T = self.T_range[idx]
+            if T > self.T_range_SI[idx]:
+                T = self.T_range_SI[idx]
 
         p_temp = c.p
         if 'INCOMP::' in hlp.single_fluid(c.fluid):
@@ -1535,7 +1580,9 @@ class network:
         else:
             return
 
-    def process_components(self, mode):
+# %% pre and post processing
+
+    def processing(self, mode):
         """
         preprocessing or postprocessing for components: calculation of
         components attributes
@@ -1550,53 +1597,38 @@ class network:
                    'or \'post\'.')
             raise hlp.MyNetworkError(msg)
 
+        self.comps.apply(network.process_components, axis=1,
+                         args=(self, mode,))
+
         if mode == 'pre':
-            self.comps.apply(network.process_pre, axis=1)
             print('Preprocessing done.')
-
-        if mode == 'post':
-            # convert to SI-units
-            for c in self.conns.index:
-                c.m *= network.m[self.m_unit]
-                c.p *= network.p[self.p_unit]
-                c.h *= network.h[self.h_unit]
-                c.T = ((c.T + network.T[self.T_unit][0]) *
-                       network.T[self.T_unit][1])
-
-# process key figures
-            for b in self.busses:
-                b.P = 0
-                for c in b.comps.index:
-                    i = self.comps.loc[c].i[0]
-                    o = self.comps.loc[c].o[0]
-
-                    factor = b.comps.loc[c].factor
-
-                    b.P += i.m * (o.h - i.h) * factor
-
-            P = [x.P for x in self.busses if x.label == 'P_res']
-            Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
-
+        else:
             print('Postprocessing.')
+            # clear fluid property memory
+            hlp.memorise.del_memory(self.fluids)
 
-            if len(P) != 0 and len(Q_diss) != 0:
-                print('##### Kennzahlen des Kreisprozesses #####')
-                print('eta_th = ', 1 - Q_diss / (P + Q_diss))
-            msg = 'Do you want to print the components parammeters?'
-            if hlp.query_yes_no(msg):
-                self.comps.apply(network.process_post_print, axis=1)
-            else:
-                self.comps.apply(network.process_post_calc, axis=1)
+            self.comps.apply(network.process_components, axis=1,
+                             args=(self, mode,))
+            self.process_busses()
+            print('Done.')
 
-            # convert back to specified units
-            for c in self.conns.index:
-                c.m /= network.m[self.m_unit]
-                c.p /= network.p[self.p_unit]
-                c.h /= network.h[self.h_unit]
-                c.T = (c.T / network.T[self.T_unit][1] -
-                       network.T[self.T_unit][0])
+    def process_busses(self):
+        """
+        processing the networks busses
 
-    def process_post_calc(cols):
+        :returns: no return value
+        """
+        for b in self.busses:
+            b.P = 0
+            for c in b.comps.index:
+                i = self.comps.loc[c].i[0]
+                o = self.comps.loc[c].o[0]
+
+                factor = b.comps.loc[c].factor
+
+                b.P += i.m * (o.h - i.h) * factor
+
+    def process_components(cols, nw, mode):
         """
         postprocessing: calculate components attributes
 
@@ -1604,10 +1636,67 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'post')
 
-    def process_post_print(cols):
+        cols.name.calc_parameters(nw, mode)
+
+# %% printing and plotting
+
+    def print_results(self):
+        """
+        prints the calculations results for components and connections
+
+        :returns: no return value
+
+        **Improvements**
+
+        adjust number of decimal places according to specified units
+        """
+
+        # convert to SI-units
+        for c in self.conns.index:
+            c.m *= network.m[self.m_unit]
+            c.p *= network.p[self.p_unit]
+            c.h *= network.h[self.h_unit]
+            c.T = ((c.T + network.T[self.T_unit][0]) *
+                   network.T[self.T_unit][1])
+
+        P_res = [x.P for x in self.busses if x.label == 'P_res']
+        Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
+
+        if len(P_res) != 0 and len(Q_diss) != 0:
+            print('cycle process key figures')
+            print('eta_th = ' + str(1 - sum(Q_diss) /
+                  (sum(P_res) + sum(Q_diss))))
+
+        msg = 'Do you want to print the components parammeters?'
+        if hlp.query_yes_no(msg):
+            self.comps.apply(network.print_components, axis=1,
+                             args=(self,))
+
+        # convert back to specified units
+        for c in self.conns.index:
+            c.m /= network.m[self.m_unit]
+            c.p /= network.p[self.p_unit]
+            c.h /= network.h[self.h_unit]
+            c.T = (c.T / network.T[self.T_unit][1] -
+                   network.T[self.T_unit][0])
+
+        msg = 'Do you want to print the connections parammeters?'
+        if hlp.query_yes_no(msg):
+            df = pd.DataFrame(columns=['m / (' + self.m_unit + ')',
+                                       'p / (' + self.p_unit + ')',
+                                       'h / (' + self.h_unit + ')',
+                                       'T / (' + self.T_unit + ')'])
+            for c in self.conns.index:
+                df.loc[c.s.label + ' -> ' + c.t.label] = (
+                        ['{:.2e}'.format(c.m),
+                         '{:.2e}'.format(c.p),
+                         '{:.4e}'.format(c.h),
+                         '{:.2e}'.format(c.T)]
+                        )
+            print(df)
+
+    def print_components(cols, nw):
         """
         postprocessing: calculate components attributes and print them to
         prompt
@@ -1616,34 +1705,16 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'post')
-        cols.name.print_parameters(inlets, outlets)
 
-    def process_pre(cols):
-        """
-        preprocessing: calculate components attributes
+        cols.name.print_parameters(nw)
 
-        :param cols: cols are the components of the network
-        :type cols: landas dataframe index object
-        :returns: no return value
-        """
-        inlets, outlets = cols.i.tolist(), cols.o.tolist()
-        cols.name.calc_parameters(inlets, outlets, 'pre')
-
-    def plot_convergence(self, mode):
+    def plot_convergence(self):
         """
         plots the convergence history of all mass flows, pressures and
-        enthalpies as absolute values or relative to last value
+        enthalpies as absolute values
 
-        :param mode: absolute values or relative to last value (abs, rel)
-        :type mode: str
         :returns: no return value
-        :raises: :code:`ValueError` if mode is neither 'abs' nor 'rel'
         """
-        if mode not in ['abs', 'rel']:
-            raise ValueError(
-                'Plotting mode must be either \'abs\' or \'rel\'.')
 
         num_flows = len(self.conns.index)
         cm = plt.get_cmap('autumn')
@@ -1664,29 +1735,20 @@ class network:
             i += 1
 
         k = 0
-        if mode == 'rel':
-            for c in self.conns.index:
-                i = 0
-                for prop in self.convergence:
-                        axarr[i].semilogy(x, prop[k][:] / prop[k][-1],
-                                          color=color[k],
-                                          label=c.s.label + ' -> ' + c.t.label)
-                        i += 1
-                k += 1
-
-        else:
-            for c in self.conns.index:
-                i = 0
-                for prop in self.convergence:
-                        axarr[i].plot(x, prop[k][:] / prop[k][-1],
-                                      color=color[k],
-                                      label=c.s.label + ' -> ' + c.t.label)
-                        i += 1
-                k += 1
+        for c in self.conns.index:
+            i = 0
+            for prop in self.convergence:
+                    axarr[i].plot(x, prop[k][:] / prop[k][-1],
+                                  color=color[k],
+                                  label=c.s.label + ' -> ' + c.t.label)
+                    i += 1
+            k += 1
 
         axarr[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         f.subplots_adjust(right=0.8, hspace=0.2)
         plt.show()
+
+# %% saving
 
     def save(self, filename, **kwargs):
         """

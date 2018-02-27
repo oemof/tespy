@@ -10,7 +10,7 @@ import math
 import csv
 
 import pandas as pd
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, Pool, freeze_support
 
 import numpy as np
 from numpy.linalg import inv
@@ -50,7 +50,6 @@ class network:
     - p_unit (*str*), p_range (*list*)
     - h_unit (*str*), h_range (*list*)
     - T_unit (*str*), T_range (*list*)
-    - memo (*bool*), initialise fluid property memorisation?
 
     **example**
 
@@ -984,14 +983,15 @@ class network:
         self.solve_determination()
 
         # parameters for code parallelisation
-        self.cores = cpu_count()
-        self.partit = self.cores
-        self.comps_split = []
-        self.pool = Pool(self.cores)
+        if self.parallel:
+            self.cores = cpu_count()
+            self.partit = self.cores
+            self.comps_split = []
+            self.pool = Pool(self.cores)
 
-        for g, df in self.comps.groupby(np.arange(len(self.comps)) //
-                                        (len(self.comps) / self.partit)):
-            self.comps_split += [df]
+            for g, df in self.comps.groupby(np.arange(len(self.comps)) //
+                                            (len(self.comps) / self.partit)):
+                self.comps_split += [df]
 
         print('iter\t| residual')
         for self.iter in range(max_iter):
@@ -1031,8 +1031,9 @@ class network:
 
         self.processing('post')
 
-        self.pool.close()
-        self.pool.join()
+        if self.parallel:
+            self.pool.close()
+            self.pool.join()
 
         for c in self.conns.index:
             c.T = (hlp.T_mix_ph([c.m, c.p, c.h, c.fluid]) /

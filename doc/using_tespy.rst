@@ -13,8 +13,8 @@ groups and give a short introduction on how TESPys solver works and how to handl
 Information on handling of fluid properties can be found at the end of this page.
 
 On top of a ` step by step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to
-set up a heat pump in TESPy, we provide two basic examples in the `examples section
-<http://tespy.readthedocs.io/en/latest/examples.html>`_.
+set up a heat pump in TESPy, we provide basic examples in the `examples section
+<http://tespy.readthedocs.io/en/dev/introduction.html#examples>`_.
 
 .. figure:: api/_images/tutorial_heat_pump.svg
     :align: center
@@ -87,7 +87,8 @@ All parameters but the fluid vector have to be numeric values. The fluid vector 
 	
 	from tespy import con
 	ws_cond = con.connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
-	cond_fwp = con.connection(condenser, 'out1', feed_water_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
+	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
+	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1')
 	fwt_fwp = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
 	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', p=150) #  setting pressure
 	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(d, 0.98, 0)) # setting temperature and pressure via reference object
@@ -257,24 +258,26 @@ This means that you have to provide the exact amount of required parameters (nei
 											 &0 = \dot{m}_{in} - \dot{m}_{out}\\
 					 \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 					 
-Solving					 
--------
+Handling					 
+--------
 
 After you added all of your connections, subsystems and busses to your network, you can start the calculation with the following command.
 
 .. code-block:: python
 
-	nw.solve(init_file=None, design_file=None, mode='design', dec='.', max_iter=50)
+	nw.solve(init_file=None, design_file=None, mode='design', dec='.', max_iter=50, parallel=False)
 	
 This starts the initialisation of your network and proceeds to its calculation.
 
 * :code:`nw` is the network object,
 * :code:`init_file` is the .csv-file you want to use for initialisation,
 * :code:`design_file` is the .csv-file which holds the information of your plants design point,
-* :code:`mode` is the calculation mode (design-calculation or offdesign-calculation) and
-* :code:`max_iter` is the maximum amount of iterations performed by the solver.
+* :code:`mode` is the calculation mode (design-calculation or offdesign-calculation),
+* :code:`dec` is the decimal separator in the .csv-files,
+* :code:`max_iter` is the maximum amount of iterations performed by the solver and finally
+* :code:`parallel` parallel computation of components (True/False).
 
-There are two modes available (:code:`'design'` and :code:`'offdesign'`). If you choose :code:`offdesign` as calculation mode a design file must be specified. The initialisation file is always optional but very valuable, if you specify it to be :code:`None`, the initialisation from .csv-file will be skipped.
+There are two modes available (:code:`'design'` and :code:`'offdesign'`). If you choose :code:`offdesign` as calculation mode a design file must be specified. The initialisation file is always optional but very valuable, if you specify it to be :code:`None`, the initialisation from .csv-file will be skipped. Parallel computation for the components might slow down the computation for smaller networks.
 
 Initialisation
 ^^^^^^^^^^^^^^

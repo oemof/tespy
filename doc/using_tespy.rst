@@ -95,6 +95,11 @@ All parameters but the fluid vector have to be numeric values. The fluid vector 
 	eva_eco = con.connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
 	eco_fgs = con.connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
 
+.. figure:: api/_images/intro_connections.svg
+    :align: center
+	
+    Figure 2: Topology after defining the above connections.
+
 If you want to set, reset or unset a connection parameter the same logic as for the components is applied.
 
 .. code-block:: python
@@ -134,7 +139,7 @@ Two labels for busses have a predefined function in the postprocessing analysis:
 Subsystems/Component groups
 ---------------------------
 
-Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or `create a subsytem yourself <http://tespy.readthedocs.io/en/dev/using_tespy.html#tespy-subsystems-component-groups>`_. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
+Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or `create a subsytem yourself <http://tespy.readthedocs.io/en/dev/using_tespy.html#tespy-subsystems-component-groups>`_. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup_cond()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
 
 .. code-block:: python
 
@@ -148,10 +153,10 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 	preheater = subsys.ph_desup(label='sub1')
 
 	# connections into the subsystem are attached to subsystem.inlet, connections out of the subsystem to subsystem.outlet
-	ext_pre = connection(source, 'out1', subsystem.inlet, 'in1')
-	pre_cond = connection(subsystem.outlet, 'out1', sink, 'in1')
-	fwc_pre = connection(source2, 'out1',subsystem.inlet,'in2')
-	pre_fwc = connection(subsystem.outlet, 'out2', sink2, 'in1')
+	ext_pre = connection(ext, 'out1', subsystem.inlet, 'in1')
+	pre_cond = connection(subsystem.outlet, 'out1', cond, 'in1')
+	fwc_pre = connection(fwc, 'out1',subsystem.inlet,'in2')
+	pre_fwc = connection(subsystem.outlet, 'out2', fww, 'in1')
 	
 	# parametrisation
 	preheater.set_attr(ttd=8, pr1_desup=1, pr2_desup=1, pr1_cond=1, pr2_cond=1)
@@ -163,6 +168,13 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 	# create the network and connections and subsystems
 	my_plant.add_conns(ext_pre, pre_cond, fwc_pre, pre_fwc)
 	my_plant.add_subsys(subsys)
+	
+
+.. figure:: api/_images/intro_subsys.svg
+    :align: center
+	
+    Figure 3: Topology of the subsystem.
+	
 
 Start your calculation
 ----------------------
@@ -183,7 +195,7 @@ The following part will show how to generate characteristics for a CHP unit. The
 .. figure:: api/_images/CHP.svg
     :align: center
 	
-    Topology of the power plant.
+    Figure 4: Topology of the power plant.
 
 Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the mass flow in the main steam cycle has been changed stepwise from a slight overload of 50 kg/s to lower part loads (30 kg/s) with a stepwidth of 5 kg/s. Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.
 
@@ -213,7 +225,7 @@ As a result we get the PQ-diagram of this power plant containing the characteris
 .. figure:: api/_images/PQ_diagram.svg
     :align: center
 	
-    PQ-diagram for a CHP unit.
+    Figure 5: PQ-diagram for a CHP unit.
 	
 Download the :download:`source file <../examples/chp.py>` of this example.
 	

@@ -197,18 +197,19 @@ The following part will show how to generate characteristics for a CHP unit. The
 	
     Figure 4: Topology of the power plant.
 
-Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the mass flow in the main steam cycle has been changed stepwise from a slight overload of 50 kg/s to lower part loads (30 kg/s) with a stepwidth of 5 kg/s. Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.
+Important design information can be obtained from the table below, the locations are indicated in the figure. After designing the plant, the total power output defined by the power_bus has been changed stepwise from a slight overload of 5.25 MW to lower part loads 3.00 MW with a stepwidth of 0.50 MW (0.25 MW for first step). Further the required temperature for the heating system was changed from 80 °C to 120 °C in steps of 10 K.
 
 =========== =============== ======= ========
  location    parameter       value   unit
 =========== =============== ======= ========
  fs          | pressure      | 100   | bar
              | temperature   | 550   | °C
-             | mass flow     | 47    | kg/s
 ----------- --------------- ------- --------
  extr        pressure        10      bar
 ----------- --------------- ------- --------
- condenser   ttd_u :sup:`2`  10       K
+ power_bus                   5e6     W
+----------- --------------- ------- --------
+ condenser   ttd_u :sup:`2`  12      K
 ----------- --------------- ------- --------
  reheater    ttd_u :sup:`2`  7       K
 ----------- --------------- ------- --------

@@ -96,6 +96,7 @@ class network:
     def __init__(self, fluids, **kwargs):
 
         self.checked = False
+        self.errors = []
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
         self.fluids = sorted(fluids)
@@ -497,11 +498,13 @@ class network:
             if any(c.fluid_set.values()):
                 fluid_tmp = c.fluid.copy()
                 fluid_set_tmp = c.fluid_set.copy()
-                c.fluid = {}
-                c.fluid_set = {}
+                c.fluid = collections.OrderedDict()
+                c.fluid_set = collections.OrderedDict()
             else:
-                fluid_tmp = {}
-                fluid_set_tmp = {}
+                c.fluid = collections.OrderedDict()
+                c.fluid_set = collections.OrderedDict()
+                fluid_tmp = collections.OrderedDict()
+                fluid_set_tmp = collections.OrderedDict()
             for fluid in self.fluids:
                 if fluid in fluid_tmp.keys():
                     c.fluid[fluid] = fluid_tmp[fluid]
@@ -822,6 +825,12 @@ class network:
             self.conns.apply(network.init_init_file, axis=1,
                              args=(self, df, ))
 
+        for c in self.conns.index:
+            c.m_start = c.m
+            c.p_start = c.p
+            c.h_start = c.h
+            c.fluid_start = c.fluid.copy()
+
     def init_design_file(c, nw, df):
         """
         overwrite variables with values from design file
@@ -937,7 +946,7 @@ class network:
 
         - checks network consistency
         - initialises network
-        - calculates network
+        - starts calculation
 
         :param mode: calculation mode (design, offdesign)
         :type mode: str
@@ -950,6 +959,7 @@ class network:
         self.init_file = init_file
         self.design_file = design_file
         self.dec = '.'
+        self.max_iter = max_iter
         self.parallel = parallel
 
         if mode != 'offdesign' and mode != 'design':
@@ -973,11 +983,10 @@ class network:
 
         print('Solving network.')
 
-        start_time = time.time()
-
         self.vec_res = []
         self.iter = 0
         self.relax = 1
+        self.num_restart = 0
         # number of variables
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
@@ -987,46 +996,20 @@ class network:
             self.cores = cpu_count()
             self.partit = self.cores
             self.comps_split = []
+            self.conns_split = []
             self.pool = Pool(self.cores)
 
             for g, df in self.comps.groupby(np.arange(len(self.comps)) //
                                             (len(self.comps) / self.partit)):
                 self.comps_split += [df]
 
-        print('iter\t| residual')
-        for self.iter in range(max_iter):
-            self.convergence[0] = np.column_stack((self.convergence[0],
-                                                   [0] * len(self.conns)))
-            self.convergence[1] = np.column_stack((self.convergence[1],
-                                                   [0] * len(self.conns)))
-            self.convergence[2] = np.column_stack((self.convergence[2],
-                                                   [0] * len(self.conns)))
-            self.solve_loop()
-            self.res = np.append(self.res, norm(self.vec_res))
+            for g, df in self.conns.groupby(np.arange(len(self.conns)) //
+                                            (len(self.conns) / self.partit)):
+                self.conns_split += [df]
 
-            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
 
-            k = 0
-            for c in self.conns.index:
-                self.convergence[0][k][self.iter] = c.m
-                self.convergence[1][k][self.iter] = c.p
-                self.convergence[2][k][self.iter] = c.h
-                k += 1
-
-            self.iter += 1
-
-            # stop calculation after rediculous amount of iterations
-            if self.iter > 3:
-                if (all(self.res[(self.iter - 4):] <
-                        hlp.err ** (1 / 2))):
-                    break
-
-            if self.iter > 20:
-                if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
-                        self.res[-1] > self.res[-2]):
-                    print('Convergence is making no progress, '
-                          'calculation stopped.')
-                    break
+        start_time = time.time()
+        self.solve_loop()
         end_time = time.time()
 
         self.processing('post')
@@ -1054,59 +1037,149 @@ class network:
 
     def solve_loop(self):
         """
-        calculates the solution of the network with n-dimensional newton
-        algorithm:
+        loop of the newton algorithm
+
+        **Improvememts**
+        """
+
+        print('iter\t| residual')
+        for self.iter in range(self.max_iter):
+
+            self.convergence[0] = np.column_stack((
+                    self.convergence[0], [0] * len(self.conns)))
+            self.convergence[1] = np.column_stack((
+                    self.convergence[1], [0] * len(self.conns)))
+            self.convergence[2] = np.column_stack((
+                    self.convergence[2], [0] * len(self.conns)))
+
+            self.solve_control()
+            self.res = np.append(self.res, norm(self.vec_res))
+
+            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
+
+            k = 0
+            for c in self.conns.index:
+                self.convergence[0][k][self.iter] = c.m
+                self.convergence[1][k][self.iter] = c.p
+                self.convergence[2][k][self.iter] = c.h
+                k += 1
+
+            if self.iter > 5:
+                self.relax = 1
+
+            self.iter += 1
+
+            # stop calculation after rediculous amount of iterations
+            if self.iter > 3:
+                if (all(self.res[(self.iter - 4):] <
+                        hlp.err ** (1 / 2))):
+                    if self.num_restart > 0:
+                        self.convergence[0] = np.column_stack((
+                                self.convergence[0], [0] * len(self.conns)))
+                        self.convergence[1] = np.column_stack((
+                                self.convergence[1], [0] * len(self.conns)))
+                        self.convergence[2] = np.column_stack((
+                                self.convergence[2], [0] * len(self.conns)))
+                        self.vec_z=np.zeros((self.num_vars * len(self.conns),))
+                    break
+
+            if self.iter > 20:
+                if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
+                        self.res[-1] > self.res[-2]):
+                    print('Convergence is making no progress, '
+                          'calculation stopped.')
+                    if self.num_restart > 0:
+                        self.convergence[0] = np.column_stack((
+                                self.convergence[0], [0] * len(self.conns)))
+                        self.convergence[1] = np.column_stack((
+                                self.convergence[1], [0] * len(self.conns)))
+                        self.convergence[2] = np.column_stack((
+                                self.convergence[2], [0] * len(self.conns)))
+                        self.vec_z=np.zeros((self.num_vars * len(self.conns),))
+                    break
+
+    def solve_control(self):
+        """
+        calculation step of newton algorithm
 
         - calculate the residual value for each equation
         - calculate the jacobian matrix
         - calculate new values for variables
         - restrict fluid properties to predefined range
         - check component parameters for consistency
+        - restart calculation of network with adjusted relaxation factors,
+          if linear dependency is detected after first successfull iteration
 
         :returns: no return value
         :raises: :code:`hlp.MyNetworkError` if network is under-determined.
 
         **Improvememts**
-
-        - add the possibility for user specified property ranges:
-          min and max pressure, enthalpy and temperature
         """
         self.vec_res = []
         self.solve_components()
         self.solve_connections()
         self.solve_busses()
 
+        lin_dep = True
         try:
-            vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
+            self.vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
+            lin_dep = False
         except:
-            msg = ('error calculating the network:\n'
-                   'singularity in jacobian matrix, possible reasons are\n'
-                   '-> given Temperature with given pressure in two phase '
-                   'region, try setting enthalpy instead or '
-                   'provide accurate starting value for pressure.\n'
-                   '-> given logarithmic temperature differences '
-                   'or kA-values for heat exchangers, \n'
-                   '-> support better starting values.\n'
-                   '-> bad starting value for fuel mass flow of '
-                   'combustion chamber, provide small (near to zero, '
-                   'but not zero) starting value.')
-            raise hlp.MyNetworkError(msg)
+            pass
+
+        # check for linear dependency
+        if lin_dep:
+            restart = False
+            if self.iter > 0 and self.num_restart < 3:
+                restart = True
+
+            if restart:
+                for c in self.conns.index:
+                    c.m = c.m_start
+                    c.p = c.p_start
+                    c.h = c.h_start
+                    c.fluid = c.fluid_start.copy()
+
+                self.relax *= 0.8
+                self.num_restart += 1
+                self.iter = 0
+                self.convergence[0] = np.zeros((len(self.conns), 0))
+                self.convergence[1] = np.zeros((len(self.conns), 0))
+                self.convergence[2] = np.zeros((len(self.conns), 0))
+                self.res = np.array([])
+                self.vec_res = []
+                print('Adjusting relaxation factors and'
+                      'restarting calculation.')
+                self.solve_loop()
+            else:
+                msg = ('error calculating the network:\n'
+                       'singularity in jacobian matrix, possible reasons are\n'
+                       '-> given Temperature with given pressure in two phase '
+                       'region, try setting enthalpy instead or '
+                       'provide accurate starting value for pressure.\n'
+                       '-> given logarithmic temperature differences '
+                       'or kA-values for heat exchangers, \n'
+                       '-> support better starting values.\n'
+                       '-> bad starting value for fuel mass flow of '
+                       'combustion chamber, provide small (near to zero, '
+                       'but not zero) starting value.')
+                raise hlp.MyNetworkError(msg)
 
         # add increment
         i = 0
         for c in self.conns.index:
             if not c.m_set or hasattr(c, 'm_ref'):
-                c.m += vec_z[i * (self.num_vars)]
+                c.m += self.vec_z[i * (self.num_vars)] * self.relax
             if not c.p_set or hasattr(c, 'p_ref'):
-                c.p += vec_z[i * (self.num_vars) + 1] * self.relax
+                c.p += self.vec_z[i * (self.num_vars) + 1] * self.relax
             if not c.h_set or hasattr(c, 'h_ref'):
-                c.h += vec_z[i * (self.num_vars) + 2]
+                c.h += self.vec_z[i * (self.num_vars) + 2] * self.relax
 
             l = 0
-            for fluid in c.fluid.keys():
+            for fluid in self.fluids:
                 # add increment
                 if not c.fluid_set[fluid]:
-                    c.fluid[fluid] += vec_z[i * (self.num_vars) + 3 + l]
+                    c.fluid[fluid] += self.vec_z[i * (self.num_vars) + 3 + l]
 
                 # prevent bad changes within solution process
                 if c.fluid[fluid] < hlp.err:
@@ -1219,37 +1292,47 @@ class network:
         - place partial derivatives in jacobian matrix
 
         :returns: no return value
+
+        **Improvements**
+
+        - search a way to speed up second part of parallelized calculation
         """
-        self.debug = []
         self.mat_deriv = np.zeros((len(self.conns) * (self.num_vars),
                                    len(self.conns) * (self.num_vars)))
 
         if self.parallel:
 
-            data = self.solve_parallelize(network.solve_eq)
+            data = self.solve_parallelize(network.solve_parallelize_comp,
+                                          self.comps_split)
 
             sum_eq = 0
             for part in range(self.partit):
+
                 self.vec_res += [it for ls in data[part][0].tolist()
                                  for it in ls]
-
                 k = 0
                 for cp in self.comps_split[part].index:
+
                     if (not isinstance(cp, cmp.source) and
                             not isinstance(cp, cmp.sink)):
 
+#                        vec_deriv = cp.derivatives(self)
                         i = 0
                         num_eq = len(data[part][1].iloc[k][0])
                         inlets = self.comps.loc[cp].i.tolist()
                         outlets = self.comps.loc[cp].o.tolist()
                         for c in inlets + outlets:
+
                             loc = self.conns.index.get_loc(c)
                             self.mat_deriv[sum_eq:sum_eq + num_eq,
                                            loc * (self.num_vars):
                                            (loc + 1) * self.num_vars] = (
                                                data[part][1].iloc[k][0][:, i])
+#                            print(vec_deriv[:, i] - data[part][1].iloc[k][0][:, i])
                             i += 1
+
                         sum_eq += num_eq
+
                     k += 1
 
         else:
@@ -1276,22 +1359,23 @@ class network:
                                        (loc + 1) * self.num_vars] = (
                                            vec_deriv[:, i])
                         i += 1
+
                     sum_eq += num_eq
 
-    def solve_parallelize(self, func):
-        return self.pool.map(func, [(self, [i],) for i in self.comps_split])
+    def solve_parallelize(self, func, data):
+        return self.pool.map(func, [(self, [i],) for i in data])
 
-    def solve_eq(args):
+    def solve_parallelize_comp(args):
         nw, data = args
         return [
-                data[0].apply(network.eq, axis=1, args=(nw,)),
-                data[0].apply(network.deriv, axis=1, args=(nw,))
+                data[0].apply(network.solve_comp_eq, axis=1, args=(nw,)),
+                data[0].apply(network.solve_comp_deriv, axis=1, args=(nw,))
         ]
 
-    def eq(cp, nw):
+    def solve_comp_eq(cp, nw):
         return cp.name.equations(nw)
 
-    def deriv(cp, nw):
+    def solve_comp_deriv(cp, nw):
         return [cp.name.derivatives(nw)]
 
 
@@ -1308,46 +1392,133 @@ class network:
         :returns: no return value
         """
         row = len(self.vec_res)
+        # parallelization does not seem to speed up calculation for connection
+        # properties!!
+        if self.parallel:
 
-        for c in self.conns.index:
-            col = self.conns.index.get_loc(c) * (self.num_vars)
+            data = self.solve_parallelize(network.solve_parallelize_conn,
+                                          self.conns_split)
+            sum_eq = row
+            var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x'}
+            for part in range(self.partit):
 
-            if c.m_set:
-                self.solve_m_p_h(c, row, col, 'm')
-                row += 1
-            if c.p_set:
-                self.solve_m_p_h(c, row, col, 'p')
-                row += 1
-            if c.h_set:
-                self.solve_m_p_h(c, row, col, 'h')
-                row += 1
-            if c.T_set:
-                self.solve_T(c, row, col)
-                row += 1
-            if c.x_set:
-                self.solve_x(c, row, col)
-                row += 1
+                self.vec_res += [it for ls in data[part][0].tolist()
+                                 for it in ls if it is not None]
+                k = 0
+                for c in self.conns_split[part].index:
 
-            l = 0
-            for f in c.fluid.keys():
-                if c.fluid_set[f]:
-                    self.mat_deriv[row, col + 3 + l] = 1
-                    self.vec_res += [0]
+                    i = 0 # variable counter
+                    loc = self.conns.index.get_loc(c)
+                    for it in data[part][1].iloc[k]:
+
+                        if it is not None:
+
+                            self.mat_deriv[sum_eq:sum_eq + 1, loc *
+                                           self.num_vars: (loc + 1) *
+                                           self.num_vars] = it[0, 0]
+                            if it[0].shape[0] == 2:
+
+                                c_ref = c.get_attr(var[i] + '_ref')
+                                loc_ref = self.conns.index.get_loc(c_ref.obj)
+                                self.mat_deriv[sum_eq:sum_eq + 1, loc_ref *
+                                               self.num_vars: (loc_ref + 1) *
+                                               self.num_vars] = it[0, 1]
+
+                            sum_eq += 1
+
+                        i += 1
+
+                    k += 1
+
+            row = sum_eq
+            for c in self.conns.index:
+
+                col = self.conns.index.get_loc(c) * (self.num_vars)
+                j = 0
+                for f in self.fluids:
+
+                    if c.fluid_set[f]:
+                        self.mat_deriv[row, col + 3 + j] = 1
+                        self.vec_res += [0]
+                        row += 1
+
+                    j += 1
+
+                if c.fluid_balance:
+
+                    j = 0
+                    res = 1
+                    for f in self.fluids:
+
+                        res -= c.fluid[f]
+                        self.mat_deriv[row, col + 3 + j] = -1
+                        j += 1
+
+                    self.vec_res += [res]
                     row += 1
-                    self.debug += [c]
-                l += 1
 
-            if c.fluid_balance:
-                l = 0
-                res = 1
-                for f, x in c.fluid.items():
-                    res -= x
-                    self.mat_deriv[row, col + 3 + l] = -1
-                    l += 1
+        else:
 
-                self.vec_res += [res]
-                row += 1
-                self.debug += [c]
+            for c in self.conns.index:
+
+                col = self.conns.index.get_loc(c) * (self.num_vars)
+
+                if c.m_set:
+                    self.solve_m_p_h(c, row, col, 'm')
+                    row += 1
+                if c.p_set:
+                    self.solve_m_p_h(c, row, col, 'p')
+                    row += 1
+                if c.h_set:
+                    self.solve_m_p_h(c, row, col, 'h')
+                    row += 1
+                if c.T_set:
+                    self.solve_T(c, row, col)
+                    row += 1
+                if c.x_set:
+                    self.solve_x(c, row, col)
+                    row += 1
+
+                j = 0
+                for f in self.fluids:
+                    if c.fluid_set[f]:
+                        self.mat_deriv[row, col + 3 + j] = 1
+                        self.vec_res += [0]
+                        row += 1
+                    j += 1
+
+                if c.fluid_balance:
+                    j = 0
+                    res = 1
+                    for f in self.fluids:
+
+                        res -= c.fluid[f]
+                        self.mat_deriv[row, col + 3 + j] = -1
+                        j += 1
+
+                    self.vec_res += [res]
+                    row += 1
+
+    def solve_parallelize_conn(args):
+        nw, data = args
+
+        return [data[0].apply(network.solve_conn_eq, axis=1, args=(nw,)),
+                data[0].apply(network.solve_conn_deriv, axis=1, args=(nw,))]
+
+    def solve_conn_eq(c, nw):
+        values = [nw.solve_m_p_h_eq(c.name, 'm'),
+                  nw.solve_m_p_h_eq(c.name, 'p'),
+                  nw.solve_m_p_h_eq(c.name, 'h'),
+                  nw.solve_T_eq(c.name),
+                  nw.solve_x_eq(c.name)]
+        return values
+
+    def solve_conn_deriv(c, nw):
+        return [nw.solve_m_p_h_deriv(c.name, 'm'),
+                nw.solve_m_p_h_deriv(c.name, 'p'),
+                nw.solve_m_p_h_deriv(c.name, 'h'),
+                nw.solve_T_deriv(c.name),
+                nw.solve_x_deriv(c.name)]
 
     def solve_busses(self):
         """
@@ -1384,6 +1555,37 @@ class network:
                 self.vec_res += [b.P - P_res]
 
                 row += 1
+
+    def solve_m_p_h_eq(self, c, var):
+
+        if hasattr(c, (var + '_ref')) and c.get_attr(var + '_set'):
+            c_ref = c.get_attr(var + '_ref')
+            return (c.get_attr(var) -
+                    (c_ref.obj.get_attr(var) * c_ref.f + c_ref.d))
+
+        elif c.get_attr(var + '_set'):
+            return 0
+
+        else:
+            return None
+
+    def solve_m_p_h_deriv(self, c, var):
+        pos = {'m': 0, 'p': 1, 'h': 2}
+
+        if hasattr(c, (var + '_ref')) and c.get_attr(var + '_set'):
+            c_ref = c.get_attr(var + '_ref')
+            deriv = np.zeros((1, 2, self.num_vars))
+            deriv[0, 0, pos[var]] = 1
+            deriv[0, 1, pos[var]] = -c_ref.f
+            return deriv
+
+        elif c.get_attr(var + '_set'):
+            deriv = np.zeros((1, 1, self.num_vars))
+            deriv[0, 0, pos[var]] = 1
+            return deriv
+
+        else:
+            return None
 
     def solve_m_p_h(self, c, row, col, var):
         r"""
@@ -1437,7 +1639,48 @@ class network:
             self.mat_deriv[row, col + pos[var]] = 1
             self.vec_res += [0]
 
-        self.debug += [c]
+    def solve_T_eq(self, c):
+
+        if not c.T_set:
+            return None
+        flow = c.as_list()
+        if hasattr(c, 'T_ref'):
+            flow_ref = c.T_ref.obj.as_list()
+            return hlp.T_mix_ph(flow) - (hlp.T_mix_ph(flow_ref) *
+                                         c.T_ref.f + c.T_ref.d)
+        else:
+            return c.T - hlp.T_mix_ph(flow)
+
+    def solve_T_deriv(self, c):
+
+        if not c.T_set:
+            return None
+        flow = c.as_list()
+        if hasattr(c, 'T_ref'):
+            flow_ref = c.T_ref.obj.as_list()
+            deriv = np.zeros((1, 2, self.num_vars))
+            # dT / dp
+            deriv[0, 0, 1] = hlp.dT_mix_dph(flow)
+            deriv[0, 1, 1] = -hlp.dT_mix_dph(flow_ref) * c.T_ref.f
+            # dT / dh
+            deriv[0, 0, 2] = hlp.dT_mix_pdh(flow)
+            deriv[0, 1, 2] = -hlp.dT_mix_pdh(flow_ref) * c.T_ref.f
+            # dT / dFluid
+            if len(self.fluids) != 1:
+                deriv[0, 0, 3:] = hlp.dT_mix_ph_dfluid(flow)
+                deriv[0, 1, 3:] = -hlp.dT_mix_ph_dfluid(flow_ref)
+            return deriv
+
+        else:
+            deriv = np.zeros((1, 1, self.num_vars))
+            # dT / dp
+            deriv[0, 0, 1] = -hlp.dT_mix_dph(flow)
+            # dT / dh
+            deriv[0, 0, 2] = -hlp.dT_mix_pdh(flow)
+            # dT / dFluid
+            if len(self.fluids) != 1:
+                deriv[0, 0, 3:] = -hlp.dT_mix_ph_dfluid(flow)
+            return deriv
 
     def solve_T(self, c, row, col):
         r"""
@@ -1471,13 +1714,13 @@ class network:
             \; , \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
 
-        **equation for numeric values**
+        **equation for referenced values**
 
         .. math::
             0 = T \left( p_{j}, h_{j}, fluid_{j} \right) -
             T \left( p_{j}, h_{j}, fluid_{j} \right) \cdot a + b
 
-        **derivative for numeric values**
+        **derivative for referenced values**
 
         .. math::
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
@@ -1583,7 +1826,22 @@ class network:
 #                self.mat_deriv[row, col + 2] = -2
 #                self.mat_deriv[row, col + 3:col + self.num_vars] = -0.7
 
-        self.debug += [c]
+    def solve_x_eq(self, c):
+
+        if c.x_set:
+            flow = c.as_list()
+            return c.h - hlp.h_mix_pQ(flow, c.x)
+        else:
+            return None
+
+    def solve_x_deriv(self, c):
+
+        if c.x_set:
+            flow = c.as_list()
+            deriv = np.zeros((1, 1, self.num_vars))
+            deriv[0, 0, 1] = -hlp.dh_mix_dpQ(flow, c.x)
+            deriv[0, 0, 2] = 1
+        return None
 
     def solve_x(self, c, row, col):
         r"""
@@ -1619,8 +1877,6 @@ class network:
         self.mat_deriv[row, col + 1] = -hlp.dh_mix_dpQ(flow, c.x)
         self.mat_deriv[row, col + 2] = 1
         self.vec_res += [(c.h - hlp.h_mix_pQ(flow, c.x))]
-
-        self.debug += [c]
 
     def solve_determination(self):
         r"""

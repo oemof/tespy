@@ -1094,9 +1094,11 @@ class turbomachine(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        if mode == 'post':
+        if (mode == 'pre' and 'P' in self.offdesign) or mode == 'post':
 
             self.P = inlets[0].m * (outlets[0].h - inlets[0].h)
+
+        if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
             self.pr = outlets[0].p / inlets[0].p
 
         if mode == 'pre':
@@ -1332,15 +1334,16 @@ class pump(turbomachine):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        if mode == 'post':
+        if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
                           (outlets[0].h - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
                 print(msg)
+                nw.errors += [self]
 
-        if mode == 'pre' and self.char_set:
+        if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
             v_opt = (self.i0[0] *
                      (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
@@ -1653,15 +1656,16 @@ class compressor(turbomachine):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        if mode == 'post':
+        if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
                           (outlets[0].h - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
                 print(msg)
+                nw.errors += [self]
 
-        if mode == 'pre' and self.char_set:
+        if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
             self.char = cmp_char.compressor()
 
@@ -1976,15 +1980,16 @@ class turbine(turbomachine):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        if mode == 'post':
+        if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s = ((outlets[0].h - inlets[0].h) /
                           (self.h_os(inlets, outlets) - inlets[0].h))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
                 print(msg)
+                nw.errors += [self]
 
-        if mode == 'pre' and self.char_set:
+        if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
             self.char = cmp_char.turbine(self.eta_s)
             nu_new = np.linspace(self.char.nu[0],
@@ -2577,7 +2582,7 @@ class combustion_chamber(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        for fluid in inlets[0].fluid.keys():
+        for fluid in nw.fluids:
             vec_res += [self.reaction_balance(inlets, outlets, fluid)]
 
         vec_res += self.mass_flow_res(inlets, outlets)
@@ -2611,7 +2616,7 @@ class combustion_chamber(component):
         # derivatives for reaction balance
         j = 0
         fl_deriv = np.zeros((num_fl, num_i + num_o, num_fl + 3))
-        for fluid in inlets[0].fluid.keys():
+        for fluid in nw.fluids:
             for i in range(num_i + num_o):
                 fl_deriv[j, i, 0] = self.drb_dx(inlets, outlets, 'm', i, fluid)
                 fl_deriv[j, i, 3:] = (
@@ -2905,11 +2910,11 @@ class combustion_chamber(component):
 
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
-            dm = 1e-5
+            dm = 1e-2
         elif dx == 'p':
-            dp = 1e-5
+            dp = 1
         elif dx == 'h':
-            dh = 1e-5
+            dh = 1
         else:
             df = 1e-5
 
@@ -3078,9 +3083,28 @@ class combustion_chamber(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        self.Q = 0
+        self.ti = 0
         for i in inlets:
-            self.Q += i.m * i.fluid[self.fuel] * self.hi
+            self.ti += i.m * i.fluid[self.fuel] * self.hi
+
+        n_fuel = 0
+        for i in inlets:
+            n_fuel += (i.m * i.fluid[self.fuel] /
+                       molar_masses[self.fuel])
+
+        n_oxygen = 0
+        for i in inlets:
+            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+
+        if mode == 'post':
+            if not self.lamb_set:
+                self.lamb = n_oxygen / (n_fuel *
+                                        (self.n['C'] + self.n['H'] / 4))
+
+        if mode == 'pre':
+            if 'lamb' in self.offdesign:
+                self.lamb = n_oxygen / (n_fuel *
+                                        (self.n['C'] + self.n['H'] / 4))
 
     def print_parameters(self, nw):
 
@@ -3088,7 +3112,7 @@ class combustion_chamber(component):
                            nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
-        print('Q = ', self.Q,
+        print('Thermal Input = ', self.ti,
               'lambda = ', self.lamb)
         j = 1
         for i in inlets:
@@ -3493,11 +3517,22 @@ class vessel(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        self.pr = outlets[0].p / inlets[0].p
-        self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                     (8 * inlets[0].m ** 2 *
-                     (v_mix_ph(inlets[0].as_list()) +
-                      v_mix_ph(outlets[0].as_list())) / 2))
+        if mode == 'post':
+            self.pr = outlets[0].p / inlets[0].p
+            self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
+                         (8 * inlets[0].m ** 2 *
+                         (v_mix_ph(inlets[0].as_list()) +
+                          v_mix_ph(outlets[0].as_list())) / 2))
+
+        if mode == 'pre':
+            if 'pr' in self.offdesign:
+                self.pr = outlets[0].p / inlets[0].p
+            if 'zeta' in self.offdesign:
+                self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
+                             (8 * inlets[0].m ** 2 *
+                             (v_mix_ph(inlets[0].as_list()) +
+                              v_mix_ph(outlets[0].as_list())) / 2))
+
 
     def print_parameters(self, nw):
 
@@ -3857,38 +3892,59 @@ class heat_exchanger_simple(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
-        self.pr = outlets[0].p / inlets[0].p
-        self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                     (8 * inlets[0].m ** 2 *
-                     (v_mix_ph(inlets[0].as_list()) +
-                      v_mix_ph(outlets[0].as_list())) / 2))
+        if mode == 'post':
 
-        if self.t_a_design_set:
-            T_i = T_mix_ph(inlets[0].as_list())
-            T_o = T_mix_ph(outlets[0].as_list())
-            if mode == 'pre':
-                t_a = self.t_a_design
-            elif mode == 'post' and self.kA_set:
-                t_a = self.t_a
-            else:
-                t_a = self.t_a_design
+            self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+            self.pr = outlets[0].p / inlets[0].p
+            self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
+                         (8 * inlets[0].m ** 2 *
+                         (v_mix_ph(inlets[0].as_list()) +
+                          v_mix_ph(outlets[0].as_list())) / 2))
 
-            if t_a > T_i:
-                ttd_u = t_a - T_o
-                ttd_l = t_a - T_i
-            else:
-                ttd_u = T_i - t_a
-                ttd_l = T_o - t_a
+            if nw.mode == 'design':
+                if self.t_a_design_set:
+                    t_a = self.t_a_design
+                else:
+                    t_a = np.nan
 
-            if ttd_u < 0 or ttd_l < 0:
-                msg = ('Invalid value for terminal temperature '
-                       'difference.'
-                       'ttd_u =', ttd_u,
-                       'ttd_l =', ttd_l)
-                print(msg)
+            if nw.mode == 'offdesign':
+                if self.t_a_set:
+                    t_a = self.t_a
+                else:
+                    t_a = np.nan
 
-            self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
+            if t_a != np.nan:
+
+                T_i = T_mix_ph(inlets[0].as_list())
+                T_o = T_mix_ph(outlets[0].as_list())
+                if t_a > T_i:
+                    ttd_u = t_a - T_o
+                    ttd_l = t_a - T_i
+                else:
+                    ttd_u = T_i - t_a
+                    ttd_l = T_o - t_a
+
+                if ttd_u < 0 or ttd_l < 0:
+                    msg = ('Invalid value for terminal temperature '
+                           'difference.'
+                           'ttd_u =', ttd_u,
+                           'ttd_l =', ttd_l)
+                    print(msg)
+                    nw.errors += [self]
+
+                self.kA = self.Q / ((ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
+
+        else:
+
+            if 'Q' in self.offdesign:
+                self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+            if 'pr' in self.offdesign:
+                self.pr = outlets[0].p / inlets[0].p
+            if 'zeta' in self.offdesign:
+                self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
+                             (8 * inlets[0].m ** 2 *
+                             (v_mix_ph(inlets[0].as_list()) +
+                              v_mix_ph(outlets[0].as_list())) / 2))
 
     def print_parameters(self, nw):
 
@@ -4585,10 +4641,13 @@ class heat_exchanger(component):
         else:
             T_i1 = T_mix_ph(inlets[0].as_list())
         T_o2 = T_mix_ph(outlets[1].as_list())
-        self.ttd_u = T_i1 - T_o2
-        self.ttd_l = T_o1 - T_i2
+        if (mode == 'pre' and 'ttd_u' in self.offdesign) or mode == 'post':
+            self.ttd_u = T_i1 - T_o2
+        if (mode == 'pre' and 'ttd_l' in self.offdesign) or mode == 'post':
+            self.ttd_l = T_o1 - T_i2
 
-        self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+        if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
+            self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
 
         if self.ttd_u < 0 or self.ttd_l < 0:
             msg = ('Invalid value for terminal temperature '
@@ -4596,25 +4655,31 @@ class heat_exchanger(component):
                    'ttd_u =', self.ttd_u,
                    'ttd_l =', self.ttd_l)
             print(msg)
+            nw.errors += [self]
 
-        if T_i1 <= T_o2 or T_o1 <= T_i2:
-            self.td_log = np.nan
-            self.kA = np.nan
-        else:
-            self.td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                           math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-            self.kA = -self.Q / self.td_log
+        if (mode == 'pre' and 'kA' in self.offdesign) or mode == 'post':
+            if T_i1 <= T_o2 or T_o1 <= T_i2:
+                self.td_log = np.nan
+                self.kA = np.nan
+            else:
+                self.td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                               math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+                self.kA = -self.Q / self.td_log
 
-        self.pr1 = outlets[0].p / inlets[0].p
-        self.pr2 = outlets[1].p / inlets[1].p
-        self.zeta1 = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                      (8 * inlets[0].m ** 2 *
-                      (v_mix_ph(inlets[0].as_list()) +
-                       v_mix_ph(outlets[0].as_list())) / 2))
-        self.zeta2 = ((inlets[1].p - outlets[1].p) * math.pi ** 2 /
-                      (8 * inlets[1].m ** 2 *
-                      (v_mix_ph(inlets[1].as_list()) +
-                       v_mix_ph(outlets[1].as_list())) / 2))
+        if (mode == 'pre' and 'pr1' in self.offdesign) or mode == 'post':
+            self.pr1 = outlets[0].p / inlets[0].p
+        if (mode == 'pre' and 'pr2' in self.offdesign) or mode == 'post':
+            self.pr2 = outlets[1].p / inlets[1].p
+        if (mode == 'pre' and 'zeta1' in self.offdesign) or mode == 'post':
+            self.zeta1 = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
+                          (8 * inlets[0].m ** 2 *
+                          (v_mix_ph(inlets[0].as_list()) +
+                           v_mix_ph(outlets[0].as_list())) / 2))
+        if (mode == 'pre' and 'zeta2' in self.offdesign) or mode == 'post':
+            self.zeta2 = ((inlets[1].p - outlets[1].p) * math.pi ** 2 /
+                          (8 * inlets[1].m ** 2 *
+                          (v_mix_ph(inlets[1].as_list()) +
+                           v_mix_ph(outlets[1].as_list())) / 2))
 
     def print_parameters(self, nw):
 

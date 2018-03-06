@@ -14,8 +14,8 @@ nw = nwk.network(fluids=['water', 'NH3'],
 c_in = cmp.source('coolant in')
 cb = cmp.source('consumer back flow')
 cf = cmp.sink('consumer feed flow')
-hr = cmp.source('hot reservoir')
-cr = cmp.sink('cold reservoir')
+amb_in = cmp.source('source ambient')
+amb_out = cmp.sink('sink ambient')
 
 cp1 = cmp.sink('compressor 1')
 
@@ -62,11 +62,11 @@ dr_su = con.connection(dr, 'out2', su, 'in2')
 
 nw.add_conns(ves_dr, dr_pu, pu_ev, ev_dr, dr_su)
 
-hr_su = con.connection(hr, 'out1', su, 'in1')
+amb_in_su = con.connection(amb_in, 'out1', su, 'in1')
 su_ev = con.connection(su, 'out1', ev, 'in1')
-ev_cr = con.connection(ev, 'out1', cr, 'in1')
+ev_amb_out = con.connection(ev, 'out1', amb_out, 'in1')
 
-nw.add_conns(hr_su, su_ev, ev_cr)
+nw.add_conns(amb_in_su, su_ev, ev_amb_out)
 
 # connection evaporator system - compressor system
 
@@ -106,8 +106,8 @@ su_cp1.set_attr(p0=5, h0=1700)
 
 # evaporator system hot side
 
-hr_su.set_attr(T=12, p=1, fluid={'water': 1, 'NH3': 0})
-ev_cr.set_attr(T=9)
+amb_in_su.set_attr(T=12, p=1, fluid={'water': 1, 'NH3': 0})
+ev_amb_out.set_attr(T=9)
 
 # %% key paramter
 

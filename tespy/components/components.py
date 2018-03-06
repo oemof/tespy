@@ -4665,7 +4665,8 @@ class heat_exchanger(component):
             else:
                 self.td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-                self.kA = -self.Q / self.td_log
+                self.kA = -(inlets[0].m * (outlets[0].h - inlets[0].h) /
+                            self.td_log)
 
         if (mode == 'pre' and 'pr1' in self.offdesign) or mode == 'post':
             self.pr1 = outlets[0].p / inlets[0].p

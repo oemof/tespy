@@ -1017,6 +1017,7 @@ class turbomachine(component):
         else:
             i = inlets[0].as_list()
             o = outlets[0].as_list()
+
         if num_fluids(i[3]) == 1:
             for fluid, x in i[3].items():
                 if x > err:
@@ -1583,14 +1584,14 @@ class compressor(turbomachine):
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
         if not o[0].p_set and o[0].p < i[0].p:
-                o[0].p = o[0].p * 2
+            o[0].p = o[0].p * 2
         if not i[0].p_set and o[0].p < i[0].p:
-                i[0].p = o[0].p * 0.5
+            i[0].p = o[0].p * 0.5
 
         if not o[0].h_set and o[0].h < i[0].h:
-                o[0].h = o[0].h * 1.1
+            o[0].h = o[0].h * 1.1
         if not i[0].h_set and o[0].h < i[0].h:
-                i[0].h = o[0].h * 0.9
+            i[0].h = o[0].h * 0.9
 
     def initialise_source_p(self, c):
         r"""

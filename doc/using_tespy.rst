@@ -4,7 +4,7 @@
 Using TESPy
 ###########
 	
-TESPy provides a simulation pacakge for component based thermal engineering containing the most important
+TESPy provides a simulation package for component based thermal engineering containing the most important
 basic components of such plants. In the introduction you will learn the basics of modelling component based
 plants in TESPy.
 
@@ -12,9 +12,9 @@ We give an overview on the available components, introduce you to creating you o
 groups and give a short introduction on how TESPys solver works and how to handle different calculations modes.
 Information on handling of fluid properties can be found at the end of this page.
 
-On top of a ` step by step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to
+On top of a `step by step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to
 set up a heat pump in TESPy, we provide basic examples in the `examples section
-<http://tespy.readthedocs.io/en/dev/introduction.html#examples>`_.
+<http://tespy.readthedocs.io/en/latest/introduction.html#examples>`_.
 
 .. figure:: api/_images/tutorial_heat_pump.svg
     :align: center
@@ -38,7 +38,7 @@ You need to specify a list of the fluids you need for the calculation in your pl
 	fluid_list = ['air', 'water']
     my_plant = nwk.network(fluids=fluid_list)
 
-On top of that, it is possible to specify a unit system and value ranges for the networks variables:
+On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
 
 .. code-block:: python
 
@@ -81,7 +81,7 @@ Connections are used to link two components (outlet of component 1 to inlet of c
  * a fluid vector and
  * a balance closer for the fluid vector.
 
-All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. The parameter :code:`fluid_balance` ca only be :code:`True` or :code:`False`. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.
+All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below. The parameter :code:`fluid_balance` can only be :code:`True` or :code:`False`. For the properties marked with * it is possible to use references instead of numeric values. This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.
 
 .. code-block:: python
 	
@@ -110,7 +110,7 @@ If you want to set, reset or unset a connection parameter the same logic as for 
 Busses: power connections
 -------------------------
 
-Busses can be used to add up the power of different turbomachinery or to add up heat flux of different heat exchangers within your network. The handling is very similar to connections and components. You need to add components to your busses as a list containing the component object and a factor, the power of said component will be multiplied with. Do not forget to add the busses to you network.
+Busses can be used to add up the power of different turbomachinery or to add up heat flux of different heat exchangers within your network. The handling is very similar to connections and components. You need to add components to your busses as a list containing the component object and a factor, the power of the component will be multiplied with. Do not forget to add the busses to you network.
 
 This can be used for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network. If you want to use the busses for postprocessing only, you do not specify the sum of the power or heat flux on your bus. If you set a value for P (equal parameter for heat flux or power), an additional equation will be added to your network. This could be useful, e. g. for establishing relations between different components, for instance when using a steam turbine powered feed water pump. In the code example the power of the turbine and the feed water pump is added up and set to zero, as the turbines and feed water pumps power have to be equal in absolute value but have different sign. The sign can be manipulated, e. g. in order to design two turbines with equal power output.
 
@@ -278,7 +278,8 @@ After you added all of your connections, subsystems and busses to your network, 
 
 .. code-block:: python
 
-	nw.solve(init_file=None, design_file=None, mode='design', dec='.', max_iter=50, parallel=False)
+	nw.solve(init_file=None, design_file=None, mode='design',
+			 dec='.', max_iter=50, parallel=False)
 	
 This starts the initialisation of your network and proceeds to its calculation.
 
@@ -301,7 +302,7 @@ The newton algorithm requires starting values for all variables of the system. A
 * provide starting values on your connections (see connection d in the subsystem example, usage: :code:`m0, p0, h0`) and
 * provide a .csv-file of a previously calculated network.
 
-The last option usually yields the best performance and is highly receommended. In order to initialise your calculation from a .csv-file, you need to provide the filename (e. g. myfile_results.csv). The file does not need to contain all connections of your network, thus you can build up your network bit by bit and initialise the existing parts of your network from the .csv-file. Be aware that a change within the fluid vector does not allow this practice. Thus, if you plan to use additional fluids in parts of the network you have not touched until now, you will need to state all fluids from the beginning.
+The last option usually yields the best performance and is highly receommended. In order to initialise your calculation from a .csv-file, you need to provide the filename (e. g. myfile_conn.csv). The file does not need to contain all connections of your network, thus you can build up your network bit by bit and initialise the existing parts of your network from the .csv-file. Be aware that a change within the fluid vector does not allow this practice. Thus, if you plan to use additional fluids in parts of the network you have not touched until now, you will need to state all fluids from the beginning.
 
 Postprocessing
 ^^^^^^^^^^^^^^
@@ -479,7 +480,7 @@ For a good start just look into the source code of the inbuilt components. If yo
 TESPy subsystems/component groups
 =================================
 
-You can use subsystems in order to represent groups of different components. These are highly customizable and thus a very powerful tool, if you require to use specific component groups frequently. You will learn how to create your own subsytems. Create a .py file in your working-directory with the class-definition of your custom subsystem. This usually includes the following methods:
+You can use subsystems in order to represent groups of different components. These are highly customizable and thus a very powerful tool, if you require to use specific component groups frequently. You will learn how to create your own subsystems. Create a .py file in your working-directory with the class-definition of your custom subsystem. This usually includes the following methods:
 
 - :code:`attr`: list of subsystem attributes,
 - :code:`create_comps`: define the number of interfaces and create the necessary components,
@@ -589,7 +590,7 @@ The basic fluid properties are handled by `CoolProp <http://www.coolprop.org/>`_
 Pure and pseudo-pure fluids
 ---------------------------
 
-If you use pure fluids, TESPy directly uses CoolProp functions to gather all fluid properties. CoolProp covers the most important fluids such as water, air as a pseudo-pure fluid as well as its components, several fuels and refrigerants etc.. Look for the aliases in the `list of fluids http://www.coolprop.org/fluid_properties/PurePseudoPure.html#list-of-fluids>`_. All fluids provided in this list cover liquid and gaseous state and the two-phase region.
+If you use pure fluids, TESPy directly uses CoolProp functions to gather all fluid properties. CoolProp covers the most important fluids such as water, air as a pseudo-pure fluid as well as its components, several fuels and refrigerants etc.. Look for the aliases in the `list of fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html#list-of-fluids>`_. All fluids provided in this list cover liquid and gaseous state and the two-phase region.
 
 Incompressible fluids
 ---------------------

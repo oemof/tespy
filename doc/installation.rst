@@ -25,8 +25,7 @@ help or see the sections below. If you already have a Python 3 environment you c
 
 .. code:: console
 
-  pip install -e /path/to/the/repository
-
+  pip install tespy
 To use pip you have to install the pypi package. Normally pypi is part of your virtual environment.
 
 Using Linux repositories to install Python
@@ -55,7 +54,7 @@ Skip the steps you have already done. Check your architecture first (32/64 bit).
        virtualenv -p /usr/bin/python3 your_env_name
        source your_env_name/bin/activate
 
- 3. In terminal type: :code:`pip install -e /path/to/the/repository`
+ 3. In terminal type: :code:`pip install tespy`
  
 Warning: If you have an older version of virtualenv you should update pip :code:`pip install --upgrade pip`.
 

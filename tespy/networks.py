@@ -2159,7 +2159,7 @@ class network:
         :type filename: str
         :returns: no return value
         """
-
+# new feature here
         # create / overwrite csv file
         fn = filename + '_comp.csv'
         with open(fn, 'w') as csvfile:
@@ -2246,7 +2246,7 @@ class network:
         """
 
         # save fluids and property information of connections from dataframe
-        fn = filename + '_bus.csv'
+        fn = filename + '_ref.csv'
 
         refs = []
 
@@ -2258,7 +2258,7 @@ class network:
         df = pd.DataFrame({'id': refs}, index=refs)
         df['id'] = df.apply(network.save_id, axis=1)
 
-        cols = ['label', 'P']
+        cols = ['factor', 'delta']
         for val in cols:
             df[val] = df.apply(network.save_props, axis=1,
                                args=(val,))

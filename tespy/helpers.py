@@ -226,12 +226,21 @@ def T_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('T', 'H', flow[2], 'P', flow[1], fluid)
+                    val = T_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.T_ph[fl] = np.append(memorise.T_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def T_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('T', 'P', p, 'H', h, fluid)
 
 
 def T_mix_ps(flow, s):
@@ -274,12 +283,21 @@ def T_mix_ps(flow, s):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('T', 'S', s, 'P', flow[1], fluid)
+                    val = T_ps(flow[1], s, fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [s, val]])
                     memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
                                                   new, axis=0)
                     return val
+
+
+def T_ps(p, s, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('T', 'P', p, 's', s, fluid)
 
 
 def dT_mix_dph(flow):
@@ -381,9 +399,27 @@ def h_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
-            h += CPPSI('H', 'P', flow[1] * ni / n, 'T', T, fluid) * x
+            h += h_pT(flow[1] * ni / n, T, fluid) * x
 
     return h
+
+
+def h_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('H', 'P', p, 'T', T, fluid)
+
+
+def h_ps(p, s, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('H', 'P', p, 'S', s, fluid)
 
 
 def dh_mix_pdT(flow, T):
@@ -504,12 +540,21 @@ def v_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = 1 / CPPSI('D', 'P', flow[1], 'H', flow[2], fluid)
+                    val = v_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.v_ph[fl] = np.append(memorise.v_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def v_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return 1 / CPPSI('D', 'P', p, 'H', h, fluid)
 
 
 def v_mix_pT(flow, T):
@@ -533,9 +578,18 @@ def v_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            d += CPPSI('D', 'P', pp, 'T', T, fluid) * x
+            d += D_pT(pp, T, fluid) * x
 
     return 1 / d
+
+
+def D_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('D', 'P', p, 'T', T, fluid)
 
 
 def visc_mix_ph(flow):
@@ -571,12 +625,21 @@ def visc_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
+                    val = visc_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl],
                                                      new, axis=0)
                     return val
+
+
+def visc_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('D', 'P', p, 'H', h, fluid)
 
 
 def visc_mix_pT(flow, T):
@@ -605,9 +668,18 @@ def visc_mix_pT(flow, T):
         if x > err:
             bi = x * math.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
             b += bi
-            a += bi * CPPSI('V', 'P', flow[1], 'T', T, fluid)
+            a += bi * visc_pT(flow[1], T, fluid)
 
     return a / b
+
+
+def visc_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('V', 'P', p, 'T', T, fluid)
 
 
 def s_mix_ph(flow):
@@ -643,12 +715,21 @@ def s_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('S', 'P', flow[1], 'H', flow[2], fluid)
+                    val = s_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.s_ph[fl] = np.append(memorise.s_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def s_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('S', 'P', p, 'H', h, fluid)
 
 
 def s_mix_pT(flow, T):
@@ -675,11 +756,20 @@ def s_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            s += CPPSI('S', 'P', pp, 'T', T, fluid) * x
+            s += s_pT(pp, T, fluid) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   math.log(pp / flow[1]))
 
     return s
+
+
+def s_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        print('Custom fluids not available by now')
+    else:
+        return CPPSI('S', 'P', p, 'T', T, fluid)
 
 
 def ds_mix_pdT(flow, T):

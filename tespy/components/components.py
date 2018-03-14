@@ -15,6 +15,7 @@ from tespy.helpers import (
     num_fluids, fluid_structure, MyComponentError,
     v_mix_ph, h_mix_pT, s_mix_pT, s_mix_ph, T_mix_ph, T_mix_ps, visc_mix_ph,
     dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ,
+    h_ps, s_ph,
     lamb,
     molar_masses, err
 )
@@ -1021,9 +1022,7 @@ class turbomachine(component):
         if num_fluids(i[3]) == 1:
             for fluid, x in i[3].items():
                 if x > err:
-                    return CPPSI('H', 'P', o[1], 'S',
-                                 CPPSI('S', 'P', i[1], 'H', i[2], fluid),
-                                 fluid)
+                    return h_ps(o[1], s_ph(i[1], i[2], fluid), fluid)
         else:
             T_mix = T_mix_ph(i)
             s_mix = s_mix_pT(i, T_mix)

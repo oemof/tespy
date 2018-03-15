@@ -122,7 +122,7 @@ cw_out.set_attr(T=110)
 
 mode = 'design'
 
-nw.solve(init_file=None, mode=mode, parallel=True)
+nw.solve(init_file=None, mode=mode, parallel=False)
 nw.save('chp_' + mode)
 
 file = 'chp_' + mode + '_conn.csv'

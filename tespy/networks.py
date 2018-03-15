@@ -62,10 +62,11 @@ class network:
 
     **improvements**
 
+    - add container for units
+
     """
 
     # unit systems, calculation is alsways performed with SI-units
-    # zu conversion/converter umbenennen?
     m = {
         'kg / s': 1,
         't / h': 3.6
@@ -165,26 +166,21 @@ class network:
             msg = ('Specify the value range as list: [p_min, p_max]')
             raise TypeError(msg)
         else:
-            self.p_range_SI[0] = self.p_range[0] * network.p[self.p_unit]
-            self.p_range_SI[1] = self.p_range[1] * network.p[self.p_unit]
+            self.p_range_SI = np.array(self.p_range) * network.p[self.p_unit]
 
         if not isinstance(self.h_range, list):
             msg = ('Specify the value range as list: [h_min, h_max]')
             raise TypeError(msg)
         else:
-            self.h_range_SI[0] = self.h_range[0] * network.h[self.h_unit]
-            self.h_range_SI[1] = self.h_range[1] * network.h[self.h_unit]
+            self.h_range_SI = np.array(self.h_range) * network.h[self.h_unit]
 
         if not isinstance(self.T_range, list):
             msg = ('Specify the value range as list: [T_min, T_max]')
             raise TypeError(msg)
         else:
-            self.T_range_SI[0] = ((self.T_range[0] +
-                                   network.T[self.T_unit][0]) *
-                                  network.T[self.T_unit][1])
-            self.T_range_SI[1] = ((self.T_range[1] +
-                                   network.T[self.T_unit][0]) *
-                                  network.T[self.T_unit][1])
+            self.T_range_SI = ((np.array(self.T_range) +
+                                network.T[self.T_unit][0]) *
+                               network.T[self.T_unit][1])
 
     def __getstate__(self):
         """

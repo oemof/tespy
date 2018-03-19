@@ -33,15 +33,48 @@ gas_constants['uni'] = 8.3144598
 
 
 class tespy_fluid:
+    """r
 
-    def __init__(self, alias, fluid, p_range, T_range, nw):
+    The tespy_fluid class allows the creation of custom fluid properies for a
+    specified mixture of fluids. The created fluid properties adress an ideal
+    mixture of real fluids.
+
+    Creates lookup-tables for
+
+    - enthalpy,
+    - entropy,
+    - density,
+    - viscoity and
+
+    from pressure and temperature. Additionally molar mass and gas constant
+    will be calculated. Inverse functions, e. g. entropy from pressure and
+    enthalpy are calculated via newton algorithm from these tables.
+
+    :param alias: name of the fluid mixture will be "TESPY::alias"
+    :type alias: str
+    :param fluid: fluid vector for composition {fluid_i: mass fraction, ...}
+    :type fluid: dict
+    :param p_range: range of feasible pressures for newly created fluid
+    :type p_range: list
+    :param T_range: range of feasible temperatures for newly created fluid
+    :type T_range: list
+    :returns: no return value
+    :raises: - :code:`TypeError`, if alias is not of type string
+             - :code:`ValueError`, if the alias contains "IDGAS::"
+
+    **allowed keywords** in kwargs:
+
+    - plot (*bool*), plot the lookup table after creation
+    """
+
+    def __init__(self, alias, fluid, p_range, T_range, nw, **kwargs):
 
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
             raise TypeError(msg)
 
         if 'IDGAS::' in alias:
-            msg = 'You are not allowed to use \'IDGAS::\' within your alias.'
+            msg = 'You are not allowed to use "IDGAS::" within your alias.'
             raise ValueError(msg)
 
         # process parameters
@@ -54,8 +87,11 @@ class tespy_fluid:
                         nw.T[nw.T_unit][1])
 
         # set up grid
-        self.p = np.linspace(1e5, 70e5)
-        self.T = np.linspace(250, 1500)
+        self.p = np.linspace(self.p_range[0], self.p_range[1])
+        self.T = np.linspace(self.T_range[0], self.T_range[1])
+
+        # plotting
+        self.plot=kwargs.get('plot', False)
 
         # calculate molar mass and gas constant
         molar_masses[self.alias] = 1 / molar_massflow(self.fluid)
@@ -81,50 +117,82 @@ class tespy_fluid:
         T_mix_ps([0, p, 0, {'TESPY::test': 1, 'CH4': 0, 'CO2': 0}], s)
 
     def create_lookup(self, func):
+        """
+        create lookup table
+
+        :param func: function to create lookup from
+        :type func: callable function
+        :returns: y (scipy.interpolate.interp2d object) - lookup table
+        """
 
         x1 = self.p
         x2 = self.T
 
         y = np.empty((0, x1.shape[0]), float)
 
-        for i in x1:
+        # iterate
+        for i in self.p:
             row = []
-            for j in x2:
+            for j in self.T:
                 row += [func([0, i, 0, self.fluid], j)]
 
             y = np.append(y, [np.array(row)], axis=0)
 
-        x2, x1 = np.meshgrid(x2, x1)
+        self.T, self.p = np.meshgrid(self.T, self.p)
 
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111, projection='3d')
-#        ax.plot_wireframe(x1, x2, y)
-#        ax.set_xlabel('Druck')
-#        ax.set_ylabel('x2')
-#        ax.set_zlabel('y')
-#        ax.view_init(10, 225)
-#        plt.show()
+        # plot table after creation?
+        if self.plot:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.plot_wireframe(self.p, self.T, y)
+            ax.set_xlabel('pressure')
+            ax.set_ylabel('temperature')
+            ax.set_zlabel('y')
+            ax.view_init(10, 225)
+            plt.show()
 
         y = interpolate.interp2d(x1, x2, y, kind='linear', bounds_error=True)
         return y
 
 
-def reverse_2d(params, k):
+def reverse_2d(params, y):
+    r"""
+    reverse function for lookup table
+
+    :param params: variable function parameters
+    :type params: list
+    :param y: functional value, so that :math:`x_2 -
+              f\left(x_1, y \right) = 0`
+    :type y: float
+    :returns: residual value of the function :math:`x_2 -
+              f\left(x_1, y \right)`
+    """
     func, x1, x2 = params[0], params[1], params[2]
-    return x2 - func(x1, k)
+    return x2 - func(x1, y)
 
 
-def reverse_2d_deriv(params, k):
+def reverse_2d_deriv(params, y):
+    r"""
+    derivative of the reverse function for a lookup table
+
+    :param params: variable function parameters
+    :type params: list
+    :param y: functional value, so that :math:`x_2 -
+              f\left(x_1, y \right) = 0`
+    :type y: float
+    :returns: partial derivative :math:`\frac{\partial f}{\partial y}`
+    """
     d_u = 1
     d_l = 1
     if k + d_u > params[0].y_max:
         d_u = 0
     if k - d_l < params[0].y_min:
         d_l = 0
-    return ((reverse_2d(params, k + d_u) - reverse_2d(params, k - d_l)) /
+    return ((reverse_2d(params, y + d_u) - reverse_2d(params, y - d_l)) /
             (d_u + d_l))
 
 
+# initialise the tespy_fluids.fluids container
 tespy_fluid.fluids = {}
 
 
@@ -291,7 +359,6 @@ def newton(func, deriv, params, k, **kwargs):
             val = np.array([np.nan])
             break
 
-    print(val)
     return val
 
 

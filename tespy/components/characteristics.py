@@ -354,49 +354,62 @@ class pump:
         return (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
 
 
-class turbine:
-    r"""
-
-    generic characteristics for turbine isentropic efficiency
-
-    - links isentropic efficiency :math:`\eta_\mathrm{s,t}` to keyfigure
-      :math:`\nu`
-
-    .. math::
-
-        \eta_\mathrm{s,t}=f\left(\frac{\nu}{\nu_\mathrm{ref}} \right)
-
-        \frac{\nu}{\nu_\mathrm{ref}}=\frac{\sqrt{\Delta h_\mathrm{s,ref}}}
-        {\sqrt{\Delta h_\mathrm{s}}}
-
-    - values from Traupel (see literature)
-    - maximum value of isentropic efficiency in characteristic is assigned to
-      isentropic efficiency in reference state with
-      :math:`\frac{\nu}{\nu_{ref}}=1`.
-
-    **literature**
-
-    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
-    """
-
-    def __init__(self, eta_s0):
-
-        self.nu = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-        self.eta_s = np.array([0.0, 0.6, 0.85, 0.875, 0.75, 0.5])
-        self.char = interp1d(self.nu, self.eta_s, kind='cubic')
-        self.nu = np.linspace(self.nu[0], self.nu[-1], 20)
-        self.eta_s = self.char(self.nu)
-        self.char = interp1d(self.nu, self.eta_s /
-                             self.eta_s[np.argmax(self.char(self.nu))],
-                             kind='linear')
-
-        print(self.char.x, self.char.y)
-
-    def eta(self, nu):
-        return self.char(nu)
+#class turbine:
+#    r"""
+#
+#    generic characteristics for turbine isentropic efficiency
+#
+#    - links isentropic efficiency :math:`\eta_\mathrm{s,t}` to keyfigure
+#      :math:`\nu`
+#
+#    .. math::
+#
+#        \eta_\mathrm{s,t}=f\left(\frac{\nu}{\nu_\mathrm{ref}} \right)
+#
+#        \frac{\nu}{\nu_\mathrm{ref}}=\frac{\sqrt{\Delta h_\mathrm{s,ref}}}
+#        {\sqrt{\Delta h_\mathrm{s}}}
+#
+#    - values from Traupel (see literature)
+#    - maximum value of isentropic efficiency in characteristic is assigned to
+#      isentropic efficiency in reference state with
+#      :math:`\frac{\nu}{\nu_{ref}}=1`.
+#
+#    **literature**
+#
+#    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
+#    """
+#
+#    def __init__(self, eta_s0):
+#
+#        self.nu = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+#        self.eta_s = np.array([0.0, 0.6, 0.85, 0.875, 0.75, 0.5])
+#        self.char = interp1d(self.nu, self.eta_s, kind='cubic')
+#        self.nu = np.linspace(self.nu[0], self.nu[-1], 1001)
+#        self.eta_s = self.char(self.nu)
+#        self.char = interp1d(self.nu, self.eta_s /
+#                             self.eta_s[np.argmax(self.char(self.nu))],
+#                             kind='linear')
+#
+#    def eta(self, nu):
+#        return self.char(nu)
 
 
 class characteristics:
+    r"""
+
+    characteristics for components performs linear interpolation on given pairs
+    of values. Value pairs may be user-specified, default values are used
+    instead.
+
+    :param method: what
+    :type method: tespy.components.components.component
+    :returns: no return value
+
+    **allowed keywords** in kwargs (also see characteristics.attr()):
+
+    - x, y (*numeric*) - values for function parameters x and function values y
+    - method (*str*) - method to choose from for default characteristic
+    """
 
     def __init__(self, **kwargs):
 
@@ -406,31 +419,89 @@ class characteristics:
                        'kwargs are: ' + str(self.attr()) + '.')
                 raise KeyError(msg)
 
-        x_default, y_default = self.default
+        # in case of various default characteristics
+        method = kwargs.get('method', 'default')
 
-        self.x = kwargs.get('x', x_default)
-        self.y = kwargs.get('y', y_default)
-        self.char = interp1d(x, y, kind='linear', bounds_error=True)
+        self.x = kwargs.get('x', self.default(method))
+        self.y = kwargs.get('y', self.default(method))
 
-    def default (self):
-        x = np.array([0, 1, 2])
-        y = np.array([1, 1, 1])
-        return x, y
+        self.char = interp1d(self.x, self.y, kind='linear', bounds_error=True)
+
+    def default(self, key):
+
+        x = {}
+        y = {}
+
+        x['default'] = np.array([0, 1, 2])
+        y['default'] = np.array([1, 1, 1])
+
+        return x[key], y[key]
 
     def attr(self):
-        return ['x', 'y']
-
+        return ['x', 'y', 'method']
 
     def f_x(self, x):
-        r"""
-
-        """
         return self.char(x)
 
 
 class turbine(characteristics):
+    r"""
+
+    generic characteristics for turbine isentropic efficiency
+
+    - links isentropic efficiencay :math:`\eta_\mathrm{s,t}` to keyfigure
+    - three default characteristic lines available (see literature and method
+      turbine.default())
+
+    **literature**
+
+    - EBSILON®Professional -> (EBS_ST, EBS_GT)
+    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
+      -> TRAUPEL
+    """
 
     def default(self, key):
+        r"""
+
+        default characteristic lines for turbines, designed for the following
+        cases:
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
+
+        available lines characteristics:
+
+        **EBS_ST**
+
+        .. math::
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
+
+            \text{choose calculation method for X}
+
+            X = \begin{cases}
+            \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
+            \frac{\dot{V}}{\dot{V}_{ref}} & \text{volumetric flow}\\
+            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} & \text{pressure
+            ratio}
+            \end{cases}
+
+        **EBS_GT**
+
+        .. math::
+
+            X=f\left(
+            \frac{\dot{m}}{\dot{m}_{ref}} \right)
+
+        **TRAUPEL**
+
+        .. math::
+
+           X=f\left(\frac{
+            \sqrt{\Delta h_\mathrm{s,ref}}}{\sqrt{\Delta h_\mathrm{s}}} \right)
+        """
+
+        if key == 'default':
+            return characteristics.default(key)
 
         x = {}
         y = {}
@@ -443,6 +514,118 @@ class turbine(characteristics):
         x['EBS_GT'] = np.array([0, 0.4, 0.7, 1, 1.2])
         y['EBS_GT'] = np.array([0.85, 0.9, 0.95, 1, 1.1])
 
-        y['TRAUPEL'] =
+        x['TRAUPEL'] = np.array([0.0, 0.1905, 0.3810, 0.5714, 0.7619, 0.9524,
+                                 1.0, 1.1429, 1.3333, 1.5238, 1.7143, 1.9048])
+        y['TRAUPEL'] = np.array([0.0, 0.3975, 0.6772, 0.8581, 0.9593, 0.9985,
+                                 1.0, 0.9875, 0.9357, 0.8464, 0.7219, 0.5643])
+
+        return x[key], y[key]
+
+
+class heat_exchanger(characteristics):
+    r"""
+
+    generic characteristics for heat exchanger heat transfer coefficient
+
+    - links heat transfer coefficient :math:`kA` to keyfigures
+    - different default characteristic lines available for different types of
+      heat exchangers (see method heat_exchanger.default())
+
+    **literature**
+
+    - EBSILON®Professional
+    """
+
+    def default(self, key):
+        r"""
+
+        default characteristic lines for heat exchangers, designed for the
+        following cases
+
+        .. math::
+
+            \frac{kA_\mathrm{s,t}}{kA_\mathrm{s,t,ref}}=f_1\left(x_1 \right)
+            \cdot f_2\left(x_2 \right)
+
+        available lines characteristics:
+
+        **condensing fluid** -> COND_
+
+        **economiser, evaporator, superheater** -> EVA_
+
+        **heat exchanger without phase change** -> HE_
+        """
+
+        if key == 'default':
+            return characteristics.default(key)
+
+        x = {}
+        y = {}
+
+        x['COND_HOT'] = np.array([0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35,
+                                  0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,
+                                  0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['COND_HOT'] = np.array(
+                [0.02973, 0.158224976, 0.344331588, 0.566735359, 0.837603879,
+                 0.887682367, 0.906155915, 0.920848007, 0.932926712,
+                 0.943098753, 0.951818579, 0.959395358, 0.966050399,
+                 0.971948814, 0.977216972, 0.981954722, 0.986241309,
+                 0.990140862, 0.993705593, 0.996980089, 1,
+                 1.021079344, 1.033356087])
+
+        x['COND_COLD'] = np.array([0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25,
+                                   0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
+                                   0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['COND_COLD'] = np.array(
+                [0.018463261, 0.075067197, 0.133570112, 0.191619581,
+                 0.243225424, 0.303098102, 0.359180259, 0.412325796,
+                 0.463079045, 0.51181624, 0.558812429, 0.60427717,
+                 0.648375355, 0.691240341, 0.732981162, 0.773690063,
+                 0.813445241, 0.852314326, 0.890355383, 0.927620578,
+                 0.96415523, 1, 1.32719114, 1.611507617])
+
+        x['EVA_HOT'] = np.array([0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35,
+                                 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,
+                                 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['EVA_HOT'] = np.array(
+                [0.02973, 0.158224976, 0.245102611, 0.313341319,
+                 0.373026946, 0.427137157, 0.47724348, 0.524292071,
+                 0.568899886, 0.611492524, 0.652376002, 0.691778225,
+                 0.729874262, 0.766801896, 0.802672745, 0.837578965,
+                 0.871597681, 0.904795341, 0.937229127, 0.968949206,
+                 1, 1.280887381, 1.522736893])
+
+        x['EVA_COLD'] = np.array([0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25,
+                                  0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
+                                  0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['EVA_COLD'] = np.array(
+                [0.018463261, 0.075067197, 0.133570112, 0.21471286,
+                 0.299696637, 0.411795286, 0.531045125, 0.658214945,
+                 0.79419022, 0.93999639, 0.98834217, 0.991335466,
+                 0.993588025, 0.995293228, 0.996578973, 0.997548422,
+                 0.998278986, 0.99883052, 0.999248543, 0.99956641,
+                 0.99981029, 1, 1.000821953, 1.001399035])
+
+        x['HE_HOT'] = np.array([0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35,
+                                0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,
+                                0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['HE_HOT'] = np.array(
+                [0.02973, 0.158224976, 0.344331588, 0.468764994,
+                 0.534754865, 0.589981027, 0.637684499, 0.679796476,
+                 0.717557145, 0.751806751, 0.783141431, 0.812002348,
+                 0.838728656, 0.863589075, 0.886802791, 0.908551927,
+                 0.928989721, 0.948247667, 0.966438652, 0.983660777,
+                 1, 1.127936069, 1.215724268])
+
+        x['HE_COLD'] = np.array([0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25,
+                                 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
+                                 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2])
+        y['HE_COLD'] = np.array(
+                [0.018463261, 0.075067197, 0.133570112, 0.21471286,
+                 0.299696637, 0.411795286, 0.507493865, 0.563726047,
+                 0.614056785, 0.659538874, 0.700953194, 0.738902236,
+                 0.773858327, 0.806203578, 0.836251881, 0.864264923,
+                 0.890463551, 0.915036349, 0.938144588, 0.959929163,
+                 0.980511906, 1, 1.151082849, 1.25295985])
 
         return x[key], y[key]

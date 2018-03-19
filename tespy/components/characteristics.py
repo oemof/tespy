@@ -384,11 +384,65 @@ class turbine:
         self.nu = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
         self.eta_s = np.array([0.0, 0.6, 0.85, 0.875, 0.75, 0.5])
         self.char = interp1d(self.nu, self.eta_s, kind='cubic')
-        self.nu = np.linspace(self.nu[0], self.nu[-1], 1001)
+        self.nu = np.linspace(self.nu[0], self.nu[-1], 20)
         self.eta_s = self.char(self.nu)
         self.char = interp1d(self.nu, self.eta_s /
                              self.eta_s[np.argmax(self.char(self.nu))],
                              kind='linear')
 
+        print(self.char.x, self.char.y)
+
     def eta(self, nu):
         return self.char(nu)
+
+
+class characteristics:
+
+    def __init__(self, **kwargs):
+
+        for key in kwargs:
+            if key not in self.attr():
+                msg = ('Invalid keyword ' + key + '. Available keywords for '
+                       'kwargs are: ' + str(self.attr()) + '.')
+                raise KeyError(msg)
+
+        x_default, y_default = self.default
+
+        self.x = kwargs.get('x', x_default)
+        self.y = kwargs.get('y', y_default)
+        self.char = interp1d(x, y, kind='linear', bounds_error=True)
+
+    def default (self):
+        x = np.array([0, 1, 2])
+        y = np.array([1, 1, 1])
+        return x, y
+
+    def attr(self):
+        return ['x', 'y']
+
+
+    def f_x(self, x):
+        r"""
+
+        """
+        return self.char(x)
+
+
+class turbine(characteristics):
+
+    def default(self, key):
+
+        x = {}
+        y = {}
+
+        x['EBS_ST'] = np.array([0, 0.5, 0.6, 0.7, 0.8,
+                                0.9, 0.95, 1, 1.05, 1.1])
+        y['EBS_ST'] = np.array([0.98, 0.991, 0.993, 0.995, 0.9975,
+                                0.999, 0.9998, 1, 0.9995, 0.995])
+
+        x['EBS_GT'] = np.array([0, 0.4, 0.7, 1, 1.2])
+        y['EBS_GT'] = np.array([0.85, 0.9, 0.95, 1, 1.1])
+
+        y['TRAUPEL'] =
+
+        return x[key], y[key]

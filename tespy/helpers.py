@@ -868,7 +868,7 @@ def visc_ph(p, h, fluid):
                    valmin=func.y_min, valmax=func.y_max)[0]
         return tespy_fluid.fluids[fluid]['visc_pT'](p, T)
     else:
-        return CPPSI('D', 'P', p, 'H', h, fluid)
+        return CPPSI('V', 'P', p, 'H', h, fluid)
 
 
 def visc_mix_pT(flow, T):

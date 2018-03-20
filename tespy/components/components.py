@@ -1849,8 +1849,11 @@ class turbine(turbomachine):
         r"""
         equation for turbine characteristics
 
-        - calculate the isentropic efficiency as function of isentropic
-          enthalpy difference
+        - calculate the isentropic efficiency as function of characteristic
+          line
+        - default method is TRAUPEL, see
+          tespy.components.characteristics.turbine for more information on
+          available methods
 
         :param inlets: the components connections at the inlets
         :type inlets: list
@@ -1860,7 +1863,7 @@ class turbine(turbomachine):
 
         .. math::
             0 = - \left( h_{out} - h_{in} \right) + \eta_{s,e,0} \cdot f\left(
-            \sqrt{\frac{\Delta h_{s,0}}{\Delta h_{s}}} \right) \cdot
+            expr \right) \cdot
             \Delta h_{s}
         """
         i = inlets[0].as_list()
@@ -1868,9 +1871,9 @@ class turbine(turbomachine):
         expr = (math.sqrt(abs(self.dh_s0)) /
                 math.sqrt(abs(i[2] - self.h_os(i, o))) + self.nu0 - 1)
         if expr < 0:
-            expr = 0.2
+            expr = 0.01
         if expr > 1:
-            expr = 0.8
+            expr = 0.99
         return (
             np.array([(-(o[2] - i[2]) +
                       (self.o0[2] - self.i0[2]) / self.dh_s0 *

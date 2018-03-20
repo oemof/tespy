@@ -13,7 +13,7 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 
 from tespy.helpers import (
     num_fluids, fluid_structure, MyComponentError,
-    v_mix_ph, h_mix_pT, s_mix_pT, s_mix_ph, T_mix_ph, T_mix_ps, visc_mix_ph,
+    v_mix_ph, h_mix_pT, h_mix_ps, s_mix_pT, s_mix_ph, T_mix_ph, visc_mix_ph,
     dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ,
     h_ps, s_ph,
     lamb,
@@ -1026,8 +1026,7 @@ class turbomachine(component):
         else:
             T_mix = T_mix_ph(i)
             s_mix = s_mix_pT(i, T_mix)
-            T_mix_o = T_mix_ps(o, s_mix)
-            return h_mix_pT(o, T_mix_o)
+            return h_mix_ps(o, s_mix)
 
     def char_func(self, inlets, outlets):
         raise MyComponentError('Function not available for this component.')

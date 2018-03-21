@@ -1870,44 +1870,22 @@ class turbine(turbomachine):
 
         ref = 'dh_s'
 
-#        if ref == 'dh_s':
-#
-#        elif ref == 'm':
-#
-#        elif ref == 'v':
-#
-#        elif ref == 'pr':
-#
-#        else:
-#            msg = ('Please choose the parameter, you want to link the '
-#                   'isentropic efficiency to.')
-#            raise MyComponentError(msg)
+        if ref == 'dh_s':
+            expr = math.sqrt(self.dh_s0 / (self.h_os(i, o) - i[2]))
+        elif ref == 'm':
+            expr = i[0] / self.i0[0]
+        elif ref == 'v':
+            expr = v_mix_ph(i) / v_mix_ph(self.i0)
+        elif ref == 'pr':
+            expr = (i[1] * self.o0[1]) / (o[1] * self.i0[1])
+        else:
+            msg = ('Please choose the parameter, you want to link the '
+                   'isentropic efficiency to.')
+            raise MyComponentError(msg)
 
-
-        expr = (math.sqrt(abs(self.dh_s0)) /
-                math.sqrt(abs(i[2] - self.h_os(i, o))) + self.nu0 - 1)
-        if expr < 0:
-            expr = 0.01
-        if expr > 1:
-            expr = 0.99
-        return (
-            np.array([(-(o[2] - i[2]) +
-                      (self.o0[2] - self.i0[2]) / self.dh_s0 *
-                      self.char.eta(expr) *
-                      (self.h_os(i, o) - i[2]))]))
-
-
-#        expr = (math.sqrt(abs(self.dh_s0)) /
-#                math.sqrt(abs(i[2] - self.h_os(i, o))) + self.nu0 - 1)
-#        if expr < 0:
-#            expr = 0.01
-#        if expr > 1:
-#            expr = 0.99
-#        return (
-#            np.array([(-(o[2] - i[2]) +
-#                      (self.o0[2] - self.i0[2]) / self.dh_s0 *
-#                      self.char.eta(expr) *
-#                      (self.h_os(i, o) - i[2]))]))
+        return np.array([(-(o[2] - i[2]) + (self.o0[2] - self.i0[2]) /
+                          self.dh_s0 * self.char.f_x(expr) *
+                          (self.h_os(i, o) - i[2]))])
 
     def char_deriv(self, inlets, outlets):
         r"""
@@ -2023,10 +2001,7 @@ class turbine(turbomachine):
 
         if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
-            self.char = cmp_char.turbine()
-#            nu_new = np.linspace(self.char.nu[0],
-#                                 self.char.nu[-1], 1001)
-#            self.nu0 = nu_new[np.argmax(self.char.eta(nu_new))]
+            self.char = cmp_char.turbine(method='TRAUPEL')
 
 # %%
 

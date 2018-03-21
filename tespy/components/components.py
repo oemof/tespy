@@ -1867,6 +1867,23 @@ class turbine(turbomachine):
         """
         i = inlets[0].as_list()
         o = outlets[0].as_list()
+
+        ref = 'dh_s'
+
+#        if ref == 'dh_s':
+#
+#        elif ref == 'm':
+#
+#        elif ref == 'v':
+#
+#        elif ref == 'pr':
+#
+#        else:
+#            msg = ('Please choose the parameter, you want to link the '
+#                   'isentropic efficiency to.')
+#            raise MyComponentError(msg)
+
+
         expr = (math.sqrt(abs(self.dh_s0)) /
                 math.sqrt(abs(i[2] - self.h_os(i, o))) + self.nu0 - 1)
         if expr < 0:
@@ -1878,6 +1895,19 @@ class turbine(turbomachine):
                       (self.o0[2] - self.i0[2]) / self.dh_s0 *
                       self.char.eta(expr) *
                       (self.h_os(i, o) - i[2]))]))
+
+
+#        expr = (math.sqrt(abs(self.dh_s0)) /
+#                math.sqrt(abs(i[2] - self.h_os(i, o))) + self.nu0 - 1)
+#        if expr < 0:
+#            expr = 0.01
+#        if expr > 1:
+#            expr = 0.99
+#        return (
+#            np.array([(-(o[2] - i[2]) +
+#                      (self.o0[2] - self.i0[2]) / self.dh_s0 *
+#                      self.char.eta(expr) *
+#                      (self.h_os(i, o) - i[2]))]))
 
     def char_deriv(self, inlets, outlets):
         r"""
@@ -1993,10 +2023,10 @@ class turbine(turbomachine):
 
         if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
-            self.char = cmp_char.turbine(self.eta_s)
-            nu_new = np.linspace(self.char.nu[0],
-                                 self.char.nu[-1], 1001)
-            self.nu0 = nu_new[np.argmax(self.char.eta(nu_new))]
+            self.char = cmp_char.turbine()
+#            nu_new = np.linspace(self.char.nu[0],
+#                                 self.char.nu[-1], 1001)
+#            self.nu0 = nu_new[np.argmax(self.char.eta(nu_new))]
 
 # %%
 

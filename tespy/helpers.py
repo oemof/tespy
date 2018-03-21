@@ -642,17 +642,8 @@ def dh_mix_pdT(flow, T):
         \frac{\partial h_{mix}}{\partial T} =
         \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
-    n = molar_massflow(flow[3])
     d = 2
-    h_u = 0
-    h_l = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            h_u += CPPSI('H', 'P', pp, 'T', T + d, fluid) * x
-            h_l += CPPSI('H', 'P', pp, 'T', T - d, fluid) * x
-
-    return (h_u - h_l) / (2 * d)
+    return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
 
 
 def h_mix_pQ(flow, Q):
@@ -883,8 +874,8 @@ def visc_mix_pT(flow, T):
 
     .. math::
         \eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
-        \cdot M_{i} \right)}
-        {\sum_{i} \left(y_{i} \cdot M_{i} \right)}\;
+        \cdot \sqrt{M_{i}} \right)}
+        {\sum_{i} \left(y_{i} \cdot \sqrt{M_{i}} \right)}\;
         \forall i \in \text{fluid components}\\
         y: \text{volume fraction}\\
         M: \text{molar mass}
@@ -1019,17 +1010,9 @@ def ds_mix_pdT(flow, T):
         \frac{\partial s_{mix}}{\partial T} =
         \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
-    n = molar_massflow(flow[3])
-    d = 2
-    s_u = 0
-    s_l = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            s_u += CPPSI('S', 'P', pp, 'T', T + d, fluid) * x
-            s_l += CPPSI('S', 'P', pp, 'T', T - d, fluid) * x
 
-    return (s_u - s_l) / (2 * d)
+    d = 2
+    return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
 
 def molar_massflow(flow):

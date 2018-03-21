@@ -422,8 +422,8 @@ class characteristics:
         # in case of various default characteristics
         method = kwargs.get('method', 'default')
 
-        self.x = kwargs.get('x', self.default(method))
-        self.y = kwargs.get('y', self.default(method))
+        self.x = kwargs.get('x', self.default(method)[0])
+        self.y = kwargs.get('y', self.default(method)[1])
 
         self.char = interp1d(self.x, self.y, kind='linear', bounds_error=True)
 

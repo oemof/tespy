@@ -132,14 +132,15 @@ class component:
         # add container for components attributes
         for key in self.attr():
             if key != 'mode' and key != 'design' and key != 'offdesign':
-                self.__dict__.update({key: {}})
-                self.get_attr(key)['val'] = 0
-                self.get_attr(key)['set'] = False
-                self.get_attr(key)['var'] = False
-                self.get_attr(key)['method'] = None
-                self.get_attr(key)['par'] = None
-                self.get_attr(key)['x'] = np.array([])
-                self.get_attr(key)['y'] = np.array([])
+                self.__dict__.update({key: 0})
+                self.__dict__.update({key + '_set': False})
+#                self.get_attr(key)['val'] = 0
+#                self.get_attr(key)['set'] = False
+#                self.get_attr(key)['var'] = False
+#                self.get_attr(key)['method'] = None
+#                self.get_attr(key)['par'] = None
+#                self.get_attr(key)['x'] = np.array([])
+#                self.get_attr(key)['y'] = np.array([])
 
         # set specified values, check for invalid keys
         invalid_keys = np.array([])
@@ -737,15 +738,15 @@ class component:
             \zeta = \frac{\Delta p \cdot v \cdot 2}{c^2}\\
             c = \frac{\dot{m} \cdot v}{A}
 
-        As the surface area A will not change from design to offdesign
+        As the cross sectional area A will not change from design to offdesign
         calculation, it is possible to handle this the following way:
 
         .. math::
             0 = \zeta - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
             \dot{m}_{in}^2 \cdot \frac{v_{in} + v_{out}}{2}}
         """
-        i = inlets[0].as_list()
-        o = outlets[0].as_list()
+        i = inlets[0].to_flow()
+        o = outlets[0].to_flow()
         if hasattr(self, 'zeta'):
             val = self.zeta
         else:
@@ -1005,8 +1006,8 @@ class turbomachine(component):
             i = inlets
             o = outlets
         else:
-            i = inlets[0].as_list()
-            o = outlets[0].as_list()
+            i = inlets[0].to_flow()
+            o = outlets[0].to_flow()
 
         if num_fluids(i[3]) == 1:
             for fluid, x in i[3].items():
@@ -1091,16 +1092,16 @@ class turbomachine(component):
 
         if mode == 'pre':
 
-            self.i0 = inlets[0].as_list()
-            self.o0 = outlets[0].as_list()
+            self.i0 = inlets[0].to_flow()
+            self.o0 = outlets[0].to_flow()
             self.dh_s0 = (self.h_os(self.i0, self.o0) - self.i0[2])
 
     def print_parameters(self, nw):
 
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
-        i1 = inlets[0].as_list()
-        o1 = outlets[0].as_list()
+        i1 = inlets[0].to_flow()
+        o1 = outlets[0].to_flow()
         print('##### ', self.label, ' #####')
         if self.eta_s > 1:
             print('!!!!! Error in parametrisation of the model, '
@@ -1182,8 +1183,8 @@ class pump(turbomachine):
             0 = -\left( h_{out} - h_{in} \right) \cdot char\left( \dot{m}_{in}
             \cdot v_{in} \right) + \left( h_{out,s} - h_{in} \right)
         """
-        i = inlets[0].as_list()
-        o = outlets[0].as_list()
+        i = inlets[0].to_flow()
+        o = outlets[0].to_flow()
         return np.array([(-(o[2] - i[2]) * self.char.eta(
                          i[0] * v_mix_ph(i)) + (self.h_os(i, o) - i[2]))])
 
@@ -1450,8 +1451,8 @@ class compressor(turbomachine):
             i = inlets
             o = outlets
         else:
-            i = inlets[0].as_list()
-            o = outlets[0].as_list()
+            i = inlets[0].to_flow()
+            o = outlets[0].to_flow()
         n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i))
         m = (i[0] * math.sqrt(T_mix_ph(i)) * self.i0[1] /
              (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) * i[1]))
@@ -1656,8 +1657,8 @@ class compressor(turbomachine):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        i1 = inlets[0].as_list()
-        o1 = outlets[0].as_list()
+        i1 = inlets[0].to_flow()
+        o1 = outlets[0].to_flow()
 
         if not isinstance(self.char, int) and self.char_set:
             n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
@@ -1808,8 +1809,8 @@ class turbine(turbomachine):
             \sqrt{\frac{1 - \left(\frac{p_{out}}{p_{in}} \right)^{2}}
             {1 - \left(\frac{p_{out,0}}{p_{in,0}} \right)^{2}}} - \dot{m}_{in}
         """
-        i = inlets[0].as_list()
-        o = outlets[0].as_list()
+        i = inlets[0].to_flow()
+        o = outlets[0].to_flow()
         n = 1
         return (self.i0[0] * i[1] / self.i0[1] * math.sqrt(
                     self.i0[1] * v_mix_ph(self.i0) / (i[1] * v_mix_ph(i))) *
@@ -1846,8 +1847,8 @@ class turbine(turbomachine):
             expr \right) \cdot
             \Delta h_{s}
         """
-        i = inlets[0].as_list()
-        o = outlets[0].as_list()
+        i = inlets[0].to_flow()
+        o = outlets[0].to_flow()
 
         ref = 'pr'
 
@@ -2078,8 +2079,8 @@ class split(component):
                     vec_res += [inlets[0].h - o.h]
             else:
                 for o in outlets:
-                    vec_res += [T_mix_ph(inlets[0].as_list()) -
-                                T_mix_ph(o.as_list())]
+                    vec_res += [T_mix_ph(inlets[0].to_flow()) -
+                                T_mix_ph(o.to_flow())]
 
         return vec_res
 
@@ -2138,14 +2139,16 @@ class split(component):
 
                 T_deriv = np.zeros((num_i + num_o - 1, num_i + num_o,
                                     num_fl + 3))
+                i = inlets[0].to_flow()
                 k = 0
                 for o in outlets:
-                    T_deriv[k, 0, 1] = dT_mix_dph(inlets[0].as_list())
-                    T_deriv[k, 0, 2] = dT_mix_pdh(inlets[0].as_list())
-                    T_deriv[k, 0, 3:] = dT_mix_ph_dfluid(inlets[0].as_list())
-                    T_deriv[k, k + 1, 1] = -dT_mix_dph(o.as_list())
-                    T_deriv[k, k + 1, 2] = -dT_mix_pdh(o.as_list())
-                    T_deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o.as_list())
+                    o = o.to_flow()
+                    T_deriv[k, 0, 1] = dT_mix_dph(i)
+                    T_deriv[k, 0, 2] = dT_mix_pdh(i)
+                    T_deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+                    T_deriv[k, k + 1, 1] = -dT_mix_dph(o)
+                    T_deriv[k, k + 1, 2] = -dT_mix_pdh(o)
+                    T_deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
                     k += 1
 
                 mat_deriv += T_deriv.tolist()
@@ -3489,8 +3492,8 @@ class vessel(component):
             self.pr = outlets[0].p / inlets[0].p
             self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                          (8 * inlets[0].m ** 2 *
-                         (v_mix_ph(inlets[0].as_list()) +
-                          v_mix_ph(outlets[0].as_list())) / 2))
+                         (v_mix_ph(inlets[0].to_flow()) +
+                          v_mix_ph(outlets[0].to_flow())) / 2))
 
         if mode == 'pre':
             if 'pr' in self.offdesign:
@@ -3498,8 +3501,8 @@ class vessel(component):
             if 'zeta' in self.offdesign:
                 self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                              (8 * inlets[0].m ** 2 *
-                             (v_mix_ph(inlets[0].as_list()) +
-                              v_mix_ph(outlets[0].as_list())) / 2))
+                             (v_mix_ph(inlets[0].to_flow()) +
+                              v_mix_ph(outlets[0].to_flow())) / 2))
 
     def print_parameters(self, nw):
 
@@ -3510,8 +3513,8 @@ class vessel(component):
         print('pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s ; '
               'm = ', inlets[0].m, 'kg / s ; '
-              'Sirr = ', inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
-                                        s_mix_ph(inlets[0].as_list())), 'W / K'
+              'Sirr = ', inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
+                                        s_mix_ph(inlets[0].to_flow())), 'W / K'
               )
 
 # %%
@@ -3732,7 +3735,7 @@ class heat_exchanger_simple(component):
             v: \text{specific volume}\\
             \lambda: \text{darcy friction factor}
         """
-        i, o = inlets[0].as_list(), outlets[0].as_list()
+        i, o = inlets[0].to_flow(), outlets[0].to_flow()
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
         re = 4 * inlets[0].m / (math.pi * self. D * (visc_i + visc_o) / 2)
@@ -3773,8 +3776,8 @@ class heat_exchanger_simple(component):
         """
 
         i, o = inlets[0], outlets[0]
-        T_i = T_mix_ph(i.as_list())
-        T_o = T_mix_ph(o.as_list())
+        T_i = T_mix_ph(i.to_flow())
+        T_o = T_mix_ph(o.to_flow())
 
         if self.t_a > T_i:
             ttd_u = self.t_a - T_o
@@ -3809,6 +3812,7 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
+            print(self.Q)
             if self.Q < 0:
                 return 1e5
             elif self.Q > 0:
@@ -3842,6 +3846,7 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
+            print(self.Q)
             if self.Q < 0:
                 return 5e5
             elif self.Q > 0:
@@ -3862,8 +3867,8 @@ class heat_exchanger_simple(component):
             self.pr = outlets[0].p / inlets[0].p
             self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                          (8 * inlets[0].m ** 2 *
-                         (v_mix_ph(inlets[0].as_list()) +
-                          v_mix_ph(outlets[0].as_list())) / 2))
+                         (v_mix_ph(inlets[0].to_flow()) +
+                          v_mix_ph(outlets[0].to_flow())) / 2))
 
             if nw.mode == 'design':
                 if self.t_a_design_set:
@@ -3879,8 +3884,8 @@ class heat_exchanger_simple(component):
 
             if t_a != np.nan:
 
-                T_i = T_mix_ph(inlets[0].as_list())
-                T_o = T_mix_ph(outlets[0].as_list())
+                T_i = T_mix_ph(inlets[0].to_flow())
+                T_o = T_mix_ph(outlets[0].to_flow())
                 if t_a > T_i:
                     ttd_u = t_a - T_o
                     ttd_l = t_a - T_i
@@ -3907,8 +3912,8 @@ class heat_exchanger_simple(component):
             if 'zeta' in self.offdesign:
                 self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                              (8 * inlets[0].m ** 2 *
-                             (v_mix_ph(inlets[0].as_list()) +
-                              v_mix_ph(outlets[0].as_list())) / 2))
+                             (v_mix_ph(inlets[0].to_flow()) +
+                              v_mix_ph(outlets[0].to_flow())) / 2))
 
     def print_parameters(self, nw):
 
@@ -3920,8 +3925,8 @@ class heat_exchanger_simple(component):
               'pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s; '
               'm = ', inlets[0].m, 'kg / s; '
-              'Sq = ', inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
-                                      s_mix_ph(inlets[0].as_list())), 'W / K; '
+              'Sq = ', inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
+                                      s_mix_ph(inlets[0].to_flow())), 'W / K; '
               )
         if self.t_a_set or self.t_a_design_set:
             print('kA = ', self.kA, 'W / (m^2 * K)')
@@ -4280,15 +4285,15 @@ class heat_exchanger(component):
             \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
             c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
 
-        As the surface area A will not change from design to offdesign
+        As the cross sectional area A will not change from design to offdesign
         calculation, it is possible to handle this the following way:
 
         .. math::
             0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
             \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
         """
-        i = inlets[1].as_list()
-        o = outlets[1].as_list()
+        i = inlets[1].to_flow()
+        o = outlets[1].to_flow()
         return (self.zeta2 - (i[1] - o[1]) * math.pi ** 2 /
                 (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
@@ -4316,10 +4321,10 @@ class heat_exchanger(component):
             {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
         """
 
-        i1 = inlets[0].as_list()
-        i2 = inlets[1].as_list()
-        o1 = outlets[0].as_list()
-        o2 = outlets[1].as_list()
+        i1 = inlets[0].to_flow()
+        i2 = inlets[1].to_flow()
+        o1 = outlets[0].to_flow()
+        o2 = outlets[1].to_flow()
 
         T_i1 = T_mix_ph(i1)
         T_i2 = T_mix_ph(i2)
@@ -4372,10 +4377,10 @@ class heat_exchanger(component):
             {T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
         """
 
-        i1 = inlets[0].as_list()
-        i2 = inlets[1].as_list()
-        o1 = outlets[0].as_list()
-        o2 = outlets[1].as_list()
+        i1 = inlets[0].to_flow()
+        i2 = inlets[1].to_flow()
+        o1 = outlets[0].to_flow()
+        o2 = outlets[1].to_flow()
 
         T_i1 = T_mix_ph(i1)
         T_i2 = T_mix_ph(i2)
@@ -4418,8 +4423,8 @@ class heat_exchanger(component):
 
             0 = ttd_{u} - T_{1,in} + T_{2,out}
         """
-        i1 = inlets[0].as_list()
-        o2 = outlets[1].as_list()
+        i1 = inlets[0].to_flow()
+        o2 = outlets[1].to_flow()
         return self.ttd_u - T_mix_ph(i1) + T_mix_ph(o2)
 
     def ttd_l_func(self, inlets, outlets):
@@ -4436,8 +4441,8 @@ class heat_exchanger(component):
 
             0 = ttd_{l} - T_{1,out} + T_{2,in}
         """
-        i2 = inlets[1].as_list()
-        o1 = outlets[0].as_list()
+        i2 = inlets[1].to_flow()
+        o1 = outlets[0].to_flow()
         return self.ttd_l - T_mix_ph(o1) + T_mix_ph(i2)
 
     def ttd_u_deriv(self, inlets, outlets):
@@ -4592,15 +4597,15 @@ class heat_exchanger(component):
         inlets, outlets = (nw.comps.loc[self].i.tolist(),
                            nw.comps.loc[self].o.tolist())
 
-        T_i2 = T_mix_ph(inlets[1].as_list())
-        T_o1 = T_mix_ph(outlets[0].as_list())
+        T_i2 = T_mix_ph(inlets[1].to_flow())
+        T_o1 = T_mix_ph(outlets[0].to_flow())
 
         if isinstance(self, condenser):
-            i1 = inlets[0].as_list()
+            i1 = inlets[0].to_flow()
             T_i1 = T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]])
         else:
-            T_i1 = T_mix_ph(inlets[0].as_list())
-        T_o2 = T_mix_ph(outlets[1].as_list())
+            T_i1 = T_mix_ph(inlets[0].to_flow())
+        T_o2 = T_mix_ph(outlets[1].to_flow())
         if (mode == 'pre' and 'ttd_u' in self.offdesign) or mode == 'post':
             self.ttd_u = T_i1 - T_o2
         if (mode == 'pre' and 'ttd_l' in self.offdesign) or mode == 'post':
@@ -4634,13 +4639,13 @@ class heat_exchanger(component):
         if (mode == 'pre' and 'zeta1' in self.offdesign) or mode == 'post':
             self.zeta1 = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
                           (8 * inlets[0].m ** 2 *
-                          (v_mix_ph(inlets[0].as_list()) +
-                           v_mix_ph(outlets[0].as_list())) / 2))
+                          (v_mix_ph(inlets[0].to_flow()) +
+                           v_mix_ph(outlets[0].to_flow())) / 2))
         if (mode == 'pre' and 'zeta2' in self.offdesign) or mode == 'post':
             self.zeta2 = ((inlets[1].p - outlets[1].p) * math.pi ** 2 /
                           (8 * inlets[1].m ** 2 *
-                          (v_mix_ph(inlets[1].as_list()) +
-                           v_mix_ph(outlets[1].as_list())) / 2))
+                          (v_mix_ph(inlets[1].to_flow()) +
+                           v_mix_ph(outlets[1].to_flow())) / 2))
 
     def print_parameters(self, nw):
 
@@ -4663,10 +4668,10 @@ class heat_exchanger(component):
               'zeta2 = ', self.zeta2, '; '
               'm1 = ', inlets[0].m, 'kg / s; '
               'm2 = ', inlets[1].m, 'kg / s; '
-              'Sirr = ', inlets[1].m * (s_mix_ph(outlets[1].as_list()) -
-                                        s_mix_ph(inlets[1].as_list())) +
-              inlets[0].m * (s_mix_ph(outlets[0].as_list()) -
-                             s_mix_ph(inlets[0].as_list())), 'W / K'
+              'Sirr = ', inlets[1].m * (s_mix_ph(outlets[1].to_flow()) -
+                                        s_mix_ph(inlets[1].to_flow())) +
+              inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
+                             s_mix_ph(inlets[0].to_flow())), 'W / K'
               )
 
 # %%
@@ -4748,7 +4753,7 @@ class condenser(heat_exchanger):
         vec_res = []
         outlets = nw.comps.loc[self].o.tolist()
 
-        o1 = outlets[0].as_list()
+        o1 = outlets[0].to_flow()
         vec_res += [o1[2] - h_mix_pQ(o1, 0)]
 
         return vec_res
@@ -4769,7 +4774,7 @@ class condenser(heat_exchanger):
         num_fl = len(nw.fluids)
         mat_deriv = []
 
-        o1 = outlets[0].as_list()
+        o1 = outlets[0].to_flow()
         x_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
         x_deriv[0, 2, 1] = -dh_mix_dpQ(o1, 0)
         x_deriv[0, 2, 2] = 1
@@ -4809,10 +4814,10 @@ class condenser(heat_exchanger):
             {T_s \left(p_{1,in}\right) - T_{2,out}}}}
         """
 
-        i1 = inlets[0].as_list()
-        i2 = inlets[1].as_list()
-        o1 = outlets[0].as_list()
-        o2 = outlets[1].as_list()
+        i1 = inlets[0].to_flow()
+        i2 = inlets[1].to_flow()
+        o1 = outlets[0].to_flow()
+        o2 = outlets[1].to_flow()
 
         T_i1 = T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]])
         T_i2 = T_mix_ph(i2)
@@ -4874,8 +4879,8 @@ class condenser(heat_exchanger):
 
             0 = ttd_{u} - T_s \left(p_{1,in}\right) + T_{2,out}
         """
-        i1 = inlets[0].as_list()
-        o2 = outlets[1].as_list()
+        i1 = inlets[0].to_flow()
+        o2 = outlets[1].to_flow()
         return (self.ttd_u -
                 T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]]) +
                 T_mix_ph(o2))
@@ -4956,7 +4961,7 @@ class desuperheater(heat_exchanger):
         vec_res = []
         outlets = nw.comps.loc[self].o.tolist()
 
-        o1 = outlets[0].as_list()
+        o1 = outlets[0].to_flow()
         vec_res += [o1[2] - h_mix_pQ(o1, 1)]
 
         return vec_res
@@ -4977,7 +4982,7 @@ class desuperheater(heat_exchanger):
         num_fl = len(nw.fluids)
         mat_deriv = []
 
-        o1 = outlets[0].as_list()
+        o1 = outlets[0].to_flow()
         x_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
         x_deriv[0, 2, 1] = -dh_mix_dpQ(o1, 1)
         x_deriv[0, 2, 2] = 1
@@ -5053,8 +5058,8 @@ class drum(component):
         for c in [inlets[1]] + outlets:
             vec_res += [p - c.p]
 
-        vec_res += [h_mix_pQ(outlets[0].as_list(), 0) - outlets[0].h]
-        vec_res += [h_mix_pQ(outlets[1].as_list(), 1) - outlets[1].h]
+        vec_res += [h_mix_pQ(outlets[0].to_flow(), 0) - outlets[0].h]
+        vec_res += [h_mix_pQ(outlets[1].to_flow(), 1) - outlets[1].h]
 
         return vec_res
 
@@ -5096,8 +5101,8 @@ class drum(component):
             p_deriv[k, k + 1, 1] = -1
         mat_deriv += p_deriv.tolist()
 
-        o1 = outlets[0].as_list()
-        o2 = outlets[1].as_list()
+        o1 = outlets[0].to_flow()
+        o2 = outlets[1].to_flow()
 
         x_deriv = np.zeros((num_o, num_i + num_o, num_fl + 3))
         x_deriv[0, 2, 1] = dh_mix_dpQ(o1, 0)
@@ -5131,9 +5136,9 @@ class drum(component):
             return 10e5
         elif key == 'h':
             if c.s_id == 'out1':
-                return h_mix_pQ(c.as_list(), 0)
+                return h_mix_pQ(c.to_flow(), 0)
             else:
-                return h_mix_pQ(c.as_list(), 1)
+                return h_mix_pQ(c.to_flow(), 1)
         else:
             return 0
 
@@ -5160,9 +5165,9 @@ class drum(component):
             return 10e5
         elif key == 'h':
             if c.t_id == 'in1':
-                return h_mix_pQ(c.as_list(), 0)
+                return h_mix_pQ(c.to_flow(), 0)
             else:
-                return h_mix_pQ(c.as_list(), 0.7)
+                return h_mix_pQ(c.to_flow(), 0.7)
         else:
             return 0
 

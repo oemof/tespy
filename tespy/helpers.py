@@ -335,7 +335,7 @@ class dc_flu(data_container):
 class dc_cp(data_container):
 
     def attr(self):
-        return {'val': 0, 'is_set': False, 'is_var': False}
+        return {'val': 0, 'val_set': False, 'is_var': False}
 
 
 class dc_cc(data_container):

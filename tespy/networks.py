@@ -2063,7 +2063,7 @@ class network:
         for c in self.conns.index:
             i = 0
             for prop in self.convergence:
-                    axarr[i].plot(x, prop[k][:] / prop[k][-1],
+                    axarr[i].plot(x, prop[k][:],
                                   color=color[k],
                                   label=c.s.label + ' -> ' + c.t.label)
                     i += 1

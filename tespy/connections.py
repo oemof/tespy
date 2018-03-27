@@ -139,7 +139,7 @@ class connection:
                         self.get_attr(key).set_attr(val0=kwargs[key])
                     # set/reset
                     else:
-                        self.get_attr(key).set_attr(is_set=True,
+                        self.get_attr(key).set_attr(val_set=True,
                                                     val=kwargs[key],
                                                     val0=kwargs[key])
 
@@ -150,6 +150,7 @@ class connection:
                               'fraction not implemented.')
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
+                        self.get_attr(key).set_attr(ref_set=True)
 
                 # fluid specification
                 elif isinstance(kwargs[key], dict):
@@ -162,7 +163,7 @@ class connection:
                         self.get_attr(key).set_attr(val0=kwargs[key].copy())
                         for f in kwargs[key]:
                             kwargs[key][f] = True
-                        self.get_attr(key).set_attr(is_set=kwargs[key])
+                        self.get_attr(key).set_attr(val_set=kwargs[key])
 
                 # data container specification
                 elif isinstance(kwargs[key], data_container):
@@ -224,7 +225,7 @@ class connection:
                 'x': dc_prop(),
                 'fluid': dc_flu()}
 
-    def as_list(self):
+    def to_flow(self):
         """
         create a list containing the connections fluid information
 

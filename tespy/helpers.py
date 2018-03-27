@@ -321,14 +321,15 @@ class data_container:
 class dc_prop(data_container):
 
     def attr(self):
-        return {'val': 0, 'val0': np.nan, 'val_SI': 0, 'is_set': False, 'ref': None,
+        return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
+                'ref': None, 'ref_set': False,
                 'unit': None, 'unit_set': False}
 
 
 class dc_flu(data_container):
 
     def attr(self):
-        return {'val': {}, 'val0': {}, 'is_set': {}, 'balance': False}
+        return {'val': {}, 'val0': {}, 'val_set': {}, 'balance': False}
 
 
 class dc_cp(data_container):

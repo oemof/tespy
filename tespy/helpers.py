@@ -257,6 +257,93 @@ memorise.s_ph = {}
 memorise.s_ph_f = {}
 
 
+class data_container:
+    """r
+
+    The data container stores data on components and connections attributes.
+    There are subclasses for the following applications:
+
+    - mass flow, pressure, enthalpy and temperature
+    - fluid
+    - component parameters
+    - component characteristics
+
+    **allowed keywords** in kwargs:
+
+    - see data_container.attr()
+    """
+
+    def __init__(self, **kwargs):
+
+        invalid = []
+        var = self.attr()
+
+        # default values
+        for key in var.keys():
+            self.__dict__.update({key: var[key]})
+
+        # specify values
+        for key in kwargs:
+            if key not in var.keys():
+                invalid += []
+            self.__dict__.update({key: kwargs[key]})
+
+        # print invalid keywords
+        if len(invalid) > 0:
+            print('The following keys are not available: ' + str(invalid))
+
+    def set_attr(self, **kwargs):
+
+        invalid = []
+        var = self.attr()
+
+        # specify values
+        for key in kwargs:
+            if key not in var.keys():
+                invalid += []
+            self.__dict__.update({key: kwargs[key]})
+
+        # print invalid keywords
+        if len(invalid) > 0:
+            print('The following keys are not available: ' + str(invalid))
+
+    def get_attr(self, key):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            print('No attribute \"', key, '\" available!')
+            return None
+
+    def attr(self):
+        return []
+
+
+class dc_prop(data_container):
+
+    def attr(self):
+        return {'val': 0, 'val0': np.nan, 'val_SI': 0, 'is_set': False, 'ref': None,
+                'unit': None, 'unit_set': False}
+
+
+class dc_flu(data_container):
+
+    def attr(self):
+        return {'val': {}, 'val0': {}, 'is_set': {}, 'balance': False}
+
+
+class dc_cp(data_container):
+
+    def attr(self):
+        return {'val': 0, 'is_set': False, 'is_var': False}
+
+
+class dc_cc(data_container):
+
+    def attr(self):
+        return {'func': None, 'is_set': False, 'method': None, 'param': None,
+                'x': None, 'y': None}
+
+
 class MyNetworkError(Exception):
     pass
 

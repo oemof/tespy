@@ -136,7 +136,8 @@ class connection:
                         self.get_attr(key).set_attr(is_set=False)
                     # starting value
                     elif key in var0:
-                        self.get_attr(key).set_attr(val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key])
                     # set/reset
                     else:
                         self.get_attr(key).set_attr(val_set=True,
@@ -231,7 +232,7 @@ class connection:
 
         :returns: :code:`[mass flow, pressure, enthalpy, fluid vector]`
         """
-        return [self.m.val, self.p.val, self.h.val, self.fluid.val]
+        return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
 
 
 class bus:

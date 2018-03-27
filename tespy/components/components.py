@@ -107,6 +107,7 @@ class component:
 
     def __init__(self, label, **kwargs):
 
+        # check if components label is of type str and for prohibited chars
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
             raise TypeError(msg)
@@ -119,20 +120,28 @@ class component:
 
         self.mode = kwargs.get('mode', 'auto')
 
+        # check calculation mode declaration
         if self.mode not in ['man', 'auto']:
             msg = 'Mode must be \'man\' or \'auto\'.'
             raise TypeError(msg)
 
+        # set default design and offdesign parameters
         self.design = self.default_design()
         self.offdesign = self.default_offdesign()
 
-        # set default values
+        # add container for components attributes
         for key in self.attr():
             if key != 'mode' and key != 'design' and key != 'offdesign':
-                self.__dict__.update({key: 0})
-                self.__dict__.update({key + '_set': False})
+                self.__dict__.update({key: {}})
+                self.get_attr(key)['val'] = 0
+                self.get_attr(key)['set'] = False
+                self.get_attr(key)['var'] = False
+                self.get_attr(key)['method'] = None
+                self.get_attr(key)['par'] = None
+                self.get_attr(key)['x'] = np.array([])
+                self.get_attr(key)['y'] = np.array([])
 
-        # set provided values, check for invalid keys
+        # set specified values, check for invalid keys
         invalid_keys = np.array([])
         for key in kwargs:
             if key not in self.attr():
@@ -273,49 +282,29 @@ class component:
     def derivatives(self, nw):
         return []
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
+        :param key: property
+        :type key: str
         :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 0 \; \text{Pa}`
+                  outlet in corresponding unit system, :math:`val = 0`
         """
         return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 0 \; \text{Pa}`
-        """
-        return 0
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 0 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 0
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 0 \; \frac{\text{J}}{\text{kg}}`
+        :param key: property
+        :type key: str
+        :returns: val (*float*) - starting value for property at components
+                  inlet in corresponding unit system, :math:`val = 0`
         """
         return 0
 
@@ -1269,51 +1258,47 @@ class pump(turbomachine):
         if not i[0].h_set and o[0].h < i[0].h:
                 i[0].h = o[0].h * 0.9
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 10^6 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 10^6 \; \text{Pa}`
+        :returns: - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 10e5
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            return 3e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 10^5 \; \text{Pa}`
+        :returns: - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 3e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 2.9e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 2.9e5
+        else:
+            return 0
 
     def calc_parameters(self, nw, mode):
         """
@@ -1591,51 +1576,47 @@ class compressor(turbomachine):
         if not i[0].h_set and o[0].h < i[0].h:
             i[0].h = o[0].h * 0.9
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 10^6 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 10^6 \; \text{Pa}`
+        :returns: - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 6 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 10e5
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            return 6e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 10^5 \; \text{Pa}`
+        :returns: - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 4 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 6 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 6e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 4 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 4e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 4e5
+        else:
+            return 0
 
     def calc_parameters(self, nw, mode):
         """
@@ -1868,16 +1849,16 @@ class turbine(turbomachine):
         i = inlets[0].as_list()
         o = outlets[0].as_list()
 
-        ref = 'dh_s'
+        ref = 'pr'
 
         if ref == 'dh_s':
             expr = math.sqrt(self.dh_s0 / (self.h_os(i, o) - i[2]))
         elif ref == 'm':
             expr = i[0] / self.i0[0]
         elif ref == 'v':
-            expr = v_mix_ph(i) / v_mix_ph(self.i0)
+            expr = v_mix_ph(self.i0) / v_mix_ph(i)
         elif ref == 'pr':
-            expr = (i[1] * self.o0[1]) / (o[1] * self.i0[1])
+            expr = (o[1] * self.i0[1]) / (i[1] * self.o0[1])
         else:
             msg = ('Please choose the parameter, you want to link the '
                    'isentropic efficiency to.')
@@ -1926,51 +1907,47 @@ class turbine(turbomachine):
         if i[0].h <= o[0].h:
             o[0].h = i[0].h * 0.9
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 0,5 \cdot 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 0.5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 15 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 0.5e5
+        if key == 'p':
+            return 0.5e5
+        elif key == 'h':
+            return 15e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 2,5 \cdot 10^6 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 25 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 20 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 25e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 1,5 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 15e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 2 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 20e5
+        if key == 'p':
+            return 25e5
+        elif key == 'h':
+            return 20e5
+        else:
+            return 0
 
     def calc_parameters(self, nw, mode):
         """
@@ -2001,7 +1978,7 @@ class turbine(turbomachine):
 
         if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
-            self.char = cmp_char.turbine(method='TRAUPEL')
+            self.char = cmp_char.turbine(method='EBS_ST')
 
 # %%
 
@@ -2175,51 +2152,47 @@ class split(component):
 
         return np.asarray(mat_deriv)
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
     def print_parameters(self, nw):
 
@@ -2415,51 +2388,47 @@ class merge(component):
 
                     outconn.fluid[fluid] = x / m
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 1e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 5 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
     def print_parameters(self, nw):
 
@@ -3039,51 +3008,47 @@ class combustion_chamber(component):
         for c in nw.comps.loc[self].o:
             init_target(nw, c, c.t)
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 10 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 5e5
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            return 10e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 5e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 1 \cdot 10^6 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 1e6
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
     def calc_parameters(self, nw, mode):
 
@@ -3473,51 +3438,47 @@ class vessel(component):
 
         return np.asarray(mat_deriv)
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 4 \cdot 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 4 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 4e5
+        if key == 'p':
+            return 4e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
-    def initialise_target_p(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for pressure at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
-        return 5e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet,
-                  :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
-
-    def initialise_target_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet,
-                  :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
-        """
-        return 5e5
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
 
     def calc_parameters(self, nw, mode):
 
@@ -3539,7 +3500,6 @@ class vessel(component):
                              (8 * inlets[0].m ** 2 *
                              (v_mix_ph(inlets[0].as_list()) +
                               v_mix_ph(outlets[0].as_list())) / 2))
-
 
     def print_parameters(self, nw):
 
@@ -3826,73 +3786,70 @@ class heat_exchanger_simple(component):
         return (i.m * (o.h - i.h) + self.kA * ((ttd_u - ttd_l) /
                                                math.log(ttd_u / ttd_l)))
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlet
+        returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet, :math:`val = 10^5 \; \text{Pa}`
-        """
-        return 1e5
-
-    def initialise_target_p(self, c):
-        r"""
-        returns a starting value for pressure at components inlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlet, :math:`val = 10^5 \; \text{Pa}`
-        """
-        return 1e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlet
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlet
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
 
         .. math::
-            val = \begin{cases}
+            h = \begin{cases}
             1 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q < 0\\
             3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q = 0\\
             5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q > 0
-            \end{cases}
+            \end{cases}`
         """
-        if self.Q < 0:
+        if key == 'p':
             return 1e5
-        elif self.Q > 0:
-            return 5e5
+        elif key == 'h':
+            if self.Q < 0:
+                return 1e5
+            elif self.Q > 0:
+                return 5e5
+            else:
+                return 3e5
         else:
-            return 3e5
+            return 0
 
-    def initialise_target_h(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for enthalpy at components inlet
+        returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlet
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
 
         .. math::
-            val = \begin{cases}
+            h = \begin{cases}
             5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q < 0\\
             3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q = 0\\
             1 \cdot 10^5 \; \frac{\text{J}}{\text{kg}} & Q > 0
             \end{cases}
         """
-        if self.Q < 0:
-            return 5e5
-        elif self.Q > 0:
+        if key == 'p':
             return 1e5
+        elif key == 'h':
+            if self.Q < 0:
+                return 5e5
+            elif self.Q > 0:
+                return 1e5
+            else:
+                return 3e5
         else:
-            return 3e5
+            return 0
 
     def calc_parameters(self, nw, mode):
 
@@ -4561,31 +4518,9 @@ class heat_exchanger(component):
 #                    if not o[0].h_set:
 #                        o[0].h *= 0.95
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlets
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
-        """
-        return 50e5
-
-    def initialise_target_p(self, c):
-        r"""
-        returns a starting value for pressure at components inlets
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
-        """
-        return 50e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlets
+        returns a starting value for fluid properties at components outlets
 
         - set starting temperatures in a way, that they match required logic
 
@@ -4594,45 +4529,63 @@ class heat_exchanger(component):
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: h (*float*) - starting value for enthalpy at components
-                  outlets,
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlets,
 
-                  outlet 1:
-                  :math:`h = h(p,\;T=473.15 \text{K})`
+                      - outlet 1:
+                        :math:`h = h(p,\;T=473.15 \text{K})`
 
-                  outlet 2:
-                  :math:`h = h(p,\;T=523.15 \text{K})`
+                      - outlet 2:
+                        :math:`h = h(p,\;T=523.15 \text{K})`
         """
-        flow = [c.m0, c.p0, c.h, c.fluid]
-        if c.s_id == 'out1':
-            T = 200 + 273.15
-            return h_mix_pT(flow, T)
+        if key == 'p':
+            return 50e5
+        elif key == 'h':
+            flow = [c.m.val0, c.p.val0, c.h.val, c.fluid.val]
+            if c.s_id == 'out1':
+                T = 200 + 273.15
+                return h_mix_pT(flow, T)
+            else:
+                T = 250 + 273.15
+                return h_mix_pT(flow, T)
         else:
-            T = 250 + 273.15
-            return h_mix_pT(flow, T)
+            return 0
 
-    def initialise_target_h(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for enthalpy at components inlets
+        returns a starting value for fluid properties at components inlets
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: h (*float*) - starting value for enthalpy at components
-                  inlets,
+        :param key: property
+        :type key: str
+        :returns: - val (*float*) - starting value for pressure at components
+                    inlets, :math:`val = 5 \cdot 10^6 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlets,
 
-                  inlet 1:
-                  :math:`h = h(p,\;T=573.15 \text{K})`
+                      - inlet 1:
+                        :math:`h = h(p,\;T=573.15 \text{K})`
 
-                  inlet 2:
-                  :math:`h = h(p,\;T=493.15 \text{K})`
+                      - inlet 2:
+                        :math:`h = h(p,\;T=493.15 \text{K})`
         """
-        flow = [c.m0, c.p0, c.h, c.fluid]
-        if c.t_id == 'in1':
-            T = 300 + 273.15
-            return h_mix_pT(flow, T)
+        if key == 'p':
+            return 50e5
+        elif key == 'h':
+            flow = [c.m.val0, c.p.val0, c.h.val, c.fluid.val]
+            if c.t_id == 'in1':
+                T = 300 + 273.15
+                return h_mix_pT(flow, T)
+            else:
+                T = 220 + 273.15
+                return h_mix_pT(flow, T)
         else:
-            T = 220 + 273.15
-            return h_mix_pT(flow, T)
+            return 0
 
     def calc_parameters(self, nw, mode):
 
@@ -5155,67 +5108,64 @@ class drum(component):
 
         return np.asarray(mat_deriv)
 
-    def initialise_source_p(self, c):
+    def initialise_source(self, c, key):
         r"""
-        returns a starting value for pressure at components outlets
+        returns a starting value for fluid properties at components outlets
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  outlets, :math:`val = 10^5 \; \text{Pa}`
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlets, :math:`val = 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlets,
+
+                      - outlet 1:
+                        :math:`h = h(p,\;x=0)`
+
+                      - outlet 2:
+                        :math:`h = h(p,\;x=1)`
         """
-        return 10e5
-
-    def initialise_target_p(self, c):
-        r"""
-        returns a starting value for pressure at components inlets
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for pressure at components
-                  inlets, :math:`val = 10^5 \; \text{Pa}`
-        """
-        return 10e5
-
-    def initialise_source_h(self, c):
-        r"""
-        returns a starting value for enthalpy at components outlets
-
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  outlets,
-
-                  outlet 1:
-                  :math:`h = h(p,\;x=0)`
-
-                  outlet 2:
-                  :math:`h = h(p,\;x=1)`
-        """
-        if c.s_id == 'out1':
-            return h_mix_pQ(c.as_list(), 0)
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            if c.s_id == 'out1':
+                return h_mix_pQ(c.as_list(), 0)
+            else:
+                return h_mix_pQ(c.as_list(), 1)
         else:
-            return h_mix_pQ(c.as_list(), 1)
+            return 0
 
-    def initialise_target_h(self, c):
+    def initialise_target(self, c, key):
         r"""
-        returns a starting value for enthalpy at components inlets
+        returns a starting value for fluid properties at components inlets
 
         :param c: connection to apply initialisation
         :type c: tespy.connections.connection
-        :returns: val (*float*) - starting value for enthalpy at components
-                  inlets,
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlets, :math:`val = 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlets,
 
-                  inlet 1:
-                  :math:`h = h(p,\;x=0)`
+                      - inlet 1:
+                        :math:`h = h(p,\;x=0)`
 
-                  inlet 2:
-                  :math:`h = h(p,\;x=0.7)`
+                      - inlet 2:
+                        :math:`h = h(p,\;x=0.7)`
         """
-        if c.t_id == 'in1':
-            return h_mix_pQ(c.as_list(), 0)
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            if c.t_id == 'in1':
+                return h_mix_pQ(c.as_list(), 0)
+            else:
+                return h_mix_pQ(c.as_list(), 0.7)
         else:
-            return h_mix_pQ(c.as_list(), 0.7)
+            return 0
+
 # %%
 
 

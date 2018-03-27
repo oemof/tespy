@@ -52,26 +52,26 @@ def init_target(nw, c, start):
                   x in nw.comps.loc[c.t].i]
         inconn_id = nw.comps.loc[c.t].i.tolist().index(inconn[0])
         outconn = nw.comps.loc[c.t].o.tolist()[inconn_id]
-        for fluid, x in c.fluid.items():
-            if not outconn.fluid_set[fluid]:
-                outconn.fluid[fluid] = x
+        for fluid, x in c.fluid.val.items():
+            if not outconn.fluid.val_set[fluid]:
+                outconn.fluid.val[fluid] = x
 
         init_target(nw, outconn, start)
 
     if isinstance(c.t, splitter):
         for outconn in nw.comps.loc[c.t].o:
-            for fluid, x in c.fluid.items():
-                if not outconn.fluid_set[fluid]:
-                    outconn.fluid[fluid] = x
+            for fluid, x in c.fluid.val.items():
+                if not outconn.fluid.val_set[fluid]:
+                    outconn.fluid.val[fluid] = x
 
             init_target(nw, outconn, start)
 
     if isinstance(c.t, drum) and c.t != start:
         start = c.t
         for outconn in nw.comps.loc[c.t].o:
-            for fluid, x in c.fluid.items():
-                if not outconn.fluid_set[fluid]:
-                    outconn.fluid[fluid] = x
+            for fluid, x in c.fluid.val.items():
+                if not outconn.fluid.val_set[fluid]:
+                    outconn.fluid.val[fluid] = x
 
             init_target(nw, outconn, start)
 
@@ -372,44 +372,44 @@ class component:
         vec_res = []
 
         if len(self.inlets()) == 1 and len(self.outlets()) == 1:
-            for fluid, x in inlets[0].fluid.items():
-                vec_res += [x - outlets[0].fluid[fluid]]
+            for fluid, x in inlets[0].fluid.val.items():
+                vec_res += [x - outlets[0].fluid.val[fluid]]
             return vec_res
 
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
             for i in range(len(inlets)):
-                for fluid, x in inlets[i].fluid.items():
-                    vec_res += [x - outlets[i].fluid[fluid]]
+                for fluid, x in inlets[i].fluid.val.items():
+                    vec_res += [x - outlets[i].fluid.val[fluid]]
             return vec_res
 
         if isinstance(self, splitter):
             for o in outlets:
-                for fluid, x in inlets[0].fluid.items():
-                    vec_res += [x - o.fluid[fluid]]
+                for fluid, x in inlets[0].fluid.val.items():
+                    vec_res += [x - o.fluid.val[fluid]]
             return vec_res
 
         if isinstance(self, merge):
             res = 0
-            for fluid, x in outlets[0].fluid.items():
-                res = -x * outlets[0].m
+            for fluid, x in outlets[0].fluid.val.items():
+                res = -x * outlets[0].m.val_SI
                 for i in inlets:
-                    res += i.fluid[fluid] * i.m
+                    res += i.fluid.val[fluid] * i.m.val_SI
                 vec_res += [res]
             return vec_res
 
         if isinstance(self, drum):
             for o in outlets:
-                for fluid, x in inlets[0].fluid.items():
-                    vec_res += [x - o.fluid[fluid]]
+                for fluid, x in inlets[0].fluid.val.items():
+                    vec_res += [x - o.fluid.val[fluid]]
             return vec_res
 
         if isinstance(self, separator):
 
-            for fluid, x in inlets[0].fluid.items():
-                res = x * inlets[0].m
+            for fluid, x in inlets[0].fluid.val.items():
+                res = x * inlets[0].m.val_SI
                 for o in outlets:
-                    res -= o.fluid[fluid] * o.m
+                    res -= o.fluid.val[fluid] * o.m.val_SI
                 vec_res += [res]
             return vec_res
 
@@ -454,12 +454,12 @@ class component:
         """
         num_i = len(inlets)
         num_o = len(outlets)
-        num_fl = len(inlets[0].fluid)
+        num_fl = len(inlets[0].fluid.val)
 
         if len(self.inlets()) == 1 and len(self.outlets()) == 1:
             mat_deriv = np.zeros((num_fl, num_i + num_o, 3 + num_fl))
             i = 0
-            for fluid, x in inlets[0].fluid.items():
+            for fluid, x in inlets[0].fluid.val.items():
                 mat_deriv[i, 0, i + 3] = 1
                 mat_deriv[i, 1, i + 3] = -1
                 i += 1
@@ -468,12 +468,12 @@ class component:
         if isinstance(self, heat_exchanger):
             mat_deriv = np.zeros((num_fl * 2, num_i + num_o, 3 + num_fl))
             i = 0
-            for fluid in inlets[0].fluid.keys():
+            for fluid in inlets[0].fluid.val.keys():
                 mat_deriv[i, 0, i + 3] = 1
                 mat_deriv[i, 2, i + 3] = -1
                 i += 1
             j = 0
-            for fluid in inlets[1].fluid.keys():
+            for fluid in inlets[1].fluid.val.keys():
                 mat_deriv[i + j, 1, j + 3] = 1
                 mat_deriv[i + j, 3, j + 3] = -1
                 j += 1
@@ -485,7 +485,7 @@ class component:
             k = 0
             for o in outlets:
                 i = 0
-                for fluid, x in inlets[0].fluid.items():
+                for fluid, x in inlets[0].fluid.val.items():
                     mat_deriv[i + k * num_fl, 0, i + 3] = 1
                     mat_deriv[i + k * num_fl, k + 1, i + 3] = -1
                     i += 1
@@ -495,14 +495,14 @@ class component:
         if isinstance(self, merge):
             mat_deriv = np.zeros((num_fl, num_i + num_o, 3 + num_fl))
             j = 0
-            for fluid, x in outlets[0].fluid.items():
+            for fluid, x in outlets[0].fluid.val.items():
                 k = 0
                 for i in inlets:
-                    mat_deriv[j, k, 0] = i.fluid[fluid]
-                    mat_deriv[j, k, j + 3] = i.m
+                    mat_deriv[j, k, 0] = i.fluid.val[fluid]
+                    mat_deriv[j, k, j + 3] = i.m.val_SI
                     k += 1
                 mat_deriv[j, k, 0] = -x
-                mat_deriv[j, k, j + 3] = -outlets[0].m
+                mat_deriv[j, k, j + 3] = -outlets[0].m.val_SI
                 j += 1
             return mat_deriv.tolist()
 
@@ -511,7 +511,7 @@ class component:
             k = 0
             for o in outlets:
                 i = 0
-                for fluid, x in inlets[0].fluid.items():
+                for fluid, x in inlets[0].fluid.val.items():
                     mat_deriv[i + k * num_fl, 0, i + 3] = 1
                     mat_deriv[i + k * num_fl, k + 2, i + 3] = -1
                     i += 1
@@ -521,14 +521,14 @@ class component:
         if isinstance(self, separator):
             mat_deriv = np.zeros((num_fl, num_i + num_o, 3 + num_fl))
             j = 0
-            for fluid, x in inlets[0].fluid.items():
+            for fluid, x in inlets[0].fluid.val.items():
                 k = 0
                 for o in outlets:
-                    mat_deriv[j, k, 0] = -o.fluid[fluid]
-                    mat_deriv[j, k, j + 3] = -o.m
+                    mat_deriv[j, k, 0] = -o.fluid.val[fluid]
+                    mat_deriv[j, k, j + 3] = -o.m.val_SI
                     k += 1
                 mat_deriv[j, 0, 0] = x
-                mat_deriv[j, 0, j + 3] = inlets[0].m
+                mat_deriv[j, 0, j + 3] = inlets[0].m.val_SI
                 j += 1
             return mat_deriv.tolist()
 
@@ -539,7 +539,7 @@ class component:
             mat_deriv = np.zeros((num_fl * num_i, num_i + num_o, 3 + num_fl))
             for i in range(num_i):
                 j = 0
-                for fluid in inlets[i].fluid.keys():
+                for fluid in inlets[i].fluid.val.keys():
                     mat_deriv[i * num_fl + j, i, j + 3] = 1
                     mat_deriv[i * num_fl + j, num_i + i, j + 3] = -1
                     j += 1
@@ -576,16 +576,16 @@ class component:
                 (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
             res = 0
             for i in inlets:
-                res += i.m
+                res += i.m.val_SI
             for o in outlets:
-                res -= o.m
+                res -= o.m.val_SI
             return [res]
 
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
             vec_res = []
             for i in range(len(inlets)):
-                vec_res += [inlets[i].m - outlets[i].m]
+                vec_res += [inlets[i].m.val_SI - outlets[i].m.val_SI]
             return vec_res
 
         if isinstance(self, source) or isinstance(self, sink):
@@ -617,7 +617,7 @@ class component:
         """
         num_i = len(inlets)
         num_o = len(outlets)
-        num_fl = len(inlets[0].fluid)
+        num_fl = len(inlets[0].fluid.val)
 
         if (isinstance(self, split) or
                 isinstance(self, merge) or
@@ -685,39 +685,39 @@ class component:
 
         if dx == 'fluid':
             deriv = []
-            for f in inlets[0].fluid.keys():
-                val = (inlets + outlets)[pos].fluid[f]
+            for f in inlets[0].fluid.val.keys():
+                val = (inlets + outlets)[pos].fluid.val[f]
                 exp = 0
-                if (inlets + outlets)[pos].fluid[f] + df <= 1:
-                    (inlets + outlets)[pos].fluid[f] += df
+                if (inlets + outlets)[pos].fluid.val[f] + df <= 1:
+                    (inlets + outlets)[pos].fluid.val[f] += df
                 else:
-                    (inlets + outlets)[pos].fluid[f] = 1
+                    (inlets + outlets)[pos].fluid.val[f] = 1
                 exp += func(inlets, outlets)
-                if (inlets + outlets)[pos].fluid[f] - 2 * df >= 0:
-                    (inlets + outlets)[pos].fluid[f] -= 2 * df
+                if (inlets + outlets)[pos].fluid.val[f] - 2 * df >= 0:
+                    (inlets + outlets)[pos].fluid.val[f] -= 2 * df
                 else:
-                    (inlets + outlets)[pos].fluid[f] = 0
+                    (inlets + outlets)[pos].fluid.val[f] = 0
                 exp -= func(inlets, outlets)
-                (inlets + outlets)[pos].fluid[f] = val
+                (inlets + outlets)[pos].fluid.val[f] = val
 
                 deriv += [exp / (2 * (dm + dp + dh + df))]
 
         else:
             exp = 0
-            (inlets + outlets)[pos].m += dm
-            (inlets + outlets)[pos].p += dp
-            (inlets + outlets)[pos].h += dh
+            (inlets + outlets)[pos].m.val_SI += dm
+            (inlets + outlets)[pos].p.val_SI += dp
+            (inlets + outlets)[pos].h.val_SI += dh
             exp += func(inlets, outlets)
 
-            (inlets + outlets)[pos].m -= 2 * dm
-            (inlets + outlets)[pos].p -= 2 * dp
-            (inlets + outlets)[pos].h -= 2 * dh
+            (inlets + outlets)[pos].m.val_SI -= 2 * dm
+            (inlets + outlets)[pos].p.val_SI -= 2 * dp
+            (inlets + outlets)[pos].h.val_SI -= 2 * dh
             exp -= func(inlets, outlets)
             deriv = exp / (2 * (dm + dp + dh + df))
 
-            (inlets + outlets)[pos].m += dm
-            (inlets + outlets)[pos].p += dp
-            (inlets + outlets)[pos].h += dh
+            (inlets + outlets)[pos].m.val_SI += dm
+            (inlets + outlets)[pos].p.val_SI += dp
+            (inlets + outlets)[pos].h.val_SI += dh
 
         return deriv
 
@@ -879,10 +879,11 @@ class turbomachine(component):
         vec_res += self.mass_flow_res(inlets, outlets)
 
         if self.P_set:
-            vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) - self.P]
+            vec_res += [inlets[0].m.val_SI *
+                        (outlets[0].h.val_SI - inlets[0].h.val_SI) - self.P]
 
         if self.pr_set:
-            vec_res += [self.pr * inlets[0].p - outlets[0].p]
+            vec_res += [self.pr * inlets[0].p.val_SI - outlets[0].p.val_SI]
 
         if self.eta_s_set:
             self.eta_s_res = self.eta_s_func(inlets, outlets)
@@ -950,9 +951,9 @@ class turbomachine(component):
         if self.P_set:
             P_deriv = np.zeros((num_i + num_o - 1, num_i + num_o, num_fl + 3))
             for k in range(num_i + num_o - 1):
-                P_deriv[k, 0, 0] = outlets[0].h - inlets[0].h
-                P_deriv[k, 0, 2] = -inlets[0].m
-                P_deriv[k, k + 1, 2] = inlets[0].m
+                P_deriv[k, 0, 0] = outlets[0].h.val_SI - inlets[0].h.val_SI
+                P_deriv[k, 0, 2] = -inlets[0].m.val_SI
+                P_deriv[k, k + 1, 2] = inlets[0].m.val_SI
             mat_deriv += P_deriv.tolist()
 
         if self.pr_set:
@@ -1035,7 +1036,7 @@ class turbomachine(component):
         """
 
         num_i, num_o = len(inlets), len(outlets)
-        num_fl = len(inlets[0].fluid)
+        num_fl = len(inlets[0].fluid.val)
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
 
         if abs(self.eta_s_res) > err ** (2):
@@ -1085,10 +1086,11 @@ class turbomachine(component):
 
         if (mode == 'pre' and 'P' in self.offdesign) or mode == 'post':
 
-            self.P = inlets[0].m * (outlets[0].h - inlets[0].h)
+            self.P = inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                           inlets[0].h.val_SI)
 
         if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
-            self.pr = outlets[0].p / inlets[0].p
+            self.pr = outlets[0].p.val_SI / inlets[0].p.val_SI
 
         if mode == 'pre':
 
@@ -1109,8 +1111,9 @@ class turbomachine(component):
         print('P = ', self.P, 'W; '
               'eta_s = ', self.eta_s, '; '
               'pr = ', self.pr, '; '
-              'm = ', inlets[0].m, 'kg / s; '
-              'Sirr = ', inlets[0].m * (s_mix_ph(o1) - s_mix_ph(i1)), 'W / K')
+              'm = ', inlets[0].m.val_SI, 'kg / s; '
+              'Sirr = ', inlets[0].m.val_SI *
+              (s_mix_ph(o1) - s_mix_ph(i1)), 'W / K')
 
 # %%
 
@@ -1166,8 +1169,8 @@ class pump(turbomachine):
             0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
             \left( h_{out,s} -  h_{in} \right)
         """
-        return (-(outlets[0].h - inlets[0].h) * self.eta_s +
-                (self.h_os(inlets, outlets) - inlets[0].h))
+        return (-(outlets[0].h.val_SI - inlets[0].h.val_SI) * self.eta_s +
+                (self.h_os(inlets, outlets) - inlets[0].h.val_SI))
 
     def char_func(self, inlets, outlets):
         r"""
@@ -1216,7 +1219,7 @@ class pump(turbomachine):
 
         """
         num_i, num_o = len(inlets), len(outlets)
-        num_fl = len(inlets[0].fluid)
+        num_fl = len(inlets[0].fluid.val)
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
 
         mat_deriv[0, 0, 0] = (
@@ -1249,15 +1252,15 @@ class pump(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not o[0].p_set and o[0].p < i[0].p:
-                o[0].p = o[0].p * 2
-        if not i[0].p_set and o[0].p < i[0].p:
-                i[0].p = o[0].p * 0.5
+        if not o[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+                o[0].p.val_SI = o[0].p.val_SI * 2
+        if not i[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+                i[0].p.val_SI = o[0].p.val_SI * 0.5
 
-        if not o[0].h_set and o[0].h < i[0].h:
-                o[0].h = o[0].h * 1.1
-        if not i[0].h_set and o[0].h < i[0].h:
-                i[0].h = o[0].h * 0.9
+        if not o[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+                o[0].h.val_SI = o[0].h.val_SI * 1.1
+        if not i[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+                i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
         r"""
@@ -1320,8 +1323,8 @@ class pump(turbomachine):
                            nw.comps.loc[self].o.tolist())
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
-            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
-                          (outlets[0].h - inlets[0].h))
+            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h.val_SI) /
+                          (outlets[0].h.val_SI - inlets[0].h.val_SI))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
@@ -1391,8 +1394,8 @@ class compressor(turbomachine):
             0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
             \left( h_{out,s} -  h_{in} \right)
         """
-        return (-(outlets[0].h - inlets[0].h) * self.eta_s +
-                (self.h_os(inlets, outlets) - inlets[0].h))
+        return (-(outlets[0].h.val_SI - inlets[0].h.val_SI) * self.eta_s +
+                (self.h_os(inlets, outlets) - inlets[0].h.val_SI))
 
     def char_func(self, inlets, outlets):
         r"""
@@ -1516,7 +1519,7 @@ class compressor(turbomachine):
         """
         num_i = len(inlets)
         num_o = len(outlets)
-        num_fl = len(inlets[0].fluid.keys())
+        num_fl = len(inlets[0].fluid.val)
 
         m11 = self.ddx_func(inlets, outlets, self.char_func, 'm', 0)
         p11 = self.ddx_func(inlets, outlets, self.char_func, 'p', 0)
@@ -1567,15 +1570,15 @@ class compressor(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not o[0].p_set and o[0].p < i[0].p:
-            o[0].p = o[0].p * 2
-        if not i[0].p_set and o[0].p < i[0].p:
-            i[0].p = o[0].p * 0.5
+        if not o[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+            o[0].p.val_SI = o[0].p.val_SI * 2
+        if not i[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+            i[0].p.val_SI = o[0].p.val_SI * 0.5
 
-        if not o[0].h_set and o[0].h < i[0].h:
-            o[0].h = o[0].h * 1.1
-        if not i[0].h_set and o[0].h < i[0].h:
-            i[0].h = o[0].h * 0.9
+        if not o[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+            o[0].h.val_SI = o[0].h.val_SI * 1.1
+        if not i[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+            i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
         r"""
@@ -1638,8 +1641,8 @@ class compressor(turbomachine):
                            nw.comps.loc[self].o.tolist())
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
-            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h) /
-                          (outlets[0].h - inlets[0].h))
+            self.eta_s = ((self.h_os(inlets, outlets) - inlets[0].h.val_SI) /
+                          (outlets[0].h.val_SI - inlets[0].h.val_SI))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
@@ -1790,8 +1793,8 @@ class turbine(turbomachine):
             0 = -\left( h_{out} - h_{in} \right) +
             \left( h_{out,s} -  h_{in} \right) \cdot \eta_{s,e}
         """
-        return (-(outlets[0].h - inlets[0].h) +
-                (self.h_os(inlets, outlets) - inlets[0].h) * self.eta_s)
+        return (-(outlets[0].h.val_SI - inlets[0].h.val_SI) +
+                (self.h_os(inlets, outlets) - inlets[0].h.val_SI) * self.eta_s)
 
     def cone_func(self, inlets, outlets):
         r"""
@@ -1880,7 +1883,7 @@ class turbine(turbomachine):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         num_i, num_o = len(inlets), len(outlets)
-        num_fl = len(inlets[0].fluid)
+        num_fl = len(inlets[0].fluid.val)
 
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
         for i in range(num_i + num_o):
@@ -1900,13 +1903,13 @@ class turbine(turbomachine):
         """
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if i[0].p < o[0].p:
-            o[0].p = i[0].p / 2
+        if i[0].p.val_SI < o[0].p.val_SI:
+            o[0].p.val_SI = i[0].p.val_SI / 2
 
-        if i[0].h < 5e5:
-            i[0].h = 5e5
-        if i[0].h <= o[0].h:
-            o[0].h = i[0].h * 0.9
+        if i[0].h.val_SI < 5e5:
+            i[0].h.val_SI = 5e5
+        if i[0].h.val_SI <= o[0].h.val_SI:
+            o[0].h.val_SI = i[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
         r"""
@@ -1969,8 +1972,8 @@ class turbine(turbomachine):
                            nw.comps.loc[self].o.tolist())
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
-            self.eta_s = ((outlets[0].h - inlets[0].h) /
-                          (self.h_os(inlets, outlets) - inlets[0].h))
+            self.eta_s = ((outlets[0].h.val_SI - inlets[0].h.val_SI) /
+                          (self.h_os(inlets, outlets) - inlets[0].h.val_SI))
             if self.eta_s > 1 or self.eta_s <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
                        'eta_s =', self.eta_s)
@@ -2065,18 +2068,18 @@ class split(component):
 
         # pressure is the same at all connections
         for o in outlets:
-            vec_res += [inlets[0].p - o.p]
+            vec_res += [inlets[0].p.val_SI - o.p.val_SI]
 
         # different equations for splitter and separator
         if isinstance(self, splitter):
             for o in outlets:
-                vec_res += [inlets[0].h - o.h]
+                vec_res += [inlets[0].h.val_SI - o.h.val_SI]
 
         # different equations for splitter and separator
         if isinstance(self, separator):
-            if num_fluids(inlets[0].fluid) <= 1:
+            if num_fluids(inlets[0].fluid.val) <= 1:
                 for o in outlets:
-                    vec_res += [inlets[0].h - o.h]
+                    vec_res += [inlets[0].h.val_SI - o.h.val_SI]
             else:
                 for o in outlets:
                     vec_res += [T_mix_ph(inlets[0].to_flow()) -
@@ -2124,7 +2127,7 @@ class split(component):
             mat_deriv += h_deriv.tolist()
 
         if isinstance(self, separator):
-            if num_fluids(inlets[0].fluid) <= 1:
+            if num_fluids(inlets[0].fluid.val) <= 1:
 
                 h_deriv = np.zeros((num_i + num_o - 1, num_i + num_o,
                                     num_fl + 3))
@@ -2203,10 +2206,10 @@ class split(component):
                            nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
-        print('m_in = ', inlets[0].m, 'kg / s; ')
+        print('m_in = ', inlets[0].m.val_SI, 'kg / s; ')
         i = 1
         for o in outlets:
-            print('m_out' + str(i) + ' = ', o.m, 'kg / s; ')
+            print('m_out' + str(i) + ' = ', o.m.val_SI, 'kg / s; ')
             i += 1
         if isinstance(self, separator):
             print('; fluid_in:', inlets[0].fluid, '; ')
@@ -2320,13 +2323,13 @@ class merge(component):
         vec_res += self.fluid_res(inlets, outlets)
         vec_res += self.mass_flow_res(inlets, outlets)
 
-        h_res = -outlets[0].m * outlets[0].h
+        h_res = -outlets[0].m.val_SI * outlets[0].h.val_SI
         for i in inlets:
-            h_res += i.m * i.h
+            h_res += i.m.val_SI * i.h.val_SI
         vec_res += [h_res]
 
         for i in inlets:
-            vec_res += [outlets[0].p - i.p]
+            vec_res += [outlets[0].p.val_SI - i.p.val_SI]
 
         return vec_res
 
@@ -2350,12 +2353,12 @@ class merge(component):
         mat_deriv += self.mass_flow_deriv(inlets, outlets)
 
         h_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-        h_deriv[0, num_i, 0] = -outlets[0].h
-        h_deriv[0, num_i, 2] = -outlets[0].m
+        h_deriv[0, num_i, 0] = -outlets[0].h.val_SI
+        h_deriv[0, num_i, 2] = -outlets[0].m.val_SI
         k = 0
         for i in inlets:
-            h_deriv[0, k, 0] = i.h
-            h_deriv[0, k, 2] = i.m
+            h_deriv[0, k, 0] = i.h.val_SI
+            h_deriv[0, k, 2] = i.m.val_SI
             k += 1
         mat_deriv += h_deriv.tolist()
 
@@ -2382,14 +2385,14 @@ class merge(component):
         for outconn in nw.comps.loc[self].o:
             inlets = nw.comps.loc[self].i.tolist()
             for fluid in nw.fluids:
-                if not outconn.fluid_set[fluid]:
+                if not outconn.fluid.val_set[fluid]:
                     x = 0
                     m = 0
-                    for inlet in inlets:
-                        m += inlet.m
-                        x += inlet.fluid[fluid] * inlet.m
+                    for i in inlets:
+                        m += i.m.val_SI
+                        x += i.fluid.val[fluid] * i.m.val_SI
 
-                    outconn.fluid[fluid] = x / m
+                    outconn.fluid.val[fluid] = x / m
 
     def initialise_source(self, c, key):
         r"""
@@ -2443,7 +2446,7 @@ class merge(component):
         for i in inlets:
             print('m_in' + str(j) + ' = ', i.m, 'kg / s; ')
             j += 1
-        print('m_out = ', outlets[0].m, 'kg / s; ')
+        print('m_out = ', outlets[0].m.val_SI, 'kg / s; ')
 
 # %%
 
@@ -2567,7 +2570,7 @@ class combustion_chamber(component):
         vec_res += self.mass_flow_res(inlets, outlets)
 
         for i in inlets:
-            vec_res += [outlets[0].p - i.p]
+            vec_res += [outlets[0].p.val_SI - i.p.val_SI]
 
         vec_res += [self.energy_balance(inlets, outlets)]
 
@@ -2622,9 +2625,9 @@ class combustion_chamber(component):
             eb_deriv[0, i, 1] = (
                 self.ddx_func(inlets, outlets, self.energy_balance, 'p', i))
             if i >= num_i:
-                eb_deriv[0, i, 2] = -(inlets + outlets)[i].m
+                eb_deriv[0, i, 2] = -(inlets + outlets)[i].m.val_SI
             else:
-                eb_deriv[0, i, 2] = (inlets + outlets)[i].m
+                eb_deriv[0, i, 2] = (inlets + outlets)[i].m.val_SI
         mat_deriv += eb_deriv.tolist()
 
         if self.lamb_set:
@@ -2763,11 +2766,13 @@ class combustion_chamber(component):
 
         n_fuel = 0
         for i in inlets:
-            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
+            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel] /
+                       molar_masses[self.fuel])
 
         n_oxygen = 0
         for i in inlets:
-            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
+                         molar_masses[self.o2])
 
         if not self.lamb_set:
             self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
@@ -2795,9 +2800,9 @@ class combustion_chamber(component):
         res = dm
 
         for i in inlets:
-            res += i.fluid[fluid] * i.m
+            res += i.fluid.val[fluid] * i.m.val_SI
         for o in outlets:
-            res -= o.fluid[fluid] * o.m
+            res -= o.fluid.val[fluid] * o.m.val_SI
         return res
 
     def energy_balance(self, inlets, outlets):
@@ -2825,11 +2830,15 @@ class combustion_chamber(component):
 
         res = 0
         for i in inlets:
-            res += i.m * (i.h - h_mix_pT([i.m, p_ref, i.h, i.fluid], T_ref))
-            res += i.m * i.fluid[self.fuel] * self.hi
+            res += i.m.val_SI * (i.h.val_SI -
+                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
+                                           i.fluid.val], T_ref))
+            res += i.m.val_SI * i.fluid.val[self.fuel] * self.hi
         for o in outlets:
-            res -= o.m * (o.h - h_mix_pT([o.m, p_ref, o.h, o.fluid], T_ref))
-            res -= o.m * o.fluid[self.fuel] * self.hi
+            res -= o.m.val_SI * (o.h.val_SI -
+                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
+                                           o.fluid.val], T_ref))
+            res -= o.m.val_SI * o.fluid.val[self.fuel] * self.hi
 
         return res
 
@@ -2853,11 +2862,13 @@ class combustion_chamber(component):
         """
         n_fuel = 0
         for i in inlets:
-            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
+            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel] /
+                       molar_masses[self.fuel])
 
         n_oxygen = 0
         for i in inlets:
-            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
+                         molar_masses[self.o2])
 
         return (n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) -
                 self.lamb)
@@ -2899,39 +2910,39 @@ class combustion_chamber(component):
 
         if dx == 'fluid':
             deriv = []
-            for f in inlets[0].fluid.keys():
-                val = (inlets + outlets)[pos].fluid[f]
+            for f in inlets[0].fluid.val.keys():
+                val = (inlets + outlets)[pos].fluid.val[f]
                 exp = 0
-                if (inlets + outlets)[pos].fluid[f] + df <= 1:
-                    (inlets + outlets)[pos].fluid[f] += df
+                if (inlets + outlets)[pos].fluid.val[f] + df <= 1:
+                    (inlets + outlets)[pos].fluid.val[f] += df
                 else:
-                    (inlets + outlets)[pos].fluid[f] = 1
+                    (inlets + outlets)[pos].fluid.val[f] = 1
                 exp += self.reaction_balance(inlets, outlets, fluid)
-                if (inlets + outlets)[pos].fluid[f] - 2 * df >= 0:
-                    (inlets + outlets)[pos].fluid[f] -= 2 * df
+                if (inlets + outlets)[pos].fluid.val[f] - 2 * df >= 0:
+                    (inlets + outlets)[pos].fluid.val[f] -= 2 * df
                 else:
-                    (inlets + outlets)[pos].fluid[f] = 0
+                    (inlets + outlets)[pos].fluid.val[f] = 0
                 exp -= self.reaction_balance(inlets, outlets, fluid)
-                (inlets + outlets)[pos].fluid[f] = val
+                (inlets + outlets)[pos].fluid.val[f] = val
 
                 deriv += [exp / (2 * (dm + dp + dh + df))]
 
         else:
             exp = 0
-            (inlets + outlets)[pos].m += dm
-            (inlets + outlets)[pos].p += dp
-            (inlets + outlets)[pos].h += dh
+            (inlets + outlets)[pos].m.val_SI += dm
+            (inlets + outlets)[pos].p.val_SI += dp
+            (inlets + outlets)[pos].h.val_SI += dh
             exp += self.reaction_balance(inlets, outlets, fluid)
 
-            (inlets + outlets)[pos].m -= 2 * dm
-            (inlets + outlets)[pos].p -= 2 * dp
-            (inlets + outlets)[pos].h -= 2 * dh
+            (inlets + outlets)[pos].m.val_SI -= 2 * dm
+            (inlets + outlets)[pos].p.val_SI -= 2 * dp
+            (inlets + outlets)[pos].h.val_SI -= 2 * dh
             exp -= self.reaction_balance(inlets, outlets, fluid)
             deriv = exp / (2 * (dm + dp + dh + df))
 
-            (inlets + outlets)[pos].m += dm
-            (inlets + outlets)[pos].p += dp
-            (inlets + outlets)[pos].h += dh
+            (inlets + outlets)[pos].m.val_SI += dm
+            (inlets + outlets)[pos].p.val_SI += dp
+            (inlets + outlets)[pos].h.val_SI += dh
 
         return deriv
 
@@ -2970,9 +2981,9 @@ class combustion_chamber(component):
         }
 
         for c in nw.comps.loc[self].o:
-            for fluid, x in c.fluid.items():
-                if not c.fluid_set[fluid] and fluid in fg.keys():
-                    c.fluid[fluid] = fg[fluid]
+            for fluid, x in c.fluid.val.items():
+                if not c.fluid.val_set[fluid] and fluid in fg.keys():
+                    c.fluid.val[fluid] = fg[fluid]
 
     def convergence_check(self, nw):
         r"""
@@ -2987,26 +2998,26 @@ class combustion_chamber(component):
         :returns: no return value
         """
         for o in nw.comps.loc[self].o:
-            fluids = [f for f in o.fluid.keys() if not o.fluid_set[f]]
+            fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
                 if f == self.o2:
-                    if o.fluid[f] > 0.25:
-                        o.fluid[f] = 0.2
+                    if o.fluid.val[f] > 0.25:
+                        o.fluid.val[f] = 0.2
                 elif f == self.n2:
-                    if o.fluid[f] < 0.6 or o.fluid[f] > 0.8:
-                        o.fluid[f] = 0.65
+                    if o.fluid.val[f] < 0.6 or o.fluid.val[f] > 0.8:
+                        o.fluid.val[f] = 0.65
                 elif f == self.co2:
-                    if o.fluid[f] > 0.15:
-                        o.fluid[f] = 0.10
+                    if o.fluid.val[f] > 0.15:
+                        o.fluid.val[f] = 0.10
                 elif f == self.h2o:
-                    if o.fluid[f] > 0.15:
-                        o.fluid[f] = 0.10
+                    if o.fluid.val[f] > 0.15:
+                        o.fluid.val[f] = 0.10
                 elif f == self.fuel:
-                    if o.fluid[f] > 0.1:
-                        o.fluid[f] = 0.05
+                    if o.fluid.val[f] > 0.1:
+                        o.fluid.val[f] = 0.05
                 else:
-                    if o.fluid[f] > 0.05:
-                        o.fluid[f] = 0.02
+                    if o.fluid.val[f] > 0.05:
+                        o.fluid.val[f] = 0.02
 
         for c in nw.comps.loc[self].o:
             init_target(nw, c, c.t)
@@ -3060,16 +3071,17 @@ class combustion_chamber(component):
 
         self.ti = 0
         for i in inlets:
-            self.ti += i.m * i.fluid[self.fuel] * self.hi
+            self.ti += i.m.val_SI * i.fluid.val[self.fuel] * self.hi
 
         n_fuel = 0
         for i in inlets:
-            n_fuel += (i.m * i.fluid[self.fuel] /
+            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel] /
                        molar_masses[self.fuel])
 
         n_oxygen = 0
         for i in inlets:
-            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
+                         molar_masses[self.o2])
 
         if mode == 'post':
             if not self.lamb_set:
@@ -3091,9 +3103,9 @@ class combustion_chamber(component):
               'lambda = ', self.lamb)
         j = 1
         for i in inlets:
-            print('m_in' + str(j) + ' = ', i.m, 'kg / s; ')
+            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
             j += 1
-        print('m_out = ', outlets[0].m, 'kg / s; ')
+        print('m_out = ', outlets[0].m.val_SI, 'kg / s; ')
 
 
 # %%
@@ -3268,11 +3280,11 @@ class combustion_chamber(component):
 #
 #        n_fuel = 0
 #        for i in inlets:
-#            n_fuel += i.m * i.fluid[self.fuel] / molar_masses[self.fuel]
+#            n_fuel += i.m.val_SI * i.fluid.val[self.fuel] / molar_masses[self.fuel]
 #
 #        n_oxygen = 0
 #        for i in inlets:
-#            n_oxygen += i.m * i.fluid[self.o2] / molar_masses[self.o2]
+#            n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
 #        if not self.lamb_set:
 #            self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
 #
@@ -3299,9 +3311,9 @@ class combustion_chamber(component):
 #        res = dm
 #
 #        for i in inlets:
-#            res += i.fluid[fluid] * i.m
+#            res += i.fluid.val[fluid] * i.m.val_SI
 #        for o in outlets:
-#            res -= o.fluid[fluid] * o.m
+#            res -= o.fluid.val[fluid] * o.m.val_SI
 #        return res
 
 # %%
@@ -3386,10 +3398,10 @@ class vessel(component):
         vec_res += self.fluid_res(inlets, outlets)
         vec_res += self.mass_flow_res(inlets, outlets)
 
-        vec_res += [inlets[0].h - outlets[0].h]
+        vec_res += [inlets[0].h.val_SI - outlets[0].h.val_SI]
 
         if self.pr_set:
-            vec_res += [inlets[0].p * self.pr - outlets[0].p]
+            vec_res += [inlets[0].p.val_SI * self.pr - outlets[0].p.val_SI]
 
         if self.zeta_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -3489,18 +3501,20 @@ class vessel(component):
                            nw.comps.loc[self].o.tolist())
 
         if mode == 'post':
-            self.pr = outlets[0].p / inlets[0].p
-            self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                         (8 * inlets[0].m ** 2 *
+            self.pr = outlets[0].p.val_SI / inlets[0].p.val_SI
+            self.zeta = ((inlets[0].p.val_SI - outlets[0].p.val_SI) *
+                         math.pi ** 2 /
+                         (8 * inlets[0].m.val_SI ** 2 *
                          (v_mix_ph(inlets[0].to_flow()) +
                           v_mix_ph(outlets[0].to_flow())) / 2))
 
         if mode == 'pre':
             if 'pr' in self.offdesign:
-                self.pr = outlets[0].p / inlets[0].p
+                self.pr = outlets[0].p.val_SI / inlets[0].p.val_SI
             if 'zeta' in self.offdesign:
-                self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                             (8 * inlets[0].m ** 2 *
+                self.zeta = ((inlets[0].p.val_SI - outlets[0].p.val_SI) *
+                             math.pi ** 2 /
+                             (8 * inlets[0].m.val_SI ** 2 *
                              (v_mix_ph(inlets[0].to_flow()) +
                               v_mix_ph(outlets[0].to_flow())) / 2))
 
@@ -3512,10 +3526,10 @@ class vessel(component):
         print('##### ', self.label, ' #####')
         print('pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s ; '
-              'm = ', inlets[0].m, 'kg / s ; '
-              'Sirr = ', inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
-                                        s_mix_ph(inlets[0].to_flow())), 'W / K'
-              )
+              'm = ', inlets[0].m.val_SI, 'kg / s ; '
+              'Sirr = ', inlets[0].m.val_SI * (s_mix_ph(outlets[0].to_flow()) -
+                                               s_mix_ph(inlets[0].to_flow())),
+              'W / K')
 
 # %%
 
@@ -3624,10 +3638,11 @@ class heat_exchanger_simple(component):
         vec_res += self.mass_flow_res(inlets, outlets)
 
         if self.Q_set:
-            vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) - self.Q]
+            vec_res += [inlets[0].m.val_SI *
+                        (outlets[0].h.val_SI - inlets[0].h.val_SI) - self.Q]
 
         if self.pr_set:
-            vec_res += [inlets[0].p * self.pr - outlets[0].p]
+            vec_res += [inlets[0].p.val_SI * self.pr - outlets[0].p.val_SI]
 
         if self.zeta_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -3661,9 +3676,9 @@ class heat_exchanger_simple(component):
 
         if self.Q_set:
             Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            Q_deriv[0, 0, 0] = outlets[0].h - inlets[0].h
-            Q_deriv[0, 0, 2] = -inlets[0].m
-            Q_deriv[0, 1, 2] = inlets[0].m
+            Q_deriv[0, 0, 0] = outlets[0].h.val_SI - inlets[0].h.val_SI
+            Q_deriv[0, 0, 2] = -inlets[0].m.val_SI
+            Q_deriv[0, 1, 2] = inlets[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.pr_set:
@@ -3700,7 +3715,8 @@ class heat_exchanger_simple(component):
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             for i in range(2):
                 if i == 0:
-                    kA_deriv[0, i, 0] = (outlets[0].h - inlets[0].h)
+                    kA_deriv[0, i, 0] = (outlets[0].h.val_SI -
+                                         inlets[0].h.val_SI)
                 kA_deriv[0, i, 1] = (
                     self.ddx_func(inlets, outlets, self.kA_func, 'p', i))
                 kA_deriv[0, i, 2] = (
@@ -3738,10 +3754,11 @@ class heat_exchanger_simple(component):
         i, o = inlets[0].to_flow(), outlets[0].to_flow()
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
-        re = 4 * inlets[0].m / (math.pi * self. D * (visc_i + visc_o) / 2)
+        re = 4 * inlets[0].m.val_SI / (math.pi * self. D *
+                                       (visc_i + visc_o) / 2)
 
-        return ((inlets[0].p - outlets[0].p) -
-                8 * inlets[0].m ** 2 * (v_i + v_o) / 2 * self.L *
+        return ((inlets[0].p.val_SI - outlets[0].p.val_SI) -
+                8 * inlets[0].m.val_SI ** 2 * (v_i + v_o) / 2 * self.L *
                 lamb(re, self.ks, self.D) / (math.pi ** 2 * self.D ** 5))
 
     def kA_func(self, inlets, outlets):
@@ -3786,8 +3803,8 @@ class heat_exchanger_simple(component):
             ttd_u = T_i - self.t_a
             ttd_l = T_o - self.t_a
 
-        return (i.m * (o.h - i.h) + self.kA * ((ttd_u - ttd_l) /
-                                               math.log(ttd_u / ttd_l)))
+        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA * (
+                (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
 
     def initialise_source(self, c, key):
         r"""
@@ -3812,7 +3829,6 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            print(self.Q)
             if self.Q < 0:
                 return 1e5
             elif self.Q > 0:
@@ -3846,7 +3862,6 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            print(self.Q)
             if self.Q < 0:
                 return 5e5
             elif self.Q > 0:
@@ -3863,10 +3878,12 @@ class heat_exchanger_simple(component):
 
         if mode == 'post':
 
-            self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
-            self.pr = outlets[0].p / inlets[0].p
-            self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                         (8 * inlets[0].m ** 2 *
+            self.Q = inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                           inlets[0].h.val_SI)
+            self.pr = outlets[0].p.val_SI / inlets[0].p.val_SI
+            self.zeta = ((inlets[0].p.val_SI - outlets[0].p.val_SI) *
+                         math.pi ** 2 /
+                         (8 * inlets[0].m.val_SI ** 2 *
                          (v_mix_ph(inlets[0].to_flow()) +
                           v_mix_ph(outlets[0].to_flow())) / 2))
 
@@ -3906,12 +3923,14 @@ class heat_exchanger_simple(component):
         else:
 
             if 'Q' in self.offdesign:
-                self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+                self.Q = inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                               inlets[0].h.val_SI)
             if 'pr' in self.offdesign:
-                self.pr = outlets[0].p / inlets[0].p
+                self.pr = outlets[0].p.val_SI / inlets[0].p.val_SI
             if 'zeta' in self.offdesign:
-                self.zeta = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                             (8 * inlets[0].m ** 2 *
+                self.zeta = ((inlets[0].p.val_SI - outlets[0].p.val_SI) *
+                             math.pi ** 2 /
+                             (8 * inlets[0].m.val_SI ** 2 *
                              (v_mix_ph(inlets[0].to_flow()) +
                               v_mix_ph(outlets[0].to_flow())) / 2))
 
@@ -3924,10 +3943,10 @@ class heat_exchanger_simple(component):
         print('Q = ', self.Q, 'W; '
               'pr = ', self.pr, '; '
               'zeta = ', self.zeta, 'kg / m^4 * s; '
-              'm = ', inlets[0].m, 'kg / s; '
-              'Sq = ', inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
-                                      s_mix_ph(inlets[0].to_flow())), 'W / K; '
-              )
+              'm = ', inlets[0].m.val_SI, 'kg / s; '
+              'Sq = ', inlets[0].m.val_SI * (s_mix_ph(outlets[0].to_flow()) -
+                                             s_mix_ph(inlets[0].to_flow())),
+              'W / K; ')
         if self.t_a_set or self.t_a_design_set:
             print('kA = ', self.kA, 'W / (m^2 * K)')
 
@@ -4101,11 +4120,14 @@ class heat_exchanger(component):
         vec_res += self.fluid_res(inlets, outlets)
         vec_res += self.mass_flow_res(inlets, outlets)
 
-        vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) +
-                    inlets[1].m * (outlets[1].h - inlets[1].h)]
+        vec_res += [inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                          inlets[0].h.val_SI) +
+                    inlets[1].m.val_SI * (outlets[1].h.val_SI -
+                                          inlets[1].h.val_SI)]
 
         if self.Q_set:
-            vec_res += [inlets[0].m * (outlets[0].h - inlets[0].h) - self.Q]
+            vec_res += [inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                              inlets[0].h.val_SI) - self.Q]
 
         if self.kA_set:
             vec_res += [self.kA_func(inlets, outlets)]
@@ -4121,10 +4143,10 @@ class heat_exchanger(component):
             vec_res += [self.ttd_l_func(inlets, outlets)]
 
         if self.pr1_set:
-            vec_res += [self.pr1 * inlets[0].p - outlets[0].p]
+            vec_res += [self.pr1 * inlets[0].p.val_SI - outlets[0].p.val_SI]
 
         if self.pr2_set:
-            vec_res += [self.pr2 * inlets[1].p - outlets[1].p]
+            vec_res += [self.pr2 * inlets[1].p.val_SI - outlets[1].p.val_SI]
 
         if self.zeta1_set:
             vec_res += [self.zeta_func(inlets, outlets)]
@@ -4168,23 +4190,23 @@ class heat_exchanger(component):
 
         q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
         for k in range(num_i):
-            q_deriv[0, k, 0] = outlets[k].h - inlets[k].h
+            q_deriv[0, k, 0] = outlets[k].h.val_SI - inlets[k].h.val_SI
 
-            q_deriv[0, k, 2] = -inlets[k].m
-        q_deriv[0, 2, 2] = inlets[0].m
-        q_deriv[0, 3, 2] = inlets[1].m
+            q_deriv[0, k, 2] = -inlets[k].m.val_SI
+        q_deriv[0, 2, 2] = inlets[0].m.val_SI
+        q_deriv[0, 3, 2] = inlets[1].m.val_SI
         mat_deriv += q_deriv.tolist()
 
         if self.Q_set:
             Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            Q_deriv[0, 0, 0] = outlets[0].h - inlets[0].h
-            Q_deriv[0, 0, 2] = -inlets[0].m
-            Q_deriv[0, 1, 2] = inlets[0].m
+            Q_deriv[0, 0, 0] = outlets[0].h.val_SI - inlets[0].h.val_SI
+            Q_deriv[0, 0, 2] = -inlets[0].m.val_SI
+            Q_deriv[0, 1, 2] = inlets[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.kA_set:
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            kA_deriv[0, 0, 0] = outlets[0].h - inlets[0].h
+            kA_deriv[0, 0, 0] = outlets[0].h.val_SI - inlets[0].h.val_SI
             for i in range(num_i + num_o):
                 kA_deriv[0, i, 1] = (
                     self.ddx_func(inlets, outlets, self.kA_func, 'p', i))
@@ -4454,7 +4476,7 @@ class heat_exchanger(component):
         :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
-        deriv = np.zeros((1, 4, len(inlets[0].fluid) + 3))
+        deriv = np.zeros((1, 4, len(inlets[0].fluid.val) + 3))
         for i in range(2):
             deriv[0, i * 3, 1] = (
                 self.ddx_func(inlets, outlets, self.ttd_u_func, 'p', i * 3))
@@ -4471,7 +4493,7 @@ class heat_exchanger(component):
         :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
-        deriv = np.zeros((1, 4, len(inlets[0].fluid) + 3))
+        deriv = np.zeros((1, 4, len(inlets[0].fluid.val) + 3))
         for i in range(2):
             deriv[0, i + 1, 1] = (
                 self.ddx_func(inlets, outlets, self.ttd_l_func, 'p', i + 1))
@@ -4493,10 +4515,10 @@ class heat_exchanger(component):
 
         i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
 
-        if i[0].h < o[0].h and not o[0].h_set:
-            o[0].h = i[0].h / 2
-        if i[1].h > o[1].h and not i[1].h_set:
-            i[1].h = o[1].h / 2
+        if i[0].h.val_SI < o[0].h.val_SI and not o[0].h.val_SI_set:
+            o[0].h.val_SI = i[0].h.val_SI / 2
+        if i[1].h.val_SI > o[1].h.val_SI and not i[1].h.val_SI_set:
+            i[1].h.val_SI = o[1].h.val_SI / 2
 
 # this part may not be needed
 #        if self.ttd_u_set:
@@ -4506,10 +4528,10 @@ class heat_exchanger(component):
 #                    self.ttd_u_func(i, o)
 #                    expr = True
 #                except:
-#                    if not i[0].h_set:
-#                        i[0].h *= 1.05
-#                    if not o[1].h_set:
-#                        o[1].h *= 0.95
+#                    if not i[0].h.val_SI_set:
+#                        i[0].h.val_SI *= 1.05
+#                    if not o[1].h.val_SI_set:
+#                        o[1].h.val_SI *= 0.95
 #
 #        if self.ttd_l_set:
 #            expr = False
@@ -4518,10 +4540,10 @@ class heat_exchanger(component):
 #                    self.ttd_l_func(i, o)
 #                    expr = True
 #                except:
-#                    if not i[1].h_set:
-#                        i[1].h *= 1.05
-#                    if not o[0].h_set:
-#                        o[0].h *= 0.95
+#                    if not i[1].h.val_SI_set:
+#                        i[1].h.val_SI *= 1.05
+#                    if not o[0].h.val_SI_set:
+#                        o[0].h.val_SI *= 0.95
 
     def initialise_source(self, c, key):
         r"""
@@ -4612,7 +4634,8 @@ class heat_exchanger(component):
             self.ttd_l = T_o1 - T_i2
 
         if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
-            self.Q = inlets[0].m * (outlets[0].h - inlets[0].h)
+            self.Q = inlets[0].m.val_SI * (outlets[0].h.val_SI -
+                                           inlets[0].h.val_SI)
 
         if self.ttd_u < 0 or self.ttd_l < 0:
             msg = ('Invalid value for terminal temperature '
@@ -4629,21 +4652,24 @@ class heat_exchanger(component):
             else:
                 self.td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-                self.kA = -(inlets[0].m * (outlets[0].h - inlets[0].h) /
-                            self.td_log)
+                self.kA = -(inlets[0].m.val_SI * (
+                        outlets[0].h.val_SI - inlets[0].h.val_SI) /
+                        self.td_log)
 
         if (mode == 'pre' and 'pr1' in self.offdesign) or mode == 'post':
-            self.pr1 = outlets[0].p / inlets[0].p
+            self.pr1 = outlets[0].p.val_SI / inlets[0].p.val_SI
         if (mode == 'pre' and 'pr2' in self.offdesign) or mode == 'post':
-            self.pr2 = outlets[1].p / inlets[1].p
+            self.pr2 = outlets[1].p.val_SI / inlets[1].p.val_SI
         if (mode == 'pre' and 'zeta1' in self.offdesign) or mode == 'post':
-            self.zeta1 = ((inlets[0].p - outlets[0].p) * math.pi ** 2 /
-                          (8 * inlets[0].m ** 2 *
+            self.zeta1 = ((inlets[0].p.val_SI - outlets[0].p.val_SI) *
+                          math.pi ** 2 /
+                          (8 * inlets[0].m.val_SI ** 2 *
                           (v_mix_ph(inlets[0].to_flow()) +
                            v_mix_ph(outlets[0].to_flow())) / 2))
         if (mode == 'pre' and 'zeta2' in self.offdesign) or mode == 'post':
-            self.zeta2 = ((inlets[1].p - outlets[1].p) * math.pi ** 2 /
-                          (8 * inlets[1].m ** 2 *
+            self.zeta2 = ((inlets[1].p.val_SI - outlets[1].p.val_SI) *
+                          math.pi ** 2 /
+                          (8 * inlets[1].m.val_SI ** 2 *
                           (v_mix_ph(inlets[1].to_flow()) +
                            v_mix_ph(outlets[1].to_flow())) / 2))
 
@@ -4666,12 +4692,12 @@ class heat_exchanger(component):
               'pr2 = ', self.pr2, '; '
               'zeta1 = ', self.zeta1, '; '
               'zeta2 = ', self.zeta2, '; '
-              'm1 = ', inlets[0].m, 'kg / s; '
-              'm2 = ', inlets[1].m, 'kg / s; '
-              'Sirr = ', inlets[1].m * (s_mix_ph(outlets[1].to_flow()) -
-                                        s_mix_ph(inlets[1].to_flow())) +
-              inlets[0].m * (s_mix_ph(outlets[0].to_flow()) -
-                             s_mix_ph(inlets[0].to_flow())), 'W / K'
+              'm1 = ', inlets[0].m.val_SI, 'kg / s; '
+              'm2 = ', inlets[1].m.val_SI, 'kg / s; '
+              'Sirr = ', inlets[1].m.val_SI * (s_mix_ph(outlets[1].to_flow()) -
+                                               s_mix_ph(inlets[1].to_flow())) +
+              inlets[0].m.val_SI * (s_mix_ph(outlets[0].to_flow()) -
+                                    s_mix_ph(inlets[0].to_flow())), 'W / K'
               )
 
 # %%
@@ -5049,17 +5075,17 @@ class drum(component):
 
         E_res = 0
         for i in inlets:
-            E_res += i.m * i.h
+            E_res += i.m.val_SI * i.h.val_SI
         for o in outlets:
-            E_res -= o.m * o.h
+            E_res -= o.m.val_SI * o.h.val_SI
         vec_res += [E_res]
 
-        p = inlets[0].p
+        p = inlets[0].p.val_SI
         for c in [inlets[1]] + outlets:
-            vec_res += [p - c.p]
+            vec_res += [p - c.p.val_SI]
 
-        vec_res += [h_mix_pQ(outlets[0].to_flow(), 0) - outlets[0].h]
-        vec_res += [h_mix_pQ(outlets[1].to_flow(), 1) - outlets[1].h]
+        vec_res += [h_mix_pQ(outlets[0].to_flow(), 0) - outlets[0].h.val_SI]
+        vec_res += [h_mix_pQ(outlets[1].to_flow(), 1) - outlets[1].h.val_SI]
 
         return vec_res
 
@@ -5085,13 +5111,13 @@ class drum(component):
         E_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
         k = 0
         for i in inlets:
-            E_deriv[0, k, 0] = i.h
-            E_deriv[0, k, 2] = i.m
+            E_deriv[0, k, 0] = i.h.val_SI
+            E_deriv[0, k, 2] = i.m.val_SI
             k += 1
         j = 0
         for o in outlets:
-            E_deriv[0, j + k, 0] = -o.h
-            E_deriv[0, j + k, 2] = -o.m
+            E_deriv[0, j + k, 0] = -o.h.val_SI
+            E_deriv[0, j + k, 2] = -o.m.val_SI
             j += 1
         mat_deriv += E_deriv.tolist()
 
@@ -5241,11 +5267,11 @@ class subsys_interface(component):
         for j in range(len(inlets)):
             i = inlets[j]
             o = outlets[j]
-            vec_res += [i.p - o.p]
+            vec_res += [i.p.val_SI - o.p.val_SI]
         for j in range(len(inlets)):
             i = inlets[j]
             o = outlets[j]
-            vec_res += [i.h - o.h]
+            vec_res += [i.h.val_SI - o.h.val_SI]
 
         return vec_res
 

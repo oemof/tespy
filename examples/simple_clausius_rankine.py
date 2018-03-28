@@ -70,7 +70,7 @@ fs_in.set_attr(m=100)
 
 mode = 'design'
 
-file = mode + '_conn.csv'
+file = mode + '_results.csv'
 
 # solve the network, print the results to prompt and save
 nw.solve(mode=mode)

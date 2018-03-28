@@ -122,10 +122,11 @@ cw_out.set_attr(T=110)
 
 mode = 'design'
 
-nw.solve(init_file=None, mode=mode, parallel=False)
+nw.solve(init_file=None, mode=mode)
+nw.print_results()
 nw.save('chp_' + mode)
 
-file = 'chp_' + mode + '_conn.csv'
+file = 'chp_' + mode + '_results.csv'
 mode = 'offdesign'
 
 # representation of part loads
@@ -151,8 +152,9 @@ for i in T_fl:
         if j == P_range[0]:
             init_file = file
         else:
-            init_file = 'chp_' + mode + '_conn.csv'
+            init_file = 'chp_' + mode + '_results.csv'
 
+        print(i, j)
         nw.solve(init_file=init_file, design_file=file, mode=mode)
         nw.save('chp_' + mode)
         P[i] += [power_bus.P]

@@ -674,15 +674,15 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            for key in ['m', 'p', 'h', 'T']:
-                if not c.get_attr(key).unit_set:
+            for key in ['m', 'p', 'h', 'T', 'x']:
+                if not c.get_attr(key).unit_set and key != 'x':
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key != 'T' and not c.get_attr(key).val_set:
+                if key not in ['T', 'x'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = (
                         c.get_attr(key).val0 *
                         self.get_attr(key)[c.get_attr(key).unit])
-                elif key != 'T' and c.get_attr(key).val_set:
+                elif key not in ['T', 'x'] and c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = (
                         c.get_attr(key).val *
                         self.get_attr(key)[c.get_attr(key).unit])
@@ -752,7 +752,7 @@ class network:
         :type c: tespy.connections.connection
         :returns: no return value
         """
-        if key == 'T':
+        if key == 'x' or key == 'T':
             return
 
         # starting value for mass flow
@@ -764,6 +764,7 @@ class network:
         if math.isnan(c.get_attr(key).val0):
             val_s = c.s.initialise_source(c, key)
             val_t = c.t.initialise_target(c, key)
+#            print(key, c.s.label, val_s, c.t.label, val_t)
             if val_s == 0 and val_t == 0:
                 if key == 'p':
                     c.get_attr(key).val0 = 1e5
@@ -936,7 +937,7 @@ class network:
                 c.get_attr(var).set_attr(val_set=True)
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50, parallel=False):
+              max_iter=50, parallel=True):
         """
         solves the network:
 
@@ -1385,7 +1386,8 @@ class network:
 
         # write data in residual vector and jacobian matrix
         sum_eq = len(self.vec_res)
-        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x'}
+        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x',
+               5: 'm', 6: 'p', 7: 'h', 8: 'T'}
         for part in range(self.partit):
 
             self.vec_res += [it for ls in data[part][0].tolist()
@@ -1767,8 +1769,9 @@ class network:
 
             if c.get_attr(var).get_attr('ref_set'):
                 pos = {'m': 0, 'p': 1, 'h': 2}
-                deriv = np.zeros((1, 1, self.num_vars))
+                deriv = np.zeros((1, 2, self.num_vars))
                 deriv[0, 0, pos[var]] = 1
+                deriv[0, 1, pos[var]] = -c.get_attr(var).ref.f
                 return deriv
 
             else:

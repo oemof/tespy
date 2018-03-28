@@ -1252,14 +1252,14 @@ class pump(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not o[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
                 o[0].p.val_SI = o[0].p.val_SI * 2
-        if not i[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
                 i[0].p.val_SI = o[0].p.val_SI * 0.5
 
-        if not o[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
                 o[0].h.val_SI = o[0].h.val_SI * 1.1
-        if not i[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
                 i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
@@ -1570,14 +1570,14 @@ class compressor(turbomachine):
 
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if not o[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
             o[0].p.val_SI = o[0].p.val_SI * 2
-        if not i[0].p.val_SI_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
             i[0].p.val_SI = o[0].p.val_SI * 0.5
 
-        if not o[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
             o[0].h.val_SI = o[0].h.val_SI * 1.1
-        if not i[0].h.val_SI_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
@@ -1853,7 +1853,7 @@ class turbine(turbomachine):
         i = inlets[0].to_flow()
         o = outlets[0].to_flow()
 
-        ref = 'pr'
+        ref = 'dh_s'
 
         if ref == 'dh_s':
             expr = math.sqrt(self.dh_s0 / (self.h_os(i, o) - i[2]))
@@ -1982,7 +1982,7 @@ class turbine(turbomachine):
 
         if (mode == 'pre' and 'char' in self.offdesign):
             print('Creating characteristics for component ', self)
-            self.char = cmp_char.turbine(method='EBS_ST')
+            self.char = cmp_char.turbine(method='TRAUPEL')
 
 # %%
 
@@ -4515,9 +4515,9 @@ class heat_exchanger(component):
 
         i, o = nw.comps.loc[self].i.tolist(), nw.comps.loc[self].o.tolist()
 
-        if i[0].h.val_SI < o[0].h.val_SI and not o[0].h.val_SI_set:
+        if i[0].h.val_SI < o[0].h.val_SI and not o[0].h.val_set:
             o[0].h.val_SI = i[0].h.val_SI / 2
-        if i[1].h.val_SI > o[1].h.val_SI and not i[1].h.val_SI_set:
+        if i[1].h.val_SI > o[1].h.val_SI and not i[1].h.val_set:
             i[1].h.val_SI = o[1].h.val_SI / 2
 
 # this part may not be needed
@@ -4528,9 +4528,9 @@ class heat_exchanger(component):
 #                    self.ttd_u_func(i, o)
 #                    expr = True
 #                except:
-#                    if not i[0].h.val_SI_set:
+#                    if not i[0].h.val_set:
 #                        i[0].h.val_SI *= 1.05
-#                    if not o[1].h.val_SI_set:
+#                    if not o[1].h.val_set:
 #                        o[1].h.val_SI *= 0.95
 #
 #        if self.ttd_l_set:
@@ -4540,9 +4540,9 @@ class heat_exchanger(component):
 #                    self.ttd_l_func(i, o)
 #                    expr = True
 #                except:
-#                    if not i[1].h.val_SI_set:
+#                    if not i[1].h.val_set:
 #                        i[1].h.val_SI *= 1.05
-#                    if not o[0].h.val_SI_set:
+#                    if not o[0].h.val_set:
 #                        o[0].h.val_SI *= 0.95
 
     def initialise_source(self, c, key):

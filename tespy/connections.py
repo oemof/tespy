@@ -133,7 +133,8 @@ class connection:
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
-                        self.get_attr(key).set_attr(is_set=False)
+                        self.get_attr(key).set_attr(val_set=False)
+                        self.get_attr(key).set_attr(ref_set=True)
                     # starting value
                     elif key in var0:
                         self.get_attr(key.replace('0', '')).set_attr(

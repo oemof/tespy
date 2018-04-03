@@ -330,7 +330,7 @@ class bus:
                                'This bus accepts components of type ' +
                                str(type(c).__bases__[0]) + '.')
                         raise TypeError(msg)
-                return False
+                return True
         return True
 
 

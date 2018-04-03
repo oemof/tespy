@@ -193,8 +193,8 @@ class dr_eva_forced(subsystem):
     """
     **available parameters**
 
-    - dp1_eva: pressure drop at hot side of evaporator
-    - dp2_eva: pressure drop at cold side of evaporator
+    - pr1_eva: pressure drop at hot side of evaporator
+    - pr2_eva: pressure drop at cold side of evaporator
     - eta_s: isentropic efficiency of the pump
     - PP: pinch point
     - circ_num: circulation number, ratio of mass flow through cold side of
@@ -214,7 +214,7 @@ class dr_eva_forced(subsystem):
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
-                ['dp1_eva', 'dp2_eva', 'eta_s', 'PP', 'circ_num'])
+                ['pr1_eva', 'pr2_eva', 'eta_s', 'PP', 'circ_num'])
 
     def create_comps(self):
 
@@ -231,8 +231,8 @@ class dr_eva_forced(subsystem):
     def set_comps(self):
 
         self.evaporator.set_attr(ttd_l=self.PP)
-        self.evaporator.set_attr(dp1=self.dp1_eva)
-        self.evaporator.set_attr(dp2=self.dp2_eva)
+        self.evaporator.set_attr(pr1=self.pr1_eva)
+        self.evaporator.set_attr(pr2=self.pr2_eva)
         self.pump.set_attr(eta_s=self.eta_s)
 
     def create_conns(self):
@@ -261,7 +261,7 @@ class dr_eva_natural(subsystem):
     """
     **available parameters**
 
-    - dp1_eva: pressure drop at hot side of evaporator
+    - pr1_eva: pressure drop at hot side of evaporator
     - PP: pinch point
     - circ_num: circulation number, ratio of mass flow through cold side of
       evaporator to mass flow at the drum inlet
@@ -280,7 +280,7 @@ class dr_eva_natural(subsystem):
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
-                ['dp1_eva', 'PP', 'circ_num'])
+                ['pr1_eva', 'PP', 'circ_num'])
 
     def create_comps(self):
 
@@ -297,7 +297,7 @@ class dr_eva_natural(subsystem):
     def set_comps(self):
 
         self.evaporator.set_attr(ttd_l=self.PP)
-        self.evaporator.set_attr(dp1=self.dp1_eva)
+        self.evaporator.set_attr(pr1=self.pr1_eva)
 
     def create_conns(self):
 
@@ -325,10 +325,10 @@ class ph_desup_cond(subsystem):
     **available parameters**
 
     - ttd: upper terminal temperature difference of condenser
-    - dp1_desup: pressure drop at hot side of desuperheater
-    - dp2_desup: pressure drop at cold side of desuperheater
-    - dp1_cond: pressure drop at hot side of condenser
-    - dp2_cond: pressure drop at cold side of condenser
+    - pr1_desup: pressure drop at hot side of desuperheater
+    - pr2_desup: pressure drop at cold side of desuperheater
+    - pr1_cond: pressure drop at hot side of condenser
+    - pr2_cond: pressure drop at cold side of condenser
 
     **inlets and outlets**
 
@@ -344,7 +344,7 @@ class ph_desup_cond(subsystem):
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
-                ['ttd', 'dp1_desup', 'dp2_desup', 'dp1_cond', 'dp2_cond'])
+                ['ttd', 'pr1_desup', 'pr2_desup', 'pr1_cond', 'pr2_cond'])
 
     def create_comps(self):
 
@@ -361,10 +361,10 @@ class ph_desup_cond(subsystem):
     def set_comps(self):
 
         self.condenser.set_attr(ttd_u=self.ttd)
-        self.desup.set_attr(dp1=self.dp1_desup)
-        self.desup.set_attr(dp2=self.dp2_desup)
-        self.condenser.set_attr(dp1=self.dp1_cond)
-        self.condenser.set_attr(dp2=self.dp2_cond)
+        self.desup.set_attr(pr1=self.pr1_desup)
+        self.desup.set_attr(pr2=self.pr2_desup)
+        self.condenser.set_attr(pr1=self.pr1_cond)
+        self.condenser.set_attr(pr2=self.pr2_cond)
 
     def create_conns(self):
 
@@ -386,12 +386,12 @@ class ph_desup_cond_subc(subsystem):
     **available parameters**
 
     - ttd: upper terminal temperature difference of condenser
-    - dp1_desup: pressure drop at hot side of desuperheater
-    - dp2_desup: pressure drop at cold side of desuperheater
-    - dp1_cond: pressure drop at hot side of condenser
-    - dp2_cond: pressure drop at cold side of condenser
-    - dp1_subc: pressure drop at hot side of subcooler
-    - dp2_subc: pressure drop at cold side of subcooler
+    - pr1_desup: pressure drop at hot side of desuperheater
+    - pr2_desup: pressure drop at cold side of desuperheater
+    - pr1_cond: pressure drop at hot side of condenser
+    - pr2_cond: pressure drop at cold side of condenser
+    - pr1_subc: pressure drop at hot side of subcooler
+    - pr2_subc: pressure drop at cold side of subcooler
 
     **inlets and outlets**
 
@@ -407,8 +407,8 @@ class ph_desup_cond_subc(subsystem):
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
-                ['ttd', 'dp1_desup', 'dp2_desup',
-                 'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
+                ['ttd', 'pr1_desup', 'pr2_desup',
+                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc'])
 
     def create_comps(self):
 
@@ -426,12 +426,12 @@ class ph_desup_cond_subc(subsystem):
     def set_comps(self):
 
         self.condenser.set_attr(ttd_u=self.ttd)
-        self.desup.set_attr(dp1=self.dp1_desup)
-        self.desup.set_attr(dp2=self.dp2_desup)
-        self.condenser.set_attr(dp1=self.dp1_cond)
-        self.condenser.set_attr(dp2=self.dp2_cond)
-        self.subcooler.set_attr(dp1=self.dp1_cond)
-        self.subcooler.set_attr(dp2=self.dp2_cond)
+        self.desup.set_attr(pr1=self.pr1_desup)
+        self.desup.set_attr(pr2=self.pr2_desup)
+        self.condenser.set_attr(pr1=self.pr1_cond)
+        self.condenser.set_attr(pr2=self.pr2_cond)
+        self.subcooler.set_attr(pr1=self.pr1_cond)
+        self.subcooler.set_attr(pr2=self.pr2_cond)
 
     def create_conns(self):
 
@@ -457,12 +457,12 @@ class ph_desup_inl_cond_subc(subsystem):
     **available parameters**
 
     - ttd: upper terminal temperature difference of condenser
-    - dp1_desup: pressure drop at hot side of desuperheater
-    - dp2_desup: pressure drop at cold side of desuperheater
-    - dp1_cond: pressure drop at hot side of condenser
-    - dp2_cond: pressure drop at cold side of condenser
-    - dp1_subc: pressure drop at hot side of subcooler
-    - dp2_subc: pressure drop at cold side of subcooler
+    - pr1_desup: pressure drop at hot side of desuperheater
+    - pr2_desup: pressure drop at cold side of desuperheater
+    - pr1_cond: pressure drop at hot side of condenser
+    - pr2_cond: pressure drop at cold side of condenser
+    - pr1_subc: pressure drop at hot side of subcooler
+    - pr2_subc: pressure drop at cold side of subcooler
 
     **inlets and outlets**
 
@@ -478,8 +478,8 @@ class ph_desup_inl_cond_subc(subsystem):
     def attr(self):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
-                ['ttd', 'dp1_desup', 'dp2_desup',
-                 'dp1_cond', 'dp2_cond', 'dp1_subc', 'dp2_subc'])
+                ['ttd', 'pr1_desup', 'pr2_desup',
+                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc'])
 
     def create_comps(self):
 
@@ -498,12 +498,12 @@ class ph_desup_inl_cond_subc(subsystem):
     def set_comps(self):
 
         self.condenser.set_attr(ttd_u=self.ttd)
-        self.desup.set_attr(dp1=self.dp1_desup)
-        self.desup.set_attr(dp2=self.dp2_desup)
-        self.condenser.set_attr(dp1=self.dp1_cond)
-        self.condenser.set_attr(dp2=self.dp2_cond)
-        self.subcooler.set_attr(dp1=self.dp1_cond)
-        self.subcooler.set_attr(dp2=self.dp2_cond)
+        self.desup.set_attr(pr1=self.pr1_desup)
+        self.desup.set_attr(pr2=self.pr2_desup)
+        self.condenser.set_attr(pr1=self.pr1_cond)
+        self.condenser.set_attr(pr2=self.pr2_cond)
+        self.subcooler.set_attr(pr1=self.pr1_cond)
+        self.subcooler.set_attr(pr2=self.pr2_cond)
 
     def create_conns(self):
 

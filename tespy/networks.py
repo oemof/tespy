@@ -1194,8 +1194,7 @@ class network:
                 j += 1
             i += 1
 
-            if self.init_file is None and self.iter < 5:
-                self.solve_check_properties(c)
+            self.solve_check_properties(c)
 
         # check properties for consistency
         if self.init_file is None and self.iter < 3:
@@ -1856,9 +1855,6 @@ class network:
             print('Postprocessing.')
             # clear fluid property memory
             hlp.memorise.del_memory(self.fluids)
-
-            self.comps.apply(network.process_components, axis=1,
-                             args=(self, mode,))
             self.process_busses()
             print('Done.')
 

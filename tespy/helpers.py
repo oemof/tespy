@@ -91,7 +91,7 @@ class tespy_fluid:
         self.T = np.linspace(self.T_range[0], self.T_range[1])
 
         # plotting
-        self.plot=kwargs.get('plot', False)
+        self.plot = kwargs.get('plot', False)
 
         # calculate molar mass and gas constant
         molar_masses[self.alias] = 1 / molar_massflow(self.fluid)
@@ -406,7 +406,7 @@ class dc_cc(data_container):
     """
     def attr(self):
         return {'func': None, 'is_set': False,
-                'method': None, 'param': None,
+                'method': 'default', 'param': None,
                 'x': None, 'y': None}
 
 

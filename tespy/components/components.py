@@ -940,7 +940,7 @@ class turbomachine(component):
         if self.pr.is_set:
             pr_deriv = np.zeros((num_i + num_o - 1, num_i + num_o, num_fl + 3))
             for k in range(num_i + num_o - 1):
-                pr_deriv[k, 0, 1] = self.pr
+                pr_deriv[k, 0, 1] = self.pr.val
                 pr_deriv[k, k + 1, 1] = -1
             mat_deriv += pr_deriv.tolist()
 
@@ -3768,8 +3768,8 @@ class vessel(component):
                      nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
-        print('pr = ', self.pr, '; '
-              'zeta = ', self.zeta, 'kg / m^4 * s ; '
+        print('pr = ', self.pr.val, '; '
+              'zeta = ', self.zeta.val, 'kg / m^4 * s ; '
               'm = ', inl[0].m.val_SI, 'kg / s ; '
               'Sirr = ', inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
                                             s_mix_ph(inl[0].to_flow())),

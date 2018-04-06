@@ -6,11 +6,11 @@
 
 **TODO**
 
-- add documentation
+- add documentation for compressor maps
 
 **Improvements**
 
-- build generic architecture for characteristics
+- add pump and compressor characteristics to characteristics class
 """
 
 from scipy.interpolate import interp1d
@@ -332,8 +332,8 @@ class pump:
 
     .. note::
 
-        The calculation with pump characteristics is unstable, better use
-        constant value for isentropic efficiency!
+        The calculation with pump characteristics will be unstable for large
+        deviations from reference state!
 
     **literature**
 
@@ -352,46 +352,6 @@ class pump:
 
     def eta(self, v):
         return (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
-
-
-#class turbine:
-#    r"""
-#
-#    generic characteristics for turbine isentropic efficiency
-#
-#    - links isentropic efficiency :math:`\eta_\mathrm{s,t}` to keyfigure
-#      :math:`\nu`
-#
-#    .. math::
-#
-#        \eta_\mathrm{s,t}=f\left(\frac{\nu}{\nu_\mathrm{ref}} \right)
-#
-#        \frac{\nu}{\nu_\mathrm{ref}}=\frac{\sqrt{\Delta h_\mathrm{s,ref}}}
-#        {\sqrt{\Delta h_\mathrm{s}}}
-#
-#    - values from Traupel (see literature)
-#    - maximum value of isentropic efficiency in characteristic is assigned to
-#      isentropic efficiency in reference state with
-#      :math:`\frac{\nu}{\nu_{ref}}=1`.
-#
-#    **literature**
-#
-#    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
-#    """
-#
-#    def __init__(self, eta_s0):
-#
-#        self.nu = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-#        self.eta_s = np.array([0.0, 0.6, 0.85, 0.875, 0.75, 0.5])
-#        self.char = interp1d(self.nu, self.eta_s, kind='cubic')
-#        self.nu = np.linspace(self.nu[0], self.nu[-1], 1001)
-#        self.eta_s = self.char(self.nu)
-#        self.char = interp1d(self.nu, self.eta_s /
-#                             self.eta_s[np.argmax(self.char(self.nu))],
-#                             kind='linear')
-#
-#    def eta(self, nu):
-#        return self.char(nu)
 
 
 class characteristics:
@@ -422,8 +382,12 @@ class characteristics:
         # in case of various default characteristics
         method = kwargs.get('method', 'default')
 
-        self.x = kwargs.get('x', self.default(method)[0])
-        self.y = kwargs.get('y', self.default(method)[1])
+        self.x = kwargs.get('x', None)
+        self.y = kwargs.get('y', None)
+        if self.x is None:
+            self.x = self.default(method)[0]
+        if self.y is None:
+            self.y = self.default(method)[1]
 
         self.char = interp1d(self.x, self.y, kind='linear', bounds_error=True)
 

@@ -113,7 +113,7 @@ class connection:
         # set default values for kwargs
         var = self.attr()
 
-        for key in var.keys():
+        for key in self.attr().keys():
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
@@ -134,7 +134,7 @@ class connection:
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
                         self.get_attr(key).set_attr(val_set=False)
-                        self.get_attr(key).set_attr(ref_set=True)
+                        self.get_attr(key).set_attr(ref_set=False)
                     # starting value
                     elif key in var0:
                         self.get_attr(key.replace('0', '')).set_attr(
@@ -326,7 +326,7 @@ class bus:
                                'This bus accepts components of type ' +
                                str(type(c).__bases__[0]) + '.')
                         raise TypeError(msg)
-                return False
+                return True
         return True
 
 

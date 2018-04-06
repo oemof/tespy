@@ -107,6 +107,24 @@ If you want to set, reset or unset a connection parameter the same logic as for 
 	ws_cond.set_attr(x=0.95, p=0.05) # reset vapour mass fraction, set pressure
 	fwp_eco.set_attr(p=math.nan) # unset pressure
 	
+On top of these specifications it is possible to specify the parameters data container manually. You need to import the :code:`hlp` module. The data container class for fluid properties (mass flow, pressure, enthalpy, temperature and vapour mass fraction) is called dc_prop.
+
+.. code-block:: python
+
+	from tespy import hlp
+	
+	# set the pressure to 0.7 MPa, and set this parameter for the calculation
+	ws_cond.set_attr(p=dc_prop(val=0.07, val_set=True, unit='MPa'))
+	
+	# set the pressure to 0.7 MPa, set this parameter for the calculation and add a reference
+	ws_cond.set_attr(p=dc_prop(val=0.07, val_set=True, unit='MPa', ref=con.ref(fwp_eco, 0.01, 0), ref_set=True))
+	
+If you want to specify the fluid vector you can do it in the following way:
+
+.. code-block:: python
+
+	ws_cond.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0}, val_set:{'water': False, 'air': True}))
+	
 Busses: power connections
 -------------------------
 
@@ -387,6 +405,41 @@ More information on the components can be gathered from the code documentation. 
 	* `Heat exchanger simple <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple.equations>`_)
 	* `Pipe <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe.equations>`_)
 - `Drum <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum.equations>`_)
+
+Component characteristics
+-------------------------
+
+Characteristics are available for the following components and parameters:
+
+- pump (isentropic efficiency, non customizable at the moment)
+- compressor (component map for isentropic efficiency and pressure rise, non customizable at the moment)
+- turbine (isentropic efficiency, various predefined methods and specification parameters, customizable)
+- heat exchangers (heat transfer coefficient, various predefined types, mass flows as specification parameters, customizable)
+- simple heat exchangers (e. g. pipe, see heat exchangers)
+
+There are two ways for specifying the customizable characteristic line of a component (turbine and heat exchangers only). You can specify the method directly by stating the methods name or you define the whole data container for this parameter. The data container for component characteristics is called dc_cc, for component parameters it is called dc_cp. The main purpose of having a data container for the parameters, too, lies in the possibility to add component parameters as variables to your system. This is a planned feature for the next release and thus we will not look at the component parameter specification at this point.
+
+.. code-block:: python
+
+	from tespy import cmp, hlp
+	
+	turb = cmp.turbine('turbine')
+	# method specification
+	turb.set_attr(eta_s_char='TRAUPEL')	
+	# data container specification
+	turb.set_attr(eta_s_char=hlp.dc_cc(method='TRAUPEL', param='dh_s', x=None, y=None))
+	
+	# defining a custom line
+	x = np.array([0, 1, 2])
+	y = np.array([0.95, 1, 0.95])
+	turb.set_attr(eta_s_char=hlp.dc_cc(method='TRAUPEL', param='dh_s', x=x, y=y)
+	
+	# heat exchanger analogously
+	he = cmp.heat_exchanger('evaporator')
+	turb.set_attr(kA_char1='EVA_HOT')
+	turb.set_attr(kA_char2='EVA_COLD')
+	
+All of these components come default characteristic lines, which can be found in the components documentation.
 
 Custom components
 -----------------

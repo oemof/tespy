@@ -87,7 +87,7 @@ condenser.set_attr(pr1=0.95, pr2=0.95, ttd_u=12)
 preheater.set_attr(pr1=0.95, pr2=0.99, ttd_u=7)
 vessel.set_attr(mode='man')
 
-pump.set_attr(eta_s=0.8, mode='man')
+pump.set_attr(eta_s=0.8)
 steam_generator.set_attr(pr=0.95, mode='man')
 
 # %% parametrization of connections
@@ -122,10 +122,11 @@ cw_out.set_attr(T=110)
 
 mode = 'design'
 
-nw.solve(init_file=None, mode=mode, parallel=False)
+nw.solve(init_file=None, mode=mode)
+nw.print_results()
 nw.save('chp_' + mode)
 
-file = 'chp_' + mode + '_conn.csv'
+file = 'chp_' + mode + '_results.csv'
 mode = 'offdesign'
 
 # representation of part loads
@@ -151,7 +152,7 @@ for i in T_fl:
         if j == P_range[0]:
             init_file = file
         else:
-            init_file = 'chp_' + mode + '_conn.csv'
+            init_file = 'chp_' + mode + '_results.csv'
 
         nw.solve(init_file=init_file, design_file=file, mode=mode)
         nw.save('chp_' + mode)

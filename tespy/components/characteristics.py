@@ -343,7 +343,7 @@ class pump:
 
     def __init__(self, v_opt, eta_s, H_opt):
 
-        n_q = 3000 * math.sqrt(v_opt) / ((H_opt) ** 0.75)
+        n_q = 3000 * 333 * math.sqrt(v_opt) / ((9.81 * H_opt) ** 0.75)
         v_0 = v_opt * 3.1 * n_q ** (-0.15)
         self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
         self.a = eta_s / ((v_opt ** 2 - v_0 * v_opt) *
@@ -481,8 +481,8 @@ class turbine(characteristics):
             X = \begin{cases}
             \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
             \frac{\dot{V}}{\dot{V}_{ref}} & \text{volumetric flow}\\
-            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} & \text{pressure
-            ratio}
+            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
+            \text{pressure ratio}
             \end{cases}
 
         **EBS_GT**
@@ -501,7 +501,7 @@ class turbine(characteristics):
         """
 
         if key == 'default':
-            return characteristics.default(key)
+            return np.array([0, 1, 2]), np.array([1, 1, 1])
 
         x = {}
         y = {}
@@ -522,7 +522,7 @@ class turbine(characteristics):
         return x[key], y[key]
 
 
-class heat_exchanger(characteristics):
+class heat_ex(characteristics):
     r"""
 
     generic characteristics for heat exchanger heat transfer coefficient
@@ -557,7 +557,7 @@ class heat_exchanger(characteristics):
         """
 
         if key == 'default':
-            return characteristics.default(key)
+            return np.array([0, 1, 2]), np.array([1, 1, 1])
 
         x = {}
         y = {}

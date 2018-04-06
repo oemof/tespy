@@ -463,6 +463,7 @@ class network:
 
         labels = []
         for comp in self.comps.index:
+            comp.comp_init(self)
             s = self.conns[self.conns.s == comp]
             t = self.conns[self.conns.t == comp]
             self.comps.loc[comp] = [t.t_id.sort_values().index,
@@ -559,15 +560,15 @@ class network:
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
 
-        for c in self.conns.index:
-            if hlp.num_fluids(c.fluid.val) != 0:
-                self.init_target(c, c.t)
-                self.init_source(c, c.s)
+#        for c in self.conns.index:
+#            if hlp.num_fluids(c.fluid.val) != 0:
+#                self.init_target(c, c.t)
+#                self.init_source(c, c.s)
 
-        for c in self.conns.index[::-1]:
-            if hlp.num_fluids(c.fluid.val) != 0:
-                self.init_source(c, c.s)
-                self.init_target(c, c.t)
+#        for c in self.conns.index[::-1]:
+#            if hlp.num_fluids(c.fluid.val) != 0:
+#                self.init_source(c, c.s)
+#                self.init_target(c, c.t)
 
     def init_target(self, c, start):
         """
@@ -920,11 +921,11 @@ class network:
         for cp in self.comps.index:
             if cp.mode == 'auto':
                 for var in cp.design:
-                    if cp.__dict__[var + '_set']:
-                        cp.__dict__[var + '_set'] = False
+                    if cp.get_attr(var).is_set:
+                        cp.get_attr(var).set_attr(is_set=False)
                 for var in cp.offdesign:
-                    if not cp.__dict__[var + '_set']:
-                        cp.__dict__[var + '_set'] = True
+                    if not cp.get_attr(var).is_set:
+                        cp.get_attr(var).set_attr(is_set=True)
 
         for c in self.conns.index:
             for var in c.design:
@@ -937,7 +938,7 @@ class network:
                 c.get_attr(var).set_attr(val_set=True)
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50, parallel=True):
+              max_iter=50, parallel=False):
         """
         solves the network:
 
@@ -1135,16 +1136,12 @@ class network:
 
         # check for linear dependency
         if lin_dep:
-            restart = False
             if self.iter > 0 and self.num_restart < 3:
-                restart = True
-
-            if restart:
                 for c in self.conns.index:
-                    c.m = c.m_start
-                    c.p = c.p_start
-                    c.h = c.h_start
-                    c.fluid = c.fluid_start.copy()
+                    c.m.val_SI = c.m.val0
+                    c.p.val_SI = c.p.val0
+                    c.h.val_SI = c.h.val0
+                    c.fluid.val = c.fluid.val0.copy()
 
                 self.relax *= 0.8
                 self.num_restart += 1
@@ -1201,7 +1198,7 @@ class network:
                 self.solve_check_properties(c)
 
         # check properties for consistency
-        if self.init_file is None and self.iter < 3:
+        if self.init_file is None and self.iter < 5:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 

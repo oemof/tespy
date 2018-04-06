@@ -1304,7 +1304,7 @@ class pump(turbomachine):
         :type key: str
         :returns: - p (*float*) - starting value for pressure at components
                     outlet, :math:`val = 10^6 \; \text{Pa}`
-        :returns: - h (*float*) - starting value for enthalpy at components
+                  - h (*float*) - starting value for enthalpy at components
                     outlet,
                     :math:`val = 3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
@@ -1325,7 +1325,7 @@ class pump(turbomachine):
         :type key: str
         :returns: - p (*float*) - starting value for pressure at components
                     inlet, :math:`val = 10^5 \; \text{Pa}`
-        :returns: - h (*float*) - starting value for enthalpy at components
+                  - h (*float*) - starting value for enthalpy at components
                     inlet,
                     :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
@@ -1706,7 +1706,7 @@ class compressor(turbomachine):
         :type key: str
         :returns: - p (*float*) - starting value for pressure at components
                     outlet, :math:`val = 10^6 \; \text{Pa}`
-        :returns: - h (*float*) - starting value for enthalpy at components
+                  - h (*float*) - starting value for enthalpy at components
                     outlet,
                     :math:`val = 6 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """
@@ -1727,7 +1727,7 @@ class compressor(turbomachine):
         :type key: str
         :returns: - p (*float*) - starting value for pressure at components
                     inlet, :math:`val = 10^5 \; \text{Pa}`
-        :returns: - h (*float*) - starting value for enthalpy at components
+                  - h (*float*) - starting value for enthalpy at components
                     inlet,
                     :math:`val = 4 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
         """

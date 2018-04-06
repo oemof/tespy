@@ -516,11 +516,11 @@ class heat_ex(characteristics):
 
         available lines characteristics:
 
-        **condensing fluid** -> COND_
+        **condensing fluid** (COND)
 
-        **economiser, evaporator, superheater** -> EVA_
+        **economiser, evaporator, superheater** (EVA)
 
-        **heat exchanger without phase change** -> HE_
+        **heat exchanger without phase change** (HE)
         """
 
         if key == 'default':

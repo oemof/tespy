@@ -195,12 +195,12 @@ class component:
                 if not isinstance(kwargs[key], list):
                     msg = 'Please provide the design parameters as list!'
                     raise ValueError(msg)
-                if set(kwargs[key]).issubset(list(self.attr().keys())):
+                if set(kwargs[key]).issubset(list(self.attr())):
                     self.__dict__.update({key: kwargs[key]})
                 else:
                     msg = ('Available parameters for (off-)design'
                            'specification are: ' +
-                           str(self.attr().keys()) + '.')
+                           str(self.attr()) + '.')
                     raise ValueError(msg)
 
             elif key == 'mode':
@@ -1218,8 +1218,10 @@ class pump(turbomachine):
         """
         i = inl[0].to_flow()
         o = outl[0].to_flow()
-        return np.array([(-(o[2] - i[2]) * self.eta_s_char.func.eta(
-                         i[0] * v_mix_ph(i)) + (self.h_os(i, o) - i[2]))])
+        return np.array([((o[2] - i[2]) * self.dh_s0 /
+                          (self.o0[2] - self.i0[2]) *
+                          self.eta_s_char.func.eta(i[0] * v_mix_ph(i)) -
+                          (self.h_os(i, o) - i[2]))])
 
     def char_deriv(self, inl, outl):
         r"""
@@ -1367,7 +1369,7 @@ class pump(turbomachine):
                      (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
             H_opt = ((self.o0[1] - self.i0[1]) /
                      (9.81 * 2 / (v_mix_ph(self.i0) + v_mix_ph(self.o0))))
-            self.eta_s_char.func = cmp_char.pump(v_opt, self.eta_s.val, H_opt)
+            self.eta_s_char.func = cmp_char.pump(v_opt, H_opt)
 
 # %%
 
@@ -2044,6 +2046,11 @@ class turbine(turbomachine):
                    'isentropic efficiency to.')
             raise MyComponentError(msg)
 
+        if expr > self.eta_s_char.func.x[-1]:
+            expr = self.eta_s_char.func.x[-1]
+        if expr < self.eta_s_char.func.x[0]:
+            expr = self.eta_s_char.func.x[0]
+
         return np.array([(-(o[2] - i[2]) + (self.o0[2] - self.i0[2]) /
                           self.dh_s0 * self.eta_s_char.func.f_x(expr) *
                           (self.h_os(i, o) - i[2]))])
@@ -2062,6 +2069,9 @@ class turbine(turbomachine):
         num_fl = len(inl[0].fluid.val)
 
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+
+        mat_deriv[0, 0, 0] = (
+            self.ddx_func(inl, outl, self.char_func, 'm', 0))
         for i in range(num_i + num_o):
             mat_deriv[0, i, 1] = (
                 self.ddx_func(inl, outl, self.char_func, 'p', i))
@@ -4649,20 +4659,20 @@ class heat_exchanger(component):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        if T_i1 <= T_o2 and not inl[0].T_set:
+        if T_i1 <= T_o2 and not inl[0].T.val_set:
             T_i1 = T_o2 + 1
-        if T_i1 <= T_o2 and not outl[1].T_set:
+        if T_i1 <= T_o2 and not outl[1].T.val_set:
             T_o2 = T_i1 - 1
-        if T_i1 <= T_o2 and inl[0].T_set and outl[1].T_set:
+        if T_i1 <= T_o2 and inl[0].T.val_set and outl[1].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Upper '
                    'temperature difference is negative!')
             raise MyComponentError(msg)
 
-        if T_o1 <= T_i2 and not outl[0].T_set:
+        if T_o1 <= T_i2 and not outl[0].T.val_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not inl[1].T_set:
+        if T_o1 <= T_i2 and not inl[1].T.val_set:
             T_i2 = T_o1 - 1
-        if T_o1 <= T_i2 and inl[1].T_set and outl[0].T_set:
+        if T_o1 <= T_i2 and inl[1].T.val_set and outl[0].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Lower '
                    'temperature difference is negative!')
             raise MyComponentError(msg)
@@ -4729,20 +4739,20 @@ class heat_exchanger(component):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        if T_i1 <= T_o2 and not inl[0].T_set:
+        if T_i1 <= T_o2 and not inl[0].T.val_set:
             T_i1 = T_o2 + 1
-        if T_i1 <= T_o2 and not outl[1].T_set:
+        if T_i1 <= T_o2 and not outl[1].T.val_set:
             T_o2 = T_i1 - 1
-        if T_i1 <= T_o2 and inl[0].T_set and outl[1].T_set:
+        if T_i1 <= T_o2 and inl[0].T.val_set and outl[1].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Upper '
                    'temperature difference is negative!')
             raise MyComponentError(msg)
 
-        if T_o1 <= T_i2 and not outl[0].T_set:
+        if T_o1 <= T_i2 and not outl[0].T.val_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not inl[1].T_set:
+        if T_o1 <= T_i2 and not inl[1].T.val_set:
             T_i2 = T_o1 - 1
-        if T_o1 <= T_i2 and inl[1].T_set and outl[0].T_set:
+        if T_o1 <= T_i2 and inl[1].T.val_set and outl[0].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Lower '
                    'temperature difference is negative!')
             raise MyComponentError(msg)
@@ -5207,14 +5217,14 @@ class condenser(heat_exchanger):
         T_o1 = T_mix_ph(o1)
         T_o2 = T_mix_ph(o2)
 
-        if T_i1 <= T_o2 and not inl[0].T_set:
+        if T_i1 <= T_o2 and not inl[0].T.val_set:
             T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not outl[1].T_set:
+        if T_i1 <= T_o2 and not outl[1].T.val_set:
             T_o2 = T_i1 - 0.5
 
-        if T_o1 <= T_i2 and not outl[0].T_set:
+        if T_o1 <= T_i2 and not outl[0].T.val_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not inl[1].T_set:
+        if T_o1 <= T_i2 and not inl[1].T.val_set:
             T_i2 = T_o1 - 1
 
         if self.kA_char1.param == 'm':

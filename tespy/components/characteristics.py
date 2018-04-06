@@ -332,8 +332,9 @@ class pump:
 
     .. note::
 
-        The calculation with pump characteristics will be unstable for large
-        deviations from reference state!
+        In order to stabilize the calculation with pump characteristics
+        the minimum value for isentropic efficiency is limited to a quater
+        of reference state efficiency!
 
     **literature**
 
@@ -341,17 +342,19 @@ class pump:
       Konstruktion der hydrodynamischen Komponenten. Berlin: Springer.
     """
 
-    def __init__(self, v_opt, eta_s, H_opt):
+    def __init__(self, v_opt, H_opt):
 
         n_q = 3000 * 333 * math.sqrt(v_opt) / ((9.81 * H_opt) ** 0.75)
         v_0 = v_opt * 3.1 * n_q ** (-0.15)
         self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
-        self.a = eta_s / ((v_opt ** 2 - v_0 * v_opt) *
-                          math.exp(self.k * v_opt))
+        self.a = 1 / ((v_opt ** 2 - v_0 * v_opt) * math.exp(self.k * v_opt))
         self.b = -self.a * v_0
 
     def eta(self, v):
-        return (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
+        eta = (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
+        if eta < 0.25:
+            eta = 0.25
+        return eta
 
 
 class characteristics:

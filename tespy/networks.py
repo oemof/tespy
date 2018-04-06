@@ -1194,11 +1194,11 @@ class network:
                 j += 1
             i += 1
 
-            if self.init_file is None and self.iter < 3:
+            if self.init_file is None and self.iter < 5:
                 self.solve_check_properties(c)
 
         # check properties for consistency
-        if self.init_file is None and self.iter < 5:
+        if self.init_file is None and self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
@@ -1216,15 +1216,15 @@ class network:
         :returns: no return value
         """
         # pressure
-        if c.p.val_SI <= self.p_range_SI[0]:
+        if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
             c.p.val_SI = self.p_range_SI[0]
-        if c.p.val_SI >= self.p_range_SI[1]:
+        if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
             c.p.val_SI = self.p_range_SI[1]
 
         # enthalpy
-        if c.h.val_SI < self.h_range_SI[0]:
+        if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
             c.h.val_SI = self.h_range_SI[0]
-        if c.h.val_SI > self.h_range_SI[1]:
+        if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
             c.h.val_SI = self.h_range_SI[1]
 
         # make sure, that at given temperatures values stay within feasible
@@ -1233,7 +1233,7 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        if c.T.val_set and not c.h.val_set:
+        if c.T.val_set and not c.h.val_set and self.iter < 5:
             self.solve_check_temperature(c, 'min')
             self.solve_check_temperature(c, 'max')
 

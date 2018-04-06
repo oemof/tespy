@@ -1838,11 +1838,15 @@ class turbine(turbomachine):
 
         if self.eta_s_char.func is None:
             method = self.eta_s_char.method
-            self.eta_s_char.func = cmp_char.turbine(method=method)
+            x = self.eta_s_char.x
+            y = self.eta_s_char.y
+            self.eta_s_char.func = cmp_char.turbine(method=method, x=x, y=y)
 
         if self.cone.func is None:
             method = self.cone.method
-            self.cone.func = cmp_char.characteristics(method=method)
+            x = self.cone.x
+            y = self.cone.y
+            self.cone.func = cmp_char.characteristics(method=method, x=x, y=y)
 
     def component(self):
         return 'turbine'
@@ -3816,7 +3820,9 @@ class heat_exchanger_simple(component):
 
         if self.kA_char.func is None:
             method = self.kA_char.method
-            self.kA_char.func = cmp_char.heat_ex(method=method)
+            x = self.kA_char.x
+            y = self.kA_char.y
+            self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
@@ -4317,11 +4323,15 @@ class heat_exchanger(component):
 
         if self.kA_char1.func is None:
             method = self.kA_char1.method
-            self.kA_char1.func = cmp_char.heat_ex(method=method)
+            x = self.kA_char1.x
+            y = self.kA_char1.y
+            self.kA_char1.func = cmp_char.heat_ex(method=method, x=x, y=y)
 
         if self.kA_char2.func is None:
             method = self.kA_char2.method
-            self.kA_char2.func = cmp_char.heat_ex(method=method)
+            x = self.kA_char2.x
+            y = self.kA_char2.y
+            self.kA_char2.func = cmp_char.heat_ex(method=method, x=x, y=y)
 
     def attr(self):
         return ['Q', 'kA', 'td_log', 'kA_char1', 'kA_char2',

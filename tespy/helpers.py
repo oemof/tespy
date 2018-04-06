@@ -319,7 +319,28 @@ class data_container:
 
 
 class dc_prop(data_container):
+    """r
 
+    data container for fluid properties
+
+    **value specification**
+
+    - val (*numeric*) - user specified value
+    - val0 (*numeric*) - user specified starting value
+    - val_SI (*numeric*) - value in SI unit
+    - val_set (*bool*) - is the specified value a parameter?
+
+    **reference specification**
+
+    - ref (*numeric*) - referenced connection
+    - ref_set (*bool*) - is the reference a parameter?
+
+    **units**
+
+    - unit (*str*) - unit
+    - unit_set (*bool*) - is the unit set for the corresponding value? if not,
+      network unit will be used in calculation (default)
+    """
     def attr(self):
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
@@ -327,21 +348,65 @@ class dc_prop(data_container):
 
 
 class dc_flu(data_container):
+    """r
 
+    data container for fluid vector
+
+    - val (*dict*) - user specified values
+    - val0 (*dict*) - user specified starting values
+    - val_set (*dict*) - which components of the fluid vector are set?
+    - balance (*bool*) - apply fluid balance equation?
+    """
     def attr(self):
         return {'val': {}, 'val0': {}, 'val_set': {}, 'balance': False}
 
 
 class dc_cp(data_container):
+    """r
 
+    data container for component parameters
+
+    - val (*numeric*) - user specified value
+    - val_set (*bool*) - is the specified value set?
+    - is_var (*bool*) - make this parameter a variable of the system? if so,
+      val will be used as starting value
+    """
     def attr(self):
-        return {'val': 0, 'val_set': False, 'is_var': False}
+        return {'val': 0, 'is_set': False, 'is_var': False}
 
 
 class dc_cc(data_container):
+    """r
 
+    data container for component characteristics
+
+    - func (*tespy.components.characteristics.characteristics object*) -
+      characteristic function to be applied
+    - func_set (*bool*) - is the characteristic function set?
+
+    **using default characteristics**
+
+    see tespy.components.characteristics module for default methods and
+    parameters, also see tespy.components.components module for available
+    parameters.
+
+    - method (*str*) - which method of the characteristic function should be
+      applied?
+    - param (*str*) - to which parameter should the characteristic function be
+      applied?
+
+    **using custom characteristics**
+
+    linear interpolation will be applied, it is possible to use default
+    characteristics and overwrite x-values or y-values
+
+    - x (*np.array*) - array for the x-values of the characteristic line
+    - y (*np.array*) - array for the y-values of the characteristic line
+
+    """
     def attr(self):
-        return {'func': None, 'is_set': False, 'method': None, 'param': None,
+        return {'func': None, 'is_set': False,
+                'method': None, 'param': None,
                 'x': None, 'y': None}
 
 

@@ -87,7 +87,7 @@ condenser.set_attr(pr1=0.95, pr2=0.95, ttd_u=12)
 preheater.set_attr(pr1=0.95, pr2=0.99, ttd_u=7)
 vessel.set_attr(mode='man')
 
-pump.set_attr(eta_s=0.8, mode='man')
+pump.set_attr(eta_s=0.8)
 steam_generator.set_attr(pr=0.95, mode='man')
 
 # %% parametrization of connections
@@ -154,7 +154,6 @@ for i in T_fl:
         else:
             init_file = 'chp_' + mode + '_results.csv'
 
-        print(i, j)
         nw.solve(init_file=init_file, design_file=file, mode=mode)
         nw.save('chp_' + mode)
         P[i] += [power_bus.P]

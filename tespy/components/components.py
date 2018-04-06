@@ -1081,7 +1081,7 @@ class pump(turbomachine):
 
     **default offdesign parameters**
 
-    - char
+    - eta_s_char (method: None, parameter: v)
 
     .. note::
 
@@ -1394,7 +1394,7 @@ class compressor(turbomachine):
 
     **default offdesign parameters**
 
-    - char
+    - char_map
 
     **inlets and outlets**
 
@@ -1823,7 +1823,7 @@ class turbine(turbomachine):
 
     **default offdesign parameters**
 
-    - char
+    - eta_s_char (method: TRAUPEL, parameter: dh_s)
 
     **inlets and outlets**
 
@@ -3809,7 +3809,7 @@ class heat_exchanger_simple(component):
 
     **default offdesign parameters**
 
-    - kA
+    - kA (method: HE_COLD, param: m)
 
     **inlets and outlets**
 
@@ -4309,7 +4309,8 @@ class heat_exchanger(component):
 
     **default offdesign parameters**
 
-    - zeta1, zeta2, kA
+    - zeta1, zeta2, kA (using kA_char1/kA_char2, method: HE_HOT/HE_COLD,
+      param: m/m)
 
     **inlets and outlets**
 
@@ -5092,7 +5093,8 @@ class condenser(heat_exchanger):
 
     **default offdesign parameters**
 
-    - zeta2, kA
+    - zeta2, kA (using kA_char1/kA_char2, method: COND_HOT/COND_COLD,
+      param: m/m)
 
     **inlets and outlets**
 

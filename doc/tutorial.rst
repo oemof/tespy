@@ -132,7 +132,7 @@ After creating the system, we want to solve our network. First, we calculate the
 	cons.set_attr(Q=-200e3)
 
 	nw.solve('offdesign',
-			 init_file='condenser_conn.csv', design_file='condenser_conn.csv')
+			 init_file='condenser_results.csv', design_file='condenser_results.csv')
 	nw.print_results()
 
 
@@ -193,7 +193,7 @@ As we already redefined our variable "ves" to be a vessel instead of a sink (see
 Parametrization
 ^^^^^^^^^^^^^^^
 
-Previous parametrization stays untouched. For the vessel we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference.  We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
+Previous parametrization stays untouched. For the vessel we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference. We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. On top of that, the characteristic function of the evaporator should follow the predefined methods 'EVA_HOT' and 'EVA_COLD'. If you want to learn more about handling characteristic functions you should have a glance at the `TESPy components section <http://tespy.readthedocs.io/en/latest/using_tespy.html#tespy-components>`_. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
 
 .. code-block:: python
 
@@ -201,6 +201,7 @@ Previous parametrization stays untouched. For the vessel we set the calculation 
 
 	ves.set_attr(mode='man')
 	ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
+            	kA_char1='EVA_HOT', kA_char2='EVA_COLD',
 				design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
 	su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
 	pu.set_attr(eta_s=0.8)
@@ -281,7 +282,7 @@ For the two compressor we defined an isentropic efficency and for the offdesign 
 	he.set_attr(pr1=0.99, pr2=0.98)
 
 	
-Regarding the connections, on the hot side after the intercooler we define the temperature. For the cold side of the heat exchanger we set the temperature, the pressure and the fluid on the inlet flow. At the outlet we specify the temperature for the design case. In offdesign this temperature will result from a given heat transfer coefficient. Last, make sure the fluid properties after the compressor outlet are identical to those at the condenser inlet using the references.
+Regarding the connections, on the hot side after the intercooler we set the temperature. For the cold side of the heat exchanger we set the temperature, the pressure and the fluid on the inlet flow, at the outlet we specify the temperature as a design parameter. In offdesign calculation, this will be a result from the given heat transfer coefficient. Last, make sure the fluid properties after the compressor outlet are identical to those at the condenser inlet using the references.
 
 The last step leads to a necessary redefinition of the parametrization of the existing model: As the enthalpy at the outlet of the second compressor is a result of the given pressure ratio and the isentropic efficiency, it is not allowed to set the temperature at the condensers hot inlet anymore. This is due to forcing the fluid properties at the compressors outlet and the condensers hot side inlet to be identical with the references.
 
@@ -293,9 +294,9 @@ The last step leads to a necessary redefinition of the parametrization of the ex
 
 	# compressor-system
 
-	he_cp2.set_attr(T=40, p0=10)
+	he_cp2.set_attr(T=40, p0=10, design=['T'])
 	ic_in_he.set_attr(p=1, T=20, fluid={'water': 1, 'NH3': 0})
-	he_ic_out.set_attr(T=30, design=['T'])
+	he_ic_out.set_attr(T=30)
 	cp2_c_out.set_attr(p=con.ref(c_in_cd, 1, 0), h=con.ref(c_in_cd, 1, 0))
 
 
@@ -306,7 +307,7 @@ Here again, using the saved results from previous calculations is always favoura
 
 .. code-block:: python
 
-	nw.solve('design', init_file='condenser_eva_conn.csv')
+	nw.solve('design', init_file='condenser_eva_results.csv')
 
 
 Further tasks

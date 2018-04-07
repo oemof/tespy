@@ -86,6 +86,7 @@ cons.set_attr(pr=0.99, offdesign=['zeta'])
 
 ves.set_attr(mode='man')
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
+            kA_char1='EVA_HOT', kA_char2='EVA_COLD',
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
 su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
 pu.set_attr(eta_s=0.8)
@@ -122,6 +123,6 @@ nw.save('condenser_eva')
 cons.set_attr(Q=-200e3)
 
 nw.solve('offdesign',
-         init_file='condenser_eva_conn.csv',
-         design_file='condenser_eva_conn.csv')
+         init_file='condenser_eva_results.csv',
+         design_file='condenser_eva_results.csv')
 nw.print_results()

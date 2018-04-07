@@ -26,6 +26,7 @@ help or see the sections below. If you already have a Python 3 environment you c
 .. code:: console
 
   pip install tespy
+  
 To use pip you have to install the pypi package. Normally pypi is part of your virtual environment.
 
 Using Linux repositories to install Python

@@ -1,4 +1,4 @@
-from tespy import cmp, con, nwk
+from tespy import cmp, con, nwk, hlp
 
 # %% network
 
@@ -104,6 +104,7 @@ cons.set_attr(pr=0.99, offdesign=['zeta'])
 
 ves.set_attr(mode='man')
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
+            kA_char1='EVA_HOT', kA_char2='EVA_COLD',
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
 su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
 pu.set_attr(eta_s=0.8)
@@ -112,7 +113,8 @@ pu.set_attr(eta_s=0.8)
 
 cp1.set_attr(eta_s=0.8, mode='man')
 cp2.set_attr(eta_s=0.8, pr=5, mode='man')
-he.set_attr(pr1=0.99, pr2=0.98)
+
+he.set_attr(pr1=0.98, pr2=0.98)
 
 # %% connection parametrization
 
@@ -130,13 +132,13 @@ su_cp1.set_attr(p0=5, h0=1700)
 
 # evaporator system hot side
 
-amb_in_su.set_attr(T=12, p=1, fluid={'water': 1, 'NH3': 0})
+amb_in_su.set_attr(T=12, p=5, fluid={'water': 1, 'NH3': 0})
 ev_amb_out.set_attr(T=9)
 
 # compressor-system
 
 he_cp2.set_attr(T=40, p0=10)
-ic_in_he.set_attr(p=1, T=20, fluid={'water': 1, 'NH3': 0})
+ic_in_he.set_attr(p=5, T=20, fluid={'water': 1, 'NH3': 0})
 he_ic_out.set_attr(T=30, design=['T'])
 cp2_c_out.set_attr(p=con.ref(c_in_cd, 1, 0), h=con.ref(c_in_cd, 1, 0))
 
@@ -148,12 +150,12 @@ cons.set_attr(Q=-230e3)
 
 nw.solve('design')
 # alternatively use:
-nw.solve('design', init_file='condenser_eva_conn.csv')
+nw.solve('design', init_file='condenser_eva_results.csv')
 nw.print_results()
 nw.save('heat_pump')
 
 cons.set_attr(Q=-200e3)
 
-nw.solve('offdesign', init_file='heat_pump_conn.csv',
-         design_file='heat_pump_conn.csv')
+nw.solve('offdesign', init_file='heat_pump_results.csv',
+         design_file='heat_pump_results.csv')
 nw.print_results()

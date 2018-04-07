@@ -983,7 +983,7 @@ class network:
 
         self.vec_res = []
         self.iter = 0
-        self.relax = 1
+        self.relax = 0.5
         self.num_restart = 0
         # number of variables
         self.num_vars = len(self.fluids) + 3
@@ -1069,7 +1069,7 @@ class network:
                 self.convergence[2][k][self.iter] = c.h.val_SI
                 k += 1
 
-            if self.iter > 5:
+            if self.iter > 3:
                 self.relax = 1
 
             self.iter += 1
@@ -1197,7 +1197,7 @@ class network:
             self.solve_check_properties(c)
 
         # check properties for consistency
-        if self.init_file is None and self.iter < 3:
+        if self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 

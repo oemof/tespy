@@ -20,7 +20,7 @@ Contents:
 	using_tespy
 	tutorial
 	developing_tespy
-	whatsnew
+	whats_new
 	api
 
 

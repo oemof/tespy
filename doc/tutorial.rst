@@ -282,7 +282,7 @@ For the two compressor we defined an isentropic efficency and for the offdesign 
 	he.set_attr(pr1=0.99, pr2=0.98)
 
 	
-Regarding the connections, on the hot side after the intercooler we set the temperature in design case. At the moment, it does not seem to work the other way round  when using the characteristic functions (setting this parameter in design and offdesign and skipping out on the cold side outlet temperature). We will try to fix this bug soon. For the cold side of the heat exchanger we set the temperature, the pressure and the fluid on the inlet flow, at the outlet we specify the temperature. Last, make sure the fluid properties after the compressor outlet are identical to those at the condenser inlet using the references.
+Regarding the connections, on the hot side after the intercooler we set the temperature. For the cold side of the heat exchanger we set the temperature, the pressure and the fluid on the inlet flow, at the outlet we specify the temperature as a design parameter. In offdesign calculation, this will be a result from the given heat transfer coefficient. Last, make sure the fluid properties after the compressor outlet are identical to those at the condenser inlet using the references.
 
 The last step leads to a necessary redefinition of the parametrization of the existing model: As the enthalpy at the outlet of the second compressor is a result of the given pressure ratio and the isentropic efficiency, it is not allowed to set the temperature at the condensers hot inlet anymore. This is due to forcing the fluid properties at the compressors outlet and the condensers hot side inlet to be identical with the references.
 

@@ -114,7 +114,7 @@ pu.set_attr(eta_s=0.8)
 cp1.set_attr(eta_s=0.8, mode='man')
 cp2.set_attr(eta_s=0.8, pr=5, mode='man')
 
-he.set_attr(pr1=0.99, pr2=0.98)
+he.set_attr(pr1=0.98, pr2=0.98)
 
 # %% connection parametrization
 
@@ -137,13 +137,9 @@ ev_amb_out.set_attr(T=9)
 
 # compressor-system
 
-# when using the characteristic functions for kA of the heat exchanger, it
-# seems to be impossible to find a feasible solution for offdesign calculation
-# with the compressor 2 inlet temperature or enthalpy set. This seems to be a
-# bug, which has not been fixed so far.
-he_cp2.set_attr(T=40, p0=10, design=['T'])
+he_cp2.set_attr(T=40, p0=10)
 ic_in_he.set_attr(p=5, T=20, fluid={'water': 1, 'NH3': 0})
-he_ic_out.set_attr(T=30)
+he_ic_out.set_attr(T=30, design=['T'])
 cp2_c_out.set_attr(p=con.ref(c_in_cd, 1, 0), h=con.ref(c_in_cd, 1, 0))
 
 # %% key paramter

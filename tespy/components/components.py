@@ -1220,7 +1220,7 @@ class pump(turbomachine):
         o = outl[0].to_flow()
         return np.array([((o[2] - i[2]) * self.dh_s0 /
                           (self.o0[2] - self.i0[2]) *
-                          self.eta_s_char.func.eta(i[0] * v_mix_ph(i)) -
+                          self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) -
                           (self.h_os(i, o) - i[2]))])
 
     def char_deriv(self, inl, outl):
@@ -3971,10 +3971,8 @@ class heat_exchanger_simple(component):
 
         if self.kA.is_set and self.t_a.is_set:
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            kA_deriv[0, 0, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 0)
             for i in range(2):
-                if i == 0:
-                    kA_deriv[0, i, 0] = (outl[0].h.val_SI -
-                                         inl[0].h.val_SI)
                 kA_deriv[0, i, 1] = (
                     self.ddx_func(inl, outl, self.kA_func, 'p', i))
                 kA_deriv[0, i, 2] = (
@@ -4419,7 +4417,6 @@ class heat_exchanger(component):
         - :func:`tespy.components.components.desuperheater.additional_equations`
 
         """
-
         vec_res = []
         inl, outl = (nw.comps.loc[self].i.tolist(),
                      nw.comps.loc[self].o.tolist())
@@ -4513,7 +4510,8 @@ class heat_exchanger(component):
 
         if self.kA.is_set:
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            kA_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
+            kA_deriv[0, 0, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 0)
+            kA_deriv[0, 1, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 1)
             for i in range(num_i + num_o):
                 kA_deriv[0, i, 1] = (
                     self.ddx_func(inl, outl, self.kA_func, 'p', i))

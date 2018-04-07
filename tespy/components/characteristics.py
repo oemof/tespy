@@ -309,54 +309,6 @@ class compressor:
         plt.show()
 
 
-class pump:
-    r"""
-
-    generic characteristic for pumps
-
-    - links isentropic efficiency :math:`\eta_{s,p}` to volumetric flow
-      :math:`\dot{V}`
-    - uses a distorted quadratic function:
-
-    .. math::
-
-        \eta_{s,p} = \left( a \cdot \dot{V}^2 + b \cdot \dot{V} \right) \cdot
-        e^{k \cdot \dot{V}}
-
-    - function parameters are deriven from design status
-    - specific rotational speed :math:`n_q`:
-
-    .. math::
-
-        n_q = \frac{n \cdot \sqrt{\dot{V}}}{H^{0,75}}
-
-    .. note::
-
-        In order to stabilize the calculation with pump characteristics
-        the minimum value for isentropic efficiency is limited to a quater
-        of reference state efficiency!
-
-    **literature**
-
-    - Wolfgang Wesche (2012): Radiale Kreiselpumpen - Berechnung und
-      Konstruktion der hydrodynamischen Komponenten. Berlin: Springer.
-    """
-
-    def __init__(self, v_opt, H_opt):
-
-        n_q = 3000 * 333 * math.sqrt(v_opt) / ((9.81 * H_opt) ** 0.75)
-        v_0 = v_opt * 3.1 * n_q ** (-0.15)
-        self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
-        self.a = 1 / ((v_opt ** 2 - v_0 * v_opt) * math.exp(self.k * v_opt))
-        self.b = -self.a * v_0
-
-    def eta(self, v):
-        eta = (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
-        if eta < 0.25:
-            eta = 0.25
-        return eta
-
-
 class characteristics:
     r"""
 
@@ -387,6 +339,7 @@ class characteristics:
 
         self.x = kwargs.get('x', None)
         self.y = kwargs.get('y', None)
+
         if self.x is None:
             self.x = self.default(method)[0]
         if self.y is None:
@@ -596,3 +549,92 @@ class heat_ex(characteristics):
                  0.980511906, 1, 1.151082849, 1.25295985])
 
         return x[key], y[key]
+
+
+class pump(characteristics):
+    r"""
+
+    generic characteristic for pumps
+
+    - links isentropic efficiency :math:`\eta_{s,p}` to volumetric flow
+      :math:`\dot{V}`
+    - uses a distorted quadratic function:
+
+    .. math::
+
+        \eta_{s,p} = \left( a \cdot \dot{V}^2 + b \cdot \dot{V}+c \right) \cdot
+        e^{k \cdot \dot{V}}
+
+    - constraints
+
+    .. math::
+
+        \eta_{s,p}\left(0 \right) = 0
+
+        \eta_{s,p}\left(\dot{V}_0 \right) = 0
+
+        \eta_{s,p}\left(\dot{V}_{ref} \right) = 1
+
+        \frac{\partial \eta_{s,p}}
+        {\partial \dot{V}}\left(\dot{V}_{ref} \right) = 0
+
+    - function parameters
+
+    .. math::
+
+        k = \frac{\dot{V}_0 - 2 \cdot \dot{V}_{ref}}
+        {\dot{V}_{ref}^2-\dot{V}_0 \cdot \dot{V}_{ref}}
+
+        a = \frac{1}{\left( \dot{V}_{ref}^2 - \dot{V}_0 \cdot \dot{V}_{ref}
+        \right) \cdot e^{k \cdot \dot{V}_{ref}}}
+
+        b = -a \cdot \dot{V}_0
+
+        c = 0
+
+    - volume flow without pressure rise :math:`\dot{V}_0`:
+
+    .. math::
+
+        \dot{V}_0 = \dot{V}_{ref} \cdot 3.1 \cdot n_q ^{-0.15}
+
+    - specific rotational speed :math:`n_q`:
+
+    .. math::
+
+        n_q = \frac{333 \cdot n \cdot \sqrt{\dot{V}_{ref}}}
+        {\left(g \cdot H_{ref}\right)^{0,75}}
+
+    .. note::
+
+        In order to stabilize the calculation with pump characteristics
+        the minimum value for isentropic efficiency is limited to a quater
+        of reference state efficiency!
+
+    **literature**
+
+    - Wolfgang Wesche (2012): Radiale Kreiselpumpen - Berechnung und
+      Konstruktion der hydrodynamischen Komponenten. Berlin: Springer.
+
+    - KSB SE & Co. KGaA (2018): Kreiselpumpenlexikon - Spezifische Drehzahl.
+      Available at:
+      https://www.ksb.com/kreiselpumpenlexikon/spezifische-drehzahl/186490,
+      accessed on 04.04.2018.
+    """
+
+    def __init__(self, v_opt, H_opt):
+
+        n_q = 333 * 50 * math.sqrt(v_opt) / ((9.81 * H_opt) ** 0.75)
+        v_0 = v_opt * 3.1 * n_q ** (-0.15)
+        self.k = (v_0 - 2 * v_opt) / (v_opt ** 2 - v_0 * v_opt)
+        self.a = 1 / ((v_opt ** 2 - v_0 * v_opt) * math.exp(self.k * v_opt))
+        self.b = -self.a * v_0
+
+    def char(self, v):
+        eta = (self.a * v ** 2 + self.b * v) * math.exp(self.k * v)
+        if eta < 0.25:
+            eta = 0.25
+        return eta
+
+    def f_x(self, x):
+        return self.char(x)

@@ -17,14 +17,14 @@ This tutorial introduces you in how to model a heat pump in TESPy. You can see t
 	
     Figure 1: Topology of the heat pump.
 	
-The main purpose of the heat pump is to deliver heat e. g. for the consumers of a heating system. Thus, the heat pumps parameters will be set in a way, which supports this target.
+The main purpose of the heat pump is to deliver heat e. g. for the consumers of a heating system. Thus, the heat pump's parameters will be set in a way, which supports this target.
 Generally, if systems are getting more complex, it is highly recommended to set up your plant in incremental steps. This tuturial divides the plant in three sections: The consumer part, the vessel and the evaporator and the compressor as last element. Each new section will be appended to the existing ones.
 
 
 Set up a Network
 ================
 
-In order to simulate our heat pump we have to create a tespy.network. The network is the main container of the model and will be required in all following sections.
+In order to simulate our heat pump we have to create an instance of the tespy.network class. The network is the main container of the model and will be required in all following sections.
 First, it is necessary to specify a list of the fluids used in the plant. In this example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\). Water is used for the cold side of the heat exchanger, for the consumer and for the hot side of the environmental temperature. Ammonia is used as coolant within the heat pump circuit.
 Further it is possible to choose a unit system and a value range for mass flow, temperature, pressure and enthalpy. If you don’t specify the unit system, the variables are set to SI-Units.
 
@@ -68,7 +68,7 @@ We will start with the consumer as the plant will be designed to deliver a speci
 Connections
 ^^^^^^^^^^^
 
-In the next steps we will connect the components in order to form a network. A connections requires the source, the source id, the target and the target id as arguments: the source is the component from which the connection originates, the source id is the outlet id of that component. This applies analogously to the target. To find all inlet and outlet ids of a component look up the class documentation.
+In the next steps we will connect the components in order to form a network. Every connection requires the source, the source id, the target and the target id as arguments: the source is the component from which the connection originates, the source id is the outlet id of that component. This applies analogously to the target. To find all inlet and outlet ids of a component look up the class documentation.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ In the next steps we will connect the components in order to form a network. A c
 Parametrization
 ^^^^^^^^^^^^^^^
 
-For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumers pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat flux. We marked this setting as key parameter.
+For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumer's pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat flux. We marked this setting as key parameter.
 
 .. code-block:: python
 
@@ -101,9 +101,9 @@ For the condenser we set pressure ratios on hot and cold side and additionally w
 	rp.set_attr(eta_s=0.8)
 	cons.set_attr(pr=0.99, offdesign=['zeta'])
 
-In order to calculate this network further parametrization is necessary, as e. g. the fluids are not determined yet: At the hot inlet of the condensator we define the temperature and the fluid vector. In order to fully determine the fluids state at this point, an information on the pressure is required. This is archieved by setting the terminal temperature difference (see above). The same needs to be done for the consumer cycle. We suggest to set the parameters at the pumps inlet. On top, we assume that the consumer requires a constant inlet temperature.
+In order to calculate this network further parametrization is necessary, as e. g. the fluids are not determined yet: At the hot inlet of the condensator we define the temperature and the fluid vector. In order to fully determine the fluid's state at this point, an information on the pressure is required. This is archieved by setting the terminal temperature difference (see above). The same needs to be done for the consumer cycle. We suggest to set the parameters at the pump's inlet. On top, we assume that the consumer requires a constant inlet temperature.
 
-The last step is to define the fuids state after the consumer, this is done with references to the pumps inlet, in order to grant, that the fluid properties at the consumers outlet are identical to those at the pumps inlet.
+The last step is to define the fluid's state after the consumer, this is done with references to the pump's inlet, in order to grant that the fluid properties at the consumer's outlet are identical to those at the pump's inlet.
 
 .. code-block:: python
 
@@ -166,7 +166,7 @@ This part contains of a vessel followed by a drum with evaporator in forced flow
 Connections
 ^^^^^^^^^^^
 
-As we already redefined our variable "ves" to be a vessel instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_ves". The vessel connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drums outlet 'out1', the evaporators cold side connects to the drums inlet 'in2' and the superheaters cold side connects to the drums outlet 'out2'. This will add the following connections to the model:
+As we already redefined our variable "ves" to be a vessel instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_ves". The vessel connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drum's outlet 'out1', the evaporator's cold side connects to the drum's inlet 'in2' and the superheater's cold side connects to the drum's outlet 'out2'. This will add the following connections to the model:
 
 .. code-block:: python
 
@@ -206,7 +206,7 @@ Previous parametrization stays untouched. For the vessel we set the calculation 
 	su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
 	pu.set_attr(eta_s=0.8)
 	
-Next step is the connetion parametrization: The pressure in the drum and the enthalpy of the wet steam reentering the drum need to be determined. For the enthalpy we can specify a reference of the circulating mass flow to the main cycle mass flow. The pressure is archieved through the given lower terminal temperature difference of the evaporator and its hot side outlet temperature. As we have specified a terminal temperature difference at the evaporators cold side inlet (:code:`ttd_l`), it might be necessary to state a starting value for the pressure, as we are near to the two-phase region. On the hot side inlet of the superheater we definde the temperature, pressure and the fluid. Since the pressure between superheater and first compressor will be a result of the pressure losses in the superheater and we set the terminal temperature difference there, bad starting values will lead to a linear dependency, as a temperature and a pressure are set while the fluids state could be within the two phase region. Thus, we set starting values for pressure and for enthalpy at this connection, to make sure the starting point is outside of the two phase region. At last we have to fully determine the state of the incoming fluid at the superheaters hot side. 
+Next step is the connetion parametrization: The pressure in the drum and the enthalpy of the wet steam reentering the drum need to be determined. For the enthalpy we can specify a reference of the circulating mass flow to the main cycle mass flow. The pressure is archieved through the given lower terminal temperature difference of the evaporator and its hot side outlet temperature. As we have specified a terminal temperature difference at the evaporator's cold side inlet (:code:`ttd_l`), it might be necessary to state a starting value for the pressure, as we are near to the two-phase region. On the hot side inlet of the superheater we definde the temperature, pressure and the fluid. Since the pressure between superheater and first compressor will be a result of the pressure losses in the superheater and we set the terminal temperature difference there, bad starting values will lead to a linear dependency, as a temperature and a pressure are set while the fluid's state could be within the two phase region. Thus, we set starting values for pressure and for enthalpy at this connection, to make sure the starting point is outside of the two phase region. At last we have to fully determine the state of the incoming fluid at the superheater's hot side. 
 
 
 .. code-block:: python
@@ -235,7 +235,7 @@ To complete the heat pump, we will add the compressor system to our existing net
 Components
 ^^^^^^^^^^
 
-This part contains two compressors with an intercooler between the compressors. The cold side of the intercooler requires a source and a sink. Again, remember redefining the former sink "cp1" to a compressor and add a sink for the outlet of the coolant after the compressor system.
+This part contains two compressors with an intercooler between them. The cold side of the intercooler requires a source and a sink. Again, remember redefining the former sink "cp1" to a compressor and add a sink for the outlet of the coolant after the compressor system.
 
 .. code-block:: python
 
@@ -273,7 +273,7 @@ As done before, add the new connections to the script. After the second compress
 Parametrization
 ^^^^^^^^^^^^^^^
 
-For the two compressor we defined an isentropic efficency and for the offdesign calculation the "manual" mode, as we do not want to use the characteristic maps in this tutorial. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with a pressure ratios on both sides. The parametrization of all other components remains identical.
+For the two compressor we defined an isentropic efficency and for the offdesign calculation the "manual" mode, as we do not want to use the characteristic maps in this tutorial. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with pressure ratios on both sides. The parametrization of all other components remains identical.
 
 .. code-block:: python
 
@@ -284,7 +284,7 @@ For the two compressor we defined an isentropic efficency and for the offdesign 
 	
 Regarding the connections, on the hot side after the intercooler we set the temperature. For the cold side of the heat exchanger we set the temperature, the pressure and the fluid on the inlet flow, at the outlet we specify the temperature as a design parameter. In offdesign calculation, this will be a result from the given heat transfer coefficient. Last, make sure the fluid properties after the compressor outlet are identical to those at the condenser inlet using the references.
 
-The last step leads to a necessary redefinition of the parametrization of the existing model: As the enthalpy at the outlet of the second compressor is a result of the given pressure ratio and the isentropic efficiency, it is not allowed to set the temperature at the condensers hot inlet anymore. This is due to forcing the fluid properties at the compressors outlet and the condensers hot side inlet to be identical with the references.
+The last step leads to a necessary redefinition of the parametrization of the existing model: As the enthalpy at the outlet of the second compressor is a result of the given pressure ratio and the isentropic efficiency, it is not allowed to set the temperature at the condenser's hot inlet anymore. This is due to forcing the fluid properties at the compressor's outlet and the condenser's hot side inlet to be identical with the references.
 
 .. code-block:: python
 

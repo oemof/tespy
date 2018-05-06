@@ -3195,17 +3195,17 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-        N2 = 0.7655
-        O2 = 0.2345
+        N_2 = 0.7655
+        O_2 = 0.2345
 
         n_fuel = 1
-        lamb = 2
+        lamb = 3
         m_o2 = (n_fuel * (self.n['C'] + self.n['H'] / 4) *
                 molar_masses[self.o2] * lamb)
         m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
         m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
-        m_n2 = m_o2 / O2 * N2
-        m_o2 /= lamb
+        m_n2 = m_o2 / O_2 * N_2
+        
         m = m_n2 + m_h2o + m_co2 + m_o2
 
         fg = {
@@ -3232,33 +3232,21 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
+        
+        self.initialise_fluids(nw)        
+        
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f == self.o2:
-                    if o.fluid.val[f] > 0.22:
-                        o.fluid.val[f] = 0.22
-                elif f == self.n2:
-                    if o.fluid.val[f] < 0.6 or o.fluid.val[f] > 0.8:
-                        o.fluid.val[f] = 0.7
-                elif f == self.co2:
-                    if o.fluid.val[f] > 0.15:
-                        o.fluid.val[f] = 0.15
-                elif f == self.h2o:
-                    if o.fluid.val[f] > 0.15:
-                        o.fluid.val[f] = 0.15
-                elif f == self.fuel:
-                    if o.fluid.val[f] > 0.05:
-                        o.fluid.val[f] = 0.05
-                else:
+                if f not in [self.o2, self.n2, self.co2, self.h2o, self.fuel]:
                     if o.fluid.val[f] > 0.03:
                         o.fluid.val[f] = 0.03
 
         for c in nw.comps.loc[self].o:
             init_target(nw, c, c.t)
-
-            if c.h.val_SI < 1.2e6 and not c.h.val_set:
-                c.h.val_SI = 1.2e6
+            
+            if c.h.val_SI < 7.5e5 and not c.h.val_set:
+                c.h.val_SI = 1e6
 
         if self.lamb.val < 1 and not self.lamb.is_set:
             self.lamb.val = 3
@@ -4659,7 +4647,7 @@ class heat_exchanger(component):
         T_o2 = T_mix_ph(o2)
 
         if T_i1 <= T_o2 and not inl[0].T.val_set:
-            T_i1 = T_o2 + 1
+            T_i1 = T_o2 + 2
         if T_i1 <= T_o2 and not outl[1].T.val_set:
             T_o2 = T_i1 - 1
         if T_i1 <= T_o2 and inl[0].T.val_set and outl[1].T.val_set:
@@ -4848,32 +4836,15 @@ class heat_exchanger(component):
             o[0].h.val_SI = i[0].h.val_SI / 2
         if i[1].h.val_SI > o[1].h.val_SI and not i[1].h.val_set:
             i[1].h.val_SI = o[1].h.val_SI / 2
-
-# this part may not be needed
-#        if self.ttd_u_set:
-#            expr = False
-#            while not expr:
-#                try:
-#                    self.ttd_u_func(i, o)
-#                    expr = True
-#                except:
-#                    if not i[0].h.val_set:
-#                        i[0].h.val_SI *= 1.05
-#                    if not o[1].h.val_set:
-#                        o[1].h.val_SI *= 0.95
-#
-#        if self.ttd_l_set:
-#            expr = False
-#            while not expr:
-#                try:
-#                    self.ttd_l_func(i, o)
-#                    expr = True
-#                except:
-#                    if not i[1].h.val_set:
-#                        i[1].h.val_SI *= 1.05
-#                    if not o[0].h.val_set:
-#                        o[0].h.val_SI *= 0.95
-
+        
+        if self.ttd_l.is_set:
+            h_min_o1 = h_mix_pT(o[0].to_flow(), nw.T_range_SI[0])
+            h_min_i2 = h_mix_pT(i[1].to_flow(), nw.T_range_SI[0])
+            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
+                o[0].h.val_SI = h_min_o1 * 2
+            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
+                i[1].h.val_SI = h_min_i2 * 1.1
+                
     def initialise_source(self, c, key):
         r"""
         returns a starting value for fluid properties at components outlets

@@ -509,7 +509,6 @@ def newton(func, deriv, params, k, **kwargs):
             print('Newton algorithm was not able to find a feasible'
                   'value for function '+str(func)+'.')
 
-            val = np.array([np.nan])
             break
 
     return val

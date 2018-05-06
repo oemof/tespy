@@ -983,7 +983,7 @@ class network:
 
         self.vec_res = []
         self.iter = 0
-        self.relax = 0.5
+        self.relax = 1
         self.num_restart = 0
         # number of variables
         self.num_vars = len(self.fluids) + 3
@@ -1076,8 +1076,7 @@ class network:
 
             # stop calculation after rediculous amount of iterations
             if self.iter > 3:
-                if (all(self.res[(self.iter - 4):] <
-                        hlp.err ** (1 / 2))):
+                if self.res[-1] < hlp.err ** (1 / 2):
                     if self.num_restart > 0:
                         self.convergence[0] = np.column_stack((
                                 self.convergence[0], [0] * len(self.conns)))
@@ -1089,10 +1088,10 @@ class network:
                                                len(self.conns),))
                     break
 
-            if self.iter > 20:
-                if (all(self.res[(self.iter - 5):] >= self.res[-4]) and
-                        self.res[-1] > self.res[-2]):
-                    print('Convergence is making no progress, '
+            if self.iter > 15:
+                if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
+                        self.res[-1] >= self.res[-2]):
+                    print('ERROR: Convergence is making no progress, '
                           'calculation stopped.')
                     if self.num_restart > 0:
                         self.convergence[0] = np.column_stack((
@@ -1193,13 +1192,16 @@ class network:
 
                 j += 1
             i += 1
-
-            self.solve_check_properties(c)
-
+            
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:
-                cp.convergence_check(self)
+                if (self.init_file is None or
+                        isinstance(cp, cmp.combustion_chamber)):
+                    cp.convergence_check(self)
+                    
+        for c in self.conns.index:
+            self.solve_check_properties(c)
 
     def solve_check_properties(self, c):
         """
@@ -1232,9 +1234,9 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        if c.T.val_set and not c.h.val_set and self.iter < 5:
-            self.solve_check_temperature(c, 'min')
-            self.solve_check_temperature(c, 'max')
+#        if c.T.val_set and not c.h.val_set and self.iter < 0:
+#            self.solve_check_temperature(c, 'min')
+#            self.solve_check_temperature(c, 'max')
 
     def solve_check_temperature(self, c, pos):
         """
@@ -1253,10 +1255,10 @@ class network:
 
         val = 'T' + pos
         if pos == 'min':
-            fac = 1.01
+            fac = 1.1
             idx = 0
         else:
-            fac = 0.99
+            fac = 0.9
             idx = 1
 
         try:
@@ -1278,7 +1280,7 @@ class network:
 
         h = hlp.h_mix_pT(c.to_flow(), T)
         c.p.val_SI = p_temp
-
+        
         if pos == 'min':
             if c.h.val_SI < h:
                 c.h.val_SI = h * fac

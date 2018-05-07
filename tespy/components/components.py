@@ -3821,6 +3821,11 @@ class heat_exchanger_simple(component):
             x = self.kA_char.x
             y = self.kA_char.y
             self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
+            
+        self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
+                           nw.T[nw.T_unit][1])
+        self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
+                           nw.T[nw.T_unit][1])
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
@@ -4040,13 +4045,13 @@ class heat_exchanger_simple(component):
         i, o = inl[0], outl[0]
         T_i = T_mix_ph(i.to_flow())
         T_o = T_mix_ph(o.to_flow())
-
-        if self.t_a.val > T_i:
-            ttd_u = self.t_a.val - T_o
-            ttd_l = self.t_a.val - T_i
+            
+        if self.t_a.val_SI > T_i:
+            ttd_u = self.t_a.val_SI - T_o
+            ttd_l = self.t_a.val_SI - T_i
         else:
-            ttd_u = T_i - self.t_a.val
-            ttd_l = T_o - self.t_a.val
+            ttd_u = T_i - self.t_a.val_SI
+            ttd_l = T_o - self.t_a.val_SI
 
         if self.kA_char.param == 'm':
             expr = i.m.val_SI / self.i0[0]
@@ -4149,12 +4154,12 @@ class heat_exchanger_simple(component):
         if nw.mode == 'offdesign':
             if mode == 'pre':
                 if self.t_a_design.is_set:
-                    t_a = self.t_a_design.val
+                    t_a = self.t_a_design.val_SI
                 else:
                     t_a = np.nan
             else:
                 if self.t_a.is_set:
-                    t_a = self.t_a.val
+                    t_a = self.t_a.val_SI
                 else:
                     t_a = np.nan
 
@@ -4162,13 +4167,14 @@ class heat_exchanger_simple(component):
 
             T_i = T_mix_ph(inl[0].to_flow())
             T_o = T_mix_ph(outl[0].to_flow())
+            
             if t_a > T_i:
                 ttd_u = t_a - T_o
                 ttd_l = t_a - T_i
             else:
                 ttd_u = T_i - t_a
                 ttd_l = T_o - t_a
-
+                
             if ttd_u < 0 or ttd_l < 0:
                 msg = ('Invalid value for terminal temperature '
                        'difference.'

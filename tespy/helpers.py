@@ -372,7 +372,7 @@ class dc_cp(data_container):
       val will be used as starting value
     """
     def attr(self):
-        return {'val': 0, 'is_set': False, 'is_var': False}
+        return {'val': 0, 'val_SI': 0, 'is_set': False, 'is_var': False}
 
 
 class dc_cc(data_container):
@@ -509,7 +509,6 @@ def newton(func, deriv, params, k, **kwargs):
             print('Newton algorithm was not able to find a feasible'
                   'value for function '+str(func)+'.')
 
-            val = np.array([np.nan])
             break
 
     return val

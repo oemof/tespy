@@ -32,12 +32,14 @@ If you have a working Python3 environment, use pypi to install the latest tespy 
 
   pip install tespy
 
-If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_tespy.html>`_ for more information. The developer version is not recommended for productive use.
+If you want to use the latest features, you might want to install the **developer version**. See section :ref:`'Developing TESPy' <developing_tespy_label>` for more information. The developer version is not recommended for productive use.
+
+.. _tespy_examples_label:
 
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provide an `Introduction <http://tespy.readthedocs.io/en/latest/using_tespy.html#introduction>`_. You can download the python scripts of the example plants from the `TESPy examples folder on github <https://github.com/oemof/tespy/tree/latest/examples>`_. On top of that, there is a `step-by-step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to model a heat pump in TESPy.
+For a short introduction on how TESPy works and how you can use it, we provide an :ref:`Introduction <using_tespy_introduction_label>`. You can download the python scripts of the example plants from the `TESPy examples folder on github <https://github.com/oemof/tespy/tree/latest/examples>`_. On top of that, there is a :ref:`step-by-step tutorial <heat_pump_tutorial_label>` on how to model a heat pump in TESPy.
 
 License
 =======

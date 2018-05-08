@@ -8,8 +8,6 @@ Welcome to TESPy's documentation!
 
 TESPy (Thermal Engineering Systems in Python) provides a powerful simulation package for thermal processes.
 
-Requirements:
-
 Contents:
 
 ..  toctree::
@@ -22,7 +20,6 @@ Contents:
 	developing_tespy
 	whats_new
 	api
-
 
 Indices and tables
 ==================

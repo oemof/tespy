@@ -655,13 +655,13 @@ class component:
 
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
-            dm = 1e-3
+            dm = 1e-4
         elif dx == 'p':
             dp = 1
         elif dx == 'h':
             dh = 1
         else:
-            df = 1e-4
+            df = 1e-5
 
         if dx == 'fluid':
             deriv = []
@@ -780,6 +780,10 @@ class turbomachine(component):
     - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
+
+    **equations**
+
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1074,6 +1078,10 @@ class pump(turbomachine):
     - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
+
+    **equations**
+
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1387,6 +1395,10 @@ class compressor(turbomachine):
     **additional parameter**
 
     - vigv: variable inlet guide vane angle
+
+    **equations**
+
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1817,6 +1829,10 @@ class turbine(turbomachine):
 
     - cone: cone law to apply in offdesign calculation
 
+    **equations**
+
+    see tespy.components.components.turbomachine.equations
+
     **default design parameters**
 
     - pr, eta_s
@@ -2183,6 +2199,10 @@ class split(component):
 
     - num_out: number of outlets (default value: 2)
 
+    **equations**
+
+    see tespy.components.components.split.equations
+
     **inlets and outlets**
 
     - in1
@@ -2414,6 +2434,10 @@ class splitter(split):
 
     - num_out: number of outlets (default value: 2)
 
+    **equations**
+
+    see tespy.components.components.split.equations
+
     **inlets and outlets**
 
     - in1
@@ -2434,6 +2458,10 @@ class separator(split):
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
+
+    **equations**
+
+    see tespy.components.components.split.equations
 
     **inlets and outlets**
 
@@ -2457,6 +2485,10 @@ class merge(component):
     **available parameters**
 
     - num_in: number of inlets (default value: 2)
+
+    **equations**
+
+    see tespy.components.components.merge.equations
 
     **inlets and outlets**
 
@@ -2635,7 +2667,7 @@ class merge(component):
         print('##### ', self.label, ' #####')
         j = 1
         for i in inl:
-            print('m_in' + str(j) + ' = ', i.m, 'kg / s; ')
+            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
             j += 1
         print('m_out = ', outl[0].m.val_SI, 'kg / s; ')
 
@@ -2649,6 +2681,10 @@ class combustion_chamber(component):
     - fuel: fuel for combustion chamber
     - lamb: air to stoichiometric air ratio
     - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`)
+
+    **equations**
+
+    see tespy.components.components.combustion_chamber.equations
 
     **available fuels**
 
@@ -2849,6 +2885,12 @@ class combustion_chamber(component):
                 ti_deriv[0, i, 3:] = (
                     self.ddx_func(inl, outl, self.ti_func,
                                   'fluid', i))
+            for o in range(num_o):
+                ti_deriv[0, o + i, 0] = (
+                    self.ddx_func(inl, outl, self.ti_func, 'm', o + i))
+                ti_deriv[0, o + i, 3:] = (
+                    self.ddx_func(inl, outl, self.ti_func,
+                                  'fluid', o + i))
             mat_deriv += ti_deriv.tolist()
 
         return np.asarray(mat_deriv)
@@ -3104,7 +3146,7 @@ class combustion_chamber(component):
             m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
 
         for o in outl:
-            m_fuel -= (i.m.val_SI * i.fluid.val[self.fuel.val])
+            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
 
         return (self.ti.val - m_fuel * self.hi)
 
@@ -3135,7 +3177,7 @@ class combustion_chamber(component):
 
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
-            dm = 1e-2
+            dm = 1e-4
         elif dx == 'p':
             dp = 1
         elif dx == 'h':
@@ -3195,17 +3237,17 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-        N2 = 0.7655
-        O2 = 0.2345
+        N_2 = 0.7655
+        O_2 = 0.2345
 
         n_fuel = 1
-        lamb = 2
+        lamb = 3
         m_o2 = (n_fuel * (self.n['C'] + self.n['H'] / 4) *
                 molar_masses[self.o2] * lamb)
         m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
         m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
-        m_n2 = m_o2 / O2 * N2
-        m_o2 /= lamb
+        m_n2 = m_o2 / O_2 * N_2
+
         m = m_n2 + m_h2o + m_co2 + m_o2
 
         fg = {
@@ -3232,33 +3274,27 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
+
+        self.initialise_fluids(nw)
+
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f == self.o2:
-                    if o.fluid.val[f] > 0.22:
-                        o.fluid.val[f] = 0.22
-                elif f == self.n2:
-                    if o.fluid.val[f] < 0.6 or o.fluid.val[f] > 0.8:
-                        o.fluid.val[f] = 0.7
-                elif f == self.co2:
-                    if o.fluid.val[f] > 0.15:
-                        o.fluid.val[f] = 0.15
-                elif f == self.h2o:
-                    if o.fluid.val[f] > 0.15:
-                        o.fluid.val[f] = 0.15
-                elif f == self.fuel:
-                    if o.fluid.val[f] > 0.05:
-                        o.fluid.val[f] = 0.05
-                else:
+                if f not in [self.o2, self.n2, self.co2, self.h2o, self.fuel]:
                     if o.fluid.val[f] > 0.03:
                         o.fluid.val[f] = 0.03
 
+        for i in nw.comps.loc[self].i:
+            if i.m.val_SI < 0 and not i.m.val_set:
+                i.m.val_SI = 0.01
+
         for c in nw.comps.loc[self].o:
+            if o.m.val_SI < 0 and not o.m.val_set:
+                o.m.val_SI = 10
             init_target(nw, c, c.t)
 
-            if c.h.val_SI < 1.2e6 and not c.h.val_set:
-                c.h.val_SI = 1.2e6
+            if c.h.val_SI < 7.5e5 and not c.h.val_set:
+                c.h.val_SI = 1e6
 
         if self.lamb.val < 1 and not self.lamb.is_set:
             self.lamb.val = 3
@@ -3569,6 +3605,10 @@ class vessel(component):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
 
+    **equations**
+
+    see tespy.components.components.vessel.equations
+
     **default design parameters**
 
     - pr
@@ -3803,13 +3843,18 @@ class heat_exchanger_simple(component):
         - kA and t_a, if you want to calculate the heat flux on basis of the
           ambient conditions
 
+    **equations**
+
+    see tespy.components.components.heat_exchager_simple.equations
+
     **default design parameters**
 
     - pr
 
     **default offdesign parameters**
 
-    - kA (method: HE_COLD, param: m)
+    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
+      t_a_design, if you want the heat flux calculated by this method*
 
     **inlets and outlets**
 
@@ -3833,6 +3878,11 @@ class heat_exchanger_simple(component):
             x = self.kA_char.x
             y = self.kA_char.y
             self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
+
+        self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
+                           nw.T[nw.T_unit][1])
+        self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
+                           nw.T[nw.T_unit][1])
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
@@ -4053,12 +4103,12 @@ class heat_exchanger_simple(component):
         T_i = T_mix_ph(i.to_flow())
         T_o = T_mix_ph(o.to_flow())
 
-        if self.t_a.val > T_i:
-            ttd_u = self.t_a.val - T_o
-            ttd_l = self.t_a.val - T_i
+        if self.t_a.val_SI > T_i:
+            ttd_u = self.t_a.val_SI - T_o
+            ttd_l = self.t_a.val_SI - T_i
         else:
-            ttd_u = T_i - self.t_a.val
-            ttd_l = T_o - self.t_a.val
+            ttd_u = T_i - self.t_a.val_SI
+            ttd_l = T_o - self.t_a.val_SI
 
         if self.kA_char.param == 'm':
             expr = i.m.val_SI / self.i0[0]
@@ -4161,12 +4211,12 @@ class heat_exchanger_simple(component):
         if nw.mode == 'offdesign':
             if mode == 'pre':
                 if self.t_a_design.is_set:
-                    t_a = self.t_a_design.val
+                    t_a = self.t_a_design.val_SI
                 else:
                     t_a = np.nan
             else:
                 if self.t_a.is_set:
-                    t_a = self.t_a.val
+                    t_a = self.t_a.val_SI
                 else:
                     t_a = np.nan
 
@@ -4174,6 +4224,7 @@ class heat_exchanger_simple(component):
 
             T_i = T_mix_ph(inl[0].to_flow())
             T_o = T_mix_ph(outl[0].to_flow())
+
             if t_a > T_i:
                 ttd_u = t_a - T_o
                 ttd_l = t_a - T_i
@@ -4251,7 +4302,13 @@ class pipe(heat_exchanger_simple):
     - ks: pipes roughness
     - kA: area independent heat transition coefficient,
       :math:`kA=\frac{\text{W}}{\text{K}}`
-    - t_a: ambient temperature, provide parameter in K
+    - t_a: ambient temperature, provide parameter in network's temperature unit
+    - t_a_design: ambient temperature design case, provide parameter in
+      network's temperature unit
+
+    **equations**
+
+    see tespy.components.components.heat_exchager_simple.equations
 
     **default design parameters**
 
@@ -4259,7 +4316,8 @@ class pipe(heat_exchanger_simple):
 
     **default offdesign parameters**
 
-    - kA
+    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
+      t_a_design, if you want the heat flux calculated by this method*
 
     **inlets and outlets**
 
@@ -4301,6 +4359,10 @@ class heat_exchanger(component):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
+    **equations**
+
+    see tespy.components.components.heat_exchager.equations
+
     **default design parameters**
 
     - pr1, pr2, ttd_u, ttd_l
@@ -4324,7 +4386,6 @@ class heat_exchanger(component):
 
     - add the partial derivatives for specified logarithmic temperature
       difference
-    - add characteristics for given kA-values
     - add direct current heat exchangers
     """
 
@@ -4659,7 +4720,7 @@ class heat_exchanger(component):
         T_o2 = T_mix_ph(o2)
 
         if T_i1 <= T_o2 and not inl[0].T.val_set:
-            T_i1 = T_o2 + 1
+            T_i1 = T_o2 + 2
         if T_i1 <= T_o2 and not outl[1].T.val_set:
             T_o2 = T_i1 - 1
         if T_i1 <= T_o2 and inl[0].T.val_set and outl[1].T.val_set:
@@ -4849,30 +4910,13 @@ class heat_exchanger(component):
         if i[1].h.val_SI > o[1].h.val_SI and not i[1].h.val_set:
             i[1].h.val_SI = o[1].h.val_SI / 2
 
-# this part may not be needed
-#        if self.ttd_u_set:
-#            expr = False
-#            while not expr:
-#                try:
-#                    self.ttd_u_func(i, o)
-#                    expr = True
-#                except:
-#                    if not i[0].h.val_set:
-#                        i[0].h.val_SI *= 1.05
-#                    if not o[1].h.val_set:
-#                        o[1].h.val_SI *= 0.95
-#
-#        if self.ttd_l_set:
-#            expr = False
-#            while not expr:
-#                try:
-#                    self.ttd_l_func(i, o)
-#                    expr = True
-#                except:
-#                    if not i[1].h.val_set:
-#                        i[1].h.val_SI *= 1.05
-#                    if not o[0].h.val_set:
-#                        o[0].h.val_SI *= 0.95
+        if self.ttd_l.is_set:
+            h_min_o1 = h_mix_pT(o[0].to_flow(), nw.T_range_SI[0])
+            h_min_i2 = h_mix_pT(i[1].to_flow(), nw.T_range_SI[0])
+            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
+                o[0].h.val_SI = h_min_o1 * 2
+            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
+                i[1].h.val_SI = h_min_i2 * 1.1
 
     def initialise_source(self, c, key):
         r"""
@@ -5084,6 +5128,10 @@ class condenser(heat_exchanger):
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
+
+    **equations**
+
+    see tespy.components.components.heat_exchager.equations
 
     **default design parameters**
 
@@ -5326,6 +5374,10 @@ class desuperheater(heat_exchanger):
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
+    **equations**
+
+    see tespy.components.components.heat_exchager.equations
+
     **default design parameters**
 
     - pr1, pr2, ttd_u, ttd_l
@@ -5413,6 +5465,16 @@ class desuperheater(heat_exchanger):
 
 class drum(component):
     r"""
+
+    - assumes, that the fluid composition between outlet 1 and inlet 2 does
+      not change!
+
+    **no specification parameters available**
+
+    **equations**
+
+    see tespy.components.components.drum.equations
+
     **inlets and outlets**
 
     - in1, in2 (index 1: from economiser, index 2: from evaporator)
@@ -5598,6 +5660,13 @@ class subsys_interface(component):
     - passes fluid properties/flow information at inlet i to outlet i
     - no transformation of any fluid properties
 
+    **available parameters**
+
+    - num_inter: number of connections for the interface
+
+    **equations**
+
+    see tespy.components.components.subsys_interface.equations
 
     **inlets and outlets**
 

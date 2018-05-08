@@ -12,14 +12,16 @@ We give an overview on the available components, introduce you to creating you o
 groups and give a short introduction on how TESPys solver works and how to handle different calculations modes.
 Information on handling of fluid properties can be found at the end of this page.
 
-On top of a `step by step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to
-set up a heat pump in TESPy, we provide basic examples in the `examples section
-<http://tespy.readthedocs.io/en/latest/introduction.html#examples>`_.
+We highly recommend to check our :ref:`step by step tutorial <heat_pump_tutorial_label>` on how to
+set up a heat pump in TESPy. You will learn, how to set up and design a plant as well as calculate offdesign/partload performance.
+Additionally we provide basic examples in the :ref:`examples section <tespy_examples_label>`.
 
 .. figure:: api/_images/tutorial_heat_pump.svg
     :align: center
 	
     Figure 1: Topology of a heat pump.
+	
+.. _using_tespy_introduction_label:
 
 Introduction
 ============
@@ -29,7 +31,7 @@ Set up a plant
 
 In order to simulate a plant you will have to create a tespy.network. The network is the main container for the model.
 
-You need to specify a list of the fluids you need for the calculation in your plant. For more information on the fluid properties jump to the `bottom of this page <http://tespy.readthedocs.io/en/dev/using_tespy.html#fluid-properties-in-tespy>`_.
+You need to specify a list of the fluids you need for the calculation in your plant. For more information on the fluid properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`.
 
 .. code-block:: python
 
@@ -54,11 +56,10 @@ Now you can start to create the components of the network.
 Set up components
 -----------------
 
-Available components can be found `here <http://tespy.readthedocs.io/en/dev/using_tespy.html#available-components>`_. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger. The full list of parameters for a specific component (e. g. a vessel) is stated in the classes documentation.
+Available components can be found :ref:`here <tespy_components_label>`. If you set up a component you have to specify a (within one network) unique label. Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger. The full list of parameters for a specific component (e. g. a vessel) is stated in the classes documentation.
 
-Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide. If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify. You can find all equations in the `components documentation <http://tespy.readthedocs.io/en/dev/using_tespy.html#available-components>`_ as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
+Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide. If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify. You can find all equations in the :ref:`components documentation <tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
 
-.. _pump-parametrisation:
 .. code-block:: python
 
 	from tespy import cmp
@@ -157,7 +158,7 @@ Two labels for busses have a predefined function in the postprocessing analysis:
 Subsystems/Component groups
 ---------------------------
 
-Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or `create a subsytem yourself <http://tespy.readthedocs.io/en/dev/using_tespy.html#tespy-subsystems-component-groups>`_. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup_cond()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
+Subsystems are an easy way to add frequently used component groups such as a drum with evaporator or a preheater with desuperheater to your system. You can use the predefined subsystems or :ref:`create a subsytem yourself <tespy_subsystems_label>`. Every subsystem must have two interfaces, an inlet interface and an outlet interface. These interfaces have a variable number of connections, which can be connected with the rest of your network. The example below uses the predefined subsystem preheater with desuperheater (:code:`ph_desup_cond()`). The subsystems interfaces are subsystem.inlet and subsystem.outlet, both with two connections. All connections (and components) of the subsystem have to be added to the network in order to start a simulation. This can easily be done by adding the whole subsystem object to your network.
 
 .. code-block:: python
 
@@ -197,7 +198,7 @@ Subsystems are an easy way to add frequently used component groups such as a dru
 Start your calculation
 ----------------------
 
-At the bottom of your script add the following line and off you go! Additional/advanced information on the solving process and which options are available are found `here <http://tespy.readthedocs.io/en/dev/using_tespy.html#solving-a-tespy-network>`_.
+At the bottom of your script add the following line and off you go! Additional/advanced information on the solving process and which options are available are found :ref:`here <tespy_solving_network_label>`.
 
 .. code-block:: python
 
@@ -248,6 +249,8 @@ As a result we get the PQ-diagram of this power plant containing the characteris
 	
 Download the :download:`source file <../examples/chp.py>` of this example.
 	
+.. _tespy_solving_network_label:
+	
 Solving a TESPy Network
 =======================
 
@@ -288,7 +291,9 @@ This means that you have to provide the exact amount of required parameters (nei
 	\forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} - fluid_{i,out}\\
 											 &0 = \dot{m}_{in} - \dot{m}_{out}\\
 					 \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
-					 
+
+.. _using_tespy_solver_handling_label:
+
 Handling					 
 --------
 
@@ -380,6 +385,8 @@ The table below contains frequently used offdesign parameters of the components.
 
 1: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only.
 
+.. _tespy_components_label:
+
 TESPy components
 ================
 
@@ -388,23 +395,23 @@ Available components
 
 More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
 
-- `Source <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.source>`_ (no equations)
-- `Sink <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.sink>`_ (no equations)
-- `Merge <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge.equations>`_)
-- `Splitter <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter.equations>`_)
-- `Vessel <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.vessel>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.vessel.equations>`_)
+- :py:class:`Source <tespy.components.components.source>` (no equations)
+- :py:class:`Sink <tespy.components.components.sink>` (no equations)
+- :py:class:`Merge <tespy.components.components.merge>` (:py:meth:`equations <tespy.components.components.merge.equations>`)
+- :py:class:`Splitter <tespy.components.components.splitter>` (:py:meth:`equations <tespy.components.components.splitter.equations>`)
+- :py:class:`Vessel <tespy.components.components.vessel>` (:py:meth:`equations <tespy.components.components.vessel.equations>`)
 - Turbomachines
-	* `Pump <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pump>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-	* `Compressor <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.compressor>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-	* `Turbine <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbine>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-- `Combustion chamber <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.combustion_chamber>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.combustion_chamber.equations>`_)
+	* :py:class:`Pump <tespy.components.components.pump>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+	* :py:class:`Compressor <tespy.components.components.compressor>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+	* :py:class:`Turbine <tespy.components.components.turbine>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+- :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
 - Heat exchangers
-	* `Heat exchanger <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger.equations>`_)
-	* `Condenser <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.condenser>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.condenser.equations>`_)
-	* `Desuperheater <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.desuperheater>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.desuperheater.equations>`_)
-	* `Heat exchanger simple <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple.equations>`_)
-	* `Pipe <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe.equations>`_)
-- `Drum <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum.equations>`_)
+	* :py:class:`Heat exchanger <tespy.components.components.heat_exchanger>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
+	* :py:class:`Condenser <tespy.components.components.condenser>` (:py:meth:`equations <tespy.components.components.condenser.equations>`)
+	* :py:class:`Desuperheater <tespy.components.components.desuperheater>` (:py:meth:`equations <tespy.components.components.desuperheater.equations>`)
+	* :py:class:`Heat exchanger simple <tespy.components.components.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
+	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.pipe.equations>`)
+- :py:class:`Drum <tespy.components.components.drum>` (:py:meth:`equations <tespy.components.components.drum.equations>`)
 
 Component characteristics
 -------------------------
@@ -530,6 +537,8 @@ Add all derivatives to a list (in the same order as the equations) and return th
 
 For a good start just look into the source code of the inbuilt components. If you have further questions feel free to contact us.
 
+.. _tespy_subsystems_label:
+
 TESPy subsystems/component groups
 =================================
 
@@ -635,6 +644,8 @@ Add more felxibility
 
 If you want to add even more flexibility, you might need to manipulate the :code:`__init__()` method. For example, if you want a variable number of inlets and outlets because you have a variable number of components groups within your subsystem, you may introduce an attribute which is set on initialisation and lets you create and parametrize components and connections generically. This might be very interesting for district heating systems, turbines with several sections of equal topology, etc..
 
+.. _tespy_fluid_properties_label:
+
 Fluid properties in TESPy
 =========================
 
@@ -658,7 +669,7 @@ CoolProp provides fluid properties for two component mixtures. BUT: These are NO
 Ideal mixtures of gaseous fluids
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TESPy can handle mixtures of gaseous fluids, by using the single fluid properties from CoolProp together with corresponding equations for mixtures. The equations can be found in the `tespy.helpers module <http://tespy.readthedocs.io/en/dev/api/tespy.html#module-tespy.helpers>`_ and are applied automatically to the fluid vector.
+TESPy can handle mixtures of gaseous fluids, by using the single fluid properties from CoolProp together with corresponding equations for mixtures. The equations can be found in the :py:mod:`tespy.helpers module <tespy.helpers>` and are applied automatically to the fluid vector.
 
 Other mixtures
 ^^^^^^^^^^^^^^

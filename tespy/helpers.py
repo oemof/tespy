@@ -3,8 +3,6 @@
     :synopsis: helpers for frequently used functionalities
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
-
-.. _module_tespy_helpers_label:
 """
 
 import CoolProp.CoolProp as CP

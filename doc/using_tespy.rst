@@ -391,7 +391,7 @@ Available components
 
 More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
 
-- :ref:`Source <class_tespy_comp_comp_source_label>`_ (no equations)
+- :py:class:`Source <tespy.components.components.source>`_ (no equations)
 - `Sink <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.sink>`_ (no equations)
 - `Merge <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge.equations>`_)
 - `Splitter <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter.equations>`_)
@@ -665,7 +665,7 @@ CoolProp provides fluid properties for two component mixtures. BUT: These are NO
 Ideal mixtures of gaseous fluids
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TESPy can handle mixtures of gaseous fluids, by using the single fluid properties from CoolProp together with corresponding equations for mixtures. The equations can be found in the `tespy.helpers module <module_tespy_helpers_label>`_ and are applied automatically to the fluid vector.
+TESPy can handle mixtures of gaseous fluids, by using the single fluid properties from CoolProp together with corresponding equations for mixtures. The equations can be found in the :py:mod:`tespy.helpers module <tespy.helpers>` and are applied automatically to the fluid vector.
 
 Other mixtures
 ^^^^^^^^^^^^^^

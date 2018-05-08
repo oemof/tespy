@@ -739,8 +739,6 @@ class component:
 
 class source(component):
     """
-    .. _class_tespy_comp_comp_source_label:
-
     component source
 
     - a flow originates from this component

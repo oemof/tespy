@@ -12,9 +12,9 @@ We give an overview on the available components, introduce you to creating you o
 groups and give a short introduction on how TESPys solver works and how to handle different calculations modes.
 Information on handling of fluid properties can be found at the end of this page.
 
-On top of a `step by step tutorial <http://tespy.readthedocs.io/en/latest/tutorial.html>`_ on how to
-set up a heat pump in TESPy, we provide basic examples in the `examples section
-<http://tespy.readthedocs.io/en/latest/introduction.html#examples>`_.
+We highly recommend to check our :ref:`step by step tutorial <heat_pump_tutorial_label>` on how to
+set up a heat pump in TESPy. You will learn, how to set up and design a plant as well as calculate offdesign/partload performance.
+Additionally we provide basic examples in the :ref:`examples section <tespy_examples_label>`.
 
 .. figure:: api/_images/tutorial_heat_pump.svg
     :align: center

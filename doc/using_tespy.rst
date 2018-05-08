@@ -20,6 +20,8 @@ Additionally we provide basic examples in the :ref:`examples section <tespy_exam
     :align: center
 	
     Figure 1: Topology of a heat pump.
+	
+.. _using_tespy_introduction_label:
 
 Introduction
 ============
@@ -289,7 +291,9 @@ This means that you have to provide the exact amount of required parameters (nei
 	\forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} - fluid_{i,out}\\
 											 &0 = \dot{m}_{in} - \dot{m}_{out}\\
 					 \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
-					 
+
+.. _using_tespy_solver_handling_label:
+
 Handling					 
 --------
 
@@ -391,23 +395,23 @@ Available components
 
 More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
 
-- :py:class:`Source <tespy.components.components.source>`_ (no equations)
-- `Sink <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.sink>`_ (no equations)
-- `Merge <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.merge.equations>`_)
-- `Splitter <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.splitter.equations>`_)
-- `Vessel <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.vessel>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.vessel.equations>`_)
+- :py:class:`Source <tespy.components.components.source>` (no equations)
+- :py:class:`Sink <tespy.components.components.sink>` (no equations)
+- :py:class:`Merge <tespy.components.components.merge>` (:py:meth:`equations <tespy.components.components.merge.equations>`)
+- :py:class:`Splitter <tespy.components.components.splitter>` (:py:meth:`equations <tespy.components.components.splitter.equations>`)
+- :py:class:`Vessel <tespy.components.components.vessel>` (:py:meth:`equations <tespy.components.components.vessel.equations>`)
 - Turbomachines
-	* `Pump <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pump>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-	* `Compressor <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.compressor>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-	* `Turbine <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbine>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.turbomachine.equations>`_)
-- `Combustion chamber <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.combustion_chamber>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.combustion_chamber.equations>`_)
+	* :py:class:`Pump <tespy.components.components.pump>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+	* :py:class:`Compressor <tespy.components.components.compressor>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+	* :py:class:`Turbine <tespy.components.components.turbine>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
+- :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
 - Heat exchangers
-	* `Heat exchanger <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger.equations>`_)
-	* `Condenser <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.condenser>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.condenser.equations>`_)
-	* `Desuperheater <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.desuperheater>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.desuperheater.equations>`_)
-	* `Heat exchanger simple <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.heat_exchanger_simple.equations>`_)
-	* `Pipe <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.pipe.equations>`_)
-- `Drum <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum>`_ (`equations <http://tespy.readthedocs.io/en/dev/api/tespy.components.html#tespy.components.components.drum.equations>`_)
+	* :py:class:`Heat exchanger <tespy.components.components.heat_exchanger>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
+	* :py:class:`Condenser <tespy.components.components.condenser>` (:py:meth:`equations <tespy.components.components.condenser.equations>`)
+	* :py:class:`Desuperheater <tespy.components.components.desuperheater>` (:py:meth:`equations <tespy.components.components.desuperheater.equations>`)
+	* :py:class:`Heat exchanger simple <tespy.components.components.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
+	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.pipe.equations>`)
+- :py:class:`Drum <tespy.components.components.drum>` (:py:meth:`equations <tespy.components.components.drum.equations>`)
 
 Component characteristics
 -------------------------

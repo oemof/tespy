@@ -655,13 +655,13 @@ class component:
 
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
-            dm = 1e-3
+            dm = 1e-4
         elif dx == 'p':
             dp = 1
         elif dx == 'h':
             dh = 1
         else:
-            df = 1e-4
+            df = 1e-5
 
         if dx == 'fluid':
             deriv = []
@@ -780,6 +780,10 @@ class turbomachine(component):
     - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
+          
+    **equations**
+    
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1074,6 +1078,10 @@ class pump(turbomachine):
     - pr: outlet to inlet pressure ratio
     - char: characteristic curve to use, characteristics are generated in
       preprocessing of offdesign calculations
+          
+    **equations**
+    
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1387,6 +1395,10 @@ class compressor(turbomachine):
     **additional parameter**
 
     - vigv: variable inlet guide vane angle
+          
+    **equations**
+    
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -1816,6 +1828,10 @@ class turbine(turbomachine):
     **additional parameter**
 
     - cone: cone law to apply in offdesign calculation
+          
+    **equations**
+    
+    see tespy.components.components.turbomachine.equations
 
     **default design parameters**
 
@@ -2182,6 +2198,10 @@ class split(component):
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
+          
+    **equations**
+    
+    see tespy.components.components.split.equations
 
     **inlets and outlets**
 
@@ -2413,6 +2433,10 @@ class splitter(split):
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
+          
+    **equations**
+    
+    see tespy.components.components.split.equations
 
     **inlets and outlets**
 
@@ -2434,6 +2458,10 @@ class separator(split):
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
+          
+    **equations**
+    
+    see tespy.components.components.split.equations
 
     **inlets and outlets**
 
@@ -2457,6 +2485,10 @@ class merge(component):
     **available parameters**
 
     - num_in: number of inlets (default value: 2)
+          
+    **equations**
+    
+    see tespy.components.components.merge.equations
 
     **inlets and outlets**
 
@@ -2635,7 +2667,7 @@ class merge(component):
         print('##### ', self.label, ' #####')
         j = 1
         for i in inl:
-            print('m_in' + str(j) + ' = ', i.m, 'kg / s; ')
+            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
             j += 1
         print('m_out = ', outl[0].m.val_SI, 'kg / s; ')
 
@@ -2649,6 +2681,10 @@ class combustion_chamber(component):
     - fuel: fuel for combustion chamber
     - lamb: air to stoichiometric air ratio
     - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`)
+          
+    **equations**
+    
+    see tespy.components.components.combustion_chamber.equations
 
     **available fuels**
 
@@ -3104,7 +3140,7 @@ class combustion_chamber(component):
             m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
 
         for o in outl:
-            m_fuel -= (i.m.val_SI * i.fluid.val[self.fuel.val])
+            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
 
         return (self.ti.val - m_fuel * self.hi)
 
@@ -3135,7 +3171,7 @@ class combustion_chamber(component):
 
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
-            dm = 1e-2
+            dm = 1e-4
         elif dx == 'p':
             dp = 1
         elif dx == 'h':
@@ -3241,8 +3277,14 @@ class combustion_chamber(component):
                 if f not in [self.o2, self.n2, self.co2, self.h2o, self.fuel]:
                     if o.fluid.val[f] > 0.03:
                         o.fluid.val[f] = 0.03
-
+                        
+        for i in nw.comps.loc[self].i:
+            if i.m.val_SI < 0 and not i.m.val_set:
+                i.m.val_SI = 0.01
+                
         for c in nw.comps.loc[self].o:
+            if o.m.val_SI < 0 and not o.m.val_set:
+                o.m.val_SI = 10
             init_target(nw, c, c.t)
             
             if c.h.val_SI < 7.5e5 and not c.h.val_set:
@@ -3556,6 +3598,10 @@ class vessel(component):
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
+          
+    **equations**
+    
+    see tespy.components.components.vessel.equations
 
     **default design parameters**
 
@@ -3790,6 +3836,10 @@ class heat_exchanger_simple(component):
           friction factor and
         - kA and t_a, if you want to calculate the heat flux on basis of the
           ambient conditions
+          
+    **equations**
+    
+    see tespy.components.components.heat_exchager_simple.equations
 
     **default design parameters**
 
@@ -3797,7 +3847,8 @@ class heat_exchanger_simple(component):
 
     **default offdesign parameters**
 
-    - kA (method: HE_COLD, param: m)
+    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
+      t_a_design, if you want the heat flux calculated by this method*
 
     **inlets and outlets**
 
@@ -4245,7 +4296,13 @@ class pipe(heat_exchanger_simple):
     - ks: pipes roughness
     - kA: area independent heat transition coefficient,
       :math:`kA=\frac{\text{W}}{\text{K}}`
-    - t_a: ambient temperature, provide parameter in K
+    - t_a: ambient temperature, provide parameter in network's temperature unit
+    - t_a_design: ambient temperature design case, provide parameter in
+      network's temperature unit
+          
+    **equations**
+    
+    see tespy.components.components.heat_exchager_simple.equations
 
     **default design parameters**
 
@@ -4253,7 +4310,8 @@ class pipe(heat_exchanger_simple):
 
     **default offdesign parameters**
 
-    - kA
+    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
+      t_a_design, if you want the heat flux calculated by this method*
 
     **inlets and outlets**
 
@@ -4294,6 +4352,10 @@ class heat_exchanger(component):
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
+          
+    **equations**
+    
+    see tespy.components.components.heat_exchager.equations
 
     **default design parameters**
 
@@ -4318,7 +4380,6 @@ class heat_exchanger(component):
 
     - add the partial derivatives for specified logarithmic temperature
       difference
-    - add characteristics for given kA-values
     - add direct current heat exchangers
     """
 
@@ -5061,6 +5122,10 @@ class condenser(heat_exchanger):
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
+          
+    **equations**
+    
+    see tespy.components.components.heat_exchager.equations
 
     **default design parameters**
 
@@ -5302,6 +5367,10 @@ class desuperheater(heat_exchanger):
     - zeta2: geometry independent friction coefficient cold side
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
+          
+    **equations**
+    
+    see tespy.components.components.heat_exchager.equations
 
     **default design parameters**
 
@@ -5390,6 +5459,16 @@ class desuperheater(heat_exchanger):
 
 class drum(component):
     r"""
+    
+    - assumes, that the fluid composition between outlet 1 and inlet 2 does
+      not change!
+
+    **no specification parameters available**
+          
+    **equations**
+    
+    see tespy.components.components.drum.equations
+    
     **inlets and outlets**
 
     - in1, in2 (index 1: from economiser, index 2: from evaporator)
@@ -5575,6 +5654,13 @@ class subsys_interface(component):
     - passes fluid properties/flow information at inlet i to outlet i
     - no transformation of any fluid properties
 
+    **available parameters**
+    
+    - num_inter: number of connections for the interface
+          
+    **equations**
+    
+    see tespy.components.components.subsys_interface.equations
 
     **inlets and outlets**
 

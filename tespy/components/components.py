@@ -2885,6 +2885,12 @@ class combustion_chamber(component):
                 ti_deriv[0, i, 3:] = (
                     self.ddx_func(inl, outl, self.ti_func,
                                   'fluid', i))
+            for o in range(num_o):
+                ti_deriv[0, o + i, 0] = (
+                    self.ddx_func(inl, outl, self.ti_func, 'm', o + i))
+                ti_deriv[0, o + i, 3:] = (
+                    self.ddx_func(inl, outl, self.ti_func,
+                                  'fluid', o + i))
             mat_deriv += ti_deriv.tolist()
 
         return np.asarray(mat_deriv)

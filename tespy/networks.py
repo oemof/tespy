@@ -1192,14 +1192,14 @@ class network:
 
                 j += 1
             i += 1
-            
+
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:
                 if (self.init_file is None or
                         isinstance(cp, cmp.combustion_chamber)):
                     cp.convergence_check(self)
-                    
+
         for c in self.conns.index:
             self.solve_check_properties(c)
 
@@ -1234,9 +1234,9 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-#        if c.T.val_set and not c.h.val_set and self.iter < 0:
-#            self.solve_check_temperature(c, 'min')
-#            self.solve_check_temperature(c, 'max')
+        if c.T.val_set and not c.h.val_set and self.iter < 0:
+            self.solve_check_temperature(c, 'min')
+            self.solve_check_temperature(c, 'max')
 
     def solve_check_temperature(self, c, pos):
         """
@@ -1280,7 +1280,7 @@ class network:
 
         h = hlp.h_mix_pT(c.to_flow(), T)
         c.p.val_SI = p_temp
-        
+
         if pos == 'min':
             if c.h.val_SI < h:
                 c.h.val_SI = h * fac

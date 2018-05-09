@@ -846,15 +846,10 @@ class turbomachine(component):
         - :func:`tespy.components.components.compressor.eta_s_func`
         - :func:`tespy.components.components.turbine.eta_s_func`
 
-        characteristics
-
-        - :func:`tespy.components.components.pump.char_func`
-        - :func:`tespy.components.components.compressor.char_func`
-        - :func:`tespy.components.components.turbine.char_func`
-
         **additional equations**
 
-        - :func:`tespy.components.components.turbomachine.additional_equations`
+        - :func:`tespy.components.components.pump.additional_equations`
+        - :func:`tespy.components.components.compressor.additional_equations`
         - :func:`tespy.components.components.turbine.additional_equations`
         """
 
@@ -1129,7 +1124,7 @@ class pump(turbomachine):
 
         **optional equations**
 
-        - :func:`tespy.components.components.turbine.char_func`
+        - :func:`tespy.components.components.pump.char_func`
         """
         vec_res = []
         inl, outl = (nw.comps.loc[self].i.tolist(),
@@ -1831,7 +1826,7 @@ class turbine(turbomachine):
 
     **equations**
 
-    see tespy.components.components.turbomachine.equations
+    see :func:`tespy.components.components.turbomachine.equations`
 
     **default design parameters**
 
@@ -3845,7 +3840,7 @@ class heat_exchanger_simple(component):
 
     **equations**
 
-    see tespy.components.components.heat_exchager_simple.equations
+    see :func:`tespy.components.components.heat_exchager_simple.equations`
 
     **default design parameters**
 
@@ -3882,7 +3877,7 @@ class heat_exchanger_simple(component):
         self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
                            nw.T[nw.T_unit][1])
         self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
-                           nw.T[nw.T_unit][1])
+                                  nw.T[nw.T_unit][1])
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
@@ -3933,8 +3928,12 @@ class heat_exchanger_simple(component):
             0 = p_{in} \cdot pr - p_{out}
 
         - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.lamb_func`
-        - :func:`tespy.components.components.component.kA_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.lamb_func`
+
+        **additional equations**
+
+        - :func:`tespy.components.components.heat_exchanger_simple.additional_equations`
+        - :func:`tespy.components.components.solar_collector.additional_equations`
 
         """
 
@@ -3957,6 +3956,29 @@ class heat_exchanger_simple(component):
 
         if self.ks.is_set and self.D.is_set and self.L.is_set:
             vec_res += [self.lamb_func(inl, outl)]
+
+        vec_res += self.additional_equations(nw)
+
+        return vec_res
+
+    def additional_equations(self, nw):
+        r"""
+        additional equations for simple heat exchangers and pipes
+
+        - applies kA-value for heat transfer calculation from ambient
+          temperature
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **optional equations**
+
+        - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
+        """
+        vec_res = []
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
 
         if self.kA.is_set and self.t_a.is_set:
             vec_res += [self.kA_func(inl, outl)]
@@ -4019,6 +4041,25 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, self.lamb_func, 'h', i))
             mat_deriv += lamb_deriv.tolist()
 
+        mat_deriv += self.additional_derivatives(nw)
+
+        return np.asarray(mat_deriv)
+
+    def additional_derivatives(self, nw):
+        r"""
+        calculate matrix of partial derivatives towards mass flow, pressure,
+        enthalpy and fluid composition for the additional equations
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
+        num_i, num_o = len(inl), len(outl)
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
         if self.kA.is_set and self.t_a.is_set:
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             kA_deriv[0, 0, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 0)
@@ -4029,7 +4070,7 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, self.kA_func, 'h', i))
             mat_deriv += kA_deriv.tolist()
 
-        return np.asarray(mat_deriv)
+        return mat_deriv
 
     def lamb_func(self, inl, outl):
         r"""
@@ -4335,6 +4376,174 @@ class pipe(heat_exchanger_simple):
     """
     def component(self):
         return 'pipe'
+
+# %%
+
+
+class solar_collector(heat_exchanger_simple):
+    r"""
+
+    class solar collector
+
+    **available parameters**
+
+    - Q: heat flux
+    - pr: outlet to inlet pressure ratio
+    - zeta: geometry independent friction coefficient
+      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :func:`tespy.components.components.component.zeta_func`
+    - D: diameter of the pipes
+    - L: length of the pipes
+    - ks: pipes roughness
+    - E: global solar radiation
+    - lkf_lin: linear loss key figure,
+      :math:`[\alpha_1]=\frac{\text{W}}{\text{K}}`
+    - lkf_quad: quadratic loss key figure,
+      :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2}`
+    - t_a: ambient temperature
+
+    **equations**
+
+    see tespy.components.components.solar_collector.equations
+
+    **default design parameters**
+
+    - pr
+
+    **default offdesign parameters**
+
+    - E *be aware that you must provide t_a, lkf_lin and lkf_quad
+      if you want the heat flux calculated by this method*
+
+    **inlets and outlets**
+
+    - in1
+    - out1
+
+    .. image:: _images/solar_collector.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
+
+    def comp_init(self, nw):
+
+        if self.kA_char.func is None:
+            method = self.kA_char.method
+            x = self.kA_char.x
+            y = self.kA_char.y
+            self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
+
+        self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
+                           nw.T[nw.T_unit][1])
+        self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
+                                  nw.T[nw.T_unit][1])
+
+    def attr(self):
+        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
+                'E', 'lkf_lin', 'lkf_quad', 't_a']
+
+    def attr_prop(self):
+        return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
+                'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
+                'E': dc_cp(), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
+                't_a': dc_cp()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
+    def default_design(self):
+        return ['pr']
+
+    def default_offdesign(self):
+        return ['E']
+
+    def component(self):
+        return 'solar collector'
+
+    def additional_equations(self, nw):
+        r"""
+        additional equations for solar collectors
+
+        - calculates collector heat flux from global solar radiation
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **optional equations**
+
+        - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
+        """
+        vec_res = []
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
+
+        if (self.E.is_set and self.lkf_lin.is_set and
+                self.lkf_quad.is_set and self.t_a.is_set):
+            vec_res += [self.energy_func(inl, outl)]
+
+        return vec_res
+
+    def additional_derivatives(self, nw):
+        r"""
+        calculate matrix of partial derivatives towards mass flow, pressure,
+        enthalpy and fluid composition for the additional equations
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
+        num_i, num_o = len(inl), len(outl)
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        if (self.E.is_set and self.lkf_lin.is_set and
+                self.lkf_quad.is_set and self.t_a.is_set):
+            # insert logic for derivatives here
+            energy_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            energy_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
+            for i in range(2):
+                energy_deriv[0, i, 1] = (
+                    self.ddx_func(inl, outl, self.energy_func, 'p', i))
+                energy_deriv[0, i, 2] = (
+                    self.ddx_func(inl, outl, self.energy_func, 'h', i))
+            mat_deriv += energy_deriv.tolist()
+
+        return mat_deriv
+
+    def energy_func(self, inl, outl):
+        r"""
+        equation for solar panel energy balance
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+            T_m = \frac{T_{out} + T_{in}}{2}\\
+
+            0 = \dot{m} \cdot \left( h_{out} - h_{in} \right) -
+            \left\{E - \left(T_m - T_{amb} \right) \cdot
+            \left[ \alpha_1 + \alpha_2 \cdot \left(\
+            T_m - T_{amb}\right) \right] \right\}
+        """
+
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+
+        T_m = (T_mix_ph(i) + T_mix_ph(o)) / 2
+
+        return (i[0] * (o[2] - i[2]) - (self.E.val - (T_m - self.t_a.val_SI) *
+                (self.lkf_lin.val +
+                 self.lkf_quad.val * (T_m - self.t_a.val_SI))))
 
 # %%
 

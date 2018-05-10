@@ -4395,16 +4395,17 @@ class solar_collector(heat_exchanger_simple):
     - D: diameter of the pipes
     - L: length of the pipes
     - ks: pipes roughness
-    - E: global solar radiation
+    - E: global solar radiation, :math:`[E] = \frac{\text{W}}{\text{m}^2}`
     - lkf_lin: linear loss key figure,
-      :math:`[\alpha_1]=\frac{\text{W}}{\text{K}}`
+      :math:`[\alpha_1]=\frac{\text{W}}{\text{K} \cdot \text{m}}`
     - lkf_quad: quadratic loss key figure,
-      :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2}`
+      :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`
+    - A: collector surface area :math:`[A]=\text{m}^2`
     - t_a: ambient temperature
 
     **equations**
 
-    see tespy.components.components.solar_collector.equations
+    see :func:`tespy.components.components.solar_collector.equations`
 
     **default design parameters**
 
@@ -4412,8 +4413,7 @@ class solar_collector(heat_exchanger_simple):
 
     **default offdesign parameters**
 
-    - E *be aware that you must provide t_a, lkf_lin and lkf_quad
-      if you want the heat flux calculated by this method*
+    - zeta
 
     **inlets and outlets**
 
@@ -4428,26 +4428,18 @@ class solar_collector(heat_exchanger_simple):
 
     def comp_init(self, nw):
 
-        if self.kA_char.func is None:
-            method = self.kA_char.method
-            x = self.kA_char.x
-            y = self.kA_char.y
-            self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
-
         self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
                            nw.T[nw.T_unit][1])
-        self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
-                                  nw.T[nw.T_unit][1])
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'E', 'lkf_lin', 'lkf_quad', 't_a']
+                'E', 'lkf_lin', 'lkf_quad', 'A', 't_a']
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
                 'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
                 'E': dc_cp(), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
-                't_a': dc_cp()}
+                'A': dc_cp(), 't_a': dc_cp()}
 
     def inlets(self):
         return ['in1']
@@ -4459,7 +4451,7 @@ class solar_collector(heat_exchanger_simple):
         return ['pr']
 
     def default_offdesign(self):
-        return ['E']
+        return ['zeta']
 
     def component(self):
         return 'solar collector'
@@ -4476,7 +4468,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
+        - :func:`tespy.components.components.solar_collector.energy_func`
         """
         vec_res = []
         inl, outl = (nw.comps.loc[self].i.tolist(),
@@ -4503,8 +4495,8 @@ class solar_collector(heat_exchanger_simple):
         num_fl = len(nw.fluids)
         mat_deriv = []
 
-        if (self.E.is_set and self.lkf_lin.is_set and
-                self.lkf_quad.is_set and self.t_a.is_set):
+        if (self.E.is_set and self.lkf_lin.is_set and self.lkf_quad.is_set and
+                self.A.is_set and self.t_a.is_set):
             # insert logic for derivatives here
             energy_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             energy_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
@@ -4519,7 +4511,7 @@ class solar_collector(heat_exchanger_simple):
 
     def energy_func(self, inl, outl):
         r"""
-        equation for solar panel energy balance
+        equation for solar collector energy balance
 
         :param inlets: the components connections at the inlets
         :type inlets: list
@@ -4531,8 +4523,8 @@ class solar_collector(heat_exchanger_simple):
             T_m = \frac{T_{out} + T_{in}}{2}\\
 
             0 = \dot{m} \cdot \left( h_{out} - h_{in} \right) -
-            \left\{E - \left(T_m - T_{amb} \right) \cdot
-            \left[ \alpha_1 + \alpha_2 \cdot \left(\
+            \left\{E \cdot A - \left(T_m - T_{amb} \right) \cdot A \cdot
+            \left[ \alpha_1 + \alpha_2 \cdot A \cdot \left(\
             T_m - T_{amb}\right) \right] \right\}
         """
 
@@ -4541,9 +4533,57 @@ class solar_collector(heat_exchanger_simple):
 
         T_m = (T_mix_ph(i) + T_mix_ph(o)) / 2
 
-        return (i[0] * (o[2] - i[2]) - (self.E.val - (T_m - self.t_a.val_SI) *
-                (self.lkf_lin.val +
-                 self.lkf_quad.val * (T_m - self.t_a.val_SI))))
+        return (i[0] * (o[2] - i[2]) - (self.E.val * self.A.val -
+                (T_m - self.t_a.val_SI) *
+                self.A.val * (self.lkf_lin.val +
+                              self.lkf_quad.val * self.A.val *
+                              (T_m - self.t_a.val_SI))))
+
+    def calc_parameters(self, nw, mode):
+
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
+
+        if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
+            self.Q.val = inl[0].m.val_SI * (outl[0].h.val_SI -
+                                            inl[0].h.val_SI)
+        if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
+            self.pr.val = outl[0].p.val_SI / inl[0].p.val_SI
+        if (mode == 'pre' and 'zeta' in self.offdesign) or mode == 'post':
+            self.zeta.val = ((inl[0].p.val_SI - outl[0].p.val_SI) *
+                             math.pi ** 2 /
+                             (8 * inl[0].m.val_SI ** 2 *
+                             (v_mix_ph(inl[0].to_flow()) +
+                              v_mix_ph(outl[0].to_flow())) / 2))
+
+        if (mode == 'post' and self.lkf_lin.is_set and self.lkf_quad.is_set and
+                self.A.is_set and self.t_a.is_set):
+
+            T_m = (T_mix_ph(inl[0].to_flow()) +
+                   T_mix_ph(outl[0].to_flow())) / 2
+            self.E.val = (((inl[0].m.val_SI *
+                           (outl[0].h.val_SI - inl[0].h.val_SI)) +
+                          ((T_m - self.t_a.val_SI) * self.A.val *
+                           (self.lkf_lin.val +
+                            self.lkf_quad.val * self.A.val *
+                            (T_m - self.t_a.val_SI)))) / self.A.val)
+
+    def print_parameters(self, nw):
+
+        inl, outl = (nw.comps.loc[self].i.tolist(),
+                     nw.comps.loc[self].o.tolist())
+
+        print('##### ', self.label, ' #####')
+        print('Q = ', self.Q.val, 'W; '
+              'pr = ', self.pr.val, '; '
+              'zeta = ', self.zeta.val, 'kg / m^4 * s; '
+              'm = ', inl[0].m.val_SI, 'kg / s; '
+              'Sq = ', inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
+                                          s_mix_ph(inl[0].to_flow())),
+              'W / K; ')
+        if (self.lkf_lin.is_set and self.lkf_quad.is_set and
+                self.A.is_set and self.t_a.is_set):
+            print('E = ', self.E.val, 'W / m^2')
 
 # %%
 

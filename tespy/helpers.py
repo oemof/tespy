@@ -285,7 +285,10 @@ class tespy_fluid:
             raise ValueError(msg)
 
         # process parameters
-        self.alias = 'TESPy::'+alias
+        if 'TESPy::' in alias:
+            self.alias = alias
+        else:
+            self.alias = 'TESPy::' + alias
         self.fluid = fluid
 
         # adjust value ranges according to specified unit system
@@ -360,7 +363,8 @@ class tespy_fluid:
             ax.view_init(10, 225)
             plt.show()
 
-        y = interpolate.interp2d(x1, x2, y, kind='linear', bounds_error=True)
+        y = interpolate.RectBivariateSpline(x1, x2, y)
+#        y = interpolate.interp2d(x1, x2, y, kind='linear', bounds_error=True)
         return y
 
 
@@ -377,7 +381,7 @@ def reverse_2d(params, y):
               f\left(x_1, y \right)`
     """
     func, x1, x2 = params[0], params[1], params[2]
-    return x2 - func(x1, y)
+    return x2 - func.ev(x1, y)
 
 
 def reverse_2d_deriv(params, y):
@@ -391,14 +395,8 @@ def reverse_2d_deriv(params, y):
     :type y: float
     :returns: partial derivative :math:`\frac{\partial f}{\partial y}`
     """
-    d_u = 1
-    d_l = 1
-    if y + d_u > params[0].y_max:
-        d_u = 0
-    if y - d_l < params[0].y_min:
-        d_l = 0
-    return ((reverse_2d(params, y + d_u) - reverse_2d(params, y - d_l)) /
-            (d_u + d_l))
+    func, x1 = params[0], params[1]
+    return - func.ev(x1, y, dy=1)
 
 
 # initialise the tespy_fluids.fluids container
@@ -579,10 +577,9 @@ def T_mix_ph(flow):
 def T_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['h_pT']
-        return newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
-                      valmin=func.y_min, valmax=func.y_max)[0]
+        return newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
     else:
         return CPPSI('T', 'P', p, 'H', h, fluid)
 
@@ -716,10 +713,9 @@ def T_mix_ps(flow, s):
 def T_ps(p, s, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['s_pT']
-        return newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0,
-                      valmin=func.y_min, valmax=func.y_max)[0]
+        return newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0)
     else:
         return CPPSI('T', 'P', p, 'S', s, fluid)
 
@@ -757,8 +753,8 @@ def h_mix_pT(flow, T):
 def h_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
-        return tespy_fluid.fluids[fluid]['h_pT'](p, T)
+    elif 'TESPy::' in fluid:
+        return tespy_fluid.fluids[fluid]['h_pT'].ev(p, T)
     else:
         return CPPSI('H', 'P', p, 'T', T, fluid)
 
@@ -807,11 +803,10 @@ def h_mix_ps(flow, s):
 def h_ps(p, s, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['s_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0,
-                   valmin=func.y_min, valmax=func.y_max)[0]
-        return tespy_fluid.fluids[fluid]['h_pT'](p, T)
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0)
+        return tespy_fluid.fluids[fluid]['h_pT'].ev(p, T)
     else:
         return CPPSI('H', 'P', p, 'S', s, fluid)
 
@@ -921,11 +916,10 @@ def v_mix_ph(flow):
 def d_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
-                   valmin=func.y_min, valmax=func.y_max)[0]
-        return tespy_fluid.fluids[fluid]['d_pT'](p, T)
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
+        return tespy_fluid.fluids[fluid]['d_pT'].ev(p, T)
     else:
         return CPPSI('D', 'P', p, 'H', h, fluid)
 
@@ -979,8 +973,8 @@ def d_mix_pT(flow, T):
 def d_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
-        return tespy_fluid.fluids[fluid]['d_pT'](p, T)
+    elif 'TESPy::' in fluid:
+        return tespy_fluid.fluids[fluid]['d_pT'].ev(p, T)
     else:
         return CPPSI('D', 'P', p, 'T', T, fluid)
 
@@ -1031,11 +1025,10 @@ def visc_mix_ph(flow):
 def visc_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
-                   valmin=func.y_min, valmax=func.y_max)[0]
-        return tespy_fluid.fluids[fluid]['visc_pT'](p, T)
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
+        return tespy_fluid.fluids[fluid]['visc_pT'].ev(p, T)
     else:
         return CPPSI('V', 'P', p, 'H', h, fluid)
 
@@ -1076,8 +1069,8 @@ def visc_mix_pT(flow, T):
 def visc_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
-        return tespy_fluid.fluids[fluid]['visc_pT'](p, T)
+    elif 'TESPy::' in fluid:
+        return tespy_fluid.fluids[fluid]['visc_pT'].ev(p, T)
     else:
         return CPPSI('V', 'P', p, 'T', T, fluid)
 
@@ -1128,11 +1121,10 @@ def s_mix_ph(flow):
 def s_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
+    elif 'TESPy::' in fluid:
         func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
-                   valmin=func.y_min, valmax=func.y_max)[0]
-        return tespy_fluid.fluids[fluid]['s_pT'](p, T)
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
+        return tespy_fluid.fluids[fluid]['s_pT'].ev(p, T)
     else:
         return CPPSI('S', 'P', p, 'H', h, fluid)
 
@@ -1173,8 +1165,8 @@ def s_mix_pT(flow, T):
 def s_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
-    elif 'TESPY::' in fluid:
-        return tespy_fluid.fluids[fluid]['s_pT'](p, T)
+    elif 'TESPy::' in fluid:
+        return tespy_fluid.fluids[fluid]['s_pT'].ev(p, T)
     else:
         return CPPSI('S', 'P', p, 'T', T, fluid)
 

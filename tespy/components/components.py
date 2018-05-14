@@ -3465,7 +3465,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 'hydrogen']
 
     def component(self):
-        return 'combustion chamber stoichometric flue gas'
+        return 'combustion chamber stoichiometric flue gas'
 
     def comp_init(self, nw):
 
@@ -3591,11 +3591,11 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def stoich_flue_gas(self, nw):
         r"""
-        calculates the fluid composition of the stoichometric flue gas and
+        calculates the fluid composition of the stoichiometric flue gas and
         creates a custom fluid
 
         - uses one mole of fuel as reference quantity and :math:`\lambda=1`
-          for stoichometric flue gas calculation (no oxygen in flue gas)
+          for stoichiometric flue gas calculation (no oxygen in flue gas)
         - calculate molar quantities of (reactive) fuel components to determine
           water and carbondioxide mass fraction in flue gas
         - calculate required molar quantity for oxygen and required fresh

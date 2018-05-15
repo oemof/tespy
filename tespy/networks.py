@@ -560,16 +560,6 @@ class network:
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
 
-#        for c in self.conns.index:
-#            if hlp.num_fluids(c.fluid.val) != 0:
-#                self.init_target(c, c.t)
-#                self.init_source(c, c.s)
-
-#        for c in self.conns.index[::-1]:
-#            if hlp.num_fluids(c.fluid.val) != 0:
-#                self.init_source(c, c.s)
-#                self.init_target(c, c.t)
-
     def init_target(self, c, start):
         """
         propagates the fluids towards connections target,

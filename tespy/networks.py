@@ -1200,8 +1200,9 @@ class network:
                         isinstance(cp, cmp.combustion_chamber)):
                     cp.convergence_check(self)
 
-        for c in self.conns.index:
-            self.solve_check_properties(c)
+        if self.iter < 3:
+            for c in self.conns.index:
+                self.solve_check_properties(c)
 
     def solve_check_properties(self, c):
         """
@@ -1234,7 +1235,7 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        if c.T.val_set and not c.h.val_set and self.iter < 0:
+        if c.T.val_set and not c.h.val_set:
             self.solve_check_temperature(c, 'min')
             self.solve_check_temperature(c, 'max')
 

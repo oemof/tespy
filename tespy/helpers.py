@@ -276,6 +276,9 @@ class tespy_fluid:
 
     def __init__(self, alias, fluid, p_range, T_range, **kwargs):
 
+        if not hasattr(tespy_fluid, 'fluids'):
+            tespy_fluid.fluids = {}
+
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
             raise TypeError(msg)
@@ -331,9 +334,11 @@ class tespy_fluid:
         """
         create lookup table
 
+        .. math::
+
         :param func: function to create lookup from
         :type func: callable function
-        :returns: y (scipy.interpolate.interp2d object) - lookup table
+        :returns: y (*scipy.interpolate.RectBivariateSpline*) - lookup table
         """
 
         print('Creating LUT for ' + name)
@@ -363,9 +368,8 @@ class tespy_fluid:
             ax.view_init(10, 225)
             plt.show()
 
-        y = interpolate.RectBivariateSpline(x1, x2, y)
-#        y = interpolate.interp2d(x1, x2, y, kind='linear', bounds_error=True)
-        return y
+        func = interpolate.RectBivariateSpline(x1, x2, y)
+        return func
 
 
 def reverse_2d(params, y):
@@ -397,10 +401,6 @@ def reverse_2d_deriv(params, y):
     """
     func, x1 = params[0], params[1]
     return - func.ev(x1, y, dy=1)
-
-
-# initialise the tespy_fluids.fluids container
-tespy_fluid.fluids = {}
 
 # %%
 

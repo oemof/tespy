@@ -2117,8 +2117,8 @@ class turbine(turbomachine):
         if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
             i[0].h.val_SI = 10e5
 
-        if i[0].h.val_SI < 10e5 and not o[0].h.val_set:
-            o[0].h.val_SI = 10e5
+        if o[0].h.val_SI < 8e5 and not o[0].h.val_set:
+            o[0].h.val_SI = 8e5
 
         if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
             o[0].h.val_SI = i[0].h.val_SI * 0.75
@@ -3419,7 +3419,11 @@ class combustion_chamber_stoich(combustion_chamber):
 
     **available parameters**
 
-    - fuel: fuel for combustion chamber
+    - fuel: fuel composition
+    - fuel_alias: alias for fuel
+    - air: air composition
+    - air_alias: alias for air
+    - path: path to existing fluid property table
     - lamb: air to stoichiometric air ratio
     - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`)
 
@@ -3453,11 +3457,12 @@ class combustion_chamber_stoich(combustion_chamber):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'lamb', 'ti']
+        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path', 'lamb', 'ti']
 
     def attr_prop(self):
         return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
                 'air': dc_cp(), 'air_alias': dc_cp(),
+                'path': dc_cp(),
                 'lamb': dc_cp(), 'ti': dc_cp()}
 
     def fuels(self):
@@ -3491,15 +3496,33 @@ class combustion_chamber_stoich(combustion_chamber):
             msg = 'Can not use \'TESPy::\' at this point.'
             raise MyComponentError(msg)
 
+        for f in self.air.val.keys():
+            alias = [x for x in nw.fluids if x in
+                     [a.replace(' ', '') for a in CP.get_aliases(f)]]
+            if len(alias) > 0:
+                self.air.val[alias[0]] = self.air.val.pop(f)
+
+        for f in self.fuel.val.keys():
+            alias = [x for x in nw.fluids if x in
+                     [a.replace(' ', '') for a in CP.get_aliases(f)]]
+            if len(alias) > 0:
+                self.fuel.val[alias[0]] = self.fuel.val.pop(f)
+
+        for f in self.fuel.val.keys():
+            alias = [x for x in self.air.val.keys() if x in
+                     [a.replace(' ', '') for a in CP.get_aliases(f)]]
+            if len(alias) > 0:
+                self.fuel.val[alias[0]] = self.fuel.val.pop(f)
+
         fluids = list(self.air.val.keys()) + list(self.fuel.val.keys())
 
-        self.o2 = [x for x in fluids if x in
-                   [a.replace(' ', '') for a in CP.get_aliases('O2')]]
-        if len(self.o2) == 0:
+        alias = [x for x in fluids if x in
+                 [a.replace(' ', '') for a in CP.get_aliases('O2')]]
+        if len(alias) == 0:
             msg = 'Oxygen missing in input fluids.'
             raise MyComponentError(msg)
         else:
-            self.o2 = self.o2[0]
+            self.o2 = alias[0]
 
         self.co2 = [x for x in nw.fluids if x in
                     [a.replace(' ', '') for a in CP.get_aliases('CO2')]]
@@ -3702,15 +3725,15 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in fg.keys():
             fg[f] /= m_fg
 
-        tespy_fluid(self.fuel_alias.val + '_fg', fg,
-                    nw.p_range_SI, nw.T_range_SI)
-
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
-                    nw.p_range_SI, nw.T_range_SI)
+                    nw.p_range_SI, nw.T_range_SI, path=self.path)
+
+        tespy_fluid(self.fuel_alias.val + '_fg', fg,
+                    nw.p_range_SI, nw.T_range_SI, path=self.path)
 
         if self.air_alias.val not in ['Air', 'air']:
             tespy_fluid(self.air_alias.val, self.air.val,
-                        nw.p_range_SI, nw.T_range_SI)
+                        nw.p_range_SI, nw.T_range_SI, path=self.path)
 
     def reaction_balance(self, inl, outl, fluid):
         r"""
@@ -3862,6 +3885,35 @@ class combustion_chamber_stoich(combustion_chamber):
 
         return res
 
+    def lambda_func(self, inl, outl):
+        r"""
+        calculates the residual for specified thermal input
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: res (*float*) - residual value of equation
+
+        .. math::
+
+            0 = ti - \dot{m}_f \cdot LHV
+        """
+        if self.air_alias.val in ['air', 'Air']:
+            air = self.air_alias.val
+        else:
+            air = 'TESPy::' + self.air_alias.val
+        fuel = 'TESPy::' + self.fuel_alias.val
+
+        m_air = 0
+        m_fuel = 0
+
+        for i in inl:
+            m_air += (i.m.val_SI * i.fluid.val[air])
+            m_fuel += (i.m.val_SI * i.fluid.val[fuel])
+
+        return (self.lamb.val - (m_air / m_fuel) / self.air_min)
+
     def ti_func(self, inl, outl):
         r"""
         calculates the residual for specified thermal input
@@ -3927,7 +3979,31 @@ class combustion_chamber_stoich(combustion_chamber):
         :returns: no return value
         """
 
-        self.initialise_fluids(nw)
+        if self.air_alias.val in ['air', 'Air']:
+            air = self.air_alias.val
+        else:
+            air = 'TESPy::' + self.air_alias.val
+        flue_gas = 'TESPy::' + self.fuel_alias.val + "_fg"
+        fuel = 'TESPy::' + self.fuel_alias.val
+
+        for c in nw.comps.loc[self].o:
+            if not c.fluid.val_set[air]:
+                if c.fluid.val[air] > 0.95:
+                    c.fluid.val[air] = 0.95
+                if c.fluid.val[air] < 0.5:
+                    c.fluid.val[air] = 0.5
+
+            if not c.fluid.val_set[flue_gas]:
+                if c.fluid.val[flue_gas] > 0.5:
+                    c.fluid.val[flue_gas] = 0.5
+                if c.fluid.val[flue_gas] < 0.05:
+                    c.fluid.val[flue_gas] = 0.05
+
+            if not c.fluid.val_set[fuel]:
+                if c.fluid.val[fuel] > 0:
+                    c.fluid.val[fuel] = 0
+
+            init_target(nw, c, c.t)
 
         for i in nw.comps.loc[self].i:
             if i.m.val_SI < 0 and not i.m.val_set:
@@ -3939,7 +4015,7 @@ class combustion_chamber_stoich(combustion_chamber):
             init_target(nw, c, c.t)
 
         if self.lamb.val < 1 and not self.lamb.is_set:
-            self.lamb.val = 3
+            self.lamb.val = 2
 
     def calc_parameters(self, nw, mode):
 
@@ -5296,6 +5372,14 @@ class heat_exchanger(component):
                 o[0].h.val_SI = h_min_o1 * 2
             if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
                 i[1].h.val_SI = h_min_i2 * 1.1
+
+        if self.ttd_u.is_set:
+            h_min_i1 = h_mix_pT(i[0].to_flow(), nw.T_range_SI[0])
+            h_min_o2 = h_mix_pT(o[1].to_flow(), nw.T_range_SI[0])
+            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
+                i[0].h.val_SI = h_min_i1 * 2
+            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
+                o[1].h.val_SI = h_min_o2 * 1.1
 
     def initialise_source(self, c, key):
         r"""

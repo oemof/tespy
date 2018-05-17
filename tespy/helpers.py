@@ -15,6 +15,10 @@ import math
 import numpy as np
 import sys
 from scipy import interpolate
+import pandas as pd
+from datapackage import Resource
+import os
+import time
 
 import warnings
 warnings.simplefilter("ignore", RuntimeWarning)
@@ -88,7 +92,7 @@ class data_container:
             return None
 
     def attr(self):
-        return []
+        return {}
 
 
 class dc_prop(data_container):
@@ -140,6 +144,7 @@ class dc_cp(data_container):
     data container for component parameters
 
     - val (*numeric*) - user specified value
+    - val_SI (*numeric*) - value in SI units
     - val_set (*bool*) - is the specified value set?
     - is_var (*bool*) - make this parameter a variable of the system? if so,
       val will be used as starting value
@@ -294,6 +299,9 @@ class tespy_fluid:
             self.alias = 'TESPy::' + alias
         self.fluid = fluid
 
+        # load LUT from this path
+        self.path = kwargs.get('path', dc_cp())
+
         # adjust value ranges according to specified unit system
         self.p_range = np.array(p_range)
         self.T_range = np.array(T_range)
@@ -324,13 +332,24 @@ class tespy_fluid:
         params['d_pT'] = d_mix_pT
         params['visc_pT'] = visc_mix_pT
 
-        for key in params.keys():
-            tespy_fluid.fluids[self.alias][key] = (
-                self.create_lookup(key, params[key]))
+        self.funcs = {}
+
+        if not self.path.is_set:
+
+            for key in params.keys():
+
+                self.funcs[key] = self.generate_lookup(key, params[key])
+
+        else:
+
+            for key in params.keys():
+                self.funcs[key] = self.load_lookup(key)
+
+        tespy_fluid.fluids[self.alias] = self
 
         print('Successfully created LUTs for custom fluid ' + self.alias)
 
-    def create_lookup(self, name, func):
+    def generate_lookup(self, name, func):
         """
         create lookup table
 
@@ -340,8 +359,6 @@ class tespy_fluid:
         :type func: callable function
         :returns: y (*scipy.interpolate.RectBivariateSpline*) - lookup table
         """
-
-        print('Creating LUT for ' + name)
 
         x1 = self.p
         x2 = self.T
@@ -355,6 +372,40 @@ class tespy_fluid:
                 row += [func([0, p, 0, self.fluid], T)]
 
             y = np.append(y, [np.array(row)], axis=0)
+
+        # plot table after creation?
+        if self.plot:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
+                              np.meshgrid(x2, x1)[1], y)
+            ax.set_xlabel('temperature')
+            ax.set_ylabel('pressure')
+            ax.set_zlabel(name)
+            ax.view_init(10, 225)
+            plt.show()
+
+        self.save_lookup(name, x1, x2, y)
+
+        func = interpolate.RectBivariateSpline(x1, x2, y)
+        return func
+
+    def save_lookup(self, name, x1, x2, y):
+
+        df = pd.DataFrame(y, columns=x2, index=x1)
+        path = './LUT/' + self.alias + '/'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        df.to_csv(path + name + '.csv')
+
+    def load_lookup(self, name):
+
+        path = self.path.val + '/' + self.alias + '/' + name + '.csv'
+        df = pd.read_csv(path, index_col=0)
+
+        x1 = df.index.get_values()
+        x2 = np.array(list(map(float, list(df))))
+        y = df.as_matrix()
 
         # plot table after creation?
         if self.plot:
@@ -516,6 +567,7 @@ def newton(func, deriv, params, k, **kwargs):
         if i > imax:
             print('Newton algorithm was not able to find a feasible'
                   'value for function '+str(func)+'.')
+            print(params,val)
 
             break
 
@@ -578,8 +630,8 @@ def T_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['h_pT']
-        return newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
+        db = tespy_fluid.fluids[fluid].funcs['h_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
     else:
         return CPPSI('T', 'P', p, 'H', h, fluid)
 
@@ -714,8 +766,8 @@ def T_ps(p, s, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['s_pT']
-        return newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0)
+        db = tespy_fluid.fluids[fluid].funcs['s_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
     else:
         return CPPSI('T', 'P', p, 'S', s, fluid)
 
@@ -754,7 +806,7 @@ def h_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        return tespy_fluid.fluids[fluid]['h_pT'].ev(p, T)
+        return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
         return CPPSI('H', 'P', p, 'T', T, fluid)
 
@@ -804,9 +856,9 @@ def h_ps(p, s, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['s_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0)
-        return tespy_fluid.fluids[fluid]['h_pT'].ev(p, T)
+        db = tespy_fluid.fluids[fluid].funcs['s_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+        return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
         return CPPSI('H', 'P', p, 'S', s, fluid)
 
@@ -917,9 +969,9 @@ def d_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
-        return tespy_fluid.fluids[fluid]['d_pT'].ev(p, T)
+        db = tespy_fluid.fluids[fluid].funcs['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+        return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     else:
         return CPPSI('D', 'P', p, 'H', h, fluid)
 
@@ -974,7 +1026,7 @@ def d_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        return tespy_fluid.fluids[fluid]['d_pT'].ev(p, T)
+        return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     else:
         return CPPSI('D', 'P', p, 'T', T, fluid)
 
@@ -1026,9 +1078,9 @@ def visc_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
-        return tespy_fluid.fluids[fluid]['visc_pT'].ev(p, T)
+        db = tespy_fluid.fluids[fluid].funcs['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+        return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     else:
         return CPPSI('V', 'P', p, 'H', h, fluid)
 
@@ -1070,7 +1122,7 @@ def visc_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        return tespy_fluid.fluids[fluid]['visc_pT'].ev(p, T)
+        return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     else:
         return CPPSI('V', 'P', p, 'T', T, fluid)
 
@@ -1122,9 +1174,9 @@ def s_ph(p, h, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        func = tespy_fluid.fluids[fluid]['h_pT']
-        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0)
-        return tespy_fluid.fluids[fluid]['s_pT'].ev(p, T)
+        db = tespy_fluid.fluids[fluid].funcs['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+        return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
         return CPPSI('S', 'P', p, 'H', h, fluid)
 
@@ -1149,15 +1201,64 @@ def s_mix_pT(flow, T):
         pp: \text{partial pressure}\\
         R: \text{gas constant}
     """
+
+# second method seems to be faster, maybe speed can further be improved
+#    n = molar_massflow(flow[3])
+#
+#    s = 0
+#    for fluid, x in flow[3].items():
+#        if x > err:
+#            if 'TESPy::' in fluid:
+#                for f, xi in tespy_fluid.fluids[fluid].fluid.items():
+#                    if xi > err:
+#                        pp = flow[1] * xi * x / (molar_masses[f] * n)
+#                        s += s_pT(pp, T, f) * xi * x
+#                        s -= (xi * x * gas_constants[f] / molar_masses[f] *
+#                              math.log(pp / flow[1]))
+#
+#            else:
+#                pp = flow[1] * x / (molar_masses[fluid] * n)
+#                s += s_pT(pp, T, fluid) * x
+#                s -= (x * gas_constants[fluid] / molar_masses[fluid] *
+#                      math.log(pp / flow[1]))
+#
+#    return s
+
+
     n = molar_massflow(flow[3])
 
+    fluid_comps = {}
+
+    tmp = time.time()
+
+    tespy_fluids = [s for s in flow[3].keys() if "TESPy::" in s]
+    for f in tespy_fluids:
+        for it, x in tespy_fluid.fluids[f].fluid.items():
+            if it in fluid_comps.keys():
+                fluid_comps[it] += x * flow[3][f]
+            else:
+                fluid_comps[it] = x * flow[3][f]
+
+    fluids = [s for s in flow[3].keys() if "TESPy::" not in s]
+    for f in fluids:
+        if f in fluid_comps.keys():
+            fluid_comps[f] += flow[3][f]
+        else:
+            fluid_comps[f] = flow[3][f]
+
+    print(time.time() - tmp)
+
+    tmp = time.time()
+
     s = 0
-    for fluid, x in flow[3].items():
+    for fluid, x in fluid_comps.items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
             s += s_pT(pp, T, fluid) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   math.log(pp / flow[1]))
+
+    print(time.time() - tmp)
 
     return s
 
@@ -1166,7 +1267,7 @@ def s_pT(p, T, fluid):
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
-        return tespy_fluid.fluids[fluid]['s_pT'].ev(p, T)
+        return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
         return CPPSI('S', 'P', p, 'T', T, fluid)
 

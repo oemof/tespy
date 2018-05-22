@@ -1224,12 +1224,9 @@ def s_mix_pT(flow, T):
 #
 #    return s
 
-
     n = molar_massflow(flow[3])
 
     fluid_comps = {}
-
-    tmp = time.time()
 
     tespy_fluids = [s for s in flow[3].keys() if "TESPy::" in s]
     for f in tespy_fluids:
@@ -1246,10 +1243,6 @@ def s_mix_pT(flow, T):
         else:
             fluid_comps[f] = flow[3][f]
 
-    print(time.time() - tmp)
-
-    tmp = time.time()
-
     s = 0
     for fluid, x in fluid_comps.items():
         if x > err:
@@ -1257,8 +1250,6 @@ def s_mix_pT(flow, T):
             s += s_pT(pp, T, fluid) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   math.log(pp / flow[1]))
-
-    print(time.time() - tmp)
 
     return s
 

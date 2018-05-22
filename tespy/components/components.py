@@ -3242,19 +3242,24 @@ class combustion_chamber(component):
 
         n_fuel = 1
         lamb = 3
-        m_o2 = (n_fuel * (self.n['C'] + self.n['H'] / 4) *
-                molar_masses[self.o2] * lamb)
         m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
         m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
-        m_n2 = m_o2 / O_2 * N_2
 
-        m = m_n2 + m_h2o + m_co2 + m_o2
+        n_o2 = (m_co2 / molar_masses[self.co2] +
+                0.5 * m_h2o / molar_masses[self.h2o]) * lamb
+
+        m_air = n_o2 * molar_masses[self.o2] / O_2
+        m_fuel = n_fuel * molar_masses[self.fuel.val]
+        m_fg = m_air + m_fuel
+
+        m_o2 = n_o2 * molar_masses[self.o2] * (1 - 1 / lamb)
+        m_n2 = N_2 * m_air
 
         fg = {
-            self.n2: m_n2 / m,
-            self.co2: m_co2 / m,
-            self.o2: m_o2 / m,
-            self.h2o: m_h2o / m
+            self.n2: m_n2 / m_fg,
+            self.co2: m_co2 / m_fg,
+            self.o2: m_o2 / m_fg,
+            self.h2o: m_h2o / m_fg
         }
 
         for c in nw.comps.loc[self].o:
@@ -3274,19 +3279,47 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-
-        self.initialise_fluids(nw)
+        m = 0
+        for i in nw.comps.loc[self].i:
+            if i.m.val_SI < 0 and not i.m.val_set:
+                i.m.val_SI = 0.01
+            m += i.m.val_SI
 
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f not in [self.o2, self.n2, self.co2, self.h2o, self.fuel]:
-                    if o.fluid.val[f] > 0.03:
-                        o.fluid.val[f] = 0.03
+                if f not in [self.o2, self.co2, self.h2o, self.fuel]:
+                    m_f = 0
+                    for i in nw.comps.loc[self].i:
+                        m_f += i.fluid.val[f] * i.m.val_SI
 
-        for i in nw.comps.loc[self].i:
-            if i.m.val_SI < 0 and not i.m.val_set:
-                i.m.val_SI = 0.01
+                    if abs(o.fluid.val[f] - m_f / m) > 0.03:
+                        o.fluid.val[f] = m_f / m
+
+                elif f == self.o2:
+                    if o.fluid.val[f] > 0.25:
+                        o.fluid.val[f] = 0.2
+                    if o.fluid.val[f] < 0.05:
+                        o.fluid.val[f] = 0.05
+
+                elif f == self.co2:
+                    if o.fluid.val[f] > 0.10:
+                        o.fluid.val[f] = 0.10
+                    if o.fluid.val[f] < 0.02:
+                        o.fluid.val[f] = 0.02
+
+                elif f == self.h2o:
+                    if o.fluid.val[f] > 0.10:
+                        o.fluid.val[f] = 0.10
+                    if o.fluid.val[f] < 0.02:
+                        o.fluid.val[f] = 0.02
+
+                elif f == self.fuel:
+                    if o.fluid.val[f] > 0:
+                        o.fluid.val[f] = 0
+
+                else:
+                    continue
 
         for c in nw.comps.loc[self].o:
             if o.m.val_SI < 0 and not o.m.val_set:
@@ -3383,215 +3416,6 @@ class combustion_chamber(component):
             print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
             j += 1
         print('m_out = ', outl[0].m.val_SI, 'kg / s; ')
-
-
-# %%
-# maybe to come
-#class combustion_chamber_stoich(combustion_chamber):
-#    """
-#    .. note::
-#        This component uses air as pseudo fluid and a mixture of air and
-#        stoichometric flue gas at the outlet. Therefore it implies some
-#        restrictions:
-#
-#        - the fuel must always be connected to in1
-#        - the fuel composition must be fixed (all fluid components have to be
-#          set)
-#
-#        - the fluids of your network must then be:
-#            - 'air',
-#            - your fuel, e. g. 'CH4' and
-#            - your fuel_fg, e. g. 'CH4_fg'.
-#
-#        In terms of this example, the fluid composition at the outlet of the
-#        combustion chamber is a mixture of 'air' and 'CH4_fg'.
-#
-#    **available parameters**
-#
-#    - fuel: fuel for combustion chamber
-#    - lamb: air to stoichiometric air ratio
-#
-#    **available fuels**
-#
-#    - methane
-#    - ethane
-#    - propane
-#    - butane
-#    - hydrogen
-#
-#    **inlets and outlets**
-#
-#    - in1, in2
-#    - out1
-#
-#    .. image:: _images/combustion_chamber.svg
-#       :scale: 100 %
-#       :alt: alternative text
-#       :align: center
-#    """
-#
-#    def comp_init(self, nw):
-#
-#        if not self.fuel_set:
-#            msg = 'Must specify fuel for combustion chamber.'
-#            raise MyComponentError(msg)
-#
-#        if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
-#                 CP.get_aliases(self.fuel)]]) == 0):
-#            msg = ('The fuel you specified does not match the fuels available'
-#                   ' within the network.')
-#            raise MyComponentError(msg)
-#
-#        if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
-#                 CP.get_aliases(self.fuel)]])) == 0:
-#            msg = ('The fuel you specified is not available. Available fuels '
-#                   'are: ' + str(self.fuels()) + '.')
-#            raise MyComponentError(msg)
-#
-#        self.fuel = [x for x in nw.fluids if x in [a.replace(' ', '') for a in
-#                     CP.get_aliases(self.fuel)]][0]
-#
-#        self.o2 = [x for x in nw.fluids if x in
-#                   [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
-#        self.co2 = [x for x in nw.fluids if x in
-#                    [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
-#        self.h2o = [x for x in nw.fluids if x in
-#                    [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
-#        self.n2 = [x for x in nw.fluids if x in
-#                   [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
-#
-#        structure = fluid_structure(self.fuel)
-#
-#        self.n = {}
-#        for el in ['C', 'H', 'O']:
-#            if el in structure.keys():
-#                self.n[el] = structure[el]
-#            else:
-#                self.n[el] = 0
-#
-#        self.hi = self.lhv()
-#
-#    def inlets(self):
-#        return ['in1', 'in2']
-#
-#    def outlets(self):
-#        return ['out1']
-#
-#    def attr(self):
-#        return component.attr(self) + ['fuel', 'lamb']
-#
-#    def fuels(self):
-#        return ['methane', 'ethane', 'propane', 'butane',
-#                'hydrogen']
-#
-#    def component(self):
-#        return 'combustion chamber stoichometric flue gas'
-#
-#    def reaction_balance(self, inl, outl, fluid):
-#        r"""
-#        calculates the reactions mass balance for one fluid
-#
-#        - determine molar mass flows of fuel and fresh air
-#        - calculate excess fuel
-#        - calculate residual value of the fluids balance
-#
-#        :param inlets: the components connections at the inlets
-#        :type inlets: list
-#        :param outlets: the components connections at the outlets
-#        :type outlets: list
-#        :param fluid: fluid to calculate the reaction balance for
-#        :type fluid: str
-#        :returns: res (*float*) - residual value of mass balance
-#
-#        **reaction balance equations**
-#
-#        .. math::
-#            res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
-#            \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
-#            \forall i \in inlets, \; \forall j \in outlets
-#
-#            \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-#            {M_{fluid}} \; \forall i \in inlets\\
-#
-#            \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
-#            \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
-#
-#        *fuel*
-#
-#        .. math::
-#            0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
-#            \cdot M_{fuel}\\
-#
-#            \dot{m}_{f,exc,m} = \begin{cases}
-#            0 & \lambda \geq 1\\
-#            \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
-#            {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} & \lambda < 1
-#            \end{cases}
-#
-#        *oxygen*
-#
-#        .. math::
-#            0 = res - \begin{cases}
-#            -\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} & \lambda \geq 1\\
-#            - \dot{m}_{O_2,m} \cdot M_{O_2} & \lambda < 1
-#            \end{cases}
-#
-#        *water*
-#
-#        .. math::
-#            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-#            \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}
-#
-#        *carbondioxide*
-#
-#        .. math::
-#            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-#            \cdot n_{C,fuel} \cdot M_{CO_2}
-#
-#        *other*
-#
-#        .. math::
-#            0 = res
-#
-#        """
-#
-#        n_fuel = 0
-#        for i in inl:
-#            n_fuel += i.m.val_SI * i.fluid.val[self.fuel] / molar_masses[self.fuel]
-#
-#        n_oxygen = 0
-#        for i in inl:
-#            n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
-#        if not self.lamb_set:
-#            self.lamb = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
-#
-#        n_fuel_exc = 0
-#        if self.lamb < 1:
-#            n_fuel_exc = n_fuel - n_oxygen / (self.n['C'] + self.n['H'] / 4)
-#
-#        if fluid == self.co2:
-#            dm = ((n_fuel - n_fuel_exc) *
-#                  self.n['C'] * molar_masses[self.co2])
-#        elif fluid == self.h2o:
-#            dm = ((n_fuel - n_fuel_exc) *
-#                  self.n['H'] / 2 * molar_masses[self.h2o])
-#        elif fluid == self.o2:
-#            if self.lamb < 1:
-#                dm = -n_oxygen * molar_masses[self.o2]
-#            else:
-#                dm = -n_oxygen / self.lamb * molar_masses[self.o2]
-#        elif fluid == self.fuel:
-#            dm = -(n_fuel - n_fuel_exc) * molar_masses[self.fuel]
-#        else:
-#            dm = 0
-#
-#        res = dm
-#
-#        for i in inl:
-#            res += i.fluid.val[fluid] * i.m.val_SI
-#        for o in outl:
-#            res -= o.fluid.val[fluid] * o.m.val_SI
-#        return res
 
 # %%
 

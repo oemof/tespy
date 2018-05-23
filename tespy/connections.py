@@ -8,7 +8,7 @@
 import numpy as np
 import pandas as pd
 
-from tespy.helpers import MyConnectionError
+from tespy.helpers import MyConnectionError, data_container, dc_prop, dc_flu
 from tespy.components import components as cmp
 
 
@@ -34,7 +34,7 @@ class connection:
              - :code:`ValueError`, if outlet_id or inlet_id are not allowed
                for ids for comp1 or comp2
 
-    **allowed keywords** in kwargs (also see connections.attr()):
+    **allowed keywords** in kwargs (also see connections.attr().keys()):
 
     - m (*numeric*, *ref object*), m0 (*numeric*)
     - p (*numeric*, *ref object*), p0 (*numeric*)
@@ -101,110 +101,105 @@ class connection:
                    'Valid ids are: ' + str(comp2.inlets()) + '.')
             raise ValueError(msg)
 
-        # set default values
+        # set specified values
         self.s = comp1
         self.s_id = outlet_id
         self.t = comp2
         self.t_id = inlet_id
-        self.m = kwargs.get('m', np.nan)
-        self.p = kwargs.get('p', np.nan)
-        self.h = kwargs.get('h', np.nan)
-        self.T = kwargs.get('T', np.nan)
-        self.x = kwargs.get('x', np.nan)
-
-        self.fluid = {}
-        self.fluid_set = {}
-        self.fluid_balance = False
-
-        self.m0 = kwargs.get('m0', 1)
-        self.p0 = kwargs.get('p0', np.nan)
-        self.h0 = kwargs.get('h0', np.nan)
-
-        self.m_set = False
-        self.p_set = False
-        self.h_set = False
-        self.T_set = False
-        self.x_set = False
 
         self.design = []
         self.offdesign = []
 
-        # setters for specified values
-        for key in kwargs:
-            if (isinstance(kwargs[key], float) or
-                    isinstance(kwargs[key], int) or
-                    isinstance(kwargs[key], ref)):
-                self.__dict__.update({key + '_set': True})
-            if key == 'fluid':
-                for fluid, x in sorted(kwargs[key].items()):
-                    self.fluid[fluid] = x
-                    self.fluid_set[fluid] = True
-            if key == 'fluid_balance':
-                self.fluid_balance = kwargs[key]
-            if key == 'design' or key == 'offdesign':
-                if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the design parameters as list!'
-                    raise ValueError(msg)
-                if set(kwargs[key]).issubset(self.attr()):
-                    self.__dict__.update({key: kwargs[key]})
-                else:
-                    msg = ('Available parameters for (off-)design'
-                           'specification are: ' + str(self.attr()) + '.')
-                    raise ValueError(msg)
+        # set default values for kwargs
+        var = self.attr()
 
-        if self.m_set and not isinstance(self.m, ref):
-            self.m0 = self.m
-        if self.p_set and not isinstance(self.p, ref):
-            self.p0 = self.p
-        if self.h_set and not isinstance(self.h, ref):
-            self.h0 = self.h
+        for key in self.attr().keys():
+            self.__dict__.update({key: var[key]})
+
+        self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
         """
         sets, resets or unsets attributes of a connection, for the keyword
         arguments, return values and errors see object initialisation
         """
-        invalid_keys = np.array([])
-        for key in kwargs:
-            if key not in self.attr():
-                invalid_keys = np.append(invalid_keys, key)
-            if (isinstance(kwargs[key], float) or
-                    isinstance(kwargs[key], int) or
-                    isinstance(kwargs[key], ref)):
-                self.__dict__.update({key: kwargs[key]})
-                if isinstance(kwargs[key], ref):
-                    self.__dict__.update({key + '_set': True})
-                else:
-                    if np.isnan(kwargs[key]):
-                        self.__dict__.update({key + '_set': False})
-                        if hasattr(self, key + '_ref'):
-                            delattr(self, key + '_ref')
-                    else:
-                        self.__dict__.update({key + '_set': True})
+        var = self.attr()
+        var0 = [x + '0' for x in var.keys()]
 
+        # set specified values
+        for key in kwargs:
+            if key in var.keys() or key in var0:
+                if (isinstance(kwargs[key], float) or
+                        isinstance(kwargs[key], int)):
+                    # unset
+                    if np.isnan(kwargs[key]) and key not in var0:
+                        self.get_attr(key).set_attr(val_set=False)
+                        self.get_attr(key).set_attr(ref_set=False)
+                    # starting value
+                    elif key in var0:
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key])
+                    # set/reset
+                    else:
+                        self.get_attr(key).set_attr(val_set=True,
+                                                    val=kwargs[key],
+                                                    val0=kwargs[key])
+
+                # reference object
+                elif isinstance(kwargs[key], ref):
+                    if key == 'fluid' or key == 'x':
+                        print('References for fluid vector and vapour mass '
+                              'fraction not implemented.')
+                    else:
+                        self.get_attr(key).set_attr(ref=kwargs[key])
+                        self.get_attr(key).set_attr(ref_set=True)
+
+                # fluid specification
+                elif isinstance(kwargs[key], dict):
+                    # starting values
+                    if key in var0:
+                        self.get_attr(key).set_attr(val0=kwargs[key])
+                    # specified parameters
+                    else:
+                        self.get_attr(key).set_attr(val=kwargs[key].copy())
+                        self.get_attr(key).set_attr(val0=kwargs[key].copy())
+                        for f in kwargs[key]:
+                            kwargs[key][f] = True
+                        self.get_attr(key).set_attr(val_set=kwargs[key])
+
+                # data container specification
+                elif isinstance(kwargs[key], data_container):
+                    self.__dict__.update({key: kwargs[key]})
+
+                # invalid datatype for keyword
+                else:
+                    msg = 'Bad datatype for keyword argument ' + str(key)
+                    raise TypeError(msg)
+
+            # fluid balance
             elif key == 'fluid_balance':
-                self.fluid_balance = kwargs[key]
+                if isinstance(kwargs[key], bool):
+                    self.get_attr('fluid').set_attr(balance=kwargs[key])
+                else:
+                    msg = ('Datatype for keyword argument ' + str(key) +
+                           ' must be bool.')
+                    raise TypeError(msg)
+
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the (off-)design parameters as'
-                           ' list!')
-                    raise ValueError(msg)
-                if set(kwargs[key]).issubset(self.attr()):
+                    msg = 'Please provide the design parameters as list!'
+                    raise TypeError(msg)
+                if set(kwargs[key]).issubset(var.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
                     msg = ('Available parameters for (off-)design'
-                           'specification are: ' + str(self.attr()) + '.')
+                           'specification are: ' + str(var.keys()) + '.')
                     raise ValueError(msg)
 
-            if key == 'fluid':
-                self.fluid = {}
-                for fluid, x in sorted(kwargs[key].items()):
-                    self.fluid[fluid] = x
-                    self.fluid_set[fluid] = True
-
-        if len(invalid_keys) > 0:
-            print(invalid_keys, 'are invalid attributes.',
-                  'Available attributes for flow are:', self.attr(), '.')
+            # invalid keyword
+            else:
+                msg = 'Connection has no attribute ' + str(key)
+                raise ValueError(msg)
 
     def get_attr(self, key):
         """
@@ -228,16 +223,17 @@ class connection:
 
         :returns: list object
         """
-        return ['m', 'p', 'h', 'T', 'x', 'm0', 'p0', 'h0', 'fluid',
-                'fluid_balance', 'design', 'offdesign']
+        return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
+                'x': dc_prop(),
+                'fluid': dc_flu()}
 
-    def as_list(self):
+    def to_flow(self):
         """
         create a list containing the connections fluid information
 
         :returns: :code:`[mass flow, pressure, enthalpy, fluid vector]`
         """
-        return [self.m, self.p, self.h, self.fluid]
+        return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
 
 
 class bus:
@@ -330,7 +326,7 @@ class bus:
                                'This bus accepts components of type ' +
                                str(type(c).__bases__[0]) + '.')
                         raise TypeError(msg)
-                return False
+                return True
         return True
 
 

@@ -17,8 +17,8 @@ mistakes or if you think the documentation could be more precise or clear in som
 feel free to fix it and create a pull request on the github repository.
 
 Another simple first step is to program your own custom subsystems and share them in the community. For
-a good start just look into our tutorial `How do I create custom subsystems
-<https://tespy.readthedocs.io/tutorial/custom_subsystem.html>`_.
+a good start just look into our tutorial :ref:`How do I create custom subsystems
+<tespy_subsystems_label>`.
 
 A third, highly appreciated way for you to contribute is the provision of new and/or improved equations,
 maybe even whole characteristics for single components, such as compressor maps, characteristics

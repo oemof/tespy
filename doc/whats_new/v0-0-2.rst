@@ -1,0 +1,35 @@
+v0.0.2 (April 07, 2018)
+++++++++++++++++++++++++++
+
+New Features
+############
+- Changed architecture of the variables and component parameters. Every parameter is now a data container, giving the user more flexibility (e. g. specifiying a unit) and facilitating future development.
+- Changed architecture of fluid property function calls to make custom fluids or custom fluid property functions available.
+- Added custom fluid class to generate fluid properties from given fluid mixture.
+- Added generic component characteristics for turbine isentropic efficiency and cone law as well as for the heat exchangers heat transfer coefficient.
+  On top, the user may use own values for the characteristic lines.
+- Added val_SI to data container for component properties for future development.
+
+Documentation
+#############
+- Added documentation on how to handle data containers for variables and parameters.
+- Added an example for combustion chamber usage.
+
+Testing
+#######
+
+Bug fixes
+#########
+- Adjusted the generic pump characteristics to cause less instabilites and adjusted function parameters according to `KSB <https://www.ksb.com/kreiselpumpenlexikon/spezifische-drehzahl/186490>`_.
+- Fixed bug in combustion chamber's thermal input equation.
+- Fixed parameters for numerical calculation of derivatives.
+- Fixed starting relaxation parameter.
+
+Other changes
+#############
+- Improved convergence stability for combustion chamber and heat exchanger.
+
+Contributors
+############
+
+- Francesco Witte

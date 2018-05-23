@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 fluids = ['water']
 
 nw = nwk.network(fluids=fluids, p_unit='bar', T_unit='C', h_unit='kJ / kg',
-                 p_range=[0.02, 150], T_range=[20, 800], h_range=[15, 5000])
+                 p_range=[0.02, 110], T_range=[20, 800], h_range=[15, 5000])
 
 # %% components
 
@@ -83,11 +83,11 @@ vessel_turb.set_attr(mode='man')
 turbine_hp.set_attr(eta_s=0.9)
 turbine_lp.set_attr(eta_s=0.9)
 
-condenser.set_attr(pr1=0.95, pr2=0.95, ttd_u=10)
+condenser.set_attr(pr1=0.95, pr2=0.95, ttd_u=12)
 preheater.set_attr(pr1=0.95, pr2=0.99, ttd_u=7)
 vessel.set_attr(mode='man')
 
-pump.set_attr(eta_s=0.8, mode='man')
+pump.set_attr(eta_s=0.8)
 steam_generator.set_attr(pr=0.95, mode='man')
 
 # %% parametrization of connections
@@ -111,8 +111,10 @@ fs_out.set_attr(p=con.ref(fs_in, 1, 0), h=con.ref(fs_in, 1, 0))
 # cooling water inlet
 cw_in.set_attr(T=60, p=10, fluid={'water': 1})
 
-# setting key parameters
-fs.set_attr(m=47)
+# setting key parameters:
+# Power of the plant
+power_bus.set_attr(P=5e6)
+#
 cw_out.set_attr(T=110)
 
 
@@ -121,13 +123,14 @@ cw_out.set_attr(T=110)
 mode = 'design'
 
 nw.solve(init_file=None, mode=mode)
+nw.print_results()
 nw.save('chp_' + mode)
 
-file = 'chp_' + mode + '_conn.csv'
+file = 'chp_' + mode + '_results.csv'
 mode = 'offdesign'
 
 # representation of part loads
-m = [50, 45, 40, 35, 30]
+P_range = [5.25e6, 5e6, 4.5e6, 4e6, 3.5e6, 3e6]
 
 # temperatures for the heating system
 T_fl = [80, 90, 100, 110, 120]
@@ -140,16 +143,16 @@ for i in T_fl:
     cw_out.set_attr(T=i)
     P[i] = []
     Q[i] = []
-    # iterate over mass flows
-    for j in m:
-        fs.set_attr(m=j)
+    # iterate over power plant power output
+    for j in P_range:
+        power_bus.set_attr(P=j)
 
         # use an initialisation file with parameters similar to next
         # calculation
-        if j == 50:
+        if j == P_range[0]:
             init_file = file
         else:
-            init_file = 'chp_' + mode + '_conn.csv'
+            init_file = 'chp_' + mode + '_results.csv'
 
         nw.solve(init_file=init_file, design_file=file, mode=mode)
         nw.save('chp_' + mode)
@@ -170,8 +173,8 @@ ax.set_xlabel('$\dot{Q}$ in W')
 plt.title('P-Q diagram for CHP with backpressure steam turbine')
 plt.legend(loc='lower left')
 
-ax.set_ylim([0, 1e8])
-ax.set_xlim([0, 1e8])
+ax.set_ylim([0, 6e6])
+ax.set_xlim([0, 14e6])
 
 plt.show()
 

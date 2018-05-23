@@ -8,10 +8,20 @@
 import CoolProp.CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
+import collections
+
 import math
 import numpy as np
 import sys
 import time
+from scipy import interpolate
+from scipy.optimize import fsolve
+
+import warnings
+warnings.simplefilter("ignore", RuntimeWarning)
 
 global err
 err = 1e-6
@@ -19,6 +29,171 @@ global molar_masses
 molar_masses = {}
 global gas_constants
 gas_constants = {}
+gas_constants['uni'] = 8.3144598
+
+
+class tespy_fluid:
+    """r
+
+    The tespy_fluid class allows the creation of custom fluid properies for a
+    specified mixture of fluids. The created fluid properties adress an ideal
+    mixture of real fluids.
+
+    Creates lookup-tables for
+
+    - enthalpy,
+    - entropy,
+    - density,
+    - viscoity and
+
+    from pressure and temperature. Additionally molar mass and gas constant
+    will be calculated. Inverse functions, e. g. entropy from pressure and
+    enthalpy are calculated via newton algorithm from these tables.
+
+    :param alias: name of the fluid mixture will be "TESPY::alias"
+    :type alias: str
+    :param fluid: fluid vector for composition {fluid_i: mass fraction, ...}
+    :type fluid: dict
+    :param p_range: range of feasible pressures for newly created fluid
+    :type p_range: list
+    :param T_range: range of feasible temperatures for newly created fluid
+    :type T_range: list
+    :returns: no return value
+    :raises: - :code:`TypeError`, if alias is not of type string
+             - :code:`ValueError`, if the alias contains "IDGAS::"
+
+    **allowed keywords** in kwargs:
+
+    - plot (*bool*), plot the lookup table after creation
+    """
+
+    def __init__(self, alias, fluid, p_range, T_range, nw, **kwargs):
+
+        if not isinstance(alias, str):
+            msg = 'Alias must be of type String.'
+            raise TypeError(msg)
+
+        if 'IDGAS::' in alias:
+            msg = 'You are not allowed to use "IDGAS::" within your alias.'
+            raise ValueError(msg)
+
+        # process parameters
+        self.alias = 'TESPY::'+alias
+        self.fluid = fluid
+
+        # adjust value ranges according to specified unit system
+        self.p_range = np.array(p_range) * nw.p[nw.p_unit]
+        self.T_range = ((np.array(T_range) + nw.T[nw.T_unit][0]) *
+                        nw.T[nw.T_unit][1])
+
+        # set up grid
+        self.p = np.linspace(self.p_range[0], self.p_range[1])
+        self.T = np.linspace(self.T_range[0], self.T_range[1])
+
+        # plotting
+        self.plot = kwargs.get('plot', False)
+
+        # calculate molar mass and gas constant
+        molar_masses[self.alias] = 1 / molar_massflow(self.fluid)
+        gas_constants[self.alias] = (gas_constants['uni'] /
+                                     molar_masses[self.alias])
+
+        # create look up tables
+        tespy_fluid.fluids[self.alias] = {}
+
+        params = {}
+
+        params['h_pT'] = h_mix_pT
+        params['s_pT'] = s_mix_pT
+        params['d_pT'] = d_mix_pT
+        params['visc_pT'] = visc_mix_pT
+
+        for key in params.keys():
+            tespy_fluid.fluids[self.alias][key] = (
+                self.create_lookup(params[key]))
+
+        p = 3e5
+        s = s_mix_pT([0, p, 1e6, {'TESPY::test': 1, 'CH4': 0, 'CO2': 0}], 500)
+        T_mix_ps([0, p, 0, {'TESPY::test': 1, 'CH4': 0, 'CO2': 0}], s)
+
+    def create_lookup(self, func):
+        """
+        create lookup table
+
+        :param func: function to create lookup from
+        :type func: callable function
+        :returns: y (scipy.interpolate.interp2d object) - lookup table
+        """
+
+        x1 = self.p
+        x2 = self.T
+
+        y = np.empty((0, x1.shape[0]), float)
+
+        # iterate
+        for i in self.p:
+            row = []
+            for j in self.T:
+                row += [func([0, i, 0, self.fluid], j)]
+
+            y = np.append(y, [np.array(row)], axis=0)
+
+        self.T, self.p = np.meshgrid(self.T, self.p)
+
+        # plot table after creation?
+        if self.plot:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.plot_wireframe(self.p, self.T, y)
+            ax.set_xlabel('pressure')
+            ax.set_ylabel('temperature')
+            ax.set_zlabel('y')
+            ax.view_init(10, 225)
+            plt.show()
+
+        y = interpolate.interp2d(x1, x2, y, kind='linear', bounds_error=True)
+        return y
+
+
+def reverse_2d(params, y):
+    r"""
+    reverse function for lookup table
+
+    :param params: variable function parameters
+    :type params: list
+    :param y: functional value, so that :math:`x_2 -
+              f\left(x_1, y \right) = 0`
+    :type y: float
+    :returns: residual value of the function :math:`x_2 -
+              f\left(x_1, y \right)`
+    """
+    func, x1, x2 = params[0], params[1], params[2]
+    return x2 - func(x1, y)
+
+
+def reverse_2d_deriv(params, y):
+    r"""
+    derivative of the reverse function for a lookup table
+
+    :param params: variable function parameters
+    :type params: list
+    :param y: functional value, so that :math:`x_2 -
+              f\left(x_1, y \right) = 0`
+    :type y: float
+    :returns: partial derivative :math:`\frac{\partial f}{\partial y}`
+    """
+    d_u = 1
+    d_l = 1
+    if k + d_u > params[0].y_max:
+        d_u = 0
+    if k - d_l < params[0].y_min:
+        d_l = 0
+    return ((reverse_2d(params, y + d_u) - reverse_2d(params, y - d_l)) /
+            (d_u + d_l))
+
+
+# initialise the tespy_fluids.fluids container
+tespy_fluid.fluids = {}
 
 
 class memorise:
@@ -80,6 +255,159 @@ memorise.visc_ph = {}
 memorise.visc_ph_f = {}
 memorise.s_ph = {}
 memorise.s_ph_f = {}
+
+
+class data_container:
+    """r
+
+    The data container stores data on components and connections attributes.
+    There are subclasses for the following applications:
+
+    - mass flow, pressure, enthalpy and temperature
+    - fluid
+    - component parameters
+    - component characteristics
+
+    **allowed keywords** in kwargs:
+
+    - see data_container.attr()
+    """
+
+    def __init__(self, **kwargs):
+
+        invalid = []
+        var = self.attr()
+
+        # default values
+        for key in var.keys():
+            self.__dict__.update({key: var[key]})
+
+        # specify values
+        for key in kwargs:
+            if key not in var.keys():
+                invalid += []
+            self.__dict__.update({key: kwargs[key]})
+
+        # print invalid keywords
+        if len(invalid) > 0:
+            print('The following keys are not available: ' + str(invalid))
+
+    def set_attr(self, **kwargs):
+
+        invalid = []
+        var = self.attr()
+
+        # specify values
+        for key in kwargs:
+            if key not in var.keys():
+                invalid += []
+            self.__dict__.update({key: kwargs[key]})
+
+        # print invalid keywords
+        if len(invalid) > 0:
+            print('The following keys are not available: ' + str(invalid))
+
+    def get_attr(self, key):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            print('No attribute \"', key, '\" available!')
+            return None
+
+    def attr(self):
+        return []
+
+
+class dc_prop(data_container):
+    """r
+
+    data container for fluid properties
+
+    **value specification**
+
+    - val (*numeric*) - user specified value
+    - val0 (*numeric*) - user specified starting value
+    - val_SI (*numeric*) - value in SI unit
+    - val_set (*bool*) - is the specified value a parameter?
+
+    **reference specification**
+
+    - ref (*numeric*) - referenced connection
+    - ref_set (*bool*) - is the reference a parameter?
+
+    **units**
+
+    - unit (*str*) - unit
+    - unit_set (*bool*) - is the unit set for the corresponding value? if not,
+      network unit will be used in calculation (default)
+    """
+    def attr(self):
+        return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
+                'ref': None, 'ref_set': False,
+                'unit': None, 'unit_set': False}
+
+
+class dc_flu(data_container):
+    """r
+
+    data container for fluid vector
+
+    - val (*dict*) - user specified values
+    - val0 (*dict*) - user specified starting values
+    - val_set (*dict*) - which components of the fluid vector are set?
+    - balance (*bool*) - apply fluid balance equation?
+    """
+    def attr(self):
+        return {'val': {}, 'val0': {}, 'val_set': {}, 'balance': False}
+
+
+class dc_cp(data_container):
+    """r
+
+    data container for component parameters
+
+    - val (*numeric*) - user specified value
+    - val_set (*bool*) - is the specified value set?
+    - is_var (*bool*) - make this parameter a variable of the system? if so,
+      val will be used as starting value
+    """
+    def attr(self):
+        return {'val': 0, 'val_SI': 0, 'is_set': False, 'is_var': False}
+
+
+class dc_cc(data_container):
+    """r
+
+    data container for component characteristics
+
+    - func (*tespy.components.characteristics.characteristics object*) -
+      characteristic function to be applied
+    - func_set (*bool*) - is the characteristic function set?
+
+    **using default characteristics**
+
+    see tespy.components.characteristics module for default methods and
+    parameters, also see tespy.components.components module for available
+    parameters.
+
+    - method (*str*) - which method of the characteristic function should be
+      applied?
+    - param (*str*) - to which parameter should the characteristic function be
+      applied?
+
+    **using custom characteristics**
+
+    linear interpolation will be applied, it is possible to use default
+    characteristics and overwrite x-values or y-values
+
+    - x (*np.array*) - array for the x-values of the characteristic line
+    - y (*np.array*) - array for the y-values of the characteristic line
+
+    """
+    def attr(self):
+        return {'func': None, 'is_set': False,
+                'method': 'default', 'param': None,
+                'x': None, 'y': None}
 
 
 class MyNetworkError(Exception):
@@ -178,8 +506,10 @@ def newton(func, deriv, params, k, **kwargs):
         i += 1
 
         if i > imax:
-            raise ValueError('Newton algorithm was not able to find a feasible'
-                             ' value for function '+str(func)+'.')
+            print('Newton algorithm was not able to find a feasible'
+                  'value for function '+str(func)+'.')
+
+            break
 
     return val
 
@@ -226,12 +556,23 @@ def T_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('T', 'H', flow[2], 'P', flow[1], fluid)
+                    val = T_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.T_ph[fl] = np.append(memorise.T_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def T_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['h_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
+                      valmin=func.y_min, valmax=func.y_max)[0]
+    else:
+        return CPPSI('T', 'P', p, 'H', h, fluid)
 
 
 def T_mix_ps(flow, s):
@@ -274,12 +615,23 @@ def T_mix_ps(flow, s):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('T', 'S', s, 'P', flow[1], fluid)
+                    val = T_ps(flow[1], s, fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [s, val]])
                     memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
                                                   new, axis=0)
                     return val
+
+
+def T_ps(p, s, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['s_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0,
+                      valmin=func.y_min, valmax=func.y_max)[0]
+    else:
+        return CPPSI('T', 'P', p, 'S', s, fluid)
 
 
 def dT_mix_dph(flow):
@@ -381,9 +733,50 @@ def h_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
-            h += CPPSI('H', 'P', flow[1] * ni / n, 'T', T, fluid) * x
+            h += h_pT(flow[1] * ni / n, T, fluid) * x
 
     return h
+
+
+def h_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        return tespy_fluid.fluids[fluid]['h_pT'](p, T)
+    else:
+        return CPPSI('H', 'P', p, 'T', T, fluid)
+
+
+def h_ps(p, s, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['s_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, s], 0,
+                   valmin=func.y_min, valmax=func.y_max)[0]
+        return tespy_fluid.fluids[fluid]['h_pT'](p, T)
+    else:
+        return CPPSI('H', 'P', p, 'S', s, fluid)
+
+
+def h_mix_ps(flow, s):
+    r"""
+    calculates enthalpy from pressure and entropy
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :param s: entropy in J / (kg * K)
+    :type s: numeric
+    :returns: h (float) - enthalpy in J / kg
+
+    .. math::
+        h_{mix}(p,s)=\sum_{i} h(pp_{i},T,fluid_{i})\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
+
+    """
+
+    return h_mix_pT(flow, T_mix_ps(flow, s))
 
 
 def dh_mix_pdT(flow, T):
@@ -401,17 +794,8 @@ def dh_mix_pdT(flow, T):
         \frac{\partial h_{mix}}{\partial T} =
         \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
-    n = molar_massflow(flow[3])
     d = 2
-    h_u = 0
-    h_l = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            h_u += CPPSI('H', 'P', pp, 'T', T + d, fluid) * x
-            h_l += CPPSI('H', 'P', pp, 'T', T - d, fluid) * x
-
-    return (h_u - h_l) / (2 * d)
+    return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
 
 
 def h_mix_pQ(flow, Q):
@@ -504,12 +888,24 @@ def v_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = 1 / CPPSI('D', 'P', flow[1], 'H', flow[2], fluid)
+                    val = 1 / d_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.v_ph[fl] = np.append(memorise.v_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def d_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
+                   valmin=func.y_min, valmax=func.y_max)[0]
+        return tespy_fluid.fluids[fluid]['d_pT'](p, T)
+    else:
+        return CPPSI('D', 'P', p, 'H', h, fluid)
 
 
 def v_mix_pT(flow, T):
@@ -533,9 +929,36 @@ def v_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            d += CPPSI('D', 'P', pp, 'T', T, fluid) * x
+            d += d_pT(pp, T, fluid) * x
 
     return 1 / d
+
+
+def d_mix_pT(flow, T):
+    r"""
+    calculates specific volume from pressure and temperature
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :param T: temperature in K
+    :type T: numeric
+    :returns: d (float) - density in m :sup:`3` / kg
+
+    .. math::
+        \rho_{mix}(p,T)=\sum_{i} \rho(pp_{i},T,fluid_{i})\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
+    """
+    return 1 / v_mix_pT(flow, T)
+
+
+def d_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        return tespy_fluid.fluids[fluid]['d_pT'](p, T)
+    else:
+        return CPPSI('D', 'P', p, 'T', T, fluid)
 
 
 def visc_mix_ph(flow):
@@ -571,12 +994,24 @@ def visc_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('V', 'P', flow[1], 'H', flow[2], fluid)
+                    val = visc_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl],
                                                      new, axis=0)
                     return val
+
+
+def visc_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
+                   valmin=func.y_min, valmax=func.y_max)[0]
+        return tespy_fluid.fluids[fluid]['visc_pT'](p, T)
+    else:
+        return CPPSI('V', 'P', p, 'H', h, fluid)
 
 
 def visc_mix_pT(flow, T):
@@ -591,8 +1026,8 @@ def visc_mix_pT(flow, T):
 
     .. math::
         \eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
-        \cdot M_{i} \right)}
-        {\sum_{i} \left(y_{i} \cdot M_{i} \right)}\;
+        \cdot \sqrt{M_{i}} \right)}
+        {\sum_{i} \left(y_{i} \cdot \sqrt{M_{i}} \right)}\;
         \forall i \in \text{fluid components}\\
         y: \text{volume fraction}\\
         M: \text{molar mass}
@@ -605,9 +1040,18 @@ def visc_mix_pT(flow, T):
         if x > err:
             bi = x * math.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
             b += bi
-            a += bi * CPPSI('V', 'P', flow[1], 'T', T, fluid)
+            a += bi * visc_pT(flow[1], T, fluid)
 
     return a / b
+
+
+def visc_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        return tespy_fluid.fluids[fluid]['visc_pT'](p, T)
+    else:
+        return CPPSI('V', 'P', p, 'T', T, fluid)
 
 
 def s_mix_ph(flow):
@@ -643,12 +1087,24 @@ def s_mix_ph(flow):
         else:
             for fluid, x in flow[3].items():
                 if x > err:
-                    val = CPPSI('S', 'P', flow[1], 'H', flow[2], fluid)
+                    val = s_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
                     memorise.s_ph[fl] = np.append(memorise.s_ph[fl],
                                                   new, axis=0)
                     return val
+
+
+def s_ph(p, h, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        func = tespy_fluid.fluids[fluid]['h_pT']
+        T = newton(reverse_2d, reverse_2d_deriv, [func, p, h], 0,
+                   valmin=func.y_min, valmax=func.y_max)[0]
+        return tespy_fluid.fluids[fluid]['s_pT'](p, T)
+    else:
+        return CPPSI('S', 'P', p, 'H', h, fluid)
 
 
 def s_mix_pT(flow, T):
@@ -675,11 +1131,20 @@ def s_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            s += CPPSI('S', 'P', pp, 'T', T, fluid) * x
+            s += s_pT(pp, T, fluid) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   math.log(pp / flow[1]))
 
     return s
+
+
+def s_pT(p, T, fluid):
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPY::' in fluid:
+        return tespy_fluid.fluids[fluid]['s_pT'](p, T)
+    else:
+        return CPPSI('S', 'P', p, 'T', T, fluid)
 
 
 def ds_mix_pdT(flow, T):
@@ -697,17 +1162,9 @@ def ds_mix_pdT(flow, T):
         \frac{\partial s_{mix}}{\partial T} =
         \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
-    n = molar_massflow(flow[3])
-    d = 2
-    s_u = 0
-    s_l = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            s_u += CPPSI('S', 'P', pp, 'T', T + d, fluid) * x
-            s_l += CPPSI('S', 'P', pp, 'T', T - d, fluid) * x
 
-    return (s_u - s_l) / (2 * d)
+    d = 2
+    return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
 
 def molar_massflow(flow):
@@ -872,4 +1329,4 @@ def lamb_trans(params, l):
 
 def dlamb_trans_dl(params, l):
     d = 0.001
-    return (lamb_trans(params, l+d) - lamb_trans(params, l-d)) / (2 * d)
+    return (lamb_trans(params, l + d) - lamb_trans(params, l - d)) / (2 * d)

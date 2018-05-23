@@ -7,7 +7,7 @@ def read(fname):
 
 
 setup(name='TESPy',
-      version='0.0.1',
+      version='0.0.2 dev',
       description='Thermal Engineering Systems in Python (TESPy)',
       url='http://github.com/oemof/tespy',
       author='Francesco Witte',
@@ -15,7 +15,8 @@ setup(name='TESPy',
       long_description=read('README.rst'),
       license='GPL-3.0',
       packages=['tespy', 'tespy.components'],
-      install_requires=['CoolProp >= 6.1.0',
+      python_requires='>=3',
+      install_requires=['CoolProp >= 6.0.0',
                         'matplotlib >= 2.0.2',
                         'numpy >= 1.13.3',
                         'pandas >= 0.19.2',

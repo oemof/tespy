@@ -1,4 +1,4 @@
-TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engneering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ and can be used as a standalone package.
+TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engineering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ and can be used as a standalone package.
 
 With the TESPy package you are able to calculate stationary operation in order to design the process of your plant. From that point it is possible to calculate the offdesign behaviour of your plant using underlying characteristics for each of the plants components. For now, the package inlcudes basic components, such as turbines, pumps, compressors, heat exchangers, pipes, mixers and splitters as well as some advanced components (derivatives of heat exchangers, drum).
 
@@ -24,7 +24,7 @@ If you have a working Python3 environment, use pypi to install the latest tespy 
 
 .. code:: bash
 
-  pip install -e path/to/the/repository
+  pip install tespy
 
 If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
 

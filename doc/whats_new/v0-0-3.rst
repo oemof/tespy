@@ -1,0 +1,29 @@
+v0.0.2 (April 07, 2018)
+++++++++++++++++++++++++++
+
+New Features
+############
+- Changed architecture of the variables and component parameters. Every parameter is now a data container, giving the user more flexibility (e. g. specifiying a unit) and facilitating future development.
+- Changed architecture of fluid property function calls to make custom fluids or custom fluid property functions available.
+- Added custom fluid class to generate fluid properties from given fluid mixture.
+- Added generic component characteristics for turbine isentropic efficiency and cone law as well as for the heat exchangers heat transfer coefficient.
+  On top, the user may use own values for the characteristic lines.
+
+Documentation
+#############
+- Fixed typos in the heat pump tutorial
+
+Testing
+#######
+
+Bug fixes
+#########
+- Adjusted the generic pump characteristics to cause less instabilites and adjusted function parameters according to `KSB <https://www.ksb.com/kreiselpumpenlexikon/spezifische-drehzahl/186490>`_.
+
+Other changes
+#############
+
+Contributors
+############
+
+- Francesco Witte

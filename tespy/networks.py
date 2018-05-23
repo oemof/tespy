@@ -1186,9 +1186,7 @@ class network:
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:
-                if (self.init_file is None or
-                        isinstance(cp, cmp.combustion_chamber)):
-                    cp.convergence_check(self)
+                cp.convergence_check(self)
 
         if self.iter < 3:
             for c in self.conns.index:

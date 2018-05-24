@@ -1246,6 +1246,7 @@ def fluid_structure(fluid):
 
     return parts
 
+
 def lamb(re, ks, d):
     r"""
     calculates darcy friction factor

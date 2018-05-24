@@ -1110,13 +1110,6 @@ class pump(turbomachine):
     def component(self):
         return 'pump'
 
-    def attr(self):
-        return ['P', 'eta_s', 'pr', 'eta_s_char']
-
-    def attr_prop(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'eta_s_char': dc_cc()}
-
     def additional_equations(self, nw):
         r"""
         additional equations for pumps

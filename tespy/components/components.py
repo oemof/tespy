@@ -3726,14 +3726,15 @@ class combustion_chamber_stoich(combustion_chamber):
             fg[f] /= m_fg
 
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
-                    nw.p_range_SI, nw.T_range_SI, path=self.path)
+                    [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
         tespy_fluid(self.fuel_alias.val + '_fg', fg,
-                    nw.p_range_SI, nw.T_range_SI, path=self.path)
+                    [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
         if self.air_alias.val not in ['Air', 'air']:
             tespy_fluid(self.air_alias.val, self.air.val,
-                        nw.p_range_SI, nw.T_range_SI, path=self.path)
+                        [1000, nw.p_range_SI[1]], nw.T_range_SI,
+                        path=self.path)
 
     def reaction_balance(self, inl, outl, fluid):
         r"""

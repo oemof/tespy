@@ -783,7 +783,7 @@ class turbomachine(component):
 
     **equations**
 
-    see tespy.components.components.turbomachine.equations
+    see :func:`tespy.components.components.turbomachine.equations`
 
     **default design parameters**
 
@@ -1081,7 +1081,7 @@ class pump(turbomachine):
 
     **equations**
 
-    see tespy.components.components.turbomachine.equations
+    see :func:`tespy.components.components.turbomachine.equations`
 
     **default design parameters**
 
@@ -1391,7 +1391,7 @@ class compressor(turbomachine):
 
     **equations**
 
-    see tespy.components.components.turbomachine.equations
+    see :func:`tespy.components.components.turbomachine.equations`
 
     **default design parameters**
 
@@ -1824,7 +1824,7 @@ class turbine(turbomachine):
 
     **equations**
 
-    see tespy.components.components.turbomachine.equations
+    see :func:`tespy.components.components.turbomachine.equations`
 
     **default design parameters**
 
@@ -2194,7 +2194,7 @@ class split(component):
 
     **equations**
 
-    see tespy.components.components.split.equations
+    see :func:`tespy.components.components.split.equations`
 
     **inlets and outlets**
 
@@ -2429,7 +2429,7 @@ class splitter(split):
 
     **equations**
 
-    see tespy.components.components.split.equations
+    see :func:`tespy.components.components.split.equations`
 
     **inlets and outlets**
 
@@ -2454,7 +2454,7 @@ class separator(split):
 
     **equations**
 
-    see tespy.components.components.split.equations
+    see :func:`tespy.components.components.split.equations`
 
     **inlets and outlets**
 
@@ -2481,7 +2481,7 @@ class merge(component):
 
     **equations**
 
-    see tespy.components.components.merge.equations
+    see :func:`tespy.components.components.merge.equations`
 
     **inlets and outlets**
 
@@ -2677,7 +2677,7 @@ class combustion_chamber(component):
 
     **equations**
 
-    see tespy.components.components.combustion_chamber.equations
+    see :func:`tespy.components.components.combustion_chamber.equations`
 
     **available fuels**
 
@@ -3424,7 +3424,7 @@ class vessel(component):
 
     **equations**
 
-    see tespy.components.components.vessel.equations
+    see :func:`tespy.components.components.vessel.equations`
 
     **default design parameters**
 
@@ -3662,7 +3662,7 @@ class heat_exchanger_simple(component):
 
     **equations**
 
-    see tespy.components.components.heat_exchager_simple.equations
+    see :func:`tespy.components.components.heat_exchager_simple.equations`
 
     **default design parameters**
 
@@ -3911,9 +3911,15 @@ class heat_exchanger_simple(component):
             \end{cases}
 
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-            kA \cdot \frac{ttd_u - ttd_l}{\ln{\frac{ttd_u}{ttd_l}}}
+            kA \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
+            {\ln{\frac{ttd_u}{ttd_l}}}
+
+            f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right)
 
             t_a: \text{ambient temperature}
+
+        for f\ :subscript:`1` \ see class
+        :func:`tespy.component.characteristics.heat_ex`
         """
 
         i, o = inl[0], outl[0]
@@ -4125,7 +4131,7 @@ class pipe(heat_exchanger_simple):
 
     **equations**
 
-    see tespy.components.components.heat_exchager_simple.equations
+    see :func:`tespy.components.components.heat_exchager_simple.equations`
 
     **default design parameters**
 
@@ -4178,7 +4184,7 @@ class heat_exchanger(component):
 
     **equations**
 
-    see tespy.components.components.heat_exchager.equations
+    see :func:`tespy.components.components.heat_exchager.equations`
 
     **default design parameters**
 
@@ -4522,8 +4528,15 @@ class heat_exchanger(component):
         .. math::
 
             0 = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-            kA \cdot \frac{T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
+            kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+            T_{2,in} - T_{1,in} + T_{2,out}}
             {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+
+            f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
+            f_2\left(\frac{m_2}{m_{2,ref}}\right)
+
+        for f\ :subscript:`1` \ and f\ :subscript:`2` \ see class
+        :func:`tespy.component.characteristics.heat_ex`
         """
 
         i1 = inl[0].to_flow()
@@ -4948,7 +4961,7 @@ class condenser(heat_exchanger):
 
     **equations**
 
-    see tespy.components.components.heat_exchager.equations
+    see :func:`tespy.components.components.heat_exchager.equations`
 
     **default design parameters**
 
@@ -5066,10 +5079,17 @@ class condenser(heat_exchanger):
         .. math::
 
             0 = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-            kA \cdot \frac{T_{1,out} - T_{2,in} - T_s \left(p_{1,in}\right) +
+            kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+            T_{2,in} - T_s \left(p_{1,in}\right) +
             T_{2,out}}
             {\ln{\frac{T_{1,out} - T_{2,in}}
             {T_s \left(p_{1,in}\right) - T_{2,out}}}}
+
+            f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
+            f_2\left(\frac{m_2}{m_{2,ref}}\right)
+
+        for f\ :subscript:`1` \ and f\ :subscript:`2` \ see class
+        :func:`tespy.component.characteristics.heat_ex`
         """
 
         i1 = inl[0].to_flow()
@@ -5193,7 +5213,7 @@ class desuperheater(heat_exchanger):
 
     **equations**
 
-    see tespy.components.components.heat_exchager.equations
+    see :func:`tespy.components.components.heat_exchager.equations`
 
     **default design parameters**
 
@@ -5290,7 +5310,7 @@ class drum(component):
 
     **equations**
 
-    see tespy.components.components.drum.equations
+    see :func:`tespy.components.components.drum.equations`
 
     **inlets and outlets**
 
@@ -5483,7 +5503,7 @@ class subsys_interface(component):
 
     **equations**
 
-    see tespy.components.components.subsys_interface.equations
+    see :func:`tespy.components.components.subsys_interface.equations`
 
     **inlets and outlets**
 

@@ -799,11 +799,11 @@ class turbomachine(component):
     - out1
     """
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'eta_s_char']
+        return ['P', 'eta_s', 'pr', 'eta_s_char', 'Sirr']
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'eta_s_char': dc_cc()}
+                'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
 
     def default_design(self):
         return ['pr', 'eta_s']
@@ -1042,19 +1042,18 @@ class turbomachine(component):
             self.pr.val = outl[0].p.val_SI / inl[0].p.val_SI
 
         if mode == 'pre':
-
             self.i0 = inl[0].to_flow()
             self.o0 = outl[0].to_flow()
             self.i0[3] = self.i0[3].copy()
             self.o0[3] = self.i0[3].copy()
             self.dh_s0 = (self.h_os(self.i0, self.o0) - self.i0[2])
 
+        if mode == 'post':
+            self.Sirr.val = inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
+                                               s_mix_ph(inl[0].to_flow()))
+
     def print_parameters(self, nw):
 
-        inl, outl = (nw.comps.loc[self].i.tolist(),
-                     nw.comps.loc[self].o.tolist())
-        i1 = inl[0].to_flow()
-        o1 = outl[0].to_flow()
         print('##### ', self.label, ' #####')
         if self.eta_s.val > 1:
             print('!!!!! Error in parametrisation of the model, '
@@ -1062,9 +1061,7 @@ class turbomachine(component):
         print('P = ', self.P.val, 'W; '
               'eta_s = ', self.eta_s.val, '; '
               'pr = ', self.pr.val, '; '
-              'm = ', inl[0].m.val_SI, 'kg / s; '
-              'Sirr = ', inl[0].m.val_SI *
-              (s_mix_ph(o1) - s_mix_ph(i1)), 'W / K')
+              'Sirr = ', self.Sirr.val, '; ')
 
 # %%
 
@@ -3389,12 +3386,12 @@ class combustion_chamber(component):
         if mode == 'post':
             if not self.lamb.is_set:
                 self.lamb.val = n_oxygen / (n_fuel *
-                                        (self.n['C'] + self.n['H'] / 4))
+                                            (self.n['C'] + self.n['H'] / 4))
 
         if mode == 'pre':
             if 'lamb' in self.offdesign:
                 self.lamb.val = n_oxygen / (n_fuel *
-                                        (self.n['C'] + self.n['H'] / 4))
+                                            (self.n['C'] + self.n['H'] / 4))
 
     def print_parameters(self, nw):
 
@@ -3446,10 +3443,10 @@ class vessel(component):
     """
 
     def attr(self):
-        return ['pr', 'zeta']
+        return ['pr', 'zeta', 'Sirr']
 
     def attr_prop(self):
-        return {'pr': dc_cp(), 'zeta': dc_cp()}
+        return {'pr': dc_cp(), 'zeta': dc_cp(), 'Sirr': dc_cp()}
 
     def default_design(self):
         return ['pr']
@@ -3608,6 +3605,8 @@ class vessel(component):
                              (8 * inl[0].m.val_SI ** 2 *
                              (v_mix_ph(inl[0].to_flow()) +
                               v_mix_ph(outl[0].to_flow())) / 2))
+            self.Sirr.val = inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
+                                               s_mix_ph(inl[0].to_flow()))
 
         if mode == 'pre':
             if 'pr' in self.offdesign:
@@ -3621,16 +3620,10 @@ class vessel(component):
 
     def print_parameters(self, nw):
 
-        inl, outl = (nw.comps.loc[self].i.tolist(),
-                     nw.comps.loc[self].o.tolist())
-
         print('##### ', self.label, ' #####')
         print('pr = ', self.pr.val, '; '
               'zeta = ', self.zeta.val, 'kg / m^4 * s ; '
-              'm = ', inl[0].m.val_SI, 'kg / s ; '
-              'Sirr = ', inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
-                                            s_mix_ph(inl[0].to_flow())),
-              'W / K')
+              'Sirr = ', self.Sirr.val, 'W / K')
 
 # %%
 
@@ -3699,17 +3692,19 @@ class heat_exchanger_simple(component):
         self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
                            nw.T[nw.T_unit][1])
         self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
-                           nw.T[nw.T_unit][1])
+                                  nw.T[nw.T_unit][1])
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char']
+                'kA', 't_a', 't_a_design', 'kA_char',
+                'SQ1', 'SQ2', 'Sirr']
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
                 'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
                 'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
-                'kA_char': dc_cc(method='HE_HOT', param='m')}
+                'kA_char': dc_cc(method='HE_HOT', param='m'),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
 
     def default_design(self):
         return ['pr']
@@ -4012,6 +4007,10 @@ class heat_exchanger_simple(component):
         inl, outl = (nw.comps.loc[self].i.tolist(),
                      nw.comps.loc[self].o.tolist())
 
+        if mode == 'post':
+            self.SQ1.val = inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
+                                              s_mix_ph(inl[0].to_flow()))
+
         if mode == 'pre':
 
             self.i0 = inl[0].to_flow()
@@ -4057,6 +4056,11 @@ class heat_exchanger_simple(component):
                 print(msg)
                 nw.errors += [self]
 
+            if mode == 'post':
+                self.SQ2.val = - inl[0].m.val_SI * (
+                        outl[0].h.val_SI - inl[0].h.val_SI) / t_a
+                self.Sirr.val = self.SQ1.val + self.Q2.val
+
             self.kA.val = inl[0].m.val_SI * (
                             outl[0].h.val_SI - inl[0].h.val_SI) / (
                             (ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
@@ -4085,17 +4089,13 @@ class heat_exchanger_simple(component):
 
     def print_parameters(self, nw):
 
-        inl, outl = (nw.comps.loc[self].i.tolist(),
-                     nw.comps.loc[self].o.tolist())
-
         print('##### ', self.label, ' #####')
         print('Q = ', self.Q.val, 'W; '
               'pr = ', self.pr.val, '; '
               'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'm = ', inl[0].m.val_SI, 'kg / s; '
-              'Sq = ', inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
-                                          s_mix_ph(inl[0].to_flow())),
-              'W / K; ')
+              'SQ1 = ', self.SQ1.val, 'W / K; '
+              'SQ2 = ', self.SQ2.val, 'W / K; '
+              'Sirr = ', self.Sirr.val, 'W / K; ')
         if self.t_a.is_set or self.t_a_design.is_set:
             print('kA = ', self.kA.val, 'W / (m^2 * K)')
 
@@ -4223,7 +4223,8 @@ class heat_exchanger(component):
     def attr(self):
         return ['Q', 'kA', 'td_log', 'kA_char1', 'kA_char2',
                 'ttd_u', 'ttd_l',
-                'pr1', 'pr2', 'zeta1', 'zeta2']
+                'pr1', 'pr2', 'zeta1', 'zeta2',
+                'SQ1', 'SQ2', 'Sirr']
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
@@ -4231,7 +4232,8 @@ class heat_exchanger(component):
                 'kA_char2': dc_cc(method='HE_COLD', param='m'),
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp()}
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
         # derivatives for logarithmic temperature difference not implemented
 #        return (component.attr(self) +
 #                ['Q', 'kA', 'td_log', 'ttd_u', 'ttd_l',
@@ -4874,6 +4876,13 @@ class heat_exchanger(component):
                               (v_mix_ph(inl[1].to_flow()) +
                                v_mix_ph(outl[1].to_flow())) / 2))
 
+        if mode == 'post':
+            self.SQ1.val = inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
+                                              s_mix_ph(inl[0].to_flow()))
+            self.SQ2.val = inl[1].m.val_SI * (s_mix_ph(outl[1].to_flow()) -
+                                              s_mix_ph(inl[1].to_flow()))
+            self.Sirr.val = self.Q1.val + self.Q2.val
+
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
             expr = inl[0].m.val_SI / self.i10[0]
@@ -4894,9 +4903,6 @@ class heat_exchanger(component):
 
     def print_parameters(self, nw):
 
-        inl, outl = (nw.comps.loc[self].i.tolist(),
-                     nw.comps.loc[self].o.tolist())
-
         print('##### ', self.label, ' #####')
         if self.ttd_u.val < 0 and self.kA.is_set:
             print('!!!!! ERROR calculating heat exchanger: !!!!!\n'
@@ -4911,13 +4917,9 @@ class heat_exchanger(component):
               'pr2 = ', self.pr2.val, '; '
               'zeta1 = ', self.zeta1.val, '; '
               'zeta2 = ', self.zeta2.val, '; '
-              'm1 = ', inl[0].m.val_SI, 'kg / s; '
-              'm2 = ', inl[1].m.val_SI, 'kg / s; '
-              'Sirr = ', inl[1].m.val_SI * (s_mix_ph(outl[1].to_flow()) -
-                                            s_mix_ph(inl[1].to_flow())) +
-              inl[0].m.val_SI * (s_mix_ph(outl[0].to_flow()) -
-                                 s_mix_ph(inl[0].to_flow())), 'W / K'
-              )
+              'SQ1 = ', self.SQ1.val, 'W / K; '
+              'SQ2 = ', self.SQ2.val, 'W / K; '
+              'Sirr = ', self.Sirr.val, 'W / K; ')
 
 # %%
 

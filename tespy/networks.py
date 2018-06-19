@@ -1186,9 +1186,7 @@ class network:
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:
-                if (self.init_file is None or
-                        isinstance(cp, cmp.combustion_chamber)):
-                    cp.convergence_check(self)
+                cp.convergence_check(self)
 
         if self.iter < 3:
             for c in self.conns.index:
@@ -1564,7 +1562,6 @@ class network:
             J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
             \text{for equation i, connection j, x: vapour mass fraction}
         """
-
         if var in ['m', 'p', 'h']:
 
             if c.get_attr(var).get_attr('val_set'):
@@ -1582,7 +1579,6 @@ class network:
                 return None
 
         else:
-
             if c.x.val_set:
                 flow = c.to_flow()
                 return c.h.val_SI - hlp.h_mix_pQ(flow, c.x.val_SI)
@@ -1707,10 +1703,12 @@ class network:
         else:
 
             if c.x.val_set:
+
                 flow = c.to_flow()
                 deriv = np.zeros((1, 1, self.num_vars))
                 deriv[0, 0, 1] = -hlp.dh_mix_dpQ(flow, c.x.val_SI)
                 deriv[0, 0, 2] = 1
+                return deriv
 
             else:
                 return None

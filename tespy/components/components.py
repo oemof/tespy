@@ -3701,6 +3701,8 @@ class heat_exchanger_simple(component):
         self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
                            nw.T[nw.T_unit][1])
 
+        self.nw_mode = nw.mode
+
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
                 'kA', 't_a', 't_a_design', 'kA_char']
@@ -3928,7 +3930,10 @@ class heat_exchanger_simple(component):
             ttd_l = T_o - self.t_a.val_SI
 
         if self.kA_char.param == 'm':
-            expr = i.m.val_SI / self.i0[0]
+            if self.nw_mode == 'design':
+                expr = 1
+            else:
+                expr = i.m.val_SI / self.i0[0]
         else:
             expr = 1
 

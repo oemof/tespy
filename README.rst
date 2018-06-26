@@ -26,7 +26,7 @@ If you have a working Python3 environment, use pypi to install the latest tespy 
 
   pip install tespy
 
-If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
+If you want to use the latest features, you might want to install the **developer version**. See section `Developing TESPy <http://tespy.readthedocs.io/en/latest/developing_tespy.html>`_ for more information. The developer version is not recommended for productive use.
 
 Examples
 ========

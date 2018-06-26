@@ -549,7 +549,6 @@ class network:
             return
 
         for cp in self.comps.index:
-            cp.comp_init(self)
             if isinstance(cp, cmp.combustion_chamber):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
@@ -747,7 +746,7 @@ class network:
             return
 
         # starting value for mass flow
-        if key == 'm':
+        if math.isnan(c.get_attr(key).val0) and key == 'm':
             c.get_attr(key).val0 = 1
             return
 
@@ -1912,8 +1911,8 @@ class network:
                         ['{:.2e}'.format(c.m.val_SI / self.m[self.m_unit]),
                          '{:.2e}'.format(c.p.val_SI / self.p[self.p_unit]),
                          '{:.4e}'.format(c.h.val_SI / self.h[self.h_unit]),
-                         '{:.2e}'.format(c.T.val_SI / self.T[c.T.unit][1] -
-                                         self.T[c.T.unit][0])]
+                         '{:.2e}'.format(c.T.val_SI / self.T[self.T_unit][1] -
+                                         self.T[self.T_unit][0])]
                         )
             print(df)
 

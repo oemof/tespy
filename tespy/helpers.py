@@ -1370,11 +1370,8 @@ def fluid_structure(fluid):
 
     return parts
 
-<<<<<<< HEAD
-=======
 # %%
 
->>>>>>> features/combustion_chamber_stoich
 
 def lamb(re, ks, d):
     r"""

@@ -2810,10 +2810,10 @@ class combustion_chamber(component):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'lamb', 'ti']
+        return ['fuel', 'lamb', 'ti', 'S']
 
     def attr_prop(self):
-        return {'fuel': dc_cp(), 'lamb': dc_cp(), 'ti': dc_cp()}
+        return {'fuel': dc_cp(), 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
@@ -3496,6 +3496,20 @@ class combustion_chamber(component):
                 self.lamb.val = n_oxygen / (
                         n_fuel * (self.n['C'] + self.n['H'] / 4))
 
+            S = 0
+            T_ref = 700
+            p_ref = 1e5
+
+            for i in inl:
+                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
+                                   s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+
+            for o in outl:
+                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
+                                   s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+
+            self.S.val = S
+
         if mode == 'pre':
             if 'lamb' in self.offdesign:
                 self.lamb.val = n_oxygen / (n_fuel *
@@ -3508,7 +3522,8 @@ class combustion_chamber(component):
 
         print('##### ', self.label, ' #####')
         print('Thermal Input = ', self.ti.val,
-              'lambda = ', self.lamb.val)
+              'lambda = ', self.lamb.val,
+              'S = ', self.S.val)
         j = 1
         for i in inl:
             print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
@@ -4164,6 +4179,20 @@ class combustion_chamber_stoich(combustion_chamber):
         if mode == 'post':
             if not self.lamb.is_set:
                 self.lamb.val = (m_air / m_fuel) / self.air_min
+
+            S = 0
+            T_ref = 500
+            p_ref = 1e5
+
+            for i in inl:
+                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
+                                   s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+
+            for o in outl:
+                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
+                                   s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+
+            self.S.val = S
 
         if mode == 'pre':
             if 'lamb' in self.offdesign:

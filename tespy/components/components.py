@@ -1113,6 +1113,16 @@ class pump(turbomachine):
        :alt: alternative text
        :align: center
     """
+
+    def comp_init(self, nw):
+
+        if self.flow_char.func is None:
+            method = self.flow_char.method
+            x = self.flow_char.x
+            y = self.flow_char.y
+            self.flow_char.func = cmp_char.characteristics(method=method,
+                                                           x=x, y=y)
+
     def component(self):
         return 'pump'
 
@@ -1300,14 +1310,14 @@ class pump(turbomachine):
         i = inl[0].to_flow()
         o = outl[0].to_flow()
 
-        expr = self.flow_char.func.f_x(i[0] * v_mix_ph(i))
+        expr = i[0] * v_mix_ph(i)
 
-        if expr > self.kA_char.func.x[-1]:
-            expr = self.kA_char.func.x[-1]
-        if expr < self.kA_char.func.x[0]:
-            expr = self.kA_char.func.x[0]
+        if expr > self.flow_char.func.x[-1]:
+            expr = self.flow_char.func.x[-1]
+        elif expr < self.flow_char.func.x[0]:
+            expr = self.flow_char.func.x[0]
 
-        return o[1] - i[1] - expr
+        return np.array([o[1] - i[1] - self.flow_char.func.f_x(expr)])
 
     def flow_char_deriv(self, inl, outl):
         r"""
@@ -1340,10 +1350,18 @@ class pump(turbomachine):
         num_fl = len(inl[0].fluid.val)
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
 
+        i = inl[0].to_flow()
+        expr = i[0] * v_mix_ph(i)
+
+        if expr > self.flow_char.func.x[-1] and not inl[0].m.val_set:
+            inl[0].m.val_SI = self.flow_char.func.x[-2] / v_mix_ph(i)
+        elif expr < self.flow_char.func.x[1] and not inl[0].m.val_set:
+            inl[0].m.val_SI = self.flow_char.func.x[1] / v_mix_ph(i)
+
         mat_deriv[0, 0, 0] = (
             self.ddx_func(inl, outl, self.flow_char_func, 'm', 0))
         mat_deriv[0, 0, 2] = (
-            self.ddx_func(inl, outl, self.flow_char_func, 'h', i))
+            self.ddx_func(inl, outl, self.flow_char_func, 'h', 0))
         for i in range(2):
             mat_deriv[0, i, 1] = (
                 self.ddx_func(inl, outl, self.flow_char_func, 'p', i))
@@ -1496,6 +1514,7 @@ class compressor(turbomachine):
        :alt: alternative text
        :align: center
     """
+
     def component(self):
         return 'compressor'
 

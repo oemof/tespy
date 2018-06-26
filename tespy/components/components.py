@@ -1239,7 +1239,7 @@ class pump(turbomachine):
         i = inl[0].to_flow()
         o = outl[0].to_flow()
         return np.array([((o[2] - i[2]) * self.dh_s0 /
-                          (selfs.o0[2] - self.i0[2]) *
+                          (self.o0[2] - self.i0[2]) *
                           self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) -
                           (self.h_os(i, o) - i[2]))])
 

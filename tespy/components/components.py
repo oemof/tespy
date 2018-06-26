@@ -1412,10 +1412,11 @@ class compressor(turbomachine):
         return 'compressor'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'vigv', 'char_map']
+        return ['P', 'eta_s', 'pr', 'vigv', 'char_map', 'Sirr']
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
+                'Sirr': dc_cp(),
                 'char_map': dc_cc(func=cmp_char.compressor())}
 
     def default_offdesign(self):
@@ -1860,10 +1861,11 @@ class turbine(turbomachine):
         return 'turbine'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr',  'eta_s_char', 'cone']
+        return ['P', 'eta_s', 'pr',  'eta_s_char', 'cone', 'Sirr']
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+                'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(method='TRAUPEL', param='dh_s'),
                 'cone': dc_cc(method='default')}
 
@@ -4881,7 +4883,7 @@ class heat_exchanger(component):
                                               s_mix_ph(inl[0].to_flow()))
             self.SQ2.val = inl[1].m.val_SI * (s_mix_ph(outl[1].to_flow()) -
                                               s_mix_ph(inl[1].to_flow()))
-            self.Sirr.val = self.Q1.val + self.Q2.val
+            self.Sirr.val = self.SQ1.val + self.SQ2.val
 
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
@@ -4985,7 +4987,8 @@ class condenser(heat_exchanger):
                 'kA_char2': dc_cc(method='COND_COLD', param='m'),
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp()}
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
 
     def default_design(self):
         return [n for n in heat_exchanger.default_design(self) if n != 'pr1']

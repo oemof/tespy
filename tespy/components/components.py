@@ -4491,7 +4491,7 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char',
+                'kA', 't_a', 't_a_design', 'kA_char','hydro_char', 
                 'SQ1', 'SQ2', 'Sirr']
 
     def attr_prop(self):
@@ -4499,7 +4499,7 @@ class heat_exchanger_simple(component):
                 'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
                 'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(), 'hydro_char':dc_cc()}
 
     def default_design(self):
         return ['pr']
@@ -4563,7 +4563,10 @@ class heat_exchanger_simple(component):
             vec_res += [self.zeta_func(inl, outl)]
 
         if self.ks.is_set and self.D.is_set and self.L.is_set:
-            vec_res += [self.lamb_func(inl, outl)]
+            if self.hydro_char.method == 'HW':
+                vec_res += [self.hw_func(inl, outl)]
+            else:
+                vec_res += [self.lamb_func(inl, outl)]
 
         if self.kA.is_set and self.t_a.is_set:
             vec_res += [self.kA_func(inl, outl)]
@@ -4615,16 +4618,28 @@ class heat_exchanger_simple(component):
             mat_deriv += zeta_deriv.tolist()
 
         if self.ks.is_set and self.D.is_set and self.L.is_set:
-            lamb_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-            for i in range(2):
-                if i == 0:
-                    lamb_deriv[0, i, 0] = (
-                        self.ddx_func(inl, outl, self.lamb_func, 'm', i))
-                lamb_deriv[0, i, 1] = (
-                    self.ddx_func(inl, outl, self.lamb_func, 'p', i))
-                lamb_deriv[0, i, 2] = (
-                    self.ddx_func(inl, outl, self.lamb_func, 'h', i))
-            mat_deriv += lamb_deriv.tolist()
+            if self.hydro_char.method == 'HW':
+                hw_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+                for i in range(2):
+                    if i == 0:
+                        hw_deriv[0, i, 0] = (
+                            self.ddx_func(inl, outl, self.hw_func, 'm', i))
+                    hw_deriv[0, i, 1] = (
+                        self.ddx_func(inl, outl, self.hw_func, 'p', i))
+                    hw_deriv[0, i, 2] = (
+                        self.ddx_func(inl, outl, self.hw_func, 'h', i))
+                mat_deriv += hw_deriv.tolist()
+            else:
+                lamb_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+                for i in range(2):
+                    if i == 0:
+                        lamb_deriv[0, i, 0] = (
+                            self.ddx_func(inl, outl, self.lamb_func, 'm', i))
+                    lamb_deriv[0, i, 1] = (
+                        self.ddx_func(inl, outl, self.lamb_func, 'p', i))
+                    lamb_deriv[0, i, 2] = (
+                        self.ddx_func(inl, outl, self.lamb_func, 'h', i))
+                mat_deriv += lamb_deriv.tolist()
 
         if self.kA.is_set and self.t_a.is_set:
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
@@ -4674,6 +4689,33 @@ class heat_exchanger_simple(component):
                 8 * inl[0].m.val_SI ** 2 * (v_i + v_o) / 2 * self.L.val *
                 lamb(re, self.ks.val, self.D.val) /
                 (math.pi ** 2 * self.D.val ** 5))
+
+    def hw_func(self, inl, outl):
+        r"""
+        equation for pressure drop from Hazen–Williams equation  
+
+        - calculate pressure drop
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+
+            0 = p_{in} - p_{out} - \frac{10.67 \cdot (\frac{\dot{m}_{in}}
+            {\rho})^1.852 \cdot L}{ks^1.852 \cdot D^4.871} 
+            \cdot \rho \cdot g}\\
+
+            note: \rho is set to 999.1 kg/m^3 for water with 15 celsius degree,
+                  g is set to 9.81 m/s^2
+        """
+
+        return ((inl[0].p.val_SI - outl[0].p.val_SI) -
+                (10.67* inl[0].m.val_SI ** 1.852 * self.L.val
+                /(self.ks.val ** 1.852 * self.D.val ** 4.871))*0.0273)
 
     def kA_func(self, inl, outl):
         r"""

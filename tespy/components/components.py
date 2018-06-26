@@ -1116,6 +1116,13 @@ class pump(turbomachine):
     def component(self):
         return 'pump'
 
+    def attr(self):
+        return ['P', 'eta_s', 'pr', 'eta_s_char', 'flow_char']
+
+    def attr_prop(self):
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+                'eta_s_char': dc_cc(), 'flow_char': dc_cc()}
+
     def additional_equations(self, nw):
         r"""
         additional equations for pumps
@@ -1137,6 +1144,9 @@ class pump(turbomachine):
         if self.eta_s_char.is_set:
             vec_res += self.char_func(inl, outl).tolist()
 
+        if self.flow_char.is_set:
+            vec_res += self.flow_char_func(inl, outl).tolist()
+
         return vec_res
 
     def additional_derivatives(self, nw):
@@ -1154,6 +1164,9 @@ class pump(turbomachine):
 
         if self.eta_s_char.is_set:
             mat_deriv += self.char_deriv(inl, outl)
+
+        if self.flow_char.is_set:
+            mat_deriv += self.flow_char_deriv(inl, outl)
 
         return mat_deriv
 
@@ -1211,7 +1224,7 @@ class pump(turbomachine):
 
     def char_func(self, inl, outl):
         r"""
-        equation for characteristics of a pump
+        isentropic efficiency characteristic of a pump
 
         :param inlets: the components connections at the inlets
         :type inlets: list
@@ -1226,7 +1239,7 @@ class pump(turbomachine):
         i = inl[0].to_flow()
         o = outl[0].to_flow()
         return np.array([((o[2] - i[2]) * self.dh_s0 /
-                          (self.o0[2] - self.i0[2]) *
+                          (selfs.o0[2] - self.i0[2]) *
                           self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) -
                           (self.h_os(i, o) - i[2]))])
 
@@ -1268,6 +1281,72 @@ class pump(turbomachine):
                 self.ddx_func(inl, outl, self.char_func, 'p', i))
             mat_deriv[0, i, 2] = (
                 self.ddx_func(inl, outl, self.char_func, 'h', i))
+
+        return mat_deriv.tolist()
+
+    def flow_char_func(self, inl, outl):
+        r"""
+        equation for characteristics of a pump
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: val (*numpy array*) - residual value of equation
+
+        .. math::
+            0 = p_{out} - p_{in} - char\left( \dot{m}_{in} \cdot v_{in} \right)
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+
+        expr = self.flow_char.func.f_x(i[0] * v_mix_ph(i))
+
+        if expr > self.kA_char.func.x[-1]:
+            expr = self.kA_char.func.x[-1]
+        if expr < self.kA_char.func.x[0]:
+            expr = self.kA_char.func.x[0]
+
+        return o[1] - i[1] - expr
+
+    def flow_char_deriv(self, inl, outl):
+        r"""
+        calculates the derivatives for the characteristics
+
+        :param inlets: the components connections at the inlets
+        :type inlets: list
+        :param outlets: the components connections at the outlets
+        :type outlets: list
+        :returns: mat_deriv (*list*) - matrix of derivatives
+
+        **example**
+
+        one fluid in fluid vector
+
+        .. math::
+
+            \left(
+            \begin{array}{cccc}
+                \frac{\partial char}{\partial \dot{m}_{in}} &
+                \frac{\partial char}{\partial p_{in}} &
+                \frac{\partial char}{\partial h_{in}} & 0\\
+                0 & \frac{\partial char}{\partial p_{out}} &
+                \frac{\partial char}{\partial h_{out}} & 0\\
+            \end{array}
+            \right)
+
+        """
+        num_i, num_o = len(inl), len(outl)
+        num_fl = len(inl[0].fluid.val)
+        mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+
+        mat_deriv[0, 0, 0] = (
+            self.ddx_func(inl, outl, self.flow_char_func, 'm', 0))
+        mat_deriv[0, 0, 2] = (
+            self.ddx_func(inl, outl, self.flow_char_func, 'h', i))
+        for i in range(2):
+            mat_deriv[0, i, 1] = (
+                self.ddx_func(inl, outl, self.flow_char_func, 'p', i))
 
         return mat_deriv.tolist()
 
@@ -3416,10 +3495,6 @@ class combustion_chamber(component):
             j += 1
         print('m_out = ', outl[0].m.val_SI, 'kg / s; ')
 
-<<<<<<< HEAD
-=======
-
->>>>>>> features/combustion_chamber_stoich
 # %%
 
 

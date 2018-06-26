@@ -1124,10 +1124,10 @@ class pump(turbomachine):
         return 'pump'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'eta_s_char', 'flow_char']
+        return ['P', 'eta_s', 'pr', 'Sirr', 'eta_s_char', 'flow_char']
 
     def attr_prop(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(), 'flow_char': dc_cc()}
 
     def additional_equations(self, nw):
@@ -1347,14 +1347,6 @@ class pump(turbomachine):
         num_fl = len(inl[0].fluid.val)
         mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
 
-        i = inl[0].to_flow()
-        expr = i[0] * v_mix_ph(i)
-
-        if expr > self.flow_char.func.x[-1] and not inl[0].m.val_set:
-            inl[0].m.val_SI = self.flow_char.func.x[-2] / v_mix_ph(i)
-        elif expr < self.flow_char.func.x[1] and not inl[0].m.val_set:
-            inl[0].m.val_SI = self.flow_char.func.x[1] / v_mix_ph(i)
-
         mat_deriv[0, 0, 0] = (
             self.ddx_func(inl, outl, self.flow_char_func, 'm', 0))
         mat_deriv[0, 0, 2] = (
@@ -1394,6 +1386,16 @@ class pump(turbomachine):
                 o[0].h.val_SI = o[0].h.val_SI * 1.1
         if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
                 i[0].h.val_SI = o[0].h.val_SI * 0.9
+
+        if self.flow_char.is_set:
+            expr = i[0].m.val_SI * v_mix_ph(i[0].to_flow())
+
+            if expr > self.flow_char.func.x[-1] and not i[0].m.val_set:
+                i[0].m.val_SI = self.flow_char.func.x[-1] / v_mix_ph(
+                        i[0].to_flow())
+            elif expr < self.flow_char.func.x[1] and not i[0].m.val_set:
+                i[0].m.val_SI = self.flow_char.func.x[0] / v_mix_ph(
+                        i[0].to_flow())
 
     def initialise_source(self, c, key):
         r"""

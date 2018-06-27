@@ -4709,13 +4709,15 @@ class heat_exchanger_simple(component):
             {\rho})^1.852 \cdot L}{ks^1.852 \cdot D^4.871} 
             \cdot \rho \cdot g}\\
 
-            note: \rho is set to 999.1 kg/m^3 for water with 15 celsius degree,
-                  g is set to 9.81 m/s^2
+            note: g is set to 9.81 m/s^2
         """
-
+        i, o = inl[0].to_flow(), outl[0].to_flow()
+        v_i, v_o = v_mix_ph(i), v_mix_ph(o)
+        
         return ((inl[0].p.val_SI - outl[0].p.val_SI) -
-                (10.67* inl[0].m.val_SI ** 1.852 * self.L.val
-                /(self.ks.val ** 1.852 * self.D.val ** 4.871))*0.0273)
+                (10.67* inl[0].m.val_SI ** 1.852 * self.L.val /
+                (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
+                 (9.81*((v_i + v_o) / 2)** 0.852) )
 
     def kA_func(self, inl, outl):
         r"""
@@ -4896,7 +4898,7 @@ class heat_exchanger_simple(component):
             if mode == 'post':
                 self.SQ2.val = - inl[0].m.val_SI * (
                         outl[0].h.val_SI - inl[0].h.val_SI) / t_a
-                self.Sirr.val = self.SQ1.val + self.Q2.val
+                self.Sirr.val = self.SQ1.val + self.SQ2.val
 
             self.kA.val = inl[0].m.val_SI * (
                             outl[0].h.val_SI - inl[0].h.val_SI) / (

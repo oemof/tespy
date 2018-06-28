@@ -4491,7 +4491,7 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char','hydro_char', 
+                'kA', 't_a', 't_a_design', 'kA_char','hydro_char',
                 'SQ1', 'SQ2', 'Sirr']
 
     def attr_prop(self):
@@ -4692,7 +4692,7 @@ class heat_exchanger_simple(component):
 
     def hw_func(self, inl, outl):
         r"""
-        equation for pressure drop from Hazen–Williams equation  
+        equation for pressure drop from Hazen–Williams equation
 
         - calculate pressure drop
 
@@ -4704,20 +4704,19 @@ class heat_exchanger_simple(component):
 
         .. math::
 
+            0 = p_{in} - p_{out} - \frac{10.67 \cdot \dot{m}_{in} ^ {1.852}
+            \cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot
+            \frac{v_{in} + v_{out}}{2}^{0.852}
 
-            0 = p_{in} - p_{out} - \frac{10.67 \cdot (\frac{\dot{m}_{in}}
-            {\rho})^1.852 \cdot L}{ks^1.852 \cdot D^4.871} 
-            \cdot \rho \cdot g}\\
-
-            note: g is set to 9.81 m/s^2
+            \text{note: g is set to } 9.81 \frac{m}{s^2}
         """
         i, o = inl[0].to_flow(), outl[0].to_flow()
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
-        
+
         return ((inl[0].p.val_SI - outl[0].p.val_SI) -
-                (10.67* inl[0].m.val_SI ** 1.852 * self.L.val /
-                (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
-                 (9.81*((v_i + v_o) / 2)** 0.852) )
+                (10.67 * inl[0].m.val_SI ** 1.852 * self.L.val /
+                 (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
+                (9.81 * ((v_i + v_o) / 2) ** 0.852))
 
     def kA_func(self, inl, outl):
         r"""

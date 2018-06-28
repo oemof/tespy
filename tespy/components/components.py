@@ -244,7 +244,7 @@ class component:
         return
 
     def attr(self):
-        return ['mode', 'design', 'offdesign']
+        return []
 
     def attr_prop(self):
         return {}
@@ -266,6 +266,12 @@ class component:
 
     def derivatives(self, nw):
         return []
+
+    def bus_func(self, inl, outl):
+        return 0
+
+    def bus_deriv(self, inl, outl):
+        return
 
     def initialise_source(self, c, key):
         r"""
@@ -311,10 +317,10 @@ class component:
         r"""
         returns residual values for fluid equations
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: vec_res (*list*) - a list containing the residual values
 
         **components with one inlet and one outlet**
@@ -404,10 +410,10 @@ class component:
         r"""
         returns derivatives for fluid equations
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - a list containing the derivatives
 
         **example:**
@@ -535,10 +541,10 @@ class component:
         r"""
         returns residual values for mass flow equations
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: vec_res (*list*) - a list containing the residual values
 
         **all components but heat exchanger and subsystem interface**
@@ -580,10 +586,10 @@ class component:
         r"""
         returns derivatives for mass flow equations
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - a list containing the derivatives
 
         **example**
@@ -639,10 +645,10 @@ class component:
         calculates derivative of the function func to dx at components inlet or
         outlet in position pos
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :param func: function to calculate derivative
         :type func: function
         :param dx: dx
@@ -713,10 +719,10 @@ class component:
         r"""
         calculates pressure drop from zeta (zeta1 for heat exchangers)
 
-        :param inlets: components connections at inlets
-        :type inlets: list
-        :param outlets: components connections at outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: residual value for the pressure drop
 
         .. math::
@@ -993,10 +999,10 @@ class turbomachine(component):
         calculates the enthalpy at the outlet if compression or expansion is
         isentropic
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: h (*float*) - enthalpy after isentropic state change
         """
         if isinstance(inl[0], float) or isinstance(inl[0], int):
@@ -1020,6 +1026,44 @@ class turbomachine(component):
 
     def char_deriv(self, inl, outl):
         raise MyComponentError('Function not available.')
+
+    def bus_func(self, inl, outl):
+        r"""
+        function for use on busses
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+            val = \dot{m}_{in} \cdot \left( h_{out} - h_{in}
+            \right)
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        return i[0] * (o[2] - i[2])
+
+    def bus_deriv(self, inl, outl):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and
+        enthalpy for bus function
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        deriv = np.zeros((1, 2, len(inl[0].fluid.val) + 3))
+        deriv[0, 0, 0] = o[2] - i[2]
+        deriv[0, 0, 2] = - i[0]
+        deriv[0, 1, 2] = i[0]
+        return deriv
 
     def calc_parameters(self, nw, mode):
         """
@@ -1181,10 +1225,10 @@ class pump(turbomachine):
         r"""
         equation for isentropic efficiency of a pump
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -1233,10 +1277,10 @@ class pump(turbomachine):
         r"""
         isentropic efficiency characteristic of a pump
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*numpy array*) - residual value of equation
 
         .. math::
@@ -1254,10 +1298,10 @@ class pump(turbomachine):
         r"""
         calculates the derivatives for the characteristics
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of derivatives
 
         **example**
@@ -1295,10 +1339,10 @@ class pump(turbomachine):
         r"""
         equation for characteristics of a pump
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*numpy array*) - residual value of equation
 
         .. math::
@@ -1320,10 +1364,10 @@ class pump(turbomachine):
         r"""
         calculates the derivatives for the characteristics
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of derivatives
 
         **example**
@@ -1573,10 +1617,10 @@ class compressor(turbomachine):
         r"""
         equation for isentropic efficiency of a compressor
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -1628,10 +1672,10 @@ class compressor(turbomachine):
         - returns one value, if vigv is not set
         - returns two values, if vigv is set
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*numpy array*) - residual value(s) of equation(s):
 
         - :code:`np.array([val1, val2])` if vigv_set
@@ -1728,10 +1772,10 @@ class compressor(turbomachine):
 
         - if vigv is set two sets of equations are used
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of derivatives
 
         **example**
@@ -2041,10 +2085,10 @@ class turbine(turbomachine):
         r"""
         equation for isentropic efficiency of a turbine
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -2094,10 +2138,10 @@ class turbine(turbomachine):
         r"""
         equation for stodolas cone law
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -2133,10 +2177,10 @@ class turbine(turbomachine):
           tespy.components.characteristics.turbine for more information on
           available methods
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*numpy array*) - residual value of equation
 
         .. math::
@@ -2173,10 +2217,10 @@ class turbine(turbomachine):
         r"""
         partial derivatives for turbine characteristics
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         num_i, num_o = len(inl), len(outl)
@@ -3055,10 +3099,10 @@ class combustion_chamber(component):
         - calculate excess fuel
         - calculate residual value of the fluids balance
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :param fluid: fluid to calculate the reaction balance for
         :type fluid: str
         :returns: res (*float*) - residual value of mass balance
@@ -3164,10 +3208,10 @@ class combustion_chamber(component):
         - reference temperature: 500 K
         - reference pressure: 1 bar
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
@@ -3198,10 +3242,10 @@ class combustion_chamber(component):
         r"""
         calculates the residual for specified lambda
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of equation
 
         .. math::
@@ -3229,10 +3273,10 @@ class combustion_chamber(component):
         r"""
         calculates the residual for specified thermal input
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of equation
 
         .. math::
@@ -3248,15 +3292,61 @@ class combustion_chamber(component):
 
         return (self.ti.val - m_fuel * self.lhv)
 
+    def bus_func(self, inl, outl):
+        r"""
+        function for use on busses
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+            val = \dot{m}_{fuel} \cdot LHV
+        """
+
+        m_fuel = 0
+        for i in inl:
+            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
+
+        for o in outl:
+            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
+
+        return m_fuel * self.lhv
+
+    def bus_deriv(self, inl, outl):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and fluid
+        composition for bus
+        function
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        deriv = np.zeros((1, 3, len(inl[0].fluid.val) + 3))
+        for i in range(2):
+            deriv[0, i, 0] = self.ddx_func(inl, outl, self.bus_func, 'm', i)
+            deriv[0, i, 3:] = self.ddx_func(inl, outl, self.bus_func,
+                                            'fluid', i)
+
+        deriv[0, 2, 0] = self.ddx_func(inl, outl, self.bus_func, 'm', 2)
+        deriv[0, 2, 3:] = self.ddx_func(inl, outl, self.bus_func, 'fluid', 2)
+        return deriv
+
     def drb_dx(self, inl, outl, dx, pos, fluid):
         r"""
         calculates derivative of the reaction balance to dx at components inlet
         or outlet in position pos for the fluid fluid
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :param dx: dx
         :type dx: str
         :param pos: position of inlet or outlet, logic: ['in1', 'in2', ...,
@@ -3497,7 +3587,7 @@ class combustion_chamber(component):
                         n_fuel * (self.n['C'] + self.n['H'] / 4))
 
             S = 0
-            T_ref = 700
+            T_ref = 500
             p_ref = 1e5
 
             for i in inl:
@@ -3883,10 +3973,10 @@ class combustion_chamber_stoich(combustion_chamber):
         - calculate excess fuel
         - calculate residual value of the fluids balance
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :param fluid: fluid to calculate the reaction balance for
         :type fluid: str
         :returns: res (*float*) - residual value of mass balance
@@ -3993,10 +4083,10 @@ class combustion_chamber_stoich(combustion_chamber):
         - reference temperature: 500 K
         - reference pressure: 1 bar
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
@@ -4029,10 +4119,10 @@ class combustion_chamber_stoich(combustion_chamber):
         r"""
         calculates the residual for specified thermal input
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of equation
 
         .. math::
@@ -4058,10 +4148,10 @@ class combustion_chamber_stoich(combustion_chamber):
         r"""
         calculates the residual for specified thermal input
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: res (*float*) - residual value of equation
 
         .. math::
@@ -4078,6 +4168,32 @@ class combustion_chamber_stoich(combustion_chamber):
             m_fuel -= (o.m.val_SI * o.fluid.val[fuel])
 
         return (self.ti.val - m_fuel * self.lhv)
+
+    def bus_func(self, inl, outl):
+        r"""
+        function for use on busses
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+            val = \dot{m}_{fuel} \cdot LHV
+        """
+
+        fuel = 'TESPy::' + self.fuel_alias.val
+
+        m_fuel = 0
+        for i in inl:
+            m_fuel += (i.m.val_SI * i.fluid.val[fuel])
+
+        for o in outl:
+            m_fuel -= (o.m.val_SI * o.fluid.val[fuel])
+
+        return m_fuel * self.lhv
 
     def initialise_fluids(self, nw):
         r"""
@@ -4238,10 +4354,10 @@ class vessel(component):
     """
 
     def attr(self):
-        return ['pr', 'zeta']
+        return ['pr', 'zeta', 'Sirr']
 
     def attr_prop(self):
-        return {'pr': dc_cp(), 'zeta': dc_cp()}
+        return {'pr': dc_cp(), 'zeta': dc_cp(), 'Sirr': dc_cp()}
 
     def default_design(self):
         return ['pr']
@@ -4483,6 +4599,8 @@ class heat_exchanger_simple(component):
             x = self.kA_char.x
             y = self.kA_char.y
             self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
+            self.kA_char.x = self.kA_char.func.x
+            self.kA_char.y = self.kA_char.func.y
 
         self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
                            nw.T[nw.T_unit][1])
@@ -4645,10 +4763,10 @@ class heat_exchanger_simple(component):
         - calculate reynolds and darcy friction factor
         - calculate pressure drop
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -4682,10 +4800,10 @@ class heat_exchanger_simple(component):
         - determine hot side and cold side of the heat exchanger
         - calculate heat flux
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -4731,6 +4849,44 @@ class heat_exchanger_simple(component):
 
         return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * fkA * (
                 (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
+
+    def bus_func(self, inl, outl):
+        r"""
+        function for use on busses
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+            val = \dot{m}_{in} \cdot \left( h_{out} - h_{in}
+            \right)
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        return i[0] * (o[2] - i[2])
+
+    def bus_deriv(self, inl, outl):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and
+        enthalpy for bus function
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        deriv = np.zeros((1, 2, len(inl[0].fluid.val) + 3))
+        deriv[0, 0, 0] = o[2] - i[2]
+        deriv[0, 0, 2] = - i[0]
+        deriv[0, 1, 2] = i[0]
+        return deriv
 
     def initialise_source(self, c, key):
         r"""
@@ -4854,7 +5010,7 @@ class heat_exchanger_simple(component):
             if mode == 'post':
                 self.SQ2.val = - inl[0].m.val_SI * (
                         outl[0].h.val_SI - inl[0].h.val_SI) / t_a
-                self.Sirr.val = self.SQ1.val + self.Q2.val
+                self.Sirr.val = self.SQ1.val + self.SQ2.val
 
             self.kA.val = inl[0].m.val_SI * (
                             outl[0].h.val_SI - inl[0].h.val_SI) / (
@@ -5276,10 +5432,10 @@ class heat_exchanger(component):
         r"""
         calculates pressure drop from zeta2
 
-        :param inlets: components connections at inlets
-        :type inlets: list
-        :param outlets: components connections at outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: residual value for the pressure drop
 
         .. math::
@@ -5310,10 +5466,10 @@ class heat_exchanger(component):
               * :math:`T_{1,in} > T_{2,out}`?
               * :math:`T_{1,out} < T_{2,in}`?
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5390,10 +5546,10 @@ class heat_exchanger(component):
               * :math:`T_{1,in} > T_{2,out}`?
               * :math:`T_{1,out} < T_{2,in}`?
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5439,10 +5595,10 @@ class heat_exchanger(component):
         r"""
         equation for upper terminal temperature difference
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5457,10 +5613,10 @@ class heat_exchanger(component):
         r"""
         equation for lower terminal temperature difference
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5476,8 +5632,10 @@ class heat_exchanger(component):
         calculate matrix of partial derivatives towards pressure and
         enthalpy for upper terminal temperature equation
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 4, len(inl[0].fluid.val) + 3))
@@ -5493,8 +5651,10 @@ class heat_exchanger(component):
         calculate matrix of partial derivatives towards pressure and
         enthalpy for lower terminal temperature equation
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 4, len(inl[0].fluid.val) + 3))
@@ -5504,6 +5664,45 @@ class heat_exchanger(component):
             deriv[0, i + 1, 2] = (
                 self.ddx_func(inl, outl, self.ttd_l_func, 'h', i + 1))
         return deriv.tolist()
+
+    def bus_func(self, inl, outl):
+        r"""
+        function for use on busses
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: val (*float*) - residual value of equation
+
+        .. math::
+
+            val = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}
+            \right)
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        return i[0] * (o[2] - i[2])
+
+    def bus_deriv(self, inl, outl):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and
+        enthalpy for bus function
+
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        i = inl[0].to_flow()
+        o = outl[0].to_flow()
+        deriv = np.zeros((1, 4, len(inl[0].fluid.val) + 3))
+        for i in range(2):
+            deriv[0, 0, 0] = o[2] - i[2]
+            deriv[0, 0, 2] = - i[0]
+            deriv[0, 2, 2] = i[0]
+        return deriv
 
     def convergence_check(self, nw):
         r"""
@@ -5859,10 +6058,10 @@ class condenser(heat_exchanger):
 
         - kA refers to boiling temperature at hot side inlet
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5957,10 +6156,10 @@ class condenser(heat_exchanger):
 
         - ttd_u refers to boiling temperature at hot side inlet
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::

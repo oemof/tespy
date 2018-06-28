@@ -4971,7 +4971,7 @@ class heat_exchanger_simple(component):
 
         if nw.mode == 'design':
             if self.t_a_design.is_set:
-                t_a = self.t_a_design.val
+                t_a = self.t_a_design.val_SI
             else:
                 t_a = np.nan
 
@@ -5008,6 +5008,7 @@ class heat_exchanger_simple(component):
                 nw.errors += [self]
 
             if mode == 'post':
+                print(t_a)
                 self.SQ2.val = - inl[0].m.val_SI * (
                         outl[0].h.val_SI - inl[0].h.val_SI) / t_a
                 self.Sirr.val = self.SQ1.val + self.SQ2.val
@@ -5044,11 +5045,11 @@ class heat_exchanger_simple(component):
         print('Q = ', self.Q.val, 'W; '
               'pr = ', self.pr.val, '; '
               'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'SQ1 = ', self.SQ1.val, 'W / K; '
-              'SQ2 = ', self.SQ2.val, 'W / K; '
-              'Sirr = ', self.Sirr.val, 'W / K; ')
+              'SQ1 = ', self.SQ1.val, 'W / K; ')
         if self.t_a.is_set or self.t_a_design.is_set:
-            print('kA = ', self.kA.val, 'W / (m^2 * K)')
+            print('SQ2 = ', self.SQ2.val, 'W / K; '
+                  'Sirr = ', self.Sirr.val, 'W / K; '
+                  'kA = ', self.kA.val, 'W / (m^2 * K)')
 
 # %%
 

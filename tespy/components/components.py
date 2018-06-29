@@ -5008,7 +5008,6 @@ class heat_exchanger_simple(component):
                 nw.errors += [self]
 
             if mode == 'post':
-                print(t_a)
                 self.SQ2.val = - inl[0].m.val_SI * (
                         outl[0].h.val_SI - inl[0].h.val_SI) / t_a
                 self.Sirr.val = self.SQ1.val + self.SQ2.val

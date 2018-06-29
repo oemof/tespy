@@ -363,6 +363,21 @@ class characteristics:
     def f_x(self, x):
         return self.char(x)
 
+    def get_attr(self, key):
+        """
+        get the value of a characteristics attribute
+
+        :param key: attribute to return its value
+        :type key: str
+        :returns:
+            - :code:`self.__dict__[key]` if object has attribute key
+            - :code:`None` if object has no attribute key
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            return None
+
 
 class turbine(characteristics):
     r"""

@@ -814,9 +814,9 @@ class network:
                              args=(self, df, ))
 
         for c in self.conns.index:
-            c.m.val0 = c.m.val_SI
-            c.p.val0 = c.p.val_SI
-            c.h.val0 = c.h.val_SI
+            c.m.val0 = c.m.val_SI / self.m[c.m.unit]
+            c.p.val0 = c.p.val_SI / self.p[c.p.unit]
+            c.h.val0 = c.h.val_SI / self.h[c.h.unit]
             c.fluid.val0 = c.fluid.val.copy()
 
     def init_design_file(c, nw, df):
@@ -930,7 +930,7 @@ class network:
                 c.get_attr(var).set_attr(val_set=True)
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50, parallel=False):
+              max_iter=50, parallel=False, init_only=False):
         """
         solves the network:
 
@@ -964,6 +964,9 @@ class network:
         self.initialise()
 
         print('Network initialised.')
+
+        if init_only:
+            return
 
         # vectors for convergence history (massflow, pressure, enthalpy)
         self.convergence[0] = np.zeros((len(self.conns), 0))
@@ -1992,14 +1995,38 @@ class network:
 
             if not os.path.exists(path + 'comps/'):
                 os.makedirs(path + 'comps/')
-            if not os.path.exists(path + 'conns/'):
-                os.makedirs(path + 'conns/')
 
-            self.save_connections(path + 'conns/conn.csv', structure=True)
-            self.save_references(path + 'conns/ref.csv')
+            self.save_network(path + 'netw.csv')
+            self.save_connections(path + 'conn.csv', structure=True)
             self.save_components(path + 'comps/')
             self.save_busses(path + 'comps/bus.csv')
             self.save_characteristics(path + 'comps/char.csv')
+
+    def save_network(self, fn):
+        """
+        saves basic network configuration
+
+        :param fn: filename
+        :type fn: str
+        :returns: no return value
+        """
+
+        data = {}
+        data['m_unit'] = self.m_unit
+        data['p_unit'] = self.p_unit
+        data['p_min'] = self.p_range[0]
+        data['p_max'] = self.p_range[1]
+        data['h_unit'] = self.h_unit
+        data['h_min'] = self.h_range[0]
+        data['h_max'] = self.h_range[1]
+        data['T_unit'] = self.T_unit
+        data['T_min'] = self.T_range[0]
+        data['T_max'] = self.T_range[1]
+        data['fluids'] = [self.fluids]
+
+        df = pd.DataFrame(data=data)
+
+        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
     def save_connections(self, fn, structure=False):
         """
@@ -2008,7 +2035,7 @@ class network:
 
         - uses connections object id as row identifier and saves
             * connections source and target as well as
-            * properties and
+            * properties with references and
             * fluid vector (including user specification if structure is True)
         - connections source and target are identified by its labels
 
@@ -2030,6 +2057,12 @@ class network:
         df['t_id'] = self.conns.apply(network.get_props, axis=1,
                                       args=('t_id',))
 
+        if structure:
+            df['design'] = self.conns.apply(network.get_props, axis=1,
+                                            args=('design',))
+            df['offdesign'] = self.conns.apply(network.get_props, axis=1,
+                                               args=('offdesign',))
+
         cols = ['m', 'p', 'h', 'T', 'x']
         for key in cols:
             df[key] = self.conns.apply(network.get_props, axis=1,
@@ -2038,22 +2071,38 @@ class network:
                                                  args=(key, 'unit'))
 
             if structure:
+                df[key + '_unit_set'] = self.conns.apply(
+                        network.get_props, axis=1, args=(key, 'unit_set'))
+                df[key + '0'] = self.conns.apply(network.get_props, axis=1,
+                                                 args=(key, 'val0'))
                 df[key + '_set'] = self.conns.apply(network.get_props, axis=1,
                                                     args=(key, 'val_set'))
                 df[key + '_ref'] = self.conns.apply(
                         network.get_props, axis=1,
-                        args=(key, 'ref')).astype(str)
+                        args=(key, 'ref', 'obj',)).astype(str)
                 df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>',
                                                                 expand=False)
+                df[key + '_ref_f'] = self.conns.apply(
+                        network.get_props, axis=1, args=(key, 'ref', 'f',))
+                df[key + '_ref_d'] = self.conns.apply(
+                        network.get_props, axis=1, args=(key, 'ref', 'd',))
+                df[key + '_ref_set'] = self.conns.apply(
+                        network.get_props, axis=1, args=(key, 'ref_set',))
 
         for val in sorted(self.fluids):
             df[val] = self.conns.apply(network.get_props, axis=1,
                                        args=('fluid', 'val', val))
 
             if structure:
+                df[val + '0'] = self.conns.apply(network.get_props, axis=1,
+                                                 args=('fluid', 'val0', val))
                 df[val + '_set'] = self.conns.apply(
                         network.get_props, axis=1,
                         args=('fluid', 'val_set', val))
+
+        if structure:
+            df['balance'] = self.conns.apply(network.get_props, axis=1,
+                                             args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
@@ -2074,9 +2123,11 @@ class network:
         # create / overwrite csv file
         cp_sort = self.comps
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        if len(self.busses) > 0:
-            cp_sort['busses'] = cp_sort.apply(network.get_bus, axis=1,
-                                              args=(self.busses,))
+        cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
+                                          args=(self.busses,))
+        cp_sort['bus_factors'] = cp_sort.apply(network.get_bus_factors,
+                                               axis=1,
+                                               args=(self.busses,))
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2176,45 +2227,6 @@ class network:
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
-    def save_references(self, fn):
-        """
-        saves the busses parametrisation to filename_bus.csv
-
-        - uses connections object id as row identifier
-            * properties and property_set (False/True)
-            * referenced objects
-            * fluids and fluid_set vector
-            * connections source and target
-        - connections source and target are identified by its labels
-
-        :param filename: suffix for the .csv-file
-        :type filename: str
-        :returns: no return value
-        """
-
-        cols = ['m', 'p', 'h', 'T']
-        refs = []
-
-        for key in cols:
-            df = pd.DataFrame()
-            df[key] = self.conns.apply(network.get_props, axis=1,
-                                       args=(key, 'ref'))
-
-            # impossible to look up values that are of Nonetype, workaround
-            # with str
-            df[key + '_'] = df[key].astype(str)
-            df = df[df[key + '_'] != 'None']
-            refs += df[key].tolist()
-
-        df = pd.DataFrame({'id': refs}, index=refs)
-        df['id'] = df.apply(network.get_id, axis=1)
-
-        cols = ['f', 'd']
-        for val in cols:
-            df[val] = df.apply(network.get_props, axis=1, args=(val,))
-
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-
     def get_id(c):
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
 
@@ -2227,10 +2239,17 @@ class network:
                     not isinstance(c.name.get_attr(args[0]), str) and
                     not isinstance(c.name.get_attr(args[0]), float) and
                     not isinstance(c.name.get_attr(args[0]), list) and
-                    not isinstance(c.name.get_attr(args[0]), np.ndarray)):
+                    not isinstance(c.name.get_attr(args[0]), np.ndarray) and
+                    not isinstance(c.name.get_attr(args[0]), con.connection)):
 
-                if args[0] == 'fluid':
+                if args[0] == 'fluid' and args[1] != 'balance':
                     return c.name.fluid.get_attr(args[1])[args[2]]
+                elif args[1] == 'ref':
+                    obj = c.name.get_attr(args[0]).get_attr(args[1])
+                    if obj is not None:
+                        return obj.get_attr(args[2])
+                    else:
+                        return np.nan
                 else:
                     return c.name.get_attr(args[0]).get_attr(args[1])
             elif isinstance(c.name.get_attr(args[0]), np.ndarray):
@@ -2240,16 +2259,16 @@ class network:
         else:
             return ''
 
-    def get_bus(c, *args):
+    def get_busses(c, *args):
         busses = []
         for bus in args[0]:
             if c.name in bus.comps.index:
                 busses += [str(bus)[str(bus).find(' at ') + 4:-1]]
         return busses
 
-    def get_ref(c, *args):
-        busses = []
+    def get_bus_factors(c, *args):
+        factors = []
         for bus in args[0]:
             if c.name in bus.comps.index:
-                busses += [str(bus)[str(bus).find(' at ') + 4:-1]]
-        return busses
+                factors += [bus.comps.loc[c.name].factor]
+        return factors

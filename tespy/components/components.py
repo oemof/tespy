@@ -787,11 +787,12 @@ class turbomachine(component):
 
     **available parameters**
 
-    - P: power
-    - eta_s: isentropic efficiency
-    - pr: outlet to inlet pressure ratio
-    - char: characteristic curve to use, characteristics are generated in
-      preprocessing of offdesign calculations
+    - P: power, :math:`[P]=\text{W}`
+    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
+    - eta_s_char: characteristic curve for isentropic efficiency,
+      this characteristic is generated in preprocessing of offdesign
+      calculations
 
     **equations**
 
@@ -1120,11 +1121,15 @@ class pump(turbomachine):
     """
     **available parameters**
 
-    - P: power
-    - eta_s: isentropic efficiency
-    - pr: outlet to inlet pressure ratio
-    - char: characteristic curve to use, characteristics are generated in
-      preprocessing of offdesign calculations
+    - P: power, :math:`[P]=\text{W}`
+    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
+    - flow_char: characteristic curve for pressure rise vs. volumetric flow
+      rate, provide data: :math:`[x]=\frac{\text{m}^3}{\text{s}} \,
+      [y]=\text{Pa}`
+    - eta_s_char: characteristic curve for isentropic efficiency,
+      this characteristic is generated in preprocessing of offdesign
+      calculations
 
     **equations**
 
@@ -1525,15 +1530,12 @@ class compressor(turbomachine):
     """
     **available parameters**
 
-    - P: power
-    - eta_s: isentropic efficiency
-    - pr: outlet to inlet pressure ratio
-    - char: characteristic curve to use, characteristics are generated in
+    - P: power, :math:`[P]=\text{W}`
+    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
+    - char_map: characteristic map for compressors, map is generated in
       preprocessing of offdesign calculations
-
-    **additional parameter**
-
-    - vigv: variable inlet guide vane angle
+    - vigv: variable inlet guide vane angle, :math:`[vigv]=^\circ`
 
     **equations**
 
@@ -1960,14 +1962,12 @@ class turbine(turbomachine):
     """
     **available parameters**
 
-    - P: power
-    - eta_s: isentropic efficiency
-    - pr: outlet to inlet pressure ratio
-    - char: characteristic curve to use, characteristics are generated in
-      preprocessing of offdesign calculations
-
-    **additional parameter**
-
+    - P: power, :math:`[P]=\text{W}`
+    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
+    - eta_s_char: characteristic curve for isentropic efficiency,
+      this characteristic is generated in preprocessing of offdesign
+      calculations
     - cone: cone law to apply in offdesign calculation
 
     **equations**
@@ -2333,9 +2333,21 @@ class turbine(turbomachine):
 
 class split(component):
     """
-    component split
+    component split can be subdivided in splitter and separator:
 
-    - can be subdivided in splitter and separator
+    splitter:
+
+    - fluid composition at all outlets is the same as at the inlet
+    - pressure and enthalpy are identical for every incoming/outgoing
+      connection
+
+    separator:
+
+    - fluid composition at the outlets has to be user defined on the outgoing
+      connections
+    - pressure and temperature are identical for every incoming/outgoing
+      connection
+
 
     **available parameters**
 
@@ -2818,11 +2830,18 @@ class merge(component):
 
 class combustion_chamber(component):
     r"""
+
+    .. note::
+        For more information on the usage of the combustion chamber see the
+        examples section on github or look for the combustion chamber tutorials
+        at tespy.readthedocs.io
+
     **available parameters**
 
     - fuel: fuel for combustion chamber
-    - lamb: air to stoichiometric air ratio
-    - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`)
+    - lamb: air to stoichiometric air ratio, :math:`[\lambda] = 1`
+    - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`),
+      :math:`[LHV \cdot \dot{m}_f] = \text{W}`
 
     **equations**
 
@@ -2840,6 +2859,10 @@ class combustion_chamber(component):
 
     - in1, in2
     - out1
+
+    .. note::
+
+        The fuel and the air components can be connected to both of the inlets.
 
     .. image:: _images/combustion_chamber.svg
        :scale: 100 %
@@ -2972,6 +2995,11 @@ class combustion_chamber(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.combustion_chamber.reaction_balance`
+
+        stoichiometric combustion chamber reaction balance:
+
+        - :func:`tespy.components.components.combustion_chamber_stoich.reaction_balance`
+
         - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
@@ -2981,10 +3009,19 @@ class combustion_chamber(component):
 
         - :func:`tespy.components.components.combustion_chamber.energy_balance`
 
+        stoichiometric combustion chamber:
+
+        - :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+
         **optional equations**
 
         - :func:`tespy.components.components.combustion_chamber.lambda_func`
         - :func:`tespy.components.components.combustion_chamber.ti_func`
+
+        stoichiometric combustion chamber lambda and thermal input:
+
+        - :func:`tespy.components.components.combustion_chamber_stoich.lambda_func`
+        - :func:`tespy.components.components.combustion_chamber_stoich.ti_func`
 
         """
 
@@ -3644,17 +3681,20 @@ class combustion_chamber_stoich(combustion_chamber):
         possible to use fluid mixtures for the fuel, e. g.
         :code:`fuel={CH4: 0.9, 'CO2': 0.1}`. If you specify a fluid mixture for
         the fuel, TESPy will automatically create a custom fluid called:
-        'TESPy::yourfuelalias'. For more information see the examples section.
+        'TESPy::yourfuelalias'. For more information see the examples section
+        or look for the combustion chamber tutorials at tespy.readthedocs.io
 
     **available parameters**
 
-    - fuel: fuel composition
+    - fuel: fuel composition, specify as dictionary, e. g.
+      {'CH4': 0.96, 'CO2': 0.04}
     - fuel_alias: alias for fuel
-    - air: air composition
+    - air: air composition, see fuel for specification
     - air_alias: alias for air
     - path: path to existing fluid property table
-    - lamb: air to stoichiometric air ratio
-    - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`)
+    - lamb: air to stoichiometric air ratio, :math:`[\lambda] = 1`
+    - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`),
+      :math:`[LHV \cdot \dot{m}_f] = \text{W}`
 
     **equations**
 
@@ -4325,7 +4365,7 @@ class vessel(component):
     r"""
     **available parameters**
 
-    - pr: outlet to inlet pressure ratio
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
@@ -4543,24 +4583,28 @@ class heat_exchanger_simple(component):
     r"""
     **available parameters**
 
-    - Q: heat flux
-    - pr: outlet to inlet pressure ratio
+    - Q: heat flux, :math:`[Q]=\text{W}`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
-    - D: diameter of the pipes
-    - L: length of the pipes
+    - hydro_char: choose 'HW' for hazen-williams equation, else darcy friction
+      factor is used
+    - D: diameter of the pipes, :math:`[D]=\text{m}`
+    - L: length of the pipes, :math:`[L]=\text{m}`
     - ks: pipes roughness
     - kA: area independent heat transition coefficient,
-      :math:`kA=\frac{\text{W}}{\text{K}}`
-    - t_a: ambient temperature, provide parameter in K
+      :math:`[kA]=\frac{\text{W}}{\text{K}}`
+    - t_a: ambient temperature, provide parameter in network's temperature unit
+    - t_a_design: ambient temperature design case, provide parameter in
+      network's temperature unit
 
     .. note::
         for now, it is not possible to make these parameters part of the
         variable space. Thus you need to provide
 
         - D, L and ks, if you want to calculate pressure drop from darcy
-          friction factor and
+          friction factor or hazen williams equation and
         - kA and t_a, if you want to calculate the heat flux on basis of the
           ambient conditions
 
@@ -4589,7 +4633,11 @@ class heat_exchanger_simple(component):
 
     **Improvements**
 
-    - check design and default offdesign parameters
+    - implment and easier way for choosing a calculation method based on a
+      given set of parameters, e. g. pressure drop at given diameter, length
+      and roughness of the pipe. E. g. the hydro_char parameter could be used
+      within a data_container subclass which has a method parameter choosing
+      the appropriate equation
     """
 
     def comp_init(self, nw):
@@ -4659,6 +4707,7 @@ class heat_exchanger_simple(component):
 
         - :func:`tespy.components.components.component.zeta_func`
         - :func:`tespy.components.components.component.lamb_func`
+        - :func:`tespy.components.components.component.hw_func`
         - :func:`tespy.components.components.component.kA_func`
 
         """
@@ -4814,10 +4863,10 @@ class heat_exchanger_simple(component):
 
         - calculate pressure drop
 
-        :param inlets: the components connections at the inlets
-        :type inlets: list
-        :param outlets: the components connections at the outlets
-        :type outlets: list
+        :param inl: the components connections at the inlets
+        :type inl: list
+        :param outl: the components connections at the outlets
+        :type outl: list
         :returns: val (*float*) - residual value of equation
 
         .. math::
@@ -5109,16 +5158,19 @@ class pipe(heat_exchanger_simple):
 
     **available parameters**
 
-    - Q: heat flux
-    - pr: outlet to inlet pressure ratio
+
+    - Q: heat flux, :math:`[Q]=\text{W}`
+    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
-    - D: diameter of the pipes
-    - L: length of the pipes
+    - hydro_char: choose 'HW' for hazen-williams equation, else darcy friction
+      factor is used
+    - D: diameter of the pipes, :math:`[D]=\text{m}`
+    - L: length of the pipes, :math:`[L]=\text{m}`
     - ks: pipes roughness
     - kA: area independent heat transition coefficient,
-      :math:`kA=\frac{\text{W}}{\text{K}}`
+      :math:`[kA]=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in network's temperature unit
     - t_a_design: ambient temperature design case, provide parameter in
       network's temperature unit
@@ -5162,18 +5214,18 @@ class heat_exchanger(component):
 
     **available parameters**
 
-    - Q: heat flux
+    - Q: heat flux, :math:`[Q]=\text{W}`
     - kA: area independent heat transition coefficient,
-      :math:`kA=\frac{\text{W}}{\text{K}}`
-    - ttd_u: upper terminal temperature difference
-    - ttd_l: lower terminal temperature difference
-    - pr1: outlet to inlet pressure ratio at hot side
-    - pr2: outlet to inlet pressure ratio at cold side
+      :math:`[kA]=\frac{\text{W}}{\text{K}}`
+    - ttd_u: upper terminal temperature difference, :math:`[ttd_u]=\text{K}`
+    - ttd_l: lower terminal temperature difference, :math:`[ttd_l]=\text{K}`
+    - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
+    - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
     - zeta1: geometry independent friction coefficient hot side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta1]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **equations**
@@ -5992,18 +6044,18 @@ class condenser(heat_exchanger):
 
     **available parameters**
 
-    - Q: heat flux
+    - Q: heat flux, :math:`[Q]=\text{W}`
     - kA: area independent heat transition coefficient,
-      :math:`kA=\frac{\text{W}}{\text{K}}`
-    - ttd_u: upper terminal temperature difference
-    - ttd_l: lower terminal temperature difference
-    - pr1: outlet to inlet pressure ratio at hot side
-    - pr2: outlet to inlet pressure ratio at cold side
+      :math:`[kA]=\frac{\text{W}}{\text{K}}`
+    - ttd_u: upper terminal temperature difference, :math:`[ttd_u]=\text{K}`
+    - ttd_l: lower terminal temperature difference, :math:`[ttd_l]=\text{K}`
+    - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
+    - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
     - zeta1: geometry independent friction coefficient hot side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta1]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **equations**
@@ -6245,18 +6297,18 @@ class desuperheater(heat_exchanger):
 
     **available parameters**
 
-    - Q: heat flux
+    - Q: heat flux, :math:`[Q]=\text{W}`
     - kA: area independent heat transition coefficient,
-      :math:`kA=\frac{\text{W}}{\text{K}}`
-    - ttd_u: upper terminal temperature difference
-    - ttd_l: lower terminal temperature difference
-    - pr1: outlet to inlet pressure ratio at hot side
-    - pr2: outlet to inlet pressure ratio at cold side
+      :math:`[kA]=\frac{\text{W}}{\text{K}}`
+    - ttd_u: upper terminal temperature difference, :math:`[ttd_u]=\text{K}`
+    - ttd_l: lower terminal temperature difference, :math:`[ttd_l]=\text{K}`
+    - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
+    - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
     - zeta1: geometry independent friction coefficient hot side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta1]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
     - zeta2: geometry independent friction coefficient cold side
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **equations**
@@ -6350,6 +6402,12 @@ class desuperheater(heat_exchanger):
 
 class drum(component):
     r"""
+
+    .. note::
+
+        If you are using a drum in a network with multiple fluids, it is likely
+        the fluid propagation causes trouble. If this is the case, try to
+        specify the fluid composition at another connection of your network.
 
     - assumes, that the fluid composition between outlet 1 and inlet 2 does
       not change!

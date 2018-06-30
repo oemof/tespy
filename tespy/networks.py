@@ -1893,9 +1893,11 @@ class network:
         Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
 
         if len(P_res) != 0 and len(Q_diss) != 0:
-            print('cycle process key figures')
+            print('process key figures')
             print('eta_th = ' + str(1 - sum(Q_diss) /
                   (sum(P_res) + sum(Q_diss))))
+            print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
+            print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
 
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):

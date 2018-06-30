@@ -3,8 +3,6 @@
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
-
-TODO: add documentation
 """
 
 import pandas as pd
@@ -15,7 +13,7 @@ import ast
 # %% network loading
 
 
-def load_nw(path):
+def load_nwk(path):
     """
     loads a network from a path given the following structure:
 
@@ -32,7 +30,6 @@ def load_nw(path):
         If you save the network structure of an existing TESPy network, it will
         be stored this way for you. The returned network object is ready for
         calculation (given good parametrisation).
-
 
     :param path: path to stored network data
     :type path: str
@@ -109,30 +106,49 @@ def load_nw(path):
 
 
 def construct_comps(c, *args):
+    """
+    creates TESPy component from class name provided in the .csv-file and
+    specifies its parameter
+
+    :param c: component information
+    :type c: pandas.core.series.Series
+    :returns: instance (*tespy.components.component*) - TESPy component object
+
+    **additional arguments in args**
+
+    - args[0]: char (*pandas.core.frame.DataFrame*) - DataFrame containing the
+      x and y data of characteristic functions
+    """
 
     target_class = getattr(cmp, c.cp)
     instance = target_class(c.label)
     kwargs = {}
+
+    # basic properties
     for key in ['mode', 'design', 'offdesign']:
         kwargs[key] = c[key]
 
     for key, value in instance.attr_prop().items():
-        if isinstance(value, hlp.dc_cp):
-            dc = hlp.dc_cp(val=c[key],
-                           is_set=c[key + '_set'],
-                           is_var=c[key + '_var'])
-            kwargs[key] = dc
-        elif isinstance(value, hlp.dc_cc):
-            values = args[0]['id'] == c[key]
-            x = args[0][values]['x'].values[0]
-            y = args[0][values]['y'].values[0]
-            dc = hlp.dc_cc(is_set=c[key + '_set'],
-                           method=c[key + '_method'],
-                           param=c[key + '_param'],
-                           x=x, y=y)
-            kwargs[key] = dc
-        else:
-            continue
+        if key in c:
+            # component parameters
+            if isinstance(value, hlp.dc_cp):
+                dc = hlp.dc_cp(val=c[key],
+                               is_set=c[key + '_set'],
+                               is_var=c[key + '_var'])
+                kwargs[key] = dc
+            # component characteristics
+            elif isinstance(value, hlp.dc_cc):
+                # finding x and y values of the characteristic function
+                values = args[0]['id'] == c[key]
+                x = args[0][values]['x'].values[0]
+                y = args[0][values]['y'].values[0]
+                dc = hlp.dc_cc(is_set=c[key + '_set'],
+                               method=c[key + '_method'],
+                               param=c[key + '_param'],
+                               x=x, y=y)
+                kwargs[key] = dc
+            else:
+                continue
 
     instance.set_attr(**kwargs)
     return instance
@@ -141,7 +157,15 @@ def construct_comps(c, *args):
 
 
 def construct_network(path):
+    """
+    creates TESPy network from the data provided in the .csv-file
 
+    :param path: path to stored network data
+    :type path: str
+    :returns: nw (*tespy.networks.network*) - TESPy network object
+    """
+
+    # read network .csv-file
     netw = pd.read_csv(path + '/netw.csv', sep=';', decimal='.',
                        converters={'fluids': ast.literal_eval})
     f_list = netw['fluids'][0]
@@ -155,6 +179,7 @@ def construct_network(path):
     kwargs['T_unit'] = netw['T_unit'][0]
     kwargs['T_range'] = [netw['T_min'][0], netw['T_max'][0]]
 
+    # create network object with its properties
     nw = nwk.network(fluids=f_list, **kwargs)
 
     return nw
@@ -163,49 +188,84 @@ def construct_network(path):
 
 
 def construct_conns(c, *args):
+    """
+    creates TESPy component from class name provided in the .csv-file and
+    specifies its parameters
 
+    :param c: connection information
+    :type c: pandas.core.series.Series
+    :returns: instance (*tespy.components.component*) - TESPy component object
+
+    **additional arguments in args**
+
+    - args[0]: comps (*pandas.core.frame.DataFrame*) - DataFrame containing all
+      created components
+    """
+
+    # create connection
     conn = con.connection(args[0].instance[c.s], c.s_id,
                           args[0].instance[c.t], c.t_id)
 
     kwargs = {}
+    # read basic properties
     for key in ['design', 'offdesign']:
-        kwargs[key] = c[key]
+        if key in c:
+            kwargs[key] = c[key]
 
+    # read fluid properties
     for key in ['m', 'p', 'h', 'T', 'x']:
-        dc = hlp.dc_prop(val=c[key],
-                         val0=c[key + '0'],
-                         val_set=c[key + '_set'],
-                         unit=c[key + '_unit'],
-                         unit_set=c[key + '_unit_set'],
-                         ref=None,
-                         ref_set=c[key + '_ref_set'])
+        if key in c:
+            dc = hlp.dc_prop(val=c[key],
+                             val0=c[key + '0'],
+                             val_set=c[key + '_set'],
+                             unit=c[key + '_unit'],
+                             unit_set=c[key + '_unit_set'],
+                             ref=None,
+                             ref_set=c[key + '_ref_set'])
 
-        kwargs[key] = dc
+            kwargs[key] = dc
 
+    # read fluid vector
     val = {}
     val0 = {}
     val_set = {}
     for key in args[1].fluids:
-        val[key] = c[key]
-        val0[key] = c[key + '0']
-        val_set[key] = c[key + '_set']
+        if key in c:
+            val[key] = c[key]
+            val0[key] = c[key + '0']
+            val_set[key] = c[key + '_set']
 
     kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set,
                                  balance=c['balance'])
 
+    # write properties to connection and return connection object
     conn.set_attr(**kwargs)
-
     return conn
 
 # %% set references on connections
 
 
 def conns_set_ref(c, *args):
+    """
+    sets references on the created connections
+
+    :param c: connection information
+    :type c: pandas.core.series.Series
+    :returns: instance (*tespy.components.component*) - TESPy component object
+
+    **additional arguments in args**
+
+    - args[0]: conns (*pandas.core.frame.DataFrame*) - DataFrame containing all
+      created connections
+    """
 
     for col in ['m', 'p', 'h', 'T']:
+        # search for referenced connections
         if isinstance(c[col + '_ref'], str):
+            # create reference object
             instance = args[0].instance[c[col + '_ref'] ==
                                         args[0]['id']].values[0]
+            # write to connection properties
             c['instance'].get_attr(col).ref = con.ref(instance,
                                                       c[col + '_ref_f'],
                                                       c[col + '_ref_d'])
@@ -214,7 +274,15 @@ def conns_set_ref(c, *args):
 
 
 def construct_busses(c, *args):
+    """
+    creates busses
 
+    :param c: bus information
+    :type c: pandas.core.series.Series
+    :returns: b (*tespy.connection.bus*) - TESPy bus object
+    """
+
+    # set up bus with label and specify value for power
     b = con.bus(c.label, P=c.P)
     b.P_set = c.P_set
     return b
@@ -223,10 +291,23 @@ def construct_busses(c, *args):
 
 
 def busses_add_comps(c, *args):
+    """
+    adds components to the busses
+
+    :param c: component information
+    :type c: pandas.core.series.Series
+    :returns: instance (*tespy.components.component*) - TESPy component object
+
+    **additional arguments in args**
+
+    - args[0]: busses (*pandas.core.frame.DataFrame*) - DataFrame containing
+      all created busses
+    """
 
     i = 0
     for b in c.busses:
         f = c.bus_factors[i]
+        # add component with corresponding factor to bus
         args[0].instance[b == args[0]['id']
                          ].values[0].add_comps([c.instance, f])
         i += 1

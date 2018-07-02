@@ -323,7 +323,9 @@ class characteristics:
     **allowed keywords** in kwargs (also see characteristics.attr()):
 
     - x, y (*numeric*) - values for function parameters x and function values y
-    - method (*str*) - method to choose from for default characteristic
+    - method (*str*) - keyword method is necessary, if you do not provide any
+      x or y data. TESPy will use the characteristics as stated in the
+      subclasses
     """
 
     def __init__(self, **kwargs):
@@ -398,8 +400,8 @@ class turbine(characteristics):
     def default(self, key):
         r"""
 
-        default characteristic lines for turbines, designed for the following
-        cases:
+        default **characteristic lines** for turbines **are designed for the
+        following cases**:
 
             \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
 
@@ -420,19 +422,33 @@ class turbine(characteristics):
             \text{pressure ratio}
             \end{cases}
 
+        .. image:: _images/EBS_ST.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         **EBS_GT**
 
         .. math::
 
-            X=f\left(
-            \frac{\dot{m}}{\dot{m}_{ref}} \right)
+            X=\frac{\dot{m}}{\dot{m}_{ref}}
+
+        .. image:: _images/EBS_GT.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
 
         **TRAUPEL**
 
         .. math::
 
-           X=f\left(\frac{
-            \sqrt{\Delta h_\mathrm{s,ref}}}{\sqrt{\Delta h_\mathrm{s}}} \right)
+           X=\frac{
+            \sqrt{\Delta h_\mathrm{s,ref}}}{\sqrt{\Delta h_\mathrm{s}}}
+
+        .. image:: _images/TRAUPEL.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
         """
 
         if key == 'default':
@@ -441,10 +457,8 @@ class turbine(characteristics):
         x = {}
         y = {}
 
-        x['EBS_ST'] = np.array([0, 0.5, 0.6, 0.7, 0.8,
-                                0.9, 0.95, 1, 1.05, 1.1])
-        y['EBS_ST'] = np.array([0.98, 0.991, 0.993, 0.995, 0.9975,
-                                0.999, 0.9998, 1, 0.9995, 0.995])
+        x['EBS_ST'] = np.array([0, 0.5, 0.9, 0.95, 1, 1.05, 1.1])
+        y['EBS_ST'] = np.array([0.98, 0.991, 0.999, 0.9998, 1, 0.9995, 0.995])
 
         x['EBS_GT'] = np.array([0, 0.4, 0.7, 1, 1.2])
         y['EBS_GT'] = np.array([0.85, 0.9, 0.95, 1, 1.1])
@@ -474,8 +488,8 @@ class heat_ex(characteristics):
     def default(self, key):
         r"""
 
-        default characteristic lines for heat exchangers, designed for the
-        following cases
+        default **characteristic lines** for heat exchangers **are designed for
+        the following cases**:
 
         .. math::
 
@@ -486,9 +500,41 @@ class heat_ex(characteristics):
 
         **condensing fluid** (COND)
 
+        .. image:: _images/COND_HOT.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        .. image:: _images/COND_COLD.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         **economiser, evaporator, superheater** (EVA)
 
+        .. image:: _images/EVA_HOT.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        .. image:: _images/EVA_COLD.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+
         **heat exchanger without phase change** (HE)
+
+        .. image:: _images/HE_HOT.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        .. image:: _images/HE_COLD.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         """
 
         if key == 'default':

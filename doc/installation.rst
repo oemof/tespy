@@ -61,6 +61,8 @@ Skip the steps you have already done. Check your architecture first (32/64 bit).
  
 Warning: If you have an older version of virtualenv you should update pip :code:`pip install --upgrade pip`.
 
+.. _tespy_installation_windows_label:
+
 Windows
 =======
 

@@ -1,3 +1,5 @@
+.. _tespy_tutorial_label:
+
 Tutorial/Examples
 =================
 

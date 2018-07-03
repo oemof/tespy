@@ -4590,7 +4590,7 @@ class heat_exchanger_simple(component):
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
-    - hydro_char: choose 'HW' for hazen-williams equation, else darcy friction
+    - hydro_group: choose 'HW' for hazen-williams equation, else darcy friction
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`
@@ -4637,7 +4637,7 @@ class heat_exchanger_simple(component):
 
     - implment and easier way for choosing a calculation method based on a
       given set of parameters, e. g. pressure drop at given diameter, length
-      and roughness of the pipe. E. g. the hydro_char parameter could be used
+      and roughness of the pipe. E. g. the hydro_group parameter could be used
       within a data_container subclass which has a method parameter choosing
       the appropriate equation
     """
@@ -5200,7 +5200,7 @@ class pipe(heat_exchanger_simple):
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
-    - hydro_char: choose 'HW' for hazen-williams equation, else darcy friction
+    - hydro_group: choose 'HW' for hazen-williams equation, else darcy friction
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`

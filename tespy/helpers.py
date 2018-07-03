@@ -559,18 +559,24 @@ def newton(func, deriv, params, k, **kwargs):
         x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
         f(x_{n}) \leq \epsilon, \; n < 10\\
         n: \text{number of iterations}
-
     """
-    res = 1
+
+    # default valaues
     val = kwargs.get('val0', 300)
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     imax = kwargs.get('imax', 10)
+
+    # start newton loop
+    res = 1
     i = 0
     while abs(res) >= err:
+        # calculate function residual
         res = k - func(params, val)
+        # calculate new value
         val += res / deriv(params, val)
 
+        # check for value ranges
         if val < valmin:
             val = valmin
         if val > valmax:
@@ -579,8 +585,7 @@ def newton(func, deriv, params, k, **kwargs):
 
         if i > imax:
             print('Newton algorithm was not able to find a feasible'
-                  'value for function '+str(func)+'.')
-            print(params,val)
+                  'value for function ' + str(func) + '.')
 
             break
 
@@ -610,36 +615,54 @@ def T_mix_ph(flow):
 
         h_{i} = h \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
-
     """
+    # check if fluid properties have been calculated before
     fl = tuple(sorted(list(flow[3].keys())))
     a = memorise.T_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+
     if ix.size == 1:
+        # known fluid properties
         T = memorise.T_ph[fl][ix, -1][0]
         memorise.T_ph_f[fl] += [T]
         return T
     else:
+        # unknown fluid properties
         if num_fluids(flow[3]) > 1:
+            # calculate the fluid properties for fluid mixtures
             val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2],
                          val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
+            # memorise the newly calculated value
             memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
             return val
         else:
+            # calculate fluid property for pure fluids
             for fluid, x in flow[3].items():
                 if x > err:
                     val = T_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
+                    # memorise the newly calculated value
                     memorise.T_ph[fl] = np.append(memorise.T_ph[fl],
                                                   new, axis=0)
                     return val
 
 
 def T_ph(p, h, fluid):
+    r"""
+    returns the temperature of a pure fluid given pressure and enthalpy
+
+    :param p: pressure
+    :type p: float
+    :param h: enthalpy
+    :type h: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: T (float) - temperature in K
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -748,34 +771,52 @@ def T_mix_ps(flow, s):
         s_{i} = s \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
     """
+    # check if fluid properties have been calculated before
     fl = tuple(sorted(list(flow[3].keys())))
     a = memorise.T_ps[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
+        # known fluid properties
         T = memorise.T_ps[fl][ix, -1][0]
         memorise.T_ps_f[fl] += [T]
         return T
     else:
+        # unknown fluid properties
         if num_fluids(flow[3]) > 1:
+            # calculate the fluid properties for fluid mixtures
             val = newton(s_mix_pT, ds_mix_pdT, flow, s,
                          val0=300, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [s, val]])
+            # memorise the newly calculated value
             memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
             return val
         else:
+            # calculate fluid property for pure fluids
             for fluid, x in flow[3].items():
                 if x > err:
                     val = T_ps(flow[1], s, fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [s, val]])
+                    # memorise the newly calculated value
                     memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
                                                   new, axis=0)
                     return val
 
 
 def T_ps(p, s, fluid):
+    r"""
+    returns the temperature of a pure fluid given pressure and entropy
+
+    :param p: pressure
+    :type p: float
+    :param s: entropy
+    :type s: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: T (float) - temperature in K
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -816,6 +857,17 @@ def h_mix_pT(flow, T):
 
 
 def h_pT(p, T, fluid):
+    r"""
+    returns the enthalpy of a pure fluid given pressure and temperature
+
+    :param p: pressure
+    :type p: float
+    :param T: temperature
+    :type T: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: h (float) - enthalpy in J / kg
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -866,6 +918,17 @@ def h_mix_ps(flow, s):
 
 
 def h_ps(p, s, fluid):
+    r"""
+    returns the enthalpy of a pure fluid given pressure and entropy
+
+    :param p: pressure
+    :type p: float
+    :param s: entropy
+    :type s: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: h (float) - enthalpy in J / kg
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -952,33 +1015,51 @@ def v_mix_ph(flow):
 
         v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)
     """
+    # check if fluid properties have been calculated before
     fl = tuple(sorted(list(flow[3].keys())))
     a = memorise.v_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
+        # known fluid properties
         v = memorise.v_ph[fl][ix, -1][0]
         memorise.v_ph_f[fl] += [v]
         return v
     else:
+        # unknown fluid properties
         if num_fluids(flow[3]) > 1:
+            # calculate the fluid properties for fluid mixtures
             val = v_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
+            # memorise the newly calculated value
             memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
             return val
         else:
+            # calculate fluid property for pure fluids
             for fluid, x in flow[3].items():
                 if x > err:
                     val = 1 / d_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
+                    # memorise the newly calculated value
                     memorise.v_ph[fl] = np.append(memorise.v_ph[fl],
                                                   new, axis=0)
                     return val
 
 
 def d_ph(p, h, fluid):
+    r"""
+    returns the density of a pure fluid given pressure and enthalpy
+
+    :param p: pressure
+    :type p: float
+    :param h: enthalpy
+    :type h: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: d (float) - density in kg / m^3
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -1036,6 +1117,17 @@ def d_mix_pT(flow, T):
 
 
 def d_pT(p, T, fluid):
+    r"""
+    returns the density of a pure fluid given pressure and temperature
+
+    :param p: pressure
+    :type p: float
+    :param T: temperature
+    :type T: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: d (float) - density in kg / m^3
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -1061,33 +1153,51 @@ def visc_mix_ph(flow):
 
         \eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)
     """
+    # check if fluid properties have been calculated before
     fl = tuple(sorted(list(flow[3].keys())))
     a = memorise.visc_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
+        # known fluid properties
         visc = memorise.visc_ph[fl][ix, -1][0]
         memorise.visc_ph_f[fl] += [visc]
         return visc
     else:
+        # unknown fluid properties
         if num_fluids(flow[3]) > 1:
+            # calculate the fluid properties for fluid mixtures
             val = visc_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
+            # memorise the newly calculated value
             memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
             return val
         else:
+            # calculate fluid property for pure fluids
             for fluid, x in flow[3].items():
                 if x > err:
                     val = visc_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
+                    # memorise the newly calculated value
                     memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl],
                                                      new, axis=0)
                     return val
 
 
 def visc_ph(p, h, fluid):
+    r"""
+    returns the dynamic viscosity of a pure fluid given pressure and enthalpy
+
+    :param p: pressure
+    :type p: float
+    :param h: enthalpy
+    :type h: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: visc (float) - dynamic viscosity in Pa s
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -1132,6 +1242,18 @@ def visc_mix_pT(flow, T):
 
 
 def visc_pT(p, T, fluid):
+    r"""
+    returns the dynamic viscosity of a pure fluid given pressure and
+    temperature
+
+    :param p: pressure
+    :type p: float
+    :param T: temperature
+    :type T: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: visc (float) - dynamic viscosity in Pa s
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -1157,33 +1279,51 @@ def s_mix_ph(flow):
 
         s_{mix}\left(p,h\right) = s\left(p,T_{mix}(p,h)\right)
     """
+    # check if fluid properties have been calculated before
     fl = tuple(sorted(list(flow[3].keys())))
     a = memorise.s_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
     ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
     if ix.size == 1:
+        # known fluid properties
         s = memorise.s_ph[fl][ix, -1][0]
         memorise.s_ph_f[fl] += [s]
         return s
     else:
+        # unknown fluid properties
         if num_fluids(flow[3]) > 1:
+            # calculate the fluid properties for fluid mixtures
             val = s_mix_pT(flow, T_mix_ph(flow))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
                             [val]])
+            # memorise the newly calculated value
             memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
             return val
         else:
+            # calculate fluid property for pure fluids
             for fluid, x in flow[3].items():
                 if x > err:
                     val = s_ph(flow[1], flow[2], fluid)
                     new = np.array([[flow[1], flow[2]] +
                                     list(flow[3].values()) + [val]])
+                    # memorise the newly calculated value
                     memorise.s_ph[fl] = np.append(memorise.s_ph[fl],
                                                   new, axis=0)
                     return val
 
 
 def s_ph(p, h, fluid):
+    r"""
+    returns the entropy of a pure fluid given pressure and enthalpy
+
+    :param p: pressure
+    :type p: float
+    :param h: enthalpy
+    :type h: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: s (float) - entropy in J / (kg * K)
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
@@ -1268,6 +1408,17 @@ def s_mix_pT(flow, T):
 
 
 def s_pT(p, T, fluid):
+    r"""
+    returns the entropy of a pure fluid given pressure and temperature
+
+    :param p: pressure
+    :type p: float
+    :param T: temperature
+    :type T: float
+    :param fluid: fluid alias
+    :type fluid: str
+    :returns: s (float) - entropy in J / (kg * K)
+    """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:

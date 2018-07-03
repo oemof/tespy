@@ -19,7 +19,7 @@ tespy\.connections module
 tespy\.csv\_reader module
 -------------------------
 
-.. automodule:: tespy.csv_reader
+.. automodule:: tespy.network_reader
     :members:
     :undoc-members:
     :show-inheritance:

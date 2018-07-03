@@ -4645,8 +4645,9 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char', 'hydro_char',
-                'SQ1', 'SQ2', 'Sirr']
+                'kA', 't_a', 't_a_design', 'kA_char',
+                'SQ1', 'SQ2', 'Sirr',
+                'hydro_group', 'kA_group']
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
@@ -4654,7 +4655,7 @@ class heat_exchanger_simple(component):
                 'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'hydro_char': dc_gcp()}
+                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
     def default_design(self):
         return ['pr']

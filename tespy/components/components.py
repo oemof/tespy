@@ -153,7 +153,8 @@ class component:
 
                 # data container specification
                 if (isinstance(kwargs[key], dc_cp) or
-                        isinstance(kwargs[key], dc_cc)):
+                        isinstance(kwargs[key], dc_cc) or
+                        isinstance(kwargs[key], dc_gcp)):
                     self.__dict__.update({key: kwargs[key]})
 
                 elif isinstance(self.get_attr(key), dc_cp):
@@ -185,7 +186,8 @@ class component:
                         msg = 'Bad datatype for keyword argument ' + str(key)
                         raise TypeError(msg)
 
-                elif isinstance(self.get_attr(key), dc_cc):
+                elif (isinstance(self.get_attr(key), dc_cc) or
+                      isinstance(self.get_attr(key), dc_gcp)):
                     # value specification for component characteristics
                     if isinstance(kwargs[key], str):
                         self.get_attr(key).set_attr(method=kwargs[key])

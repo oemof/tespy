@@ -139,7 +139,7 @@ class dc_flu(data_container):
 class dc_cp(data_container):
     """r
 
-    data container for component parameters
+    data container for component properties
 
     - val (*numeric*) - user specified value
     - val_SI (*numeric*) - value in SI units
@@ -184,6 +184,21 @@ class dc_cc(data_container):
         return {'func': None, 'is_set': False,
                 'method': 'default', 'param': None,
                 'x': None, 'y': None}
+
+
+class dc_gcp(data_container):
+    """r
+
+    data container for grouped component properties
+
+    - is_set (*bool*) - is the group set
+    - method (*str*) - calculation method for identical property groups
+    - elements (*list*) - list of elements for this group, if you want to make
+      use of a group, every element's is_set value must be True.
+
+    """
+    def attr(self):
+        return {'is_set': False, 'method': 'default', 'elements': []}
 
 # %%
 

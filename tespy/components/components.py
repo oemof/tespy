@@ -17,7 +17,7 @@ from tespy.helpers import (
     h_ps, s_ph,
     molar_massflow, lamb,
     molar_masses, err,
-    dc_cp, dc_cc
+    dc_cp, dc_cc, dc_gcp
 )
 
 from tespy.components import characteristics as cmp_char
@@ -4607,9 +4607,45 @@ class heat_exchanger_simple(component):
         self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
                                   nw.T[nw.T_unit][1])
 
+        # parameters for hydro group
+        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
+
+        is_set = True
+        for e in self.hydro_group.elements:
+            if not e.is_set:
+                is_set = False
+
+        if is_set:
+            self.hydro_group.set_attr(is_set=True)
+        elif self.hydro_group.is_set:
+            msg = ('All parameters of the component group have to be '
+                   'specified! This component group uses the following '
+                   'parameters: L, ks, D')
+            raise MyComponentError(msg)
+        else:
+            self.hydro_group.set_attr(is_set=False)
+
+        # parameters for kA group
+        self.kA_group.set_attr(elements=[self.kA, self.t_a])
+
+        is_set = True
+        for e in self.kA_group.elements:
+            if not e.is_set:
+                is_set = False
+
+        if is_set:
+            self.kA_group.set_attr(is_set=True)
+        elif self.kA_group.is_set:
+            msg = ('All parameters of the component group have to be '
+                   'specified! This component group uses the following '
+                   'parameters: kA, t_a')
+            raise MyComponentError(msg)
+        else:
+            self.kA_group.set_attr(is_set=False)
+
     def attr(self):
         return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char','hydro_char',
+                'kA', 't_a', 't_a_design', 'kA_char', 'hydro_char',
                 'SQ1', 'SQ2', 'Sirr']
 
     def attr_prop(self):
@@ -4617,7 +4653,8 @@ class heat_exchanger_simple(component):
                 'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
                 'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(), 'hydro_char':dc_cc()}
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'hydro_char': dc_gcp()}
 
     def default_design(self):
         return ['pr']
@@ -4680,13 +4717,15 @@ class heat_exchanger_simple(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func(inl, outl)]
 
-        if self.ks.is_set and self.D.is_set and self.L.is_set:
-            if self.hydro_char.method == 'HW':
-                vec_res += [self.hw_func(inl, outl)]
+        if self.hydro_group.is_set:
+            if self.hydro_group.method == 'HW':
+                func = self.hw_func
             else:
-                vec_res += [self.lamb_func(inl, outl)]
+                func = self.lamb_func
 
-        if self.kA.is_set and self.t_a.is_set:
+            vec_res += [func(inl, outl)]
+
+        if self.kA_group.is_set:
             vec_res += [self.kA_func(inl, outl)]
 
         return vec_res
@@ -4735,31 +4774,25 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, self.zeta_func, 'h', i))
             mat_deriv += zeta_deriv.tolist()
 
-        if self.ks.is_set and self.D.is_set and self.L.is_set:
-            if self.hydro_char.method == 'HW':
-                hw_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-                for i in range(2):
-                    if i == 0:
-                        hw_deriv[0, i, 0] = (
-                            self.ddx_func(inl, outl, self.hw_func, 'm', i))
-                    hw_deriv[0, i, 1] = (
-                        self.ddx_func(inl, outl, self.hw_func, 'p', i))
-                    hw_deriv[0, i, 2] = (
-                        self.ddx_func(inl, outl, self.hw_func, 'h', i))
-                mat_deriv += hw_deriv.tolist()
+        if self.hydro_group.is_set:
+            if self.hydro_group.method == 'HW':
+                func = self.hw_func
             else:
-                lamb_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
-                for i in range(2):
-                    if i == 0:
-                        lamb_deriv[0, i, 0] = (
-                            self.ddx_func(inl, outl, self.lamb_func, 'm', i))
-                    lamb_deriv[0, i, 1] = (
-                        self.ddx_func(inl, outl, self.lamb_func, 'p', i))
-                    lamb_deriv[0, i, 2] = (
-                        self.ddx_func(inl, outl, self.lamb_func, 'h', i))
-                mat_deriv += lamb_deriv.tolist()
+                func = self.lamb_func
 
-        if self.kA.is_set and self.t_a.is_set:
+            deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            for i in range(2):
+                if i == 0:
+                    deriv[0, i, 0] = (
+                        self.ddx_func(inl, outl, func, 'm', i))
+                deriv[0, i, 1] = (
+                    self.ddx_func(inl, outl, func, 'p', i))
+                deriv[0, i, 2] = (
+                    self.ddx_func(inl, outl, func, 'h', i))
+            mat_deriv += deriv.tolist()
+
+        if self.kA_group.is_set:
+
             kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             kA_deriv[0, 0, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 0)
             for i in range(2):

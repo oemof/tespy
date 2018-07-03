@@ -10,6 +10,7 @@ New Features
 - added pressure rise vs. flow rate characteristics for component pump (https://github.com/oemof/tespy/commit/e79a1919611360dd0a2fbc0c417e1b280b003897, https://github.com/oemof/tespy/commit/e3409bfaa314821806ec90b6ba10f5570fc18969, https://github.com/oemof/tespy/commit/8fe697625f80a4c96a943ef11088924c48feefdb).
 - added hazen-williams equation for pipe pressure loss calculation (https://github.com/oemof/tespy/commit/bf0b8650b0965c916727ebe10f39f0cefabb71e0, https://github.com/oemof/tespy/commit/25c32bc4a54e7b89e7fa71a5a44ea476227e2166, https://github.com/oemof/tespy/commit/cee8cee0656a784727b08e06c9a83064a7642b5a).
 - added TESPy network import/export (https://github.com/oemof/tespy/commit/7fefc5946a7ff745037bfce83dfb36bac9a58394, https://github.com/oemof/tespy/commit/70ae9085bb8011196267d7a69bbffd186d0d1866, https://github.com/oemof/tespy/commit/13ef1ad02d0b8a3a043e172872b9eeac89effd1c, https://github.com/oemof/tespy/commit/40e906cdc1011004927125f513f7e36ee79b1b1a).
+- added data container for grouped component properties (https://github.com/oemof/tespy/commit/83c9ff4767363886e39c5d65c32fbececab2a4e9).
 
 Documentation
 #############

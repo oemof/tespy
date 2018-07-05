@@ -1,33 +1,33 @@
-v0.0.3 (July 10, 2018)
+v0.0.3 (July 05, 2018)
 ++++++++++++++++++++++
 
 New Features
 ############
-- added new component: stoichiometric combustion chamber (https://github.com/oemof/tespy/commit/0989493b888e6aafa277521a9f84194272d63ce0, https://github.com/oemof/tespy/commit/1e84386468456339238c119ab07468c6216f60b7, https://github.com/oemof/tespy/commit/460dd9f6988213f117ddd41b348e2193405db873, https://github.com/oemof/tespy/commit/6d10d2d93251b714ec46a6d0aec0a2944d6bea97).
-- added custom fluid databases, mainly for usage in stoichiometric combustion chamber (https://github.com/oemof/tespy/commit/45e19aec4f5dd4a1d756dcbae02b51d0ea432f1b, https://github.com/oemof/tespy/commit/c3da7859df711bc6435220242357adc63c2e363d, https://github.com/oemof/tespy/commit/7cb1144b828e5af2296ca3ca28ea79be488a2664).
-- added val_SI-attribute to datacontainers for setting ambient temperatures at simple heat exchangers (https://github.com/oemof/tespy/commit/c4ba3496f68b89f80dc780c6ebe03bd9fe375ffe, https://github.com/oemof/tespy/commit/3c7d94e83c5306520d1d67da7fc255414b80b6bb).
-- added entropy balance for components (https://github.com/oemof/tespy/commit/5944eae98c427b745da83590362fe70cad046b5b, https://github.com/oemof/tespy/commit/b0aed986d665c8e9cff49570ac2cd50d47b2fd1c, https://github.com/oemof/tespy/commit/e0839ab8a21ca2424c2a71e3bcdc4dd35da85a35).
-- added pressure rise vs. flow rate characteristics for component pump (https://github.com/oemof/tespy/commit/e79a1919611360dd0a2fbc0c417e1b280b003897, https://github.com/oemof/tespy/commit/e3409bfaa314821806ec90b6ba10f5570fc18969, https://github.com/oemof/tespy/commit/8fe697625f80a4c96a943ef11088924c48feefdb).
-- added hazen-williams equation for pipe pressure loss calculation (https://github.com/oemof/tespy/commit/bf0b8650b0965c916727ebe10f39f0cefabb71e0, https://github.com/oemof/tespy/commit/25c32bc4a54e7b89e7fa71a5a44ea476227e2166, https://github.com/oemof/tespy/commit/cee8cee0656a784727b08e06c9a83064a7642b5a).
-- added TESPy network import/export (https://github.com/oemof/tespy/commit/7fefc5946a7ff745037bfce83dfb36bac9a58394, https://github.com/oemof/tespy/commit/70ae9085bb8011196267d7a69bbffd186d0d1866, https://github.com/oemof/tespy/commit/13ef1ad02d0b8a3a043e172872b9eeac89effd1c, https://github.com/oemof/tespy/commit/40e906cdc1011004927125f513f7e36ee79b1b1a).
-- added data container for grouped component properties (https://github.com/oemof/tespy/commit/83c9ff4767363886e39c5d65c32fbececab2a4e9).
+- added new component: stoichiometric combustion chamber (`0989493 <https://github.com/oemof/tespy/commit/0989493b888e6aafa277521a9f84194272d63ce0>`_, `1e84386 <https://github.com/oemof/tespy/commit/1e84386468456339238c119ab07468c6216f60b7>`_, `460dd9f <https://github.com/oemof/tespy/commit/460dd9f6988213f117ddd41b348e2193405db873>`_, `6d10d2d <https://github.com/oemof/tespy/commit/6d10d2d93251b714ec46a6d0aec0a2944d6bea97>`_).
+- added custom fluid databases, mainly for usage in stoichiometric combustion chamber (`45e19ae <https://github.com/oemof/tespy/commit/45e19aec4f5dd4a1d756dcbae02b51d0ea432f1b>`_, `c3da785 <https://github.com/oemof/tespy/commit/c3da7859df711bc6435220242357adc63c2e363d>`_, `7cb1144 <https://github.com/oemof/tespy/commit/7cb1144b828e5af2296ca3ca28ea79be488a2664>`_).
+- added val_SI-attribute to datacontainers for setting ambient temperatures at simple heat exchangers (`c4ba349 <https://github.com/oemof/tespy/commit/c4ba3496f68b89f80dc780c6ebe03bd9fe375ffe>`_, `3c7d94e <https://github.com/oemof/tespy/commit/3c7d94e83c5306520d1d67da7fc255414b80b6bb>`_).
+- added entropy balance for components (`5944eae <https://github.com/oemof/tespy/commit/5944eae98c427b745da83590362fe70cad046b5b>`_, `b0aed98 <https://github.com/oemof/tespy/commit/b0aed986d665c8e9cff49570ac2cd50d47b2fd1c>`_, `e0839ab <https://github.com/oemof/tespy/commit/e0839ab8a21ca2424c2a71e3bcdc4dd35da85a35>`_).
+- added pressure rise vs. flow rate characteristics for component pump (`e79a191 <https://github.com/oemof/tespy/commit/e79a1919611360dd0a2fbc0c417e1b280b003897>`_, `e3409bf <https://github.com/oemof/tespy/commit/e3409bfaa314821806ec90b6ba10f5570fc18969>`_, `8fe6976 <https://github.com/oemof/tespy/commit/8fe697625f80a4c96a943ef11088924c48feefdb>`_).
+- added hazen-williams equation for pipe pressure loss calculation (`bf0b865 <https://github.com/oemof/tespy/commit/bf0b8650b0965c916727ebe10f39f0cefabb71e0>`_, `25c32bc <https://github.com/oemof/tespy/commit/25c32bc4a54e7b89e7fa71a5a44ea476227e2166>`_, `cee8cee <https://github.com/oemof/tespy/commit/cee8cee0656a784727b08e06c9a83064a7642b5a>`_).
+- added TESPy network import/export (`7fefc59 <https://github.com/oemof/tespy/commit/7fefc5946a7ff745037bfce83dfb36bac9a58394>`_, `70ae908 <https://github.com/oemof/tespy/commit/70ae9085bb8011196267d7a69bbffd186d0d1866>`_, `13ef1ad <https://github.com/oemof/tespy/commit/13ef1ad02d0b8a3a043e172872b9eeac89effd1c>`_, `40e906c <https://github.com/oemof/tespy/commit/40e906cdc1011004927125f513f7e36ee79b1b1a>`_).
+- added data container for grouped component properties (`83c9ff4 <https://github.com/oemof/tespy/commit/83c9ff4767363886e39c5d65c32fbececab2a4e9>`_).
 
 Documentation
 #############
 - internal adjustments for links in the documentation and API.
-- added a tutorial for the combustion chamber and moved tutorials to the :ref:`appropriate section <tespy_tutorial_label>` (https://github.com/oemof/tespy/commit/8c0034db07f26d124206f129d5eabe4e214dcf00, https://github.com/oemof/tespy/commit/fd7a8e7674a52fda6876c50adf03a7d428b4805a, https://github.com/oemof/tespy/commit/e88747860c1eab844ba86598621223adbfe0941c).
-- added installation guide for :ref:`windows <tespy_installation_windows_label>` windows (https://github.com/oemof/tespy/commit/ca5eaa195ccdbbc90308cc1083faddf0888c6e65).
+- added a tutorial for the combustion chamber and moved tutorials to the :ref:`appropriate section <tespy_tutorial_label>` (`8c0034d <https://github.com/oemof/tespy/commit/8c0034db07f26d124206f129d5eabe4e214dcf00>`_, `fd7a8e7 <https://github.com/oemof/tespy/commit/fd7a8e7674a52fda6876c50adf03a7d428b4805a>`_, `e887478 <https://github.com/oemof/tespy/commit/e88747860c1eab844ba86598621223adbfe0941c>`_).
+- added installation guide for :ref:`windows <tespy_installation_windows_label>` windows (`ca5eaa1 <https://github.com/oemof/tespy/commit/ca5eaa195ccdbbc90308cc1083faddf0888c6e65>`_).
 
 Testing
 #######
 
 Bug fixes
 #########
-- convergence stability improvements for combustion chamber, fixes in the equations and derivatives (https://github.com/oemof/tespy/commit/2c396f0d3d2511b6b86bce3882f3ed25af209ad8, https://github.com/oemof/tespy/commit/59e3879ab8a1dd13e95015ec170ec2519263c112, https://github.com/oemof/tespy/commit/10b2887ac0f03e3270906693325b4a5fbd3ca303).
-- fixes/improvements for the convergence control (https://github.com/oemof/tespy/commit/6e8ea60f6935f44b8ea8092724462c7677f40931, https://github.com/oemof/tespy/commit/43e8ee10f37eade599d91c084776c44905368bcd).
-- fixed vapour quality specification (https://github.com/oemof/tespy/commit/ec3865dbcb075163427cdcb0bead23bfcda6b83e).
-- added missing get_attr method for class characteristics (https://github.com/oemof/tespy/commit/13cf730493a9472a67a1453cc35098fa43f7d247).
-- added bus functions to every component (https://github.com/oemof/tespy/commit/41e9f2bfc98070a4e6fbf507dd26614517df0d8e, https://github.com/oemof/tespy/commit/7fefc5946a7ff745037bfce83dfb36bac9a58394).
+- convergence stability improvements for combustion chamber, fixes in the equations and derivatives (`2c396f0 <https://github.com/oemof/tespy/commit/2c396f0d3d2511b6b86bce3882f3ed25af209ad8>`_, `59e3879 <https://github.com/oemof/tespy/commit/59e3879ab8a1dd13e95015ec170ec2519263c112>`_, `10b2887 <https://github.com/oemof/tespy/commit/10b2887ac0f03e3270906693325b4a5fbd3ca303>`_).
+- fixes/improvements for the convergence control (`6e8ea60 <https://github.com/oemof/tespy/commit/6e8ea60f6935f44b8ea8092724462c7677f40931>`_, `43e8ee1 <https://github.com/oemof/tespy/commit/43e8ee10f37eade599d91c084776c44905368bcd>`_).
+- fixed vapour quality specification (`ec3865d <https://github.com/oemof/tespy/commit/ec3865dbcb075163427cdcb0bead23bfcda6b83e>`_).
+- added missing get_attr method for class characteristics (`13cf730 <https://github.com/oemof/tespy/commit/13cf730493a9472a67a1453cc35098fa43f7d247>`_).
+- added bus functions to every component (`41e9f2b <https://github.com/oemof/tespy/commit/41e9f2bfc98070a4e6fbf507dd26614517df0d8e>`_, `7fefc59 <https://github.com/oemof/tespy/commit/7fefc5946a7ff745037bfce83dfb36bac9a58394>`_).
 
 Other changes
 #############

@@ -9,4 +9,4 @@ from tespy.components import (components as cmp,
 from tespy import connections as con
 from tespy import helpers as hlp
 from tespy import networks as nwk
-from tespy import csv_reader as csv_r
+from tespy import network_reader as nwkr

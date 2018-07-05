@@ -168,18 +168,18 @@ class component:
                             self.get_attr(key).set_attr(val=kwargs[key])
                             self.get_attr(key).set_attr(is_set=True)
 
-                    elif isinstance(kwargs[key], str):
+                    elif kwargs[key] == 'var':
+                        self.get_attr(key).set_attr(val=1)
+                        self.get_attr(key).set_attr(is_set=True)
+                        self.get_attr(key).set_attr(is_var=True)
+
+                    elif isinstance(kwargs[key], str) and kwargs[key] != 'var':
                         self.get_attr(key).set_attr(val=kwargs[key])
                         self.get_attr(key).set_attr(is_set=True)
 
                     elif isinstance(kwargs[key], dict):
                         self.get_attr(key).set_attr(val=kwargs[key])
                         self.get_attr(key).set_attr(is_set=True)
-
-                    elif kwargs[key] == 'var':
-                        self.get_attr(key).set_attr(val=1)
-                        self.get_attr(key).set_attr(is_set=True)
-                        self.get_attr(key).set_attr(is_var=True)
 
                     # invalid datatype for keyword
                     else:
@@ -243,7 +243,12 @@ class component:
             return None
 
     def comp_init(self, nw):
-        return
+        self.num_c_vars = 0
+        for var in self.attr():
+            if isinstance(self.attr_prop()[var], dc_cp):
+                if self.get_attr(var).is_var:
+                    self.get_attr(var).var_pos = self.num_c_vars
+                    self.num_c_vars += 1
 
     def attr(self):
         return []
@@ -449,7 +454,7 @@ class component:
         num_fl = len(inl[0].fluid.val)
 
         if len(self.inlets()) == 1 and len(self.outlets()) == 1:
-            mat_deriv = np.zeros((num_fl, num_i + num_o, 3 + num_fl))
+            mat_deriv = np.zeros((num_fl, 2 + self.num_c_vars, 3 + num_fl))
             i = 0
             for fluid, x in inl[0].fluid.val.items():
                 mat_deriv[i, 0, i + 3] = 1
@@ -458,7 +463,7 @@ class component:
             return mat_deriv.tolist()
 
         if isinstance(self, heat_exchanger):
-            mat_deriv = np.zeros((num_fl * 2, num_i + num_o, 3 + num_fl))
+            mat_deriv = np.zeros((num_fl * 2, 4 + self.num_c_vars, 3 + num_fl))
             i = 0
             for fluid in inl[0].fluid.val.keys():
                 mat_deriv[i, 0, i + 3] = 1
@@ -618,7 +623,8 @@ class component:
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
                 (len(self.inlets()) == 1 and len(self.outlets()) == 1)):
-            mat_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            mat_deriv = np.zeros((1, num_i + num_o + self.num_c_vars,
+                                  num_fl + 3))
             j = 0
             for i in inl:
                 mat_deriv[0, j, 0] = 1
@@ -631,7 +637,8 @@ class component:
 
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
-            mat_deriv = np.zeros((num_i, num_i + num_o, num_fl + 3))
+            mat_deriv = np.zeros((num_i, num_i + num_o + self.num_c_vars,
+                                  num_fl + 3))
             for i in range(num_i):
                 mat_deriv[i, i, 0] = 1
             for j in range(num_o):
@@ -696,7 +703,7 @@ class component:
 
                 deriv += [exp / (2 * (dm + dp + dh + df))]
 
-        else:
+        elif dx in ['m', 'p', 'h']:
             exp = 0
             (inl + outl)[pos].m.val_SI += dm
             (inl + outl)[pos].p.val_SI += dp
@@ -712,6 +719,18 @@ class component:
             (inl + outl)[pos].m.val_SI += dm
             (inl + outl)[pos].p.val_SI += dp
             (inl + outl)[pos].h.val_SI += dh
+
+        else:
+            d = 1e-5
+            exp = 0
+            self.get_attr(dx).val += d
+            exp += func(inl, outl)
+
+            self.get_attr(dx).val -= 2 * d
+            exp -= func(inl, outl)
+            deriv = exp / (2 * d)
+
+            self.get_attr(dx).val += d
 
         return deriv
 
@@ -4471,27 +4490,27 @@ class vessel(component):
 
         inl, outl = (nw.comps.loc[self].i.tolist(),
                      nw.comps.loc[self].o.tolist())
-        num_i, num_o = len(inl), len(outl)
         num_fl = len(nw.fluids)
         mat_deriv = []
 
         mat_deriv += self.fluid_deriv(inl, outl)
         mat_deriv += self.mass_flow_deriv(inl, outl)
 
-        h_deriv = np.zeros((num_i + num_o - 1, num_i + num_o, num_fl + 3))
-        for k in range(num_i + num_o - 1):
-            h_deriv[k, 0, 2] = 1
-            h_deriv[k, k + 1, 2] = -1
+        h_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+        h_deriv[0, 0, 2] = 1
+        h_deriv[0, 1, 2] = -1
         mat_deriv += h_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
+            if self.pr.is_var:
+                pr_deriv[0, 2 + self.pr.var_pos, 0] = inl[0].p.val_SI
             mat_deriv += pr_deriv.tolist()
 
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             for i in range(2):
                 if i == 0:
                     zeta_deriv[0, i, 0] = (
@@ -4500,6 +4519,9 @@ class vessel(component):
                     self.ddx_func(inl, outl, self.zeta_func, 'p', i))
                 zeta_deriv[0, i, 2] = (
                     self.ddx_func(inl, outl, self.zeta_func, 'h', i))
+            if self.zeta.is_var:
+                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
+                    self.ddx_func(inl, outl, self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
 
         return np.asarray(mat_deriv)
@@ -4643,6 +4665,8 @@ class heat_exchanger_simple(component):
     """
 
     def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
         if self.kA_char.func is None:
             method = self.kA_char.method
@@ -4802,16 +4826,20 @@ class heat_exchanger_simple(component):
         mat_deriv += self.mass_flow_deriv(inl, outl)
 
         if self.Q.is_set:
-            Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            Q_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             Q_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
             Q_deriv[0, 0, 2] = -inl[0].m.val_SI
             Q_deriv[0, 1, 2] = inl[0].m.val_SI
+            if self.Q.is_var:
+                Q_deriv[0, 2 + self.Q.var_pos, 0] = -1
             mat_deriv += Q_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
+            if self.pr.is_var:
+                pr_deriv[0, 2 + self.pr.var_pos, 0] = inl[0].p.val_SI
             mat_deriv += pr_deriv.tolist()
 
         if self.zeta.is_set:
@@ -4832,7 +4860,7 @@ class heat_exchanger_simple(component):
             else:
                 func = self.lamb_func
 
-            deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             for i in range(2):
                 if i == 0:
                     deriv[0, i, 0] = (
@@ -4841,6 +4869,15 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, func, 'p', i))
                 deriv[0, i, 2] = (
                     self.ddx_func(inl, outl, func, 'h', i))
+            if self.D.is_var:
+                deriv[0, 2 + self.D.var_pos, 0] = (
+                    self.ddx_func(inl, outl, func, 'D', i))
+            if self.L.is_var:
+                deriv[0, 2 + self.L.var_pos, 0] = (
+                    self.ddx_func(inl, outl, func, 'L', i))
+            if self.ks.is_var:
+                deriv[0, 2 + self.ks.var_pos, 0] = (
+                    self.ddx_func(inl, outl, func, 'ks', i))
             mat_deriv += deriv.tolist()
 
         if self.kA_group.is_set:

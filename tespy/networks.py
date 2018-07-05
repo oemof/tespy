@@ -1188,6 +1188,22 @@ class network:
                 j += 1
             i += 1
 
+        c_vars = 0
+        for cp in self.comps.index:
+            if cp.num_c_vars > 0:
+                for var in cp.attr():
+                    if isinstance(cp.attr_prop()[var], hlp.dc_cp):
+                        if cp.get_attr(var).is_var:
+                            pos = cp.get_attr(var).var_pos
+                            cp.get_attr(var).val += self.vec_z[
+                                    self.num_vars * len(self.conns) +
+                                    c_vars + pos] * self.relax
+                            if var == 'D':
+                                print(cp.get_attr(var).val)
+                                if cp.get_attr(var).val <= 0:
+                                    cp.get_attr(var).val = 0.01
+                c_vars += cp.num_c_vars
+
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:
@@ -1298,8 +1314,9 @@ class network:
 
         - search a way to speed up locating the data within the matrix
         """
-        self.mat_deriv = np.zeros((len(self.conns) * (self.num_vars),
-                                   len(self.conns) * (self.num_vars)))
+        num_cols = len(self.conns) * self.num_vars
+        self.mat_deriv = np.zeros((num_cols + self.num_c_vars,
+                                   num_cols + self.num_c_vars,))
 
         if self.parallel:
             data = self.solve_parallelize(network.solve_comp, self.comps_split)
@@ -1313,6 +1330,7 @@ class network:
             self.vec_res += [it for ls in data[part][0].tolist()
                              for it in ls]
             k = 0
+            c_var = 0
             for cp in self.comps_split[part].index:
 
                 if (not isinstance(cp, cmp.source) and
@@ -1330,6 +1348,14 @@ class network:
                                        (loc + 1) * self.num_vars] = (
                                            data[part][1].iloc[k][0][:, i])
                         i += 1
+
+                    for j in range(cp.num_c_vars):
+                        self.mat_deriv[sum_eq:sum_eq + num_eq,
+                                       num_cols + c_var] = (
+                            data[part][1].iloc[k][0]
+                            [:, i + j, :1].transpose()[0])
+                        c_var += 1
+
                     sum_eq += num_eq
                 k += 1
 
@@ -1795,8 +1821,11 @@ class network:
         :returns: no return value
         :raises: :code:`MyNetworkError`
         """
+        self.num_c_vars = 0
         n = 0
         for cp in self.comps.index:
+
+            self.num_c_vars += cp.num_c_vars
             n += len(cp.equations(self))
 
         for c in self.conns.index:
@@ -1810,15 +1839,15 @@ class network:
         for b in self.busses:
             n += [b.P_set].count(True)
 
-        if n > self.num_vars * len(self.conns.index):
+        if n > self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have provided too many parameters:',
-                   self.num_vars * len(self.conns.index), 'required, ',
-                   n, 'given.')
+                   self.num_vars * len(self.conns.index) + self.num_c_vars,
+                   'required, ', n, 'given.')
             raise hlp.MyNetworkError(msg)
-        elif n < self.num_vars * len(self.conns.index):
+        elif n < self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have not provided enough parameters:',
-                   self.num_vars * len(self.conns.index), 'required, ',
-                   n, 'given.')
+                   self.num_vars * len(self.conns.index) + self.num_c_vars,
+                   'required, ', n, 'given.')
             raise hlp.MyNetworkError(msg)
         else:
             return

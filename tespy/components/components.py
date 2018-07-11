@@ -243,12 +243,14 @@ class component:
             return None
 
     def comp_init(self, nw):
+        self.vars = {}
         self.num_c_vars = 0
         for var in self.attr():
             if isinstance(self.attr_prop()[var], dc_cp):
                 if self.get_attr(var).is_var:
                     self.get_attr(var).var_pos = self.num_c_vars
                     self.num_c_vars += 1
+                    self.vars[self.get_attr(var)] = var
 
     def attr(self):
         return []
@@ -721,7 +723,7 @@ class component:
             (inl + outl)[pos].h.val_SI += dh
 
         else:
-            d = 1e-5
+            d = self.get_attr(dx).d
             exp = 0
             self.get_attr(dx).val += d
             exp += func(inl, outl)
@@ -3131,7 +3133,7 @@ class combustion_chamber(component):
             mat_deriv += lamb_deriv.tolist()
 
         if self.ti.is_set:
-            # derivatives for specified lambda
+            # derivatives for specified thermal input
             ti_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             for i in range(num_i):
                 ti_deriv[0, i, 0] = (
@@ -4725,8 +4727,11 @@ class heat_exchanger_simple(component):
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
-                'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
+                'D': dc_cp(min_val=1e-4, max_val=5, d=1e-5),
+                'L': dc_cp(min_val=1e-3, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-7),
+                'kA': dc_cp(min_val=100, d=1),
+                't_a': dc_cp(), 't_a_design': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
@@ -4843,7 +4848,7 @@ class heat_exchanger_simple(component):
             mat_deriv += pr_deriv.tolist()
 
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             for i in range(2):
                 if i == 0:
                     zeta_deriv[0, i, 0] = (
@@ -4852,6 +4857,9 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, self.zeta_func, 'p', i))
                 zeta_deriv[0, i, 2] = (
                     self.ddx_func(inl, outl, self.zeta_func, 'h', i))
+            if self.zeta.is_var:
+                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
+                    self.ddx_func(inl, outl, self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
 
         if self.hydro_group.is_set:
@@ -4869,26 +4877,27 @@ class heat_exchanger_simple(component):
                     self.ddx_func(inl, outl, func, 'p', i))
                 deriv[0, i, 2] = (
                     self.ddx_func(inl, outl, func, 'h', i))
-            if self.D.is_var:
-                deriv[0, 2 + self.D.var_pos, 0] = (
-                    self.ddx_func(inl, outl, func, 'D', i))
-            if self.L.is_var:
-                deriv[0, 2 + self.L.var_pos, 0] = (
-                    self.ddx_func(inl, outl, func, 'L', i))
-            if self.ks.is_var:
-                deriv[0, 2 + self.ks.var_pos, 0] = (
-                    self.ddx_func(inl, outl, func, 'ks', i))
+            for var in self.hydro_group.elements:
+                if var.is_var:
+                    deriv[0, 2 + var.var_pos, 0] = (
+                            self.ddx_func(inl, outl, func,
+                                          self.vars[var], i))
             mat_deriv += deriv.tolist()
 
         if self.kA_group.is_set:
-
-            kA_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
+            kA_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             kA_deriv[0, 0, 0] = self.ddx_func(inl, outl, self.kA_func, 'm', 0)
             for i in range(2):
                 kA_deriv[0, i, 1] = (
                     self.ddx_func(inl, outl, self.kA_func, 'p', i))
                 kA_deriv[0, i, 2] = (
                     self.ddx_func(inl, outl, self.kA_func, 'h', i))
+            # this does not work atm, as t_a.val_SI is used instead of t_a.val!
+            for var in self.kA_group.elements:
+                if var.is_var:
+                    kA_deriv[0, 2 + var.var_pos, 0] = (
+                            self.ddx_func(inl, outl, self.kA_func,
+                                          self.vars[var], i))
             mat_deriv += kA_deriv.tolist()
 
         return np.asarray(mat_deriv)
@@ -5123,6 +5132,21 @@ class heat_exchanger_simple(component):
                 return 3e5
         else:
             return 0
+
+    def convergence_check(self, nw):
+        r"""
+        prevent bad values for fluid properties in calculation
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: no return value
+        """
+
+        for var in self.vars.keys():
+            if var.val < var.min_val:
+                var.val = (var.min_val + var.max_val) / 2
+            if var.val > var.max_val:
+                var.val = (var.min_val + var.max_val) / 2
 
     def calc_parameters(self, nw, mode):
 

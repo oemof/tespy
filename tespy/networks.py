@@ -1190,19 +1190,12 @@ class network:
 
         c_vars = 0
         for cp in self.comps.index:
-            if cp.num_c_vars > 0:
-                for var in cp.attr():
-                    if isinstance(cp.attr_prop()[var], hlp.dc_cp):
-                        if cp.get_attr(var).is_var:
-                            pos = cp.get_attr(var).var_pos
-                            cp.get_attr(var).val += self.vec_z[
-                                    self.num_vars * len(self.conns) +
-                                    c_vars + pos] * self.relax
-                            if var == 'D':
-                                print(cp.get_attr(var).val)
-                                if cp.get_attr(var).val <= 0:
-                                    cp.get_attr(var).val = 0.01
-                c_vars += cp.num_c_vars
+            for var in cp.vars.keys():
+                pos = var.var_pos
+                var.val += self.vec_z[
+                        self.num_vars * len(self.conns) +
+                        c_vars + pos] * self.relax
+            c_vars += cp.num_c_vars
 
         # check properties for consistency
         if self.iter < 3:

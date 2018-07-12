@@ -1197,6 +1197,9 @@ class network:
                         c_vars + pos] * self.relax
             c_vars += cp.num_c_vars
 
+            if cp.num_c_vars > 0:
+                cp.convergence_check(self)
+
         # check properties for consistency
         if self.iter < 3:
             for cp in self.comps.index:

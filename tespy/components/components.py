@@ -4727,7 +4727,7 @@ class heat_exchanger_simple(component):
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(min_val=1e-4, max_val=5, d=1e-5),
+                'D': dc_cp(min_val=10, max_val=5000, d=1),
                 'L': dc_cp(min_val=1e-3, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-7),
                 'kA': dc_cp(min_val=100, d=1),
@@ -4823,7 +4823,6 @@ class heat_exchanger_simple(component):
 
         inl, outl = (nw.comps.loc[self].i.tolist(),
                      nw.comps.loc[self].o.tolist())
-        num_i, num_o = len(inl), len(outl)
         num_fl = len(nw.fluids)
         mat_deriv = []
 
@@ -4882,6 +4881,7 @@ class heat_exchanger_simple(component):
                     deriv[0, 2 + var.var_pos, 0] = (
                             self.ddx_func(inl, outl, func,
                                           self.vars[var], i))
+
             mat_deriv += deriv.tolist()
 
         if self.kA_group.is_set:
@@ -4931,13 +4931,13 @@ class heat_exchanger_simple(component):
         i, o = inl[0].to_flow(), outl[0].to_flow()
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
-        re = 4 * inl[0].m.val_SI / (math.pi * self.D.val *
+        re = 4 * inl[0].m.val_SI / (math.pi * self.D.val / 1000 *
                                     (visc_i + visc_o) / 2)
 
         return ((inl[0].p.val_SI - outl[0].p.val_SI) -
                 8 * inl[0].m.val_SI ** 2 * (v_i + v_o) / 2 * self.L.val *
-                lamb(re, self.ks.val, self.D.val) /
-                (math.pi ** 2 * self.D.val ** 5))
+                lamb(re, self.ks.val, self.D.val / 1000) /
+                (math.pi ** 2 * (self.D.val / 1000) ** 5))
 
     def hw_func(self, inl, outl):
         r"""
@@ -5144,9 +5144,9 @@ class heat_exchanger_simple(component):
 
         for var in self.vars.keys():
             if var.val < var.min_val:
-                var.val = (var.min_val + var.max_val) / 2
+                var.val = var.min_val
             if var.val > var.max_val:
-                var.val = (var.min_val + var.max_val) / 2
+                var.val = var.max_val
 
     def calc_parameters(self, nw, mode):
 

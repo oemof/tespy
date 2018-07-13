@@ -1185,6 +1185,8 @@ class pump(turbomachine):
 
     def comp_init(self, nw):
 
+        component.comp_init(self, nw)
+
         if self.flow_char.func is None:
             method = self.flow_char.method
             x = self.flow_char.x
@@ -4727,7 +4729,7 @@ class heat_exchanger_simple(component):
 
     def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(min_val=10, max_val=5000, d=1),
+                'D': dc_cp(min_val=1, max_val=5000, d=1e-1),
                 'L': dc_cp(min_val=1e-3, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-7),
                 'kA': dc_cp(min_val=100, d=1),

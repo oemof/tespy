@@ -1204,8 +1204,6 @@ class network:
         if self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
-
-        if self.iter < 3:
             for c in self.conns.index:
                 self.solve_check_properties(c)
 

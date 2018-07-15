@@ -1193,7 +1193,6 @@ class network:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
-        if self.iter < 3:
             for c in self.conns.index:
                 self.solve_check_properties(c)
 
@@ -1228,7 +1227,8 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        if c.T.val_set and not c.h.val_set:
+        ############ this part seems to cause bad convergence ############
+        if c.T.val_set and not c.h.val_set and not c.p.val_set:
             self.solve_check_temperature(c, 'min')
             self.solve_check_temperature(c, 'max')
 

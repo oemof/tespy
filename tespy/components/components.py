@@ -4597,7 +4597,8 @@ class heat_exchanger_simple(component):
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`
-    - ks: pipes roughness
+    - ks: pipes roughness , :math:`[ks]=\text{m}` in case of darcy friction,
+      :math:`[ks]=\text{1}` in case of hazen williams
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in network's temperature unit
@@ -4912,7 +4913,7 @@ class heat_exchanger_simple(component):
 
             0 = p_{in} - p_{out} - \frac{10.67 \cdot \dot{m}_{in} ^ {1.852}
             \cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot
-            \frac{v_{in} + v_{out}}{2}^{0.852}
+            \left(\frac{v_{in} + v_{out}}{2}\right)^{0.852}
 
             \text{note: g is set to } 9.81 \frac{m}{s^2}
         """

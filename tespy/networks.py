@@ -1041,7 +1041,6 @@ class network:
 
         **Improvememts**
         """
-
         print('iter\t| residual')
         for self.iter in range(self.max_iter):
 
@@ -1099,6 +1098,9 @@ class network:
                                                len(self.conns),))
                     break
 
+            if self.lin_dep:
+                break
+
     def solve_control(self):
         """
         calculation step of newton algorithm
@@ -1121,34 +1123,15 @@ class network:
         self.solve_connections()
         self.solve_busses()
 
-        lin_dep = True
+        self.lin_dep = True
         try:
             self.vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
-            lin_dep = False
+            self.lin_dep = False
         except:
             pass
 
         # check for linear dependency
-        if lin_dep:
-            if self.iter > 0 and self.num_restart < 3:
-                for c in self.conns.index:
-                    c.m.val_SI = c.m.val0
-                    c.p.val_SI = c.p.val0
-                    c.h.val_SI = c.h.val0
-                    c.fluid.val = c.fluid.val0.copy()
-
-                self.relax *= 0.8
-                self.num_restart += 1
-                self.iter = 0
-                self.convergence[0] = np.zeros((len(self.conns), 0))
-                self.convergence[1] = np.zeros((len(self.conns), 0))
-                self.convergence[2] = np.zeros((len(self.conns), 0))
-                self.res = np.array([])
-                self.vec_res = []
-                print('Adjusting relaxation factors and'
-                      'restarting calculation.')
-                self.solve_loop()
-            else:
+        if self.lin_dep:
                 msg = ('error calculating the network:\n'
                        'singularity in jacobian matrix, possible reasons are\n'
                        '-> given Temperature with given pressure in two phase '
@@ -1160,7 +1143,8 @@ class network:
                        '-> bad starting value for fuel mass flow of '
                        'combustion chamber, provide small (near to zero, '
                        'but not zero) starting value.')
-                raise hlp.MyNetworkError(msg)
+                print(msg)
+                return
 
         # add increment
         i = 0
@@ -1189,7 +1173,10 @@ class network:
             i += 1
 
         # check properties for consistency
-        if self.iter < 3:
+        if self.iter < 5:
+            for c in self.conns.index:
+                self.solve_check_properties(c)
+
             for cp in self.comps.index:
                 cp.convergence_check(self)
 

@@ -3731,13 +3731,14 @@ class combustion_chamber_stoich(combustion_chamber):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path', 'lamb', 'ti']
+        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path',
+                'lamb', 'ti', 'S']
 
     def attr_prop(self):
         return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
                 'air': dc_cp(), 'air_alias': dc_cp(),
                 'path': dc_cp(),
-                'lamb': dc_cp(), 'ti': dc_cp()}
+                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',

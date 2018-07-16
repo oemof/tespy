@@ -2,13 +2,14 @@
 
 from tespy import con, cmp, nwk
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # %% network
 
 fluids = ['water']
 
 nw = nwk.network(fluids=fluids, p_unit='bar', T_unit='C', h_unit='kJ / kg',
-                 p_range=[0.02, 110], T_range=[20, 800], h_range=[15, 5000])
+                 p_range=[0.01, 110], T_range=[20, 800], h_range=[15, 5000])
 
 # %% components
 
@@ -83,8 +84,8 @@ vessel_turb.set_attr(mode='man')
 turbine_hp.set_attr(eta_s=0.9)
 turbine_lp.set_attr(eta_s=0.9)
 
-condenser.set_attr(pr1=0.95, pr2=0.95, ttd_u=12)
-preheater.set_attr(pr1=0.95, pr2=0.99, ttd_u=7)
+condenser.set_attr(pr1=0.99, pr2=0.99, ttd_u=12)
+preheater.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
 vessel.set_attr(mode='man')
 
 pump.set_attr(eta_s=0.8)
@@ -124,55 +125,61 @@ mode = 'design'
 
 nw.solve(init_file=None, mode=mode)
 nw.print_results()
-nw.save('chp_' + mode)
+nw.save('chp')
 
-file = 'chp_' + mode + '_results.csv'
+file = 'chp/results.csv'
 mode = 'offdesign'
 
 # representation of part loads
 P_range = [5.25e6, 5e6, 4.5e6, 4e6, 3.5e6, 3e6]
 
 # temperatures for the heating system
-T_fl = [80, 90, 100, 110, 120]
+T_range = [120, 110, 100, 95, 90, 85, 80, 77.5, 75, 72.5, 70]
 
-P = {}
-Q = {}
+df = pd.DataFrame(columns=P_range)
 
 # iterate over temperatures
-for i in T_fl:
-    cw_out.set_attr(T=i)
-    P[i] = []
-    Q[i] = []
+for T in T_range:
+    cw_out.set_attr(T=T)
+    Q = []
     # iterate over power plant power output
-    for j in P_range:
-        power_bus.set_attr(P=j)
+    for P in P_range:
+        print(T, P)
+        power_bus.set_attr(P=P)
 
         # use an initialisation file with parameters similar to next
         # calculation
-        if j == P_range[0]:
-            init_file = file
+        if T == T_range[0]:
+            nw.solve(init_file=file, design_file=file, mode=mode)
         else:
-            init_file = 'chp_' + mode + '_results.csv'
+            nw.solve(init_file='chp_' + str(P/1e6) + '/results.csv',
+                     design_file=file, mode=mode)
 
-        nw.solve(init_file=init_file, design_file=file, mode=mode)
-        nw.save('chp_' + mode)
-        P[i] += [power_bus.P]
-        Q[i] += [heat_bus.P]
+        nw.save('chp_' + str(P/1e6))
+        Q += [heat_bus.P]
 
+    df.loc[T] = Q
+
+df.to_csv('chp.csv')
 # plotting
-colors = ['#00395b', '#74adc1', '#bfbfbf', '#b54036', '#ec6707']
+df = pd.read_csv('chp.csv', index_col=0)
+
+colors = ['#00395b', '#74adc1', '#b54036', '#ec6707',
+          '#bfbfbf', '#999999', '#010101']
 
 fig, ax = plt.subplots()
-j = 0
-for i in T_fl:
-    plt.plot(Q[i], P[i], '.-', Color=colors[j],
-             label='$T_{VL}$ = '+str(i)+' °C', markersize=15, linewidth=2)
-    j += 1
+
+i = 0
+for T in T_range:
+    if T % 10 == 0:
+        plt.plot(df.loc[T], P_range, '-x', Color=colors[i],
+                 label='$T_{VL}$ = ' + str(T) + ' °C', markersize=7, linewidth=2)
+        i += 1
+
 ax.set_ylabel('$P$ in W')
 ax.set_xlabel('$\dot{Q}$ in W')
 plt.title('P-Q diagram for CHP with backpressure steam turbine')
 plt.legend(loc='lower left')
-
 ax.set_ylim([0, 6e6])
 ax.set_xlim([0, 14e6])
 

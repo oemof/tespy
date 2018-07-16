@@ -76,12 +76,12 @@ power.set_attr(P=-10e6)
 
 mode = 'design'
 
-file = mode + '_results.csv'
+file = 'cr'
 
 # solve the network, print the results to prompt and save
 nw.solve(mode=mode)
 nw.print_results()
-nw.save('design')
+nw.save(file)
 
 # change to offdesign mode
 mode = 'offdesign'
@@ -91,6 +91,7 @@ power.set_attr(P=-9e6)
 
 # the design file holds the information on the design case
 # initialisation from previously design process
-nw.solve(mode=mode, design_file=file, init_file=file)
+nw.solve(mode=mode, design_file=file + '/results.csv',
+         init_file=file + '/results.csv')
 nw.print_results()
-nw.save('offdesign')
+nw.save('cr_OD')

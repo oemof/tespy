@@ -2258,8 +2258,8 @@ class turbine(turbomachine):
         if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
             i[0].h.val_SI = 10e5
 
-        if o[0].h.val_SI < 8e5 and not o[0].h.val_set:
-            o[0].h.val_SI = 8e5
+        if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
+            o[0].h.val_SI = 5e5
 
         if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
             o[0].h.val_SI = i[0].h.val_SI * 0.75
@@ -3518,7 +3518,7 @@ class combustion_chamber(component):
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o, self.fuel]:
+                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
                     m_f = 0
                     for i in nw.comps.loc[self].i:
                         m_f += i.fluid.val[f] * i.m.val_SI
@@ -3544,7 +3544,7 @@ class combustion_chamber(component):
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 
-                elif f == self.fuel:
+                elif f == self.fuel.val:
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 

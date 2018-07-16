@@ -2249,7 +2249,10 @@ class turbine(turbomachine):
         """
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if i[0].p.val_SI < o[0].p.val_SI and not o[0].p.val_set:
+        if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
+            i[0].p.val_SI = 1e5
+
+        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
             o[0].p.val_SI = i[0].p.val_SI / 2
 
         if i[0].h.val_SI < 10e5 and not i[0].h.val_set:

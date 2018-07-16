@@ -156,6 +156,6 @@ nw.save('heat_pump')
 
 cons.set_attr(Q=-200e3)
 
-nw.solve('offdesign', init_file='heat_pump_results.csv',
-         design_file='heat_pump_results.csv')
+nw.solve('offdesign', init_file='heat_pump/results.csv',
+         design_file='heat_pump/results.csv')
 nw.print_results()

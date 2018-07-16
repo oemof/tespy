@@ -2249,14 +2249,17 @@ class turbine(turbomachine):
         """
         i, o = nw.comps.loc[self].i, nw.comps.loc[self].o
 
-        if i[0].p.val_SI < o[0].p.val_SI and not o[0].p.val_set:
+        if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
+            i[0].p.val_SI = 1e5
+
+        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
             o[0].p.val_SI = i[0].p.val_SI / 2
 
         if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
             i[0].h.val_SI = 10e5
 
-        if o[0].h.val_SI < 8e5 and not o[0].h.val_set:
-            o[0].h.val_SI = 8e5
+        if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
+            o[0].h.val_SI = 5e5
 
         if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
             o[0].h.val_SI = i[0].h.val_SI * 0.75
@@ -3515,7 +3518,7 @@ class combustion_chamber(component):
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o, self.fuel]:
+                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
                     m_f = 0
                     for i in nw.comps.loc[self].i:
                         m_f += i.fluid.val[f] * i.m.val_SI
@@ -3541,7 +3544,7 @@ class combustion_chamber(component):
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 
-                elif f == self.fuel:
+                elif f == self.fuel.val:
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 
@@ -3728,13 +3731,14 @@ class combustion_chamber_stoich(combustion_chamber):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path', 'lamb', 'ti']
+        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path',
+                'lamb', 'ti', 'S']
 
     def attr_prop(self):
         return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
                 'air': dc_cp(), 'air_alias': dc_cp(),
                 'path': dc_cp(),
-                'lamb': dc_cp(), 'ti': dc_cp()}
+                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
@@ -4594,7 +4598,8 @@ class heat_exchanger_simple(component):
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`
-    - ks: pipes roughness
+    - ks: pipes roughness , :math:`[ks]=\text{m}` in case of darcy friction,
+      :math:`[ks]=\text{1}` in case of hazen williams
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in network's temperature unit
@@ -4909,7 +4914,7 @@ class heat_exchanger_simple(component):
 
             0 = p_{in} - p_{out} - \frac{10.67 \cdot \dot{m}_{in} ^ {1.852}
             \cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot
-            \frac{v_{in} + v_{out}}{2}^{0.852}
+            \left(\frac{v_{in} + v_{out}}{2}\right)^{0.852}
 
             \text{note: g is set to } 9.81 \frac{m}{s^2}
         """

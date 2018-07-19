@@ -1173,7 +1173,7 @@ class network:
             i += 1
 
         # check properties for consistency
-        if self.iter < 5:
+        if self.iter < 3 and self.init_file is None:
             for c in self.conns.index:
                 self.solve_check_properties(c)
 

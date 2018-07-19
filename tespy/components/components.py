@@ -1571,7 +1571,8 @@ class compressor(turbomachine):
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(func=cmp_char.compressor())}
+                'char_map': dc_cc(func=cmp_char.compressor(),
+                                  x=[0, 1, 2], y=[0, 1, 2])}
 
     def default_offdesign(self):
         return ['char_map']
@@ -2329,7 +2330,7 @@ class turbine(turbomachine):
                               (self.h_os(inl, outl) - inl[0].h.val_SI))
             if self.eta_s.val > 1 or self.eta_s.val <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
-                       'eta_s =', self.eta_s)
+                       'eta_s =', self.eta_s.val)
                 print(msg)
                 nw.errors += [self]
 

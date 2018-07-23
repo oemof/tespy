@@ -190,7 +190,8 @@ class network:
         required to pass Pool object within solving loop
         """
         self_dict = self.__dict__.copy()
-        del self_dict['pool']
+        if 'pool' in self_dict.keys():
+            del self_dict['pool']
         return self_dict
 
     def set_attr(self, **kwargs):
@@ -418,6 +419,7 @@ class network:
 
         :returns: no return value
         """
+
         msg = ('Have you adjusted the value ranges for pressure, enthalpy'
                ' and temperature according to the specified unit system?')
         print(msg)
@@ -2168,12 +2170,10 @@ class network:
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         df['id'] = df.apply(network.get_id, axis=1)
 
-        df['label'] = df.apply(network.get_props, axis=1,
-                               args=('label',))
-        df['P'] = df.apply(network.get_props, axis=1,
-                           args=('P',))
-        df['P_set'] = df.apply(network.get_props, axis=1,
-                               args=('P_set',))
+        cols = ['label', 'P', 'P_set']
+        for col in cols:
+            df[col] = df.apply(network.get_props, axis=1,
+                               args=(col,))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
@@ -2230,8 +2230,9 @@ class network:
                     not isinstance(c.name.get_attr(args[0]), list) and
                     not isinstance(c.name.get_attr(args[0]), np.ndarray) and
                     not isinstance(c.name.get_attr(args[0]), con.connection)):
-
-                if args[0] == 'fluid' and args[1] != 'balance':
+                if len(args) == 1:
+                    return c.name.get_attr(args[0])
+                elif args[0] == 'fluid' and args[1] != 'balance':
                     return c.name.fluid.get_attr(args[1])[args[2]]
                 elif args[1] == 'ref':
                     obj = c.name.get_attr(args[0]).get_attr(args[1])

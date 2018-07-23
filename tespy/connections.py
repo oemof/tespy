@@ -271,8 +271,8 @@ class bus:
 
     def set_attr(self, **kwargs):
 
-        self.label = kwargs.get('label')
-        self.P = kwargs.get('P')
+        self.label = kwargs.get('label', self.label)
+        self.P = kwargs.get('P', self.P)
 
         if not np.isnan(self.P):
             self.P_set = True

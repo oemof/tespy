@@ -4080,7 +4080,10 @@ class heat_exchanger_simple(component):
 
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
-            expr = inl[0].m.val_SI / self.i0[0]
+            if self.nw_mode == 'design':
+                expr = 1
+            else:
+                expr = inl[0].m.val_SI / self.i0[0]
             if (expr > self.kA_char.func.x[-1] or
                     expr < self.kA_char.func.x[0]):
                 msg = ('Warning: Expression for characteristics out of bounds:'
@@ -4224,6 +4227,8 @@ class heat_exchanger(component):
             x = self.kA_char2.x
             y = self.kA_char2.y
             self.kA_char2.func = cmp_char.heat_ex(method=method, x=x, y=y)
+
+        self.nw_mode = nw.mode
 
     def attr(self):
         return ['Q', 'kA', 'td_log', 'kA_char1', 'kA_char2',
@@ -4560,7 +4565,10 @@ class heat_exchanger(component):
             raise MyComponentError(msg)
 
         if self.kA_char1.param == 'm':
-            expr = i1[0] / self.i10[0]
+                            if self.nw_mode == 'design':
+                                                expr = 1
+                            else:
+                                                expr = i1[0] / self.i10[0]
         else:
             expr = 1
 
@@ -4572,7 +4580,10 @@ class heat_exchanger(component):
         fkA1 = self.kA_char1.func.f_x(expr)
 
         if self.kA_char2.param == 'm':
-            expr = i2[0] / self.i20[0]
+                            if self.nw_mode == 'design':
+                                                expr = 1
+                            else:
+                                                expr = i2[0] / self.i20[0]
         else:
             expr = 1
 
@@ -4881,7 +4892,10 @@ class heat_exchanger(component):
 
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
-            expr = inl[0].m.val_SI / self.i10[0]
+            if self.nw_mode == 'design':
+                                expr = 1
+            else:
+                                expr = inl[0].m.val_SI / self.i10[0]
             if (expr > self.kA_char1.func.x[-1] or
                     expr < self.kA_char1.func.x[0]):
                 msg = ('Warning: Expression for characteristics out of bounds:'

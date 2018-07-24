@@ -1171,6 +1171,13 @@ class pump(turbomachine):
             self.flow_char.func = cmp_char.characteristics(method=method,
                                                            x=x, y=y)
 
+        if self.eta_s_char.func is None:
+            method = self.eta_s_char.method
+            x = self.eta_s_char.x
+            y = self.eta_s_char.y
+            self.eta_s_char.func = cmp_char.characteristics(method=method,
+                                                           x=x, y=y)
+
     def component(self):
         return 'pump'
 
@@ -1179,7 +1186,7 @@ class pump(turbomachine):
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(), 'flow_char': dc_cc()}
+                'eta_s_char': dc_cc(x=[0, 1, 2], y=[0, 1, 2]), 'flow_char': dc_cc(x=[0, 1, 2], y=[0, 1, 2])}
 
     def additional_equations(self, nw):
         r"""

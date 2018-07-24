@@ -158,7 +158,8 @@ class connection:
                 elif isinstance(kwargs[key], dict):
                     # starting values
                     if key in var0:
-                        self.get_attr(key).set_attr(val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key])
                     # specified parameters
                     else:
                         self.get_attr(key).set_attr(val=kwargs[key].copy())

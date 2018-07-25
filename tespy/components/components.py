@@ -2772,17 +2772,27 @@ class merge(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-        for outconn in nw.comps.loc[self].o:
-            inl = nw.comps.loc[self].i.tolist()
-            for fluid in nw.fluids:
-                if not outconn.fluid.val_set[fluid]:
-                    x = 0
-                    m = 0
-                    for i in inl:
-                        m += i.m.val_SI
-                        x += i.fluid.val[fluid] * i.m.val_SI
+        num_fl = {}
+        for o in nw.comps.loc[self].o:
+            num_fl[o] = num_fluids(o.fluid.val)
 
-                    outconn.fluid.val[fluid] = x / m
+        for i in nw.comps.loc[self].i:
+            num_fl[i] = num_fluids(i.fluid.val)
+
+        ls = []
+        if any(num_fl.values()) and not all(num_fl.values()):
+            for conn, num in num_fl.items():
+                if num == 1:
+                    ls += [conn]
+
+            for c in ls:
+                for fluid in nw.fluids:
+                    for o in nw.comps.loc[self].o:
+                        if not o.fluid.val_set[fluid]:
+                            o.fluid.val[fluid] = c.fluid.val[fluid]
+                    for i in nw.comps.loc[self].i:
+                        if not i.fluid.val_set[fluid]:
+                            i.fluid.val[fluid] = c.fluid.val[fluid]
 
     def initialise_source(self, c, key):
         r"""
@@ -5486,7 +5496,7 @@ class heat_exchanger(component):
             Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             Q_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
             Q_deriv[0, 0, 2] = -inl[0].m.val_SI
-            Q_deriv[0, 1, 2] = inl[0].m.val_SI
+            Q_deriv[0, 2, 2] = inl[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.kA.is_set:

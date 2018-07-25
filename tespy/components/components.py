@@ -5486,7 +5486,7 @@ class heat_exchanger(component):
             Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             Q_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
             Q_deriv[0, 0, 2] = -inl[0].m.val_SI
-            Q_deriv[0, 1, 2] = inl[0].m.val_SI
+            Q_deriv[0, 2, 2] = inl[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.kA.is_set:

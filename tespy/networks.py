@@ -473,6 +473,10 @@ class network:
             t = self.conns[self.conns.t == comp]
             self.comps.loc[comp] = [t.t_id.sort_values().index,
                                     s.s_id.sort_values().index]
+            comp.inl = t.t_id.sort_values().index.tolist()
+            comp.outl = s.s_id.sort_values().index.tolist()
+            comp.num_i = len(comp.inl)
+            comp.num_o = len(comp.outl)
             labels += [comp.label]
 
         if len(labels) != len(list(set(labels))):
@@ -740,7 +744,6 @@ class network:
         if math.isnan(c.get_attr(key).val0):
             val_s = c.s.initialise_source(c, key)
             val_t = c.t.initialise_target(c, key)
-#            print(key, c.s.label, val_s, c.t.label, val_t)
             if val_s == 0 and val_t == 0:
                 if key == 'p':
                     c.get_attr(key).val0 = 1e5
@@ -951,10 +954,6 @@ class network:
         if init_only:
             return
 
-        # vectors for convergence history (massflow, pressure, enthalpy)
-        self.convergence[0] = np.zeros((len(self.conns), 0))
-        self.convergence[1] = np.zeros((len(self.conns), 0))
-        self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
         print('Solving network.')
@@ -991,7 +990,6 @@ class network:
         start_time = time.time()
         self.solve_loop()
         end_time = time.time()
-
         self.processing('post')
 
         if self.parallel:
@@ -1027,42 +1025,15 @@ class network:
         print('iter\t| residual')
         for self.iter in range(self.max_iter):
 
-            self.convergence[0] = np.column_stack((
-                    self.convergence[0], [0] * len(self.conns)))
-            self.convergence[1] = np.column_stack((
-                    self.convergence[1], [0] * len(self.conns)))
-            self.convergence[2] = np.column_stack((
-                    self.convergence[2], [0] * len(self.conns)))
-
             self.solve_control()
             self.res = np.append(self.res, norm(self.vec_res))
 
             print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
 
-            k = 0
-            for c in self.conns.index:
-                self.convergence[0][k][self.iter] = c.m.val_SI
-                self.convergence[1][k][self.iter] = c.p.val_SI
-                self.convergence[2][k][self.iter] = c.h.val_SI
-                k += 1
-
-            if self.iter > 3:
-                self.relax = 1
-
             self.iter += 1
 
             # stop calculation after rediculous amount of iterations
-            if self.iter > 3:
-                if self.res[-1] < hlp.err ** (1 / 2):
-                    if self.num_restart > 0:
-                        self.convergence[0] = np.column_stack((
-                                self.convergence[0], [0] * len(self.conns)))
-                        self.convergence[1] = np.column_stack((
-                                self.convergence[1], [0] * len(self.conns)))
-                        self.convergence[2] = np.column_stack((
-                                self.convergence[2], [0] * len(self.conns)))
-                        self.vec_z = np.zeros((self.num_vars *
-                                               len(self.conns),))
+            if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
                     break
 
             if self.iter > 15:
@@ -1070,15 +1041,6 @@ class network:
                         self.res[-1] >= self.res[-2]):
                     print('ERROR: Convergence is making no progress, '
                           'calculation stopped.')
-                    if self.num_restart > 0:
-                        self.convergence[0] = np.column_stack((
-                                self.convergence[0], [0] * len(self.conns)))
-                        self.convergence[1] = np.column_stack((
-                                self.convergence[1], [0] * len(self.conns)))
-                        self.convergence[2] = np.column_stack((
-                                self.convergence[2], [0] * len(self.conns)))
-                        self.vec_z = np.zeros((self.num_vars *
-                                               len(self.conns),))
                     break
 
             if self.lin_dep:
@@ -1102,6 +1064,7 @@ class network:
         **Improvememts**
         """
         self.vec_res = []
+
         self.solve_components()
         self.solve_connections()
         self.solve_busses()
@@ -1309,15 +1272,16 @@ class network:
     def solve_comp(args):
         nw, data = args
         return [
-                data[0].apply(network.solve_comp_eq, axis=1, args=(nw,)),
+                data[0].apply(network.solve_comp_eq, axis=1),
                 data[0].apply(network.solve_comp_deriv, axis=1, args=(nw,))
         ]
 
-    def solve_comp_eq(cp, nw):
-        return cp.name.equations(nw)
+    def solve_comp_eq(cp):
+        return cp.name.equations()
 
     def solve_comp_deriv(cp, nw):
-        return [cp.name.derivatives(nw)]
+        a = cp.name.derivatives(nw)
+        return [a]
 
     def solve_connections(self):
         """
@@ -1457,8 +1421,8 @@ class network:
                     i = self.comps.loc[cp].i.tolist()
                     o = self.comps.loc[cp].o.tolist()
 
-                    P_res += cp.bus_func(i, o) * b.comps.loc[cp].factor
-                    deriv = -cp.bus_deriv(i, o)
+                    P_res += cp.bus_func() * b.comps.loc[cp].factor
+                    deriv = -cp.bus_deriv()
 
                     j = 0
                     for c in i + o:
@@ -1767,7 +1731,7 @@ class network:
         """
         n = 0
         for cp in self.comps.index:
-            n += len(cp.equations(self))
+            n += len(cp.equations())
 
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
@@ -1834,7 +1798,7 @@ class network:
                 i = self.comps.loc[cp].i.tolist()
                 o = self.comps.loc[cp].o.tolist()
 
-                b.P += cp.bus_func(i, o) * b.comps.loc[cp].factor
+                b.P += cp.bus_func() * b.comps.loc[cp].factor
 
     def process_components(cols, nw, mode):
         """

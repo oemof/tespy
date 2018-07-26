@@ -1280,8 +1280,7 @@ class network:
         return cp.name.equations()
 
     def solve_comp_deriv(cp, nw):
-        a = cp.name.derivatives(nw)
-        return [a]
+        return [cp.name.derivatives(nw)]
 
     def solve_connections(self):
         """

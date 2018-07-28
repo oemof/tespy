@@ -387,15 +387,15 @@ class network:
         :raises: :code:`hlp.MyNetworkError`, if number of connections in the
                  network does not match number of connections required
         """
-        for comp in pd.unique(self.conns[['s', 't']].values.ravel()):
+        comps = pd.unique(self.conns[['s', 't']].values.ravel())
+        self.init_components(comps)  # build the dataframe for components
+        for comp in self.comps.index:
             freq = 0
             freq += (self.conns[['s', 't']] == comp).sum().s
             freq += (self.conns[['s', 't']] == comp).sum().t
 
-            if comp.outlets() is not None:
-                freq -= len(comp.outlets())
-            if comp.inlets() is not None:
-                freq -= len(comp.inlets())
+            freq -= comp.num_i
+            freq -= comp.num_o
             if freq != 0:
                 msg = (str(comp) + ' (' + str(comp.label) + ') is missing ' +
                        str(-freq) + ' connections. Make sure all '
@@ -406,6 +406,49 @@ class network:
 
         self.checked = True
         print('Networkcheck successfull.')
+
+    def init_components(self, comps):
+        """
+        writes the networks components into dataframe
+
+        .. note::
+
+            This data is deriven from the network, thus it holds no additional
+            information. Instead it is used to simplify the code only.
+
+        dataframe :code:`network.comps`:
+
+        ======================== ============================ =======
+         index                    i                            o
+        ======================== ============================ =======
+         type: component object   type: list                   see i
+         value: object id         values: connection objects
+        ======================== ============================ =======
+
+        :returns: no return value
+        """
+        self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
+
+        labels = []
+        for comp in self.comps.index:
+            comp.comp_init(self)
+            s = self.conns[self.conns.s == comp]
+            s = s.s_id.sort_values().index
+            t = self.conns[self.conns.t == comp]
+            t = t.t_id.sort_values().index
+            self.comps.loc[comp] = [t, s]
+            comp.inl = t.tolist()
+            comp.outl = s.tolist()
+            comp.num_i = len(comp.inl)
+            comp.num_o = len(comp.outl)
+            labels += [comp.label]
+
+        if len(labels) != len(list(set(labels))):
+            duplicates = [item for item, count in
+                          collections.Counter(labels).items() if count > 1]
+            msg = ('All Components must have unique labels, duplicates are: ' +
+                   str(duplicates))
+            raise hlp.MyNetworkError(msg)
 
     def initialise(self):
         """
@@ -428,7 +471,6 @@ class network:
             msg = ('Network has no fluids, please specify a list with fluids '
                    'on network creation.')
             raise hlp.MyNetworkError(msg)
-        self.init_components()  # build the dataframe for components
 
         if self.mode == 'offdesign':
             self.init_offdesign()  # characteristics for offdesign
@@ -442,49 +484,6 @@ class network:
             raise hlp.MyNetworkError(msg)  # must provide design_file
         else:
             self.init_csv()  # initialisation from csv
-
-    def init_components(self):
-        """
-        writes the networks components into dataframe
-
-        .. note::
-
-            This data is deriven from the network, thus it holds no additional
-            information. Instead it is used to simplify the code only.
-
-        dataframe :code:`network.comps`:
-
-        ======================== ============================ =======
-         index                    i                            o
-        ======================== ============================ =======
-         type: component object   type: list                   see i
-         value: object id         values: connection objects
-        ======================== ============================ =======
-
-        :returns: no return value
-        """
-        comps = pd.unique(self.conns[['s', 't']].values.ravel())
-        self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
-
-        labels = []
-        for comp in self.comps.index:
-            comp.comp_init(self)
-            s = self.conns[self.conns.s == comp]
-            t = self.conns[self.conns.t == comp]
-            self.comps.loc[comp] = [t.t_id.sort_values().index,
-                                    s.s_id.sort_values().index]
-            comp.inl = t.t_id.sort_values().index.tolist()
-            comp.outl = s.s_id.sort_values().index.tolist()
-            comp.num_i = len(comp.inl)
-            comp.num_o = len(comp.outl)
-            labels += [comp.label]
-
-        if len(labels) != len(list(set(labels))):
-            duplicates = [item for item, count in
-                          collections.Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: ' +
-                   str(duplicates))
-            raise hlp.MyNetworkError(msg)
 
     def init_fluids(self):
         """
@@ -904,6 +903,7 @@ class network:
                 for var in cp.offdesign:
                     if not cp.get_attr(var).is_set:
                         cp.get_attr(var).set_attr(is_set=True)
+            cp.comp_init(self)
 
         for c in self.conns.index:
             for var in c.design:

@@ -67,5 +67,6 @@ nw.save('condenser')
 cons.set_attr(Q=-200e3)
 
 nw.solve('offdesign',
-         init_file='condenser_results.csv', design_file='condenser_results.csv')
+         init_file='condenser/results.csv',
+         design_file='condenser/results.csv')
 nw.print_results()

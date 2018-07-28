@@ -1171,6 +1171,13 @@ class pump(turbomachine):
             self.flow_char.func = cmp_char.characteristics(method=method,
                                                            x=x, y=y)
 
+        if self.eta_s_char.func is None:
+            method = self.eta_s_char.method
+            x = self.eta_s_char.x
+            y = self.eta_s_char.y
+            self.eta_s_char.func = cmp_char.characteristics(method=method,
+                                                           x=x, y=y)
+
     def component(self):
         return 'pump'
 
@@ -1179,7 +1186,7 @@ class pump(turbomachine):
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(), 'flow_char': dc_cc()}
+                'eta_s_char': dc_cc(x=[0, 1, 2], y=[0, 1, 2]), 'flow_char': dc_cc(x=[0, 1, 2], y=[0, 1, 2])}
 
     def additional_equations(self, nw):
         r"""
@@ -1571,7 +1578,8 @@ class compressor(turbomachine):
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(func=cmp_char.compressor())}
+                'char_map': dc_cc(func=cmp_char.compressor(),
+                                  x=[0, 1, 2], y=[0, 1, 2])}
 
     def default_offdesign(self):
         return ['char_map']
@@ -2258,8 +2266,8 @@ class turbine(turbomachine):
         if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
             i[0].h.val_SI = 10e5
 
-        if o[0].h.val_SI < 8e5 and not o[0].h.val_set:
-            o[0].h.val_SI = 8e5
+        if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
+            o[0].h.val_SI = 5e5
 
         if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
             o[0].h.val_SI = i[0].h.val_SI * 0.75
@@ -2329,7 +2337,7 @@ class turbine(turbomachine):
                               (self.h_os(inl, outl) - inl[0].h.val_SI))
             if self.eta_s.val > 1 or self.eta_s.val <= 0:
                 msg = ('Invalid value for isentropic efficiency.\n'
-                       'eta_s =', self.eta_s)
+                       'eta_s =', self.eta_s.val)
                 print(msg)
                 nw.errors += [self]
 
@@ -2764,17 +2772,27 @@ class merge(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-        for outconn in nw.comps.loc[self].o:
-            inl = nw.comps.loc[self].i.tolist()
-            for fluid in nw.fluids:
-                if not outconn.fluid.val_set[fluid]:
-                    x = 0
-                    m = 0
-                    for i in inl:
-                        m += i.m.val_SI
-                        x += i.fluid.val[fluid] * i.m.val_SI
+        num_fl = {}
+        for o in nw.comps.loc[self].o:
+            num_fl[o] = num_fluids(o.fluid.val)
 
-                    outconn.fluid.val[fluid] = x / m
+        for i in nw.comps.loc[self].i:
+            num_fl[i] = num_fluids(i.fluid.val)
+
+        ls = []
+        if any(num_fl.values()) and not all(num_fl.values()):
+            for conn, num in num_fl.items():
+                if num == 1:
+                    ls += [conn]
+
+            for c in ls:
+                for fluid in nw.fluids:
+                    for o in nw.comps.loc[self].o:
+                        if not o.fluid.val_set[fluid]:
+                            o.fluid.val[fluid] = c.fluid.val[fluid]
+                    for i in nw.comps.loc[self].i:
+                        if not i.fluid.val_set[fluid]:
+                            i.fluid.val[fluid] = c.fluid.val[fluid]
 
     def initialise_source(self, c, key):
         r"""
@@ -3518,7 +3536,7 @@ class combustion_chamber(component):
         for o in nw.comps.loc[self].o:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o, self.fuel]:
+                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
                     m_f = 0
                     for i in nw.comps.loc[self].i:
                         m_f += i.fluid.val[f] * i.m.val_SI
@@ -3544,7 +3562,7 @@ class combustion_chamber(component):
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 
-                elif f == self.fuel:
+                elif f == self.fuel.val:
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 
@@ -3731,13 +3749,14 @@ class combustion_chamber_stoich(combustion_chamber):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path', 'lamb', 'ti']
+        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path',
+                'lamb', 'ti', 'S']
 
     def attr_prop(self):
         return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
                 'air': dc_cp(), 'air_alias': dc_cp(),
                 'path': dc_cp(),
-                'lamb': dc_cp(), 'ti': dc_cp()}
+                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
@@ -5477,7 +5496,7 @@ class heat_exchanger(component):
             Q_deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             Q_deriv[0, 0, 0] = outl[0].h.val_SI - inl[0].h.val_SI
             Q_deriv[0, 0, 2] = -inl[0].m.val_SI
-            Q_deriv[0, 1, 2] = inl[0].m.val_SI
+            Q_deriv[0, 2, 2] = inl[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.kA.is_set:

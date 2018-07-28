@@ -190,7 +190,8 @@ class network:
         required to pass Pool object within solving loop
         """
         self_dict = self.__dict__.copy()
-        del self_dict['pool']
+        if 'pool' in self_dict.keys():
+            del self_dict['pool']
         return self_dict
 
     def set_attr(self, **kwargs):
@@ -418,6 +419,7 @@ class network:
 
         :returns: no return value
         """
+
         msg = ('Have you adjusted the value ranges for pressure, enthalpy'
                ' and temperature according to the specified unit system?')
         print(msg)
@@ -506,48 +508,51 @@ class network:
             c.fluid.val0 = collections.OrderedDict()
             c.fluid.val_set = collections.OrderedDict()
 
-            # set values for ordered dict
+            # if the number if fluids is one
+            if len(self.fluids) == 1:
+                c.fluid.val[self.fluids[0]] = 1
+                c.fluid.val0[self.fluids[0]] = 1
+
+                if self.fluids[0] in tmp_set.keys():
+                    c.fluid.val_set[self.fluids[0]] = tmp_set[self.fluids[0]]
+                else:
+                    c.fluid.val_set[self.fluids[0]] = False
+
+                # jump to next connection
+                continue
+
             for fluid in self.fluids:
 
-                if len(self.fluids) == 1:
-                    c.fluid.val[fluid] = 1
-                    c.fluid.val0[fluid] = 1
+                if fluid in tmp.keys():
+                    # if fluid in keys and is_set
+                    c.fluid.val[fluid] = tmp[fluid]
+                    c.fluid.val0[fluid] = tmp[fluid]
 
-                    try:
-                        if tmp_set[fluid]:
-                            c.fluid.val_set[fluid] = True
-                        else:
-                            c.fluid.val_set[fluid] = False
-                    except:
+                    if fluid in tmp_set.keys():
+                        c.fluid.val_set[fluid] = tmp_set[fluid]
+                    # if fluid in keys and not is_set
+                    else:
                         c.fluid.val_set[fluid] = False
 
-                else:
-
-                    if fluid in tmp.keys():
-                        # if fluid in keys and is_set
-                        if tmp_set[fluid]:
-                            c.fluid.val[fluid] = tmp[fluid]
-                            c.fluid.val0[fluid] = tmp[fluid]
-                            c.fluid.val_set[fluid] = True
-                        # if fluid in keys and not is_set
-                        else:
-                            c.fluid.val[fluid] = 0
-                            c.fluid.val0[fluid] = 0
-                            c.fluid.val_set[fluid] = False
-
-                    # if there is a starting value
-                    elif fluid in tmp0.keys():
+                # if there is a starting value
+                if fluid in tmp0.keys():
+                    if fluid in tmp_set.keys():
                         if not tmp_set[fluid]:
                             c.fluid.val[fluid] = tmp0[fluid]
                             c.fluid.val0[fluid] = tmp0[fluid]
                             c.fluid.val_set[fluid] = False
-
-                    # if fluid not in keys
                     else:
-                        c.fluid.val[fluid] = 0
-                        c.fluid.val0[fluid] = 0
+                        c.fluid.val[fluid] = tmp0[fluid]
+                        c.fluid.val0[fluid] = tmp0[fluid]
                         c.fluid.val_set[fluid] = False
 
+                # if fluid not in keys
+                else:
+                    c.fluid.val[fluid] = 0
+                    c.fluid.val0[fluid] = 0
+                    c.fluid.val_set[fluid] = False
+
+        # fluid propagation complete for single fluid networks
         if len(self.fluids) == 1:
             return
 
@@ -561,6 +566,15 @@ class network:
             if any(c.fluid.val_set.values()):
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
+
+            if isinstance(c.s, cmp.merge):
+                c.s.initialise_fluids(self)
+            if isinstance(c.t, cmp.merge):
+                c.t.initialise_fluids(self)
+
+        for c in self.conns.index:
+            c.s.initialise_fluids(self)
+            c.t.initialise_fluids(self)
 
     def init_target(self, c, start):
         """
@@ -694,37 +708,6 @@ class network:
                     c.get_attr(key).val_SI = (
                             c.get_attr(key).ref.obj.get_attr(key).val_SI *
                             c.get_attr(key).ref.f + c.get_attr(key).ref.d)
-
-        # propate fluids towards merges targets
-        # add merge cp to list redo, if number of fluids at merges outlet is
-        # still zero
-        redo = []
-        if len(self.fluids) >= 1:
-            for cp in self.comps.index:
-                if isinstance(cp, cmp.merge):
-                    cp.initialise_fluids(self)
-                    for c in self.comps.loc[cp].o:
-                        if hlp.num_fluids(c.fluid.val) != 0:
-                            self.init_target(c, c.t)
-                        else:
-                            redo += [cp]
-
-        # propagete fluids towards merges targets of the redo list
-        # do this, while the list is not empty
-        # if the iteration number is over 50, stop calculation
-        i = 0
-        while len(redo) != 0:
-            for cp in redo:
-                cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
-                    if hlp.num_fluids(c.fluid.val) != 0:
-                        self.init_target(c, c.t)
-                        redo.remove(cp)
-
-            if i > 50:
-                msg = 'Media propagation failed.'
-                raise hlp.MyNetworkError(msg)
-            i += 1
 
         for c in self.conns.index:
             if c.x.val_set and not c.h.val_set:
@@ -1173,7 +1156,7 @@ class network:
             i += 1
 
         # check properties for consistency
-        if self.iter < 5:
+        if self.iter < 3 and self.init_file is None:
             for c in self.conns.index:
                 self.solve_check_properties(c)
 
@@ -2168,12 +2151,10 @@ class network:
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         df['id'] = df.apply(network.get_id, axis=1)
 
-        df['label'] = df.apply(network.get_props, axis=1,
-                               args=('label',))
-        df['P'] = df.apply(network.get_props, axis=1,
-                           args=('P',))
-        df['P_set'] = df.apply(network.get_props, axis=1,
-                               args=('P_set',))
+        cols = ['label', 'P', 'P_set']
+        for col in cols:
+            df[col] = df.apply(network.get_props, axis=1,
+                               args=(col,))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
@@ -2230,8 +2211,9 @@ class network:
                     not isinstance(c.name.get_attr(args[0]), list) and
                     not isinstance(c.name.get_attr(args[0]), np.ndarray) and
                     not isinstance(c.name.get_attr(args[0]), con.connection)):
-
-                if args[0] == 'fluid' and args[1] != 'balance':
+                if len(args) == 1:
+                    return c.name.get_attr(args[0])
+                elif args[0] == 'fluid' and args[1] != 'balance':
                     return c.name.fluid.get_attr(args[1])[args[2]]
                 elif args[1] == 'ref':
                     obj = c.name.get_attr(args[0]).get_attr(args[1])

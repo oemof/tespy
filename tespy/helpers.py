@@ -962,8 +962,8 @@ def h_mix_pQ(flow, Q):
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
             pcrit = CPPSI('Pcrit', fluid)
-            while pp > pcrit:
-                flow[1] = flow[1] * 0.95
+            if pp > pcrit:
+                pp = pcrit * 0.95
 
             h += CPPSI('H', 'P', pp, 'Q', Q, fluid) * x
 

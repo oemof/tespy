@@ -35,7 +35,7 @@ Further it is possible to choose a unit system and a value range for mass flow, 
     from tespy import nwk, con, cmp
 
     nw = nwk.network(fluids=['water' , 'NH3'],
-					 T='C', p='bar', h='kJ / kg', m='kg / s',
+					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
 					 p_range=[0.1, 100], T_range=[1, 500], h_range=[10, 5000])
 	
 We suggest using °C, bar and kJ/kg as units, and set the pressure range from 0.1 bar to 100 bar, temperature range from 1 °C to 500 °C, enthalpy range from 10 kJ/kg to 5000 kJ/kg .

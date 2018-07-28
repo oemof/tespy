@@ -4769,9 +4769,9 @@ class heat_exchanger_simple(component):
             0 = p_{in} \cdot pr - p_{out}
 
         - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.lamb_func`
-        - :func:`tespy.components.components.component.hw_func`
-        - :func:`tespy.components.components.component.kA_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
 
         """
 
@@ -4796,7 +4796,7 @@ class heat_exchanger_simple(component):
             if self.hydro_group.method == 'HW':
                 func = self.hw_func
             else:
-                func = self.lamb_func
+                func = self.darcy_func
 
             vec_res += [func(inl, outl)]
 
@@ -4853,7 +4853,7 @@ class heat_exchanger_simple(component):
             if self.hydro_group.method == 'HW':
                 func = self.hw_func
             else:
-                func = self.lamb_func
+                func = self.darcy_func
 
             deriv = np.zeros((1, num_i + num_o, num_fl + 3))
             for i in range(2):
@@ -4879,7 +4879,7 @@ class heat_exchanger_simple(component):
 
         return np.asarray(mat_deriv)
 
-    def lamb_func(self, inl, outl):
+    def darcy_func(self, inl, outl):
         r"""
         equation for pressure drop from darcy friction factor
 

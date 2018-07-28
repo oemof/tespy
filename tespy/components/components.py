@@ -4708,7 +4708,7 @@ class heat_exchanger_simple(component):
             ttd_l = T_o - self.t_a.val_SI
 
         if self.kA_char.param == 'm':
-            expr = i.m.val_SI / self.i0[0]
+            expr = i[0].m.val_SI / self.i0[0]
         else:
             expr = 1
 
@@ -4719,8 +4719,8 @@ class heat_exchanger_simple(component):
 
         fkA = self.kA_char.func.f_x(expr)
 
-        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * fkA * (
-                (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
+        return (i[0].m.val_SI * (o[0].h.val_SI - i[0].h.val_SI) + self.kA.val *
+                fkA * ((ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
 
     def bus_func(self):
         r"""

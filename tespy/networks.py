@@ -469,15 +469,15 @@ class network:
         :raises: :code:`hlp.MyNetworkError`, if number of connections in the
                  network does not match number of connections required
         """
-        for comp in pd.unique(self.conns[['s', 't']].values.ravel()):
+        comps = pd.unique(self.conns[['s', 't']].values.ravel())
+        self.init_components(comps)  # build the dataframe for components
+        for comp in self.comps.index:
             freq = 0
             freq += (self.conns[['s', 't']] == comp).sum().s
             freq += (self.conns[['s', 't']] == comp).sum().t
 
-            if comp.outlets() is not None:
-                freq -= len(comp.outlets())
-            if comp.inlets() is not None:
-                freq -= len(comp.inlets())
+            freq -= comp.num_i
+            freq -= comp.num_o
             if freq != 0:
                 msg = (str(comp) + ' (' + str(comp.label) + ') is missing ' +
                        str(-freq) + ' connections. Make sure all '
@@ -526,7 +526,7 @@ class network:
         else:
             self.init_csv()  # initialisation from csv
 
-    def init_components(self):
+    def init_components(self, comps):
         """
         writes the networks components into dataframe
 
@@ -546,16 +546,20 @@ class network:
 
         :returns: no return value
         """
-        comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
 
         labels = []
         for comp in self.comps.index:
             comp.comp_init(self)
             s = self.conns[self.conns.s == comp]
+            s = s.s_id.sort_values().index
             t = self.conns[self.conns.t == comp]
-            self.comps.loc[comp] = [t.t_id.sort_values().index,
-                                    s.s_id.sort_values().index]
+            t = t.t_id.sort_values().index
+            self.comps.loc[comp] = [t, s]
+            comp.inl = t.tolist()
+            comp.outl = s.tolist()
+            comp.num_i = len(comp.inl)
+            comp.num_o = len(comp.outl)
             labels += [comp.label]
 
         if len(labels) != len(list(set(labels))):
@@ -564,6 +568,41 @@ class network:
             msg = ('All Components must have unique labels, duplicates are: ' +
                    str(duplicates))
             raise hlp.MyNetworkError(msg)
+
+    def initialise(self):
+        """
+        initilialises the network
+
+        - component initlialisation
+        - fluid propagation on all connections
+        - initilialise fluid properties
+        - initialisiation from .csv-files
+        - switch components to offdesign mode for offedesign calculation
+
+        :returns: no return value
+        """
+
+        msg = ('Have you adjusted the value ranges for pressure, enthalpy'
+               ' and temperature according to the specified unit system?')
+        print(msg)
+
+        if len(self.fluids) == 0:
+            msg = ('Network has no fluids, please specify a list with fluids '
+                   'on network creation.')
+            raise hlp.MyNetworkError(msg)
+
+        if self.mode == 'offdesign':
+            self.init_offdesign()  # characteristics for offdesign
+
+        self.init_fluids()  # start standard fluid initialisation
+        self.init_properties()  # start standard property initialisation
+
+        if self.mode == 'offdesign' and self.design_file is None:
+            msg = ('Please provide \'design_file\' for every offdesign '
+                   'calculation.')
+            raise hlp.MyNetworkError(msg)  # must provide design_file
+        else:
+            self.init_csv()  # initialisation from csv
 
     def init_fluids(self):
         """
@@ -984,6 +1023,7 @@ class network:
                 for var in cp.offdesign:
                     if not cp.get_attr(var).is_set:
                         cp.get_attr(var).set_attr(is_set=True)
+            cp.comp_init(self)
 
         for c in self.conns.index:
             for var in c.design:
@@ -1035,10 +1075,6 @@ class network:
         if init_only:
             return
 
-        # vectors for convergence history (massflow, pressure, enthalpy)
-        self.convergence[0] = np.zeros((len(self.conns), 0))
-        self.convergence[1] = np.zeros((len(self.conns), 0))
-        self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
         if self.nwkinfo:
@@ -1123,13 +1159,6 @@ class network:
 
         for self.iter in range(self.max_iter):
 
-            self.convergence[0] = np.column_stack((
-                    self.convergence[0], [0] * len(self.conns)))
-            self.convergence[1] = np.column_stack((
-                    self.convergence[1], [0] * len(self.conns)))
-            self.convergence[2] = np.column_stack((
-                    self.convergence[2], [0] * len(self.conns)))
-
             self.solve_control()
             self.res = np.append(self.res, norm(self.vec_res))
 
@@ -1154,8 +1183,7 @@ class network:
             self.iter += 1
 
             # stop calculation after rediculous amount of iterations
-            if self.iter > 3:
-                if self.res[-1] < hlp.err ** (1 / 2):
+            if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
                     break
 
             if self.iter > 15:
@@ -1188,6 +1216,7 @@ class network:
         **Improvememts**
         """
         self.vec_res = []
+
         self.solve_components()
         self.solve_connections()
         self.solve_busses()
@@ -1396,12 +1425,12 @@ class network:
     def solve_comp(args):
         nw, data = args
         return [
-                data[0].apply(network.solve_comp_eq, axis=1, args=(nw,)),
+                data[0].apply(network.solve_comp_eq, axis=1),
                 data[0].apply(network.solve_comp_deriv, axis=1, args=(nw,))
         ]
 
-    def solve_comp_eq(cp, nw):
-        return cp.name.equations(nw)
+    def solve_comp_eq(cp):
+        return cp.name.equations()
 
     def solve_comp_deriv(cp, nw):
         return [cp.name.derivatives(nw)]
@@ -1544,8 +1573,8 @@ class network:
                     i = self.comps.loc[cp].i.tolist()
                     o = self.comps.loc[cp].o.tolist()
 
-                    P_res += cp.bus_func(i, o) * b.comps.loc[cp].factor
-                    deriv = -cp.bus_deriv(i, o)
+                    P_res += cp.bus_func() * b.comps.loc[cp].factor
+                    deriv = -cp.bus_deriv()
 
                     j = 0
                     for c in i + o:
@@ -1854,7 +1883,7 @@ class network:
         """
         n = 0
         for cp in self.comps.index:
-            n += len(cp.equations(self))
+            n += len(cp.equations())
 
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
@@ -1925,7 +1954,7 @@ class network:
                 i = self.comps.loc[cp].i.tolist()
                 o = self.comps.loc[cp].o.tolist()
 
-                b.P += cp.bus_func(i, o) * b.comps.loc[cp].factor
+                b.P += cp.bus_func() * b.comps.loc[cp].factor
 
     def process_components(cols, nw, mode):
         """

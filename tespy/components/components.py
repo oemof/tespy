@@ -222,9 +222,6 @@ class component:
                        str(key))
                 raise ValueError(msg)
 
-#        print('Updated ', self, '.')
-#        print(self.__dict__)
-
     def get_attr(self, key):
         """
         get the value of a components attribute
@@ -238,8 +235,8 @@ class component:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(self.component(), ' \"', self.label, '\" '
-                  'has no attribute \"', key, '\"')
+            print(self.component(), '\"' + self.label + '\" '
+                  'has no attribute \"' + key + '\"')
             return None
 
     def comp_init(self, nw):
@@ -1108,9 +1105,6 @@ class turbomachine(component):
     def print_parameters(self, nw):
 
         print('##### ', self.label, ' #####')
-        if self.eta_s.val > 1:
-            print('!!!!! Error in parametrisation of the model, '
-                  'eta_s higher than 1 !!!!!')
         print('P = ', self.P.val, 'W; '
               'eta_s = ', self.eta_s.val, '; '
               'pr = ', self.pr.val, '; '
@@ -1518,14 +1512,16 @@ class pump(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os(inl, outl) - inl[0].h.val_SI) /
                               (outl[0].h.val_SI - inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0:
-                msg = ('Invalid value for isentropic efficiency.\n'
+            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+                msg = ('##### ERROR #####\n'
+                       'Invalid value for isentropic efficiency: '
                        'eta_s =', self.eta_s.val)
                 print(msg)
                 nw.errors += [self]
 
         if (mode == 'pre' and 'eta_s_char' in self.offdesign):
-            print('Creating characteristics for component ', self)
+            if nw.compinfo:
+                print('Creating characteristics for component ', self)
             v_opt = (self.i0[0] *
                      (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
             H_opt = ((self.o0[1] - self.i0[1]) /
@@ -1925,8 +1921,9 @@ class compressor(turbomachine):
             self.eta_s.val = ((self.h_os(inl, outl) -
                                inl[0].h.val_SI) /
                               (outl[0].h.val_SI - inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0:
-                msg = ('Invalid value for isentropic efficiency.\n'
+            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+                msg = ('##### ERROR #####\n'
+                       'Invalid value for isentropic efficiency: '
                        'eta_s =', self.eta_s.val)
                 print(msg)
                 nw.errors += [self]
@@ -1953,17 +1950,19 @@ class compressor(turbomachine):
                 )
             vigv = self.char_map.func.get_vigv(n, m, (o1[1] * self.i0[1]) /
                                                      (i1[1] * self.o0[1]))
-            if abs(self.vigv.val - vigv) > err:
-                print('!!!!! Selected inlet guide vane angle is not feasible '
-                      '!!!!!')
+            if abs(self.vigv.val - vigv) > err and nw.compwarn:
+                msg = ('##### WARNING #####\n'
+                       'Selected inlet guide vane angle is not feasible.')
                 if self.vigv.val > vigv:
-                    print('calculated maximum angle:', vigv,
-                          'selected:', self.vigv.val)
+                    msg += ('calculated maximum angle: ' + str(vigv) +
+                            ' selected: ' + str(self.vigv.val))
                 else:
-                    print('calculated minimum angle:', vigv,
-                          'selected:', self.vigv.val)
+                    msg += ('calculated minimum angle: ' + str(vigv) +
+                            ' selected: ' + str(self.vigv.val))
+                print(msg)
+
             else:
-                print('vigv = ', self.vigv.val)
+                print('vigv =', self.vigv.val)
 
 # %%
 
@@ -2335,8 +2334,9 @@ class turbine(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((outl[0].h.val_SI - inl[0].h.val_SI) /
                               (self.h_os(inl, outl) - inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0:
-                msg = ('Invalid value for isentropic efficiency.\n'
+            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+                msg = ('##### ERROR #####\n'
+                       'Invalid value for isentropic efficiency: '
                        'eta_s =', self.eta_s.val)
                 print(msg)
                 nw.errors += [self]
@@ -3671,7 +3671,7 @@ class combustion_chamber(component):
                      nw.comps.loc[self].o.tolist())
 
         print('##### ', self.label, ' #####')
-        print('Thermal Input = ', self.ti.val,
+        print('thermal input = ', self.ti.val,
               'lambda = ', self.lamb.val,
               'S = ', self.S.val)
         j = 1
@@ -5157,11 +5157,12 @@ class heat_exchanger_simple(component):
                 ttd_l = T_o - t_a
 
             if ttd_u < 0 or ttd_l < 0:
-                msg = ('Invalid value for terminal temperature '
-                       'difference.'
-                       'ttd_u =', ttd_u,
-                       'ttd_l =', ttd_l)
-                print(msg)
+                if nw.comperr:
+                    msg = ('##### ERROR #####\n'
+                           'Invalid value for terminal temperature difference '
+                           'at component ' + self.label + '.\n'
+                           'ttd_u = ' + str(ttd_u) + ' ttd_l = ' + str(ttd_l))
+                    print(msg)
                 nw.errors += [self]
 
             if mode == 'post':
@@ -5188,11 +5189,16 @@ class heat_exchanger_simple(component):
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
             expr = inl[0].m.val_SI / self.i0[0]
-            if (expr > self.kA_char.func.x[-1] or
-                    expr < self.kA_char.func.x[0]):
-                msg = ('Warning: Expression for characteristics out of bounds:'
-                       ' value is ' + str(expr))
-                print(msg)
+            minval = self.kA_char.func.x[0]
+            maxval = self.kA_char.func.x[-1]
+            if expr > maxval or expr < minval:
+                if nw.compwarn:
+                    msg = ('##### WARNING #####\n'
+                           'Expression for characteristics out of bounds [' +
+                           str(minval) + ', ' + str(maxval) + '], '
+                           ' value is ' + str(expr) + ' at ' +
+                           self.label + '.')
+                    print(msg)
                 nw.errors += [self]
 
     def print_parameters(self, nw):
@@ -6006,11 +6012,13 @@ class heat_exchanger(component):
             self.ttd_l.val = T_o1 - T_i2
 
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
-            msg = ('Invalid value for terminal temperature '
-                   'difference.'
-                   'ttd_u =', self.ttd_u.val,
-                   'ttd_l =', self.ttd_l.val)
-            print(msg)
+            if nw.comperr:
+                msg = ('##### ERROR #####\n'
+                       'Invalid value for terminal temperature difference '
+                       'at component ' + self.label + '.\n'
+                       'ttd_u = ' + str(self.ttd_u) + ' '
+                       'ttd_l = ' + str(self.ttd_l))
+                print(msg)
             nw.errors += [self]
 
         if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
@@ -6055,28 +6063,34 @@ class heat_exchanger(component):
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
             expr = inl[0].m.val_SI / self.i10[0]
-            if (expr > self.kA_char1.func.x[-1] or
-                    expr < self.kA_char1.func.x[0]):
-                msg = ('Warning: Expression for characteristics out of bounds:'
-                       ' value is ' + str(expr))
-                print(msg)
+            minval = self.kA_char1.func.x[0]
+            maxval = self.kA_char1.func.x[-1]
+            if expr > maxval or expr < minval:
+                if nw.compwarn:
+                    msg = ('##### WARNING #####\n'
+                           'Expression for characteristics out of bounds [' +
+                           str(minval) + ', ' + str(maxval) + '], '
+                           ' value is ' + str(expr) + ' at ' +
+                           self.label + '.')
+                    print(msg)
                 nw.errors += [self]
 
             expr = inl[1].m.val_SI / self.i20[0]
-            if (expr > self.kA_char2.func.x[-1] or
-                    expr < self.kA_char2.func.x[0]):
-                msg = ('Warning: Expression for characteristics out of bounds:'
-                       ' value is ' + str(expr))
-                print(msg)
+            minval = self.kA_char2.func.x[0]
+            maxval = self.kA_char2.func.x[-1]
+            if expr > maxval or expr < minval:
+                if nw.compwarn:
+                    msg = ('##### WARNING #####\n'
+                           'Expression for characteristics out of bounds [' +
+                           str(minval) + ', ' + str(maxval) + '], '
+                           ' value is ' + str(expr) + ' at ' +
+                           self.label + '.')
+                    print(msg)
                 nw.errors += [self]
 
     def print_parameters(self, nw):
 
         print('##### ', self.label, ' #####')
-        if self.ttd_u.val < 0 and self.kA.is_set:
-            print('!!!!! ERROR calculating heat exchanger: !!!!!\n'
-                  'Negative value for TTD at given logarithmic temperature '
-                  'difference or kA, result may be wrong.')
         print('Q = ', self.Q.val, 'W; '
               'ttd_u = ', self.ttd_u.val, 'K; '
               'ttd_l = ', self.ttd_l.val, 'K; '

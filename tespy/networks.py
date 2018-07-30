@@ -273,10 +273,10 @@ class network:
 
         - print_level (*str*) - select the print level:
 
-                - info
-                - warn
-                - err
-                - none
+                - info: all printouts
+                - warn: errors and warnings
+                - err: errors only
+                - none: no printouts
 
         - compinfo (*bool*) - print infos of components
         - compwarn (*bool*) - print warnings of components

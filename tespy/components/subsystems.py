@@ -56,61 +56,38 @@ class subsystem:
         else:
             self.label = label
 
-# set default values
+        # set default values
         for key in self.attr():
             self.__dict__.update({key: np.nan})
             self.__dict__.update({key + '_set': False})
 
-# set provided values,  check for invalid keys
-        invalid_keys = np.array([])
-        for key in kwargs:
-            if key not in self.attr():
-                invalid_keys = np.append(invalid_keys, key)
-            else:
-                if type(kwargs[key]) == float or type(kwargs[key]) == int:
-                    self.__dict__.update({key: kwargs[key]})
-                    self.__dict__.update({key + '_set': True})
-                else:
-                    raise MyComponentError('Specified value does not match '
-                                           'requirements. Only numbers are '
-                                           'allowed as parameters.')
-
-# print invalid keywords
-        if len(invalid_keys) > 0:
-            print('\'', invalid_keys, '\' are invalid attributes.',
-                  'Available attributes for object \'', self,
-                  '\' are:',  self.attr())
-
         self.subsys_init()
+        self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
         """
-        set attribute of subsystem
+        set attributes of subsystem
         """
 
-        invalid_keys = np.array([])
+        # set provided values,  check for invalid keys
         for key in kwargs:
-            if key not in self.attr():
-                invalid_keys = np.append(invalid_keys, key)
-            else:
-                if np.isnan(kwargs[key]):
-                    self.__dict__.update({key: np.nan})
-                    self.__dict__.update({key + '_set': False})
-                elif (type(kwargs[key]) == float or
-                      type(kwargs[key]) == np.float64 or
-                      type(kwargs[key]) == int or
-                      key == 'fuel'):
-                    self.__dict__.update({key: kwargs[key]})
-                    self.__dict__.update({key + '_set': True})
-                else:
-                    msg = ('Specified value does not match requirements. '
-                           'Only numeric parameters are allowed.')
-                    raise TypeError(msg)
+            if key in self.attr():
+                if (isinstance(kwargs[key], float) or
+                        isinstance(kwargs[key], np.float64) or
+                        isinstance(kwargs[key], int)):
+                    if np.isnan(kwargs[key]):
+                        self.__dict__.update({key: np.nan})
+                        self.__dict__.update({key + '_set': False})
+                    else:
+                        self.__dict__.update({key: kwargs[key]})
+                        self.__dict__.update({key + '_set': True})
 
-        if len(invalid_keys) > 0:
-            print('\'', invalid_keys, '\' are invalid attributes. '
-                  'Available attributes for object \'',
-                  self.__class__.__name__, '\' are:', self.attr())
+                elif isinstance(kwargs[key], str):
+                    self.__dict__.update({key: kwargs[key]})
+            else:
+                msg = ('Component ' + self.label + ' has no attribute ' +
+                       str(key))
+                raise ValueError(msg)
 
         self.set_comps()
         self.set_conns()
@@ -161,10 +138,7 @@ class subsystem:
         - create network
         """
         self.create_comps()
-        self.set_comps()
-
         self.create_conns()
-        self.set_conns()
 
     def create_comps(self):
         return

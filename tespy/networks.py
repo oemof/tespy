@@ -511,7 +511,6 @@ class network:
             msg = ('Network has no fluids, please specify a list with fluids '
                    'on network creation.')
             raise hlp.MyNetworkError(msg)
-        self.init_components()  # build the dataframe for components
 
         if self.mode == 'offdesign':
             self.init_offdesign()  # characteristics for offdesign
@@ -568,41 +567,6 @@ class network:
             msg = ('All Components must have unique labels, duplicates are: ' +
                    str(duplicates))
             raise hlp.MyNetworkError(msg)
-
-    def initialise(self):
-        """
-        initilialises the network
-
-        - component initlialisation
-        - fluid propagation on all connections
-        - initilialise fluid properties
-        - initialisiation from .csv-files
-        - switch components to offdesign mode for offedesign calculation
-
-        :returns: no return value
-        """
-
-        msg = ('Have you adjusted the value ranges for pressure, enthalpy'
-               ' and temperature according to the specified unit system?')
-        print(msg)
-
-        if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids '
-                   'on network creation.')
-            raise hlp.MyNetworkError(msg)
-
-        if self.mode == 'offdesign':
-            self.init_offdesign()  # characteristics for offdesign
-
-        self.init_fluids()  # start standard fluid initialisation
-        self.init_properties()  # start standard property initialisation
-
-        if self.mode == 'offdesign' and self.design_file is None:
-            msg = ('Please provide \'design_file\' for every offdesign '
-                   'calculation.')
-            raise hlp.MyNetworkError(msg)  # must provide design_file
-        else:
-            self.init_csv()  # initialisation from csv
 
     def init_fluids(self):
         """

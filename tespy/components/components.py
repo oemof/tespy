@@ -6016,8 +6016,8 @@ class heat_exchanger(component):
                 msg = ('##### ERROR #####\n'
                        'Invalid value for terminal temperature difference '
                        'at component ' + self.label + '.\n'
-                       'ttd_u = ' + str(self.ttd_u) + ' '
-                       'ttd_l = ' + str(self.ttd_l))
+                       'ttd_u = ' + str(self.ttd_u.val) + ' '
+                       'ttd_l = ' + str(self.ttd_l.val))
                 print(msg)
             nw.errors += [self]
 

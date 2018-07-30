@@ -5157,7 +5157,7 @@ class heat_exchanger_simple(component):
                 ttd_l = T_o - t_a
 
             if ttd_u < 0 or ttd_l < 0:
-                if nw.compcerr:
+                if nw.comperr:
                     msg = ('##### ERROR #####\n'
                            'Invalid value for terminal temperature difference '
                            'at component ' + self.label + '.\n'

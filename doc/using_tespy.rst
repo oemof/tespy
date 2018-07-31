@@ -445,10 +445,10 @@ There are two ways for specifying the customizable characteristic line of a comp
 	
 	# heat exchanger analogously
 	he = cmp.heat_exchanger('evaporator')
-	turb.set_attr(kA_char1='EVA_HOT')
-	turb.set_attr(kA_char2='EVA_COLD')
+	he.set_attr(kA_char1='EVA_HOT')
+	he.set_attr(kA_char2='EVA_COLD')
 	
-All of these components come default characteristic lines, which can be found in the components documentation.
+All of these components are supplied with default characteristic lines, which can be found in the :py:class:`documentation <tespy.components.characteristics>`.
 
 Custom components
 -----------------
@@ -511,17 +511,18 @@ The equations contain the information on the changes to the fluid properties wit
 .. math::
 
 	0 = \dot{m}_{in} - \dot{m}_{out}
+	0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
 	
-The equations method requires a tespy.networks.network object as parameter. You can aquire a list of the ingoing and outgoing equations by the following command:
+The connections connected to your component are available as a list in :code:`self.inl` and :code:`self.outl` respectively.
 
 .. code:: python
 
-    def inlets(self):
-        if self.num_in_set:
-            return ['in' + str(i + 1) for i in range(self.num_in)]
-        else:
-            self.set_attr(num_in=2)
-            return self.inlets()
+    def equations(self):
+	
+    	vec_res = []
+		
+		vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
+		vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI - self.dp()]
 
 The equations are added to a list one after another, which will be returned at the end.
 
@@ -530,7 +531,7 @@ Derivatives
 	
 You need to calculate the partial derivatives of the equations to all variables of the network. This means, that you have to calculate the partial derivatives to mass flow, pressure, enthalpy and all fluids in the fluid vector on each incomming or outgoing connection of the component.
 
-Add all derivatives to a list (in the same order as the equations) and return the list as numpy array (:code:`np.asarray(list)`). The derivatives can be calculated analytically or numerically by using the inbuilt function :code:`ddx_func(self, inlets, outlets, func, dx, pos)`.
+Add all derivatives to a list (in the same order as the equations) and return the list as numpy array (:code:`np.asarray(list)`). The derivatives can be calculated analytically or numerically by using the inbuilt function :code:`ddx_func(self, func, dx, pos)`.
 
 - :code:`inlets` and :code:`outlets` are a list of the connections at the inlets and the outlets,
 - :code:`func` is the function you want to calculate the derivatives for,

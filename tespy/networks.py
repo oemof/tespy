@@ -72,7 +72,6 @@ class network:
     def __init__(self, fluids, **kwargs):
 
         self.checked = False
-        self.errors = []
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
         self.fluids = sorted(fluids)
@@ -502,6 +501,7 @@ class network:
 
         :returns: no return value
         """
+        self.errors = []
         if self.nwkinfo:
             msg = ('Have you adjusted the value ranges for pressure, enthalpy'
                    ' and temperature according to the specified unit system?')
@@ -1087,6 +1087,23 @@ class network:
                    str(round(self.iter / (end_time - start_time), 2)))
             print(msg)
 
+        if self.lin_dep:
+            if self.nwkerr:
+                msg = ('##### ERROR #####\n'
+                       'singularity in jacobian matrix, frequent reasons are\n'
+                       '-> given Temperature with given pressure in two phase '
+                       'region, try setting enthalpy instead or '
+                       'provide accurate starting value for pressure.\n'
+                       '-> given logarithmic temperature differences '
+                       'or kA-values for heat exchangers, \n'
+                       '-> support better starting values.\n'
+                       '-> bad starting value for fuel mass flow of '
+                       'combustion chamber, provide small (near to zero, '
+                       'but not zero) starting value.')
+                print(msg)
+
+            return
+
         self.processing('post')
 
         if self.parallel:
@@ -1194,19 +1211,6 @@ class network:
 
         # check for linear dependency
         if self.lin_dep:
-            if self.nwkerr:
-                msg = ('##### ERROR #####\n'
-                       'singularity in jacobian matrix, frequent reasons are\n'
-                       '-> given Temperature with given pressure in two phase '
-                       'region, try setting enthalpy instead or '
-                       'provide accurate starting value for pressure.\n'
-                       '-> given logarithmic temperature differences '
-                       'or kA-values for heat exchangers, \n'
-                       '-> support better starting values.\n'
-                       '-> bad starting value for fuel mass flow of '
-                       'combustion chamber, provide small (near to zero, '
-                       'but not zero) starting value.')
-                print(msg)
             return
 
         # add increment

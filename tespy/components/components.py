@@ -4606,7 +4606,7 @@ class heat_exchanger_simple(component):
 
         return np.asarray(mat_deriv)
 
-    def darcy_func(self, inl, outl):
+    def darcy_func(self):
         r"""
         equation for pressure drop from darcy friction factor
 

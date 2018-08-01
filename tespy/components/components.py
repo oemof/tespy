@@ -1139,8 +1139,8 @@ class pump(turbomachine):
 
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(x=[0, 1, 2], y=[1, 1, 1]),
-                'flow_char': dc_cc(x=[0, 1, 2], y=[1, 1, 1])}
+                'eta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1]),
+                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
 
     def additional_equations(self):
         r"""
@@ -1901,7 +1901,7 @@ class turbine(turbomachine):
     def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(method='TRAUPEL', param='dh_s'),
+                'eta_s_char': dc_cc(method='GENERIC', param='m'),
                 'cone': dc_cc(method='default')}
 
     def default_offdesign(self):

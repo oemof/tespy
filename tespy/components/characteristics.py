@@ -347,15 +347,15 @@ class characteristics:
         if self.y is None:
             self.y = self.default(method)[1]
 
-        self.char = interp1d(self.x, self.y, kind='linear', bounds_error=True)
+        self.char = interp1d(self.x, self.y, kind='cubic', bounds_error=True)
 
     def default(self, key):
 
         x = {}
         y = {}
 
-        x['default'] = np.array([0, 1, 2])
-        y['default'] = np.array([1, 1, 1])
+        x['default'] = np.array([0, 1, 2, 3])
+        y['default'] = np.array([1, 1, 1, 1])
 
         return x[key], y[key]
 

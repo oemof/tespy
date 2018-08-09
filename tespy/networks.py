@@ -1148,17 +1148,23 @@ class network:
                 # should this be f(x_i) or the dx_i?
                 # -> accounts for self.res, too.
                 msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
-                msg += ' | ' + '{:.2e}'.format(norm(
-                        self.vec_z[0::self.num_vars]))
-                msg += ' | ' + '{:.2e}'.format(norm(
-                        self.vec_z[1::self.num_vars]))
-                msg += ' | ' + '{:.2e}'.format(norm(
-                        self.vec_z[2::self.num_vars]))
-                ls = []
-                for f in range(len(self.fluids)):
-                    ls += self.vec_z[3 + f::self.num_vars].tolist()
+                if not self.lin_dep:
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[0::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[1::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[2::self.num_vars]))
+                    ls = []
+                    for f in range(len(self.fluids)):
+                        ls += self.vec_z[3 + f::self.num_vars].tolist()
 
-                msg += ' | ' + '{:.2e}'.format(norm(ls))
+                    msg += ' | ' + '{:.2e}'.format(norm(ls))
+                else:
+                    msg += ' |      nan'
+                    msg += ' |      nan'
+                    msg += ' |      nan'
+                    msg += ' |      nan'
                 print(msg)
 
             self.iter += 1

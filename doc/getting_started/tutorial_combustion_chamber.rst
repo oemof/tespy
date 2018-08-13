@@ -13,7 +13,7 @@ combustion chamber
 ------------------
 	
 The combustion chamber is an important component within thermal power plants, but unfortunately is the reason for many issues, as the solving algorithm is very sensitive to small changes e. g.
-the fluid composition. We will demonstrate how to handle the combustion chamber in a very small, simple example. You can download the full code from the `github repository <https://github.com/oemof/tespy/tree/master/examples>`_.
+the fluid composition. We will demonstrate how to handle the combustion chamber in a very small, simple example. You can download the full code from the :download:`tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/combustion_chamber/combustion_chamber.py>`.
 
 First of all you need to define the network containing all fluid components used for the combustion chamber. **These are at least the fuel, oxygen, carbon-dioxide and water**. For this example we added Argon, and of course - as we are using Air for the combustion - Nitrogen.
 On top, it is recommended to specify reasonable ranges for the fluid properties.
@@ -96,7 +96,7 @@ It is also possible to make modifications on the fluid composition, for example 
 stoichiometric combustion chamber
 ---------------------------------
 
-The example for the stoichiometric combustion chamber can be taken from the github repository's `examples folder <https://github.com/oemof/tespy/tree/dev/examples>`_.
+The example for the stoichiometric combustion chamber can as well be taken from the :download:`tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/combustion_chamber/combustion_chamber_stoich.py>`.
 
 Again, the network must have the information, which fluids will be part of the fluid vector. In contrast to the normal combustion chamber, you will need the following fluids: **Air, Fuel and Flue Gas**. For this tutorial we will call them: **"TESPy::myAir", "TESPy::myFuel" and "TESPy::myFuel_fg"**, we will see, why we chose these names for the fluids later.
 Do not forget to specify the ranges for pressure and temperature. This is a very important stept for this specific component, we will explain later, why it is.

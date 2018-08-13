@@ -16,13 +16,15 @@ In the example section we provide a variety of TESPy applications:
 
 You can find all examples in the `tespy examples github repository <https://github.com/fwitte/tespy_examples/>`_.
 
-.. toctree::
-   :maxdepth: 1
+.. contents:: `Examples`
+    :depth: 1
+    :local: Examples
+    :backlinks: top
 
-   getting_started/basic
-   getting_started/chp
-   getting_started/district_heating
-   getting_started/heat_pump
+.. include:: getting_started/basic
+.. include:: getting_started/chp
+.. include:: getting_started/district_heating
+.. include:: getting_started/heat_pump
 
 .. _tespy_tutorial_label:
 
@@ -33,10 +35,10 @@ We provide two different tutorials for you to better understand how to work with
 You will learn how to create basic models and get the idea of designing a plant and simulating the offdesign behaviour in the heat pump tutorial (this is the bases for the COP calculation of the heat pump in the examples).
 On top of that, we created a tutorial for the usage of the combustion chamber: It is an important component for thermal power plants while beeing a source for many errors in the calculation.
 
-Contents:
+.. contents:: `Tutorials`
+    :depth: 1
+    :local: Tutorials
+    :backlinks: top
 
-..  toctree::
-	:maxdepth: 1
-
-	getting_started/tutorial_heat_pump
-	getting_started/tutorial_combustion_chamber
+.. include:: getting_started/tutorial_heat_pump
+.. include:: getting_started/tutorial_combustion_chamber

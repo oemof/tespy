@@ -2,6 +2,8 @@
 Getting started
 ~~~~~~~~~~~~~~~
 
+.. _tespy_examples_label:
+
 Examples
 ========
 
@@ -10,7 +12,9 @@ In the example section we provide a variety of TESPy applications:
 * a very basic model of the clausius rankine process,
 * the calculation of backpressure lines of a chp at different loads and feed flow temperature levels,
 * modeling approach for a district heating system with various consumers and system infrastructure and
-* the COP of a heat pump dependent on load and ambient temperature. You can find all examples in the `tespy examples github repository <https://github.com/fwitte/tespy_examples/>`_.
+* the COP of a heat pump dependent on load and ambient temperature.
+
+You can find all examples in the `tespy examples github repository <https://github.com/fwitte/tespy_examples/>`_.
 
 .. toctree::
    :maxdepth: 1

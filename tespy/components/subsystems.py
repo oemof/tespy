@@ -150,6 +150,8 @@ class subsystem:
         return
 
     def set_conns(self):
+        if not hasattr(self, 'nw'):
+            self.create_network()
         return
 
     def create_network(self):

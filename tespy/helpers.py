@@ -584,8 +584,8 @@ def newton(func, deriv, params, k, **kwargs):
         i += 1
 
         if i > imax:
-            print('Newton algorithm was not able to find a feasible'
-                  'value for function ' + str(func) + '.')
+#            print('Newton algorithm was not able to find a feasible '
+#                  'value for function ' + str(func) + '.')
 
             break
 

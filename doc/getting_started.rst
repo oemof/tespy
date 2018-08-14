@@ -23,6 +23,7 @@ You can find all examples in the `tespy examples github repository <https://gith
 
 .. include:: getting_started/basic
 .. include:: getting_started/chp
+.. include:: getting_started/ccbp
 .. include:: getting_started/district_heating
 .. include:: getting_started/heat_pump
 

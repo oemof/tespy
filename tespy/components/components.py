@@ -3332,14 +3332,14 @@ class combustion_chamber(component):
                         o.fluid.val[f] = 0.05
 
                 elif f == self.co2:
-                    if o.fluid.val[f] > 0.10:
-                        o.fluid.val[f] = 0.10
+                    if o.fluid.val[f] > 0.075:
+                        o.fluid.val[f] = 0.075
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 
                 elif f == self.h2o:
-                    if o.fluid.val[f] > 0.10:
-                        o.fluid.val[f] = 0.10
+                    if o.fluid.val[f] > 0.075:
+                        o.fluid.val[f] = 0.075
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 

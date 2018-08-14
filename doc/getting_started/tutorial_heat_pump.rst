@@ -14,7 +14,7 @@ Task
 
 This tutorial introduces you in how to model a heat pump in TESPy. You can see the plants topology in figure 1. Also, you will find a fully working model in the last chapter of this tutorial.
 
-.. figure:: api/_images/tutorial_heat_pump.svg
+.. figure:: https://github.com/fwitte/tespy_examples/tree/master/heat_pump/flow_diagram.svg
     :align: center
 	
     Figure 1: Topology of the heat pump.
@@ -123,7 +123,7 @@ The last step is to define the fluid's state after the consumer, this is done wi
 Solve
 ^^^^^
 
-After creating the system, we want to solve our network. First, we calculate the design case and directly after we can perform the offdesign calculation at a different value for our key parameter. For general information on the solving process in TESPy and available parameters check the corresponding section in :ref:`Using TESPy <using_tespy_solver_handling_label>`.
+After creating the system, we want to solve our network. First, we calculate the design case and directly after we can perform the offdesign calculation at a different value for our key parameter. For general information on the solving process in TESPy and available parameters check the corresponding section in :ref:`Using TESPy <using_tespy_networks_label>`.
 
 .. code-block:: python
 
@@ -195,7 +195,7 @@ As we already redefined our variable "ves" to be a vessel instead of a sink (see
 Parametrization
 ^^^^^^^^^^^^^^^
 
-Previous parametrization stays untouched. For the vessel we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference. We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. On top of that, the characteristic function of the evaporator should follow the predefined methods 'EVA_HOT' and 'EVA_COLD'. If you want to learn more about handling characteristic functions you should have a glance at the :ref:`TESPy components section <tespy_components_label>`. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
+Previous parametrization stays untouched. For the vessel we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference. We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. On top of that, the characteristic function of the evaporator should follow the predefined methods 'EVA_HOT' and 'EVA_COLD'. If you want to learn more about handling characteristic functions you should have a glance at the :ref:`TESPy components section <using_tespy_components_label>`. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
 
 .. code-block:: python
 
@@ -315,6 +315,6 @@ Here again, using the saved results from previous calculations is always favoura
 Further tasks
 =============
 
-After successfully modeling the heat pump in design and offdesign cases, you can now start using your model for further calculations. E. g., if you have a time series of required heat flux of your consumer, you can loop over the series and perform offdesign calculation adjusting the heat flux every time. Of course, this is possible with every offdesign parameter. We provide the scripts after each of the three steps of the tutorial: :download:`Step 1 <../tutorial/step_1.py>`, :download:`Step 2 <../tutorial/step_2.py>`, :download:`Step 3 <../tutorial/step_3.py>`.
+After successfully modeling the heat pump in design and offdesign cases, you can now start using your model for further calculations. E. g., if you have a time series of required heat flux of your consumer, you can loop over the series and perform offdesign calculation adjusting the heat flux every time. Of course, this is possible with every offdesign parameter. We provide the scripts after each of the three steps of the tutorial: :download:`Step 1 <../../tutorial/step_1.py>`, :download:`Step 2 <../../tutorial/step_2.py>`, :download:`Step 3 <../../tutorial/step_3.py>`.
 
 Have fun working with TESPy!

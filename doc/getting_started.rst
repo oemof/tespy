@@ -18,14 +18,14 @@ You can find all examples in the `tespy examples github repository <https://gith
 
 .. contents:: `Examples`
     :depth: 1
-    :local: Examples
+    :local:
     :backlinks: top
 
-.. include:: getting_started/basic
-.. include:: getting_started/chp
-.. include:: getting_started/ccbp
-.. include:: getting_started/district_heating
-.. include:: getting_started/heat_pump
+.. include:: getting_started/basic.rst
+.. include:: getting_started/chp.rst
+.. include:: getting_started/ccbp.rst
+.. include:: getting_started/district_heating.rst
+.. include:: getting_started/heat_pump.rst
 
 .. _tespy_tutorial_label:
 
@@ -38,8 +38,8 @@ On top of that, we created a tutorial for the usage of the combustion chamber: I
 
 .. contents:: `Tutorials`
     :depth: 1
-    :local: Tutorials
+    :local:
     :backlinks: top
 
-.. include:: getting_started/tutorial_heat_pump
-.. include:: getting_started/tutorial_combustion_chamber
+.. include:: getting_started/tutorial_heat_pump.rst
+.. include:: getting_started/tutorial_combustion_chamber.rst

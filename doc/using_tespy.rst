@@ -65,14 +65,14 @@ Now you can start to create the components of the network.
 Set up components
 -----------------
 
-Available components can be found :ref:`here <tespy_components_label>`. If you set up a component you have to specify a (within one network) unique label.
+Available components can be found :ref:`here <using_tespy_components_label>`. If you set up a component you have to specify a (within one network) unique label.
 Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger.
 The full list of parameters for a specific component (e. g. a vessel) is stated in the classes documentation.
 
 .. note::
 	Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide.
 	If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify.
-	You can find all equations in the :ref:`components documentation <tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
+	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
 
 .. code-block:: python
 
@@ -142,6 +142,8 @@ Please be aware, that the execution of the lines of code above will not create a
 
 In order to get a good overview of the TESPy functionalities, the following sections will walk you through the different TESPy modules in detail.
 
+
+.. _using_tespy_networks_label:
 
 TESPy networks
 ==============
@@ -481,6 +483,8 @@ Use this code for connection parameters:
 Additionally TESPy can calculate cycle process performance figures for you, if you define busses with the labels 'P_res' (components with power input/output) and 'Q_diss'
 (add components with heat input/output for total dissipated heat) in your network: Thermal efficiency for a right-handed process, COP for left-handed processes.
 
+
+.. _using_tespy_components_label:
 
 TESPy components
 ================
@@ -856,6 +860,7 @@ The connection gets a ref object as attribute, thus it is necessary to look, if 
 For parametrization with specific values simply use :code:`self.conns[3].set_attr(m=self.mass_flow)`. :code:`self.mass_flow` must be a subsystem attribute in this example.
 
 .. code-block:: python
+
 	def set_conns(self):
 		# set connection parameters
 

@@ -10,6 +10,7 @@ You will find the source code `in this repository <https://github.com/fwitte/tes
 
 .. figure:: https://github.com/fwitte/tespy_examples/tree/master/heat_pump/flow_diagram.svg
     :align: center
+	
     Figure: Topology of the heat pump unit.
 
 After the plant has been designed, the consumer's heat demand and the ambient temperature are modified within defined ranges.
@@ -19,5 +20,5 @@ If you skip out on a large range of temperature or power, you might run into con
     
 .. figure:: https://github.com/fwitte/tespy_examples/tree/master/heat_pump/COP.svg
     :align: center
+	
     Figure: COP of the heat pump.
-

@@ -1,13 +1,12 @@
 .. _basic_example_label:
 
-~~~~~~~~~~~~~~~~~~~~~~
 Clausius rankine cycle
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 This example provides a model for a basic clausius rankine cycle.
 The process flow diagram is shown in the image below, the source code can be found at the `tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/basic/clausius_rankine.py>`_.
 
-.. figure:: https://github.com/fwitte/tespy_examples/blob/master/basic/flow_diagram.svg
+.. figure:: api/_images/basic.svg
     :align: center
 	
     Figure: Topology of the basic clausius rankine cycle.
@@ -32,8 +31,7 @@ After the plant design an offdesign calculation with 90 % rated power is perform
 
     \text{indices: in = input, out = output}
     
-    
-.. figure:: https://github.com/fwitte/tespy_examples/blob/master/basic/efficiency.svg
+.. figure:: api/_images/basic_efficiency.svg
     :align: center
 	
     Figure: Efficiency of the basic clausius rankine cycle in design case.    

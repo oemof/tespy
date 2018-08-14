@@ -33,7 +33,8 @@ Tutorials
 =========
 
 We provide two different tutorials for you to better understand how to work with TESPy.
-You will learn how to create basic models and get the idea of designing a plant and simulating the offdesign behaviour in the heat pump tutorial (this is the bases for the COP calculation of the heat pump in the examples).
+You will learn how to create basic models and get the idea of designing a plant and simulating the offdesign behaviour in the heat pump tutorial
+(this is the bases for the COP calculation of the heat pump in the examples).
 On top of that, we created a tutorial for the usage of the combustion chamber: It is an important component for thermal power plants while beeing a source for many errors in the calculation.
 
 .. contents:: `Tutorials`

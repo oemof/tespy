@@ -1,6 +1,6 @@
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Combustion Chamber Tutorial
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. contents::
     :depth: 1
@@ -10,7 +10,7 @@ Combustion Chamber Tutorial
 There are two different types of combustion chambers available. The combustion chamber can handle varying fluid compositions for the air and the fuel and calculates the fluid composition of the flue gas. Thus, it is possible to e. g. specify the oxygen mass fraction in the flue gas in a calculation. In contrast, the stoichiometric combustion chamber uses fuel and air as pseudo pure gases for the input at calculates a mixture of stoichiometric flue gas and air at the outlet. The sacrifice of flexibility for parametrisation results in a faster solution process. Thus, if the air composition and the fuel composition are known prior to calculation, it is always recommended to use the stoichiometric combustion chamber. We provide a tutorial for both components, where you learn how they work, and what the differences are.
 	
 combustion chamber
-------------------
+^^^^^^^^^^^^^^^^^^
 	
 The combustion chamber is an important component within thermal power plants, but unfortunately is the reason for many issues, as the solving algorithm is very sensitive to small changes e. g.
 the fluid composition. We will demonstrate how to handle the combustion chamber in a very small, simple example. You can download the full code from the `tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/combustion_chamber/combustion_chamber.py>`_.
@@ -94,7 +94,7 @@ Of course, you can change the parametrisation in any desired way. For example in
 It is also possible to make modifications on the fluid composition, for example stating the oxygen content of the flue gas.
 
 stoichiometric combustion chamber
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The example for the stoichiometric combustion chamber can as well be taken from the `tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/combustion_chamber/combustion_chamber_stoich.py>`_.
 

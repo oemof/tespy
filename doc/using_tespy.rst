@@ -685,7 +685,7 @@ The equations contain the information on the changes to the fluid properties wit
 
 .. math::
 
-	0 = \dot{m}_{in} - \dot{m}_{out}
+	0 = \dot{m}_{in} - \dot{m}_{out}\\
 	0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
 	
 The connections connected to your component are available as a list in :code:`self.inl` and :code:`self.outl` respectively.

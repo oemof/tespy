@@ -16,10 +16,10 @@ tespy\.connections module
     :undoc-members:
     :show-inheritance:
 
-tespy\.csv\_reader module
+tespy\.network\_reader module
 -------------------------
 
-.. automodule:: tespy.csv_reader
+.. automodule:: tespy.network_reader
     :members:
     :undoc-members:
     :show-inheritance:

@@ -20,18 +20,18 @@ To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 Installing TESPy
 ================
 
-If you have a working Python3 environment, use pypi to install the latest tespy version: Clone the github repository and then run:
+If you have a working Python3 environment, use pypi to install the latest tespy version:
 
 .. code:: bash
 
   pip install tespy
 
-If you want to use the latest features, you might want to install the **developer version**. See section `'Developing TESPy' <http://tespy.readthedocs.io/en/latest/developing_oemof.html>`_ for more information. The developer version is not recommended for productive use.
+If you want to use the latest features, you might want to install the **developer version**. See section `Developing TESPy <http://tespy.readthedocs.io/en/latest/developing_tespy.html>`_ for more information. The developer version is not recommended for productive use.
 
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provid a short `Introduction <http://tespy.readthedocs.io/en/dev/introduction.html>`_.You can download the python scripts of the example plants from the tespy.examples folder.
+For a short introduction on how TESPy works and how you can use it, we provide some `basic examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_, go and check them out. You can download the python scripts of all example plants from the `tespy_examples repository <https://github.com/fwitte/tespy_examples>`_.
 
 License
 =======
@@ -42,5 +42,5 @@ This program is free software: you can redistribute it and/or modify it under th
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/.
 

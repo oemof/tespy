@@ -71,8 +71,8 @@ class connection:
     values for mass flow and pressure
 
     **improvements**
-
     """
+
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
 
         # check input parameters
@@ -158,7 +158,8 @@ class connection:
                 elif isinstance(kwargs[key], dict):
                     # starting values
                     if key in var0:
-                        self.get_attr(key).set_attr(val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key])
                     # specified parameters
                     else:
                         self.get_attr(key).set_attr(val=kwargs[key].copy())
@@ -240,9 +241,18 @@ class bus:
     """
     establish power connection between turbines, pumps, heat exchanger
 
-    **TODO**
+    - specification of a label and power (optional)
+    - if you specify busses with the labels 'P_res' and 'Q_diss', TESPy will
+      calculate the process key figures (thermal efficiency, coefficient of
+      performance)
 
-    - add documentation
+    :param label: label for the bus
+    :type label: str
+    :returns: no return value
+
+    **allowed keywords** in kwargs:
+
+    - P (*numeric*) - power of the bus
 
     **Improvements**
 
@@ -262,8 +272,8 @@ class bus:
 
     def set_attr(self, **kwargs):
 
-        self.label = kwargs.get('label')
-        self.P = kwargs.get('P')
+        self.label = kwargs.get('label', self.label)
+        self.P = kwargs.get('P', self.P)
 
         if not np.isnan(self.P):
             self.P_set = True
@@ -288,46 +298,22 @@ class bus:
 
     def add_comps(self, *args):
         """
-        add component to bus
+        adds components to a bus
+
+        :param args: component objects ci :code:`add_comps(c1, c2, c3, ...)`
+        :type args: tespy.components.components.component
+        :returns: no return value
         """
         for c in args:
             if isinstance(c, list):
                 if len(c) == 2:
                     self.comps.loc[c[0]] = [c[1]]
-                    if not self.check_comp(c[0]):
-                        self.comps = self.comps[:-1]
                 else:
                     msg = 'List must have two elements: [component, factor].'
                     raise MyConnectionError(msg)
             else:
                 msg = 'Provide argument as list: [component, factor].'
                 raise MyConnectionError(msg)
-
-    def check_comp(self, comp):
-        """
-        check component
-
-        **TODO**
-
-        - add documentation
-        """
-        for c in self.comps.index:
-            if type(comp) != type(c):
-                if (type(comp).__bases__[0] == type(c).__bases__[0] and
-                        type(comp).__bases__[0] == cmp.component):
-
-                    if type(c).__bases__[0] == cmp.component:
-                        msg = ('Error adding component to power bus. '
-                               'This bus accepts components of type ' +
-                               str(type(c)) + '.')
-                        raise TypeError(msg)
-                    else:
-                        msg = ('Error adding component to power bus. '
-                               'This bus accepts components of type ' +
-                               str(type(c).__bases__[0]) + '.')
-                        raise TypeError(msg)
-                return True
-        return True
 
 
 class ref:

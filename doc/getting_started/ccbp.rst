@@ -1,6 +1,6 @@
 .. _chp_example_label:
 
-combined cycle with backpressure turbine
+Combined cycle with backpressure turbine
 ----------------------------------------
 
 Another example for chp units, this one is a combined cycle power plant using a backpressure steam turbine. Additionally to the heat extraction at the steam turbine condenser,

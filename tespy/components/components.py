@@ -4340,7 +4340,7 @@ class heat_exchanger_simple(component):
     r"""
     **available parameters**
 
-    - Q: heat flux, :math:`[Q]=\text{W}`
+    - Q: heat flow, :math:`[Q]=\text{W}`
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
@@ -4349,8 +4349,8 @@ class heat_exchanger_simple(component):
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`
-    - ks: pipes roughness , :math:`[ks]=\text{m}` in case of darcy friction,
-      :math:`[ks]=\text{1}` in case of hazen williams
+    - ks: pipes roughness, :math:`[ks]=\text{m}` for darcy friiction
+      , :math:`[ks]=\text{1}` for hazen-williams equation
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in network's temperature unit
@@ -4363,7 +4363,7 @@ class heat_exchanger_simple(component):
 
         - D, L and ks, if you want to calculate pressure drop from darcy
           friction factor or hazen williams equation and
-        - kA and t_a, if you want to calculate the heat flux on basis of the
+        - kA and t_a, if you want to calculate the heat flow on basis of the
           ambient conditions
 
     **equations**
@@ -4958,8 +4958,7 @@ class pipe(heat_exchanger_simple):
 
     **available parameters**
 
-
-    - Q: heat flux, :math:`[Q]=\text{W}`
+    - Q: heat flow, :math:`[Q]=\text{W}`
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
@@ -4968,12 +4967,22 @@ class pipe(heat_exchanger_simple):
       factor is used
     - D: diameter of the pipes, :math:`[D]=\text{m}`
     - L: length of the pipes, :math:`[L]=\text{m}`
-    - ks: pipes roughness
+    - ks: pipes roughness, :math:`[ks]=\text{m}` for darcy friiction
+      , :math:`[ks]=\text{1}` for hazen-williams equation
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
     - t_a: ambient temperature, provide parameter in network's temperature unit
     - t_a_design: ambient temperature design case, provide parameter in
       network's temperature unit
+
+    .. note::
+        for now, it is not possible to make these parameters part of the
+        variable space. Thus you need to provide
+
+        - D, L and ks, if you want to calculate pressure drop from darcy
+          friction factor or hazen williams equation and
+        - kA and t_a, if you want to calculate the heat flow on basis of the
+          ambient conditions
 
     **equations**
 
@@ -5020,16 +5029,26 @@ class solar_collector(heat_exchanger_simple):
     - zeta: geometry independent friction coefficient
       :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.component.zeta_func`
-    - D: diameter of the pipes
-    - L: length of the pipes
-    - ks: pipes roughness
+    - D: diameter of the pipes, :math:`[D]=\text{m}`
+    - L: length of the pipes, :math:`[L]=\text{m}`
+    - ks: pipes roughness, :math:`[ks]=\text{m}` for darcy friiction
+      , :math:`[ks]=\text{1}` for hazen-williams equation
     - E: global solar radiation, :math:`[E] = \frac{\text{W}}{\text{m}^2}`
     - lkf_lin: linear loss key figure,
       :math:`[\alpha_1]=\frac{\text{W}}{\text{K} \cdot \text{m}}`
     - lkf_quad: quadratic loss key figure,
       :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`
     - A: collector surface area :math:`[A]=\text{m}^2`
-    - t_a: ambient temperature
+    - t_a: ambient temperature, provide parameter in network's temperature unit
+
+    .. note::
+        for now, it is not possible to make these parameters part of the
+        variable space. Thus you need to provide
+
+        - D, L and ks, if you want to calculate pressure drop from darcy
+          friction factor or hazen williams equation and
+        - E, A, lkf_lin, lkf_quad and t_a, if you want to calculate the heat
+          flow on basis of the radiation and ambient conditions
 
     **equations**
 
@@ -5182,7 +5201,7 @@ class solar_collector(heat_exchanger_simple):
             T_m = \frac{T_{out} + T_{in}}{2}\\
 
             0 = \dot{m} \cdot \left( h_{out} - h_{in} \right) -
-            \left\{E \cdot A - \left(T_m - T_{amb} \right) \cdot A \cdot
+            A \cdot \left\{E - \left(T_m - T_{amb} \right) \cdot
             \left[ \alpha_1 + \alpha_2 \cdot A \cdot \left(\
             T_m - T_{amb}\right) \right] \right\}
         """
@@ -5192,11 +5211,10 @@ class solar_collector(heat_exchanger_simple):
 
         T_m = (T_mix_ph(i) + T_mix_ph(o)) / 2
 
-        return (i[0] * (o[2] - i[2]) - (self.E.val * self.A.val -
+        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val -
                 (T_m - self.t_a.val_SI) *
-                self.A.val * (self.lkf_lin.val +
-                              self.lkf_quad.val * self.A.val *
-                              (T_m - self.t_a.val_SI))))
+                (self.lkf_lin.val + self.lkf_quad.val * self.A.val *
+                 (T_m - self.t_a.val_SI))))
 
     def calc_parameters(self, nw, mode):
 

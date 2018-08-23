@@ -1147,8 +1147,8 @@ class network:
                 msg = (str(self.iter + 1))
                 # should this be f(x_i) or the dx_i?
                 # -> accounts for self.res, too.
-                msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
-                if not self.lin_dep:
+                if not self.lin_dep and not math.isnan(norm(self.vec_res)):
+                    msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
                     msg += ' | ' + '{:.2e}'.format(norm(
                             self.vec_z[0::self.num_vars]))
                     msg += ' | ' + '{:.2e}'.format(norm(
@@ -1161,6 +1161,10 @@ class network:
 
                     msg += ' | ' + '{:.2e}'.format(norm(ls))
                 else:
+                    if math.isnan(norm(self.vec_res)):
+                        msg += '\t|      nan'.format(norm(self.vec_res))
+                    else:
+                        msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
                     msg += ' |      nan'
                     msg += ' |      nan'
                     msg += ' |      nan'

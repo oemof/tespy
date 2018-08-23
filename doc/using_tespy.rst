@@ -446,8 +446,29 @@ If you have provided the correct number of parameters in your system and the cal
 
 The first reason can be eleminated by carefully choosing the parametrisation. **A linear dependendy due to bad starting values is often more difficult to resolve and it may require some experience.**
 In many cases, the linear dependency is caused by equations, that require the **calculation of a temperature**, e. g. specifying a temperature at some point of the network, terminal temperature differences at heat exchangers, etc..
-In this case, **the starting enthalpy should be adjusted in a way, that the fluid state is not within the two-phase region:** The specification of temperature and pressure in a two-phase region does not yield a distict value for the enthalpy.
+In this case, **the starting enthalpy and pressure should be adjusted in a way, that the fluid state is not within the two-phase region:** The specification of temperature and pressure in a two-phase region does not yield a distict value for the enthalpy.
 Even if this specific case appears after some iterations, better starting values often do the trick.
+
+Another frequent error is that fluid properties move out of the bounds given by the fluid property database. The calculation will stop immediately. **Adjusting pressure and enthalpy ranges for the convergence check** might help in this case.
+
+.. note::
+	
+	If you experience slow convergence or instability within the convergence process, it is sometimes helpful to have a look at the iterinformation. This is printed by default and provides
+	information on the residuals of your systems' equations and on the increments of the systems' variables. Maybe it is only one variable causing the instability, thus its increment is much larger
+	than the incerement of the other variables.
+	
+	iter	| residual | massflow | pressure | enthalpy | fluid
+	--------+----------+----------+----------+----------+---------
+		1	| 1.12e+07 | 2.97e+01 | 1.43e+07 | 5.59e+06 | 1.75e-15
+		2	| 3.41e+07 | 1.07e+02 | 1.58e+04 | 4.45e+06 | 6.65e-15
+		3	| 2.17e+07 | 6.86e+01 | 7.24e+04 | 8.27e+05 | 1.86e-15
+		4	| 4.46e+06 | 1.87e+01 | 1.59e+05 | 8.46e+05 | 1.17e-16
+		5	| 1.16e+06 | 2.19e+00 | 1.38e+05 | 1.34e+05 | 1.59e-16
+		6	| 2.86e+04 | 7.25e-02 | 3.41e+04 | 3.00e+03 | 3.96e-17
+		7	| 6.32e+02 | 1.40e-03 | 1.25e+03 | 6.98e+01 | 4.01e-17
+		8	| 7.61e-01 | 1.53e-06 | 1.51e+00 | 8.03e-02 | 4.02e-17
+		9	| 1.11e-06 | 1.99e-11 | 2.20e-06 | 1.40e-07 | 8.03e-17
+	--------+----------+----------+----------+----------+---------
 
 Did you experience other errors frequently and have a workaround/tips for resolving them? You are very welcome to contact us and share your experience for other users!
 

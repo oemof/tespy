@@ -4423,11 +4423,14 @@ class heat_exchanger_simple(component):
 
         if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
-            msg = ('All parameters of the component group have to be '
+        elif self.hydro_group.is_set and nw.compwarn:
+            msg = ('##### WARNING #####\n'
+                   'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: L, ks, D')
-            raise MyComponentError(msg)
+                   'parameters: L, ks, D at ' + self.label + '. '
+                   'Group will be set to False')
+            print(msg)
+            self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
 
@@ -4441,11 +4444,14 @@ class heat_exchanger_simple(component):
 
         if is_set:
             self.kA_group.set_attr(is_set=True)
-        elif self.kA_group.is_set:
-            msg = ('All parameters of the component group have to be '
+        elif self.kA_group.is_set and nw.compwarn:
+            msg = ('##### WARNING #####\n'
+                   'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: kA, t_a')
-            raise MyComponentError(msg)
+                   'parameters: kA, t_a at ' + self.label + '. '
+                   'Group will be set to False')
+            print(msg)
+            self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
 
@@ -5088,11 +5094,14 @@ class solar_collector(heat_exchanger_simple):
 
         if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
-            msg = ('All parameters of the component group have to be '
+        elif self.hydro_group.is_set and nw.compwarn:
+            msg = ('##### WARNING #####\n'
+                   'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: L, ks, D at ' + self.label)
-            raise MyComponentError(msg)
+                   'parameters: L, ks, D at ' + self.label + '. '
+                   'Group will be set to False')
+            print(msg)
+            self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
 
@@ -5107,11 +5116,14 @@ class solar_collector(heat_exchanger_simple):
 
         if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set:
-            msg = ('All parameters of the component group have to be '
+        elif self.energy_group.is_set and nw.compwarn:
+            msg = ('##### WARNING #####\n'
+                   'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: E, lkf_lin, lkf_quad, A, t_a at ' + self.label)
-            raise MyComponentError(msg)
+                   'parameters: E, lkf_lin, lkf_quad, A, t_a at ' + self.label
+                   + '. Group will be set to False')
+            print(msg)
+            self.energy_group.set_attr(is_set=False)
         else:
             self.energy_group.set_attr(is_set=False)
 

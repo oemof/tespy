@@ -513,7 +513,13 @@ class network:
             raise hlp.MyNetworkError(msg)
 
         if self.mode == 'offdesign':
-            self.init_offdesign()  # characteristics for offdesign
+            # characteristics for offdesign
+            self.init_offdesign()
+        else:
+            # component initialisation for design case if no topological
+            # changes have been applied
+            for cp in self.comps.index:
+                cp.comp_init(self)
 
         self.init_fluids()  # start standard fluid initialisation
         self.init_properties()  # start standard property initialisation

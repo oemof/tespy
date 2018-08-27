@@ -1177,8 +1177,6 @@ class network:
                     msg += ' |      nan'
                 print(msg)
 
-            self.iter += 1
-
             # stop calculation after rediculous amount of iterations
             if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
                     break
@@ -1189,11 +1187,18 @@ class network:
                     if self.nwkwarn:
                         print('##### WARNING #####\n'
                               'Convergence is making no progress, calculation '
-                              'stopped.')
+                              'stopped, residual value is '
+                              '{:.2e}'.format(norm(self.vec_res)))
                         break
 
             if self.lin_dep:
                 break
+
+        if self.iter == self.max_iter - 1:
+            print('##### WARNING #####\n'
+                  'Reached maximum iteration count, calculation '
+                  'stopped, residual value is '
+                  '{:.2e}'.format(norm(self.vec_res)))
 
     def solve_control(self):
         """

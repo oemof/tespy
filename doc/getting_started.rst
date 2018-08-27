@@ -26,6 +26,7 @@ You can find all examples in the `tespy examples github repository <https://gith
 .. include:: getting_started/ccbp.rst
 .. include:: getting_started/district_heating.rst
 .. include:: getting_started/heat_pump.rst
+.. include:: getting_started/solar_collector.rst
 
 .. _tespy_tutorial_label:
 

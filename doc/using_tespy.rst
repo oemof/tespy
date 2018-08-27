@@ -446,8 +446,16 @@ If you have provided the correct number of parameters in your system and the cal
 
 The first reason can be eleminated by carefully choosing the parametrisation. **A linear dependendy due to bad starting values is often more difficult to resolve and it may require some experience.**
 In many cases, the linear dependency is caused by equations, that require the **calculation of a temperature**, e. g. specifying a temperature at some point of the network, terminal temperature differences at heat exchangers, etc..
-In this case, **the starting enthalpy should be adjusted in a way, that the fluid state is not within the two-phase region:** The specification of temperature and pressure in a two-phase region does not yield a distict value for the enthalpy.
+In this case, **the starting enthalpy and pressure should be adjusted in a way, that the fluid state is not within the two-phase region:** The specification of temperature and pressure in a two-phase region does not yield a distict value for the enthalpy.
 Even if this specific case appears after some iterations, better starting values often do the trick.
+
+Another frequent error is that fluid properties move out of the bounds given by the fluid property database. The calculation will stop immediately. **Adjusting pressure and enthalpy ranges for the convergence check** might help in this case.
+
+.. note::
+	
+	If you experience slow convergence or instability within the convergence process, it is sometimes helpful to have a look at the iterinformation. This is printed by default and provides
+	information on the residuals of your systems' equations and on the increments of the systems' variables. Maybe it is only one variable causing the instability, thus its increment is much larger
+	than the incerement of the other variables.
 
 Did you experience other errors frequently and have a workaround/tips for resolving them? You are very welcome to contact us and share your experience for other users!
 

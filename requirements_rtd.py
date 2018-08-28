@@ -3,3 +3,4 @@ matplotlib
 numpy
 pandas
 scipy
+tabulate

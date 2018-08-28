@@ -585,8 +585,8 @@ def newton(func, deriv, params, k, **kwargs):
         i += 1
 
         if i > imax:
-            print('Newton algorithm was not able to find a feasible'
-                  'value for function ' + str(func) + '.')
+#            print('Newton algorithm was not able to find a feasible '
+#                  'value for function ' + str(func) + '.')
 
             break
 
@@ -618,10 +618,10 @@ def T_mix_ph(flow):
         pp: \text{partial pressure}
     """
     # check if fluid properties have been calculated before
-    fl = tuple(sorted(list(flow[3].keys())))
+    fl = tuple(flow[3].keys())
     a = memorise.T_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
 
     if ix.size == 1:
         # known fluid properties
@@ -773,10 +773,10 @@ def T_mix_ps(flow, s):
         pp: \text{partial pressure}
     """
     # check if fluid properties have been calculated before
-    fl = tuple(sorted(list(flow[3].keys())))
+    fl = tuple(flow[3].keys())
     a = memorise.T_ps[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
-    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
     if ix.size == 1:
         # known fluid properties
         T = memorise.T_ps[fl][ix, -1][0]
@@ -963,8 +963,8 @@ def h_mix_pQ(flow, Q):
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
             pcrit = CPPSI('Pcrit', fluid)
-            while pp > pcrit:
-                flow[1] = flow[1] * 0.95
+            if pp > pcrit:
+                pp = pcrit * 0.95
 
             h += CPPSI('H', 'P', pp, 'Q', Q, fluid) * x
 
@@ -1017,10 +1017,10 @@ def v_mix_ph(flow):
         v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)
     """
     # check if fluid properties have been calculated before
-    fl = tuple(sorted(list(flow[3].keys())))
+    fl = tuple(flow[3].keys())
     a = memorise.v_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
     if ix.size == 1:
         # known fluid properties
         v = memorise.v_ph[fl][ix, -1][0]
@@ -1155,10 +1155,10 @@ def visc_mix_ph(flow):
         \eta_{mix}\left(p,h\right) = \eta\left(p,T_{mix}(p,h)\right)
     """
     # check if fluid properties have been calculated before
-    fl = tuple(sorted(list(flow[3].keys())))
+    fl = tuple(flow[3].keys())
     a = memorise.visc_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
     if ix.size == 1:
         # known fluid properties
         visc = memorise.visc_ph[fl][ix, -1][0]
@@ -1281,10 +1281,10 @@ def s_mix_ph(flow):
         s_{mix}\left(p,h\right) = s\left(p,T_{mix}(p,h)\right)
     """
     # check if fluid properties have been calculated before
-    fl = tuple(sorted(list(flow[3].keys())))
+    fl = tuple(flow[3].keys())
     a = memorise.s_ph[fl][:, 0:-1]
     b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err**2, axis=1))[0]
+    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
     if ix.size == 1:
         # known fluid properties
         s = memorise.s_ph[fl][ix, -1][0]

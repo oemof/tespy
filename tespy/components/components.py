@@ -308,9 +308,6 @@ class component:
     def calc_parameters(self, nw, mode):
         return
 
-    def print_parameters(self, nw):
-        return
-
     def initialise_fluids(self, nw):
         return
 
@@ -1073,14 +1070,6 @@ class turbomachine(component):
                     s_mix_ph(self.outl[0].to_flow()) -
                     s_mix_ph(self.inl[0].to_flow()))
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('P = ', self.P.val, 'W; '
-              'eta_s = ', self.eta_s.val, '; '
-              'pr = ', self.pr.val, '; '
-              'Sirr = ', self.Sirr.val, '; ')
-
 # %%
 
 
@@ -1819,34 +1808,34 @@ class compressor(turbomachine):
 #            print('Creating characteristics for component ', self)
 #            self.char_map.func = cmp_char.compressor()
 
-    def print_parameters(self, nw):
-
-        turbomachine.print_parameters(self, nw)
-
-        i1 = self.inl[0].to_flow()
-        o1 = self.outl[0].to_flow()
-
-        if self.char_map.is_set:
-            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
-            m = (
-                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
-                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
-                )
-            vigv = self.char_map.func.get_vigv(n, m, (o1[1] * self.i0[1]) /
-                                                     (i1[1] * self.o0[1]))
-            if abs(self.vigv.val - vigv) > err and nw.compwarn:
-                msg = ('##### WARNING #####\n'
-                       'Selected inlet guide vane angle is not feasible.')
-                if self.vigv.val > vigv:
-                    msg += ('calculated maximum angle: ' + str(vigv) +
-                            ' selected: ' + str(self.vigv.val))
-                else:
-                    msg += ('calculated minimum angle: ' + str(vigv) +
-                            ' selected: ' + str(self.vigv.val))
-                print(msg)
-
-            else:
-                print('vigv =', self.vigv.val)
+#    def print_parameters(self, nw):
+#
+#        turbomachine.print_parameters(self, nw)
+#
+#        i1 = self.inl[0].to_flow()
+#        o1 = self.outl[0].to_flow()
+#
+#        if self.char_map.is_set:
+#            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
+#            m = (
+#                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
+#                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
+#                )
+#            vigv = self.char_map.func.get_vigv(n, m, (o1[1] * self.i0[1]) /
+#                                                     (i1[1] * self.o0[1]))
+#            if abs(self.vigv.val - vigv) > err and nw.compwarn:
+#                msg = ('##### WARNING #####\n'
+#                       'Selected inlet guide vane angle is not feasible.')
+#                if self.vigv.val > vigv:
+#                    msg += ('calculated maximum angle: ' + str(vigv) +
+#                            ' selected: ' + str(self.vigv.val))
+#                else:
+#                    msg += ('calculated minimum angle: ' + str(vigv) +
+#                            ' selected: ' + str(self.vigv.val))
+#                print(msg)
+#
+#            else:
+#                print('vigv =', self.vigv.val)
 
 # %%
 
@@ -2416,21 +2405,7 @@ class split(component):
         else:
             return 0
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('m_in = ', self.inl[0].m.val_SI, 'kg / s; ')
-        i = 1
-        for o in self.outl:
-            print('m_out' + str(i) + ' = ', o.m.val_SI, 'kg / s; ')
-            i += 1
-        if isinstance(self, separator):
-            print('; fluid_in:', self.inl[0].fluid.val, '; ')
-            i = 1
-            for o in self.outl:
-                print('fluid_out' + str(i) + ' = ', o.fluid.val)
-                i += 1
-
+# %%
 
 class splitter(split):
     """
@@ -2455,6 +2430,8 @@ class splitter(split):
 
     def component(self):
         return 'splitter'
+
+# %%
 
 
 class separator(split):
@@ -2665,15 +2642,6 @@ class merge(component):
             return 5e5
         else:
             return 0
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        j = 1
-        for i in self.inl:
-            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
-            j += 1
-        print('m_out = ', self.outl[0].m.val_SI, 'kg / s; ')
 
 # %%
 
@@ -3445,18 +3413,6 @@ class combustion_chamber(component):
             if 'lamb' in self.offdesign:
                 self.lamb.val = n_oxygen / (n_fuel *
                                             (self.n['C'] + self.n['H'] / 4))
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('thermal input = ', self.ti.val,
-              'lambda = ', self.lamb.val,
-              'S = ', self.S.val)
-        j = 1
-        for i in self.inl:
-            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
-            j += 1
-        print('m_out = ', self.outl[0].m.val_SI, 'kg / s; ')
 
 # %%
 
@@ -4333,13 +4289,6 @@ class vessel(component):
                     s_mix_ph(self.outl[0].to_flow()) -
                     s_mix_ph(self.inl[0].to_flow()))
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s ; '
-              'Sirr = ', self.Sirr.val, 'W / K')
-
 # %%
 
 
@@ -4474,10 +4423,6 @@ class heat_exchanger_simple(component):
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
-
-    def printouts(self):
-        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 'SQ1', 'SQ2', 'Sirr']
 
     def default_design(self):
         return ['pr']
@@ -5282,17 +5227,6 @@ class solar_collector(heat_exchanger_simple):
                              (v_mix_ph(self.inl[0].to_flow()) +
                               v_mix_ph(self.outl[0].to_flow())) / 2))
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'SQ = ', self.SQ.val, 'W / K; ')
-        if self.energy_group.is_set:
-            print('E = ', self.E.val, 'W / m^2; '
-                  'A = ', self.A.val, 'm^2')
-
 # %%
 
 
@@ -6056,22 +5990,6 @@ class heat_exchanger(component):
                            self.label + '.')
                     print(msg)
                 nw.errors += [self]
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'ttd_u = ', self.ttd_u.val, 'K; '
-              'ttd_l = ', self.ttd_l.val, 'K; '
-              'td_log = ', self.td_log.val, 'K; '
-              'kA = ', self.kA.val, 'W / K; '
-              'pr1 = ', self.pr1.val, '; '
-              'pr2 = ', self.pr2.val, '; '
-              'zeta1 = ', self.zeta1.val, '; '
-              'zeta2 = ', self.zeta2.val, '; '
-              'SQ1 = ', self.SQ1.val, 'W / K; '
-              'SQ2 = ', self.SQ2.val, 'W / K; '
-              'Sirr = ', self.Sirr.val, 'W / K; ')
 
 # %%
 

@@ -1,0 +1,35 @@
+v0.0.4 (September, 2018)
+++++++++++++++++++++++
+
+New Features
+############
+- added new component: solar collector (`b5990e1 <https://github.com/oemof/tespy/commit/b5990e165aafb51bd43ad1eeeb1af2d2078df51c>`_).
+- added a printlevel property for the network and improved the printouts in the calculation process (`44d9f30 <https://github.com/oemof/tespy/commit/44d9f3066683107fb314fa1d941e76db377bea71>`_).
+- improved convergence speed (`9cc1d8f <https://github.com/oemof/tespy/commit/9cc1d8f7899d481c495cea19d415ad4480f2e629>`_)
+- improved fluid initialisation (`20ae7b3 <https://github.com/oemof/tespy/commit/20ae7b35abcddd101efaf1f2d8608557ecf38b61>`_)
+
+
+Documentation
+#############
+- improved the online-documentation with new structure and new examples (`fa5e7ca <https://github.com/oemof/tespy/commit/fa5e7caf336f3ad277882bbf18db0e7d8908b3f0>`_, `6ef4d99 <https://github.com/oemof/tespy/commit/6ef4d99dca780a5f5950aacd14466383aa13b394>`_).
+  You will find the new examples in :ref:`this section <tespy_examples_label>`.
+- fixed some typos in different modules and the online-documentation
+
+Testing
+#######
+
+Bug fixes
+#########
+- fixed bugs in subsystem logic (initialisation, set_attr, set_conns, `321308f <https://github.com/oemof/tespy/commit/321308f0654c1e060f18166bf4127a4142b22133>`_)
+- fixed bugs in bus.set_attr (`2294261 <https://github.com/oemof/tespy/commit/229426113ec00ee45ab3eecd9dcbe87f82776d04>`_),
+  h_mix_pQ (`eac08cc <https://github.com/oemof/tespy/commit/eac08cc8cc26c8e13f2de681db4462ff60c79dde>`_),
+  starting values for fluid composition (`e3b2a77 <https://github.com/oemof/tespy/commit/e3b2a779f90c3577671503f17da69be10c508eef>`_, `8f92821 <https://github.com/oemof/tespy/commit/8f928216033192067ef061d560382fc423d57640>`_),
+  given heat flow of heat exchangers (`4b24651 <https://github.com/oemof/tespy/commit/4b24651296a35b8332c3bfe054816c68e205ba64>`_)
+
+Other changes
+#############
+
+Contributors
+############
+
+- Francesco Witte

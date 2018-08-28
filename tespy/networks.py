@@ -72,7 +72,6 @@ class network:
     def __init__(self, fluids, **kwargs):
 
         self.checked = False
-        self.errors = []
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
 
         self.fluids = sorted(fluids)
@@ -122,6 +121,10 @@ class network:
               'h': 'J / kg',
               'T': 'K'
               }
+
+        # printoptions
+        self.print_level = 'info'
+        self.set_printoptions()
 
         # standard unit set
         self.m_unit = self.SI_units['m']
@@ -250,12 +253,90 @@ class network:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('No attribute \"', key, '\" available!')
+            if self.nwkwarn:
+                print('No attribute \"' + str(key) + '\" available!')
             return None
 
     def attr(self):
         return ['m_unit', 'p_unit', 'h_unit', 'T_unit',
                 'p_range', 'h_range', 'T_range']
+
+    def set_printoptions(self, **kwargs):
+        """r
+
+        sets the printoptions for the calculation.
+
+        :returns: no return value
+
+        **allowed keywords** in kwargs:
+
+        - print_level (*str*) - select the print level:
+
+                - info: all printouts
+                - warn: errors and warnings
+                - err: errors only
+                - none: no printouts
+
+        - compinfo (*bool*) - print infos of components
+        - compwarn (*bool*) - print warnings of components
+        - comperr (*bool*) - print errors of components
+
+        - nwkinfo (*bool*) - print info of network
+        - nwkwarn (*bool*) - print warnings of network
+        - nwkerr (*bool*) - print errors of network
+
+        - iterinfo (*bool*) - print iterations
+
+        """
+        self.print_level = kwargs.get('print_level', self.print_level)
+
+        if self.print_level == 'info':
+            self.compinfo = True
+            self.nwkinfo = True
+            self.iterinfo = True
+            self.compwarn = True
+            self.nwkwarn = True
+            self.comperr = True
+            self.nwkerr = True
+
+        elif self.print_level == 'warn':
+            self.compinfo = False
+            self.nwkinfo = False
+            self.iterinfo = False
+            self.compwarn = True
+            self.nwkwarn = True
+            self.comperr = True
+            self.nwkerr = True
+
+        elif self.print_level == 'err':
+            self.compinfo = False
+            self.nwkinfo = False
+            self.iterinfo = False
+            self.compwarn = False
+            self.nwkwarn = False
+            self.comperr = True
+            self.nwkerr = True
+
+        elif self.print_level == 'none':
+            self.compinfo = False
+            self.nwkinfo = False
+            self.iterinfo = False
+            self.compwarn = False
+            self.nwkwarn = False
+            self.comperr = False
+            self.nwkerr = False
+        else:
+            msg = ('Available print leves are: \'info\', \'warn\', \'err\' and'
+                   '\'none\'.')
+            raise ValueError(msg)
+
+        self.compinfo = kwargs.get('compinfo', self.compinfo)
+        self.nwkinfo = kwargs.get('nwkinfo', self.nwkinfo)
+        self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+        self.compwarn = kwargs.get('compwarn', self.compwarn)
+        self.nwkwarn = kwargs.get('nwkwarn', self.nwkwarn)
+        self.comperr = kwargs.get('comperr', self.comperr)
+        self.nwkerr = kwargs.get('nwkerr', self.nwkerr)
 
     def add_subsys(self, *args):
         """
@@ -387,15 +468,15 @@ class network:
         :raises: :code:`hlp.MyNetworkError`, if number of connections in the
                  network does not match number of connections required
         """
-        for comp in pd.unique(self.conns[['s', 't']].values.ravel()):
+        comps = pd.unique(self.conns[['s', 't']].values.ravel())
+        self.init_components(comps)  # build the dataframe for components
+        for comp in self.comps.index:
             freq = 0
             freq += (self.conns[['s', 't']] == comp).sum().s
             freq += (self.conns[['s', 't']] == comp).sum().t
 
-            if comp.outlets() is not None:
-                freq -= len(comp.outlets())
-            if comp.inlets() is not None:
-                freq -= len(comp.inlets())
+            freq -= comp.num_i
+            freq -= comp.num_o
             if freq != 0:
                 msg = (str(comp) + ' (' + str(comp.label) + ') is missing ' +
                        str(-freq) + ' connections. Make sure all '
@@ -405,7 +486,8 @@ class network:
                 raise hlp.MyNetworkError(msg)
 
         self.checked = True
-        print('Networkcheck successfull.')
+        if self.nwkinfo:
+            print('Networkcheck successfull.')
 
     def initialise(self):
         """
@@ -419,19 +501,25 @@ class network:
 
         :returns: no return value
         """
-
-        msg = ('Have you adjusted the value ranges for pressure, enthalpy'
-               ' and temperature according to the specified unit system?')
-        print(msg)
+        self.errors = []
+        if self.nwkinfo:
+            msg = ('Have you adjusted the value ranges for pressure, enthalpy'
+                   ' and temperature according to the specified unit system?')
+            print(msg)
 
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids '
                    'on network creation.')
             raise hlp.MyNetworkError(msg)
-        self.init_components()  # build the dataframe for components
 
         if self.mode == 'offdesign':
-            self.init_offdesign()  # characteristics for offdesign
+            # characteristics for offdesign
+            self.init_offdesign()
+        else:
+            # component initialisation for design case if no topological
+            # changes have been applied
+            for cp in self.comps.index:
+                cp.comp_init(self)
 
         self.init_fluids()  # start standard fluid initialisation
         self.init_properties()  # start standard property initialisation
@@ -443,7 +531,7 @@ class network:
         else:
             self.init_csv()  # initialisation from csv
 
-    def init_components(self):
+    def init_components(self, comps):
         """
         writes the networks components into dataframe
 
@@ -463,16 +551,20 @@ class network:
 
         :returns: no return value
         """
-        comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
 
         labels = []
         for comp in self.comps.index:
             comp.comp_init(self)
             s = self.conns[self.conns.s == comp]
+            s = s.s_id.sort_values().index
             t = self.conns[self.conns.t == comp]
-            self.comps.loc[comp] = [t.t_id.sort_values().index,
-                                    s.s_id.sort_values().index]
+            t = t.t_id.sort_values().index
+            self.comps.loc[comp] = [t, s]
+            comp.inl = t.tolist()
+            comp.outl = s.tolist()
+            comp.num_i = len(comp.inl)
+            comp.num_o = len(comp.outl)
             labels += [comp.label]
 
         if len(labels) != len(list(set(labels))):
@@ -740,7 +832,7 @@ class network:
         if math.isnan(c.get_attr(key).val0):
             val_s = c.s.initialise_source(c, key)
             val_t = c.t.initialise_target(c, key)
-#            print(key, c.s.label, val_s, c.t.label, val_t)
+
             if val_s == 0 and val_t == 0:
                 if key == 'p':
                     c.get_attr(key).val0 = 1e5
@@ -901,6 +993,7 @@ class network:
                 for var in cp.offdesign:
                     if not cp.get_attr(var).is_set:
                         cp.get_attr(var).set_attr(is_set=True)
+            cp.comp_init(self)
 
         for c in self.conns.index:
             for var in c.design:
@@ -946,18 +1039,16 @@ class network:
 
         self.initialise()
 
-        print('Network initialised.')
+        if self.nwkinfo:
+            print('Network initialised.')
 
         if init_only:
             return
 
-        # vectors for convergence history (massflow, pressure, enthalpy)
-        self.convergence[0] = np.zeros((len(self.conns), 0))
-        self.convergence[1] = np.zeros((len(self.conns), 0))
-        self.convergence[2] = np.zeros((len(self.conns), 0))
         self.res = np.array([])
 
-        print('Solving network.')
+        if self.nwkinfo:
+            print('Solving network.')
 
         self.vec_res = []
         self.iter = 0
@@ -992,6 +1083,33 @@ class network:
         self.solve_loop()
         end_time = time.time()
 
+        if self.iterinfo:
+            print('--------+----------+----------+----------+----------+'
+                  '---------')
+            msg = ('Total iterations: ' + str(self.iter) + ', '
+                   'Calculation time: ' +
+                   str(round(end_time - start_time, 1)) + ' s, '
+                   'Iterations per second: ' +
+                   str(round(self.iter / (end_time - start_time), 2)))
+            print(msg)
+
+        if self.lin_dep:
+            if self.nwkerr:
+                msg = ('##### ERROR #####\n'
+                       'singularity in jacobian matrix, frequent reasons are\n'
+                       '-> given Temperature with given pressure in two phase '
+                       'region, try setting enthalpy instead or '
+                       'provide accurate starting value for pressure.\n'
+                       '-> given logarithmic temperature differences '
+                       'or kA-values for heat exchangers, \n'
+                       '-> support better starting values.\n'
+                       '-> bad starting value for fuel mass flow of '
+                       'combustion chamber, provide small (near to zero, '
+                       'but not zero) starting value.')
+                print(msg)
+
+            return
+
         self.processing('post')
 
         if self.parallel:
@@ -1011,12 +1129,8 @@ class network:
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
 
-        print('Calculation complete.')
-        msg = ('Total iterations:' + str(self.iter) + ' - '
-               'Calculation time:' + str(round(end_time - start_time, 1)) +
-               's - Iterations per second:' +
-               str(round(self.iter / (end_time - start_time), 2)))
-        print(msg)
+        if self.nwkinfo:
+            print('Calculation complete.')
 
     def solve_loop(self):
         """
@@ -1024,65 +1138,67 @@ class network:
 
         **Improvememts**
         """
-        print('iter\t| residual')
-        for self.iter in range(self.max_iter):
+        if self.iterinfo:
+            msg = ('iter\t| residual | massflow | pressure | enthalpy | fluid')
+            print(msg)
+            print('--------+----------+----------+----------+----------+'
+                  '---------')
 
-            self.convergence[0] = np.column_stack((
-                    self.convergence[0], [0] * len(self.conns)))
-            self.convergence[1] = np.column_stack((
-                    self.convergence[1], [0] * len(self.conns)))
-            self.convergence[2] = np.column_stack((
-                    self.convergence[2], [0] * len(self.conns)))
+        for self.iter in range(self.max_iter):
 
             self.solve_control()
             self.res = np.append(self.res, norm(self.vec_res))
 
-            print(self.iter + 1, '\t|', '{:.2e}'.format(norm(self.vec_res)))
+            if self.iterinfo:
+                msg = (str(self.iter + 1))
+                # should this be f(x_i) or the dx_i?
+                # -> accounts for self.res, too.
+                if not self.lin_dep and not math.isnan(norm(self.vec_res)):
+                    msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[0::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[1::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(
+                            self.vec_z[2::self.num_vars]))
+                    ls = []
+                    for f in range(len(self.fluids)):
+                        ls += self.vec_z[3 + f::self.num_vars].tolist()
 
-            k = 0
-            for c in self.conns.index:
-                self.convergence[0][k][self.iter] = c.m.val_SI
-                self.convergence[1][k][self.iter] = c.p.val_SI
-                self.convergence[2][k][self.iter] = c.h.val_SI
-                k += 1
-
-            if self.iter > 3:
-                self.relax = 1
-
-            self.iter += 1
+                    msg += ' | ' + '{:.2e}'.format(norm(ls))
+                else:
+                    if math.isnan(norm(self.vec_res)):
+                        msg += '\t|      nan'.format(norm(self.vec_res))
+                    else:
+                        msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+                    msg += ' |      nan'
+                    msg += ' |      nan'
+                    msg += ' |      nan'
+                    msg += ' |      nan'
+                print(msg)
 
             # stop calculation after rediculous amount of iterations
-            if self.iter > 3:
-                if self.res[-1] < hlp.err ** (1 / 2):
-                    if self.num_restart > 0:
-                        self.convergence[0] = np.column_stack((
-                                self.convergence[0], [0] * len(self.conns)))
-                        self.convergence[1] = np.column_stack((
-                                self.convergence[1], [0] * len(self.conns)))
-                        self.convergence[2] = np.column_stack((
-                                self.convergence[2], [0] * len(self.conns)))
-                        self.vec_z = np.zeros((self.num_vars *
-                                               len(self.conns),))
+            if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
                     break
 
             if self.iter > 15:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
                         self.res[-1] >= self.res[-2]):
-                    print('ERROR: Convergence is making no progress, '
-                          'calculation stopped.')
-                    if self.num_restart > 0:
-                        self.convergence[0] = np.column_stack((
-                                self.convergence[0], [0] * len(self.conns)))
-                        self.convergence[1] = np.column_stack((
-                                self.convergence[1], [0] * len(self.conns)))
-                        self.convergence[2] = np.column_stack((
-                                self.convergence[2], [0] * len(self.conns)))
-                        self.vec_z = np.zeros((self.num_vars *
-                                               len(self.conns),))
-                    break
+                    if self.nwkwarn:
+                        print('##### WARNING #####\n'
+                              'Convergence is making no progress, calculation '
+                              'stopped, residual value is '
+                              '{:.2e}'.format(norm(self.vec_res)))
+                        break
 
             if self.lin_dep:
                 break
+
+        if self.iter == self.max_iter - 1:
+            print('##### WARNING #####\n'
+                  'Reached maximum iteration count, calculation '
+                  'stopped, residual value is '
+                  '{:.2e}'.format(norm(self.vec_res)))
 
     def solve_control(self):
         """
@@ -1102,6 +1218,7 @@ class network:
         **Improvememts**
         """
         self.vec_res = []
+
         self.solve_components()
         self.solve_connections()
         self.solve_busses()
@@ -1115,19 +1232,7 @@ class network:
 
         # check for linear dependency
         if self.lin_dep:
-                msg = ('error calculating the network:\n'
-                       'singularity in jacobian matrix, possible reasons are\n'
-                       '-> given Temperature with given pressure in two phase '
-                       'region, try setting enthalpy instead or '
-                       'provide accurate starting value for pressure.\n'
-                       '-> given logarithmic temperature differences '
-                       'or kA-values for heat exchangers, \n'
-                       '-> support better starting values.\n'
-                       '-> bad starting value for fuel mass flow of '
-                       'combustion chamber, provide small (near to zero, '
-                       'but not zero) starting value.')
-                print(msg)
-                return
+            return
 
         # add increment
         i = 0
@@ -1309,12 +1414,12 @@ class network:
     def solve_comp(args):
         nw, data = args
         return [
-                data[0].apply(network.solve_comp_eq, axis=1, args=(nw,)),
+                data[0].apply(network.solve_comp_eq, axis=1),
                 data[0].apply(network.solve_comp_deriv, axis=1, args=(nw,))
         ]
 
-    def solve_comp_eq(cp, nw):
-        return cp.name.equations(nw)
+    def solve_comp_eq(cp):
+        return cp.name.equations()
 
     def solve_comp_deriv(cp, nw):
         return [cp.name.derivatives(nw)]
@@ -1457,8 +1562,8 @@ class network:
                     i = self.comps.loc[cp].i.tolist()
                     o = self.comps.loc[cp].o.tolist()
 
-                    P_res += cp.bus_func(i, o) * b.comps.loc[cp].factor
-                    deriv = -cp.bus_deriv(i, o)
+                    P_res += cp.bus_func() * b.comps.loc[cp].factor
+                    deriv = -cp.bus_deriv()
 
                     j = 0
                     for c in i + o:
@@ -1767,7 +1872,7 @@ class network:
         """
         n = 0
         for cp in self.comps.index:
-            n += len(cp.equations(self))
+            n += len(cp.equations())
 
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
@@ -1813,14 +1918,18 @@ class network:
         self.comps.apply(network.process_components, axis=1,
                          args=(self, mode,))
 
-        if mode == 'pre':
-            print('Preprocessing done.')
-        else:
-            print('Postprocessing.')
+        if self.nwkinfo:
+            if mode == 'pre':
+                print('Preprocessing done.')
+            else:
+                print('Postprocessing.')
+
+        if mode == 'post':
             # clear fluid property memory
             hlp.memorise.del_memory(self.fluids)
             self.process_busses()
-            print('Done.')
+            if self.nwkinfo:
+                print('Done.')
 
     def process_busses(self):
         """
@@ -1834,7 +1943,7 @@ class network:
                 i = self.comps.loc[cp].i.tolist()
                 o = self.comps.loc[cp].o.tolist()
 
-                b.P += cp.bus_func(i, o) * b.comps.loc[cp].factor
+                b.P += cp.bus_func() * b.comps.loc[cp].factor
 
     def process_components(cols, nw, mode):
         """
@@ -1863,11 +1972,12 @@ class network:
         Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
 
         if len(P_res) != 0 and len(Q_diss) != 0:
-            print('process key figures')
-            print('eta_th = ' + str(1 - sum(Q_diss) /
-                  (sum(P_res) + sum(Q_diss))))
-            print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
-            print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
+            if self.nwkinfo:
+                print('process key figures')
+                print('eta_th = ' + str(1 - sum(Q_diss) /
+                      (sum(P_res) + sum(Q_diss))))
+                print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
+                print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
 
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):

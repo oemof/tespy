@@ -81,7 +81,7 @@ class component:
 
     :param label: label for component
     :type label: str
-    :param kwargs: for the keyword arguments see :code:`component.attr()`
+    :param kwargs: for the keyword arguments see :code:`component.attr(self)`
     :returns: no return value
     :raises: - :code:`TypeError`, if label is not of type str
                components
@@ -130,22 +130,19 @@ class component:
         self.offdesign = self.default_offdesign()
 
         # add container for components attributes
-        var = self.attr_prop()
+        var = self.attr()
 
         for key in var.keys():
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
 
-#        print('Created ', self, '.')
-#        print(self.__dict__)
-
     def set_attr(self, **kwargs):
         """
         sets, resets or unsets attributes of a connection, for the keyword
         arguments, return values and errors see object initialisation
         """
-        var = self.attr()
+        var = self.attr().keys()
 
         # set specified values
         for key in kwargs:
@@ -185,7 +182,8 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = 'Bad datatype for keyword argument ' + str(key)
+                        msg = ('Bad datatype for keyword argument ' + key +
+                               ' at ' + self.label + '.')
                         raise TypeError(msg)
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
@@ -196,26 +194,29 @@ class component:
 
                 # invalid datatype for keyword
                 else:
-                    msg = 'Bad datatype for keyword argument ' + str(key)
+                    msg = ('Bad datatype for keyword argument ' + key +
+                           ' at ' + self.label + '.')
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the design parameters as list!'
+                    msg = ('Please provide the design parameters as list at ' +
+                           self.label + '.')
                     raise ValueError(msg)
-                if set(kwargs[key]).issubset(list(self.attr())):
+                if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design'
+                    msg = ('Available parameters for (off-)design '
                            'specification are: ' +
-                           str(self.attr()) + '.')
+                           str(list(var)) + ' at ' + self.label + '.')
                     raise ValueError(msg)
 
             elif key == 'mode':
                 if kwargs[key] in ['man', 'auto']:
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = 'mode must be \'man\' or \'auto\'.'
+                    msg = ('Mode must be \'man\' or \'auto\' at ' +
+                           self.label + '.')
                     raise TypeError(msg)
 
             # invalid keyword
@@ -244,17 +245,14 @@ class component:
     def comp_init(self, nw):
         self.vars = {}
         self.num_c_vars = 0
-        for var in self.attr():
-            if isinstance(self.attr_prop()[var], dc_cp):
+        for var in self.attr().keys():
+            if isinstance(self.attr()[var], dc_cp):
                 if self.get_attr(var).is_var:
                     self.get_attr(var).var_pos = self.num_c_vars
                     self.num_c_vars += 1
                     self.vars[self.get_attr(var)] = var
 
     def attr(self):
-        return []
-
-    def attr_prop(self):
         return {}
 
     def inlets(self):
@@ -806,10 +804,8 @@ class turbomachine(component):
     - in1
     - out1
     """
-    def attr(self):
-        return ['P', 'eta_s', 'pr', 'eta_s_char', 'Sirr']
 
-    def attr_prop(self):
+    def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
 
@@ -1153,9 +1149,6 @@ class pump(turbomachine):
         return 'pump'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'Sirr', 'eta_s_char', 'flow_char']
-
-    def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1]),
                 'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
@@ -1503,9 +1496,6 @@ class compressor(turbomachine):
         return 'compressor'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'vigv', 'char_map', 'Sirr']
-
-    def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(func=cmp_char.compressor(),
@@ -1916,9 +1906,6 @@ class turbine(turbomachine):
         return 'turbine'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr',  'eta_s_char', 'cone', 'Sirr']
-
-    def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
@@ -2242,11 +2229,9 @@ class split(component):
        :alt: alternative text
        :align: center
     """
-    def attr(self):
-        return ['num_out']
 
-    def attr_prop(self):
-        return {'num_out': dc_cp()}
+    def attr(self):
+        return {'num_out': dc_cp(printout=False)}
 
     def inlets(self):
         return ['in1']
@@ -2519,11 +2504,9 @@ class merge(component):
        :alt: alternative text
        :align: center
     """
-    def attr(self):
-        return ['num_in']
 
-    def attr_prop(self):
-        return {'num_in': dc_cp()}
+    def attr(self):
+        return {'num_in': dc_cp(printout=False)}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -2744,10 +2727,8 @@ class combustion_chamber(component):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'lamb', 'ti', 'S']
-
-    def attr_prop(self):
-        return {'fuel': dc_cp(), 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
+        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+                'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
@@ -3546,13 +3527,11 @@ class combustion_chamber_stoich(combustion_chamber):
         return ['out1']
 
     def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path',
-                'lamb', 'ti', 'S']
-
-    def attr_prop(self):
-        return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
-                'air': dc_cp(), 'air_alias': dc_cp(),
-                'path': dc_cp(),
+        return {'fuel': dc_cp(printout=False),
+                'fuel_alias': dc_cp(printout=False),
+                'air': dc_cp(printout=False),
+                'air_alias': dc_cp(printout=False),
+                'path': dc_cp(printout=False),
                 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def fuels(self):
@@ -4194,9 +4173,6 @@ class vessel(component):
     """
 
     def attr(self):
-        return ['pr', 'zeta', 'Sirr']
-
-    def attr_prop(self):
         return {'pr': dc_cp(), 'zeta': dc_cp(), 'Sirr': dc_cp()}
 
     def default_design(self):
@@ -4489,12 +4465,6 @@ class heat_exchanger_simple(component):
             self.kA_group.set_attr(is_set=False)
 
     def attr(self):
-        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char',
-                'SQ1', 'SQ2', 'Sirr',
-                'hydro_group', 'kA_group']
-
-    def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
                 'D': dc_cp(min_val=1, max_val=5000, d=1e-1),
                 'L': dc_cp(min_val=1e-3, d=1e-3),
@@ -5207,12 +5177,6 @@ class solar_collector(heat_exchanger_simple):
             self.energy_group.set_attr(is_set=False)
 
     def attr(self):
-        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'E', 'lkf_lin', 'lkf_quad', 'A', 't_a',
-                'SQ',
-                'hydro_group', 'energy_group']
-
-    def attr_prop(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
                 'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
                 'E': dc_cp(), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
@@ -5411,12 +5375,7 @@ class heat_exchanger(component):
             self.kA_char2.func = cmp_char.heat_ex(method=method, x=x, y=y)
 
     def attr(self):
-        return ['Q', 'kA', 'td_log', 'kA_char1', 'kA_char2',
-                'ttd_u', 'ttd_l',
-                'pr1', 'pr2', 'zeta1', 'zeta2',
-                'SQ1', 'SQ2', 'Sirr']
-
-    def attr_prop(self):
+        # derivatives for logarithmic temperature difference not implemented
         return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
                 'kA_char1': dc_cc(method='HE_HOT', param='m'),
                 'kA_char2': dc_cc(method='HE_COLD', param='m'),
@@ -5424,10 +5383,6 @@ class heat_exchanger(component):
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
-        # derivatives for logarithmic temperature difference not implemented
-#        return (component.attr(self) +
-#                ['Q', 'kA', 'td_log', 'ttd_u', 'ttd_l',
-#                 'pr1', 'pr2', 'zeta1', 'zeta2'])
 
     def inlets(self):
         return ['in1', 'in2']
@@ -6188,7 +6143,7 @@ class condenser(heat_exchanger):
     def component(self):
         return 'condenser'
 
-    def attr_prop(self):
+    def attr(self):
         return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
                 'kA_char1': dc_cc(method='COND_HOT', param='m'),
                 'kA_char2': dc_cc(method='COND_COLD', param='m'),
@@ -6703,10 +6658,7 @@ class subsys_interface(component):
     """
 
     def attr(self):
-        return ['num_inter']
-
-    def attr_prop(self):
-        return {'num_inter': dc_cp()}
+        return {'num_inter': dc_cp(printout=False)}
 
     def inlets(self):
         if self.num_inter.is_set:

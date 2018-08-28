@@ -1078,7 +1078,7 @@ class network:
             self.conns_split = [self.conns]
 
         start_time = time.time()
-        self.solve_loop()
+        errmsg = self.solve_loop()
         end_time = time.time()
 
         if self.iterinfo:
@@ -1095,6 +1095,9 @@ class network:
                    'Iterations per second: ' +
                    str(round(self.iter / (end_time - start_time), 2)))
             print(msg)
+
+        if self.nwkwarn:
+            print(errmsg)
 
         if self.lin_dep:
             if self.nwkerr:
@@ -1195,26 +1198,26 @@ class network:
 
             # stop calculation after rediculous amount of iterations
             if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
-                    break
+                    return ''
 
             if self.iter > 15:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
                         self.res[-1] >= self.res[-2]):
-                    if self.nwkwarn:
-                        print('##### WARNING #####\n'
-                              'Convergence is making no progress, calculation '
-                              'stopped, residual value is '
-                              '{:.2e}'.format(norm(self.vec_res)))
-                        break
+                    msg = ('##### WARNING #####\n'
+                           'Convergence is making no progress, calculation '
+                           'stopped, residual value is '
+                           '{:.2e}'.format(norm(self.vec_res)))
+                    return msg
 
             if self.lin_dep:
-                break
+                return ''
 
         if self.iter == self.max_iter - 1:
-            print('##### WARNING #####\n'
-                  'Reached maximum iteration count, calculation '
-                  'stopped, residual value is '
-                  '{:.2e}'.format(norm(self.vec_res)))
+            msg = ('##### WARNING #####\n'
+                   'Reached maximum iteration count, calculation '
+                   'stopped, residual value is '
+                   '{:.2e}'.format(norm(self.vec_res)))
+            return msg
 
     def solve_control(self):
         """

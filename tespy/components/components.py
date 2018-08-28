@@ -4466,7 +4466,7 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(min_val=1, max_val=5000, d=1e-1),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
                 'L': dc_cp(min_val=1e-3, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-7),
                 'kA': dc_cp(min_val=100, d=1),
@@ -4983,18 +4983,6 @@ class heat_exchanger_simple(component):
                            self.label + '.')
                     print(msg)
                 nw.errors += [self]
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'SQ1 = ', self.SQ1.val, 'W / K; ')
-        if self.t_a.is_set or self.t_a_design.is_set:
-            print('SQ2 = ', self.SQ2.val, 'W / K; '
-                  'Sirr = ', self.Sirr.val, 'W / K; '
-                  'kA = ', self.kA.val, 'W / (m^2 * K)')
 
 # %%
 

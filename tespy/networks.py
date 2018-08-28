@@ -8,6 +8,7 @@
 import math
 
 import pandas as pd
+from tabulate import tabulate
 from multiprocessing import cpu_count, Pool, freeze_support
 
 import numpy as np
@@ -2018,13 +2019,36 @@ class network:
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):
 
-            cp_sort = self.comps
+            cp_sort = self.comps.copy()
             cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+            cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
+                                             args=('label',))
+            cp_sort.drop('i', axis=1, inplace=True)
+            cp_sort.drop('o', axis=1, inplace=True)
+            cp_sort = cp_sort[cp_sort['cp'] != 'source']
+            cp_sort = cp_sort[cp_sort['cp'] != 'sink']
 
             pd.options.mode.chained_assignment = None
             for c in cp_sort.cp.unique():
                 df = cp_sort[cp_sort['cp'] == c]
-                df.apply(network.print_components, axis=1, args=(self,))
+
+                cols = []
+                for col, val in df.index[0].attr().items():
+                    if isinstance(val, hlp.dc_cp):
+                        if val.get_attr('printout'):
+                            cols += [col]
+
+                if len(cols) > 0:
+                    print('##### RESULTS (' + c + ') #####')
+                    for col in cols:
+                        df[col] = df.apply(network.print_components,
+                                           axis=1, args=(col,))
+
+                    df.set_index('label', inplace=True)
+                    df.drop('cp', axis=1, inplace=True)
+
+                    print(tabulate(df, headers='keys', tablefmt='psql',
+                                   floatfmt='.2e'))
 
         msg = 'Do you want to print the connections parammeters?'
         if hlp.query_yes_no(msg):
@@ -2034,15 +2058,16 @@ class network:
                                        'T / (' + self.T_unit + ')'])
             for c in self.conns.index:
                 df.loc[c.s.label + ' -> ' + c.t.label] = (
-                        ['{:.2e}'.format(c.m.val_SI / self.m[self.m_unit]),
-                         '{:.2e}'.format(c.p.val_SI / self.p[self.p_unit]),
-                         '{:.4e}'.format(c.h.val_SI / self.h[self.h_unit]),
-                         '{:.2e}'.format(c.T.val_SI / self.T[self.T_unit][1] -
-                                         self.T[self.T_unit][0])]
+                        [c.m.val_SI / self.m[self.m_unit],
+                         c.p.val_SI / self.p[self.p_unit],
+                         c.h.val_SI / self.h[self.h_unit],
+                         c.T.val_SI / self.T[self.T_unit][1] -
+                         self.T[self.T_unit][0]]
                         )
-            print(df)
+            print(tabulate(df, headers='keys', tablefmt='psql',
+                           floatfmt='.3e'))
 
-    def print_components(cols, nw):
+    def print_components(c, *args):
         """
         postprocessing: calculate components attributes and print them to
         prompt
@@ -2051,8 +2076,7 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-
-        cols.name.print_parameters(nw)
+        return c.name.get_attr(args[0]).val
 
     def plot_convergence(self):
         """
@@ -2245,7 +2269,7 @@ class network:
         """
 
         # create / overwrite csv file
-        cp_sort = self.comps
+        cp_sort = self.comps.copy()
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
                                           args=(self.busses,))
@@ -2262,7 +2286,7 @@ class network:
                 df[col] = df.apply(network.get_props, axis=1,
                                    args=(col,))
 
-            for col, dc in df.index[0].attr_prop().items():
+            for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     df[col] = df.apply(network.get_props, axis=1,
                                        args=(col, 'func')).astype(str)
@@ -2333,7 +2357,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, dc in df.index[0].attr_prop().items():
+            for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()

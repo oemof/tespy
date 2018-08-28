@@ -148,7 +148,7 @@ class dc_cp(data_container):
       val will be used as starting value
     """
     def attr(self):
-        return {'val': 0, 'val_SI': 0, 'is_set': False,
+        return {'val': 0, 'val_SI': 0, 'is_set': False, 'printout': True,
                 'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False}
 
 

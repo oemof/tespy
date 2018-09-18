@@ -553,7 +553,6 @@ class network:
 
         labels = []
         for comp in self.comps.index:
-            comp.comp_init(self)
             s = self.conns[self.conns.s == comp]
             s = s.s_id.sort_values().index
             t = self.conns[self.conns.t == comp]

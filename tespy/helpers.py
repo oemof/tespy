@@ -1069,6 +1069,50 @@ def d_ph(p, h, fluid):
     else:
         return CPPSI('D', 'P', p, 'H', h, fluid)
 
+
+def dv_mix_dph(flow):
+    r"""
+    calculates partial derivate of volume to pressure at
+    constant enthalpy and fluid composition
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :returns: dv / dp (float) - derivative in m^3 / (Pa * kg)
+
+    .. math::
+
+        \frac{\partial v_{mix}}{\partial p} = \frac{v_{mix}(p+d,h)-
+        v_{mix}(p-d,h)}{2 \cdot d}
+    """
+    d = 1
+    u = flow.copy()
+    l = flow.copy()
+    u[1] += d
+    l[1] -= d
+    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+
+
+def dv_mix_pdh(flow):
+    r"""
+    method to calculate partial derivate of volume to enthalpy at
+    constant pressure and fluid composition
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :returns: dv / dh (float) - derivative in m^3 / J
+
+    .. math::
+
+        \frac{\partial v_{mix}}{\partial h} = \frac{v_{mix}(p,h+d)-
+        v_{mix}(p,h-d)}{2 \cdot d}
+    """
+    d = 1
+    u = flow.copy()
+    l = flow.copy()
+    u[2] += d
+    l[2] -= d
+    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+
 # %%
 
 

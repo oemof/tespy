@@ -41,6 +41,7 @@ class connection:
     - h (*numeric*, *ref object*), h0 (*numeric*)
     - T (*numeric*, *ref object*)
     - x (*numeric*)
+    - v (*numeric*)
     - fluid (*dict*), fluid_balance (*bool*)
     - design (*list*), offdesign (*list*)
 
@@ -225,7 +226,7 @@ class connection:
         :returns: list object
         """
         return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
-                'x': dc_prop(),
+                'x': dc_prop(), 'v': dc_prop(),
                 'fluid': dc_flu()}
 
     def to_flow(self):

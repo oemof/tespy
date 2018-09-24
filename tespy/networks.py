@@ -115,11 +115,18 @@ class network:
             'F': [459.67, 5 / 9],
             'K': [0, 1]
         }
+        self.v = {
+            'm3 / s': 1,
+            'l / s': 1e-3,
+            'm3 / h': 3.6e-3,
+            'l / h': 3.6e-6
+        }
         self.SI_units = {
               'm': 'kg / s',
               'p': 'Pa',
               'h': 'J / kg',
-              'T': 'K'
+              'T': 'K',
+              'v': 'm3 / s'
               }
 
         # printoptions
@@ -131,6 +138,7 @@ class network:
         self.p_unit = self.SI_units['p']
         self.h_unit = self.SI_units['h']
         self.T_unit = self.SI_units['T']
+        self.v_unit = self.SI_units['v']
 
         # standard value range
         self.p_range = [2e3, 300e5]
@@ -146,47 +154,7 @@ class network:
             if key in self.attr():
                 self.__dict__.update({key: kwargs[key]})
 
-        # unit sets
-        if self.m_unit not in self.m.keys():
-            msg = ('Allowed units for mass flow are: ' +
-                   str(self.m.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.p_unit not in self.p.keys():
-            msg = ('Allowed units for pressure are: ' +
-                   str(self.p.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.h_unit not in self.h.keys():
-            msg = ('Allowed units for enthalpy are: ' +
-                   str(self.h.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        if self.T_unit not in self.T.keys():
-            msg = ('Allowed units for temperature are: ' +
-                   str(self.T.keys()))
-            raise hlp.MyNetworkError(msg)
-
-        # value ranges
-        if not isinstance(self.p_range, list):
-            msg = ('Specify the value range as list: [p_min, p_max]')
-            raise TypeError(msg)
-        else:
-            self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
-
-        if not isinstance(self.h_range, list):
-            msg = ('Specify the value range as list: [h_min, h_max]')
-            raise TypeError(msg)
-        else:
-            self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
-
-        if not isinstance(self.T_range, list):
-            msg = ('Specify the value range as list: [T_min, T_max]')
-            raise TypeError(msg)
-        else:
-            self.T_range_SI = ((np.array(self.T_range) +
-                                self.T[self.T_unit][0]) *
-                               self.T[self.T_unit][1])
+        self.set_attr(**kwargs)
 
     def __getstate__(self):
         """
@@ -226,6 +194,11 @@ class network:
         if self.T_unit not in self.T.keys():
             msg = ('Allowed units for temperature are: ' +
                    str(self.T.keys()))
+            raise hlp.MyNetworkError(msg)
+
+        if self.v_unit not in self.v.keys():
+            msg = ('Allowed units for volumetric flow are: ' +
+                   str(self.v.keys()))
             raise hlp.MyNetworkError(msg)
 
         # value ranges
@@ -773,15 +746,15 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            for key in ['m', 'p', 'h', 'T', 'x']:
+            for key in ['m', 'p', 'h', 'T', 'x', 'v']:
                 if not c.get_attr(key).unit_set and key != 'x':
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x'] and not c.get_attr(key).val_set:
+                if key not in ['T', 'x', 'v'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = (
                         c.get_attr(key).val0 *
                         self.get_attr(key)[c.get_attr(key).unit])
-                elif key not in ['T', 'x'] and c.get_attr(key).val_set:
+                elif key not in ['T', 'x', 'v'] and c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = (
                         c.get_attr(key).val *
                         self.get_attr(key)[c.get_attr(key).unit])
@@ -790,6 +763,8 @@ class network:
                                   self.T[c.T.unit][1])
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
+                elif key == 'v' and c.v.val_set:
+                    c.v.val_SI = c.v.val * self.v[c.v.unit]
                 else:
                     continue
 
@@ -1118,11 +1093,13 @@ class network:
 
         for c in self.conns.index:
             c.T.val_SI = hlp.T_mix_ph(c.to_flow())
+            c.v.val_SI = hlp.v_mix_ph(c.to_flow()) * c.m.val_SI
             c.T.val = (c.T.val_SI /
                        self.T[c.T.unit][1] - self.T[c.T.unit][0])
             c.m.val = c.m.val_SI / self.m[c.m.unit]
             c.p.val = c.p.val_SI / self.p[c.p.unit]
             c.h.val = c.h.val_SI / self.h[c.h.unit]
+            c.v.val = c.v.val_SI / self.v[c.v.unit]
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val
@@ -1240,7 +1217,10 @@ class network:
             if not c.m.val_set:
                 c.m.val_SI += self.vec_z[i * (self.num_vars)] * self.relax
             if not c.p.val_set:
-                c.p.val_SI += self.vec_z[i * (self.num_vars) + 1] * self.relax
+                # this prevents negative pressures
+                relax = max(1, -self.vec_z[i * (self.num_vars) + 1] /
+                            (0.5 * c.p.val_SI))
+                c.p.val_SI += self.vec_z[i * (self.num_vars) + 1] / relax
             if not c.h.val_set:
                 c.h.val_SI += self.vec_z[i * (self.num_vars) + 2] * self.relax
 
@@ -1453,8 +1433,8 @@ class network:
 
         # write data in residual vector and jacobian matrix
         sum_eq = len(self.vec_res)
-        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x',
-               5: 'm', 6: 'p', 7: 'h', 8: 'T'}
+        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v',
+               6: 'm', 7: 'p', 8: 'h', 9: 'T'}
         for part in range(self.partit):
 
             self.vec_res += [it for ls in data[part][0].tolist()
@@ -1526,6 +1506,7 @@ class network:
                 nw.solve_prop_eq(c.name, 'h'),
                 nw.solve_prop_eq(c.name, 'T'),
                 nw.solve_prop_eq(c.name, 'x'),
+                nw.solve_prop_eq(c.name, 'v'),
                 nw.solve_prop_ref_eq(c.name, 'm'),
                 nw.solve_prop_ref_eq(c.name, 'p'),
                 nw.solve_prop_ref_eq(c.name, 'h'),
@@ -1537,6 +1518,7 @@ class network:
                 nw.solve_prop_deriv(c.name, 'h'),
                 nw.solve_prop_deriv(c.name, 'T'),
                 nw.solve_prop_deriv(c.name, 'x'),
+                nw.solve_prop_deriv(c.name, 'v'),
                 nw.solve_prop_ref_deriv(c.name, 'm'),
                 nw.solve_prop_ref_deriv(c.name, 'p'),
                 nw.solve_prop_ref_deriv(c.name, 'h'),
@@ -1580,7 +1562,8 @@ class network:
     def solve_prop_eq(self, c, var):
         r"""
         calculate residuals for given mass flow,
-        pressure, enthalpy, temperature and vapour mass fraction
+        pressure, enthalpy, temperature, volumetric flow and
+        vapour mass fraction
 
         :param c: connections object to apply calculations on
         :type c: tespy.connections.connection
@@ -1590,55 +1573,26 @@ class network:
 
         **mass flow, pressure and enthalpy**
 
-        **equation for numeric values**
-
         .. math::
             0 = 0
 
-        **derivative for numeric values**
-
-        .. math::
-            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
-            \text{for equation i, connection j}\\
-            \text{pressure and enthalpy analogously}
-
         **temperatures**
-
-        **equation for numeric values**
 
         .. math::
             0 = T_{j} - T \left( p_{j}, h_{j}, fluid_{j} \right)
 
-        **derivative for numeric values**
+        **volumetric flow**
 
         .. math::
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{dT_{j}}{dp_{j}}\\
-            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{dT_{j}}{dh_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
-            - \frac{dT_{j}}{dfluid_{j,k}}
-            \; , \forall k \in \text{fluid components}\\
-            \text{for equation i, connection j}
+            0 = v_{j} - v \left( p_{j}, h_{j} \right) \cdot \dot{m}_j
 
         **vapour mass fraction**
 
         .. note::
             works with pure fluids only!
 
-        **equation for numeric values**
-
         .. math::
             0 = h_{j} - h \left( p_{j}, x_{j}, fluid_{j} \right)
-
-        **derivative for numeric values**
-
-        .. math::
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
-            {\partial p_{j}}\\
-            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
-            \text{for equation i, connection j, x: vapour mass fraction}
         """
         if var in ['m', 'p', 'h']:
 
@@ -1653,6 +1607,14 @@ class network:
             if c.T.val_set:
                 flow = c.to_flow()
                 return c.T.val_SI - hlp.T_mix_ph(flow)
+            else:
+                return None
+
+        elif var == 'v':
+
+            if c.v.val_set:
+                flow = c.to_flow()
+                return c.v.val_SI - hlp.v_mix_ph(flow) * c.m.val_SI
             else:
                 return None
 
@@ -1710,7 +1672,8 @@ class network:
     def solve_prop_deriv(self, c, var):
         r"""
         calculate derivatives for given mass flow,
-        pressure, enthalpy, temperature and vapour mass fraction
+        pressure, enthalpy, temperature, volumetric flow and
+        vapour mass fraction
 
         :param c: connections object to apply calculations on
         :type c: tespy.connections.connection
@@ -1734,6 +1697,19 @@ class network:
             -\frac{dT_{j}}{dh_{j}}\\
             J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
             - \frac{dT_{j}}{dfluid_{j,k}}
+            \; , \forall k \in \text{fluid components}\\
+            \text{for equation i, connection j}
+
+        **volumetric flow**
+
+        .. math::
+            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) =
+            -v \left( p_{j}, h_{j} \right)\\
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            -\frac{dv_{j}}{dp_{j}} \cdot \dot{m}_j\\
+            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            -\frac{dv_{j}}{dh_{j}} \cdot \dot{m}_j\\
+
             \; , \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
 
@@ -1773,6 +1749,22 @@ class network:
                 # dT / dFluid
                 if len(self.fluids) != 1:
                     deriv[0, 0, 3:] = -hlp.dT_mix_ph_dfluid(flow)
+                return deriv
+
+            else:
+                return None
+
+        elif var == 'v':
+
+            if c.v.val_set:
+                flow = c.to_flow()
+                deriv = np.zeros((1, 1, self.num_vars))
+                # dv / dm
+                deriv[0, 0, 0] = -hlp.v_mix_ph(flow)
+                # dv / dp
+                deriv[0, 0, 1] = -hlp.dv_mix_dph(flow) * c.m.val_SI
+                # dv / dh
+                deriv[0, 0, 2] = -hlp.dv_mix_pdh(flow) * c.m.val_SI
                 return deriv
 
             else:
@@ -1876,7 +1868,7 @@ class network:
 
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
-                  c.T.val_set, c.x.val_set].count(True)
+                  c.T.val_set, c.x.val_set, c.v.val_set].count(True)
             n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
                   c.T.ref_set].count(True)
             n += list(c.fluid.val_set.values()).count(True)

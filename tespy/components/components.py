@@ -1422,10 +1422,10 @@ class pump(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val))
                 print(msg)
                 nw.errors += [self]
 
@@ -1794,10 +1794,10 @@ class compressor(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val))
                 print(msg)
                 nw.errors += [self]
 
@@ -2170,10 +2170,10 @@ class turbine(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /
                               (self.h_os('post') - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val))
                 print(msg)
                 nw.errors += [self]
 

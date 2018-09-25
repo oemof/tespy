@@ -118,8 +118,8 @@ class network:
         self.v = {
             'm3 / s': 1,
             'l / s': 1e-3,
-            'm3 / h': 3.6e-3,
-            'l / h': 3.6e-6
+            'm3 / h': 1 / 3600,
+            'l / h': 1 / 3.6
         }
         self.SI_units = {
               'm': 'kg / s',
@@ -231,7 +231,7 @@ class network:
             return None
 
     def attr(self):
-        return ['m_unit', 'p_unit', 'h_unit', 'T_unit',
+        return ['m_unit', 'p_unit', 'h_unit', 'T_unit', 'v_unit',
                 'p_range', 'h_range', 'T_range']
 
     def set_printoptions(self, **kwargs):

@@ -1428,10 +1428,10 @@ class pump(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
 
@@ -1456,7 +1456,7 @@ class compressor(turbomachine):
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - char_map: characteristic map for compressors, map is generated in
       preprocessing of offdesign calculations
-    - vigv: variable inlet guide vane angle, :math:`[vigv]=^\circ`
+    - igva: inlet guide vane angle, :math:`[igva]=^\circ`
 
     **equations**
 
@@ -1481,14 +1481,22 @@ class compressor(turbomachine):
        :align: center
     """
 
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        if self.char_map.func is None:
+            method = self.char_map.method
+            self.char_map.func = cmp_char.compressor(method=method)
+
     def component(self):
         return 'compressor'
 
     def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+                'igva': dc_cp(min_val=-10, max_val=30, d=1e-3),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(func=cmp_char.compressor(),
-                                  x=[0, 1, 2], y=[0, 1, 2])}
+                'char_map': dc_cc(method='GENERIC')}
 
     def default_offdesign(self):
         return ['char_map']
@@ -1572,35 +1580,33 @@ class compressor(turbomachine):
         r"""
         equation(s) for characteristics of compressor
 
-        - returns one value, if vigv is not set
-        - returns two values, if vigv is set
-        :returns: val (*numpy array*) - residual value(s) of equation(s):
-
-        - :code:`np.array([val1, val2])` if vigv_set
-        - :code:`np.array([val2])` else
+        :returns: val (:code:`np.array([Z1, Z2])`) - residual values of
+                  equations:
 
         .. math::
 
-            n = \sqrt{\frac{T_{in,ref}}{T_{in}}}\\
-            m = \frac{\dot{m}_{in} \cdot \sqrt{T_{in}} \cdot p_{in,ref}}
-            {\dot{m}_{in,ref} \cdot \sqrt{T_{in,ref}} \cdot p_{in}}\\
-            val_1 = \frac{p_{out} \cdot p_{in,ref}}{p_{in} \cdot p_{out,ref}} -
-            pr_{c}(char(m))\\
-            val_2 = \frac{\eta_{s,c}}{\eta_{s,c,ref}} - \eta_{s,c}(char(m))
+            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+
+            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
+
+            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}-
+            pr_{c}(char(m))
+
+            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
+            \eta_{s,c}(char(m))
 
         **parameters**
 
-        - n: speedline index (rotational speed is constant)
-        - m: nondimensional mass flow
-        - val1: change ratio to reference case in mass flow and pressure
-            - val2: change of isentropic efficiency to reference case
+        - X: speedline index (rotational speed is constant)
+        - Y: nondimensional mass flow
+        - Z1: change ratio to reference case in mass flow and pressure
+        - Z2: change of isentropic efficiency to reference case
 
         **logic**
 
-        - calculate n
-        - calculate m
-        - calculate dn for convergence stability reasons (move speedline
-          inside of feasible range of compressor map)
+        - calculate X
+        - calculate Y
 
         **if vigv is set**
 
@@ -1613,52 +1619,20 @@ class compressor(turbomachine):
 
         **else**
 
-        - set vigv (from compressor map with pressure ratio)
-        - calculate relative factor for isentropic efficiency
+        - calculate Z1 and Z2
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i))
-        m = (i[0] * math.sqrt(T_mix_ph(i)) * self.i0[1] /
-             (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) * i[1]))
+        x = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i))
+        y = (i[0] * self.i0[1]) / (self.i0[0] * i[1] * x)
 
-        dn = 0
+        pr, eta = self.char_map.func.get_pr_eta(x, y, self.igva.val)
 
-        if n < min(self.char_map.func.pr.keys()):
-            dn = min(self.char_map.func.pr.keys()) - n
-        if n > max(self.char_map.func.pr.keys()):
-            dn = max(self.char_map.func.pr.keys()) - n
+        z1 = o[1] * self.i0[1] / (i[1] * self.o0[1]) - pr
+        z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2])) / (
+                self.dh_s0 / (self.o0[2] - self.i0[2])) - eta
 
-        if self.vigv.is_set:
-
-            vigv_range = self.char_map.func.get_vigv_range(n + dn, m)
-
-            dvigv = 0
-            if self.vigv.val < vigv_range[0]:
-                dvigv = vigv_range[0] - self.vigv.val + 0.01
-            if self.vigv.val > vigv_range[1]:
-                dvigv = vigv_range[1] - self.vigv.val - 0.01
-
-            speedline = self.char_map.func.get_speedline(n + dn,
-                                                         self.vigv.val + dvigv)
-
-            return np.array([
-                    o[1] * self.i0[1] / (i[1] * self.o0[1]) - speedline[0](m),
-                    ((self.h_os('post') - i[2]) / (o[2] - i[2])) /
-                    (self.dh_s0 / (self.o0[2] - self.i0[2])) -
-                    speedline[1](m)
-                ])
-
-        else:
-
-            self.vigv.val = self.char_map.func.get_vigv(
-                n + dn, m, o[1] / i[1] / (self.o0[1] / self.i0[1]))
-
-            return np.array([
-                    ((self.h_os('post') - i[2]) / (o[2] - i[2])) /
-                    (self.dh_s0 / (self.o0[2] - self.i0[2])) -
-                    self.char_map.func.get_eta(n + dn, m, self.vigv.val)
-                ])
+        return np.array([z1, z2])
 
     def char_deriv(self):
         r"""
@@ -1685,27 +1659,24 @@ class compressor(turbomachine):
         p21 = self.ddx_func(self.char_func, 'p', 1)
         h21 = self.ddx_func(self.char_func, 'h', 1)
 
-        if self.vigv.is_set:
-            deriv = np.zeros((2, 2, num_fl + 3))
-            deriv[0, 0, 0] = m11[0]
-            deriv[0, 0, 1] = p11[0]
-            deriv[0, 0, 2] = h11[0]
-            deriv[0, 1, 1] = p21[0]
-            deriv[0, 1, 2] = h21[0]
-            deriv[1, 0, 0] = m11[1]
-            deriv[1, 0, 1] = p11[1]
-            deriv[1, 0, 2] = h11[1]
-            deriv[1, 1, 1] = p21[1]
-            deriv[1, 1, 2] = h21[1]
-            return deriv.tolist()
-        else:
-            deriv = np.zeros((1, 2, num_fl + 3))
-            deriv[0, 0, 0] = m11[0]
-            deriv[0, 0, 1] = p11[0]
-            deriv[0, 0, 2] = h11[0]
-            deriv[0, 1, 1] = p21[0]
-            deriv[0, 1, 2] = h21[0]
-            return deriv.tolist()
+        if self.igva.is_var:
+            igva = self.ddx_func(self.char_func, 'igva', 1)
+
+        deriv = np.zeros((2, 2 + self.num_c_vars, num_fl + 3))
+        deriv[0, 0, 0] = m11[0]
+        deriv[0, 0, 1] = p11[0]
+        deriv[0, 0, 2] = h11[0]
+        deriv[0, 1, 1] = p21[0]
+        deriv[0, 1, 2] = h21[0]
+        deriv[1, 0, 0] = m11[1]
+        deriv[1, 0, 1] = p11[1]
+        deriv[1, 0, 2] = h11[1]
+        deriv[1, 1, 1] = p21[1]
+        deriv[1, 1, 2] = h21[1]
+        if self.igva.is_var:
+            deriv[0, 2 + self.igva.var_pos, 0] = igva[0]
+            deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
+        return deriv.tolist()
 
     def convergence_check(self, nw):
         """
@@ -1792,50 +1763,30 @@ class compressor(turbomachine):
         - generate characteristics for component
         """
 
+        if (mode == 'post' and nw.mode == 'offdesign' and
+                self.char_map.is_set):
+
+            if nw.compwarn:
+
+                i = self.inl[0].to_flow()
+                x = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i))
+                y = (i[0] * self.i0[1]) / (self.i0[0] * i[1] * x)
+
+                msg = self.char_map.func.get_bound_errors(x, y, self.igva.val)
+                if msg is not None:
+                    print(msg + ' at ' + self.label)
+
         turbomachine.calc_parameters(self, nw, mode)
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
-
-#        if (mode == 'pre' and 'char_map' in self.offdesign):
-#            print('Creating characteristics for component ', self)
-#            self.char_map.func = cmp_char.compressor()
-
-#    def print_parameters(self, nw):
-#
-#        turbomachine.print_parameters(self, nw)
-#
-#        i1 = self.inl[0].to_flow()
-#        o1 = self.outl[0].to_flow()
-#
-#        if self.char_map.is_set:
-#            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
-#            m = (
-#                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
-#                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
-#                )
-#            vigv = self.char_map.func.get_vigv(n, m, (o1[1] * self.i0[1]) /
-#                                                     (i1[1] * self.o0[1]))
-#            if abs(self.vigv.val - vigv) > err and nw.compwarn:
-#                msg = ('##### WARNING #####\n'
-#                       'Selected inlet guide vane angle is not feasible.')
-#                if self.vigv.val > vigv:
-#                    msg += ('calculated maximum angle: ' + str(vigv) +
-#                            ' selected: ' + str(self.vigv.val))
-#                else:
-#                    msg += ('calculated minimum angle: ' + str(vigv) +
-#                            ' selected: ' + str(self.vigv.val))
-#                print(msg)
-#
-#            else:
-#                print('vigv =', self.vigv.val)
 
 # %%
 
@@ -2172,10 +2123,10 @@ class turbine(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /
                               (self.h_os('post') - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
 
@@ -4824,21 +4775,6 @@ class heat_exchanger_simple(component):
                 return 3e5
         else:
             return 0
-
-    def convergence_check(self, nw):
-        r"""
-        prevent bad values for fluid properties in calculation
-
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: no return value
-        """
-
-        for var in self.vars.keys():
-            if var.val < var.min_val:
-                var.val = var.min_val
-            if var.val > var.max_val:
-                var.val = var.max_val
 
     def calc_parameters(self, nw, mode):
 

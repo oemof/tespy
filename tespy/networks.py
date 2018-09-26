@@ -1024,7 +1024,6 @@ class network:
 
         self.vec_res = []
         self.iter = 0
-        self.relax = 1
         self.num_restart = 0
         # number of variables
         self.num_vars = len(self.fluids) + 3
@@ -1070,7 +1069,7 @@ class network:
                    str(round(self.iter / (end_time - start_time), 2)))
             print(msg)
 
-        if self.nwkwarn:
+        if self.nwkwarn and errmsg is not None:
             print(errmsg)
 
         if self.lin_dep:
@@ -1172,9 +1171,11 @@ class network:
                         msg += ' |      nan'
                 print(msg)
 
-            # stop calculation after rediculous amount of iterations
-            if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
-                    return ''
+            msg = None
+
+            if ((self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2)) or
+                    self.lin_dep):
+                return msg
 
             if self.iter > 15:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
@@ -1184,9 +1185,6 @@ class network:
                            'stopped, residual value is '
                            '{:.2e}'.format(norm(self.vec_res)))
                     return msg
-
-            if self.lin_dep:
-                return ''
 
         if self.iter == self.max_iter - 1:
             msg = ('##### WARNING #####\n'
@@ -1233,14 +1231,14 @@ class network:
         i = 0
         for c in self.conns.index:
             if not c.m.val_set:
-                c.m.val_SI += self.vec_z[i * (self.num_vars)] * self.relax
+                c.m.val_SI += self.vec_z[i * (self.num_vars)]
             if not c.p.val_set:
                 # this prevents negative pressures
                 relax = max(1, -self.vec_z[i * (self.num_vars) + 1] /
                             (0.5 * c.p.val_SI))
                 c.p.val_SI += self.vec_z[i * (self.num_vars) + 1] / relax
             if not c.h.val_set:
-                c.h.val_SI += self.vec_z[i * (self.num_vars) + 2] * self.relax
+                c.h.val_SI += self.vec_z[i * (self.num_vars) + 2]
 
             j = 0
             for fluid in self.fluids:
@@ -1264,7 +1262,13 @@ class network:
                 pos = var.var_pos
                 var.val += self.vec_z[
                         self.num_vars * len(self.conns) +
-                        c_vars + pos] * self.relax
+                        c_vars + pos]
+
+                if var.val < var.min_val:
+                    var.val = var.min_val
+                if var.val > var.max_val:
+                    var.val = var.max_val
+
             c_vars += cp.num_c_vars
 
             if cp.num_c_vars > 0:

@@ -437,7 +437,12 @@ class compressor(characteristics):
             Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}}=
             f\left(X, Y \right)
 
-        .. image:: _images/GENERIC.svg
+        .. image:: _images/CMAP_GENERIC_PR.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        .. image:: _images/CMAP_GENERIC_ETA.svg
            :scale: 100 %
            :alt: alternative text
            :align: center

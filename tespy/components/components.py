@@ -1494,7 +1494,7 @@ class compressor(turbomachine):
 
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'igva': dc_cp(min_val=-10, max_val=30, d=1e-3),
+                'igva': dc_cp(min_val=-45, max_val=45, d=1e-2),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(method='GENERIC')}
 
@@ -4366,10 +4366,10 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-                'L': dc_cp(min_val=1e-3, d=1e-3),
-                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-7),
-                'kA': dc_cp(min_val=100, d=1),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'kA': dc_cp(min_val=1, d=1),
                 't_a': dc_cp(), 't_a_design': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),

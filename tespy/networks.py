@@ -1133,7 +1133,8 @@ class network:
                         '----------+---------')
 
             print(msg)
-
+#        self.relax = 1
+#        self.reset_relax = 0
         for self.iter in range(self.max_iter):
 
             self.solve_control()
@@ -1256,23 +1257,35 @@ class network:
                 j += 1
             i += 1
 
-        c_vars = 0
-        for cp in self.comps.index:
-            for var in cp.vars.keys():
-                pos = var.var_pos
-                var.val += self.vec_z[
-                        self.num_vars * len(self.conns) +
-                        c_vars + pos]
+        if self.num_c_vars > 0:
 
-                if var.val < var.min_val:
-                    var.val = var.min_val
-                if var.val > var.max_val:
-                    var.val = var.max_val
+#            self.var_hist[:, self.iter] = (
+#                    self.vec_z[self.num_vars * len(self.conns):])
+#            a = self.var_hist
+#            self.var_hist = np.zeros((self.num_c_vars, self.iter + 2))
+#            self.var_hist[:, :-1] = a
 
-            c_vars += cp.num_c_vars
+            c_vars = 0
+            for cp in self.comps.index:
+                for var in cp.vars.keys():
+                    pos = var.var_pos
+#                    if np.isin(self.var_hist[c_vars + pos, self.iter],
+#                               self.var_hist[c_vars + pos, :-2]):
+#                        self.relax = 0.2
+#                        self.reset_relax = self.iter
+#                    elif self.reset_relax + 10 == self.iter:
+#                        self.relax = 1
 
-            if cp.num_c_vars > 0:
-                cp.convergence_check(self)
+                    var.val += self.vec_z[
+                            self.num_vars * len(self.conns) +
+                            c_vars + pos] * self.relax
+
+                    if var.val < var.min_val:
+                        var.val = var.min_val
+                    if var.val > var.max_val:
+                        var.val = var.max_val
+
+                c_vars += cp.num_c_vars
 
         # check properties for consistency
         if self.iter < 3 and self.init_file is None:
@@ -1912,6 +1925,7 @@ class network:
             self.num_c_vars += cp.num_c_vars
             n += len(cp.equations())
 
+#        self.var_hist = np.zeros((self.num_c_vars, 1))
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
                   c.T.val_set, c.x.val_set, c.v.val_set].count(True)

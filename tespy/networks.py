@@ -1133,7 +1133,8 @@ class network:
                         '----------+---------')
 
             print(msg)
-#        self.relax = 1
+
+        self.relax = 1
 #        self.reset_relax = 0
         for self.iter in range(self.max_iter):
 

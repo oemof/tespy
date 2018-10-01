@@ -560,14 +560,14 @@ class compressor(characteristics):
                   - ypos (*float*) - position of corrected mass flow
         """
         xpos = np.searchsorted(self.x, x)
-        if xpos == len(self.x):
+        if xpos == len(self.x) and x != self.x[-1]:
             yarr = self.y[xpos - 1]
             msg = ('##### WARNING #####\n'
                    'Operating point above compressor map range: '
                    'X=' + str(round(x, 3)) + ' with maximum of ' +
                    str(self.x[-1]))
             return msg
-        elif xpos == 0:
+        elif xpos == 0 and y != self.x[0]:
             yarr = self.y[0]
             msg = ('##### WARNING #####\n'
                    'Operating point below compressor map range: '
@@ -581,13 +581,13 @@ class compressor(characteristics):
         yarr *= (1 - igva / 100)
 
         ypos = np.searchsorted(yarr, y)
-        if ypos == len(yarr):
+        if ypos == len(yarr) and y != yarr[-1]:
             msg = ('##### WARNING #####\n'
                    'Operating point above compressor map range: '
                    'Y=' + str(round(y, 3)) + ' with maximum of ' +
                    str(yarr[-1]))
             return msg
-        elif ypos == 0:
+        elif ypos == 0 and y != yarr[0]:
             msg = ('##### WARNING #####\n'
                    'Operating point below compressor map range: '
                    'Y=' + str(round(y, 3)) + ' with minimum of ' +

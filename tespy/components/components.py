@@ -168,7 +168,6 @@ class component:
                             self.get_attr(key).set_attr(is_var=False)
 
                     elif kwargs[key] == 'var':
-                        self.get_attr(key).set_attr(val=1)
                         self.get_attr(key).set_attr(is_set=True)
                         self.get_attr(key).set_attr(is_var=True)
 
@@ -926,14 +925,14 @@ class turbomachine(component):
         mat_deriv += self.mass_flow_deriv()
 
         if self.P.is_set:
-            P_deriv = np.zeros((1, 2, num_fl + 3))
+            P_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             P_deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             P_deriv[0, 0, 2] = -self.inl[0].m.val_SI
             P_deriv[0, 1, 2] = self.inl[0].m.val_SI
             mat_deriv += P_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
             mat_deriv += pr_deriv.tolist()
@@ -1212,7 +1211,7 @@ class pump(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
@@ -1494,7 +1493,7 @@ class compressor(turbomachine):
 
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'igva': dc_cp(min_val=-45, max_val=45, d=1e-2),
+                'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(method='GENERIC')}
 
@@ -1565,7 +1564,7 @@ class compressor(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
@@ -1933,7 +1932,7 @@ class turbine(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         if abs(self.eta_s_res) > err ** (2):
 

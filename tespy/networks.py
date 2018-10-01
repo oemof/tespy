@@ -1179,7 +1179,7 @@ class network:
                     self.lin_dep):
                 return msg
 
-            if self.iter > 15:
+            if self.iter > 20:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
                         self.res[-1] >= self.res[-2]):
                     msg = ('##### WARNING #####\n'

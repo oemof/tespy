@@ -635,7 +635,7 @@ class component:
         :param dx: dx
         :type dx: str
         :param pos: position of inlet or outlet, logic: ['in1', 'in2', ...,
-                    'out1', ...] -> 0, 1, ..., n, n + 1, ...
+                    'out1', ...] -> 0, 1, ..., n, n + 1, ..., n + m
         :type pos: int
         :returns: deriv (list or float) - partial derivative of the function
                   func to dx
@@ -1263,7 +1263,7 @@ class pump(turbomachine):
 
         """
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = (
             self.ddx_func(self.char_func, 'm', 0))
@@ -1318,7 +1318,7 @@ class pump(turbomachine):
 
         """
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = self.ddx_func(self.flow_char_func, 'm', 0)
         mat_deriv[0, 0, 2] = self.ddx_func(self.flow_char_func, 'h', 0)
@@ -1895,7 +1895,7 @@ class turbine(turbomachine):
             mat_deriv += self.char_deriv()
 
         if self.cone.is_set:
-            cone_deriv = np.zeros((1, 2, num_fl + 3))
+            cone_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             cone_deriv[0, 0, 0] = -1
             cone_deriv[0, 0, 1] = self.ddx_func(self.cone_func, 'p', 0)
             cone_deriv[0, 0, 2] = self.ddx_func(self.cone_func, 'h', 0)
@@ -2029,7 +2029,7 @@ class turbine(turbomachine):
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = self.ddx_func(self.char_func, 'm', 0)
         for i in range(2):
@@ -2201,20 +2201,17 @@ class split(component):
         - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
+
             0 = p_{in} - p_{out,i} \;
             \forall i \in \mathrm{outlets}
 
-        **equations for splitter**
+        **splitter**
 
-        .. math::
-            0 = h_{in} - h_{out,i} \;
-            \forall i \in \mathrm{outlets}\\
+        - :func:`tespy.components.components.splitter.additional_equations`
 
-        **equations for separator**
+        **separator**
 
-        .. math::
-            0 = T_{in} - T_{out,i} \;
-            \forall i \in \mathrm{outlets}\\
+        - :func:`tespy.components.components.separator.additional_equations`
 
         **TODO**
 
@@ -2230,20 +2227,7 @@ class split(component):
         for o in self.outl:
             vec_res += [self.inl[0].p.val_SI - o.p.val_SI]
 
-        # different equations for splitter and separator
-        if isinstance(self, splitter):
-            for o in self.outl:
-                vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
-
-        # different equations for splitter and separator
-        if isinstance(self, separator):
-            if num_fluids(self.inl[0].fluid.val) <= 1:
-                for o in self.outl:
-                    vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
-            else:
-                for o in self.outl:
-                    vec_res += [T_mix_ph(self.inl[0].to_flow()) -
-                                T_mix_ph(o.to_flow())]
+        vec_res += self.additional_equations()
 
         return vec_res
 
@@ -2272,46 +2256,35 @@ class split(component):
             k += 1
         mat_deriv += p_deriv.tolist()
 
-        if isinstance(self, splitter):
-
-            h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-            k = 0
-            for o in self.outl:
-                h_deriv[k, 0, 2] = 1
-                h_deriv[k, k + 1, 2] = -1
-                k += 1
-
-            mat_deriv += h_deriv.tolist()
-
-        if isinstance(self, separator):
-            if num_fluids(self.inl[0].fluid.val) <= 1:
-
-                h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-                k = 0
-                for o in self.outl:
-                    h_deriv[k, 0, 2] = 1
-                    h_deriv[k, k + 1, 2] = -1
-                    k += 1
-
-                mat_deriv += h_deriv.tolist()
-            else:
-
-                T_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-                i = self.inl[0].to_flow()
-                k = 0
-                for o in self.outl:
-                    o = o.to_flow()
-                    T_deriv[k, 0, 1] = dT_mix_dph(i)
-                    T_deriv[k, 0, 2] = dT_mix_pdh(i)
-                    T_deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
-                    T_deriv[k, k + 1, 1] = -dT_mix_dph(o)
-                    T_deriv[k, k + 1, 2] = -dT_mix_pdh(o)
-                    T_deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
-                    k += 1
-
-                mat_deriv += T_deriv.tolist()
+        mat_deriv += self.additional_derivatives(nw)
 
         return np.asarray(mat_deriv)
+
+    def additional_equations(self):
+        r"""
+        additional equations for component split
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        empty list is returned for this component
+        """
+
+        return []
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component split
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+
+        empty matrix is returned for this component
+        """
+
+        return []
 
     def initialise_source(self, c, key):
         r"""
@@ -2357,6 +2330,7 @@ class split(component):
 
 # %%
 
+
 class splitter(split):
     """
     **available parameters**
@@ -2380,6 +2354,49 @@ class splitter(split):
 
     def component(self):
         return 'splitter'
+
+    def additional_equations(self):
+        r"""
+        additional equations for component splitter
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **emandatory quations for splitter**
+
+        .. math::
+            0 = h_{in} - h_{out,i} \;
+            \forall i \in \mathrm{outlets}\\
+        """
+        vec_res = []
+
+        for o in self.outl:
+            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+
+        return vec_res
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component splitter
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        k = 0
+        for o in self.outl:
+            h_deriv[k, 0, 2] = 1
+            h_deriv[k, k + 1, 2] = -1
+            k += 1
+
+        mat_deriv += h_deriv.tolist()
+
+        return mat_deriv
 
 # %%
 
@@ -2407,6 +2424,64 @@ class separator(split):
 
     def component(self):
         return 'separator'
+
+    def additional_equations(self):
+        r"""
+        additional equations for component separator
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **mandatory equations for separator**
+
+        .. math::
+
+            0 = T_{in} - T_{out,i} \;
+            \forall i \in \mathrm{outlets}
+        """
+        vec_res = []
+
+        for o in self.outl:
+            vec_res += [T_mix_ph(self.inl[0].to_flow()) -
+                        T_mix_ph(o.to_flow())]
+
+        return vec_res
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component separator
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+
+        **derivatives for separator**
+
+        .. math::
+
+            0 = T_{in} - T_{out,i} \;
+            \forall i \in \mathrm{outlets}
+        """
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        i = self.inl[0].to_flow()
+        k = 0
+        for o in self.outl:
+            o = o.to_flow()
+            deriv[k, 0, 1] = dT_mix_dph(i)
+            deriv[k, 0, 2] = dT_mix_pdh(i)
+            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            deriv[k, k + 1, 1] = -dT_mix_dph(o)
+            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
+            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            k += 1
+
+        mat_deriv += deriv.tolist()
+
+        return mat_deriv
 
 # %%
 
@@ -5577,57 +5652,57 @@ class heat_exchanger(component):
                 (T_o1 - T_i2 - T_i1 + T_o2) /
                 math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-    def td_log_func(self):
-        r"""
-        equation for logarithmic temperature difference
-
-        - calculate temperatures at inlets and outlets
-        - perform convergence correction, if temperature levels do not
-          match logic:
-
-              * :math:`T_{1,in} > T_{2,out}`?
-              * :math:`T_{1,out} < T_{2,in}`?
-
-        :returns: val (*float*) - residual value of equation
-
-        .. math::
-
-            0 = td_{log} \cdot
-            \frac{\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
-            {T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
-        """
-
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-
-        T_i1 = T_mix_ph(i1)
-        T_i2 = T_mix_ph(i2)
-        T_o1 = T_mix_ph(o1)
-        T_o2 = T_mix_ph(o2)
-
-        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
-            T_i1 = T_o2 + 1
-        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
-            T_o2 = T_i1 - 1
-        if T_i1 <= T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
-                   'temperature difference is negative!')
-            raise MyComponentError(msg)
-
-        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
-            T_i2 = T_o1 - 1
-        if T_o1 <= T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
-                   'temperature difference is negative!')
-            raise MyComponentError(msg)
-
-        return (self.td_log.val *
-                math.log((T_o1 - T_i2) / (T_i1 - T_o2)) -
-                T_o1 + T_i2 + T_i1 - T_o2)
+#    def td_log_func(self):
+#        r"""
+#        equation for logarithmic temperature difference
+#
+#        - calculate temperatures at inlets and outlets
+#        - perform convergence correction, if temperature levels do not
+#          match logic:
+#
+#              * :math:`T_{1,in} > T_{2,out}`?
+#              * :math:`T_{1,out} < T_{2,in}`?
+#
+#        :returns: val (*float*) - residual value of equation
+#
+#        .. math::
+#
+#            0 = td_{log} \cdot
+#            \frac{\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+#            {T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
+#        """
+#
+#        i1 = self.inl[0].to_flow()
+#        i2 = self.inl[1].to_flow()
+#        o1 = self.outl[0].to_flow()
+#        o2 = self.outl[1].to_flow()
+#
+#        T_i1 = T_mix_ph(i1)
+#        T_i2 = T_mix_ph(i2)
+#        T_o1 = T_mix_ph(o1)
+#        T_o2 = T_mix_ph(o2)
+#
+#        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+#            T_i1 = T_o2 + 1
+#        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+#            T_o2 = T_i1 - 1
+#        if T_i1 <= T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
+#                   'temperature difference is negative!')
+#            raise MyComponentError(msg)
+#
+#        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+#            T_o1 = T_i2 + 1
+#        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+#            T_i2 = T_o1 - 1
+#        if T_o1 <= T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
+#                   'temperature difference is negative!')
+#            raise MyComponentError(msg)
+#
+#        return (self.td_log.val *
+#                math.log((T_o1 - T_i2) / (T_i1 - T_o2)) -
+#                T_o1 + T_i2 + T_i1 - T_o2)
 
     def ttd_u_func(self):
         r"""

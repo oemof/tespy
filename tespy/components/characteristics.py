@@ -15,298 +15,7 @@
 
 from scipy.interpolate import interp1d
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import copy
 import math
-
-
-def find_length(xs, ys):
-    dx = np.diff(xs)
-    dy = np.diff(ys)
-    return np.sum(np.sqrt(dx ** 2 + dy ** 2))
-
-
-class compressor:
-    r"""
-
-    generic characteristic map for axial compressors
-
-    - links mass flow to pressure rise and isentropic efficiency
-    - includes a vigv angle
-
-    the map can be plotted using :code:`map.plot()`
-
-    **literature**
-
-    compressor map:
-
-    - Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
-      axial compressor in a gas turbine cycle. Journal of Power
-      Technologies 96 (3), pp. 194-199.
-
-    vigv:
-
-    - GasTurb GmbH (2015): GasTurb 12.
-    """
-
-    def __init__(self,  ** kwargs):
-
-        self.raw_data = None
-        self.beta = None
-
-        for key in kwargs:
-            if key in self.keywordargs():
-                self.__dict__.update({key: kwargs[key]})
-
-        for key in self.keywordargs():
-            if self.__dict__[key] is None:
-                self.__dict__.update({key: self.default(key)})
-
-        self.pr = copy.deepcopy(self.raw_data)
-        self.eta = copy.deepcopy(self.raw_data)
-
-# create lut for each speedline
-        self.pr_lut = {}
-        self.eta_lut = {}
-        for key in sorted(self.raw_data):
-# pressure ratio
-            x = [it[0] for it in self.raw_data[key]]
-            y = [it[1] for it in self.raw_data[key]]
-# sorted values of x and y
-            self.pr[key] = interp1d(x, y, 'linear')
-            y = self.pr[key].y
-            x = self.pr[key].x
-            l = np.insert(np.cumsum(np.sqrt(np.diff(x) ** 2 +
-                                            np.diff(y) ** 2)), 0, 0)
-            self.pr_lut[key] = pd.DataFrame({'x': x, 'y': y}, index=l)
-
-# add values for beta lines
-            for i in np.linspace(0, self.pr_lut[key].index[-1], self.beta):
-                if i not in self.pr_lut[key].index:
-                    self.pr_lut[key].loc[i] = [np.nan, np.nan]
-
-            self.pr_lut[key] = self.pr_lut[key].sort_index()
-            self.pr_lut[key] = self.pr_lut[key].interpolate(method='index')
-
-# isentropic efficiency
-            x = [it[0] for it in self.raw_data[key]]
-            y = [it[2] for it in self.raw_data[key]]
-# sorted values of x and y
-            self.eta[key] = interp1d(x, y, 'linear')
-            y = self.eta[key].y
-            x = self.eta[key].x
-            l = np.insert(np.cumsum(np.sqrt(np.diff(x) ** 2 +
-                                            np.diff(y) ** 2)), 0, 0)
-            self.eta_lut[key] = pd.DataFrame({'x': x, 'y': y}, index=l)
-
-# add values for beta lines
-            for i in np.linspace(0, self.eta_lut[key].index[-1], self.beta):
-                if i not in self.eta_lut[key].index:
-                    self.eta_lut[key].loc[i] = [np.nan, np.nan]
-
-            self.eta_lut[key] = self.eta_lut[key].sort_index()
-            self.eta_lut[key] = self.eta_lut[key].interpolate(method='index')
-
-        self.pr_beta = {}
-        self.eta_beta = {}
-        for i in range(self.beta):
-            x = []
-            y = []
-            for key in sorted(self.raw_data):
-                x += [self.pr_lut[key].loc[np.linspace(
-                    0, self.pr_lut[key].index[-1], self.beta
-                )[i]].x]
-                y += [self.pr_lut[key].loc[np.linspace(
-                    0, self.pr_lut[key].index[-1], self.beta
-                )[i]].y]
-            self.pr_beta[i] = pd.DataFrame({'x': x, 'y': y},
-                                           index=sorted(self.raw_data))
-            x = []
-            y = []
-            for key in sorted(self.raw_data):
-                x += [self.eta_lut[key].loc[np.linspace(
-                    0, self.eta_lut[key].index[-1], self.beta
-                )[i]].x]
-                y += [self.eta_lut[key].loc[np.linspace(
-                    0, self.eta_lut[key].index[-1], self.beta
-                )[i]].y]
-            self.eta_beta[i] = pd.DataFrame({'x': x, 'y': y},
-                                            index=sorted(self.raw_data))
-
-# allowed keyword arguments
-    def keywordargs(self):
-        return ['raw_data', 'beta']
-
-# default values
-    def default(self, key):
-        """
-        source of map:
-            Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
-            axial compressor in a gas turbine cycle. Journal of Power
-            Technologies 96 (3), pp. 194-199.
-        """
-
-        # default map
-        default_map = {}
-        default_map[1.062] = [[1.045, 1.441, 0.879], [1.056, 0.805, 0.887],
-                              [1.052, 1.176, 0.925]]
-
-        default_map[1.029] = [[1.014, 1.340, 0.948], [1.026, 1.082, 0.967],
-                              [1.036, 0.767, 0.868]]
-
-        default_map[1.000] = [[0.948, 1.195, 0.956], [0.961, 1.176, 0.958],
-                              [0.974, 1.151, 0.962], [0.987, 1.101, 0.981],
-                              [0.994, 1.057, 0.992], [1.000, 1.000, 1.000],
-                              [1.005, 0.893, 0.9909], [1.006, 0.748, 0.914]]
-
-        default_map[0.971] = [[0.874, 1.050, 0.977], [0.909, 1.019, 0.977],
-                              [0.922, 1.000, 0.987], [0.935, 0.969, 1.004],
-                              [0.948, 0.918, 1.008], [0.961, 0.861, 1.004],
-                              [0.964, 0.672, 0.920]]
-
-        default_map[0.946] = [[0.767, 0.931, 0.891], [0.819, 0.912, 1.002],
-                              [0.838, 0.893, 1.013], [0.858, 0.861, 1.017],
-                              [0.871, 0.817, 1.017], [0.877, 0.767, 1.013],
-                              [0.880, 0.616, 0.925]]
-
-        default_map[0.870] = [[0.59, 0.65, 0.887], [0.618, 0.641, 0.929],
-                              [0.657, 0.616, 0.962], [0.676, 0.597, 0.969],
-                              [0.7, 0.553, 0.975], [0.702, 0.528, 0.967],
-                              [0.709, 0.477, 0.948], [0.713, 0.37, 0.887]]
-
-        default_map[0.810] = [[0.46, 0.502, 0.872], [0.534, 0.483, 0.918],
-                              [0.573, 0.452, 0.948], [0.586, 0.424, 0.944],
-                              [0.599, 0.38, 0.925], [0.605, 0.348, 0.906],
-                              [0.612, 0.276, 0.879]]
-
-        default_val = {
-            'raw_data': default_map,
-            'beta': 10
-        }
-
-        return default_val[key]
-
-# adding speedlines to the compressor map
-    def add_speedline(self, n):
-        n = round(n, 3)
-        if n not in self.pr.keys():
-            if n > max(self.pr.keys()) or n < min(self.pr.keys()):
-                return
-
-            x = []
-            y = []
-            for i in range(self.beta):
-                self.pr_beta[i].loc[n] = [np.nan, np.nan]
-                self.pr_beta[i] = self.pr_beta[i].sort_index()
-                self.pr_beta[i] = self.pr_beta[i].interpolate(method='index')
-                x += [self.pr_beta[i].loc[n].x]
-                y += [self.pr_beta[i].loc[n].y]
-
-            self.pr[n] = interp1d(x, y, 'linear')
-
-            x = []
-            y = []
-            for i in range(self.beta):
-                self.eta_beta[i].loc[n] = [np.nan, np.nan]
-                self.eta_beta[i] = self.eta_beta[i].sort_index()
-                self.eta_beta[i] = self.eta_beta[i].interpolate(method='index')
-                x += [self.eta_beta[i].loc[n].x]
-                y += [self.eta_beta[i].loc[n].y]
-
-            self.eta[n] = interp1d(x, y, 'linear')
-
-# get speedline as interpolation object
-    def get_speedline(self, n, vigv):
-        """
-        source of speedline adaption by igv:
-            GasTurb GmbH (2015): GasTurb 12.
-        """
-        n = round(n, 3)
-        self.add_speedline(n)
-        pr = interp1d(self.pr[n].x * (1 - vigv / 100),
-                      self.pr[n].y * (1 - vigv / 100), 'linear')
-        eta = interp1d(self.eta[n].x * (1 - vigv / 100),
-                       self.eta[n].y * (1 - vigv ** 2 / 10000), 'linear')
-        return pr, eta
-
-# calculate feasible vigv angles for given speedline and non dimensional mass flow
-    def get_vigv_range(self, n, m):
-        n = round(n, 3)
-        if n not in self.pr.keys():
-            self.add_speedline(n)
-
-        vigv_min = 100 * (1 - m / self.eta_beta[0].loc[n].x)
-        vigv_max = 100 * (1 - m / self.eta_beta[self.beta - 1].loc[n].x)
-
-        return vigv_min, vigv_max
-
-# get pressure ratio
-    def get_pr(self, n, m, vigv):
-        return self.get_speedline(n, vigv)[0](m)
-
-# get isentropic efficiency
-    def get_eta(self, n, m, vigv):
-        return self.get_speedline(n, vigv)[1](m)
-
-# calculate vigv angle for given speedline, non dimensional mass flow and pressure ratio
-    def get_vigv(self, n, m, p):
-        n = round(n, 3)
-        if n not in self.pr.keys():
-            self.add_speedline(n)
-
-        tolerance = 1e-12
-        d = 1e-3
-        res = 1
-        deriv = 1
-
-        vigv_range = self.get_vigv_range(n, m)
-        vigv = (vigv_range[0] + vigv_range[1]) / 2
-        vigv_hist = [vigv]
-        z_hist = [res / deriv]
-
-        while abs(res) >= tolerance:
-            try:
-                res = p - self.get_pr(n, m, vigv)
-                deriv = ((self.get_pr(n, m, vigv + d) -
-                          self.get_pr(n, m, vigv - d)) / (2 * d))
-                vigv += res / deriv
-                z_hist += [res / deriv]
-            except:
-                if vigv < vigv_range[0]:
-                    vigv = vigv_range[0] + 1e-2
-                if vigv > vigv_range[1]:
-                    vigv = vigv_range[1] - 1e-2
-
-            vigv_hist += [vigv]
-
-            if ((len(vigv_hist) > 10 and
-                vigv_hist[(len(vigv_hist) - 10):] == 10 * [vigv_hist[-1]]) or
-                (len(z_hist) > 5 and
-                z_hist[(len(z_hist) - 5):] == 5 * [z_hist[-1]])):
-                raise ValueError('Given pressure ratio can not be archieved'
-                                 ' with given speedline.')
-
-#        print(time.time() - tmp)
-        return vigv
-
-# plot the compressor map
-    def plot(self):
-        fig, ax1 = plt.subplots()
-        ax2 = ax1.twinx()
-        for i in range(self.beta):
-            ax1.plot(self.pr_beta[i].x, self.pr_beta[i].y, 'xk', ms=3)
-
-        for i in range(self.beta):
-            ax2.plot(self.eta_beta[i].x, self.eta_beta[i].y, 'xr', ms=3)
-
-        ax1.set_ylabel('$p$ / $p_\mathrm{ref}$')
-        ax2.set_ylabel('$\eta$ / $\eta_\mathrm{ref}$')
-        ax1.set_xlabel('$m$ / $m_\mathrm{ref}$')
-        ax2.set_ylim([0, 1.1])
-        ax1.set_ylim([0, 2])
-        plt.sca(ax1)
-        plt.show()
 
 
 class characteristics:
@@ -399,18 +108,15 @@ class turbine(characteristics):
     def default(self, key):
         r"""
 
-        default **characteristic lines** for turbines **are designed for the
-        following cases**:
-
-            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
-
-        available lines characteristics:
-
-        **GENERIC**
+        default characteristic lines for turbines:
 
         .. math::
 
             \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
+
+        **GENERIC**
+
+        .. math::
 
             \text{choose calculation method for X}
 
@@ -626,7 +332,8 @@ class pump(characteristics):
     .. math::
 
         n_q = \frac{333 \cdot n \cdot \sqrt{\dot{V}_{ref}}}
-        {\left(g \cdot H_{ref}\right)^{0,75}}
+        {\left(g \cdot H_{ref}\right)^{0,75}}\\
+        \text{assuming n=}\frac{50}{s}
 
     .. note::
 
@@ -661,3 +368,230 @@ class pump(characteristics):
 
     def f_x(self, x):
         return self.char(x)
+
+
+class compressor(characteristics):
+    r"""
+
+    generic characteristic map for axial compressors
+
+    - links mass flow to pressure rise and isentropic efficiency
+
+    the map can be plotted using :code:`map.plot()`
+
+    **literature**
+
+    compressor map:
+
+    - Marcin Plis, Henryk Rusinowski (2016): Mathematical modeling of an
+      axial compressor in a gas turbine cycle. Journal of Power
+      Technologies 96 (3), pp. 194-199.
+
+    vigv:
+
+    - GasTurb GmbH (2015): GasTurb 12.
+    """
+
+    def __init__(self, **kwargs):
+
+        for key in kwargs:
+            if key not in self.attr():
+                msg = ('Invalid keyword ' + key + '. Available keywords for '
+                       'kwargs are: ' + str(self.attr()) + '.')
+                raise KeyError(msg)
+
+        # in case of various default characteristics
+        method = kwargs.get('method', 'default')
+
+        self.x = kwargs.get('x', None)
+        self.y = kwargs.get('y', None)
+        self.z1 = kwargs.get('z1', None)
+        self.z2 = kwargs.get('z2', None)
+
+        if self.x is None:
+            self.x = self.default(method)[0]
+        if self.y is None:
+            self.y = self.default(method)[1]
+
+        if self.z1 is None:
+            self.z1 = self.default(method)[2]
+        if self.z2 is None:
+            self.z2 = self.default(method)[3]
+
+    def default(self, key):
+
+        r"""
+
+        default characteristic map for compressor
+
+        .. math::
+
+            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+
+            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
+
+            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}=
+            f\left(X, Y \right)
+
+            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}}=
+            f\left(X, Y \right)
+
+        .. image:: _images/CMAP_GENERIC_PR.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        .. image:: _images/CMAP_GENERIC_ETA.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+        """
+
+        if key == 'default':
+            return np.array([0, 1, 2]), np.array([1, 1, 1])
+
+        x = {}
+        y = {}
+        z1 = {}
+        z2 = {}
+
+        x['GENERIC'] = np.array([0.810, 0.870, 0.946, 0.971, 1, 1.029, 1.062])
+        y['GENERIC'] = np.array([[0.460, 0.481, 0.502, 0.523, 0.543,
+                                  0.562, 0.583, 0.598, 0.606, 0.612],
+                                 [0.590, 0.605, 0.620, 0.640, 0.660,
+                                  0.685, 0.703, 0.710, 0.711, 0.713],
+                                 [0.767, 0.805, 0.838, 0.859, 0.87,
+                                  0.876, 0.878, 0.878, 0.879, 0.88],
+                                 [0.874, 0.908, 0.93, 0.943, 0.953,
+                                  0.961, 0.962, 0.963, 0.963, 0.964],
+                                 [0.948, 0.974, 0.987, 0.995, 1.0,
+                                  1.002, 1.005, 1.005, 1.006, 1.006],
+                                 [1.014, 1.017, 1.02, 1.023, 1.026,
+                                  1.028, 1.03, 1.032, 1.034, 1.036],
+                                 [1.045, 1.047, 1.049, 1.051, 1.052,
+                                  1.053, 1.054, 1.054, 1.055, 1.056]])
+
+        z1['GENERIC'] = np.array([[0.502, 0.493, 0.485, 0.467, 0.442,
+                                   0.411, 0.378, 0.344, 0.31, 0.276],
+                                  [0.65, 0.637, 0.617, 0.589, 0.556,
+                                   0.519, 0.482, 0.445, 0.407, 0.37],
+                                  [0.931, 0.917, 0.893, 0.859, 0.82,
+                                   0.779, 0.738, 0.698, 0.657, 0.616],
+                                  [1.05, 1.02, 0.982, 0.939, 0.895,
+                                   0.851, 0.806, 0.762, 0.717, 0.672],
+                                  [1.195, 1.151, 1.102, 1.052, 1.0,
+                                   0.951, 0.9, 0.85, 0.799, 0.748],
+                                  [1.34, 1.276, 1.213, 1.149, 1.085,
+                                   1.022, 0.958, 0.894, 0.831, 0.767],
+                                  [1.441, 1.37, 1.3, 1.229, 1.158,
+                                   1.088, 1.017, 0.946, 0.876, 0.805]])
+
+        z2['GENERIC'] = np.array([[0.872, 0.885, 0.898, 0.911, 0.925,
+                                   0.94, 0.945, 0.926, 0.903, 0.879],
+                                  [0.887, 0.909, 0.93, 0.947, 0.963,
+                                   0.971, 0.965, 0.939, 0.913, 0.887],
+                                  [0.891, 0.918, 0.946, 0.973, 1.001,
+                                   1.014, 1.015, 0.986, 0.955, 0.925],
+                                  [0.977, 0.977, 0.981, 0.995, 1.007,
+                                   1.002, 0.981, 0.961, 0.94, 0.92],
+                                  [0.956, 0.959, 0.969, 0.984, 1.0,
+                                   0.985, 0.967, 0.95, 0.932, 0.914],
+                                  [0.948, 0.959, 0.962, 0.949, 0.935,
+                                   0.922, 0.908, 0.895, 0.881, 0.868],
+                                  [0.879, 0.888, 0.898, 0.907, 0.916,
+                                   0.924, 0.915, 0.906, 0.896, 0.887]])
+
+        return x[key], y[key], z1[key], z2[key]
+
+    def get_pr_eta(self, x, y, igva):
+        """
+        returns the pressure ratio and isentropic efficiency at given speedline
+        and correxted mass flow
+
+        :param x: speedline
+        :type x: float
+        :param y: corrected mass flow
+        :type y: float
+        :returns: - pr (*float*) - pressure ratio
+                  - eta (*float*) - isentropic efficiency
+        """
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x):
+            yarr = self.y[xpos - 1]
+            z1 = self.z1[xpos - 1]
+            z2 = self.z2[xpos - 1]
+        elif xpos == 0:
+            yarr = self.y[0]
+            z1 = self.z1[0]
+            z2 = self.z2[0]
+        else:
+            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+            z1 = self.z1[xpos - 1] + yfrac * (
+                    self.z1[xpos] - self.z1[xpos - 1])
+            z2 = self.z2[xpos - 1] + yfrac * (
+                    self.z2[xpos] - self.z2[xpos - 1])
+
+        yarr *= (1 - igva / 100)
+        z1 *= (1 - igva / 100)
+        z2 *= (1 - igva ** 2 / 10000)
+
+        ypos = np.searchsorted(yarr, y)
+        if ypos == len(yarr):
+            return z1[ypos - 1], z2[ypos - 1]
+        elif ypos == 0:
+            return z1[0], z2[0]
+        else:
+            zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
+            pr = z1[ypos - 1] + zfrac * (z1[ypos] - z1[ypos - 1])
+            eta = z2[ypos - 1] + zfrac * (z2[ypos] - z2[ypos - 1])
+            return pr, eta
+
+    def get_bound_errors(self, x, y, igva):
+        """
+        returns error messages for operation out of the maps bounds
+
+        :param x: speedline
+        :type x: float
+        :param y: corrected mass flow
+        :type y: float
+        :returns: - msg (*float*) - errormessage
+                  - ypos (*float*) - position of corrected mass flow
+        """
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x) and x != self.x[-1]:
+            yarr = self.y[xpos - 1]
+            msg = ('##### WARNING #####\n'
+                   'Operating point above compressor map range: '
+                   'X=' + str(round(x, 3)) + ' with maximum of ' +
+                   str(self.x[-1]))
+            return msg
+        elif xpos == 0 and y != self.x[0]:
+            yarr = self.y[0]
+            msg = ('##### WARNING #####\n'
+                   'Operating point below compressor map range: '
+                   'X=' + str(round(x, 3)) + ' with minimum of ' +
+                   str(self.x[0]))
+            return msg
+        else:
+            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+
+        yarr *= (1 - igva / 100)
+
+        ypos = np.searchsorted(yarr, y)
+        if ypos == len(yarr) and y != yarr[-1]:
+            msg = ('##### WARNING #####\n'
+                   'Operating point above compressor map range: '
+                   'Y=' + str(round(y, 3)) + ' with maximum of ' +
+                   str(yarr[-1]))
+            return msg
+        elif ypos == 0 and y != yarr[0]:
+            msg = ('##### WARNING #####\n'
+                   'Operating point below compressor map range: '
+                   'Y=' + str(round(y, 3)) + ' with minimum of ' +
+                   str(yarr[0]))
+            return msg
+        else:
+            return None

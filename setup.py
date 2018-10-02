@@ -20,4 +20,5 @@ setup(name='TESPy',
                         'matplotlib >= 2.0.2',
                         'numpy >= 1.13.3',
                         'pandas >= 0.19.2',
-                        'scipy >= 0.19.1'])
+                        'scipy >= 0.19.1',
+                        'tabulate >= 0.8.2'])

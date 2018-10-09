@@ -4154,7 +4154,9 @@ class vessel(component):
     """
 
     def attr(self):
-        return {'pr': dc_cp(), 'zeta': dc_cp(), 'Sirr': dc_cp()}
+        return {'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'Sirr': dc_cp()}
 
     def default_design(self):
         return ['pr']
@@ -4439,7 +4441,9 @@ class heat_exchanger_simple(component):
             self.kA_group.set_attr(is_set=False)
 
     def attr(self):
-        return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
@@ -5120,10 +5124,14 @@ class solar_collector(heat_exchanger_simple):
             self.energy_group.set_attr(is_set=False)
 
     def attr(self):
-        return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
-                'E': dc_cp(), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
-                'A': dc_cp(), 't_a': dc_cp(),
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
+                'A': dc_cp(min_val=0), 't_a': dc_cp(),
                 'SQ': dc_cp(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 

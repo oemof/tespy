@@ -1224,6 +1224,7 @@ class network:
             self.lin_dep = False
         except:
             pass
+            self.vec_z = np.asarray(self.vec_res) * 0
 
         # check for linear dependency
         if self.lin_dep:

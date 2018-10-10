@@ -7,9 +7,8 @@
 
 import math
 
-import csv
-
 import pandas as pd
+from tabulate import tabulate
 from multiprocessing import cpu_count, Pool, freeze_support
 
 import numpy as np
@@ -27,7 +26,6 @@ import matplotlib.colors as colors
 
 import collections
 
-import sys
 import time
 import os
 from CoolProp.CoolProp import PropsSI as CPPSI
@@ -528,7 +526,6 @@ class network:
 
         labels = []
         for comp in self.comps.index:
-            comp.comp_init(self)
             s = self.conns[self.conns.s == comp]
             s = s.s_id.sort_values().index
             t = self.conns[self.conns.t == comp]
@@ -1027,7 +1024,6 @@ class network:
 
         self.vec_res = []
         self.iter = 0
-        self.relax = 1
         self.num_restart = 0
         # number of variables
         self.num_vars = len(self.fluids) + 3
@@ -1055,18 +1051,26 @@ class network:
             self.conns_split = [self.conns]
 
         start_time = time.time()
-        self.solve_loop()
+        errmsg = self.solve_loop()
         end_time = time.time()
 
         if self.iterinfo:
-            print('--------+----------+----------+----------+----------+'
-                  '---------')
+            if self.num_c_vars == 0:
+                print('--------+----------+----------+----------+----------+'
+                      '---------')
+            else:
+                print('--------+----------+----------+----------+----------+'
+                      '----------+---------')
+
             msg = ('Total iterations: ' + str(self.iter) + ', '
                    'Calculation time: ' +
                    str(round(end_time - start_time, 1)) + ' s, '
                    'Iterations per second: ' +
                    str(round(self.iter / (end_time - start_time), 2)))
             print(msg)
+
+        if self.nwkwarn and errmsg is not None:
+            print(errmsg)
 
         if self.lin_dep:
             if self.nwkerr:
@@ -1116,33 +1120,46 @@ class network:
         **Improvememts**
         """
         if self.iterinfo:
-            msg = ('iter\t| residual | massflow | pressure | enthalpy | fluid')
-            print(msg)
-            print('--------+----------+----------+----------+----------+'
-                  '---------')
+            if self.num_c_vars == 0:
+                msg = ('iter\t| residual | massflow | pressure | enthalpy |'
+                       ' fluid\n')
+                msg += ('--------+----------+----------+----------+----------+'
+                        '---------')
 
+            else:
+                msg = ('iter\t| residual | massflow | pressure | enthalpy |'
+                       ' fluid    | custom\n')
+                msg += ('--------+----------+----------+----------+----------+'
+                        '----------+---------')
+
+            print(msg)
+
+        self.relax = 1
+#        self.reset_relax = 0
         for self.iter in range(self.max_iter):
 
             self.solve_control()
             self.res = np.append(self.res, norm(self.vec_res))
 
             if self.iterinfo:
+                vec = self.vec_z[0:-(self.num_c_vars + 1)]
                 msg = (str(self.iter + 1))
                 # should this be f(x_i) or the dx_i?
                 # -> accounts for self.res, too.
                 if not self.lin_dep and not math.isnan(norm(self.vec_res)):
                     msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
-                    msg += ' | ' + '{:.2e}'.format(norm(
-                            self.vec_z[0::self.num_vars]))
-                    msg += ' | ' + '{:.2e}'.format(norm(
-                            self.vec_z[1::self.num_vars]))
-                    msg += ' | ' + '{:.2e}'.format(norm(
-                            self.vec_z[2::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(vec[0::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(vec[1::self.num_vars]))
+                    msg += ' | ' + '{:.2e}'.format(norm(vec[2::self.num_vars]))
                     ls = []
                     for f in range(len(self.fluids)):
-                        ls += self.vec_z[3 + f::self.num_vars].tolist()
+                        ls += vec[3 + f::self.num_vars].tolist()
 
                     msg += ' | ' + '{:.2e}'.format(norm(ls))
+                    if self.num_c_vars > 0:
+                        msg += ' | ' + '{:.2e}'.format(norm(
+                                self.vec_z[-self.num_c_vars:]))
+
                 else:
                     if math.isnan(norm(self.vec_res)):
                         msg += '\t|      nan'.format(norm(self.vec_res))
@@ -1152,30 +1169,31 @@ class network:
                     msg += ' |      nan'
                     msg += ' |      nan'
                     msg += ' |      nan'
+                    if self.num_c_vars > 0:
+                        msg += ' |      nan'
                 print(msg)
 
-            # stop calculation after rediculous amount of iterations
-            if self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2):
-                    break
+            msg = None
 
-            if self.iter > 15:
+            if ((self.iter > 3 and self.res[-1] < hlp.err ** (1 / 2)) or
+                    self.lin_dep):
+                return msg
+
+            if self.iter > 20:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2]) and
                         self.res[-1] >= self.res[-2]):
-                    if self.nwkwarn:
-                        print('##### WARNING #####\n'
-                              'Convergence is making no progress, calculation '
-                              'stopped, residual value is '
-                              '{:.2e}'.format(norm(self.vec_res)))
-                        break
-
-            if self.lin_dep:
-                break
+                    msg = ('##### WARNING #####\n'
+                           'Convergence is making no progress, calculation '
+                           'stopped, residual value is '
+                           '{:.2e}'.format(norm(self.vec_res)))
+                    return msg
 
         if self.iter == self.max_iter - 1:
-            print('##### WARNING #####\n'
-                  'Reached maximum iteration count, calculation '
-                  'stopped, residual value is '
-                  '{:.2e}'.format(norm(self.vec_res)))
+            msg = ('##### WARNING #####\n'
+                   'Reached maximum iteration count, calculation '
+                   'stopped, residual value is '
+                   '{:.2e}'.format(norm(self.vec_res)))
+            return msg
 
     def solve_control(self):
         """
@@ -1215,14 +1233,14 @@ class network:
         i = 0
         for c in self.conns.index:
             if not c.m.val_set:
-                c.m.val_SI += self.vec_z[i * (self.num_vars)] * self.relax
+                c.m.val_SI += self.vec_z[i * (self.num_vars)]
             if not c.p.val_set:
                 # this prevents negative pressures
                 relax = max(1, -self.vec_z[i * (self.num_vars) + 1] /
                             (0.5 * c.p.val_SI))
                 c.p.val_SI += self.vec_z[i * (self.num_vars) + 1] / relax
             if not c.h.val_set:
-                c.h.val_SI += self.vec_z[i * (self.num_vars) + 2] * self.relax
+                c.h.val_SI += self.vec_z[i * (self.num_vars) + 2]
 
             j = 0
             for fluid in self.fluids:
@@ -1239,6 +1257,36 @@ class network:
 
                 j += 1
             i += 1
+
+        if self.num_c_vars > 0:
+
+#            self.var_hist[:, self.iter] = (
+#                    self.vec_z[self.num_vars * len(self.conns):])
+#            a = self.var_hist
+#            self.var_hist = np.zeros((self.num_c_vars, self.iter + 2))
+#            self.var_hist[:, :-1] = a
+
+            c_vars = 0
+            for cp in self.comps.index:
+                for var in cp.vars.keys():
+                    pos = var.var_pos
+#                    if np.isin(self.var_hist[c_vars + pos, self.iter],
+#                               self.var_hist[c_vars + pos, :-2]):
+#                        self.relax = 0.2
+#                        self.reset_relax = self.iter
+#                    elif self.reset_relax + 10 == self.iter:
+#                        self.relax = 1
+
+                    var.val += self.vec_z[
+                            self.num_vars * len(self.conns) +
+                            c_vars + pos] * self.relax
+
+                    if var.val < var.min_val:
+                        var.val = var.min_val
+                    if var.val > var.max_val:
+                        var.val = var.max_val
+
+                c_vars += cp.num_c_vars
 
         # check properties for consistency
         if self.iter < 3 and self.init_file is None:
@@ -1282,7 +1330,7 @@ class network:
         # acutal value
         # for pure fluids:
         # obtain maximum temperature from fluid properties directly
-        ############ this part seems to cause bad convergence ############
+        ###### this part seems to cause bad convergence in some cases ######
         if c.T.val_set and not c.h.val_set and not c.p.val_set:
             self.solve_check_temperature(c, 'min')
             self.solve_check_temperature(c, 'max')
@@ -1353,8 +1401,9 @@ class network:
 
         - search a way to speed up locating the data within the matrix
         """
-        self.mat_deriv = np.zeros((len(self.conns) * (self.num_vars),
-                                   len(self.conns) * (self.num_vars)))
+        num_cols = len(self.conns) * self.num_vars
+        self.mat_deriv = np.zeros((num_cols + self.num_c_vars,
+                                   num_cols + self.num_c_vars,))
 
         if self.parallel:
             data = self.solve_parallelize(network.solve_comp, self.comps_split)
@@ -1368,6 +1417,7 @@ class network:
             self.vec_res += [it for ls in data[part][0].tolist()
                              for it in ls]
             k = 0
+            c_var = 0
             for cp in self.comps_split[part].index:
 
                 if (not isinstance(cp, cmp.source) and
@@ -1385,6 +1435,14 @@ class network:
                                        (loc + 1) * self.num_vars] = (
                                            data[part][1].iloc[k][0][:, i])
                         i += 1
+
+                    for j in range(cp.num_c_vars):
+                        self.mat_deriv[sum_eq:sum_eq + num_eq,
+                                       num_cols + c_var] = (
+                            data[part][1].iloc[k][0]
+                            [:, i + j, :1].transpose()[0])
+                        c_var += 1
+
                     sum_eq += num_eq
                 k += 1
 
@@ -1862,10 +1920,13 @@ class network:
         :returns: no return value
         :raises: :code:`MyNetworkError`
         """
+        self.num_c_vars = 0
         n = 0
         for cp in self.comps.index:
+            self.num_c_vars += cp.num_c_vars
             n += len(cp.equations())
 
+#        self.var_hist = np.zeros((self.num_c_vars, 1))
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set,
                   c.T.val_set, c.x.val_set, c.v.val_set].count(True)
@@ -1877,15 +1938,15 @@ class network:
         for b in self.busses:
             n += [b.P_set].count(True)
 
-        if n > self.num_vars * len(self.conns.index):
+        if n > self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have provided too many parameters:',
-                   self.num_vars * len(self.conns.index), 'required, ',
-                   n, 'given.')
+                   self.num_vars * len(self.conns.index) + self.num_c_vars,
+                   'required, ', n, 'given.')
             raise hlp.MyNetworkError(msg)
-        elif n < self.num_vars * len(self.conns.index):
+        elif n < self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have not provided enough parameters:',
-                   self.num_vars * len(self.conns.index), 'required, ',
-                   n, 'given.')
+                   self.num_vars * len(self.conns.index) + self.num_c_vars,
+                   'required, ', n, 'given.')
             raise hlp.MyNetworkError(msg)
         else:
             return
@@ -1932,9 +1993,6 @@ class network:
         for b in self.busses:
             b.P = 0
             for cp in b.comps.index:
-                i = self.comps.loc[cp].i.tolist()
-                o = self.comps.loc[cp].o.tolist()
-
                 b.P += cp.bus_func() * b.comps.loc[cp].factor
 
     def process_components(cols, nw, mode):
@@ -1973,8 +2031,37 @@ class network:
 
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):
-            self.comps.apply(network.print_components, axis=1,
-                             args=(self,))
+
+            cp_sort = self.comps.copy()
+            cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+            cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
+                                             args=('label',))
+            cp_sort.drop('i', axis=1, inplace=True)
+            cp_sort.drop('o', axis=1, inplace=True)
+            cp_sort = cp_sort[cp_sort['cp'] != 'source']
+            cp_sort = cp_sort[cp_sort['cp'] != 'sink']
+
+            pd.options.mode.chained_assignment = None
+            for c in cp_sort.cp.unique():
+                df = cp_sort[cp_sort['cp'] == c]
+
+                cols = []
+                for col, val in df.index[0].attr().items():
+                    if isinstance(val, hlp.dc_cp):
+                        if val.get_attr('printout'):
+                            cols += [col]
+
+                if len(cols) > 0:
+                    print('##### RESULTS (' + c + ') #####')
+                    for col in cols:
+                        df[col] = df.apply(network.print_components,
+                                           axis=1, args=(col,))
+
+                    df.set_index('label', inplace=True)
+                    df.drop('cp', axis=1, inplace=True)
+
+                    print(tabulate(df, headers='keys', tablefmt='psql',
+                                   floatfmt='.2e'))
 
         msg = 'Do you want to print the connections parammeters?'
         if hlp.query_yes_no(msg):
@@ -1984,15 +2071,16 @@ class network:
                                        'T / (' + self.T_unit + ')'])
             for c in self.conns.index:
                 df.loc[c.s.label + ' -> ' + c.t.label] = (
-                        ['{:.2e}'.format(c.m.val_SI / self.m[self.m_unit]),
-                         '{:.2e}'.format(c.p.val_SI / self.p[self.p_unit]),
-                         '{:.4e}'.format(c.h.val_SI / self.h[self.h_unit]),
-                         '{:.2e}'.format(c.T.val_SI / self.T[self.T_unit][1] -
-                                         self.T[self.T_unit][0])]
+                        [c.m.val_SI / self.m[self.m_unit],
+                         c.p.val_SI / self.p[self.p_unit],
+                         c.h.val_SI / self.h[self.h_unit],
+                         c.T.val_SI / self.T[self.T_unit][1] -
+                         self.T[self.T_unit][0]]
                         )
-            print(df)
+            print(tabulate(df, headers='keys', tablefmt='psql',
+                           floatfmt='.3e'))
 
-    def print_components(cols, nw):
+    def print_components(c, *args):
         """
         postprocessing: calculate components attributes and print them to
         prompt
@@ -2001,8 +2089,7 @@ class network:
         :type cols: landas dataframe index object
         :returns: no return value
         """
-
-        cols.name.print_parameters(nw)
+        return c.name.get_attr(args[0]).val
 
     def plot_convergence(self):
         """
@@ -2195,7 +2282,7 @@ class network:
         """
 
         # create / overwrite csv file
-        cp_sort = self.comps
+        cp_sort = self.comps.copy()
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
                                           args=(self.busses,))
@@ -2212,7 +2299,7 @@ class network:
                 df[col] = df.apply(network.get_props, axis=1,
                                    args=(col,))
 
-            for col, dc in df.index[0].attr_prop().items():
+            for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     df[col] = df.apply(network.get_props, axis=1,
                                        args=(col, 'func')).astype(str)
@@ -2283,7 +2370,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, dc in df.index[0].attr_prop().items():
+            for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()

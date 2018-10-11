@@ -384,7 +384,7 @@ class ph_desup_cond_subc(subsystem):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
                 ['ttd', 'pr1_desup', 'pr2_desup',
-                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc'])
+                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc', 'pr_v'])
 
     def create_comps(self):
 
@@ -406,8 +406,9 @@ class ph_desup_cond_subc(subsystem):
         self.desup.set_attr(pr2=self.pr2_desup)
         self.condenser.set_attr(pr1=self.pr1_cond)
         self.condenser.set_attr(pr2=self.pr2_cond)
-        self.subcooler.set_attr(pr1=self.pr1_cond)
-        self.subcooler.set_attr(pr2=self.pr2_cond)
+        self.subcooler.set_attr(pr1=self.pr1_subc)
+        self.subcooler.set_attr(pr2=self.pr2_subc)
+        self.vessel.set_attr(pr=self.pr_v)
 
     def create_conns(self):
 

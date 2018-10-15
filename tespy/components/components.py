@@ -1436,7 +1436,7 @@ class pump(turbomachine):
 
         if (mode == 'pre' and 'eta_s_char' in self.offdesign):
             if nw.compinfo:
-                print('Creating characteristics for component ', self)
+                print('Creating characteristics for component ' + self.label)
             v_opt = (self.i0[0] *
                      (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
             H_opt = ((self.o0[1] - self.i0[1]) /

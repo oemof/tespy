@@ -629,11 +629,6 @@ class network:
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
 
-            if isinstance(c.s, cmp.merge):
-                c.s.initialise_fluids(self)
-            if isinstance(c.t, cmp.merge):
-                c.t.initialise_fluids(self)
-
         for c in self.conns.index:
             c.s.initialise_fluids(self)
             c.t.initialise_fluids(self)
@@ -712,6 +707,15 @@ class network:
             self.init_source(inc, start)
 
         if isinstance(c.s, cmp.splitter):
+            for inconn in self.comps.loc[c.s].i:
+                for fluid, x in c.fluid.val.items():
+                    if not inconn.fluid.val_set[fluid]:
+                        inconn.fluid.val[fluid] = x
+
+                self.init_source(inconn, start)
+
+        if isinstance(c.s, cmp.merge):
+            print(c.t.label)
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
                     if not inconn.fluid.val_set[fluid]:
@@ -1257,6 +1261,8 @@ class network:
                     c.fluid.val[fluid] = 1
 
                 j += 1
+
+            self.solve_check_props(c)
             i += 1
 
         if self.num_c_vars > 0:
@@ -1289,16 +1295,46 @@ class network:
 
                 c_vars += cp.num_c_vars
 
-        # check properties for consistency
+        # check properties without given init_file
         if self.iter < 3 and self.init_file is None:
-            for c in self.conns.index:
-                self.solve_check_properties(c)
-
+#            for c in self.conns.index:
+#                self.solve_check_properties(c)
+#
             for cp in self.comps.index:
                 cp.convergence_check(self)
+#
+#            for c in self.conns.index:
+#                self.solve_check_properties(c)
 
-            for c in self.conns.index:
-                self.solve_check_properties(c)
+    def solve_check_props(self, c):
+        """
+        checks for invalid fluid properties in solution progress and adjusts
+        values if necessary
+
+        - check pressure
+        - check enthalpy
+        - check temperature
+
+        :param c: connection object to check
+        :type c: tespy.connections.connection
+        :returns: no return value
+        """
+        fl = hlp.single_fluid(c.fluid.val)
+
+        if isinstance(fl, str):
+            # pressure
+            if c.p.val_SI < hlp.memorise.vrange[fl][0]:
+                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.01
+            if c.p.val_SI > hlp.memorise.vrange[fl][1]:
+                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.99
+
+            # enthalpy
+            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2], fl)
+            hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3], fl)
+            if c.h.val_SI < hmin:
+                c.h.val_SI = hmin * 2
+            if c.h.val_SI > hmax:
+                c.h.val_SI = hmax * 0.99
 
     def solve_check_properties(self, c):
         """

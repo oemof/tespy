@@ -489,6 +489,11 @@ class memorise:
             memorise.s_ph_f[fl] = []
             memorise.count = 0
 
+        for f in fluids:
+            pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f),
+            Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+            memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+
     def del_memory(fluids):
 
         fl = tuple(fluids)
@@ -529,6 +534,7 @@ memorise.visc_ph = {}
 memorise.visc_ph_f = {}
 memorise.s_ph = {}
 memorise.s_ph_f = {}
+memorise.vrange = {}
 
 # %%
 
@@ -1132,15 +1138,12 @@ def v_mix_pT(flow, T):
         \forall i \in \text{fluid components}\\
         pp: \text{partial pressure}
     """
-    n = molar_massflow(flow[3])
-
-    d = 0
+    v = 0
     for fluid, x in flow[3].items():
         if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            d += d_pT(pp, T, fluid) * x
+            v += x / d_pT(flow[1], T, fluid)
 
-    return 1 / d
+    return v
 
 
 def d_mix_pT(flow, T):

@@ -5795,10 +5795,9 @@ class heat_exchanger(component):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, 0, 0] = o[2] - i[2]
-            deriv[0, 0, 2] = - i[0]
-            deriv[0, 2, 2] = i[0]
+        deriv[0, 0, 0] = o[2] - i[2]
+        deriv[0, 0, 2] = - i[0]
+        deriv[0, 2, 2] = i[0]
         return deriv
 
     def convergence_check(self, nw):

@@ -3067,31 +3067,51 @@ class combustion_chamber(component):
         r"""
         calculates the energy balance of the adiabatic combustion chamber
 
-        - reference temperature: 500 K
-        - reference pressure: 1 bar
+        .. note::
+            The temperature for the reference state is set to 20 °C, thus
+            the water may be liquid. In order to make sure, the state is
+            referring to the lower heating value, the necessary enthalpy
+            difference for evaporation is added. The stoichiometric combustion
+            chamber uses a different reference, you will find it in the
+            :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+            documentation.
+
+            - reference temperature: 293.15 K
+            - reference pressure: 1 bar
 
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
-            0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
-            \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-            H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
-            \dot{m}_{out,j} \cdot x_{f,j} \right)
+            0 = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right) - \sum_j \dot{m}_{out,j} \cdot
+            \left( h_{out,j} - h_{out,j,ref} \right) +
+            H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+            \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+            \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
 
         """
-        T_ref = 500
+        T_ref = 293.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
-                                           i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
             res += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
+
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
-                                           o.fluid.val], T_ref))
+            dh = 0
+            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+            if n_h2o > 0:
+                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
+                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                if h < h_steam:
+                    dh = (h_steam - h) * o.fluid.val[self.h2o]
+
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
+                    dh)
             res -= o.m.val_SI * o.fluid.val[self.fuel.val] * self.lhv
 
         return res
@@ -3420,24 +3440,34 @@ class combustion_chamber(component):
                 self.lamb.val = n_oxygen / (
                         n_fuel * (self.n['C'] + self.n['H'] / 4))
 
-            S = 0
-            T_ref = 500
+            val = 0
+            T_ref = 293.15
             p_ref = 1e5
 
             for i in self.inl:
-                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+                val -= i.m.val_SI * (
+                        s_mix_ph(i.to_flow()) -
+                        s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
             for o in self.outl:
-                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+                dS = 0
+                n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+                if n_h2o > 0:
+                    p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                    S = CP.PropsSI('S', 'P', p, 'T', T_ref, self.h2o)
+                    S_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                    if S < S_steam:
+                        dS = (S_steam - S) * o.fluid.val[self.h2o]
+                val += o.m.val_SI * (
+                        s_mix_ph(o.to_flow()) -
+                        s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dS)
 
-            self.S.val = S
+            self.S.val = val
 
         if mode == 'pre':
             if 'lamb' in self.offdesign:
-                self.lamb.val = n_oxygen / (n_fuel *
-                                            (self.n['C'] + self.n['H'] / 4))
+                self.lamb.val = n_oxygen / (n_fuel * (
+                        self.n['C'] + self.n['H'] / 4))
 
 # %%
 
@@ -3732,7 +3762,9 @@ class combustion_chamber_stoich(combustion_chamber):
         molar_masses[self.co2] = CP.PropsSI('M', self.co2)
         molar_masses[self.o2] = CP.PropsSI('M', self.o2)
 
-        fg = {}
+        self.fg = {}
+        self.fg[self.co2] = 0
+        self.fg[self.h2o] = 0
 
         for f, x in self.fuel.val.items():
             fl = set(list(self.fuels())).intersection(
@@ -3740,8 +3772,10 @@ class combustion_chamber_stoich(combustion_chamber):
                          for a in CP.get_aliases(f)]))
 
             if len(fl) == 0:
-                fg[f] = x * m_fuel
-                continue
+                if f in self.fg.keys():
+                    self.fg[f] += x * m_fuel
+                else:
+                    self.fg[f] = x * m_fuel
             else:
                 n_fluid = x * m_fuel / molar_masses[f]
                 m_fuel_fg -= n_fluid * molar_masses[f]
@@ -3756,8 +3790,8 @@ class combustion_chamber_stoich(combustion_chamber):
                 m_co2 += n_fluid * n['C'] * molar_masses[self.co2]
                 m_h2o += n_fluid * n['H'] / 2 * molar_masses[self.h2o]
 
-        fg[self.co2] = m_co2
-        fg[self.h2o] = m_h2o
+        self.fg[self.co2] += m_co2
+        self.fg[self.h2o] += m_h2o
 
         n_o2 = (m_co2 / molar_masses[self.co2] +
                 0.5 * m_h2o / molar_masses[self.h2o]) * lamb
@@ -3767,20 +3801,20 @@ class combustion_chamber_stoich(combustion_chamber):
 
         for f, x in self.air.val.items():
             if f != self.o2:
-                if f in fg.keys():
-                    fg[f] += m_air * x
+                if f in self.fg.keys():
+                    self.fg[f] += m_air * x
                 else:
-                    fg[f] = m_air * x
+                    self.fg[f] = m_air * x
 
         m_fg = m_fuel + m_air
 
-        for f in fg.keys():
-            fg[f] /= m_fg
+        for f in self.fg.keys():
+            self.fg[f] /= m_fg
 
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
-        tespy_fluid(self.fuel_alias.val + '_fg', fg,
+        tespy_fluid(self.fuel_alias.val + '_fg', self.fg,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
         if self.air_alias.val not in ['Air', 'air']:
@@ -3899,33 +3933,38 @@ class combustion_chamber_stoich(combustion_chamber):
         r"""
         calculates the energy balance of the adiabatic combustion chamber
 
-        - reference temperature: 500 K
-        - reference pressure: 1 bar
+        .. note::
+            The temperature for the reference state is set to 100 °C, as the
+            custom fluid properties are inacurate at the dew-point of water in
+            the flue gas!
+
+            - reference temperature: 373.15 K
+            - reference pressure: 1 bar
 
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
-            0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
-            \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-            H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
-            \dot{m}_{out,j} \cdot x_{f,j} \right)
+            0 = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right) - \sum_j \dot{m}_{out,j} \cdot
+            \left( h_{out,j} - h_{out,j,ref} \right) +
+            H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+            \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+            \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
 
         """
         fuel = 'TESPy::' + self.fuel_alias.val
 
-        T_ref = 500
+        T_ref = 373.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
-                                           i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
             res += i.m.val_SI * i.fluid.val[fuel] * self.lhv
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
-                                           o.fluid.val], T_ref))
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
             res -= o.m.val_SI * o.fluid.val[fuel] * self.lhv
 
         return res
@@ -4097,7 +4136,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 self.lamb.val = (m_air / m_fuel) / self.air_min
 
             S = 0
-            T_ref = 500
+            T_ref = 373.15
             p_ref = 1e5
 
             for i in self.inl:

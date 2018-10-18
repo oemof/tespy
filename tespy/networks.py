@@ -1297,14 +1297,14 @@ class network:
 
         # check properties without given init_file
         if self.iter < 3 and self.init_file is None:
-#            for c in self.conns.index:
-#                self.solve_check_properties(c)
+            for c in self.conns.index:
+                self.solve_check_properties(c)
 #
             for cp in self.comps.index:
                 cp.convergence_check(self)
 #
-#            for c in self.conns.index:
-#                self.solve_check_properties(c)
+            for c in self.conns.index:
+                self.solve_check_properties(c)
 
     def solve_check_props(self, c):
         """
@@ -1324,17 +1324,17 @@ class network:
         if isinstance(fl, str):
             # pressure
             if c.p.val_SI < hlp.memorise.vrange[fl][0]:
-                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.01
+                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.1
             if c.p.val_SI > hlp.memorise.vrange[fl][1]:
-                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.99
+                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.9
 
             # enthalpy
             hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2], fl)
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3], fl)
             if c.h.val_SI < hmin:
-                c.h.val_SI = hmin * 2
+                c.h.val_SI = hmin * 3
             if c.h.val_SI > hmax:
-                c.h.val_SI = hmax * 0.99
+                c.h.val_SI = hmax * 0.9
 
     def solve_check_properties(self, c):
         """

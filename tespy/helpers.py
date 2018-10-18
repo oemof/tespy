@@ -490,7 +490,11 @@ class memorise:
             memorise.count = 0
 
         for f in fluids:
-            pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f),
+            try:
+                pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
+            except ValueError:
+                pmin, pmax = 2000, 2000e5
+
             Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
             memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
 

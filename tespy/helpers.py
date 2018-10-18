@@ -495,7 +495,12 @@ class memorise:
             except ValueError:
                 pmin, pmax = 2000, 2000e5
 
-            Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+        for f in fluids:
+            try:
+                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+            except ValueError:
+                Tmin, Tmax = 2000, 2000e5
+
             memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
 
     def del_memory(fluids):

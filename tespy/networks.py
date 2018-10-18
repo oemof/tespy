@@ -139,13 +139,9 @@ class network:
         self.v_unit = self.SI_units['v']
 
         # standard value range
-        self.p_range = [2e3, 300e5]
-        self.h_range = [1e3, 7e6]
-        self.T_range = [273.16, 1773.15]
-
-        self.p_range_SI = self.p_range[:]
-        self.h_range_SI = self.h_range[:]
-        self.T_range_SI = self.T_range[:]
+        self.p_range_SI = np.array([2e2, 300e5])
+        self.h_range_SI = np.array([1e3, 7e6])
+        self.T_range_SI = np.array([273.16, 1773.15])
 
         # add attributes from kwargs
         for key in kwargs:
@@ -200,25 +196,46 @@ class network:
             raise hlp.MyNetworkError(msg)
 
         # value ranges
-        if not isinstance(self.p_range, list):
-            msg = ('Specify the value range as list: [p_min, p_max]')
-            raise TypeError(msg)
+        if 'p_range' in kwargs.keys():
+            if not isinstance(self.p_range, list):
+                msg = ('Specify the value range as list: [p_min, p_max]')
+                raise TypeError(msg)
+            else:
+                self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
         else:
-            self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
+            self.p_range = self.p_range_SI / self.p[self.p_unit]
 
-        if not isinstance(self.h_range, list):
-            msg = ('Specify the value range as list: [h_min, h_max]')
-            raise TypeError(msg)
+        if 'h_range' in kwargs.keys():
+            if not isinstance(self.h_range, list):
+                msg = ('Specify the value range as list: [h_min, h_max]')
+                raise TypeError(msg)
+            else:
+                self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
         else:
-            self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
+            self.h_range = self.h_range_SI / self.h[self.h_unit]
 
-        if not isinstance(self.T_range, list):
-            msg = ('Specify the value range as list: [T_min, T_max]')
-            raise TypeError(msg)
+        if 'T_range' in kwargs.keys():
+            if not isinstance(self.T_range, list):
+                msg = ('Specify the value range as list: [T_min, T_max]')
+                raise TypeError(msg)
+            else:
+                self.T_range_SI = ((np.array(self.T_range) +
+                                    self.T[self.T_unit][0]) *
+                                   self.T[self.T_unit][1])
         else:
-            self.T_range_SI = ((np.array(self.T_range) +
-                                self.T[self.T_unit][0]) *
-                               self.T[self.T_unit][1])
+            self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
+                            self.T[self.T_unit][0])
+
+        for f in self.fluids:
+            if 'TESPy::' in f:
+                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
+                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
+                hlp.memorise.vrange[f][2] = self.T_range_SI[0]
+                hlp.memorise.vrange[f][3] = self.T_range_SI[1]
+
+            if 'INCOMP::' in f:
+                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
+                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
 
     def get_attr(self, key):
         if key in self.__dict__:
@@ -1297,14 +1314,9 @@ class network:
 
         # check properties without given init_file
         if self.iter < 3 and self.init_file is None:
-            for c in self.conns.index:
-                self.solve_check_properties(c)
 #
             for cp in self.comps.index:
                 cp.convergence_check(self)
-#
-            for c in self.conns.index:
-                self.solve_check_properties(c)
 
     def solve_check_props(self, c):
         """
@@ -1323,56 +1335,37 @@ class network:
 
         if isinstance(fl, str):
             # pressure
-            if c.p.val_SI < hlp.memorise.vrange[fl][0]:
+            if c.p.val_SI < hlp.memorise.vrange[fl][0] and not c.p.val_set:
                 c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.1
-            if c.p.val_SI > hlp.memorise.vrange[fl][1]:
+            if c.p.val_SI > hlp.memorise.vrange[fl][1] and not c.p.val_set:
                 c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.9
 
             # enthalpy
             hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2], fl)
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3], fl)
-            if c.h.val_SI < hmin:
+            if c.h.val_SI < hmin and not c.h.val_set:
                 c.h.val_SI = hmin * 3
-            if c.h.val_SI > hmax:
+            if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 
-    def solve_check_properties(self, c):
-        """
-        checks for invalid fluid properties in solution progress and adjusts
-        values if necessary
+        elif self.iter < 3 and self.init_file is None:
+            # pressure
+            if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
+                c.p.val_SI = self.p_range_SI[0]
+            if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
+                c.p.val_SI = self.p_range_SI[1]
 
-        - check pressure
-        - check enthalpy
-        - check temperature
+            # enthalpy
+            if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
+                c.h.val_SI = self.h_range_SI[0]
+            if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
+                c.h.val_SI = self.h_range_SI[1]
 
-        :param c: connection object to check
-        :type c: tespy.connections.connection
-        :returns: no return value
-        """
-        # pressure
-        if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
-            c.p.val_SI = self.p_range_SI[0]
-        if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
-            c.p.val_SI = self.p_range_SI[1]
+            # temperature
+            if c.T.val_set and not c.h.val_set and not c.p.val_set:
+                self.solve_check_temperature(c)
 
-        # enthalpy
-        if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
-            c.h.val_SI = self.h_range_SI[0]
-        if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
-            c.h.val_SI = self.h_range_SI[1]
-
-        # make sure, that at given temperatures values stay within feasible
-        # range:
-        # for mixtures: calculate maximum enthalpy and compare with
-        # acutal value
-        # for pure fluids:
-        # obtain maximum temperature from fluid properties directly
-        ###### this part seems to cause bad convergence in some cases ######
-        if c.T.val_set and not c.h.val_set and not c.p.val_set:
-            self.solve_check_temperature(c, 'min')
-            self.solve_check_temperature(c, 'max')
-
-    def solve_check_temperature(self, c, pos):
+    def solve_check_temperature(self, c):
         """
         checks for invalid fluid temperatures in solution progress and adjusts
         values if necessary
@@ -1382,45 +1375,17 @@ class network:
 
         :param c: connection object to check
         :type c: tespy.connections.connection
-        :param pos: check at upper or lower boundary
-        :type pos: str
         :returns: no return value
         """
 
-        val = 'T' + pos
-        if pos == 'min':
-            fac = 1.1
-            idx = 0
-        else:
-            fac = 0.9
-            idx = 1
+        hmin = hlp.h_mix_pT(c.to_flow(), self.T_range_SI[0])
+        hmax = hlp.h_mix_pT(c.to_flow(), self.T_range_SI[1])
 
-        try:
-            T = CPPSI(val, 'T', 0, 'P', 0, hlp.single_fluid(c.fluid.val)) * fac
-        except:
-            T = self.T_range_SI[idx]
+        if c.h.val_SI < hmin:
+            c.h.val_SI = hmin * 1.05
 
-        if pos == 'min':
-            if T < self.T_range_SI[idx]:
-                T = self.T_range_SI[idx]
-        else:
-            if T > self.T_range_SI[idx]:
-                T = self.T_range_SI[idx]
-
-        p_temp = c.p.val_SI
-        if 'INCOMP::' in hlp.single_fluid(c.fluid.val):
-            c.p.val_SI = CPPSI('P', 'T', T, 'Q', 0,
-                               hlp.single_fluid(c.fluid.val))
-
-        h = hlp.h_mix_pT(c.to_flow(), T)
-        c.p.val_SI = p_temp
-
-        if pos == 'min':
-            if c.h.val_SI < h:
-                c.h.val_SI = h * fac
-        else:
-            if c.h.val_SI > h:
-                c.h.val_SI = h * fac
+        if c.h.val_SI > hmax:
+            c.h.val_SI = hmax * 0.95
 
     def solve_components(self):
         """

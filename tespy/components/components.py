@@ -1488,6 +1488,13 @@ class compressor(turbomachine):
             method = self.char_map.method
             self.char_map.func = cmp_char.compressor(method=method)
 
+        if self.flow_char.func is None:
+            method = self.flow_char.method
+            x = self.flow_char.x
+            y = self.flow_char.y
+            self.flow_char.func = cmp_char.characteristics(method=method,
+                                                           x=x, y=y)
+
     def component(self):
         return 'compressor'
 
@@ -1495,7 +1502,8 @@ class compressor(turbomachine):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(method='GENERIC')}
+                'char_map': dc_cc(method='GENERIC'),
+                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
 
     def default_offdesign(self):
         return ['char_map']
@@ -1519,6 +1527,9 @@ class compressor(turbomachine):
         if self.char_map.is_set:
             vec_res += self.char_func().tolist()
 
+        if self.flow_char.is_set:
+            vec_res += self.flow_char_func().tolist()
+
         return vec_res
 
     def additional_derivatives(self, nw):
@@ -1534,6 +1545,9 @@ class compressor(turbomachine):
 
         if self.char_map.is_set:
             mat_deriv += self.char_deriv()
+
+        if self.flow_char.is_set:
+            mat_deriv += self.flow_char_deriv()
 
         return mat_deriv
 
@@ -1677,6 +1691,58 @@ class compressor(turbomachine):
             deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
         return deriv.tolist()
 
+    def flow_char_func(self):
+        r"""
+        equation for characteristics of a compressor
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        expr = (o[1] / i[1])
+
+        if expr > self.flow_char.func.x[-1]:
+            expr = self.flow_char.func.x[-1]
+        elif expr < self.flow_char.func.x[0]:
+            expr = self.flow_char.func.x[0]
+
+#        print(self.flow_char.func.f_x(expr))
+        return np.array([(self.h_os('post') - i[2]) -
+                        (o[2] - i[2]) *
+                        self.flow_char.func.f_x(expr)])
+
+    def flow_char_deriv(self):
+        r"""
+        calculates the derivatives for the characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+
+        **example**
+
+        one fluid in fluid vector
+
+        .. math::
+
+            \left(
+            \begin{array}{cccc}
+                \frac{\partial char}{\partial \dot{m}_{in}} &
+                \frac{\partial char}{\partial p_{in}} &
+                \frac{\partial char}{\partial h_{in}} & 0\\
+                0 & \frac{\partial char}{\partial p_{out}} &
+                \frac{\partial char}{\partial h_{out}} & 0\\
+            \end{array}
+            \right)
+
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.flow_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.ddx_func(self.flow_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.ddx_func(self.flow_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.ddx_func(self.flow_char_func, 'h', 1)
+
+        return mat_deriv.tolist()
+
     def convergence_check(self, nw):
         """
         performs a convergence check
@@ -1706,6 +1772,16 @@ class compressor(turbomachine):
             o[0].h.val_SI = o[0].h.val_SI * 1.1
         if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
+
+#        if self.flow_char.is_set:
+#            expr = i[0].m.val_SI * v_mix_ph(i[0].to_flow())
+#
+#            if expr > self.flow_char.func.x[-1] and not i[0].m.val_set:
+#                i[0].m.val_SI = self.flow_char.func.x[-1] / v_mix_ph(
+#                        i[0].to_flow())
+#            elif expr < self.flow_char.func.x[1] and not i[0].m.val_set:
+#                i[0].m.val_SI = self.flow_char.func.x[0] / v_mix_ph(
+#                        i[0].to_flow())
 
     def initialise_source(self, c, key):
         r"""
@@ -4152,11 +4228,24 @@ class vessel(component):
        :alt: alternative text
        :align: center
     """
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        if self.pr_char.func is None:
+            method = self.pr_char.method
+            w = self.pr_char.x
+            v = self.pr_char.y
+
+            print(w, v)
+            self.pr_char.func = cmp_char.characteristics(method=method,
+                                                         x=w, y=v)
 
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
-                'Sirr': dc_cp()}
+                'Sirr': dc_cp(),
+                'pr_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
 
     def default_design(self):
         return ['pr']
@@ -4213,6 +4302,9 @@ class vessel(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
+        if self.pr_char.is_set:
+            vec_res += self.pr_char_func().tolist()
+
         return vec_res
 
     def derivatives(self, nw):
@@ -4254,6 +4346,9 @@ class vessel(component):
                 zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
                     self.ddx_func(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
+
+        if self.pr_char.is_set:
+            mat_deriv += self.pr_char_deriv()
 
         return np.asarray(mat_deriv)
 
@@ -4298,6 +4393,40 @@ class vessel(component):
             return 5e5
         else:
             return 0
+
+    def pr_char_func(self):
+        r"""
+        equation for characteristics of a vessel
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        expr = i[1]
+
+        if expr > self.pr_char.func.x[-1]:
+            expr = self.pr_char.func.x[-1]
+        elif expr < self.pr_char.func.x[0]:
+            expr = self.pr_char.func.x[0]
+
+#        print(i[1], o[1])
+#        print(self.pr_char.func.f_x(expr))
+
+        return np.array([(i[1] / o[1]) - self.pr_char.func.f_x(expr)])
+#        return np.array([-i[1] + o[1] * self.pr_char.func.f_x(expr)])
+
+    def pr_char_deriv(self):
+        r"""
+        calculates the derivatives for the characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.pr_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.ddx_func(self.pr_char_func, 'p', 1)
+
+        return mat_deriv.tolist()
 
     def calc_parameters(self, nw, mode):
 

@@ -5592,9 +5592,9 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0:
+            if self.Q.val < 0 and self.Q.is_set:
                 return 1e5
-            elif self.Q.val > 0:
+            elif self.Q.val > 0 and self.Q.is_set:
                 return 5e5
             else:
                 return 3e5
@@ -5625,9 +5625,9 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0:
+            if self.Q.val < 0 and self.Q.is_set:
                 return 5e5
-            elif self.Q.val > 0:
+            elif self.Q.val > 0 and self.Q.is_set:
                 return 1e5
             else:
                 return 3e5

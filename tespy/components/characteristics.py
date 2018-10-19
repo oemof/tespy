@@ -161,6 +161,93 @@ class turbine(characteristics):
         return x[key], y[key]
 
 
+class turbine(characteristics):
+    r"""
+
+    generic characteristics for turbine isentropic efficiency
+
+    - links isentropic efficiencay :math:`\eta_\mathrm{s,t}` to keyfigure
+    - three default characteristic lines available (see literature and method
+      turbine.default())
+
+    **literature**
+
+    - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin: Spinger.
+      -> TRAUPEL
+    """
+
+    def default(self, key):
+        r"""
+
+        default characteristic lines for cogeneration units:
+
+        .. math::
+
+            \frac{X}{P}=f\left(\frac{P}{P_{ref}} \right)
+
+        **heat production** (Q1)
+
+        .. math::
+            X = \dot{Q}_1 = \dot{m}_1 \cdot \left( h_{out,1} - h_{in,1} \right)
+
+        .. image:: _images/chp_Q1.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        **heat production** (Q2)
+
+        .. math::
+            X = \dot{Q}_2 = \dot{m}_2 \cdot \left( h_{out,2} - h_{in,2} \right)
+
+        .. image:: _images/chp_Q2.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        **heat loss** (QLOSS)
+
+        .. math::
+            X = \dot{Q}_{loss}
+
+        .. image:: _images/chp_Q_loss.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        **thermal input** (TI)
+
+        .. math::
+            X = TI = \dot{m}_f \cdot LHV
+
+        .. image:: _images/chp_TI.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        """
+
+        if key == 'default':
+            return np.array([0, 1, 2]), np.array([1, 1, 1])
+
+        x = {}
+        y = {}
+
+        x['Q1'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
+        y['Q1'] = np.array([0.244, 0.233, 0.222, 0.211, 0.200])
+
+        x['Q2'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
+        y['Q2'] = np.array([0.246, 0.235, 0.224, 0.213, 0.202])
+
+        x['QLOSS'] = np.array([0.50, 0.75, 0.90, 1.00])
+        y['QLOSS'] = np.array([0.06, 0.08, 0.09, 0.10])
+
+        x['TI'] = np.array([0.50, 0.71, 0.90, 1.00])
+        y['TI'] = np.array([2.20, 2.15, 2.10, 2.05])
+
+        return x[key], y[key]
+
+
 class heat_ex(characteristics):
     r"""
 

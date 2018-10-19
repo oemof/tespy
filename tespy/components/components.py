@@ -2770,19 +2770,21 @@ class combustion_chamber(component):
         component.comp_init(self, nw)
 
         if not self.fuel.is_set:
-            msg = 'Must specify fuel for combustion chamber.'
+            msg = ('Must specify fuel for component ' + self.label +
+                   '. Available fuels are: ' + str(self.fuels()) + '.')
             raise MyComponentError(msg)
 
         if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]]) == 0):
-            msg = ('The fuel you specified does not match the fuels available'
-                   ' within the network.')
+            msg = ('The fuel you specified for component ' + self.label +
+                   ' does not match the fuels available within the network.')
             raise MyComponentError(msg)
 
         if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]])) == 0:
-            msg = ('The fuel you specified is not available. Available fuels '
-                   'are: ' + str(self.fuels()) + '.')
+            msg = ('The fuel you specified is not available for component ' +
+                   self.label + '. Available fuels are: ' + str(self.fuels()) +
+                   '.')
             raise MyComponentError(msg)
 
         self.fuel.val = [x for x in nw.fluids if x in [
@@ -3063,7 +3065,7 @@ class combustion_chamber(component):
             outl = self.outl[2:]
         else:
             inl = self.inl
-            outl = self.inl
+            outl = self.outl
 
         n_fuel = 0
         for i in inl:
@@ -3174,13 +3176,19 @@ class combustion_chamber(component):
             0 = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda
         """
+
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+        else:
+            inl = self.inl
+
         n_fuel = 0
-        for i in self.inl:
+        for i in inl:
             n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
                        molar_masses[self.fuel.val])
 
         n_oxygen = 0
-        for i in self.inl:
+        for i in inl:
             n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
                          molar_masses[self.o2])
 
@@ -3197,11 +3205,19 @@ class combustion_chamber(component):
 
             0 = ti - \dot{m}_f \cdot LHV
         """
+
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+            outl = self.outl[2:]
+        else:
+            inl = self.inl
+            outl = self.outl
+
         m_fuel = 0
-        for i in self.inl:
+        for i in inl:
             m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
 
-        for o in self.outl:
+        for o in outl:
             m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
 
         return (self.ti.val - m_fuel * self.lhv)
@@ -3368,6 +3384,14 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
+
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+            outl = self.outl[2:]
+        else:
+            inl = self.inl
+            outl = self.outl
+
         m = 0
         for i in self.inl:
             if i.m.val_SI < 0 and not i.m.val_set:
@@ -4218,7 +4242,9 @@ class cogeneration_unit(combustion_chamber):
     - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`),
       :math:`[LHV \cdot \dot{m}_f] = \text{W}`
     - P: power output, :math:`{[P]=\text{W}}`
-    - Q: total heat output, :math:`{[\dot Q]=\text{W}}`
+    - Q1: total heat output, :math:`{[\dot Q]=\text{W}}`
+    - Q2: total heat output, :math:`{[\dot Q]=\text{W}}`
+    - Qloss: heat loss, :math:`{[\dot Q_{loss}]=\text{W}}`
     - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
     - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
     - zeta1: geometry independent friction coefficient heat extraction 1
@@ -4245,10 +4271,6 @@ class cogeneration_unit(combustion_chamber):
     - in1, in2 (cooling water), in3, in4 (air and fuel)
     - out1, out2 (cooling water), out3 (flue gas)
 
-    .. note::
-
-
-
     .. image:: _images/cogeneration_unit.svg
        :scale: 100 %
        :alt: alternative text
@@ -4268,109 +4290,8 @@ class cogeneration_unit(combustion_chamber):
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'S': dc_cp()}
 
-    def fuels(self):
-        return ['methane', 'ethane', 'propane', 'butane',
-                'hydrogen']
-
     def component(self):
         return 'cogeneration unit'
-
-    def comp_init(self, nw):
-
-        component.comp_init(self, nw)
-
-        if not self.fuel.is_set:
-            msg = 'Must specify fuel for combustion chamber.'
-            raise MyComponentError(msg)
-
-        if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
-                 CP.get_aliases(self.fuel.val)]]) == 0):
-            msg = ('The fuel you specified does not match the fuels available'
-                   ' within the network.')
-            raise MyComponentError(msg)
-
-        if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
-                 CP.get_aliases(self.fuel.val)]])) == 0:
-            msg = ('The fuel you specified is not available. Available fuels '
-                   'are: ' + str(self.fuels()) + '.')
-            raise MyComponentError(msg)
-
-        self.fuel.val = [x for x in nw.fluids if x in [
-                a.replace(' ', '') for a in CP.get_aliases(self.fuel.val)]][0]
-
-        self.o2 = [x for x in nw.fluids if x in
-                   [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
-        self.co2 = [x for x in nw.fluids if x in
-                    [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
-        self.h2o = [x for x in nw.fluids if x in
-                    [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
-        self.n2 = [x for x in nw.fluids if x in
-                   [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
-
-        structure = fluid_structure(self.fuel.val)
-
-        self.n = {}
-        for el in ['C', 'H', 'O']:
-            if el in structure.keys():
-                self.n[el] = structure[el]
-            else:
-                self.n[el] = 0
-
-        self.lhv = self.calc_lhv()
-
-    def calc_lhv(self):
-        r"""
-        calculates the lower heating value of the combustion chambers fuel
-
-        :returns: val (*float*) - lhv of the specified fuel
-
-        **equation**
-
-        .. math::
-            LHV = -\frac{\sum_i {\Delta H_f^0}_i -
-            \sum_j {\Delta H_f^0}_j }
-            {M_{fuel}}\\
-            \forall i \in \text{reation products},\\
-            \forall j \in \text{reation educts},\\
-            \Delta H_f^0: \text{molar formation enthalpy}
-
-        =============== =====================================
-         substance       :math:`\frac{\Delta H_f^0}{kJ/mol}`
-        =============== =====================================
-         hydrogen        0
-         methane         -74.85
-         ethane          -84.68
-         propane         -103.8
-         butane          -124.51
-        --------------- -------------------------------------
-         oxygen          0
-         carbondioxide   -393.5
-         water (g)       -241.8
-        =============== =====================================
-
-        """
-
-        hf = {}
-        hf['hydrogen'] = 0
-        hf['methane'] = -74.85
-        hf['ethane'] = -84.68
-        hf['propane'] = -103.8
-        hf['butane'] = -124.51
-        hf[self.o2] = 0
-        hf[self.co2] = -393.5
-        # water (gaseous)
-        hf[self.h2o] = -241.8
-
-        key = set(list(hf.keys())).intersection(
-                set([a.replace(' ', '')
-                     for a in CP.get_aliases(self.fuel.val)]))
-
-        val = (-(self.n['H'] / 2 * hf[self.h2o] + self.n['C'] * hf[self.co2] -
-                 ((self.n['C'] + self.n['H'] / 4) * hf[self.o2] +
-                  hf[list(key)[0]])) /
-               molar_masses[self.fuel.val] * 1000)
-
-        return val
 
     def equations(self):
         r"""
@@ -4469,10 +4390,13 @@ class cogeneration_unit(combustion_chamber):
         j = 0
         fl_deriv = np.zeros((num_fl, 7, num_fl + 3))
         for fluid in nw.fluids:
-            for i in range(3):
-                fl_deriv[j, i, 0] = self.drb_dx('m', i, fluid)
-                fl_deriv[j, i, 3:] = self.drb_dx('fluid', i, fluid)
-
+            # fresh air and fuel inlets
+            for i in range(2):
+                fl_deriv[j, i + 2, 0] = self.drb_dx('m', i + 2, fluid)
+                fl_deriv[j, i + 2, 3:] = self.drb_dx('fluid', i + 2, fluid)
+            # combustion outlet
+            fl_deriv[j, 6, 0] = self.drb_dx('m', 6, fluid)
+            fl_deriv[j, 6, 3:] = self.drb_dx('fluid', 6, fluid)
             j += 1
         mat_deriv += fl_deriv.tolist()
 
@@ -4522,8 +4446,6 @@ class cogeneration_unit(combustion_chamber):
             ti_deriv[0, 2, 3:] = self.ddx_func(self.ti_func, 'fluid', 2)
             mat_deriv += ti_deriv.tolist()
 
-        ##########################
-
         if self.pr1.is_set:
             pr1_deriv = np.zeros((1, 7, num_fl + 3))
             pr1_deriv[0, 0, 1] = self.pr1.val
@@ -4560,117 +4482,91 @@ class cogeneration_unit(combustion_chamber):
         r"""
         calculates the energy balance of the adiabatic combustion chamber
 
-        - reference temperature: 500 K
-        - reference pressure: 1 bar
+        .. note::
+            The temperature for the reference state is set to 20 °C, thus
+            the water may be liquid. In order to make sure, the state is
+            referring to the lower heating value, the necessary enthalpy
+            difference for evaporation is added. The stoichiometric combustion
+            chamber uses a different reference, you will find it in the
+            :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+            documentation.
+
+            - reference temperature: 293.15 K
+            - reference pressure: 1 bar
 
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
-            0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
-            \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-            H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
-            \dot{m}_{out,j} \cdot x_{f,j} \right)
+            0 = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right) - \sum_j \dot{m}_{out,j} \cdot
+            \left( h_{out,j} - h_{out,j,ref} \right) +
+            H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+            \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+            \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
 
         """
-        T_ref = 500
+        T_ref = 293.15
         p_ref = 1e5
 
         res = 0
-        for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
-                                           i.fluid.val], T_ref))
+        for i in self.inl[2:]:
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
             res += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
-        for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
-                                           o.fluid.val], T_ref))
+
+        for o in self.outl[2:]:
+            dh = 0
+            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+            if n_h2o > 0:
+                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
+                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                if h < h_steam:
+                    dh = (h_steam - h) * o.fluid.val[self.h2o]
+
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
+                    dh)
             res -= o.m.val_SI * o.fluid.val[self.fuel.val] * self.lhv
 
         return res
 
-    def lambda_func(self):
-        r"""
-        calculates the residual for specified lambda
-
-        :returns: res (*float*) - residual value of equation
-
-        .. math::
-
-            \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-            {M_{fluid}} \; \forall i \in inlets\\
-
-            0 = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
-            \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda
-        """
-        n_fuel = 0
-        for i in self.inl:
-            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
-                       molar_masses[self.fuel.val])
-
-        n_oxygen = 0
-        for i in self.inl:
-            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
-                         molar_masses[self.o2])
-
-        return (n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) -
-                self.lamb.val)
-
-    def ti_func(self):
-        r"""
-        calculates the residual for specified thermal input
-
-        :returns: res (*float*) - residual value of equation
-
-        .. math::
-
-            0 = ti - \dot{m}_f \cdot LHV
-        """
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
-
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
-
-        return (self.ti.val - m_fuel * self.lhv)
-
-    def bus_func(self):
-        r"""
-        function for use on busses
-
-        :returns: val (*float*) - residual value of equation
-
-        .. math::
-
-            val = \dot{m}_{fuel} \cdot LHV
-        """
-
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
-
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
-
-        return m_fuel * self.lhv
-
-    def bus_deriv(self):
-        r"""
-        calculate matrix of partial derivatives towards mass flow and fluid
-        composition for bus
-        function
-
-        :returns: mat_deriv (*list*) - matrix of partial derivatives
-        """
-        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i)
-            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i)
-
-        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2)
-        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2)
-        return deriv
+#    def bus_func(self):
+#        r"""
+#        function for use on busses
+#
+#        :returns: val (*float*) - residual value of equation
+#
+#        .. math::
+#
+#            val = \dot{m}_{fuel} \cdot LHV
+#        """
+#
+#        m_fuel = 0
+#        for i in self.inl:
+#            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
+#
+#        for o in self.outl:
+#            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
+#
+#        return m_fuel * self.lhv
+#
+#    def bus_deriv(self):
+#        r"""
+#        calculate matrix of partial derivatives towards mass flow and fluid
+#        composition for bus
+#        function
+#
+#        :returns: mat_deriv (*list*) - matrix of partial derivatives
+#        """
+#        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
+#        for i in range(2):
+#            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i)
+#            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i)
+#
+#        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2)
+#        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2)
+#        return deriv
 
     def drb_dx(self, dx, pos, fluid):
         r"""
@@ -4780,7 +4676,7 @@ class cogeneration_unit(combustion_chamber):
             self.h2o: m_h2o / m_fg
         }
 
-        for o in self.outl:
+        for o in self.outl[2:]:
             for fluid, x in o.fluid.val.items():
                 if not o.fluid.val_set[fluid] and fluid in fg.keys():
                     o.fluid.val[fluid] = fg[fluid]
@@ -4797,58 +4693,9 @@ class cogeneration_unit(combustion_chamber):
         :type nw: tespy.networks.network
         :returns: no return value
         """
-        m = 0
-        for i in self.inl:
-            if i.m.val_SI < 0 and not i.m.val_set:
-                i.m.val_SI = 0.01
-            m += i.m.val_SI
+        combustion_chamber.convergence_check(self, nw)
 
-        for o in self.outl:
-            fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
-            for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
-                    m_f = 0
-                    for i in self.inl:
-                        m_f += i.fluid.val[f] * i.m.val_SI
-
-                    if abs(o.fluid.val[f] - m_f / m) > 0.03:
-                        o.fluid.val[f] = m_f / m
-
-                elif f == self.o2:
-                    if o.fluid.val[f] > 0.25:
-                        o.fluid.val[f] = 0.2
-                    if o.fluid.val[f] < 0.05:
-                        o.fluid.val[f] = 0.05
-
-                elif f == self.co2:
-                    if o.fluid.val[f] > 0.075:
-                        o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.02:
-                        o.fluid.val[f] = 0.02
-
-                elif f == self.h2o:
-                    if o.fluid.val[f] > 0.075:
-                        o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.02:
-                        o.fluid.val[f] = 0.02
-
-                elif f == self.fuel.val:
-                    if o.fluid.val[f] > 0:
-                        o.fluid.val[f] = 0
-
-                else:
-                    continue
-
-        for o in self.outl:
-            if o.m.val_SI < 0 and not o.m.val_set:
-                o.m.val_SI = 10
-            init_target(nw, o, o.t)
-
-            if o.h.val_SI < 7.5e5 and not o.h.val_set:
-                o.h.val_SI = 1e6
-
-        if self.lamb.val < 1 and not self.lamb.is_set:
-            self.lamb.val = 3
+        # additional stuff here?
 
     def initialise_source(self, c, key):
         r"""

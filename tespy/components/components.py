@@ -326,30 +326,35 @@ class component:
         .. math:: 0 = fluid_{i,in} - fluid_{i,out} \;
             \forall i \in \mathrm{fluid}
 
-        **component heat exchanger or subsystem interface**
+        **heat exchanger, subsystem interface**
 
         .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
 
-        **component splitter**
+        **cogeneration unit**
+
+        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
+
+        **splitter**
 
         .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in outlets
 
-        **component merge**
+        **merge**
 
         .. math::
             0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
                 \dot {m}_{out} \cdot fluid_{i,out} \\
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets
 
-        **component drum**
+        **drum**
 
         .. math::
             0 = fluid_{i,in_1} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets
 
-        **component separator**
+        **separator**
 
         .. math::
             0 = \dot{m}_{in} \cdot fluid_{i,in} -
@@ -367,6 +372,12 @@ class component:
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
             for i in range(self.num_i):
+                for fluid, x in self.inl[i].fluid.val.items():
+                    vec_res += [x - self.outl[i].fluid.val[fluid]]
+            return vec_res
+
+        if isinstance(self, cogeneration_unit):
+            for i in range(2):
                 for fluid, x in self.inl[i].fluid.val.items():
                     vec_res += [x - self.outl[i].fluid.val[fluid]]
             return vec_res
@@ -409,32 +420,6 @@ class component:
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
-
-        **example:**
-
-        component with one inlet and one outlet and 3 fluids in fluid vector
-
-        .. math::
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 1 & 0 & 0\\
-                0 & 0 & 0 & -1 & 0 & 0\\
-            \end{array}
-            \right)
-
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 0 & 1 & 0\\
-                0 & 0 & 0 & 0 & -1 & 0\\
-            \end{array}
-            \right)
-
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 0 & 0 & 1\\
-                0 & 0 & 0 & 0 & 0 & -1\\
-            \end{array}
-            \right)
         """
         num_fl = len(self.inl[0].fluid.val)
 
@@ -458,6 +443,20 @@ class component:
             for fluid in self.inl[1].fluid.val.keys():
                 mat_deriv[i + j, 1, j + 3] = 1
                 mat_deriv[i + j, 3, j + 3] = -1
+                j += 1
+            return mat_deriv.tolist()
+
+        if isinstance(self, cogeneration_unit):
+            mat_deriv = np.zeros((num_fl * 2, 7 + self.num_c_vars, 3 + num_fl))
+            i = 0
+            for fluid in self.inl[0].fluid.val.keys():
+                mat_deriv[i, 0, i + 3] = 1
+                mat_deriv[i, 4, i + 3] = -1
+                i += 1
+            j = 0
+            for fluid in self.inl[1].fluid.val.keys():
+                mat_deriv[i + j, 1, j + 3] = 1
+                mat_deriv[i + j, 5, j + 3] = -1
                 j += 1
             return mat_deriv.tolist()
 
@@ -536,24 +535,31 @@ class component:
 
         :returns: vec_res (*list*) - a list containing the residual values
 
-        **all components but heat exchanger and subsystem interface**
-
-        .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-            \forall i \in inlets, \forall j \in outlets
-
-        heat exchanger and subsystem interface (same number of inlets and
-        outlets
+        **heat exchanger and subsystem interface (same number of inlets and
+        outlets)**
 
         .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
             \forall i \in inlets/outlets
+
+        **cogeneration unit**
+
+        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
+            \forall i \in [1, 2]\\
+            0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
+
+        **other components**
+
+        .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+            \forall i \in inlets, \forall j \in outlets
         """
 
-        if (isinstance(self, split) or
+        if ((isinstance(self, split) or
                 isinstance(self, merge) or
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
-                (self.num_i == 1 and self.num_o == 1)):
+                (self.num_i == 1 and self.num_o == 1)) and
+                not isinstance(self, cogeneration_unit)):
             res = 0
             for i in self.inl:
                 res += i.m.val_SI
@@ -568,6 +574,14 @@ class component:
                 vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
             return vec_res
 
+        if isinstance(self, cogeneration_unit):
+            vec_res = []
+            for i in range(2):
+                vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            vec_res += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
+                        self.outl[2].m.val_SI]
+            return vec_res
+
         if isinstance(self, source) or isinstance(self, sink):
             return None
 
@@ -576,20 +590,6 @@ class component:
         returns derivatives for mass flow equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
-
-        **example**
-
-        merge with three inlets and one outlet (one fluid in fluid vector)
-
-        .. math::
-            \left(
-            \begin{array}{cccc}
-                1 & 0 & 0 & 0\\
-                1 & 0 & 0 & 0\\
-                1 & 0 & 0 & 0\\
-                -1 & 0 & 0 & 0\\
-            \end{array}
-            \right)
         """
         num_fl = len(self.inl[0].fluid.val)
 
@@ -619,6 +619,18 @@ class component:
                 mat_deriv[i, i, 0] = 1
             for j in range(self.num_o):
                 mat_deriv[j, j + i + 1, 0] = -1
+            return mat_deriv.tolist()
+
+        if isinstance(self, cogeneration_unit):
+            mat_deriv = np.zeros((3, self.num_i + self.num_o +
+                                  self.num_c_vars, num_fl + 3))
+            for i in range(2):
+                mat_deriv[i, i, 0] = 1
+            for j in range(2):
+                mat_deriv[j, self.num_i + j, 0] = -1
+            mat_deriv[2, 2, 0] = 1
+            mat_deriv[2, 3, 0] = 1
+            mat_deriv[2, 6, 0] = -1
             return mat_deriv.tolist()
 
         if isinstance(self, source) or isinstance(self, sink):
@@ -733,6 +745,29 @@ class component:
         else:
             val = self.zeta1.val
         return (val - (i[1] - o[1]) * math.pi ** 2 /
+                (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+
+    def zeta2_func(self):
+        r"""
+        calculates pressure drop from zeta2
+
+        :returns: residual value for the pressure drop
+
+        .. math::
+
+            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
+            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
+
+        As the cross sectional area A will not change from design to offdesign
+        calculation, it is possible to handle this the following way:
+
+        .. math::
+            0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
+            \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
+        """
+        i = self.inl[1].to_flow()
+        o = self.outl[1].to_flow()
+        return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
                 (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
 # %%
@@ -2907,8 +2942,7 @@ class combustion_chamber(component):
         for fluid in nw.fluids:
             for i in range(3):
                 fl_deriv[j, i, 0] = self.drb_dx('m', i, fluid)
-                fl_deriv[j, i, 3:] = (
-                    self.drb_dx('fluid', i, fluid))
+                fl_deriv[j, i, 3:] = self.drb_dx('fluid', i, fluid)
 
             j += 1
         mat_deriv += fl_deriv.tolist()
@@ -2972,12 +3006,15 @@ class combustion_chamber(component):
         **reaction balance equations**
 
         .. math::
+            \text{combustion chamber: } i \in [1,2], o \in [1]\\
+            \text{cogeneration unit: } i \in [3,4], o \in [3]\\
+
             res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
             \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
-            \forall i \in inlets, \; \forall j \in outlets
+            \forall i, \; \forall j
 
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-            {M_{fluid}} \; \forall i \in inlets\\
+            {M_{fluid}} \; \forall i
 
             \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
@@ -3021,13 +3058,20 @@ class combustion_chamber(component):
 
         """
 
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+            outl = self.outl[2:]
+        else:
+            inl = self.inl
+            outl = self.inl
+
         n_fuel = 0
-        for i in self.inl:
+        for i in inl:
             n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
                        molar_masses[self.fuel.val])
 
         n_oxygen = 0
-        for i in self.inl:
+        for i in inl:
             n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
                          molar_masses[self.o2])
 
@@ -3057,9 +3101,9 @@ class combustion_chamber(component):
 
         res = dm
 
-        for i in self.inl:
+        for i in inl:
             res += i.fluid.val[fluid] * i.m.val_SI
-        for o in self.outl:
+        for o in outl:
             res -= o.fluid.val[fluid] * o.m.val_SI
         return res
 
@@ -4160,7 +4204,7 @@ class combustion_chamber_stoich(combustion_chamber):
 # %%
 
 
-class cogeneration_unit(component):
+class cogeneration_unit(combustion_chamber):
     r"""
 
     .. note::
@@ -4175,6 +4219,14 @@ class cogeneration_unit(component):
       :math:`[LHV \cdot \dot{m}_f] = \text{W}`
     - P: power output, :math:`{[P]=\text{W}}`
     - Q: total heat output, :math:`{[\dot Q]=\text{W}}`
+    - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
+    - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
+    - zeta1: geometry independent friction coefficient heat extraction 1
+      :math:`[\zeta1]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :func:`tespy.components.components.component.zeta_func`
+    - zeta2: geometry independent friction coefficient heat extraction 2
+      :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :func:`tespy.components.components.heat_exchanger.zeta2_func`
 
     **equations**
 
@@ -4211,7 +4263,10 @@ class cogeneration_unit(component):
 
     def attr(self):
         return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'P': dc_cp(), 'Q': dc_cp(), 'S': dc_cp()}
+                'P': dc_cp(), 'Q': dc_cp(),
+                'pr1': dc_cp(), 'pr2': dc_cp(),
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'S': dc_cp()}
 
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
@@ -4328,6 +4383,8 @@ class cogeneration_unit(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.cogeneration_unit.reaction_balance`
+        - :func:`tespy.components.components.component.fluid_res`
+          (for cooling water)
         - :func:`tespy.components.components.component.mass_flow_res`
         .. math::
 
@@ -4359,10 +4416,11 @@ class cogeneration_unit(component):
         for fluid in self.inl[0].fluid.val.keys():
             vec_res += [self.reaction_balance(fluid)]
 
+        vec_res += self.fluid_res()
         vec_res += self.mass_flow_res()
 
-        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
-        vec_res += [self.outl[0].p.val_SI - self.outl[0].p.val_SI]
+        vec_res += [self.inl[2].p.val_SI - self.outl[2].p.val_SI]
+        vec_res += [self.inl[2].p.val_SI - self.inl[3].p.val_SI]
 
         vec_res += [self.energy_balance()]
 
@@ -4372,17 +4430,25 @@ class cogeneration_unit(component):
         if self.ti.is_set:
             vec_res += [self.ti_func()]
 
-        if self.pr1.is_set:
-            vec_res += [self.ti_func()]
-
-        if self.pr2.is_set:
-            vec_res += [self.ti_func()]
-
         if self.P.is_set:
             vec_res += [self.power_func()]
 
         if self.Q.is_set:
             vec_res += [self.heat_func()]
+
+        if self.pr1.is_set:
+            vec_res += [self.pr1.val * self.inl[0].p.val_SI -
+                        self.outl[0].p.val_SI]
+
+        if self.pr2.is_set:
+            vec_res += [self.pr2.val * self.inl[1].p.val_SI -
+                        self.outl[1].p.val_SI]
+
+        if self.zeta1.is_set:
+            vec_res += [self.zeta_func()]
+
+        if self.zeta2.is_set:
+            vec_res += [self.zeta2_func()]
 
         return vec_res
 
@@ -4401,28 +4467,31 @@ class cogeneration_unit(component):
 
         # derivatives for reaction balance
         j = 0
-        fl_deriv = np.zeros((num_fl, 3, num_fl + 3))
+        fl_deriv = np.zeros((num_fl, 7, num_fl + 3))
         for fluid in nw.fluids:
             for i in range(3):
                 fl_deriv[j, i, 0] = self.drb_dx('m', i, fluid)
-                fl_deriv[j, i, 3:] = (
-                    self.drb_dx('fluid', i, fluid))
+                fl_deriv[j, i, 3:] = self.drb_dx('fluid', i, fluid)
 
             j += 1
         mat_deriv += fl_deriv.tolist()
+
+        # derivatives for fluid balances (except combustion)
+        mat_deriv += self.fluid_deriv()
 
         # derivatives for mass balance
         mat_deriv += self.mass_flow_deriv()
 
         # derivatives for pressure equations
-        p_deriv = np.zeros((2, 3, num_fl + 3))
+        p_deriv = np.zeros((2, 7, num_fl + 3))
         for k in range(2):
             p_deriv[k][2][1] = 1
-            p_deriv[k][k][1] = -1
+        p_deriv[0][6][1] = -1
+        p_deriv[1][3][1] = -1
         mat_deriv += p_deriv.tolist()
 
         # derivatives for energy balance
-        eb_deriv = np.zeros((1, 3, num_fl + 3))
+        eb_deriv = np.zeros((1, 7, num_fl + 3))
         for i in range(3):
             eb_deriv[0, i, 0] = (
                 self.ddx_func(self.energy_balance, 'm', i))
@@ -4436,7 +4505,7 @@ class cogeneration_unit(component):
 
         if self.lamb.is_set:
             # derivatives for specified lambda
-            lamb_deriv = np.zeros((1, 3, num_fl + 3))
+            lamb_deriv = np.zeros((1, 7, num_fl + 3))
             for i in range(2):
                 lamb_deriv[0, i, 0] = self.ddx_func(self.lambda_func, 'm', i)
                 lamb_deriv[0, i, 3:] = self.ddx_func(self.lambda_func,
@@ -4445,7 +4514,7 @@ class cogeneration_unit(component):
 
         if self.ti.is_set:
             # derivatives for specified thermal input
-            ti_deriv = np.zeros((1, 3, num_fl + 3))
+            ti_deriv = np.zeros((1, 7, num_fl + 3))
             for i in range(2):
                 ti_deriv[0, i, 0] = self.ddx_func(self.ti_func, 'm', i)
                 ti_deriv[0, i, 3:] = self.ddx_func(self.ti_func, 'fluid', i)
@@ -4453,113 +4522,39 @@ class cogeneration_unit(component):
             ti_deriv[0, 2, 3:] = self.ddx_func(self.ti_func, 'fluid', 2)
             mat_deriv += ti_deriv.tolist()
 
+        ##########################
+
+        if self.pr1.is_set:
+            pr1_deriv = np.zeros((1, 7, num_fl + 3))
+            pr1_deriv[0, 0, 1] = self.pr1.val
+            pr1_deriv[0, 2, 1] = -1
+            mat_deriv += pr1_deriv.tolist()
+
+        if self.pr2.is_set:
+            pr2_deriv = np.zeros((1, 7, num_fl + 3))
+            pr2_deriv[0, 1, 1] = self.pr2.val
+            pr2_deriv[0, 3, 1] = -1
+            mat_deriv += pr2_deriv.tolist()
+
+        if self.zeta1.is_set:
+            zeta1_deriv = np.zeros((1, 7, num_fl + 3))
+            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 4, 1] = self.ddx_func(self.zeta_func, 'p', 4)
+            zeta1_deriv[0, 4, 2] = self.ddx_func(self.zeta_func, 'h', 4)
+            mat_deriv += zeta1_deriv.tolist()
+
+        if self.zeta2.is_set:
+            zeta2_deriv = np.zeros((1, 7, num_fl + 3))
+            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 5, 1] = self.ddx_func(self.zeta2_func, 'p', 5)
+            zeta2_deriv[0, 5, 2] = self.ddx_func(self.zeta2_func, 'h', 5)
+            mat_deriv += zeta2_deriv.tolist()
+
         return np.asarray(mat_deriv)
-
-    def reaction_balance(self, fluid):
-        r"""
-        calculates the reactions mass balance for one fluid
-
-        - determine molar mass flows of fuel and oxygen
-        - calculate excess fuel
-        - calculate residual value of the fluids balance
-
-        :param fluid: fluid to calculate the reaction balance for
-        :type fluid: str
-        :returns: res (*float*) - residual value of mass balance
-
-        **reaction balance equations**
-
-        .. math::
-            res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
-            \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
-            \forall i \in inlets, \; \forall j \in outlets
-
-            \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-            {M_{fluid}} \; \forall i \in inlets\\
-
-            \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
-            \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
-
-        *fuel*
-
-        .. math::
-            0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
-            \cdot M_{fuel}\\
-
-            \dot{m}_{f,exc,m} = \begin{cases}
-            0 & \lambda \geq 1\\
-            \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
-            {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} & \lambda < 1
-            \end{cases}
-
-        *oxygen*
-
-        .. math::
-            0 = res - \begin{cases}
-            -\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} & \lambda \geq 1\\
-            - \dot{m}_{O_2,m} \cdot M_{O_2} & \lambda < 1
-            \end{cases}
-
-        *water*
-
-        .. math::
-            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-            \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}
-
-        *carbondioxide*
-
-        .. math::
-            0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-            \cdot n_{C,fuel} \cdot M_{CO_2}
-
-        *other*
-
-        .. math::
-            0 = res
-
-        """
-
-        n_fuel = 0
-        for i in self.inl:
-            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
-                       molar_masses[self.fuel.val])
-
-        n_oxygen = 0
-        for i in self.inl:
-            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
-                         molar_masses[self.o2])
-
-        if not self.lamb.is_set:
-            self.lamb.val = n_oxygen / (
-                    n_fuel * (self.n['C'] + self.n['H'] / 4))
-
-        n_fuel_exc = 0
-        if self.lamb.val < 1:
-            n_fuel_exc = n_fuel - n_oxygen / (self.n['C'] + self.n['H'] / 4)
-
-        if fluid == self.co2:
-            dm = ((n_fuel - n_fuel_exc) *
-                  self.n['C'] * molar_masses[self.co2])
-        elif fluid == self.h2o:
-            dm = ((n_fuel - n_fuel_exc) *
-                  self.n['H'] / 2 * molar_masses[self.h2o])
-        elif fluid == self.o2:
-            if self.lamb.val < 1:
-                dm = -n_oxygen * molar_masses[self.o2]
-            else:
-                dm = -n_oxygen / self.lamb.val * molar_masses[self.o2]
-        elif fluid == self.fuel.val:
-            dm = -(n_fuel - n_fuel_exc) * molar_masses[self.fuel.val]
-        else:
-            dm = 0
-
-        res = dm
-
-        for i in self.inl:
-            res += i.fluid.val[fluid] * i.m.val_SI
-        for o in self.outl:
-            res -= o.fluid.val[fluid] * o.m.val_SI
-        return res
 
     def energy_balance(self):
         r"""
@@ -6277,7 +6272,6 @@ class heat_exchanger(component):
         q_deriv = np.zeros((1, 4, num_fl + 3))
         for k in range(2):
             q_deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-
             q_deriv[0, k, 2] = -self.inl[k].m.val_SI
         q_deriv[0, 2, 2] = self.inl[0].m.val_SI
         q_deriv[0, 3, 2] = self.inl[1].m.val_SI
@@ -6295,10 +6289,8 @@ class heat_exchanger(component):
             kA_deriv[0, 0, 0] = self.ddx_func(self.kA_func, 'm', 0)
             kA_deriv[0, 1, 0] = self.ddx_func(self.kA_func, 'm', 1)
             for i in range(4):
-                kA_deriv[0, i, 1] = (
-                    self.ddx_func(self.kA_func, 'p', i))
-                kA_deriv[0, i, 2] = (
-                    self.ddx_func(self.kA_func, 'h', i))
+                kA_deriv[0, i, 1] = self.ddx_func(self.kA_func, 'p', i)
+                kA_deriv[0, i, 2] = self.ddx_func(self.kA_func, 'h', i)
             mat_deriv += kA_deriv.tolist()
 
         # derivatives for logarithmic temperature difference not implemented
@@ -6336,26 +6328,20 @@ class heat_exchanger(component):
 
         if self.zeta1.is_set:
             zeta1_deriv = np.zeros((1, 4, num_fl + 3))
-            for i in range(2):
-                if i == 0:
-                    zeta1_deriv[0, i * 2, 0] = (
-                        self.ddx_func(self.zeta_func, 'm', i * 2))
-                zeta1_deriv[0, i * 2, 1] = (
-                    self.ddx_func(self.zeta_func, 'p', i * 2))
-                zeta1_deriv[0, i * 2, 2] = (
-                    self.ddx_func(self.zeta_func, 'h', i * 2))
+            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 2, 1] = self.ddx_func(self.zeta_func, 'p', 2)
+            zeta1_deriv[0, 2, 2] = self.ddx_func(self.zeta_func, 'h', 2)
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
             zeta2_deriv = np.zeros((1, 4, num_fl + 3))
-            for i in range(2):
-                if i == 0:
-                    zeta2_deriv[0, i * 2 + 1, 0] = (
-                        self.ddx_func(self.zeta2_func, 'm', i * 2 + 1))
-                zeta2_deriv[0, i * 2 + 1, 1] = (
-                    self.ddx_func(self.zeta2_func, 'p', i * 2 + 1))
-                zeta2_deriv[0, i * 2 + 1, 2] = (
-                    self.ddx_func(self.zeta2_func, 'h', i * 2 + 1))
+            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 3, 1] = self.ddx_func(self.zeta2_func, 'p', 3)
+            zeta2_deriv[0, 3, 2] = self.ddx_func(self.zeta2_func, 'h', 3)
             mat_deriv += zeta2_deriv.tolist()
 
         mat_deriv += self.additional_derivatives(nw)
@@ -6372,29 +6358,6 @@ class heat_exchanger(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         return []
-
-    def zeta2_func(self):
-        r"""
-        calculates pressure drop from zeta2
-
-        :returns: residual value for the pressure drop
-
-        .. math::
-
-            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
-            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
-
-        As the cross sectional area A will not change from design to offdesign
-        calculation, it is possible to handle this the following way:
-
-        .. math::
-            0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
-            \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
-        """
-        i = self.inl[1].to_flow()
-        o = self.outl[1].to_flow()
-        return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
-                (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
     def kA_func(self):
         r"""

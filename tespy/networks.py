@@ -459,19 +459,22 @@ class network:
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.init_components(comps)  # build the dataframe for components
         for comp in self.comps.index:
-            freq = 0
-            freq += (self.conns[['s', 't']] == comp).sum().s
-            freq += (self.conns[['s', 't']] == comp).sum().t
-
-            freq -= comp.num_i
-            freq -= comp.num_o
-            if freq != 0:
-                msg = (str(comp) + ' (' + str(comp.label) + ') is missing ' +
-                       str(-freq) + ' connections. Make sure all '
-                       'inlets and outlets are connected and '
-                       'all connections have been added to the '
+            num_o = (self.conns[['s', 't']] == comp).sum().s
+            num_i = (self.conns[['s', 't']] == comp).sum().t
+            if num_o != comp.num_o:
+                msg = (comp.label + ' is missing ' + str(comp.num_o - num_o) +
+                       ' outgoing connections. Make sure all outlets are '
+                       ' connected and all connections have been added to the '
                        'network.')
-                raise hlp.MyNetworkError(msg)
+            elif num_i != comp.num_i:
+                msg = (comp.label + ' is missing ' + str(comp.num_i - num_i) +
+                       ' incoming connections. Make sure all inlets are '
+                       ' connected and all connections have been added to the '
+                       'network.')
+            else:
+                continue
+
+            raise hlp.MyNetworkError(msg)
 
         self.checked = True
         if self.nwkinfo:
@@ -550,8 +553,8 @@ class network:
             self.comps.loc[comp] = [t, s]
             comp.inl = t.tolist()
             comp.outl = s.tolist()
-            comp.num_i = len(comp.inl)
-            comp.num_o = len(comp.outl)
+            comp.num_i = len(comp.inlets())
+            comp.num_o = len(comp.outlets())
             labels += [comp.label]
 
         if len(labels) != len(list(set(labels))):
@@ -1941,14 +1944,16 @@ class network:
             n += [b.P_set].count(True)
 
         if n > self.num_vars * len(self.conns.index) + self.num_c_vars:
-            msg = ('You have provided too many parameters:',
-                   self.num_vars * len(self.conns.index) + self.num_c_vars,
-                   'required, ', n, 'given.')
+            msg = ('You have provided too many parameters: ' +
+                   str(self.num_vars * len(self.conns.index) +
+                       self.num_c_vars) + ' required, ' + str(n) +
+                   ' supplied.')
             raise hlp.MyNetworkError(msg)
         elif n < self.num_vars * len(self.conns.index) + self.num_c_vars:
-            msg = ('You have not provided enough parameters:',
-                   self.num_vars * len(self.conns.index) + self.num_c_vars,
-                   'required, ', n, 'given.')
+            msg = ('You have not provided enough parameters: ' +
+                   str(self.num_vars * len(self.conns.index) +
+                       self.num_c_vars) + ' required, ' + str(n) +
+                   ' supplied.')
             raise hlp.MyNetworkError(msg)
         else:
             return

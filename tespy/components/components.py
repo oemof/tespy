@@ -836,6 +836,9 @@ class turbomachine(component):
     - out1
     """
 
+    def component(self):
+        return 'turbomachine'
+
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
@@ -851,9 +854,6 @@ class turbomachine(component):
 
     def outlets(self):
         return ['out1']
-
-    def component(self):
-        return 'turbomachine'
 
     def equations(self):
         r"""
@@ -1150,6 +1150,14 @@ class pump(turbomachine):
        :align: center
     """
 
+    def component(self):
+        return 'pump'
+
+    def attr(self):
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
+                'eta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1]),
+                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -1167,14 +1175,6 @@ class pump(turbomachine):
             y = self.eta_s_char.y
             self.eta_s_char.func = cmp_char.characteristics(method=method,
                                                             x=x, y=y)
-
-    def component(self):
-        return 'pump'
-
-    def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1]),
-                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
 
     def additional_equations(self):
         r"""
@@ -1515,14 +1515,6 @@ class compressor(turbomachine):
        :align: center
     """
 
-    def comp_init(self, nw):
-
-        component.comp_init(self, nw)
-
-        if self.char_map.func is None:
-            method = self.char_map.method
-            self.char_map.func = cmp_char.compressor(method=method)
-
     def component(self):
         return 'compressor'
 
@@ -1534,6 +1526,14 @@ class compressor(turbomachine):
 
     def default_offdesign(self):
         return ['char_map']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        if self.char_map.func is None:
+            method = self.char_map.method
+            self.char_map.func = cmp_char.compressor(method=method)
 
     def additional_equations(self):
         r"""
@@ -1860,6 +1860,18 @@ class turbine(turbomachine):
        :align: center
     """
 
+    def component(self):
+        return 'turbine'
+
+    def attr(self):
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+                'Sirr': dc_cp(),
+                'eta_s_char': dc_cc(method='GENERIC', param='m'),
+                'cone': dc_cc(method='default')}
+
+    def default_offdesign(self):
+        return turbomachine.default_offdesign(self) + ['cone']
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -1875,18 +1887,6 @@ class turbine(turbomachine):
             x = self.cone.x
             y = self.cone.y
             self.cone.func = cmp_char.characteristics(method=method, x=x, y=y)
-
-    def component(self):
-        return 'turbine'
-
-    def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(method='GENERIC', param='m'),
-                'cone': dc_cc(method='default')}
-
-    def default_offdesign(self):
-        return turbomachine.default_offdesign(self) + ['cone']
 
     def additional_equations(self):
         r"""
@@ -2204,6 +2204,9 @@ class split(component):
        :align: center
     """
 
+    def component(self):
+        return 'split'
+
     def attr(self):
         return {'num_out': dc_cp(printout=False)}
 
@@ -2216,9 +2219,6 @@ class split(component):
         else:
             self.set_attr(num_out=2)
             return self.outlets()
-
-    def component(self):
-        return 'split'
 
     def equations(self):
         r"""
@@ -2542,6 +2542,9 @@ class merge(component):
        :align: center
     """
 
+    def component(self):
+        return 'merge'
+
     def attr(self):
         return {'num_in': dc_cp(printout=False)}
 
@@ -2554,9 +2557,6 @@ class merge(component):
 
     def outlets(self):
         return ['out1']
-
-    def component(self):
-        return 'merge'
 
     def equations(self):
         r"""
@@ -2748,22 +2748,22 @@ class combustion_chamber(component):
        :align: center
     """
 
+    def component(self):
+        return 'combustion chamber'
+
+    def attr(self):
+        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+                'S': dc_cp()}
+
     def inlets(self):
         return ['in1', 'in2']
 
     def outlets(self):
         return ['out1']
 
-    def attr(self):
-        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'S': dc_cp()}
-
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
-
-    def component(self):
-        return 'combustion chamber'
 
     def comp_init(self, nw):
 
@@ -3599,11 +3599,8 @@ class combustion_chamber_stoich(combustion_chamber):
        :align: center
     """
 
-    def inlets(self):
-        return ['in1', 'in2']
-
-    def outlets(self):
-        return ['out1']
+    def component(self):
+        return 'combustion chamber stoichiometric flue gas'
 
     def attr(self):
         return {'fuel': dc_cp(printout=False),
@@ -3613,12 +3610,15 @@ class combustion_chamber_stoich(combustion_chamber):
                 'path': dc_cp(printout=False),
                 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
+    def inlets(self):
+        return ['in1', 'in2']
+
+    def outlets(self):
+        return ['out1']
+
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
-
-    def component(self):
-        return 'combustion chamber stoichiometric flue gas'
 
     def comp_init(self, nw):
 
@@ -4242,8 +4242,8 @@ class cogeneration_unit(combustion_chamber):
     - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`),
       :math:`[LHV \cdot \dot{m}_f] = \text{W}`
     - P: power output, :math:`{[P]=\text{W}}`
-    - Q1: total heat output, :math:`{[\dot Q]=\text{W}}`
-    - Q2: total heat output, :math:`{[\dot Q]=\text{W}}`
+    - Q1: heat output 1, :math:`{[\dot Q]=\text{W}}`
+    - Q2: heat output 2, :math:`{[\dot Q]=\text{W}}`
     - Qloss: heat loss, :math:`{[\dot Q_{loss}]=\text{W}}`
     - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
     - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
@@ -4253,6 +4253,13 @@ class cogeneration_unit(combustion_chamber):
     - zeta2: geometry independent friction coefficient heat extraction 2
       :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
       :func:`tespy.components.components.heat_exchanger.zeta2_func`
+
+    **characteristic lines**
+
+    - ti_char: characteristic line for fuel input
+    - Q1_char: characteristic line for heat output 1
+    - Q2_char: characteristic line for heat output 2
+    - Qloss_char: characteristic line for heat loss
 
     **equations**
 
@@ -4277,21 +4284,25 @@ class cogeneration_unit(combustion_chamber):
        :align: center
     """
 
+    def component(self):
+        return 'cogeneration unit'
+
+    def attr(self):
+        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+                'P': dc_cp(), 'Q1': dc_cp(), 'Q2': dc_cp(), 'Qloss': dc_cp(),
+                'pr1': dc_cp(), 'pr2': dc_cp(),
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'ti_char': dc_cc(method='TI'),
+                'Q1_char': dc_cc(method='Q1'),
+                'Q2_char': dc_cc(method='Q2'),
+                'Qloss_char': dc_cc(method='QLOSS'),
+                'S': dc_cp()}
+
     def inlets(self):
         return ['in1', 'in2', 'in3', 'in4']
 
     def outlets(self):
         return ['out1', 'out2', 'out3']
-
-    def attr(self):
-        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'P': dc_cp(), 'Q': dc_cp(),
-                'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'S': dc_cp()}
-
-    def component(self):
-        return 'cogeneration unit'
 
     def equations(self):
         r"""
@@ -4814,6 +4825,9 @@ class vessel(component):
        :align: center
     """
 
+    def component(self):
+        return 'vessel'
+
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
@@ -4830,9 +4844,6 @@ class vessel(component):
 
     def outlets(self):
         return ['out1']
-
-    def component(self):
-        return 'vessel'
 
     def equations(self):
         r"""
@@ -5042,6 +5053,34 @@ class heat_exchanger_simple(component):
       the appropriate equation
     """
 
+    def component(self):
+        return 'simplified heat exchanger'
+
+    def attr(self):
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'kA': dc_cp(min_val=1, d=1),
+                't_a': dc_cp(), 't_a_design': dc_cp(),
+                'kA_char': dc_cc(method='HE_HOT', param='m'),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
+
+    def default_design(self):
+        return ['pr']
+
+    def default_offdesign(self):
+        return ['kA']
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -5100,34 +5139,6 @@ class heat_exchanger_simple(component):
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
-
-    def attr(self):
-        return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4),
-                'zeta': dc_cp(min_val=1e-4),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
-                'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
-                'kA': dc_cp(min_val=1, d=1),
-                't_a': dc_cp(), 't_a_design': dc_cp(),
-                'kA_char': dc_cc(method='HE_HOT', param='m'),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
-
-    def default_design(self):
-        return ['pr']
-
-    def default_offdesign(self):
-        return ['kA']
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def component(self):
-        return 'simplified heat exchanger'
 
     def equations(self):
         r"""
@@ -5734,6 +5745,33 @@ class solar_collector(heat_exchanger_simple):
        :align: center
     """
 
+    def component(self):
+        return 'solar collector'
+
+    def attr(self):
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
+                'A': dc_cp(min_val=0), 't_a': dc_cp(),
+                'SQ': dc_cp(),
+                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
+    def default_design(self):
+        return ['pr']
+
+    def default_offdesign(self):
+        return ['zeta']
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -5783,33 +5821,6 @@ class solar_collector(heat_exchanger_simple):
             self.energy_group.set_attr(is_set=False)
         else:
             self.energy_group.set_attr(is_set=False)
-
-    def attr(self):
-        return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4),
-                'zeta': dc_cp(min_val=1e-4),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
-                'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
-                'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
-                'A': dc_cp(min_val=0), 't_a': dc_cp(),
-                'SQ': dc_cp(),
-                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def default_design(self):
-        return ['pr']
-
-    def default_offdesign(self):
-        return ['zeta']
-
-    def component(self):
-        return 'solar collector'
 
     def additional_equations(self):
         r"""
@@ -5959,6 +5970,31 @@ class heat_exchanger(component):
     - add direct current heat exchangers
     """
 
+    def component(self):
+        return 'heat_exchanger'
+
+    def attr(self):
+        # derivatives for logarithmic temperature difference not implemented
+        return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
+                'kA_char1': dc_cc(method='HE_HOT', param='m'),
+                'kA_char2': dc_cc(method='HE_COLD', param='m'),
+                'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
+                'pr1': dc_cp(), 'pr2': dc_cp(),
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
+
+    def default_design(self):
+        return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
+
+    def default_offdesign(self):
+        return ['kA', 'zeta1', 'zeta2']
+
+    def inlets(self):
+        return ['in1', 'in2']
+
+    def outlets(self):
+        return ['out1', 'out2']
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -5974,31 +6010,6 @@ class heat_exchanger(component):
             x = self.kA_char2.x
             y = self.kA_char2.y
             self.kA_char2.func = cmp_char.heat_ex(method=method, x=x, y=y)
-
-    def attr(self):
-        # derivatives for logarithmic temperature difference not implemented
-        return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
-                'kA_char1': dc_cc(method='HE_HOT', param='m'),
-                'kA_char2': dc_cc(method='HE_COLD', param='m'),
-                'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
-                'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
-
-    def inlets(self):
-        return ['in1', 'in2']
-
-    def outlets(self):
-        return ['out1', 'out2']
-
-    def default_design(self):
-        return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
-
-    def default_offdesign(self):
-        return ['kA', 'zeta1', 'zeta2']
-
-    def component(self):
-        return 'heat_exchanger'
 
     def equations(self):
         r"""
@@ -7019,14 +7030,14 @@ class drum(component):
        :align: center
     """
 
+    def component(self):
+        return 'drum'
+
     def inlets(self):
         return ['in1', 'in2']
 
     def outlets(self):
         return ['out1', 'out2']
-
-    def component(self):
-        return 'drum'
 
     def equations(self):
         r"""
@@ -7209,6 +7220,9 @@ class subsys_interface(component):
        :align: center
     """
 
+    def component(self):
+        return 'subsystem interface'
+
     def attr(self):
         return {'num_inter': dc_cp(printout=False)}
 
@@ -7223,9 +7237,6 @@ class subsys_interface(component):
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']
-
-    def component(self):
-        return 'subsystem interface'
 
     def equations(self):
         r"""

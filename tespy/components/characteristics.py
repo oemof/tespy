@@ -185,6 +185,16 @@ class turbine(characteristics):
 
             \frac{X}{P}=f\left(\frac{P}{P_{ref}} \right)
 
+        **thermal input** (TI)
+
+        .. math::
+            X = TI = \dot{m}_f \cdot LHV
+
+        .. image:: _images/chp_TI.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         **heat production** (Q1)
 
         .. math::
@@ -214,17 +224,6 @@ class turbine(characteristics):
            :scale: 100 %
            :alt: alternative text
            :align: center
-
-        **thermal input** (TI)
-
-        .. math::
-            X = TI = \dot{m}_f \cdot LHV
-
-        .. image:: _images/chp_TI.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
         """
 
         if key == 'default':
@@ -232,6 +231,9 @@ class turbine(characteristics):
 
         x = {}
         y = {}
+
+        x['TI'] = np.array([0.50, 0.71, 0.90, 1.00])
+        y['TI'] = np.array([2.20, 2.15, 2.10, 2.05])
 
         x['Q1'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
         y['Q1'] = np.array([0.244, 0.233, 0.222, 0.211, 0.200])
@@ -241,9 +243,6 @@ class turbine(characteristics):
 
         x['QLOSS'] = np.array([0.50, 0.75, 0.90, 1.00])
         y['QLOSS'] = np.array([0.06, 0.08, 0.09, 0.10])
-
-        x['TI'] = np.array([0.50, 0.71, 0.90, 1.00])
-        y['TI'] = np.array([2.20, 2.15, 2.10, 2.05])
 
         return x[key], y[key]
 

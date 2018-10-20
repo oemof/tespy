@@ -60,16 +60,6 @@ class characteristics:
         self.char = interp1d(self.x, self.y, kind='cubic', bounds_error=True)
 
     def default(self, key):
-    r"""
-
-    generic characteristics for heat exchanger heat transfer coefficient
-
-    - links heat transfer coefficient :math:`kA` to keyfigures
-    - different default characteristic lines available for different types of
-      heat exchangers (see method heat_exchanger.default())
-    """
-
-    def default(self, key):
         r"""
 
         **default characteristic lines for turbines**
@@ -309,7 +299,12 @@ class characteristics:
         return ['x', 'y', 'method', 'comp']
 
     def f_x(self, x):
-        return self.char(x)
+        if x > self.x[-1]:
+            return self.char(self.x[-1])
+        elif x < self.x[0]:
+            return self.char(self.x[0])
+        else:
+            return self.char(x)
 
     def get_attr(self, key):
         """

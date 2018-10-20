@@ -59,6 +59,7 @@ class subsystem:
         # set default values
         for key in self.attr():
             self.__dict__.update({key: np.nan})
+            self.__dict__.update({key + '_set': False})
 
         self.subsys_init()
         self.set_attr(**kwargs)
@@ -76,8 +77,10 @@ class subsystem:
                         isinstance(kwargs[key], int)):
                     if np.isnan(kwargs[key]):
                         self.__dict__.update({key: np.nan})
+                        self.__dict__.update({key + '_set': False})
                     else:
                         self.__dict__.update({key: kwargs[key]})
+                        self.__dict__.update({key + '_set': True})
 
                 elif isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})

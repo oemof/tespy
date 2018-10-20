@@ -689,6 +689,14 @@ class network:
 
                 self.init_target(outconn, start)
 
+        if isinstance(c.t, cmp.cogeneration_unit):
+            for outconn in self.comps.loc[c.t].o[:2]:
+                for fluid, x in c.fluid.val.items():
+                    if not outconn.fluid.val_set[fluid]:
+                        outconn.fluid.val[fluid] = x
+
+                self.init_target(outconn, start)
+
         if isinstance(c.t, cmp.drum) and c.t != start:
             start = c.t
             for outconn in self.comps.loc[c.t].o:
@@ -737,6 +745,14 @@ class network:
         if isinstance(c.s, cmp.merge):
             print(c.t.label)
             for inconn in self.comps.loc[c.s].i:
+                for fluid, x in c.fluid.val.items():
+                    if not inconn.fluid.val_set[fluid]:
+                        inconn.fluid.val[fluid] = x
+
+                self.init_source(inconn, start)
+
+        if isinstance(c.s, cmp.cogeneration_unit):
+            for inconn in self.comps.loc[c.s].i[:2]:
                 for fluid, x in c.fluid.val.items():
                     if not inconn.fluid.val_set[fluid]:
                         inconn.fluid.val[fluid] = x

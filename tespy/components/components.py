@@ -8,6 +8,8 @@
 import numpy as np
 import math
 
+import time
+
 import CoolProp.CoolProp as CP
 
 from tespy.helpers import (
@@ -478,6 +480,7 @@ class component:
                 mat_deriv[i + j, 1, j + 3] = 1
                 mat_deriv[i + j, 5, j + 3] = -1
                 j += 1
+
             return mat_deriv.tolist()
 
         if isinstance(self, splitter):
@@ -613,14 +616,16 @@ class component:
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        if (isinstance(self, split) or
+        if ((isinstance(self, split) or
                 isinstance(self, merge) or
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
-                (self.num_i == 1 and self.num_o == 1)):
+                (self.num_i == 1 and self.num_o == 1)) and
+                not isinstance(self, cogeneration_unit)):
             mat_deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars,
                                   num_fl + 3))
+
             j = 0
             for i in self.inl:
                 mat_deriv[0, j, 0] = 1
@@ -2946,13 +2951,14 @@ class combustion_chamber(component):
 
         if self.ti.is_set:
             # derivatives for specified thermal input
+            pos = nw.fluids.index(self.fuel.val) + 3
             ti_deriv = np.zeros((1, 3, num_fl + 3))
             for i in range(2):
-                ti_deriv[0, i, 0] = self.ddx_func(self.ti_func, 'm', i)
-                ti_deriv[0, i, 3:] = self.ddx_func(self.ti_func, 'fluid', i)
-            ti_deriv[0, 2, 0] = self.ddx_func(self.ti_func, 'm', 2)
-            ti_deriv[0, 2, 3:] = self.ddx_func(self.ti_func, 'fluid', 2)
-            mat_deriv += ti_deriv.tolist()
+                ti_deriv[0, i, 0] = -self.inl[i].fluid.val[self.fuel.val]
+                ti_deriv[0, i, pos] = -self.inl[i].m.val_SI
+            ti_deriv[0, 2, 0] = self.outl[0].fluid.val[self.fuel.val]
+            ti_deriv[0, 2, pos] = self.outl[0].m.val_SI
+            mat_deriv += (ti_deriv * self.lhv).tolist()
 
         return np.asarray(mat_deriv)
 
@@ -3109,7 +3115,6 @@ class combustion_chamber(component):
         for i in self.inl:
             res += i.m.val_SI * (
                     i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-            res += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
 
         for o in self.outl:
             dh = 0
@@ -3124,7 +3129,8 @@ class combustion_chamber(component):
             res -= o.m.val_SI * (
                     o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
                     dh)
-            res -= o.m.val_SI * o.fluid.val[self.fuel.val] * self.lhv
+
+        res += self.calc_ti()
 
         return res
 
@@ -3172,41 +3178,21 @@ class combustion_chamber(component):
             0 = ti - \dot{m}_f \cdot LHV
         """
 
-        if isinstance(self, cogeneration_unit):
-            inl = self.inl[2:]
-            outl = self.outl[2:]
-        else:
-            inl = self.inl
-            outl = self.outl
-
-        m_fuel = 0
-        for i in inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
-
-        for o in outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
-
-        return (self.ti.val - m_fuel * self.lhv)
+        return self.ti.val - self.calc_ti()
 
     def bus_func(self):
         r"""
         function for use on busses
 
-        :returns: val (*float*) - residual value of equation
+        :returns: val (*float*) - residual value of equation (equals thermal
+                  input)
 
         .. math::
 
-            val = \dot{m}_{fuel} \cdot LHV
+            val = ti
         """
 
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
-
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
-
-        return m_fuel * self.lhv
+        return self.calc_ti()
 
     def bus_deriv(self):
         r"""
@@ -3294,6 +3280,28 @@ class combustion_chamber(component):
 
         return deriv
 
+    def calc_ti(self):
+        r"""
+        calculates the thermal input of the combustion chamber
+
+        :returns: ti (*float*) - thermal input
+
+        .. math::
+            ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right) - \dot{m}_{out,1} \cdot x_{f,1} \right]
+            \; \forall i \in [1,2]
+
+        """
+
+        m = 0
+        for i in self.inl:
+            m += i.m.val_SI * i.fluid.val[self.fuel.val]
+
+        for o in self.outl:
+            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+
+        return m * self.lhv
+
     def initialise_fluids(self, nw):
         r"""
         calculates reaction balance with given lambda for good generic
@@ -3359,17 +3367,17 @@ class combustion_chamber(component):
             outl = self.outl
 
         m = 0
-        for i in self.inl:
+        for i in inl:
             if i.m.val_SI < 0 and not i.m.val_set:
                 i.m.val_SI = 0.01
             m += i.m.val_SI
 
-        for o in self.outl:
+        for o in outl:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
                 if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
                     m_f = 0
-                    for i in self.inl:
+                    for i in inl:
                         m_f += i.fluid.val[f] * i.m.val_SI
 
                     if abs(o.fluid.val[f] - m_f / m) > 0.03:
@@ -3400,7 +3408,7 @@ class combustion_chamber(component):
                 else:
                     continue
 
-        for o in self.outl:
+        for o in outl:
             if o.m.val_SI < 0 and not o.m.val_set:
                 o.m.val_SI = 10
             init_target(nw, o, o.t)
@@ -3408,8 +3416,10 @@ class combustion_chamber(component):
             if o.h.val_SI < 7.5e5 and not o.h.val_set:
                 o.h.val_SI = 1e6
 
-        if self.lamb.val < 1 and not self.lamb.is_set:
-            self.lamb.val = 3
+        if self.lamb.val < 2:
+            for i in inl:
+                if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
+                    i.m.val_SI = 0.01
 
     def initialise_source(self, c, key):
         r"""
@@ -3455,9 +3465,7 @@ class combustion_chamber(component):
 
     def calc_parameters(self, nw, mode):
 
-        self.ti.val = 0
-        for i in self.inl:
-            self.ti.val += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
+        self.ti.val = self.calc_ti()
 
         n_fuel = 0
         for i in self.inl:
@@ -4255,8 +4263,9 @@ class cogeneration_unit(combustion_chamber):
 
     def attr(self):
         return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'P': dc_cp(), 'P_ref': dc_cp(),
-                'Q1': dc_cp(), 'Q2': dc_cp(), 'Qloss': dc_cp(),
+                'P': dc_cp(val=1e6, d=1, val_min=1), 'P_ref': dc_cp(),
+                'Q1': dc_cp(), 'Q2': dc_cp(),
+                'Qloss': dc_cp(val=1e4, d=1, val_min=1),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'tiP_char': dc_cc(method='TI'),
@@ -4273,8 +4282,6 @@ class cogeneration_unit(combustion_chamber):
 
     def comp_init(self, nw):
 
-        combustion_chamber.comp_init(self, nw)
-
         if not self.P.is_set:
             self.set_attr(P='var')
             if nw.compinfo:
@@ -4290,6 +4297,8 @@ class cogeneration_unit(combustion_chamber):
                        'We are adding the heat loss of component ' +
                        self.label + ' as custom variable of the system.')
                 print(msg)
+
+        combustion_chamber.comp_init(self, nw)
 
     def equations(self):
         r"""
@@ -4345,7 +4354,7 @@ class cogeneration_unit(combustion_chamber):
         vec_res += [self.tiP_char_func()]
         vec_res += [self.Q1_char_func()]
         vec_res += [self.Q2_char_func()]
-        vec_res += [self.QLOSS_char_func()]
+        vec_res += [self.Qloss_char_func()]
 
         if self.lamb.is_set:
             vec_res += [self.lambda_func()]
@@ -4386,11 +4395,12 @@ class cogeneration_unit(combustion_chamber):
         """
 
         num_fl = len(nw.fluids)
+        num_vars = 7 + self.num_c_vars
         mat_deriv = []
 
         # derivatives for reaction balance
         j = 0
-        fl_deriv = np.zeros((num_fl, 7, num_fl + 3))
+        fl_deriv = np.zeros((num_fl, num_vars, num_fl + 3))
         for fluid in nw.fluids:
             # fresh air and fuel inlets
             for i in range(2):
@@ -4404,12 +4414,11 @@ class cogeneration_unit(combustion_chamber):
 
         # derivatives for fluid balances (except combustion)
         mat_deriv += self.fluid_deriv()
-
         # derivatives for mass balance
         mat_deriv += self.mass_flow_deriv()
 
         # derivatives for pressure equations
-        p_deriv = np.zeros((2, 7, num_fl + 3))
+        p_deriv = np.zeros((2, num_vars, num_fl + 3))
         for k in range(2):
             p_deriv[k][2][1] = 1
         p_deriv[0][6][1] = -1
@@ -4417,7 +4426,7 @@ class cogeneration_unit(combustion_chamber):
         mat_deriv += p_deriv.tolist()
 
         # derivatives for energy balance
-        eb_deriv = np.zeros((1, 7, num_fl + 3))
+        eb_deriv = np.zeros((1, num_vars, num_fl + 3))
         # mass flow cooling water
         for i in [0, 1]:
             eb_deriv[0, i, 0] = -(self.outl[i].h.val_SI - self.inl[i].h.val_SI)
@@ -4436,11 +4445,88 @@ class cogeneration_unit(combustion_chamber):
         eb_deriv[0, 3, pos] = self.inl[3].m.val_SI * self.lhv
         eb_deriv[0, 6, pos] = -self.outl[2].m.val_SI * self.lhv
 
+        if self.P.is_var:
+            eb_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.energy_balance, 'P', 7))
+
+        if self.Qloss.is_var:
+            eb_deriv[0, 7 + self.Qloss.var_pos, 0] = (
+                self.ddx_func(self.energy_balance, 'Qloss', 7))
+
         mat_deriv += eb_deriv.tolist()
+
+################
+
+        ti_deriv = np.zeros((1, num_vars, num_fl + 3))
+        for i in range(2):
+            ti_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.tiP_char_func, 'm', i + 2))
+            ti_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.tiP_char_func, 'fluid', i + 2))
+        ti_deriv[0, 6, 0] = self.ddx_func(self.tiP_char_func, 'm', 6)
+        ti_deriv[0, 6, 3:] = self.ddx_func(self.tiP_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            ti_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.tiP_char_func, 'P', 7))
+        mat_deriv += ti_deriv.tolist()
+
+        q1_deriv = np.zeros((1, num_vars, num_fl + 3))
+        q1_deriv[0, 0, 0] = self.ddx_func(self.Q1_char_func, 'm', 0)
+        q1_deriv[0, 0, 2] = self.ddx_func(self.Q1_char_func, 'h', 0)
+        q1_deriv[0, 4, 2] = self.ddx_func(self.Q1_char_func, 'h', 4)
+        for i in range(2):
+            q1_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Q1_char_func, 'm', i + 2))
+            q1_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Q1_char_func, 'fluid', i + 2))
+        q1_deriv[0, 6, 0] = self.ddx_func(self.Q1_char_func, 'm', 6)
+        q1_deriv[0, 6, 3:] = self.ddx_func(self.Q1_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            q1_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Q1_char_func, 'P', 7))
+        mat_deriv += q1_deriv.tolist()
+
+        q2_deriv = np.zeros((1, num_vars, num_fl + 3))
+        q2_deriv[0, 1, 0] = self.ddx_func(self.Q2_char_func, 'm', 1)
+        q2_deriv[0, 1, 2] = self.ddx_func(self.Q2_char_func, 'h', 1)
+        q2_deriv[0, 5, 2] = self.ddx_func(self.Q2_char_func, 'h', 5)
+        for i in range(2):
+            q2_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Q2_char_func, 'm', i + 2))
+            q2_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Q2_char_func, 'fluid', i + 2))
+        q2_deriv[0, 6, 0] = self.ddx_func(self.Q2_char_func, 'm', 6)
+        q2_deriv[0, 6, 3:] = self.ddx_func(self.Q2_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            q2_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Q2_char_func, 'P', 7))
+        mat_deriv += q2_deriv.tolist()
+
+        ql_deriv = np.zeros((1, num_vars, num_fl + 3))
+        for i in range(2):
+            ql_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Qloss_char_func, 'm', i + 2))
+            ql_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Qloss_char_func, 'fluid', i + 2))
+        ql_deriv[0, 6, 0] = self.ddx_func(self.Qloss_char_func, 'm', 6)
+        ql_deriv[0, 6, 3:] = self.ddx_func(self.Qloss_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            ql_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Qloss_char_func, 'P', 7))
+
+        if self.Qloss.is_var:
+            ql_deriv[0, 7 + self.Qloss.var_pos, 0] = (
+                self.ddx_func(self.Qloss_char_func, 'Qloss', 7))
+
+        mat_deriv += ql_deriv.tolist()
 
         if self.lamb.is_set:
             # derivatives for specified lambda
-            lamb_deriv = np.zeros((1, 7, num_fl + 3))
+            lamb_deriv = np.zeros((1, num_vars, num_fl + 3))
             for i in range(2):
                 lamb_deriv[0, i + 2, 0] = (
                         self.ddx_func(self.lambda_func, 'm', i + 2))
@@ -4448,9 +4534,12 @@ class cogeneration_unit(combustion_chamber):
                         self.ddx_func(self.lambda_func, 'fluid', i + 2))
             mat_deriv += lamb_deriv.tolist()
 
+#        np.set_printoptions(threshold=np.nan)
+#        print(np.asarray(mat_deriv))
+
         if self.ti.is_set:
             # derivatives for specified thermal input
-            ti_deriv = np.zeros((1, 7, num_fl + 3))
+            ti_deriv = np.zeros((1, num_vars, num_fl + 3))
             for i in range(2):
                 ti_deriv[0, i + 2, 0] = self.ddx_func(self.ti_func, 'm', i + 2)
                 ti_deriv[0, i + 2, 3:] = (
@@ -4460,19 +4549,19 @@ class cogeneration_unit(combustion_chamber):
             mat_deriv += ti_deriv.tolist()
 
         if self.pr1.is_set:
-            pr1_deriv = np.zeros((1, 7, num_fl + 3))
+            pr1_deriv = np.zeros((1, num_vars, num_fl + 3))
             pr1_deriv[0, 0, 1] = self.pr1.val
-            pr1_deriv[0, 2, 1] = -1
+            pr1_deriv[0, 4, 1] = -1
             mat_deriv += pr1_deriv.tolist()
 
         if self.pr2.is_set:
-            pr2_deriv = np.zeros((1, 7, num_fl + 3))
+            pr2_deriv = np.zeros((1, num_vars, num_fl + 3))
             pr2_deriv[0, 1, 1] = self.pr2.val
-            pr2_deriv[0, 3, 1] = -1
+            pr2_deriv[0, 5, 1] = -1
             mat_deriv += pr2_deriv.tolist()
 
         if self.zeta1.is_set:
-            zeta1_deriv = np.zeros((1, 7, num_fl + 3))
+            zeta1_deriv = np.zeros((1, num_vars, num_fl + 3))
             zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
             zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
             zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
@@ -4481,7 +4570,7 @@ class cogeneration_unit(combustion_chamber):
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
-            zeta2_deriv = np.zeros((1, 7, num_fl + 3))
+            zeta2_deriv = np.zeros((1, num_vars, num_fl + 3))
             zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
             zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
             zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
@@ -4522,11 +4611,9 @@ class cogeneration_unit(combustion_chamber):
         p_ref = 1e5
 
         res = 0
-        ti = 0
         for i in self.inl[2:]:
             res += i.m.val_SI * (
                     i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-            ti += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
 
         for o in self.outl[2:]:
             dh = 0
@@ -4541,11 +4628,8 @@ class cogeneration_unit(combustion_chamber):
             res -= o.m.val_SI * (
                     o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
                     dh)
-            ti -= o.m.val_SI * o.fluid.val[self.fuel.val] * self.lhv
 
-        res += ti
-        if not self.ti.is_set:
-            self.ti.val = ti
+        res += self.calc_ti()
 
         # cooling water
         for i in range(2):
@@ -4678,12 +4762,12 @@ class cogeneration_unit(combustion_chamber):
 
         """
 
-        if self.P_ref.is_set is True:
-            expr = self.P.val / self.Pref.val
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
         else:
             expr = 1
 
-        return self.ti.val - self.tiP_char.func.f_x(expr) * self.P
+        return self.calc_ti() - self.tiP_char.func.f_x(expr) * self.P.val
 
     def Q1_char_func(self):
         r"""
@@ -4705,13 +4789,13 @@ class cogeneration_unit(combustion_chamber):
         i = self.inl[0]
         o = self.outl[0]
 
-        if self.P_ref.is_set is True:
-            expr = self.P.val / self.Pref.val
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
         else:
             expr = 1
 
-        return (self.ti.val * self.Q1_char.func.f_x(expr) -
-                self.ti_char.func.f_x(expr) * i.m.val_SI * (
+        return (self.calc_ti() * self.Q1_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * i.m.val_SI * (
                         o.h.val_SI - i.h.val_SI))
 
     def Q2_char_func(self):
@@ -4734,13 +4818,13 @@ class cogeneration_unit(combustion_chamber):
         i = self.inl[1]
         o = self.outl[1]
 
-        if self.P_ref.is_set is True:
-            expr = self.P.val / self.Pref.val
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
         else:
             expr = 1
 
-        return (self.ti.val * self.Q2_char.func.f_x(expr) -
-                self.ti_char.func.f_x(expr) * i.m.val_SI * (
+        return (self.calc_ti() * self.Q2_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * i.m.val_SI * (
                         o.h.val_SI - i.h.val_SI))
 
     def Qloss_char_func(self):
@@ -4760,12 +4844,35 @@ class cogeneration_unit(combustion_chamber):
 
         """
 
-        if self.P_ref.is_set is True:
-            expr = self.P.val / self.Pref.val
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
         else:
             expr = 1
 
-        return self.ti.val - self.ti_char.func.f_x(expr) * self.Qloss.val
+        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * self.Qloss.val)
+
+    def calc_ti(self):
+        r"""
+        calculates the thermal input of the cogeneration unit
+
+        :returns: ti (*float*) - thermal input
+
+        .. math::
+            ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
+            \; \forall i \in [3,4]
+
+        """
+
+        m = 0
+        for i in self.inl[2:]:
+            m += i.m.val_SI * i.fluid.val[self.fuel.val]
+
+        for o in self.outl[2:]:
+            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+
+        return m * self.lhv
 
     def initialise_fluids(self, nw):
         r"""
@@ -4871,43 +4978,32 @@ class cogeneration_unit(combustion_chamber):
 
     def calc_parameters(self, nw, mode):
 
-        self.ti.val = 0
-        for i in self.inl:
-            self.ti.val += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
+        combustion_chamber.calc_parameters(self, nw, mode)
 
-        n_fuel = 0
-        for i in self.inl:
-            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
-                       molar_masses[self.fuel.val])
+        if mode == 'post' or (mode == 'pre' and 'Q1' in self.offdesign):
+            self.Q1.val = self.inl[0].m.val_SI * (
+                    self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-        n_oxygen = 0
-        for i in self.inl:
-            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
-                         molar_masses[self.o2])
+        if mode == 'post' or (mode == 'pre' and 'Q2' in self.offdesign):
+            self.Q2.val = self.inl[1].m.val_SI * (
+                    self.outl[1].h.val_SI - self.inl[1].h.val_SI)
 
-        if mode == 'post':
-            if not self.lamb.is_set:
-                self.lamb.val = n_oxygen / (
-                        n_fuel * (self.n['C'] + self.n['H'] / 4))
+        if mode == 'post' and not self.P_ref.is_set:
+            self.P_ref.is_set = self.P.val
 
-            S = 0
-            T_ref = 500
-            p_ref = 1e5
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
 
-            for i in self.inl:
-                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+        if mode == 'post' or (mode == 'pre' and 'Qloss' in self.offdesign):
+            self.Qloss.val = self.ti.val * (self.Qloss_char.func.f_x(expr) /
+                                            self.tiP_char.func.f_x(expr))
 
-            for o in self.outl:
-                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+        if mode == 'post' or (mode == 'pre' and 'P' in self.offdesign):
+            self.P.val = self.ti.val / self.tiP_char.func.f_x(expr)
 
-            self.S.val = S
 
-        if mode == 'pre':
-            if 'lamb' in self.offdesign:
-                self.lamb.val = n_oxygen / (n_fuel *
-                                            (self.n['C'] + self.n['H'] / 4))
 
 # %%
 

@@ -164,7 +164,6 @@ class connection:
                     # specified parameters
                     else:
                         self.get_attr(key).set_attr(val=kwargs[key].copy())
-                        self.get_attr(key).set_attr(val0=kwargs[key].copy())
                         for f in kwargs[key]:
                             kwargs[key][f] = True
                         self.get_attr(key).set_attr(val_set=kwargs[key])

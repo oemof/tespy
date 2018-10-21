@@ -605,19 +605,14 @@ class network:
 
             for fluid in self.fluids:
 
-                if fluid in tmp.keys():
+                if fluid in tmp.keys() and fluid in tmp_set.keys():
                     # if fluid in keys and is_set
                     c.fluid.val[fluid] = tmp[fluid]
                     c.fluid.val0[fluid] = tmp[fluid]
-
-                    if fluid in tmp_set.keys():
-                        c.fluid.val_set[fluid] = tmp_set[fluid]
-                    # if fluid in keys and not is_set
-                    else:
-                        c.fluid.val_set[fluid] = False
+                    c.fluid.val_set[fluid] = tmp_set[fluid]
 
                 # if there is a starting value
-                if fluid in tmp0.keys():
+                elif fluid in tmp0.keys():
                     if fluid in tmp_set.keys():
                         if not tmp_set[fluid]:
                             c.fluid.val[fluid] = tmp0[fluid]

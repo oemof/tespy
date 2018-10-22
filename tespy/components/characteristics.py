@@ -116,7 +116,7 @@ class characteristics:
         .. math::
             X = TI = \dot{m}_f \cdot LHV
 
-        .. image:: _images/chp_TI.svg
+        .. image:: _images/TI.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -126,7 +126,7 @@ class characteristics:
         .. math::
             X = \dot{Q}_1 = \dot{m}_1 \cdot \left( h_{out,1} - h_{in,1} \right)
 
-        .. image:: _images/chp_Q1.svg
+        .. image:: _images/Q1.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -136,7 +136,7 @@ class characteristics:
         .. math::
             X = \dot{Q}_2 = \dot{m}_2 \cdot \left( h_{out,2} - h_{in,2} \right)
 
-        .. image:: _images/chp_Q2.svg
+        .. image:: _images/Q2.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -146,7 +146,7 @@ class characteristics:
         .. math::
             X = \dot{Q}_{loss}
 
-        .. image:: _images/chp_Q_loss.svg
+        .. image:: _images/QLOSS.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -221,17 +221,17 @@ class characteristics:
 
         elif self.comp == 'cogeneration unit':
 
-            x['TI'] = np.array([0.50, 0.71, 0.90, 1.00])
-            y['TI'] = np.array([2.20, 2.15, 2.10, 2.05])
+            x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])
+            y['TI'] = np.array([2.50, 2.33, 2.27, 2.25])
 
             x['Q1'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
-            y['Q1'] = np.array([0.244, 0.233, 0.222, 0.211, 0.200])
+            y['Q1'] = np.array([0.215, 0.197, 0.185, 0.175, 0.168])
 
             x['Q2'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
-            y['Q2'] = np.array([0.246, 0.235, 0.224, 0.213, 0.202])
+            y['Q2'] = np.array([0.215, 0.197, 0.185, 0.175, 0.168])
 
-            x['QLOSS'] = np.array([0.50, 0.75, 0.90, 1.00])
-            y['QLOSS'] = np.array([0.06, 0.08, 0.09, 0.10])
+            x['QLOSS'] = np.array([0.50, 0.7500, 0.90, 1.000])
+            y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
 
         elif self.comp == 'heat exchanger' or self.comp == 'desuperheater':
 

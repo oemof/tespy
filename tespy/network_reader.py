@@ -6,7 +6,7 @@
 """
 
 import pandas as pd
-from tespy import cmp, con, nwk, hlp
+from tespy import cmp, con, nwk, hlp, cmp_char
 import os
 import ast
 
@@ -41,6 +41,7 @@ def load_nwk(path):
     chars = pd.read_csv(path + '/comps/char.csv', sep=';', decimal='.',
                         converters={'x': ast.literal_eval,
                                     'y': ast.literal_eval})
+    chars['char'] = chars.apply(construct_chars, axis=1)
 
     # load components
     comps = pd.DataFrame()
@@ -52,12 +53,15 @@ def load_nwk(path):
                              converters={'design': ast.literal_eval,
                                          'offdesign': ast.literal_eval,
                                          'busses': ast.literal_eval,
-                                         'bus_factors': ast.literal_eval})
+                                         'bus_param': ast.literal_eval,
+                                         'bus_P_ref': ast.literal_eval,
+                                         'bus_char': ast.literal_eval})
 
             # create components
             df['instance'] = df.apply(construct_comps, axis=1, args=(chars,))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
-                                          'bus_factors']]),
+                                          'bus_param', 'bus_P_ref',
+                                          'bus_char']]),
                               axis=0)
 
     comps = comps.set_index('label')
@@ -91,7 +95,7 @@ def load_nwk(path):
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
         # add components to busses
-        comps.apply(busses_add_comps, axis=1, args=(busses,))
+        comps.apply(busses_add_comps, axis=1, args=(busses, chars,))
 
         # add busses to network
         for b in busses['instance']:
@@ -128,7 +132,7 @@ def construct_comps(c, *args):
     for key in ['mode', 'design', 'offdesign']:
         kwargs[key] = c[key]
 
-    for key, value in instance.attr_prop().items():
+    for key, value in instance.attr().items():
         if key in c:
             # component parameters
             if isinstance(value, hlp.dc_cp):
@@ -183,6 +187,22 @@ def construct_network(path):
     nw = nwk.network(fluids=f_list, **kwargs)
 
     return nw
+
+# %% create network object
+
+
+def construct_chars(c):
+    """
+    creates TESPy characteristic functions
+
+    :param c: connection information
+    :type c: pandas.core.series.Series
+    :returns: instance (*tespy.components.characteristics*) - TESPy
+              characteristics object
+    """
+
+    char = cmp_char.characteristics(x=c.x, y=c.y)
+    return char
 
 # %% create connections
 
@@ -284,7 +304,7 @@ def construct_busses(c, *args):
 
     # set up bus with label and specify value for power
     b = con.bus(c.label, P=c.P)
-    b.P_set = c.P_set
+    b.P.val_set = c.P_set
     return b
 
 # %% add components to busses
@@ -306,8 +326,14 @@ def busses_add_comps(c, *args):
 
     i = 0
     for b in c.busses:
-        f = c.bus_factors[i]
-        # add component with corresponding factor to bus
+        p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
+
+        values = char == args[1]['id']
+        char = args[1]['char'][values[values == True].index[0]]
+
+        # add component with corresponding details to bus
         args[0].instance[b == args[0]['id']
-                         ].values[0].add_comps([c.instance, f])
+                         ].values[0].add_comps({'c': c.instance,
+                                                'p': p, 'P_ref': P_ref,
+                                                'char': char})
         i += 1

@@ -99,8 +99,7 @@ class subsystem:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(self, ' \"', self.label, '\" has no attribute \"',
-                  key, '\"')
+            print('Subsystem ' + self.label + ' has no attribute ' + key)
             return None
 
     def display_information(self):

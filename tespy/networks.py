@@ -139,13 +139,9 @@ class network:
         self.v_unit = self.SI_units['v']
 
         # standard value range
-        self.p_range = [2e3, 300e5]
-        self.h_range = [1e3, 7e6]
-        self.T_range = [273.16, 1773.15]
-
-        self.p_range_SI = self.p_range[:]
-        self.h_range_SI = self.h_range[:]
-        self.T_range_SI = self.T_range[:]
+        self.p_range_SI = np.array([2e2, 300e5])
+        self.h_range_SI = np.array([1e3, 7e6])
+        self.T_range_SI = np.array([273.16, 1773.15])
 
         # add attributes from kwargs
         for key in kwargs:
@@ -200,25 +196,46 @@ class network:
             raise hlp.MyNetworkError(msg)
 
         # value ranges
-        if not isinstance(self.p_range, list):
-            msg = ('Specify the value range as list: [p_min, p_max]')
-            raise TypeError(msg)
+        if 'p_range' in kwargs.keys():
+            if not isinstance(self.p_range, list):
+                msg = ('Specify the value range as list: [p_min, p_max]')
+                raise TypeError(msg)
+            else:
+                self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
         else:
-            self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
+            self.p_range = self.p_range_SI / self.p[self.p_unit]
 
-        if not isinstance(self.h_range, list):
-            msg = ('Specify the value range as list: [h_min, h_max]')
-            raise TypeError(msg)
+        if 'h_range' in kwargs.keys():
+            if not isinstance(self.h_range, list):
+                msg = ('Specify the value range as list: [h_min, h_max]')
+                raise TypeError(msg)
+            else:
+                self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
         else:
-            self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
+            self.h_range = self.h_range_SI / self.h[self.h_unit]
 
-        if not isinstance(self.T_range, list):
-            msg = ('Specify the value range as list: [T_min, T_max]')
-            raise TypeError(msg)
+        if 'T_range' in kwargs.keys():
+            if not isinstance(self.T_range, list):
+                msg = ('Specify the value range as list: [T_min, T_max]')
+                raise TypeError(msg)
+            else:
+                self.T_range_SI = ((np.array(self.T_range) +
+                                    self.T[self.T_unit][0]) *
+                                   self.T[self.T_unit][1])
         else:
-            self.T_range_SI = ((np.array(self.T_range) +
-                                self.T[self.T_unit][0]) *
-                               self.T[self.T_unit][1])
+            self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
+                            self.T[self.T_unit][0])
+
+        for f in self.fluids:
+            if 'TESPy::' in f:
+                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
+                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
+                hlp.memorise.vrange[f][2] = self.T_range_SI[0]
+                hlp.memorise.vrange[f][3] = self.T_range_SI[1]
+
+            if 'INCOMP::' in f:
+                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
+                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
 
     def get_attr(self, key):
         if key in self.__dict__:
@@ -442,19 +459,22 @@ class network:
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.init_components(comps)  # build the dataframe for components
         for comp in self.comps.index:
-            freq = 0
-            freq += (self.conns[['s', 't']] == comp).sum().s
-            freq += (self.conns[['s', 't']] == comp).sum().t
-
-            freq -= comp.num_i
-            freq -= comp.num_o
-            if freq != 0:
-                msg = (str(comp) + ' (' + str(comp.label) + ') is missing ' +
-                       str(-freq) + ' connections. Make sure all '
-                       'inlets and outlets are connected and '
-                       'all connections have been added to the '
+            num_o = (self.conns[['s', 't']] == comp).sum().s
+            num_i = (self.conns[['s', 't']] == comp).sum().t
+            if num_o != comp.num_o:
+                msg = (comp.label + ' is missing ' + str(comp.num_o - num_o) +
+                       ' outgoing connections. Make sure all outlets are '
+                       ' connected and all connections have been added to the '
                        'network.')
-                raise hlp.MyNetworkError(msg)
+            elif num_i != comp.num_i:
+                msg = (comp.label + ' is missing ' + str(comp.num_i - num_i) +
+                       ' incoming connections. Make sure all inlets are '
+                       ' connected and all connections have been added to the '
+                       'network.')
+            else:
+                continue
+
+            raise hlp.MyNetworkError(msg)
 
         self.checked = True
         if self.nwkinfo:
@@ -533,8 +553,8 @@ class network:
             self.comps.loc[comp] = [t, s]
             comp.inl = t.tolist()
             comp.outl = s.tolist()
-            comp.num_i = len(comp.inl)
-            comp.num_o = len(comp.outl)
+            comp.num_i = len(comp.inlets())
+            comp.num_o = len(comp.outlets())
             labels += [comp.label]
 
         if len(labels) != len(list(set(labels))):
@@ -585,19 +605,14 @@ class network:
 
             for fluid in self.fluids:
 
-                if fluid in tmp.keys():
+                if fluid in tmp.keys() and fluid in tmp_set.keys():
                     # if fluid in keys and is_set
                     c.fluid.val[fluid] = tmp[fluid]
                     c.fluid.val0[fluid] = tmp[fluid]
-
-                    if fluid in tmp_set.keys():
-                        c.fluid.val_set[fluid] = tmp_set[fluid]
-                    # if fluid in keys and not is_set
-                    else:
-                        c.fluid.val_set[fluid] = False
+                    c.fluid.val_set[fluid] = tmp_set[fluid]
 
                 # if there is a starting value
-                if fluid in tmp0.keys():
+                elif fluid in tmp0.keys():
                     if fluid in tmp_set.keys():
                         if not tmp_set[fluid]:
                             c.fluid.val[fluid] = tmp0[fluid]
@@ -669,6 +684,14 @@ class network:
 
                 self.init_target(outconn, start)
 
+        if isinstance(c.t, cmp.cogeneration_unit):
+            for outconn in self.comps.loc[c.t].o[:2]:
+                for fluid, x in c.fluid.val.items():
+                    if not outconn.fluid.val_set[fluid]:
+                        outconn.fluid.val[fluid] = x
+
+                self.init_target(outconn, start)
+
         if isinstance(c.t, cmp.drum) and c.t != start:
             start = c.t
             for outconn in self.comps.loc[c.t].o:
@@ -717,6 +740,14 @@ class network:
         if isinstance(c.s, cmp.merge):
             print(c.t.label)
             for inconn in self.comps.loc[c.s].i:
+                for fluid, x in c.fluid.val.items():
+                    if not inconn.fluid.val_set[fluid]:
+                        inconn.fluid.val[fluid] = x
+
+                self.init_source(inconn, start)
+
+        if isinstance(c.s, cmp.cogeneration_unit):
+            for inconn in self.comps.loc[c.s].i[:2]:
                 for fluid, x in c.fluid.val.items():
                     if not inconn.fluid.val_set[fluid]:
                         inconn.fluid.val[fluid] = x
@@ -1226,9 +1257,9 @@ class network:
         try:
             self.vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
             self.lin_dep = False
-        except:
-            pass
+        except np.linalg.linalg.LinAlgError:
             self.vec_z = np.asarray(self.vec_res) * 0
+            pass
 
         # check for linear dependency
         if self.lin_dep:
@@ -1297,14 +1328,9 @@ class network:
 
         # check properties without given init_file
         if self.iter < 3 and self.init_file is None:
-#            for c in self.conns.index:
-#                self.solve_check_properties(c)
 #
             for cp in self.comps.index:
                 cp.convergence_check(self)
-#
-#            for c in self.conns.index:
-#                self.solve_check_properties(c)
 
     def solve_check_props(self, c):
         """
@@ -1323,56 +1349,37 @@ class network:
 
         if isinstance(fl, str):
             # pressure
-            if c.p.val_SI < hlp.memorise.vrange[fl][0]:
-                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.01
-            if c.p.val_SI > hlp.memorise.vrange[fl][1]:
-                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.99
+            if c.p.val_SI < hlp.memorise.vrange[fl][0] and not c.p.val_set:
+                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.1
+            if c.p.val_SI > hlp.memorise.vrange[fl][1] and not c.p.val_set:
+                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.9
 
             # enthalpy
-            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2], fl)
-            hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3], fl)
-            if c.h.val_SI < hmin:
-                c.h.val_SI = hmin * 2
-            if c.h.val_SI > hmax:
-                c.h.val_SI = hmax * 0.99
+            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * 1.01, fl)
+            hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
+            if c.h.val_SI < hmin and not c.h.val_set:
+                c.h.val_SI = hmin * 3
+            if c.h.val_SI > hmax and not c.h.val_set:
+                c.h.val_SI = hmax * 0.9
 
-    def solve_check_properties(self, c):
-        """
-        checks for invalid fluid properties in solution progress and adjusts
-        values if necessary
+        elif self.iter < 3 and self.init_file is None:
+            # pressure
+            if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
+                c.p.val_SI = self.p_range_SI[0]
+            if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
+                c.p.val_SI = self.p_range_SI[1]
 
-        - check pressure
-        - check enthalpy
-        - check temperature
+            # enthalpy
+            if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
+                c.h.val_SI = self.h_range_SI[0]
+            if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
+                c.h.val_SI = self.h_range_SI[1]
 
-        :param c: connection object to check
-        :type c: tespy.connections.connection
-        :returns: no return value
-        """
-        # pressure
-        if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
-            c.p.val_SI = self.p_range_SI[0]
-        if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
-            c.p.val_SI = self.p_range_SI[1]
+            # temperature
+            if c.T.val_set and not c.h.val_set and not c.p.val_set:
+                self.solve_check_temperature(c)
 
-        # enthalpy
-        if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
-            c.h.val_SI = self.h_range_SI[0]
-        if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
-            c.h.val_SI = self.h_range_SI[1]
-
-        # make sure, that at given temperatures values stay within feasible
-        # range:
-        # for mixtures: calculate maximum enthalpy and compare with
-        # acutal value
-        # for pure fluids:
-        # obtain maximum temperature from fluid properties directly
-        ###### this part seems to cause bad convergence in some cases ######
-        if c.T.val_set and not c.h.val_set and not c.p.val_set:
-            self.solve_check_temperature(c, 'min')
-            self.solve_check_temperature(c, 'max')
-
-    def solve_check_temperature(self, c, pos):
+    def solve_check_temperature(self, c):
         """
         checks for invalid fluid temperatures in solution progress and adjusts
         values if necessary
@@ -1382,45 +1389,17 @@ class network:
 
         :param c: connection object to check
         :type c: tespy.connections.connection
-        :param pos: check at upper or lower boundary
-        :type pos: str
         :returns: no return value
         """
 
-        val = 'T' + pos
-        if pos == 'min':
-            fac = 1.1
-            idx = 0
-        else:
-            fac = 0.9
-            idx = 1
+        hmin = hlp.h_mix_pT(c.to_flow(), self.T_range_SI[0])
+        hmax = hlp.h_mix_pT(c.to_flow(), self.T_range_SI[1])
 
-        try:
-            T = CPPSI(val, 'T', 0, 'P', 0, hlp.single_fluid(c.fluid.val)) * fac
-        except:
-            T = self.T_range_SI[idx]
+        if c.h.val_SI < hmin:
+            c.h.val_SI = hmin * 1.05
 
-        if pos == 'min':
-            if T < self.T_range_SI[idx]:
-                T = self.T_range_SI[idx]
-        else:
-            if T > self.T_range_SI[idx]:
-                T = self.T_range_SI[idx]
-
-        p_temp = c.p.val_SI
-        if 'INCOMP::' in hlp.single_fluid(c.fluid.val):
-            c.p.val_SI = CPPSI('P', 'T', T, 'Q', 0,
-                               hlp.single_fluid(c.fluid.val))
-
-        h = hlp.h_mix_pT(c.to_flow(), T)
-        c.p.val_SI = p_temp
-
-        if pos == 'min':
-            if c.h.val_SI < h:
-                c.h.val_SI = h * fac
-        else:
-            if c.h.val_SI > h:
-                c.h.val_SI = h * fac
+        if c.h.val_SI > hmax:
+            c.h.val_SI = hmax * 0.95
 
     def solve_components(self):
         """
@@ -1633,24 +1612,26 @@ class network:
         """
         row = len(self.vec_res)
         for b in self.busses:
-            if b.P_set:
+            if b.P.val_set:
                 P_res = 0
                 for cp in b.comps.index:
                     i = self.comps.loc[cp].i.tolist()
                     o = self.comps.loc[cp].o.tolist()
 
-                    P_res += cp.bus_func() * b.comps.loc[cp].factor
-                    deriv = -cp.bus_deriv()
+                    bus = b.comps.loc[cp]
+
+                    P_res += cp.bus_func(bus)
+                    deriv = -cp.bus_deriv(bus)
 
                     j = 0
                     for c in i + o:
                         loc = self.conns.index.get_loc(c)
                         self.mat_deriv[row, loc * (self.num_vars):
                                        (loc + 1) * self.num_vars] = (
-                            deriv[:, j] * b.comps.loc[cp].factor)
+                            deriv[:, j])
                         j += 1
 
-                self.vec_res += [b.P - P_res]
+                self.vec_res += [b.P.val - P_res]
 
                 row += 1
 
@@ -1973,17 +1954,19 @@ class network:
             n += [c.fluid.balance].count(True)
 
         for b in self.busses:
-            n += [b.P_set].count(True)
+            n += [b.P.val_set].count(True)
 
         if n > self.num_vars * len(self.conns.index) + self.num_c_vars:
-            msg = ('You have provided too many parameters:',
-                   self.num_vars * len(self.conns.index) + self.num_c_vars,
-                   'required, ', n, 'given.')
+            msg = ('You have provided too many parameters: ' +
+                   str(self.num_vars * len(self.conns.index) +
+                       self.num_c_vars) + ' required, ' + str(n) +
+                   ' supplied.')
             raise hlp.MyNetworkError(msg)
         elif n < self.num_vars * len(self.conns.index) + self.num_c_vars:
-            msg = ('You have not provided enough parameters:',
-                   self.num_vars * len(self.conns.index) + self.num_c_vars,
-                   'required, ', n, 'given.')
+            msg = ('You have not provided enough parameters: ' +
+                   str(self.num_vars * len(self.conns.index) +
+                       self.num_c_vars) + ' required, ' + str(n) +
+                   ' supplied.')
             raise hlp.MyNetworkError(msg)
         else:
             return
@@ -2028,9 +2011,14 @@ class network:
         :returns: no return value
         """
         for b in self.busses:
-            b.P = 0
+            b.P.val = 0
             for cp in b.comps.index:
-                b.P += cp.bus_func() * b.comps.loc[cp].factor
+
+                bus = b.comps.loc[cp]
+                val = cp.bus_func(bus)
+                b.P.val += val
+                if self.mode == 'design':
+                    bus.P_ref = val
 
     def process_components(cols, nw, mode):
         """
@@ -2055,16 +2043,17 @@ class network:
         adjust number of decimal places according to specified units
         """
 
-        P_res = [x.P for x in self.busses if x.label == 'P_res']
-        Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
-
-        if len(P_res) != 0 and len(Q_diss) != 0:
-            if self.nwkinfo:
-                print('process key figures')
-                print('eta_th = ' + str(1 - sum(Q_diss) /
-                      (sum(P_res) + sum(Q_diss))))
-                print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
-                print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
+# not used very much, remove it for now
+#        P_res = [x.P for x in self.busses if x.label == 'P_res']
+#        Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
+#
+#        if len(P_res) != 0 and len(Q_diss) != 0:
+#            if self.nwkinfo:
+#                print('process key figures')
+#                print('eta_th = ' + str(1 - sum(Q_diss) /
+#                      (sum(P_res) + sum(Q_diss))))
+#                print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
+#                print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
 
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):
@@ -2323,9 +2312,15 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
                                           args=(self.busses,))
-        cp_sort['bus_factors'] = cp_sort.apply(network.get_bus_factors,
-                                               axis=1,
-                                               args=(self.busses,))
+        cp_sort['bus_param'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'param'))
+        cp_sort['bus_P_ref'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'P_ref'))
+        cp_sort['bus_char'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'char'))
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2377,10 +2372,11 @@ class network:
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         df['id'] = df.apply(network.get_id, axis=1)
 
-        cols = ['label', 'P', 'P_set']
-        for col in cols:
-            df[col] = df.apply(network.get_props, axis=1,
-                               args=(col,))
+        df['label'] = df.apply(network.get_props, axis=1, args=('label',))
+
+        df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
+        df['P_set'] = df.apply(network.get_props, axis=1,
+                               args=('P', 'val_set'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
@@ -2413,6 +2409,13 @@ class network:
                                       args=(col, 'func')).tolist()
                 else:
                     continue
+
+        df = pd.DataFrame({'id': self.busses}, index=self.busses)
+        for bus in df.index:
+            for c in bus.comps.index:
+                ch = bus.comps.loc[c].char
+                if ch not in chars:
+                    chars += [ch]
 
         df = pd.DataFrame({'id': chars}, index=chars)
         df['id'] = df.apply(network.get_id, axis=1)
@@ -2463,9 +2466,17 @@ class network:
                 busses += [str(bus)[str(bus).find(' at ') + 4:-1]]
         return busses
 
-    def get_bus_factors(c, *args):
-        factors = []
-        for bus in args[0]:
-            if c.name in bus.comps.index:
-                factors += [bus.comps.loc[c.name].factor]
-        return factors
+    def get_bus_data(c, *args):
+        items = []
+        if args[1] == 'char':
+            for bus in args[0]:
+                if c.name in bus.comps.index:
+                    val = bus.comps.loc[c.name][args[1]]
+                    items += [str(val)[str(val).find(' at ') + 4:-1]]
+
+        else:
+            for bus in args[0]:
+                if c.name in bus.comps.index:
+                    items += [bus.comps.loc[c.name][args[1]]]
+
+        return items

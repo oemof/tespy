@@ -1257,9 +1257,9 @@ class network:
         try:
             self.vec_z = inv(self.mat_deriv).dot(-np.asarray(self.vec_res))
             self.lin_dep = False
-        except:
-            pass
+        except np.linalg.linalg.LinAlgError:
             self.vec_z = np.asarray(self.vec_res) * 0
+            pass
 
         # check for linear dependency
         if self.lin_dep:
@@ -1612,24 +1612,26 @@ class network:
         """
         row = len(self.vec_res)
         for b in self.busses:
-            if b.P_set:
+            if b.P.val_set:
                 P_res = 0
                 for cp in b.comps.index:
                     i = self.comps.loc[cp].i.tolist()
                     o = self.comps.loc[cp].o.tolist()
 
-                    P_res += cp.bus_func() * b.comps.loc[cp].factor
-                    deriv = -cp.bus_deriv()
+                    bus = b.comps.loc[cp]
+
+                    P_res += cp.bus_func(bus)
+                    deriv = -cp.bus_deriv(bus)
 
                     j = 0
                     for c in i + o:
                         loc = self.conns.index.get_loc(c)
                         self.mat_deriv[row, loc * (self.num_vars):
                                        (loc + 1) * self.num_vars] = (
-                            deriv[:, j] * b.comps.loc[cp].factor)
+                            deriv[:, j])
                         j += 1
 
-                self.vec_res += [b.P - P_res]
+                self.vec_res += [b.P.val - P_res]
 
                 row += 1
 
@@ -1952,7 +1954,7 @@ class network:
             n += [c.fluid.balance].count(True)
 
         for b in self.busses:
-            n += [b.P_set].count(True)
+            n += [b.P.val_set].count(True)
 
         if n > self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have provided too many parameters: ' +
@@ -2009,9 +2011,14 @@ class network:
         :returns: no return value
         """
         for b in self.busses:
-            b.P = 0
+            b.P.val = 0
             for cp in b.comps.index:
-                b.P += cp.bus_func() * b.comps.loc[cp].factor
+
+                bus = b.comps.loc[cp]
+                val = cp.bus_func(bus)
+                b.P.val += val
+                if self.mode == 'design':
+                    bus.P_ref = val
 
     def process_components(cols, nw, mode):
         """
@@ -2036,16 +2043,17 @@ class network:
         adjust number of decimal places according to specified units
         """
 
-        P_res = [x.P for x in self.busses if x.label == 'P_res']
-        Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
-
-        if len(P_res) != 0 and len(Q_diss) != 0:
-            if self.nwkinfo:
-                print('process key figures')
-                print('eta_th = ' + str(1 - sum(Q_diss) /
-                      (sum(P_res) + sum(Q_diss))))
-                print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
-                print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
+# not used very much, remove it for now
+#        P_res = [x.P for x in self.busses if x.label == 'P_res']
+#        Q_diss = [x.P for x in self.busses if x.label == 'Q_diss']
+#
+#        if len(P_res) != 0 and len(Q_diss) != 0:
+#            if self.nwkinfo:
+#                print('process key figures')
+#                print('eta_th = ' + str(1 - sum(Q_diss) /
+#                      (sum(P_res) + sum(Q_diss))))
+#                print('eps_hp = ' + str(abs(sum(Q_diss)) / sum(P_res)))
+#                print('eps_cm = ' + str(abs(sum(Q_diss)) / sum(P_res) - 1))
 
         msg = 'Do you want to print the components parammeters?'
         if hlp.query_yes_no(msg):
@@ -2304,9 +2312,15 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
                                           args=(self.busses,))
-        cp_sort['bus_factors'] = cp_sort.apply(network.get_bus_factors,
-                                               axis=1,
-                                               args=(self.busses,))
+        cp_sort['bus_param'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'param'))
+        cp_sort['bus_P_ref'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'P_ref'))
+        cp_sort['bus_char'] = cp_sort.apply(network.get_bus_data,
+                                             axis=1,
+                                             args=(self.busses, 'char'))
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2358,10 +2372,11 @@ class network:
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         df['id'] = df.apply(network.get_id, axis=1)
 
-        cols = ['label', 'P', 'P_set']
-        for col in cols:
-            df[col] = df.apply(network.get_props, axis=1,
-                               args=(col,))
+        df['label'] = df.apply(network.get_props, axis=1, args=('label',))
+
+        df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
+        df['P_set'] = df.apply(network.get_props, axis=1,
+                               args=('P', 'val_set'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
@@ -2394,6 +2409,13 @@ class network:
                                       args=(col, 'func')).tolist()
                 else:
                     continue
+
+        df = pd.DataFrame({'id': self.busses}, index=self.busses)
+        for bus in df.index:
+            for c in bus.comps.index:
+                ch = bus.comps.loc[c].char
+                if ch not in chars:
+                    chars += [ch]
 
         df = pd.DataFrame({'id': chars}, index=chars)
         df['id'] = df.apply(network.get_id, axis=1)
@@ -2444,9 +2466,17 @@ class network:
                 busses += [str(bus)[str(bus).find(' at ') + 4:-1]]
         return busses
 
-    def get_bus_factors(c, *args):
-        factors = []
-        for bus in args[0]:
-            if c.name in bus.comps.index:
-                factors += [bus.comps.loc[c.name].factor]
-        return factors
+    def get_bus_data(c, *args):
+        items = []
+        if args[1] == 'char':
+            for bus in args[0]:
+                if c.name in bus.comps.index:
+                    val = bus.comps.loc[c.name][args[1]]
+                    items += [str(val)[str(val).find(' at ') + 4:-1]]
+
+        else:
+            for bus in args[0]:
+                if c.name in bus.comps.index:
+                    items += [bus.comps.loc[c.name][args[1]]]
+
+        return items

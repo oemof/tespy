@@ -3436,8 +3436,16 @@ class combustion_chamber(component):
 
         if self.lamb.val < 2 and not self.lamb.is_set:
             for i in inl:
+                fuel_set = True
                 if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
-                    i.m.val_SI = 0.01
+                    fuel_set = False
+                if i.fluid.val[self.fuel.val] < 0.75:
+                    air_tmp = i.m.val_SI
+
+            if not fuel_set:
+                for i in inl:
+                    if i.fluid.val[self.fuel.val] > 0.75:
+                        i.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
         r"""
@@ -4710,49 +4718,6 @@ class cogeneration_unit(combustion_chamber):
 
         return res
 
-#    def bus_func(self, bus):
-#        r"""
-#        function for use on busses
-#
-#        :returns: val (*float*) - residual value of equation
-#
-#        .. math::
-#
-#            val = \dot{m}_{fuel} \cdot LHV
-#        """
-#
-#        if par == 'TI':
-#            return self.calc_ti()
-#
-#        elif par == 'P':
-#
-#        elif par == 'Q':
-#
-#        elif par == 'Q1':
-#
-#        elif par == 'Q2':
-#
-#        elif par == 'Qloss':
-#
-#        else:
-#
-#    def bus_deriv(self, bus):
-#        r"""
-#        calculate matrix of partial derivatives towards mass flow and fluid
-#        composition for bus
-#        function
-#
-#        :returns: mat_deriv (*list*) - matrix of partial derivatives
-#        """
-#        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
-#        for i in range(2):
-#            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i)
-#            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i)
-#
-#        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2)
-#        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2)
-#        return deriv
-
     def drb_dx(self, dx, pos, fluid):
         r"""
         calculates derivative of the reaction balance to dx at components inlet
@@ -4819,6 +4784,108 @@ class cogeneration_unit(combustion_chamber):
             (self.inl + self.outl)[pos].m.val_SI += dm
             (self.inl + self.outl)[pos].p.val_SI += dp
             (self.inl + self.outl)[pos].h.val_SI += dh
+
+        return deriv
+
+    def bus_func(self, bus):
+        r"""
+        functions for use on busses
+
+        :returns: val (*float*) - residual value of equation
+        """
+
+        if bus.param == 'TI':
+            return self.calc_ti()
+
+        if bus.param == 'P':
+            return self.calc_P()
+
+        if bus.param == 'Q':
+            val = 0
+            for j in range(2):
+                i = self.inl[j]
+                o = self.outl[j]
+                val += i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+            return val
+
+        if bus.param == 'Q1':
+            i = self.inl[0]
+            o = self.outl[0]
+
+            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+        if bus.param == 'Q2':
+            i = self.inl[1]
+            o = self.outl[1]
+
+            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+        if bus.param == 'Qloss':
+            return self.Qloss.val
+
+    def bus_deriv(self, bus):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and fluid
+        composition for bus
+        function
+
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        deriv = np.zeros((1, 7 + self.num_c_vars,
+                          len(self.inl[0].fluid.val) + 3))
+
+        if bus.param == 'TI':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_ti, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_ti, 'fluid', i + 2))
+            deriv[0, 6, 0] = self.ddx_func(self.calc_ti, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_ti, 'fluid', 6)
+
+        if bus.param == 'P':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_P, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_P, 'fluid', i + 2))
+
+            deriv[0, 6, 0] = self.ddx_func(self.calc_P, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_P, 'fluid', 6)
+
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = (
+                    self.ddx_func(self.calc_P, 'P', 7))
+
+        if bus.param == 'Q':
+            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            deriv[0, 0, 2] = -self.inl[0].m.val_SI
+            deriv[0, 4, 2] = self.inl[0].m.val_SI
+            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+            deriv[0, 1, 2] = -self.inl[0].m.val_SI
+            deriv[0, 5, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Q1':
+            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            deriv[0, 0, 2] = -self.inl[0].m.val_SI
+            deriv[0, 4, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Q2':
+            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+            deriv[0, 1, 2] = -self.inl[0].m.val_SI
+            deriv[0, 5, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Qloss':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_Qloss, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_Qloss, 'fluid', i + 2))
+
+            deriv[0, 6, 0] = self.ddx_func(self.calc_Qloss, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_Qloss, 'fluid', 6)
+
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = (
+                    self.ddx_func(self.calc_Qloss, 'P', 7))
 
         return deriv
 
@@ -4996,6 +5063,48 @@ class cogeneration_unit(combustion_chamber):
             m -= o.m.val_SI * o.fluid.val[self.fuel.val]
 
         return m * self.lhv
+
+    def calc_P(self):
+        r"""
+        calculates power from thermal input and
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            P = \frac{LHV \cdot \dot{m}_{f}}
+            {f_{TI}\left(\frac{P}{P_{ref}}\right)}
+
+        """
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return self.calc_ti() / self.tiP_char.func.f_x(expr)
+
+    def calc_Qloss(self):
+        r"""
+        calculates heat loss from thermal input and
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            \dot{Q}_{loss} = \frac{LHV \cdot \dot{m}_{f} \cdot
+            f_{QLOSS}\left(\frac{P}{P_{ref}}\right)}
+            {f_{TI}\left(\frac{P}{P_{ref}}\right)}
+
+        """
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) /
+                self.tiP_char.func.f_x(expr))
 
     def initialise_fluids(self, nw):
         r"""
@@ -5756,12 +5865,10 @@ class heat_exchanger_simple(component):
             ttd_u = T_i - self.Tamb.val_SI
             ttd_l = T_o - self.Tamb.val_SI
 
-        expr = 1
+        fkA = 1
         if hasattr(self, 'i_ref'):
             if self.kA_char.param == 'm':
-                expr = i[0] / self.i_ref[0]
-
-        fkA = self.kA_char.func.f_x(expr)
+                fkA = self.kA_char.func.f_x(i[0] / self.i_ref[0])
 
         return (i[0] * (o[2] - i[2]) + self.kA.val * fkA * (
                 (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
@@ -6591,19 +6698,15 @@ class heat_exchanger(component):
                    'temperature difference is negative!')
             raise MyComponentError(msg)
 
+        fkA1 = 1
         if self.kA_char1.param == 'm':
-            expr = i1[0] / self.i1_ref[0]
-        else:
-            expr = 1
+            if hasattr(self, 'i1_ref'):
+                fkA1 = self.kA_char1.func.f_x(i1[0] / self.i1_ref[0])
 
-        fkA1 = self.kA_char1.func.f_x(expr)
-
+        fkA2 = 1
         if self.kA_char2.param == 'm':
-            expr = i2[0] / self.i2_ref[0]
-        else:
-            expr = 1
-
-        fkA2 = self.kA_char2.func.f_x(expr)
+            if hasattr(self, 'i2_ref'):
+                fkA2 = self.kA_char2.func.f_x(i2[0] / self.i2_ref[0])
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
                 (T_o1 - T_i2 - T_i1 + T_o2) /
@@ -7141,19 +7244,15 @@ class condenser(heat_exchanger):
         if T_o1 <= T_i2 and not self.inl[1].T.val_set:
             T_i2 = T_o1 - 1
 
+        fkA1 = 1
         if self.kA_char1.param == 'm':
-            expr = i1[0] / self.i1_ref[0]
-        else:
-            expr = 1
+            if hasattr(self, 'i1_ref'):
+                fkA1 = self.kA_char1.func.f_x(i1[0] / self.i1_ref[0])
 
-        fkA1 = self.kA_char1.func.f_x(expr)
-
+        fkA2 = 1
         if self.kA_char2.param == 'm':
-            expr = i2[0] / self.i2_ref[0]
-        else:
-            expr = 1
-
-        fkA2 = self.kA_char2.func.f_x(expr)
+            if hasattr(self, 'i2_ref'):
+                fkA2 = self.kA_char2.func.f_x(i2[0] / self.i2_ref[0])
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
                 (T_o1 - T_i2 - T_i1 + T_o2) /

@@ -1723,7 +1723,7 @@ class compressor(turbomachine):
 
         return np.array([(self.h_os('post') - i[2]) -
                         (o[2] - i[2]) *
-                        self.flow_char.func.f_x(o[1] / i[1])])
+                        self.eta_s_char.func.f_x(o[1] / i[1])])
 
     def eta_s_char_deriv(self):
         r"""

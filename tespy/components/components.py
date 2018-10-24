@@ -1488,11 +1488,11 @@ class compressor(turbomachine):
             method = self.char_map.method
             self.char_map.func = cmp_char.compressor(method=method)
 
-        if self.flow_char.func is None:
-            method = self.flow_char.method
-            x = self.flow_char.x
-            y = self.flow_char.y
-            self.flow_char.func = cmp_char.characteristics(method=method,
+        if self.preta_s_char.func is None:
+            method = self.preta_s_char.method
+            x = self.preta_s_char.x
+            y = self.preta_s_char.y
+            self.preta_s_char.func = cmp_char.characteristics(method=method,
                                                            x=x, y=y)
 
     def component(self):
@@ -1503,7 +1503,7 @@ class compressor(turbomachine):
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(method='GENERIC'),
-                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
+                'preta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
 
     def default_offdesign(self):
         return ['char_map']
@@ -1527,8 +1527,8 @@ class compressor(turbomachine):
         if self.char_map.is_set:
             vec_res += self.char_func().tolist()
 
-        if self.flow_char.is_set:
-            vec_res += self.flow_char_func().tolist()
+        if self.preta_s_char.is_set:
+            vec_res += self.preta_s_char_func().tolist()
 
         return vec_res
 
@@ -1546,8 +1546,8 @@ class compressor(turbomachine):
         if self.char_map.is_set:
             mat_deriv += self.char_deriv()
 
-        if self.flow_char.is_set:
-            mat_deriv += self.flow_char_deriv()
+        if self.preta_s_char.is_set:
+            mat_deriv += self.preta_s_char_deriv()
 
         return mat_deriv
 
@@ -1691,7 +1691,7 @@ class compressor(turbomachine):
             deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
         return deriv.tolist()
 
-    def flow_char_func(self):
+    def preta_s_char_func(self):
         r"""
         equation for characteristics of a compressor
         """
@@ -1700,17 +1700,17 @@ class compressor(turbomachine):
 
         expr = (o[1] / i[1])
 
-        if expr > self.flow_char.func.x[-1]:
-            expr = self.flow_char.func.x[-1]
-        elif expr < self.flow_char.func.x[0]:
-            expr = self.flow_char.func.x[0]
+        if expr > self.preta_s_char.func.x[-1]:
+            expr = self.preta_s_char.func.x[-1]
+        elif expr < self.preta_s_char.func.x[0]:
+            expr = self.preta_s_char.func.x[0]
 
-#        print(self.flow_char.func.f_x(expr))
+#        print(self.preta_s_char.func.f_x(expr))
         return np.array([(self.h_os('post') - i[2]) -
                         (o[2] - i[2]) *
-                        self.flow_char.func.f_x(expr)])
+                        self.preta_s_char.func.f_x(expr)])
 
-    def flow_char_deriv(self):
+    def preta_s_char_deriv(self):
         r"""
         calculates the derivatives for the characteristics
 
@@ -1736,10 +1736,10 @@ class compressor(turbomachine):
         num_fl = len(self.inl[0].fluid.val)
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
-        mat_deriv[0, 0, 1] = self.ddx_func(self.flow_char_func, 'p', 0)
-        mat_deriv[0, 1, 1] = self.ddx_func(self.flow_char_func, 'p', 1)
-        mat_deriv[0, 0, 2] = self.ddx_func(self.flow_char_func, 'h', 0)
-        mat_deriv[0, 1, 2] = self.ddx_func(self.flow_char_func, 'h', 1)
+        mat_deriv[0, 0, 1] = self.ddx_func(self.preta_s_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.ddx_func(self.preta_s_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.ddx_func(self.preta_s_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.ddx_func(self.preta_s_char_func, 'h', 1)
 
         return mat_deriv.tolist()
 
@@ -1773,14 +1773,14 @@ class compressor(turbomachine):
         if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
-#        if self.flow_char.is_set:
+#        if self.preta_s_char.is_set:
 #            expr = i[0].m.val_SI * v_mix_ph(i[0].to_flow())
 #
-#            if expr > self.flow_char.func.x[-1] and not i[0].m.val_set:
-#                i[0].m.val_SI = self.flow_char.func.x[-1] / v_mix_ph(
+#            if expr > self.preta_s_char.func.x[-1] and not i[0].m.val_set:
+#                i[0].m.val_SI = self.preta_s_char.func.x[-1] / v_mix_ph(
 #                        i[0].to_flow())
-#            elif expr < self.flow_char.func.x[1] and not i[0].m.val_set:
-#                i[0].m.val_SI = self.flow_char.func.x[0] / v_mix_ph(
+#            elif expr < self.preta_s_char.func.x[1] and not i[0].m.val_set:
+#                i[0].m.val_SI = self.preta_s_char.func.x[0] / v_mix_ph(
 #                        i[0].to_flow())
 
     def initialise_source(self, c, key):
@@ -4237,7 +4237,6 @@ class vessel(component):
             w = self.pr_char.x
             v = self.pr_char.y
 
-            print(w, v)
             self.pr_char.func = cmp_char.characteristics(method=method,
                                                          x=w, y=v)
 

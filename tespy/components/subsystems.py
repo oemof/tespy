@@ -534,8 +534,8 @@ class eva_sup(subsystem):
                                           num_inter=self.num_i)
         self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
                                            num_inter=self.num_o)
-        self.eva = cmp.heat_exchanger(label=self.label + '_eva')
-        self.sup = cmp.heat_exchanger(label=self.label + '_sup')
+        self.eva = cmp.heat_exchanger(label=self.label + '_eva', offdesign=['zeta1', 'zeta2'])
+        self.sup = cmp.heat_exchanger(label=self.label + '_sup', offdesign=['zeta1', 'zeta2'])
 
     def set_comps(self):
 

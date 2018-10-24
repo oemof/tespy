@@ -1479,6 +1479,7 @@ class compressor(turbomachine):
 
     - P: power, :math:`[P]=\text{W}`
     - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - eta_s_char: isentropic efficiency characteristics
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - char_map: characteristic map for compressors, map is generated in
       preprocessing of offdesign calculations
@@ -1514,7 +1515,8 @@ class compressor(turbomachine):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(method='GENERIC')}
+                'char_map': dc_cc(method='GENERIC'),
+                'eta_s_char': dc_cc()}
 
     def default_offdesign(self):
         return ['char_map']
@@ -1545,7 +1547,10 @@ class compressor(turbomachine):
         vec_res = []
 
         if self.char_map.is_set:
-            vec_res += self.char_func().tolist()
+            vec_res += self.char_map_func().tolist()
+
+        if self.eta_s_char.is_set:
+            vec_res += self.eta_s_char_func().tolist()
 
         return vec_res
 
@@ -1561,7 +1566,10 @@ class compressor(turbomachine):
         mat_deriv = []
 
         if self.char_map.is_set:
-            mat_deriv += self.char_deriv()
+            mat_deriv += self.char_map_deriv()
+
+        if self.eta_s_char.is_set:
+            mat_deriv += self.eta_s_char_deriv()
 
         return mat_deriv
 
@@ -1603,7 +1611,7 @@ class compressor(turbomachine):
 
         return mat_deriv.tolist()
 
-    def char_func(self):
+    def char_map_func(self):
         r"""
         equation(s) for characteristics of compressor
 
@@ -1661,7 +1669,7 @@ class compressor(turbomachine):
 
         return np.array([z1, z2])
 
-    def char_deriv(self):
+    def char_map_deriv(self):
         r"""
         calculates the derivatives for the characteristics
 
@@ -1679,15 +1687,15 @@ class compressor(turbomachine):
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        m11 = self.ddx_func(self.char_func, 'm', 0)
-        p11 = self.ddx_func(self.char_func, 'p', 0)
-        h11 = self.ddx_func(self.char_func, 'h', 0)
+        m11 = self.ddx_func(self.char_map_func, 'm', 0)
+        p11 = self.ddx_func(self.char_map_func, 'p', 0)
+        h11 = self.ddx_func(self.char_map_func, 'h', 0)
 
-        p21 = self.ddx_func(self.char_func, 'p', 1)
-        h21 = self.ddx_func(self.char_func, 'h', 1)
+        p21 = self.ddx_func(self.char_map_func, 'p', 1)
+        h21 = self.ddx_func(self.char_map_func, 'h', 1)
 
         if self.igva.is_var:
-            igva = self.ddx_func(self.char_func, 'igva', 1)
+            igva = self.ddx_func(self.char_map_func, 'igva', 1)
 
         deriv = np.zeros((2, 2 + self.num_c_vars, num_fl + 3))
         deriv[0, 0, 0] = m11[0]
@@ -1704,6 +1712,35 @@ class compressor(turbomachine):
             deriv[0, 2 + self.igva.var_pos, 0] = igva[0]
             deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
         return deriv.tolist()
+
+    def eta_s_char_func(self):
+        r"""
+        equation for isentropic efficiency of compressor linked to pressure
+        ratio
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        return np.array([(self.h_os('post') - i[2]) -
+                        (o[2] - i[2]) *
+                        self.flow_char.func.f_x(o[1] / i[1])])
+
+    def eta_s_char_deriv(self):
+        r"""
+        calculates the derivatives for the isentropic efficiency
+        characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.eta_s_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.ddx_func(self.eta_s_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.ddx_func(self.eta_s_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.ddx_func(self.eta_s_char_func, 'h', 1)
+
+        return mat_deriv.tolist()
 
     def convergence_check(self, nw):
         """
@@ -5281,6 +5318,9 @@ class vessel(component):
        :alt: alternative text
        :align: center
     """
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
     def component(self):
         return 'vessel'
@@ -5288,7 +5328,8 @@ class vessel(component):
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
-                'Sirr': dc_cp()}
+                'Sirr': dc_cp(),
+                'pr_char': dc_cc()}
 
     def default_design(self):
         return ['pr']
@@ -5342,6 +5383,9 @@ class vessel(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
+        if self.pr_char.is_set:
+            vec_res += self.pr_char_func().tolist()
+
         return vec_res
 
     def derivatives(self, nw):
@@ -5383,6 +5427,9 @@ class vessel(component):
                 zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
                     self.ddx_func(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
+
+        if self.pr_char.is_set:
+            mat_deriv += self.pr_char_deriv()
 
         return np.asarray(mat_deriv)
 
@@ -5427,6 +5474,29 @@ class vessel(component):
             return 5e5
         else:
             return 0
+
+    def pr_char_func(self):
+        r"""
+        equation for characteristics of a vessel
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        return np.array([i[1] - self.pr_char.func.f_x(i[1]) * o[1]])
+
+    def pr_char_deriv(self):
+        r"""
+        calculates the derivatives for the characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.pr_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
+
+        return mat_deriv.tolist()
 
     def calc_parameters(self, nw, mode):
 

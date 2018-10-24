@@ -405,13 +405,8 @@ class ph_desup_cond_subc(subsystem):
         self.desup.set_attr(pr2=self.pr2_desup)
         self.condenser.set_attr(pr1=self.pr1_cond)
         self.condenser.set_attr(pr2=self.pr2_cond)
-<<<<<<< HEAD
         self.subcooler.set_attr(pr1=self.pr1_subc)
         self.subcooler.set_attr(pr2=self.pr2_subc)
-=======
-        self.subcooler.set_attr(pr1=self.pr1_cond)
-        self.subcooler.set_attr(pr2=self.pr2_cond)
->>>>>>> features/characteristics
         self.vessel.set_attr(pr=self.pr_v)
 
     def create_conns(self):

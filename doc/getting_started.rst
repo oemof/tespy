@@ -7,7 +7,7 @@ Getting started
 Examples
 ========
 
-In the example section we provide a variety of TESPy applications:
+In the example section we provide a variety of TESPy applications, amongst others:
 
 * a very basic model of the clausius rankine process,
 * the calculation of backpressure lines of a chp at different loads and feed flow temperature levels,
@@ -22,8 +22,9 @@ You can find all examples in the `tespy examples github repository <https://gith
     :backlinks: top
 
 .. include:: getting_started/basic.rst
-.. include:: getting_started/chp.rst
 .. include:: getting_started/ccbp.rst
+.. include:: getting_started/chp.rst
+.. include:: getting_started/cogeneration_unit.rst
 .. include:: getting_started/district_heating.rst
 .. include:: getting_started/heat_pump.rst
 .. include:: getting_started/solar_collector.rst

@@ -8,6 +8,8 @@
 import numpy as np
 import math
 
+import time
+
 import CoolProp.CoolProp as CP
 
 from tespy.helpers import (
@@ -81,7 +83,7 @@ class component:
 
     :param label: label for component
     :type label: str
-    :param kwargs: for the keyword arguments see :code:`component.attr()`
+    :param kwargs: for the keyword arguments see :code:`component.attr(self)`
     :returns: no return value
     :raises: - :code:`TypeError`, if label is not of type str
                components
@@ -130,22 +132,19 @@ class component:
         self.offdesign = self.default_offdesign()
 
         # add container for components attributes
-        var = self.attr_prop()
+        var = self.attr()
 
         for key in var.keys():
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
 
-#        print('Created ', self, '.')
-#        print(self.__dict__)
-
     def set_attr(self, **kwargs):
         """
         sets, resets or unsets attributes of a connection, for the keyword
         arguments, return values and errors see object initialisation
         """
-        var = self.attr()
+        var = self.attr().keys()
 
         # set specified values
         for key in kwargs:
@@ -164,11 +163,17 @@ class component:
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
+                            self.get_attr(key).set_attr(is_var=False)
                         else:
                             self.get_attr(key).set_attr(val=kwargs[key])
                             self.get_attr(key).set_attr(is_set=True)
+                            self.get_attr(key).set_attr(is_var=False)
 
-                    elif isinstance(kwargs[key], str):
+                    elif kwargs[key] == 'var':
+                        self.get_attr(key).set_attr(is_set=True)
+                        self.get_attr(key).set_attr(is_var=True)
+
+                    elif isinstance(kwargs[key], str) and kwargs[key] != 'var':
                         self.get_attr(key).set_attr(val=kwargs[key])
                         self.get_attr(key).set_attr(is_set=True)
 
@@ -176,14 +181,10 @@ class component:
                         self.get_attr(key).set_attr(val=kwargs[key])
                         self.get_attr(key).set_attr(is_set=True)
 
-                    elif kwargs[key] == 'var':
-                        self.get_attr(key).set_attr(val=1)
-                        self.get_attr(key).set_attr(is_set=True)
-                        self.get_attr(key).set_attr(is_var=True)
-
                     # invalid datatype for keyword
                     else:
-                        msg = 'Bad datatype for keyword argument ' + str(key)
+                        msg = ('Bad datatype for keyword argument ' + key +
+                               ' at ' + self.label + '.')
                         raise TypeError(msg)
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
@@ -194,26 +195,29 @@ class component:
 
                 # invalid datatype for keyword
                 else:
-                    msg = 'Bad datatype for keyword argument ' + str(key)
+                    msg = ('Bad datatype for keyword argument ' + key +
+                           ' at ' + self.label + '.')
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the design parameters as list!'
+                    msg = ('Please provide the design parameters as list at ' +
+                           self.label + '.')
                     raise ValueError(msg)
-                if set(kwargs[key]).issubset(list(self.attr())):
+                if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design'
+                    msg = ('Available parameters for (off-)design '
                            'specification are: ' +
-                           str(self.attr()) + '.')
+                           str(list(var)) + ' at ' + self.label + '.')
                     raise ValueError(msg)
 
             elif key == 'mode':
                 if kwargs[key] in ['man', 'auto']:
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = 'mode must be \'man\' or \'auto\'.'
+                    msg = ('Mode must be \'man\' or \'auto\' at ' +
+                           self.label + '.')
                     raise TypeError(msg)
 
             # invalid keyword
@@ -240,12 +244,36 @@ class component:
             return None
 
     def comp_init(self, nw):
-        return
+        r"""
+        generic component initialisation
+
+        - counts/searches custom variables
+        - creates characteristics for components
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: no return value
+        """
+        self.vars = {}
+        self.num_c_vars = 0
+        for var in self.attr().keys():
+            if isinstance(self.attr()[var], dc_cp):
+                if self.get_attr(var).is_var:
+                    self.get_attr(var).var_pos = self.num_c_vars
+                    self.num_c_vars += 1
+                    self.vars[self.get_attr(var)] = var
+
+        # characteristics creation
+        for key, val in self.attr().items():
+            if isinstance(val, dc_cc):
+                if self.get_attr(key).func is None:
+                    self.get_attr(key).func = cmp_char.characteristics(
+                            method=val.method, x=self.get_attr(key).x,
+                            y=self.get_attr(key).y, comp=self.component())
+                    self.get_attr(key).x = self.get_attr(key).func.x
+                    self.get_attr(key).y = self.get_attr(key).func.y
 
     def attr(self):
-        return []
-
-    def attr_prop(self):
         return {}
 
     def inlets(self):
@@ -266,10 +294,10 @@ class component:
     def derivatives(self, nw):
         return []
 
-    def bus_func(self):
+    def bus_func(self, bus):
         return 0
 
-    def bus_deriv(self):
+    def bus_deriv(self, bus):
         return
 
     def initialise_source(self, c, key):
@@ -301,9 +329,6 @@ class component:
     def calc_parameters(self, nw, mode):
         return
 
-    def print_parameters(self, nw):
-        return
-
     def initialise_fluids(self, nw):
         return
 
@@ -323,30 +348,35 @@ class component:
         .. math:: 0 = fluid_{i,in} - fluid_{i,out} \;
             \forall i \in \mathrm{fluid}
 
-        **component heat exchanger or subsystem interface**
+        **heat exchanger, subsystem interface**
 
         .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
 
-        **component splitter**
+        **cogeneration unit**
+
+        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
+
+        **splitter**
 
         .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in outlets
 
-        **component merge**
+        **merge**
 
         .. math::
             0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
                 \dot {m}_{out} \cdot fluid_{i,out} \\
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets
 
-        **component drum**
+        **drum**
 
         .. math::
             0 = fluid_{i,in_1} - fluid_{i,out_{j}} \;
             \forall i \in \mathrm{fluid}, \; \forall j \in inlets
 
-        **component separator**
+        **separator**
 
         .. math::
             0 = \dot{m}_{in} \cdot fluid_{i,in} -
@@ -364,6 +394,12 @@ class component:
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
             for i in range(self.num_i):
+                for fluid, x in self.inl[i].fluid.val.items():
+                    vec_res += [x - self.outl[i].fluid.val[fluid]]
+            return vec_res
+
+        if isinstance(self, cogeneration_unit):
+            for i in range(2):
                 for fluid, x in self.inl[i].fluid.val.items():
                     vec_res += [x - self.outl[i].fluid.val[fluid]]
             return vec_res
@@ -406,37 +442,11 @@ class component:
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
-
-        **example:**
-
-        component with one inlet and one outlet and 3 fluids in fluid vector
-
-        .. math::
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 1 & 0 & 0\\
-                0 & 0 & 0 & -1 & 0 & 0\\
-            \end{array}
-            \right)
-
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 0 & 1 & 0\\
-                0 & 0 & 0 & 0 & -1 & 0\\
-            \end{array}
-            \right)
-
-            \left(
-            \begin{array}{cccccc}
-                0 & 0 & 0 & 0 & 0 & 1\\
-                0 & 0 & 0 & 0 & 0 & -1\\
-            \end{array}
-            \right)
         """
         num_fl = len(self.inl[0].fluid.val)
 
         if self.num_i == 1 and self.num_o == 1:
-            mat_deriv = np.zeros((num_fl, 2, 3 + num_fl))
+            mat_deriv = np.zeros((num_fl, 2 + self.num_c_vars, 3 + num_fl))
             i = 0
             for fluid, x in self.inl[0].fluid.val.items():
                 mat_deriv[i, 0, i + 3] = 1
@@ -445,7 +455,7 @@ class component:
             return mat_deriv.tolist()
 
         if isinstance(self, heat_exchanger):
-            mat_deriv = np.zeros((num_fl * 2, 4, 3 + num_fl))
+            mat_deriv = np.zeros((num_fl * 2, 4 + self.num_c_vars, 3 + num_fl))
             i = 0
             for fluid in self.inl[0].fluid.val.keys():
                 mat_deriv[i, 0, i + 3] = 1
@@ -456,6 +466,21 @@ class component:
                 mat_deriv[i + j, 1, j + 3] = 1
                 mat_deriv[i + j, 3, j + 3] = -1
                 j += 1
+            return mat_deriv.tolist()
+
+        if isinstance(self, cogeneration_unit):
+            mat_deriv = np.zeros((num_fl * 2, 7 + self.num_c_vars, 3 + num_fl))
+            i = 0
+            for fluid in self.inl[0].fluid.val.keys():
+                mat_deriv[i, 0, i + 3] = 1
+                mat_deriv[i, 4, i + 3] = -1
+                i += 1
+            j = 0
+            for fluid in self.inl[1].fluid.val.keys():
+                mat_deriv[i + j, 1, j + 3] = 1
+                mat_deriv[i + j, 5, j + 3] = -1
+                j += 1
+
             return mat_deriv.tolist()
 
         if isinstance(self, splitter):
@@ -533,24 +558,31 @@ class component:
 
         :returns: vec_res (*list*) - a list containing the residual values
 
-        **all components but heat exchanger and subsystem interface**
-
-        .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-            \forall i \in inlets, \forall j \in outlets
-
-        heat exchanger and subsystem interface (same number of inlets and
-        outlets
+        **heat exchanger and subsystem interface (same number of inlets and
+        outlets)**
 
         .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
             \forall i \in inlets/outlets
+
+        **cogeneration unit**
+
+        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
+            \forall i \in [1, 2]\\
+            0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
+
+        **other components**
+
+        .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+            \forall i \in inlets, \forall j \in outlets
         """
 
-        if (isinstance(self, split) or
+        if ((isinstance(self, split) or
                 isinstance(self, merge) or
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
-                (self.num_i == 1 and self.num_o == 1)):
+                (self.num_i == 1 and self.num_o == 1)) and
+                not isinstance(self, cogeneration_unit)):
             res = 0
             for i in self.inl:
                 res += i.m.val_SI
@@ -565,6 +597,14 @@ class component:
                 vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
             return vec_res
 
+        if isinstance(self, cogeneration_unit):
+            vec_res = []
+            for i in range(2):
+                vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            vec_res += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
+                        self.outl[2].m.val_SI]
+            return vec_res
+
         if isinstance(self, source) or isinstance(self, sink):
             return None
 
@@ -573,30 +613,19 @@ class component:
         returns derivatives for mass flow equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
-
-        **example**
-
-        merge with three inlets and one outlet (one fluid in fluid vector)
-
-        .. math::
-            \left(
-            \begin{array}{cccc}
-                1 & 0 & 0 & 0\\
-                1 & 0 & 0 & 0\\
-                1 & 0 & 0 & 0\\
-                -1 & 0 & 0 & 0\\
-            \end{array}
-            \right)
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        if (isinstance(self, split) or
+        if ((isinstance(self, split) or
                 isinstance(self, merge) or
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
-                (self.num_i == 1 and self.num_o == 1)):
-            mat_deriv = np.zeros((1, self.num_i + self.num_o, num_fl + 3))
+                (self.num_i == 1 and self.num_o == 1)) and
+                not isinstance(self, cogeneration_unit)):
+            mat_deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars,
+                                  num_fl + 3))
+
             j = 0
             for i in self.inl:
                 mat_deriv[0, j, 0] = 1
@@ -609,19 +638,31 @@ class component:
 
         if (isinstance(self, subsys_interface) or
                 isinstance(self, heat_exchanger)):
-            mat_deriv = np.zeros((self.num_i, self.num_i + self.num_o,
-                                  num_fl + 3))
+            mat_deriv = np.zeros((self.num_i, self.num_i + self.num_o +
+                                  self.num_c_vars, num_fl + 3))
             for i in range(self.num_i):
                 mat_deriv[i, i, 0] = 1
             for j in range(self.num_o):
                 mat_deriv[j, j + i + 1, 0] = -1
             return mat_deriv.tolist()
 
+        if isinstance(self, cogeneration_unit):
+            mat_deriv = np.zeros((3, self.num_i + self.num_o +
+                                  self.num_c_vars, num_fl + 3))
+            for i in range(2):
+                mat_deriv[i, i, 0] = 1
+            for j in range(2):
+                mat_deriv[j, self.num_i + j, 0] = -1
+            mat_deriv[2, 2, 0] = 1
+            mat_deriv[2, 3, 0] = 1
+            mat_deriv[2, 6, 0] = -1
+            return mat_deriv.tolist()
+
         if isinstance(self, source) or isinstance(self, sink):
             return None
 # %%
 
-    def ddx_func(self, func, dx, pos):
+    def ddx_func(self, func, dx, pos, **kwargs):
         r"""
         calculates derivative of the function func to dx at components inlet or
         outlet in position pos
@@ -631,7 +672,7 @@ class component:
         :param dx: dx
         :type dx: str
         :param pos: position of inlet or outlet, logic: ['in1', 'in2', ...,
-                    'out1', ...] -> 0, 1, ..., n, n + 1, ...
+                    'out1', ...] -> 0, 1, ..., n, n + 1, ..., n + m
         :type pos: int
         :returns: deriv (list or float) - partial derivative of the function
                   func to dx
@@ -661,32 +702,44 @@ class component:
                     (self.inl + self.outl)[pos].fluid.val[f] += df
                 else:
                     (self.inl + self.outl)[pos].fluid.val[f] = 1
-                exp += func()
+                exp += func(**kwargs)
                 if (self.inl + self.outl)[pos].fluid.val[f] - 2 * df >= 0:
                     (self.inl + self.outl)[pos].fluid.val[f] -= 2 * df
                 else:
                     (self.inl + self.outl)[pos].fluid.val[f] = 0
-                exp -= func()
+                exp -= func(**kwargs)
                 (self.inl + self.outl)[pos].fluid.val[f] = val
 
                 deriv += [exp / (2 * (dm + dp + dh + df))]
 
-        else:
+        elif dx in ['m', 'p', 'h']:
             exp = 0
             (self.inl + self.outl)[pos].m.val_SI += dm
             (self.inl + self.outl)[pos].p.val_SI += dp
             (self.inl + self.outl)[pos].h.val_SI += dh
-            exp += func()
+            exp += func(**kwargs)
 
             (self.inl + self.outl)[pos].m.val_SI -= 2 * dm
             (self.inl + self.outl)[pos].p.val_SI -= 2 * dp
             (self.inl + self.outl)[pos].h.val_SI -= 2 * dh
-            exp -= func()
+            exp -= func(**kwargs)
             deriv = exp / (2 * (dm + dp + dh + df))
 
             (self.inl + self.outl)[pos].m.val_SI += dm
             (self.inl + self.outl)[pos].p.val_SI += dp
             (self.inl + self.outl)[pos].h.val_SI += dh
+
+        else:
+            d = self.get_attr(dx).d
+            exp = 0
+            self.get_attr(dx).val += d
+            exp += func()
+
+            self.get_attr(dx).val -= 2 * d
+            exp -= func()
+            deriv = exp / (2 * d)
+
+            self.get_attr(dx).val += d
 
         return deriv
 
@@ -717,6 +770,29 @@ class component:
         else:
             val = self.zeta1.val
         return (val - (i[1] - o[1]) * math.pi ** 2 /
+                (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+
+    def zeta2_func(self):
+        r"""
+        calculates pressure drop from zeta2
+
+        :returns: residual value for the pressure drop
+
+        .. math::
+
+            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
+            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
+
+        As the cross sectional area A will not change from design to offdesign
+        calculation, it is possible to handle this the following way:
+
+        .. math::
+            0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
+            \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
+        """
+        i = self.inl[1].to_flow()
+        o = self.outl[1].to_flow()
+        return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
                 (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
 # %%
@@ -784,10 +860,11 @@ class turbomachine(component):
     - in1
     - out1
     """
-    def attr(self):
-        return ['P', 'eta_s', 'pr', 'eta_s_char', 'Sirr']
 
-    def attr_prop(self):
+    def component(self):
+        return 'turbomachine'
+
+    def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
 
@@ -803,8 +880,9 @@ class turbomachine(component):
     def outlets(self):
         return ['out1']
 
-    def component(self):
-        return 'turbomachine'
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
     def equations(self):
         r"""
@@ -880,29 +958,6 @@ class turbomachine(component):
         :param nw: network using this component object
         :type nw: tespy.networks.network
         :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
-
-        **example**
-
-        matrix of partial derivatives for a turbine with one fluid in fluid
-        vector and specified value for power P
-
-        .. math::
-            \left(
-            \begin{array}{cccc}
-                0 & 0 & 0 & 1\\
-                0 & 0 & 0 & -1\\
-                1 & 0 & 0 & 0\\
-                -1 & 0 & 0 & 0\\
-                h_{out} - h_{in} & 0 & -\dot{m}_{in} & 0\\
-                0 & 0 & \dot{m}_{in} & 0
-            \end{array}
-            \right)
-
-        .. note::
-            in this example you can see, that there is no equation regarding
-            pressure change, thus the pressure at the inlet and the outlet must
-            be defined externally through other components or by connection
-            parametrisation
         """
         num_fl = len(nw.fluids)
         mat_deriv = []
@@ -911,14 +966,14 @@ class turbomachine(component):
         mat_deriv += self.mass_flow_deriv()
 
         if self.P.is_set:
-            P_deriv = np.zeros((1, 2, num_fl + 3))
+            P_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             P_deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             P_deriv[0, 0, 2] = -self.inl[0].m.val_SI
             P_deriv[0, 1, 2] = self.inl[0].m.val_SI
             mat_deriv += P_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
             mat_deriv += pr_deriv.tolist()
@@ -967,8 +1022,8 @@ class turbomachine(component):
         :returns: h (*float*) - enthalpy after isentropic state change
         """
         if mode == 'pre':
-            i = self.i0
-            o = self.o0
+            i = self.i_ref
+            o = self.o_ref
         else:
             i = self.inl[0].to_flow()
             o = self.outl[0].to_flow()
@@ -988,7 +1043,7 @@ class turbomachine(component):
     def char_deriv(self):
         raise MyComponentError('Function not available.')
 
-    def bus_func(self):
+    def bus_func(self, bus):
         r"""
         function for use on busses
 
@@ -1001,21 +1056,24 @@ class turbomachine(component):
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        return i[0] * (o[2] - i[2])
+        val = i[0] * (o[2] - i[2])
+        if np.isnan(bus.P_ref):
+            expr = 1
+        else:
+            expr = val / bus.P_ref
+        return val * bus.char.f_x(expr)
 
-    def bus_deriv(self):
+    def bus_deriv(self, bus):
         r"""
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for bus function
 
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
         deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
-        deriv[0, 0, 0] = o[2] - i[2]
-        deriv[0, 0, 2] = - i[0]
-        deriv[0, 1, 2] = i[0]
+        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.ddx_func(self.bus_func, 'h', 1, bus=bus)
         return deriv
 
     def calc_parameters(self, nw, mode):
@@ -1029,39 +1087,32 @@ class turbomachine(component):
 
         **preprocessing**
 
-        - set references for inlet :code:`self.i0` and outlet
-          :code:`self.o0` flows
+        - set references for inlet :code:`self.i_ref` and outlet
+          :code:`self.o_ref` flows
         - set attribute for isentropic enthalpy difference
-          :code:`self.dh_s0` at reference
+          :code:`self.dh_s_ref` at reference
 
         """
 
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+
         if (mode == 'pre' and 'P' in self.offdesign) or mode == 'post':
-            self.P.val = self.inl[0].m.val_SI * (
-                    self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.P.val = i[0] * (o[2] - i[2])
 
         if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
-            self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+            self.pr.val = o[1] / i[1]
 
         if mode == 'pre':
-            self.i0 = self.inl[0].to_flow()
-            self.o0 = self.outl[0].to_flow()
-            self.i0[3] = self.i0[3].copy()
-            self.o0[3] = self.i0[3].copy()
-            self.dh_s0 = (self.h_os(mode) - self.i0[2])
+            self.i_ref = i
+            self.o_ref = o
+            self.i_ref[3] = i[3].copy()
+            self.o_ref[3] = o[3].copy()
+            self.dh_s_ref = (self.h_os(mode) - self.i_ref[2])
 
         if mode == 'post':
             self.Sirr.val = self.inl[0].m.val_SI * (
                     s_mix_ph(self.outl[0].to_flow()) -
                     s_mix_ph(self.inl[0].to_flow()))
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('P = ', self.P.val, 'W; '
-              'eta_s = ', self.eta_s.val, '; '
-              'pr = ', self.pr.val, '; '
-              'Sirr = ', self.Sirr.val, '; ')
 
 # %%
 
@@ -1109,32 +1160,13 @@ class pump(turbomachine):
        :align: center
     """
 
-    def comp_init(self, nw):
-
-        if self.flow_char.func is None:
-            method = self.flow_char.method
-            x = self.flow_char.x
-            y = self.flow_char.y
-            self.flow_char.func = cmp_char.characteristics(method=method,
-                                                           x=x, y=y)
-
-        if self.eta_s_char.func is None:
-            method = self.eta_s_char.method
-            x = self.eta_s_char.x
-            y = self.eta_s_char.y
-            self.eta_s_char.func = cmp_char.characteristics(method=method,
-                                                            x=x, y=y)
-
     def component(self):
         return 'pump'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'Sirr', 'eta_s_char', 'flow_char']
-
-    def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1]),
-                'flow_char': dc_cc(x=[0, 1, 2, 3], y=[1, 1, 1, 1])}
+                'eta_s_char': dc_cc(),
+                'flow_char': dc_cc()}
 
     def additional_equations(self):
         r"""
@@ -1206,7 +1238,7 @@ class pump(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
@@ -1229,8 +1261,8 @@ class pump(turbomachine):
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        return np.array([((o[2] - i[2]) * self.dh_s0 /
-                          (self.o0[2] - self.i0[2]) *
+        return np.array([((o[2] - i[2]) * self.dh_s_ref /
+                          (self.o_ref[2] - self.i_ref[2]) *
                           self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) -
                           (self.h_os('post') - i[2]))])
 
@@ -1258,7 +1290,7 @@ class pump(turbomachine):
 
         """
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = (
             self.ddx_func(self.char_func, 'm', 0))
@@ -1281,11 +1313,6 @@ class pump(turbomachine):
         o = self.outl[0].to_flow()
 
         expr = i[0] * v_mix_ph(i)
-
-        if expr > self.flow_char.func.x[-1]:
-            expr = self.flow_char.func.x[-1]
-        elif expr < self.flow_char.func.x[0]:
-            expr = self.flow_char.func.x[0]
 
         return np.array([o[1] - i[1] - self.flow_char.func.f_x(expr)])
 
@@ -1313,7 +1340,7 @@ class pump(turbomachine):
 
         """
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = self.ddx_func(self.flow_char_func, 'm', 0)
         mat_deriv[0, 0, 2] = self.ddx_func(self.flow_char_func, 'h', 0)
@@ -1422,21 +1449,26 @@ class pump(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
 
         if (mode == 'pre' and 'eta_s_char' in self.offdesign):
             if nw.compinfo:
-                print('Creating characteristics for component ', self)
-            v_opt = (self.i0[0] *
-                     (v_mix_ph(self.i0) + v_mix_ph(self.o0)) / 2)
-            H_opt = ((self.o0[1] - self.i0[1]) /
-                     (9.81 * 2 / (v_mix_ph(self.i0) + v_mix_ph(self.o0))))
+                print('Creating characteristics for component ' + self.label)
+            v_opt = (self.i_ref[0] * (
+                    v_mix_ph(self.i_ref) + v_mix_ph(self.o_ref)) / 2)
+            H_opt = ((self.o_ref[1] - self.i_ref[1]) / (9.81 * 2 / (
+                    v_mix_ph(self.i_ref) + v_mix_ph(self.o_ref))))
             self.eta_s_char.func = cmp_char.pump(v_opt, H_opt)
+
+        if mode == 'post' and nw.mode == 'offdesign':
+            del self.i_ref
+            del self.o_ref
+            del self.dh_s_ref
 
 # %%
 
@@ -1447,10 +1479,11 @@ class compressor(turbomachine):
 
     - P: power, :math:`[P]=\text{W}`
     - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
+    - eta_s_char: isentropic efficiency characteristics
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
     - char_map: characteristic map for compressors, map is generated in
       preprocessing of offdesign calculations
-    - vigv: variable inlet guide vane angle, :math:`[vigv]=^\circ`
+    - igva: inlet guide vane angle, :math:`[igva]=^\circ`
 
     **equations**
 
@@ -1479,16 +1512,23 @@ class compressor(turbomachine):
         return 'compressor'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr', 'vigv', 'char_map', 'Sirr']
-
-    def attr_prop(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'vigv': dc_cp(),
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+                'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(func=cmp_char.compressor(),
-                                  x=[0, 1, 2], y=[0, 1, 2])}
+                'char_map': dc_cc(method='GENERIC'),
+                'eta_s_char': dc_cc()}
 
     def default_offdesign(self):
         return ['char_map']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        if (self.char_map.func is None or
+                not isinstance(self.char_map.func, cmp_char.compressor)):
+            method = self.char_map.method
+            self.char_map.func = cmp_char.compressor(method=method)
 
     def additional_equations(self):
         r"""
@@ -1507,7 +1547,10 @@ class compressor(turbomachine):
         vec_res = []
 
         if self.char_map.is_set:
-            vec_res += self.char_func().tolist()
+            vec_res += self.char_map_func().tolist()
+
+        if self.eta_s_char.is_set:
+            vec_res += self.eta_s_char_func().tolist()
 
         return vec_res
 
@@ -1523,7 +1566,10 @@ class compressor(turbomachine):
         mat_deriv = []
 
         if self.char_map.is_set:
-            mat_deriv += self.char_deriv()
+            mat_deriv += self.char_map_deriv()
+
+        if self.eta_s_char.is_set:
+            mat_deriv += self.eta_s_char_deriv()
 
         return mat_deriv
 
@@ -1554,7 +1600,7 @@ class compressor(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
@@ -1565,39 +1611,37 @@ class compressor(turbomachine):
 
         return mat_deriv.tolist()
 
-    def char_func(self):
+    def char_map_func(self):
         r"""
         equation(s) for characteristics of compressor
 
-        - returns one value, if vigv is not set
-        - returns two values, if vigv is set
-        :returns: val (*numpy array*) - residual value(s) of equation(s):
-
-        - :code:`np.array([val1, val2])` if vigv_set
-        - :code:`np.array([val2])` else
+        :returns: val (:code:`np.array([Z1, Z2])`) - residual values of
+                  equations:
 
         .. math::
 
-            n = \sqrt{\frac{T_{in,ref}}{T_{in}}}\\
-            m = \frac{\dot{m}_{in} \cdot \sqrt{T_{in}} \cdot p_{in,ref}}
-            {\dot{m}_{in,ref} \cdot \sqrt{T_{in,ref}} \cdot p_{in}}\\
-            val_1 = \frac{p_{out} \cdot p_{in,ref}}{p_{in} \cdot p_{out,ref}} -
-            pr_{c}(char(m))\\
-            val_2 = \frac{\eta_{s,c}}{\eta_{s,c,ref}} - \eta_{s,c}(char(m))
+            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+
+            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
+
+            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}-
+            pr_{c}(char(m))
+
+            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
+            \eta_{s,c}(char(m))
 
         **parameters**
 
-        - n: speedline index (rotational speed is constant)
-        - m: nondimensional mass flow
-        - val1: change ratio to reference case in mass flow and pressure
-            - val2: change of isentropic efficiency to reference case
+        - X: speedline index (rotational speed is constant)
+        - Y: nondimensional mass flow
+        - Z1: change ratio to reference case in mass flow and pressure
+        - Z2: change of isentropic efficiency to reference case
 
         **logic**
 
-        - calculate n
-        - calculate m
-        - calculate dn for convergence stability reasons (move speedline
-          inside of feasible range of compressor map)
+        - calculate X
+        - calculate Y
 
         **if vigv is set**
 
@@ -1610,54 +1654,22 @@ class compressor(turbomachine):
 
         **else**
 
-        - set vigv (from compressor map with pressure ratio)
-        - calculate relative factor for isentropic efficiency
+        - calculate Z1 and Z2
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i))
-        m = (i[0] * math.sqrt(T_mix_ph(i)) * self.i0[1] /
-             (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) * i[1]))
+        x = math.sqrt(T_mix_ph(self.i_ref)) / math.sqrt(T_mix_ph(i))
+        y = (i[0] * self.i_ref[1]) / (self.i_ref[0] * i[1] * x)
 
-        dn = 0
+        pr, eta = self.char_map.func.get_pr_eta(x, y, self.igva.val)
 
-        if n < min(self.char_map.func.pr.keys()):
-            dn = min(self.char_map.func.pr.keys()) - n
-        if n > max(self.char_map.func.pr.keys()):
-            dn = max(self.char_map.func.pr.keys()) - n
+        z1 = o[1] * self.i_ref[1] / (i[1] * self.o_ref[1]) - pr
+        z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2])) / (
+                self.dh_s_ref / (self.o_ref[2] - self.i_ref[2])) - eta
 
-        if self.vigv.is_set:
+        return np.array([z1, z2])
 
-            vigv_range = self.char_map.func.get_vigv_range(n + dn, m)
-
-            dvigv = 0
-            if self.vigv.val < vigv_range[0]:
-                dvigv = vigv_range[0] - self.vigv.val + 0.01
-            if self.vigv.val > vigv_range[1]:
-                dvigv = vigv_range[1] - self.vigv.val - 0.01
-
-            speedline = self.char_map.func.get_speedline(n + dn,
-                                                         self.vigv.val + dvigv)
-
-            return np.array([
-                    o[1] * self.i0[1] / (i[1] * self.o0[1]) - speedline[0](m),
-                    ((self.h_os('post') - i[2]) / (o[2] - i[2])) /
-                    (self.dh_s0 / (self.o0[2] - self.i0[2])) -
-                    speedline[1](m)
-                ])
-
-        else:
-
-            self.vigv.val = self.char_map.func.get_vigv(
-                n + dn, m, o[1] / i[1] / (self.o0[1] / self.i0[1]))
-
-            return np.array([
-                    ((self.h_os('post') - i[2]) / (o[2] - i[2])) /
-                    (self.dh_s0 / (self.o0[2] - self.i0[2])) -
-                    self.char_map.func.get_eta(n + dn, m, self.vigv.val)
-                ])
-
-    def char_deriv(self):
+    def char_map_deriv(self):
         r"""
         calculates the derivatives for the characteristics
 
@@ -1675,34 +1687,60 @@ class compressor(turbomachine):
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        m11 = self.ddx_func(self.char_func, 'm', 0)
-        p11 = self.ddx_func(self.char_func, 'p', 0)
-        h11 = self.ddx_func(self.char_func, 'h', 0)
+        m11 = self.ddx_func(self.char_map_func, 'm', 0)
+        p11 = self.ddx_func(self.char_map_func, 'p', 0)
+        h11 = self.ddx_func(self.char_map_func, 'h', 0)
 
-        p21 = self.ddx_func(self.char_func, 'p', 1)
-        h21 = self.ddx_func(self.char_func, 'h', 1)
+        p21 = self.ddx_func(self.char_map_func, 'p', 1)
+        h21 = self.ddx_func(self.char_map_func, 'h', 1)
 
-        if self.vigv.is_set:
-            deriv = np.zeros((2, 2, num_fl + 3))
-            deriv[0, 0, 0] = m11[0]
-            deriv[0, 0, 1] = p11[0]
-            deriv[0, 0, 2] = h11[0]
-            deriv[0, 1, 1] = p21[0]
-            deriv[0, 1, 2] = h21[0]
-            deriv[1, 0, 0] = m11[1]
-            deriv[1, 0, 1] = p11[1]
-            deriv[1, 0, 2] = h11[1]
-            deriv[1, 1, 1] = p21[1]
-            deriv[1, 1, 2] = h21[1]
-            return deriv.tolist()
-        else:
-            deriv = np.zeros((1, 2, num_fl + 3))
-            deriv[0, 0, 0] = m11[0]
-            deriv[0, 0, 1] = p11[0]
-            deriv[0, 0, 2] = h11[0]
-            deriv[0, 1, 1] = p21[0]
-            deriv[0, 1, 2] = h21[0]
-            return deriv.tolist()
+        if self.igva.is_var:
+            igva = self.ddx_func(self.char_map_func, 'igva', 1)
+
+        deriv = np.zeros((2, 2 + self.num_c_vars, num_fl + 3))
+        deriv[0, 0, 0] = m11[0]
+        deriv[0, 0, 1] = p11[0]
+        deriv[0, 0, 2] = h11[0]
+        deriv[0, 1, 1] = p21[0]
+        deriv[0, 1, 2] = h21[0]
+        deriv[1, 0, 0] = m11[1]
+        deriv[1, 0, 1] = p11[1]
+        deriv[1, 0, 2] = h11[1]
+        deriv[1, 1, 1] = p21[1]
+        deriv[1, 1, 2] = h21[1]
+        if self.igva.is_var:
+            deriv[0, 2 + self.igva.var_pos, 0] = igva[0]
+            deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
+        return deriv.tolist()
+
+    def eta_s_char_func(self):
+        r"""
+        equation for isentropic efficiency of compressor linked to pressure
+        ratio
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        return np.array([(self.h_os('post') - i[2]) -
+                        (o[2] - i[2]) *
+                        self.eta_s_char.func.f_x(o[1] / i[1])])
+
+    def eta_s_char_deriv(self):
+        r"""
+        calculates the derivatives for the isentropic efficiency
+        characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.eta_s_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.ddx_func(self.eta_s_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.ddx_func(self.eta_s_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.ddx_func(self.eta_s_char_func, 'h', 1)
+
+        return mat_deriv.tolist()
 
     def convergence_check(self, nw):
         """
@@ -1789,50 +1827,35 @@ class compressor(turbomachine):
         - generate characteristics for component
         """
 
+        if (mode == 'post' and nw.mode == 'offdesign' and
+                self.char_map.is_set):
+
+            if nw.compwarn:
+
+                i = self.inl[0].to_flow()
+                x = math.sqrt(T_mix_ph(self.i_ref)) / math.sqrt(T_mix_ph(i))
+                y = (i[0] * self.i_ref[1]) / (self.i_ref[0] * i[1] * x)
+
+                msg = self.char_map.func.get_bound_errors(x, y, self.igva.val)
+                if msg is not None:
+                    print(msg + ' at ' + self.label)
+
         turbomachine.calc_parameters(self, nw, mode)
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                               (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
 
-#        if (mode == 'pre' and 'char_map' in self.offdesign):
-#            print('Creating characteristics for component ', self)
-#            self.char_map.func = cmp_char.compressor()
-
-    def print_parameters(self, nw):
-
-        turbomachine.print_parameters(self, nw)
-
-        i1 = self.inl[0].to_flow()
-        o1 = self.outl[0].to_flow()
-
-        if self.char_map.is_set:
-            n = math.sqrt(T_mix_ph(self.i0)) / math.sqrt(T_mix_ph(i1))
-            m = (
-                (i1[0] * math.sqrt(T_mix_ph(i1)) / i1[1]) /
-                (self.i0[0] * math.sqrt(T_mix_ph(self.i0)) / self.i0[1])
-                )
-            vigv = self.char_map.func.get_vigv(n, m, (o1[1] * self.i0[1]) /
-                                                     (i1[1] * self.o0[1]))
-            if abs(self.vigv.val - vigv) > err and nw.compwarn:
-                msg = ('##### WARNING #####\n'
-                       'Selected inlet guide vane angle is not feasible.')
-                if self.vigv.val > vigv:
-                    msg += ('calculated maximum angle: ' + str(vigv) +
-                            ' selected: ' + str(self.vigv.val))
-                else:
-                    msg += ('calculated minimum angle: ' + str(vigv) +
-                            ' selected: ' + str(self.vigv.val))
-                print(msg)
-
-            else:
-                print('vigv =', self.vigv.val)
+        if mode == 'post' and nw.mode == 'offdesign':
+            del self.i_ref
+            del self.o_ref
+            del self.dh_s_ref
 
 # %%
 
@@ -1872,27 +1895,10 @@ class turbine(turbomachine):
        :align: center
     """
 
-    def comp_init(self, nw):
-
-        if self.eta_s_char.func is None:
-            method = self.eta_s_char.method
-            x = self.eta_s_char.x
-            y = self.eta_s_char.y
-            self.eta_s_char.func = cmp_char.turbine(method=method, x=x, y=y)
-
-        if self.cone.func is None:
-            method = self.cone.method
-            x = self.cone.x
-            y = self.cone.y
-            self.cone.func = cmp_char.characteristics(method=method, x=x, y=y)
-
     def component(self):
         return 'turbine'
 
     def attr(self):
-        return ['P', 'eta_s', 'pr',  'eta_s_char', 'cone', 'Sirr']
-
-    def attr_prop(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
@@ -1943,7 +1949,7 @@ class turbine(turbomachine):
             mat_deriv += self.char_deriv()
 
         if self.cone.is_set:
-            cone_deriv = np.zeros((1, 2, num_fl + 3))
+            cone_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             cone_deriv[0, 0, 0] = -1
             cone_deriv[0, 0, 1] = self.ddx_func(self.cone_func, 'p', 0)
             cone_deriv[0, 0, 2] = self.ddx_func(self.cone_func, 'h', 0)
@@ -1980,7 +1986,7 @@ class turbine(turbomachine):
         """
 
         num_fl = len(self.inl[0].fluid.val)
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         if abs(self.eta_s_res) > err ** (2):
 
@@ -2005,27 +2011,21 @@ class turbine(turbomachine):
         :returns: val (*float*) - residual value of equation
 
         .. math::
-            0 = \frac{\dot{m}_{in,0} \cdot p_{in}}{p_{in,0}} \cdot
-            \sqrt{\frac{p_{in,0} \cdot v_{in}}{p_{in} \cdot v_{in,0}}} \cdot
-            \sqrt{\frac{1 - \left(\frac{p_{out}}{p_{in}} \right)^{2}}
-            {1 - \left(\frac{p_{out,0}}{p_{in,0}} \right)^{2}}} - \dot{m}_{in}
+            0 = \frac{\dot{m}_{in,ref} \cdot p_{in}}{p_{in,ref}} \cdot
+            \sqrt{\frac{p_{in,ref} \cdot v_{in}}{p_{in} \cdot v_{in,ref}}}
+            \cdot \sqrt{\frac{1 - \left(\frac{p_{out}}{p_{in}} \right)^{2}}
+            {1 - \left(\frac{p_{out,ref}}{p_{in,ref}} \right)^{2}}} -
+            \dot{m}_{in}
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         n = 1
-        return (self.i0[0] * i[1] / self.i0[1] * math.sqrt(
-                    self.i0[1] * v_mix_ph(self.i0) / (i[1] * v_mix_ph(i))) *
-                math.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
-                          (1 - (self.o0[1] / self.i0[1]) ** ((n + 1) / n)))) -
+        return (self.i_ref[0] * i[1] / self.i_ref[1] * math.sqrt(
+                    self.i_ref[1] * v_mix_ph(self.i_ref) /
+                    (i[1] * v_mix_ph(i))) * math.sqrt(
+                    abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) / (1 -
+                        (self.o_ref[1] / self.i_ref[1]) ** ((n + 1) / n)))) -
                 i[0])
-
-        # Formulation with T0 / T
-#        n = 1
-#        return (
-#            self.i1_0[0] * i1[1] / self.i1_0[1] * math.sqrt(
-#                T_mix_ph(self.i1_0) / T_mix_ph(i1)) *
-#            math.sqrt((1 - (o1[1] / i1[1]) ** ((n + 1) / n)) /
-#                (1 - (self.o1_0[1] / self.i1_0[1]) ** ((n + 1) / n))) - i1[0])
 
     def char_func(self):
         r"""
@@ -2048,26 +2048,22 @@ class turbine(turbomachine):
         o = self.outl[0].to_flow()
 
         if self.eta_s_char.param == 'dh_s':
-            expr = math.sqrt(self.dh_s0 / (self.h_os('post') - i[2]))
+            expr = math.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
         elif self.eta_s_char.param == 'm':
-            expr = i[0] / self.i0[0]
+            expr = i[0] / self.i_ref[0]
         elif self.eta_s_char.param == 'v':
-            expr = i[0] * v_mix_ph(i) / (self.i0[0] * v_mix_ph(self.i0))
+            expr = i[0] * v_mix_ph(i) / (
+                    self.i_ref[0] * v_mix_ph(self.i_ref))
         elif self.eta_s_char.param == 'pr':
-            expr = (o[1] * self.i0[1]) / (i[1] * self.o0[1])
+            expr = (o[1] * self.i_ref[1]) / (i[1] * self.o_ref[1])
         else:
             msg = ('Please choose the parameter, you want to link the '
                    'isentropic efficiency to.')
             raise MyComponentError(msg)
 
-        if expr > self.eta_s_char.func.x[-1]:
-            expr = self.eta_s_char.func.x[-1]
-        if expr < self.eta_s_char.func.x[0]:
-            expr = self.eta_s_char.func.x[0]
-
-        return np.array([(-(o[2] - i[2]) + (self.o0[2] - self.i0[2]) /
-                          self.dh_s0 * self.eta_s_char.func.f_x(expr) *
-                          (self.h_os('post') - i[2]))])
+        return np.array([-(o[2] - i[2]) + (self.o_ref[2] - self.i_ref[2]) /
+                         self.dh_s_ref * self.eta_s_char.func.f_x(expr) *
+                         (self.h_os('post') - i[2])])
 
     def char_deriv(self):
         r"""
@@ -2077,7 +2073,7 @@ class turbine(turbomachine):
         """
         num_fl = len(self.inl[0].fluid.val)
 
-        mat_deriv = np.zeros((1, 2, num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
         mat_deriv[0, 0, 0] = self.ddx_func(self.char_func, 'm', 0)
         for i in range(2):
@@ -2170,12 +2166,17 @@ class turbine(turbomachine):
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
             self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /
                               (self.h_os('post') - self.inl[0].h.val_SI))
-            if self.eta_s.val > 1 or self.eta_s.val <= 0 and nw.comperr:
+            if (self.eta_s.val > 1 or self.eta_s.val <= 0) and nw.comperr:
                 msg = ('##### ERROR #####\n'
                        'Invalid value for isentropic efficiency: '
-                       'eta_s =', self.eta_s.val)
+                       'eta_s =' + str(self.eta_s.val) + ' at ' + self.label)
                 print(msg)
                 nw.errors += [self]
+
+        if mode == 'post' and nw.mode == 'offdesign':
+            del self.i_ref
+            del self.o_ref
+            del self.dh_s_ref
 
 # %%
 
@@ -2216,11 +2217,12 @@ class split(component):
        :alt: alternative text
        :align: center
     """
-    def attr(self):
-        return ['num_out']
 
-    def attr_prop(self):
-        return {'num_out': dc_cp()}
+    def component(self):
+        return 'split'
+
+    def attr(self):
+        return {'num_out': dc_cp(printout=False)}
 
     def inlets(self):
         return ['in1']
@@ -2231,9 +2233,6 @@ class split(component):
         else:
             self.set_attr(num_out=2)
             return self.outlets()
-
-    def component(self):
-        return 'split'
 
     def equations(self):
         r"""
@@ -2251,20 +2250,17 @@ class split(component):
         - :func:`tespy.components.components.component.mass_flow_res`
 
         .. math::
+
             0 = p_{in} - p_{out,i} \;
             \forall i \in \mathrm{outlets}
 
-        **equations for splitter**
+        **splitter**
 
-        .. math::
-            0 = h_{in} - h_{out,i} \;
-            \forall i \in \mathrm{outlets}\\
+        - :func:`tespy.components.components.splitter.additional_equations`
 
-        **equations for separator**
+        **separator**
 
-        .. math::
-            0 = T_{in} - T_{out,i} \;
-            \forall i \in \mathrm{outlets}\\
+        - :func:`tespy.components.components.separator.additional_equations`
 
         **TODO**
 
@@ -2280,20 +2276,7 @@ class split(component):
         for o in self.outl:
             vec_res += [self.inl[0].p.val_SI - o.p.val_SI]
 
-        # different equations for splitter and separator
-        if isinstance(self, splitter):
-            for o in self.outl:
-                vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
-
-        # different equations for splitter and separator
-        if isinstance(self, separator):
-            if num_fluids(self.inl[0].fluid.val) <= 1:
-                for o in self.outl:
-                    vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
-            else:
-                for o in self.outl:
-                    vec_res += [T_mix_ph(self.inl[0].to_flow()) -
-                                T_mix_ph(o.to_flow())]
+        vec_res += self.additional_equations()
 
         return vec_res
 
@@ -2322,46 +2305,35 @@ class split(component):
             k += 1
         mat_deriv += p_deriv.tolist()
 
-        if isinstance(self, splitter):
-
-            h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-            k = 0
-            for o in self.outl:
-                h_deriv[k, 0, 2] = 1
-                h_deriv[k, k + 1, 2] = -1
-                k += 1
-
-            mat_deriv += h_deriv.tolist()
-
-        if isinstance(self, separator):
-            if num_fluids(self.inl[0].fluid.val) <= 1:
-
-                h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-                k = 0
-                for o in self.outl:
-                    h_deriv[k, 0, 2] = 1
-                    h_deriv[k, k + 1, 2] = -1
-                    k += 1
-
-                mat_deriv += h_deriv.tolist()
-            else:
-
-                T_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
-                i = self.inl[0].to_flow()
-                k = 0
-                for o in self.outl:
-                    o = o.to_flow()
-                    T_deriv[k, 0, 1] = dT_mix_dph(i)
-                    T_deriv[k, 0, 2] = dT_mix_pdh(i)
-                    T_deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
-                    T_deriv[k, k + 1, 1] = -dT_mix_dph(o)
-                    T_deriv[k, k + 1, 2] = -dT_mix_pdh(o)
-                    T_deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
-                    k += 1
-
-                mat_deriv += T_deriv.tolist()
+        mat_deriv += self.additional_derivatives(nw)
 
         return np.asarray(mat_deriv)
+
+    def additional_equations(self):
+        r"""
+        additional equations for component split
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        empty list is returned for this component
+        """
+
+        return []
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component split
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+
+        empty matrix is returned for this component
+        """
+
+        return []
 
     def initialise_source(self, c, key):
         r"""
@@ -2405,20 +2377,7 @@ class split(component):
         else:
             return 0
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('m_in = ', self.inl[0].m.val_SI, 'kg / s; ')
-        i = 1
-        for o in self.outl:
-            print('m_out' + str(i) + ' = ', o.m.val_SI, 'kg / s; ')
-            i += 1
-        if isinstance(self, separator):
-            print('; fluid_in:', self.inl[0].fluid.val, '; ')
-            i = 1
-            for o in self.outl:
-                print('fluid_out' + str(i) + ' = ', o.fluid.val)
-                i += 1
+# %%
 
 
 class splitter(split):
@@ -2445,6 +2404,51 @@ class splitter(split):
     def component(self):
         return 'splitter'
 
+    def additional_equations(self):
+        r"""
+        additional equations for component splitter
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **emandatory quations for splitter**
+
+        .. math::
+            0 = h_{in} - h_{out,i} \;
+            \forall i \in \mathrm{outlets}\\
+        """
+        vec_res = []
+
+        for o in self.outl:
+            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+
+        return vec_res
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component splitter
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        k = 0
+        for o in self.outl:
+            h_deriv[k, 0, 2] = 1
+            h_deriv[k, k + 1, 2] = -1
+            k += 1
+
+        mat_deriv += h_deriv.tolist()
+
+        return mat_deriv
+
+# %%
+
 
 class separator(split):
     """
@@ -2470,6 +2474,64 @@ class separator(split):
     def component(self):
         return 'separator'
 
+    def additional_equations(self):
+        r"""
+        additional equations for component separator
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - residual value vector
+
+        **mandatory equations for separator**
+
+        .. math::
+
+            0 = T_{in} - T_{out,i} \;
+            \forall i \in \mathrm{outlets}
+        """
+        vec_res = []
+
+        for o in self.outl:
+            vec_res += [T_mix_ph(self.inl[0].to_flow()) -
+                        T_mix_ph(o.to_flow())]
+
+        return vec_res
+
+    def additional_derivatives(self, nw):
+        r"""
+        derivatives for additional equations of component separator
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+
+        **derivatives for separator**
+
+        .. math::
+
+            0 = T_{in} - T_{out,i} \;
+            \forall i \in \mathrm{outlets}
+        """
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        i = self.inl[0].to_flow()
+        k = 0
+        for o in self.outl:
+            o = o.to_flow()
+            deriv[k, 0, 1] = dT_mix_dph(i)
+            deriv[k, 0, 2] = dT_mix_pdh(i)
+            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            deriv[k, k + 1, 1] = -dT_mix_dph(o)
+            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
+            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            k += 1
+
+        mat_deriv += deriv.tolist()
+
+        return mat_deriv
+
 # %%
 
 
@@ -2493,11 +2555,12 @@ class merge(component):
        :alt: alternative text
        :align: center
     """
-    def attr(self):
-        return ['num_in']
 
-    def attr_prop(self):
-        return {'num_in': dc_cp()}
+    def component(self):
+        return 'merge'
+
+    def attr(self):
+        return {'num_in': dc_cp(printout=False)}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -2508,9 +2571,6 @@ class merge(component):
 
     def outlets(self):
         return ['out1']
-
-    def component(self):
-        return 'merge'
 
     def equations(self):
         r"""
@@ -2657,15 +2717,6 @@ class merge(component):
         else:
             return 0
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        j = 1
-        for i in self.inl:
-            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
-            j += 1
-        print('m_out = ', self.outl[0].m.val_SI, 'kg / s; ')
-
 # %%
 
 
@@ -2711,41 +2762,43 @@ class combustion_chamber(component):
        :align: center
     """
 
+    def component(self):
+        return 'combustion chamber'
+
+    def attr(self):
+        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+                'S': dc_cp()}
+
     def inlets(self):
         return ['in1', 'in2']
 
     def outlets(self):
         return ['out1']
 
-    def attr(self):
-        return ['fuel', 'lamb', 'ti', 'S']
-
-    def attr_prop(self):
-        return {'fuel': dc_cp(), 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
-
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
 
-    def component(self):
-        return 'combustion chamber'
-
     def comp_init(self, nw):
 
+        component.comp_init(self, nw)
+
         if not self.fuel.is_set:
-            msg = 'Must specify fuel for combustion chamber.'
+            msg = ('Must specify fuel for component ' + self.label +
+                   '. Available fuels are: ' + str(self.fuels()) + '.')
             raise MyComponentError(msg)
 
         if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]]) == 0):
-            msg = ('The fuel you specified does not match the fuels available'
-                   ' within the network.')
+            msg = ('The fuel you specified for component ' + self.label +
+                   ' does not match the fuels available within the network.')
             raise MyComponentError(msg)
 
         if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]])) == 0:
-            msg = ('The fuel you specified is not available. Available fuels '
-                   'are: ' + str(self.fuels()) + '.')
+            msg = ('The fuel you specified is not available for component ' +
+                   self.label + '. Available fuels are: ' + str(self.fuels()) +
+                   '.')
             raise MyComponentError(msg)
 
         self.fuel.val = [x for x in nw.fluids if x in [
@@ -2905,8 +2958,7 @@ class combustion_chamber(component):
         for fluid in nw.fluids:
             for i in range(3):
                 fl_deriv[j, i, 0] = self.drb_dx('m', i, fluid)
-                fl_deriv[j, i, 3:] = (
-                    self.drb_dx('fluid', i, fluid))
+                fl_deriv[j, i, 3:] = self.drb_dx('fluid', i, fluid)
 
             j += 1
         mat_deriv += fl_deriv.tolist()
@@ -2932,6 +2984,11 @@ class combustion_chamber(component):
                 eb_deriv[0, i, 2] = -(self.inl + self.outl)[i].m.val_SI
             else:
                 eb_deriv[0, i, 2] = (self.inl + self.outl)[i].m.val_SI
+        # fluid composition
+#        pos = 3 + nw.fluids.index(self.fuel.val)
+#        eb_deriv[0, 0, pos] = self.inl[0].m.val_SI * self.lhv
+#        eb_deriv[0, 1, pos] = self.inl[1].m.val_SI * self.lhv
+#        eb_deriv[0, 2, pos] = -self.outl[0].m.val_SI * self.lhv
         mat_deriv += eb_deriv.tolist()
 
         if self.lamb.is_set:
@@ -2944,14 +3001,15 @@ class combustion_chamber(component):
             mat_deriv += lamb_deriv.tolist()
 
         if self.ti.is_set:
-            # derivatives for specified lambda
+            # derivatives for specified thermal input
+            pos = nw.fluids.index(self.fuel.val) + 3
             ti_deriv = np.zeros((1, 3, num_fl + 3))
             for i in range(2):
-                ti_deriv[0, i, 0] = self.ddx_func(self.ti_func, 'm', i)
-                ti_deriv[0, i, 3:] = self.ddx_func(self.ti_func, 'fluid', i)
-            ti_deriv[0, 2, 0] = self.ddx_func(self.ti_func, 'm', 2)
-            ti_deriv[0, 2, 3:] = self.ddx_func(self.ti_func, 'fluid', 2)
-            mat_deriv += ti_deriv.tolist()
+                ti_deriv[0, i, 0] = -self.inl[i].fluid.val[self.fuel.val]
+                ti_deriv[0, i, pos] = -self.inl[i].m.val_SI
+            ti_deriv[0, 2, 0] = self.outl[0].fluid.val[self.fuel.val]
+            ti_deriv[0, 2, pos] = self.outl[0].m.val_SI
+            mat_deriv += (ti_deriv * self.lhv).tolist()
 
         return np.asarray(mat_deriv)
 
@@ -2970,12 +3028,15 @@ class combustion_chamber(component):
         **reaction balance equations**
 
         .. math::
+            \text{combustion chamber: } i \in [1,2], o \in [1]\\
+            \text{cogeneration unit: } i \in [3,4], o \in [3]\\
+
             res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
             \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
-            \forall i \in inlets, \; \forall j \in outlets
+            \forall i, \; \forall j
 
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-            {M_{fluid}} \; \forall i \in inlets\\
+            {M_{fluid}} \; \forall i
 
             \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
@@ -3019,15 +3080,25 @@ class combustion_chamber(component):
 
         """
 
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+            outl = self.outl[2:]
+        else:
+            inl = self.inl
+            outl = self.outl
+
         n_fuel = 0
-        for i in self.inl:
+        for i in inl:
             n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
                        molar_masses[self.fuel.val])
 
         n_oxygen = 0
-        for i in self.inl:
+        for i in inl:
             n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
                          molar_masses[self.o2])
+
+        if n_fuel == 0:
+            n_fuel = 1
 
         if not self.lamb.is_set:
             self.lamb.val = n_oxygen / (
@@ -3055,9 +3126,9 @@ class combustion_chamber(component):
 
         res = dm
 
-        for i in self.inl:
+        for i in inl:
             res += i.fluid.val[fluid] * i.m.val_SI
-        for o in self.outl:
+        for o in outl:
             res -= o.fluid.val[fluid] * o.m.val_SI
         return res
 
@@ -3065,32 +3136,52 @@ class combustion_chamber(component):
         r"""
         calculates the energy balance of the adiabatic combustion chamber
 
-        - reference temperature: 500 K
-        - reference pressure: 1 bar
+        .. note::
+            The temperature for the reference state is set to 20 °C, thus
+            the water may be liquid. In order to make sure, the state is
+            referring to the lower heating value, the necessary enthalpy
+            difference for evaporation is added. The stoichiometric combustion
+            chamber uses a different reference, you will find it in the
+            :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+            documentation.
+
+            - reference temperature: 293.15 K
+            - reference pressure: 1 bar
 
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
-            0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
-            \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-            H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
-            \dot{m}_{out,j} \cdot x_{f,j} \right)
+            0 = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right) - \sum_j \dot{m}_{out,j} \cdot
+            \left( h_{out,j} - h_{out,j,ref} \right) +
+            H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+            \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+            \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
 
         """
-        T_ref = 500
+        T_ref = 293.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
-                                           i.fluid.val], T_ref))
-            res += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
-                                           o.fluid.val], T_ref))
-            res -= o.m.val_SI * o.fluid.val[self.fuel.val] * self.lhv
+            dh = 0
+            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+            if n_h2o > 0:
+                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
+                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                if h < h_steam:
+                    dh = (h_steam - h) * o.fluid.val[self.h2o]
+
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
+                    dh)
+
+        res += self.calc_ti()
 
         return res
 
@@ -3108,13 +3199,19 @@ class combustion_chamber(component):
             0 = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
             \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda
         """
+
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+        else:
+            inl = self.inl
+
         n_fuel = 0
-        for i in self.inl:
+        for i in inl:
             n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
                        molar_masses[self.fuel.val])
 
         n_oxygen = 0
-        for i in self.inl:
+        for i in inl:
             n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
                          molar_masses[self.o2])
 
@@ -3131,36 +3228,28 @@ class combustion_chamber(component):
 
             0 = ti - \dot{m}_f \cdot LHV
         """
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
 
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
+        return self.ti.val - self.calc_ti()
 
-        return (self.ti.val - m_fuel * self.lhv)
-
-    def bus_func(self):
+    def bus_func(self, bus):
         r"""
         function for use on busses
 
-        :returns: val (*float*) - residual value of equation
+        :returns: val (*float*) - residual value of equation (equals thermal
+                  input)
 
         .. math::
 
-            val = \dot{m}_{fuel} \cdot LHV
+            val = ti
         """
+        val = self.calc_ti()
+        if np.isnan(bus.P_ref):
+            expr = 1
+        else:
+            expr = val / bus.P_ref
+        return val * bus.char.f_x(expr)
 
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val])
-
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[self.fuel.val])
-
-        return m_fuel * self.lhv
-
-    def bus_deriv(self):
+    def bus_deriv(self, bus):
         r"""
         calculate matrix of partial derivatives towards mass flow and fluid
         composition for bus
@@ -3170,11 +3259,11 @@ class combustion_chamber(component):
         """
         deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
         for i in range(2):
-            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i)
-            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i)
+            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i, bus=bus)
+            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i, bus=bus)
 
-        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2)
-        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2)
+        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2, bus=bus)
+        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2, bus=bus)
         return deriv
 
     def drb_dx(self, dx, pos, fluid):
@@ -3246,6 +3335,28 @@ class combustion_chamber(component):
 
         return deriv
 
+    def calc_ti(self):
+        r"""
+        calculates the thermal input of the combustion chamber
+
+        :returns: ti (*float*) - thermal input
+
+        .. math::
+            ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right) - \dot{m}_{out,1} \cdot x_{f,1} \right]
+            \; \forall i \in [1,2]
+
+        """
+
+        m = 0
+        for i in self.inl:
+            m += i.m.val_SI * i.fluid.val[self.fuel.val]
+
+        for o in self.outl:
+            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+
+        return m * self.lhv
+
     def initialise_fluids(self, nw):
         r"""
         calculates reaction balance with given lambda for good generic
@@ -3302,18 +3413,26 @@ class combustion_chamber(component):
         :type nw: tespy.networks.network
         :returns: no return value
         """
+
+        if isinstance(self, cogeneration_unit):
+            inl = self.inl[2:]
+            outl = self.outl[2:]
+        else:
+            inl = self.inl
+            outl = self.outl
+
         m = 0
-        for i in self.inl:
+        for i in inl:
             if i.m.val_SI < 0 and not i.m.val_set:
                 i.m.val_SI = 0.01
             m += i.m.val_SI
 
-        for o in self.outl:
+        for o in outl:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
                 if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
                     m_f = 0
-                    for i in self.inl:
+                    for i in inl:
                         m_f += i.fluid.val[f] * i.m.val_SI
 
                     if abs(o.fluid.val[f] - m_f / m) > 0.03:
@@ -3344,7 +3463,7 @@ class combustion_chamber(component):
                 else:
                     continue
 
-        for o in self.outl:
+        for o in outl:
             if o.m.val_SI < 0 and not o.m.val_set:
                 o.m.val_SI = 10
             init_target(nw, o, o.t)
@@ -3352,8 +3471,18 @@ class combustion_chamber(component):
             if o.h.val_SI < 7.5e5 and not o.h.val_set:
                 o.h.val_SI = 1e6
 
-        if self.lamb.val < 1 and not self.lamb.is_set:
-            self.lamb.val = 3
+        if self.lamb.val < 2 and not self.lamb.is_set:
+            for i in inl:
+                fuel_set = True
+                if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
+                    fuel_set = False
+                if i.fluid.val[self.fuel.val] < 0.75:
+                    air_tmp = i.m.val_SI
+
+            if not fuel_set:
+                for i in inl:
+                    if i.fluid.val[self.fuel.val] > 0.75:
+                        i.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
         r"""
@@ -3399,9 +3528,7 @@ class combustion_chamber(component):
 
     def calc_parameters(self, nw, mode):
 
-        self.ti.val = 0
-        for i in self.inl:
-            self.ti.val += i.m.val_SI * i.fluid.val[self.fuel.val] * self.lhv
+        self.ti.val = self.calc_ti()
 
         n_fuel = 0
         for i in self.inl:
@@ -3418,36 +3545,34 @@ class combustion_chamber(component):
                 self.lamb.val = n_oxygen / (
                         n_fuel * (self.n['C'] + self.n['H'] / 4))
 
-            S = 0
-            T_ref = 500
+            val = 0
+            T_ref = 293.15
             p_ref = 1e5
 
             for i in self.inl:
-                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+                val += i.m.val_SI * (
+                        s_mix_ph(i.to_flow()) -
+                        s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
             for o in self.outl:
-                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
-                                   s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+                dS = 0
+                n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+                if n_h2o > 0:
+                    p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                    S = CP.PropsSI('S', 'P', p, 'T', T_ref, self.h2o)
+                    S_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                    if S < S_steam:
+                        dS = (S_steam - S) * o.fluid.val[self.h2o]
+                val -= o.m.val_SI * (
+                        s_mix_ph(o.to_flow()) -
+                        s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dS)
 
-            self.S.val = S
+            self.S.val = val
 
         if mode == 'pre':
             if 'lamb' in self.offdesign:
-                self.lamb.val = n_oxygen / (n_fuel *
-                                            (self.n['C'] + self.n['H'] / 4))
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('thermal input = ', self.ti.val,
-              'lambda = ', self.lamb.val,
-              'S = ', self.S.val)
-        j = 1
-        for i in self.inl:
-            print('m_in' + str(j) + ' = ', i.m.val_SI, 'kg / s; ')
-            j += 1
-        print('m_out = ', self.outl[0].m.val_SI, 'kg / s; ')
+                self.lamb.val = n_oxygen / (n_fuel * (
+                        self.n['C'] + self.n['H'] / 4))
 
 # %%
 
@@ -3511,30 +3636,30 @@ class combustion_chamber_stoich(combustion_chamber):
        :align: center
     """
 
+    def component(self):
+        return 'combustion chamber stoichiometric flue gas'
+
+    def attr(self):
+        return {'fuel': dc_cp(printout=False),
+                'fuel_alias': dc_cp(printout=False),
+                'air': dc_cp(printout=False),
+                'air_alias': dc_cp(printout=False),
+                'path': dc_cp(printout=False),
+                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
+
     def inlets(self):
         return ['in1', 'in2']
 
     def outlets(self):
         return ['out1']
 
-    def attr(self):
-        return ['fuel', 'fuel_alias', 'air', 'air_alias', 'path',
-                'lamb', 'ti', 'S']
-
-    def attr_prop(self):
-        return {'fuel': dc_cp(), 'fuel_alias': dc_cp(),
-                'air': dc_cp(), 'air_alias': dc_cp(),
-                'path': dc_cp(),
-                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
-
     def fuels(self):
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
 
-    def component(self):
-        return 'combustion chamber stoichiometric flue gas'
-
     def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
@@ -3742,7 +3867,9 @@ class combustion_chamber_stoich(combustion_chamber):
         molar_masses[self.co2] = CP.PropsSI('M', self.co2)
         molar_masses[self.o2] = CP.PropsSI('M', self.o2)
 
-        fg = {}
+        self.fg = {}
+        self.fg[self.co2] = 0
+        self.fg[self.h2o] = 0
 
         for f, x in self.fuel.val.items():
             fl = set(list(self.fuels())).intersection(
@@ -3750,8 +3877,10 @@ class combustion_chamber_stoich(combustion_chamber):
                          for a in CP.get_aliases(f)]))
 
             if len(fl) == 0:
-                fg[f] = x * m_fuel
-                continue
+                if f in self.fg.keys():
+                    self.fg[f] += x * m_fuel
+                else:
+                    self.fg[f] = x * m_fuel
             else:
                 n_fluid = x * m_fuel / molar_masses[f]
                 m_fuel_fg -= n_fluid * molar_masses[f]
@@ -3766,8 +3895,8 @@ class combustion_chamber_stoich(combustion_chamber):
                 m_co2 += n_fluid * n['C'] * molar_masses[self.co2]
                 m_h2o += n_fluid * n['H'] / 2 * molar_masses[self.h2o]
 
-        fg[self.co2] = m_co2
-        fg[self.h2o] = m_h2o
+        self.fg[self.co2] += m_co2
+        self.fg[self.h2o] += m_h2o
 
         n_o2 = (m_co2 / molar_masses[self.co2] +
                 0.5 * m_h2o / molar_masses[self.h2o]) * lamb
@@ -3777,20 +3906,20 @@ class combustion_chamber_stoich(combustion_chamber):
 
         for f, x in self.air.val.items():
             if f != self.o2:
-                if f in fg.keys():
-                    fg[f] += m_air * x
+                if f in self.fg.keys():
+                    self.fg[f] += m_air * x
                 else:
-                    fg[f] = m_air * x
+                    self.fg[f] = m_air * x
 
         m_fg = m_fuel + m_air
 
-        for f in fg.keys():
-            fg[f] /= m_fg
+        for f in self.fg.keys():
+            self.fg[f] /= m_fg
 
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
-        tespy_fluid(self.fuel_alias.val + '_fg', fg,
+        tespy_fluid(self.fuel_alias.val + '_fg', self.fg,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
 
         if self.air_alias.val not in ['Air', 'air']:
@@ -3909,36 +4038,39 @@ class combustion_chamber_stoich(combustion_chamber):
         r"""
         calculates the energy balance of the adiabatic combustion chamber
 
-        - reference temperature: 500 K
-        - reference pressure: 1 bar
+        .. note::
+            The temperature for the reference state is set to 100 °C, as the
+            custom fluid properties are inacurate at the dew-point of water in
+            the flue gas!
+
+            - reference temperature: 373.15 K
+            - reference pressure: 1 bar
 
         :returns: res (*float*) - residual value of energy balance
 
         .. math::
-            0 = \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right) -
-            \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-            H_{I,f} \cdot \left( \dot{m}_{in,i} \cdot x_{f,i} -
-            \dot{m}_{out,j} \cdot x_{f,j} \right)
+            0 = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right) - \sum_j \dot{m}_{out,j} \cdot
+            \left( h_{out,j} - h_{out,j,ref} \right) +
+            H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+            \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+            \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
 
         """
         fuel = 'TESPy::' + self.fuel_alias.val
 
-        T_ref = 500
+        T_ref = 373.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([i.m.val_SI, p_ref, i.h.val_SI,
-                                           i.fluid.val], T_ref))
-            res += i.m.val_SI * i.fluid.val[fuel] * self.lhv
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([o.m.val_SI, p_ref, o.h.val_SI,
-                                           o.fluid.val], T_ref))
-            res -= o.m.val_SI * o.fluid.val[fuel] * self.lhv
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
 
-        return res
+        return res + self.calc_ti()
 
     def lambda_func(self):
         r"""
@@ -3975,38 +4107,32 @@ class combustion_chamber_stoich(combustion_chamber):
 
             0 = ti - \dot{m}_f \cdot LHV
         """
-        fuel = 'TESPy::' + self.fuel_alias.val
 
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[fuel])
+        return self.ti.val - self.calc_ti()
 
-        for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[fuel])
-
-        return (self.ti.val - m_fuel * self.lhv)
-
-    def bus_func(self):
+    def calc_ti(self):
         r"""
-        function for use on busses
+        calculates the thermal input of the combustion chamber
 
-        :returns: val (*float*) - residual value of equation
+        :returns: ti (*float*) - thermal input
 
         .. math::
+            ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right) - \dot{m}_{out,1} \cdot x_{f,1} \right]
+            \; \forall i \in [1,2]
 
-            val = \dot{m}_{fuel} \cdot LHV
         """
 
         fuel = 'TESPy::' + self.fuel_alias.val
 
-        m_fuel = 0
+        m = 0
         for i in self.inl:
-            m_fuel += (i.m.val_SI * i.fluid.val[fuel])
+            m += (i.m.val_SI * i.fluid.val[fuel])
 
         for o in self.outl:
-            m_fuel -= (o.m.val_SI * o.fluid.val[fuel])
+            m -= (o.m.val_SI * o.fluid.val[fuel])
 
-        return m_fuel * self.lhv
+        return m * self.lhv
 
     def initialise_fluids(self, nw):
         r"""
@@ -4107,15 +4233,15 @@ class combustion_chamber_stoich(combustion_chamber):
                 self.lamb.val = (m_air / m_fuel) / self.air_min
 
             S = 0
-            T_ref = 500
+            T_ref = 373.15
             p_ref = 1e5
 
             for i in self.inl:
-                S -= i.m.val_SI * (s_mix_ph(i.to_flow()) -
+                S += i.m.val_SI * (s_mix_ph(i.to_flow()) -
                                    s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
             for o in self.outl:
-                S += o.m.val_SI * (s_mix_ph(o.to_flow()) -
+                S -= o.m.val_SI * (s_mix_ph(o.to_flow()) -
                                    s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
 
             self.S.val = S
@@ -4127,6 +4253,1036 @@ class combustion_chamber_stoich(combustion_chamber):
         self.ti.val = 0
         for i in self.inl:
             self.ti.val += i.m.val_SI * i.fluid.val[fuel] * self.lhv
+
+# %%
+
+
+class cogeneration_unit(combustion_chamber):
+    r"""
+
+    .. note::
+        For more information on the usage of the cogeneration unit see the
+        examples in the tespy_examples repository
+
+    **available parameters**
+
+    - fuel: fuel for combustion
+    - lamb: air to stoichiometric air ratio, :math:`[\lambda] = 1`
+    - ti: thermal input (:math:`{LHV \cdot \dot{m}_f}`),
+      :math:`[LHV \cdot \dot{m}_f] = \text{W}`
+    - P: power output, :math:`{[P]=\text{W}}`
+    - Q1: heat output 1, :math:`{[\dot Q]=\text{W}}`
+    - Q2: heat output 2, :math:`{[\dot Q]=\text{W}}`
+    - Qloss: heat loss, :math:`{[\dot Q_{loss}]=\text{W}}`
+    - pr1: outlet to inlet pressure ratio at hot side, :math:`[pr1]=1`
+    - pr2: outlet to inlet pressure ratio at cold side, :math:`[pr2]=1`
+    - zeta1: geometry independent friction coefficient heat extraction 1
+      :math:`[\zeta1]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :func:`tespy.components.components.component.zeta_func`
+    - zeta2: geometry independent friction coefficient heat extraction 2
+      :math:`[\zeta2]=\frac{\text{Pa}}{\text{m}^4}`, also see
+      :func:`tespy.components.components.heat_exchanger.zeta2_func`
+
+    **characteristic lines**
+
+    - tiP_char: characteristic line linking fuel input to power output
+    - Q1_char: characteristic line linking heat output 1 to power output
+    - Q2_char: characteristic line linking heat output 2 to power output
+    - Qloss_char: characteristic line linking heat loss to power output
+
+    **equations**
+
+    see :func:`tespy.components.components.cogeneration_unit.equations`
+
+    **default design parameters**
+
+    - pr1, pr2
+
+    **default offdesign parameters**
+
+    - zeta1, zeta2, P_ref
+
+    **available fuels**
+
+    - methane
+    - ethane
+    - propane
+    - butane
+    - hydrogen
+
+    **inlets and outlets**
+
+    - in1, in2 (cooling water), in3, in4 (air and fuel)
+    - out1, out2 (cooling water), out3 (flue gas)
+
+    .. image:: _images/cogeneration_unit.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
+
+    def component(self):
+        return 'cogeneration unit'
+
+    def attr(self):
+        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+                'P': dc_cp(val=1e6, d=1, val_min=1), 'P_ref': dc_cp(),
+                'Q1': dc_cp(), 'Q2': dc_cp(),
+                'Qloss': dc_cp(val=1e5, d=1, val_min=1),
+                'pr1': dc_cp(), 'pr2': dc_cp(),
+                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+                'tiP_char': dc_cc(method='TI'),
+                'Q1_char': dc_cc(method='Q1'),
+                'Q2_char': dc_cc(method='Q2'),
+                'Qloss_char': dc_cc(method='QLOSS'),
+                'S': dc_cp()}
+
+    def default_design(self):
+        return ['pr1', 'pr2']
+
+    def default_offdesign(self):
+        return ['zeta1', 'zeta2', 'P_ref']
+
+    def inlets(self):
+        return ['in1', 'in2', 'in3', 'in4']
+
+    def outlets(self):
+        return ['out1', 'out2', 'out3']
+
+    def comp_init(self, nw):
+
+        if not self.P.is_set:
+            self.set_attr(P='var')
+            if nw.compinfo:
+                msg = ('The power output of cogeneration units must be set! '
+                       'We are adding the power output of component ' +
+                       self.label + ' as custom variable of the system.')
+                print(msg)
+
+        if not self.Qloss.is_set:
+            self.set_attr(Qloss='var')
+            if nw.compinfo:
+                msg = ('The heat loss of cogeneration units must be set! '
+                       'We are adding the heat loss of component ' +
+                       self.label + ' as custom variable of the system.')
+                print(msg)
+
+        combustion_chamber.comp_init(self, nw)
+
+    def equations(self):
+        r"""
+        returns vector vec_res with result of equations for this component
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - vector of residual values
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.cogeneration_unit.reaction_balance`
+        - :func:`tespy.components.components.component.fluid_res`
+          (for cooling water)
+        - :func:`tespy.components.components.component.mass_flow_res`
+        .. math::
+
+            0 = p_{3,in} - p_{3,out}\\
+            0 = p_{4,in} - p_{3,out}
+
+        - :func:`tespy.components.components.cogeneration_unit.energy_balance`
+
+        **optional equations**
+
+        - :func:`tespy.components.components.cogeneration_unit.lambda_func`
+        - :func:`tespy.components.components.cogeneration_unit.ti_func`
+
+        - :func:`tespy.components.components.cogeneration_unit.Q1_func`
+        - :func:`tespy.components.components.cogeneration_unit.Q2_func`
+
+        .. math::
+
+            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
+            0 = p_{2,in} \cdot pr2 - p_{2,out}
+
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
+
+        """
+
+        vec_res = []
+
+        for fluid in self.inl[0].fluid.val.keys():
+            vec_res += [self.reaction_balance(fluid)]
+
+        vec_res += self.fluid_res()
+        vec_res += self.mass_flow_res()
+
+        vec_res += [self.inl[2].p.val_SI - self.outl[2].p.val_SI]
+        vec_res += [self.inl[2].p.val_SI - self.inl[3].p.val_SI]
+
+        vec_res += [self.energy_balance()]
+        vec_res += [self.tiP_char_func()]
+        vec_res += [self.Q1_char_func()]
+        vec_res += [self.Q2_char_func()]
+        vec_res += [self.Qloss_char_func()]
+
+        if self.lamb.is_set:
+            vec_res += [self.lambda_func()]
+
+        if self.ti.is_set:
+            vec_res += [self.ti_func()]
+
+        if self.Q1.is_set:
+            vec_res += [self.Q1_func()]
+
+        if self.Q2.is_set:
+            vec_res += [self.Q2_func()]
+
+        if self.pr1.is_set:
+            vec_res += [self.pr1.val * self.inl[0].p.val_SI -
+                        self.outl[0].p.val_SI]
+
+        if self.pr2.is_set:
+            vec_res += [self.pr2.val * self.inl[1].p.val_SI -
+                        self.outl[1].p.val_SI]
+
+        if self.zeta1.is_set:
+            vec_res += [self.zeta_func()]
+
+        if self.zeta2.is_set:
+            vec_res += [self.zeta2_func()]
+
+        return vec_res
+
+    def derivatives(self, nw):
+        r"""
+        calculate matrix of partial derivatives towards mass flow, pressure,
+        enthalpy and fluid composition
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
+        """
+
+        num_fl = len(nw.fluids)
+        num_vars = 7 + self.num_c_vars
+        mat_deriv = []
+
+        ######################################################################
+
+        # derivatives for reaction balance
+        fl_deriv = np.zeros((num_fl, num_vars, num_fl + 3))
+        j = 0
+        for fluid in nw.fluids:
+
+            # fresh air and fuel inlets
+            for i in range(2):
+                fl_deriv[j, i + 2, 0] = self.drb_dx('m', i + 2, fluid)
+                fl_deriv[j, i + 2, 3:] = self.drb_dx('fluid', i + 2, fluid)
+
+            # combustion outlet
+            fl_deriv[j, 6, 0] = self.drb_dx('m', 6, fluid)
+            fl_deriv[j, 6, 3:] = self.drb_dx('fluid', 6, fluid)
+            j += 1
+        mat_deriv += fl_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for cooling water fluid composition and mass flow
+        mat_deriv += self.fluid_deriv()
+        mat_deriv += self.mass_flow_deriv()
+
+        ######################################################################
+
+        # derivatives for pressure equations
+        p_deriv = np.zeros((2, num_vars, num_fl + 3))
+        for k in range(2):
+            p_deriv[k][2][1] = 1
+        p_deriv[0][6][1] = -1
+        p_deriv[1][3][1] = -1
+        mat_deriv += p_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for energy balance
+        eb_deriv = np.zeros((1, num_vars, num_fl + 3))
+
+        # mass flow cooling water
+        for i in [0, 1]:
+            eb_deriv[0, i, 0] = -(self.outl[i].h.val_SI - self.inl[i].h.val_SI)
+
+        # mass flow and pressure for combustion reaction
+        for i in [2, 3, 6]:
+            eb_deriv[0, i, 0] = self.ddx_func(self.energy_balance, 'm', i)
+            eb_deriv[0, i, 1] = self.ddx_func(self.energy_balance, 'p', i)
+
+        # enthalpy
+        for i in range(4):
+            eb_deriv[0, i, 2] = self.inl[i].m.val_SI
+        for i in range(3):
+            eb_deriv[0, i + 4, 2] = -self.outl[i].m.val_SI
+
+        # fluid composition
+        pos = 3 + nw.fluids.index(self.fuel.val)
+        eb_deriv[0, 2, pos] = self.inl[2].m.val_SI * self.lhv
+        eb_deriv[0, 3, pos] = self.inl[3].m.val_SI * self.lhv
+        eb_deriv[0, 6, pos] = -self.outl[2].m.val_SI * self.lhv
+
+        # power and heat loss
+        if self.P.is_var:
+            eb_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.energy_balance, 'P', 7))
+        if self.Qloss.is_var:
+            eb_deriv[0, 7 + self.Qloss.var_pos, 0] = (
+                self.ddx_func(self.energy_balance, 'Qloss', 7))
+        mat_deriv += eb_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for thermal input to power charactersitics
+        tiP_deriv = np.zeros((1, num_vars, num_fl + 3))
+        for i in range(2):
+            tiP_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.tiP_char_func, 'm', i + 2))
+            tiP_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.tiP_char_func, 'fluid', i + 2))
+
+        tiP_deriv[0, 6, 0] = self.ddx_func(self.tiP_char_func, 'm', 6)
+        tiP_deriv[0, 6, 3:] = self.ddx_func(self.tiP_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            tiP_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.tiP_char_func, 'P', 7))
+        mat_deriv += tiP_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for heat output 1 to power charactersitics
+        Q1_deriv = np.zeros((1, num_vars, num_fl + 3))
+        Q1_deriv[0, 0, 0] = self.ddx_func(self.Q1_char_func, 'm', 0)
+        Q1_deriv[0, 0, 2] = self.ddx_func(self.Q1_char_func, 'h', 0)
+        Q1_deriv[0, 4, 2] = self.ddx_func(self.Q1_char_func, 'h', 4)
+        for i in range(2):
+            Q1_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Q1_char_func, 'm', i + 2))
+            Q1_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Q1_char_func, 'fluid', i + 2))
+        Q1_deriv[0, 6, 0] = self.ddx_func(self.Q1_char_func, 'm', 6)
+        Q1_deriv[0, 6, 3:] = self.ddx_func(self.Q1_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            Q1_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Q1_char_func, 'P', 7))
+        mat_deriv += Q1_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for heat output 2 to power charactersitics
+        Q2_deriv = np.zeros((1, num_vars, num_fl + 3))
+        Q2_deriv[0, 1, 0] = self.ddx_func(self.Q2_char_func, 'm', 1)
+        Q2_deriv[0, 1, 2] = self.ddx_func(self.Q2_char_func, 'h', 1)
+        Q2_deriv[0, 5, 2] = self.ddx_func(self.Q2_char_func, 'h', 5)
+        for i in range(2):
+            Q2_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Q2_char_func, 'm', i + 2))
+            Q2_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Q2_char_func, 'fluid', i + 2))
+        Q2_deriv[0, 6, 0] = self.ddx_func(self.Q2_char_func, 'm', 6)
+        Q2_deriv[0, 6, 3:] = self.ddx_func(self.Q2_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            Q2_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Q2_char_func, 'P', 7))
+        mat_deriv += Q2_deriv.tolist()
+
+        ######################################################################
+
+        # derivatives for heat loss to power charactersitics
+        Ql_deriv = np.zeros((1, num_vars, num_fl + 3))
+        for i in range(2):
+            Ql_deriv[0, i + 2, 0] = (
+                    self.ddx_func(self.Qloss_char_func, 'm', i + 2))
+            Ql_deriv[0, i + 2, 3:] = (
+                    self.ddx_func(self.Qloss_char_func, 'fluid', i + 2))
+        Ql_deriv[0, 6, 0] = self.ddx_func(self.Qloss_char_func, 'm', 6)
+        Ql_deriv[0, 6, 3:] = self.ddx_func(self.Qloss_char_func, 'fluid', 6)
+
+        if self.P.is_var:
+            Ql_deriv[0, 7 + self.P.var_pos, 0] = (
+                self.ddx_func(self.Qloss_char_func, 'P', 7))
+        if self.Qloss.is_var:
+            Ql_deriv[0, 7 + self.Qloss.var_pos, 0] = (
+                self.ddx_func(self.Qloss_char_func, 'Qloss', 7))
+        mat_deriv += Ql_deriv.tolist()
+
+        ######################################################################
+
+        if self.lamb.is_set:
+            # derivatives for specified lambda
+            lamb_deriv = np.zeros((1, num_vars, num_fl + 3))
+            for i in range(2):
+                lamb_deriv[0, i + 2, 0] = (
+                        self.ddx_func(self.lambda_func, 'm', i + 2))
+                lamb_deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.lambda_func, 'fluid', i + 2))
+            mat_deriv += lamb_deriv.tolist()
+
+        if self.ti.is_set:
+            # derivatives for specified thermal input
+            ti_deriv = np.zeros((1, num_vars, num_fl + 3))
+            for i in range(2):
+                ti_deriv[0, i + 2, 0] = self.ddx_func(self.ti_func, 'm', i + 2)
+                ti_deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.ti_func, 'fluid', i + 2))
+            ti_deriv[0, 6, 0] = self.ddx_func(self.ti_func, 'm', 6)
+            ti_deriv[0, 6, 3:] = self.ddx_func(self.ti_func, 'fluid', 6)
+            mat_deriv += ti_deriv.tolist()
+
+        if self.Q1.is_set:
+            # derivatives for specified heat output 1
+            Q_deriv = np.zeros((1, num_vars, num_fl + 3))
+            Q_deriv[0, 0, 0] = - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            Q_deriv[0, 0, 2] = self.inl[0].m.val_SI
+            Q_deriv[0, 4, 2] = -self.inl[0].m.val_SI
+            mat_deriv += Q_deriv.tolist()
+
+        if self.Q2.is_set:
+            # derivatives for specified heat output 2
+            Q_deriv = np.zeros((1, num_vars, num_fl + 3))
+            Q_deriv[0, 1, 0] = - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+            Q_deriv[0, 1, 2] = self.inl[1].m.val_SI
+            Q_deriv[0, 5, 2] = -self.inl[1].m.val_SI
+            mat_deriv += Q_deriv.tolist()
+
+        if self.pr1.is_set:
+            # derivatives for specified pressure ratio 1
+            pr1_deriv = np.zeros((1, num_vars, num_fl + 3))
+            pr1_deriv[0, 0, 1] = self.pr1.val
+            pr1_deriv[0, 4, 1] = -1
+            mat_deriv += pr1_deriv.tolist()
+
+        if self.pr2.is_set:
+            # derivatives for specified pressure ratio 2
+            pr2_deriv = np.zeros((1, num_vars, num_fl + 3))
+            pr2_deriv[0, 1, 1] = self.pr2.val
+            pr2_deriv[0, 5, 1] = -1
+            mat_deriv += pr2_deriv.tolist()
+
+        if self.zeta1.is_set:
+            # derivatives for specified zeta 1
+            zeta1_deriv = np.zeros((1, num_vars, num_fl + 3))
+            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 4, 1] = self.ddx_func(self.zeta_func, 'p', 4)
+            zeta1_deriv[0, 4, 2] = self.ddx_func(self.zeta_func, 'h', 4)
+            mat_deriv += zeta1_deriv.tolist()
+
+        if self.zeta2.is_set:
+            # derivatives for specified zeta 2
+            zeta2_deriv = np.zeros((1, num_vars, num_fl + 3))
+            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 5, 1] = self.ddx_func(self.zeta2_func, 'p', 5)
+            zeta2_deriv[0, 5, 2] = self.ddx_func(self.zeta2_func, 'h', 5)
+            mat_deriv += zeta2_deriv.tolist()
+
+        return np.asarray(mat_deriv)
+
+    def energy_balance(self):
+        r"""
+        calculates the energy balance of the cogeneration unit
+
+        .. note::
+            The temperature for the reference state is set to 20 °C, thus
+            the water may be liquid. In order to make sure, the state is
+            referring to the lower heating value, the necessary enthalpy
+            difference for evaporation is added. The stoichiometric combustion
+            chamber uses a different reference, you will find it in the
+            :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+            documentation.
+
+            - reference temperature: 293.15 K
+            - reference pressure: 1 bar
+
+        :returns: res (*float*) - residual value of energy balance
+
+        .. math::
+
+            \begin{split}
+            0 = & \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
+            \right)\\
+            & - \sum_j \dot{m}_{out,3} \cdot \left( h_{out,3} - h_{out,3,ref}
+            \right)\\
+            & + H_{I,f} \cdot \left(\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right)- \dot{m}_{out,3} \cdot x_{f,3} \right)\\
+            & - \dot{Q}_1 - \dot{Q}_2 - P - \dot{Q}_{loss}\\
+            \end{split}\\
+            \forall i \in [3,4]
+
+        """
+        T_ref = 293.15
+        p_ref = 1e5
+
+        res = 0
+        for i in self.inl[2:]:
+            res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+
+        for o in self.outl[2:]:
+            dh = 0
+            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+            if n_h2o > 0:
+                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
+                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                if h < h_steam:
+                    dh = (h_steam - h) * o.fluid.val[self.h2o]
+
+            res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
+                    dh)
+
+        res += self.calc_ti()
+
+        # cooling water
+        for i in range(2):
+            res -= self.inl[i].m.val_SI * (
+                    self.outl[i].h.val_SI - self.inl[i].h.val_SI)
+
+        # power output and heat loss
+        res -= self.P.val + self.Qloss.val
+
+        return res
+
+    def drb_dx(self, dx, pos, fluid):
+        r"""
+        calculates derivative of the reaction balance to dx at components inlet
+        or outlet in position pos for the fluid fluid
+
+        :param dx: dx
+        :type dx: str
+        :param pos: position of inlet or outlet, logic: ['in1', 'in2', ...,
+                    'out1', ...] -> 0, 1, ..., n, n + 1, ...
+        :type pos: int
+        :param fluid: calculate reaction balance for this fluid
+        :type fluid: str
+        :returns: deriv (*list* or *float*) - partial derivative of the
+                  function reaction balance to dx
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}
+            {2 \cdot d}
+        """
+
+        dm, dp, dh, df = 0, 0, 0, 0
+        if dx == 'm':
+            dm = 1e-4
+        elif dx == 'p':
+            dp = 1
+        elif dx == 'h':
+            dh = 1
+        else:
+            df = 1e-5
+
+        if dx == 'fluid':
+            deriv = []
+            for f in self.inl[0].fluid.val.keys():
+                val = (self.inl + self.outl)[pos].fluid.val[f]
+                exp = 0
+                if (self.inl + self.outl)[pos].fluid.val[f] + df <= 1:
+                    (self.inl + self.outl)[pos].fluid.val[f] += df
+                else:
+                    (self.inl + self.outl)[pos].fluid.val[f] = 1
+                exp += self.reaction_balance(fluid)
+                if (self.inl + self.outl)[pos].fluid.val[f] - 2 * df >= 0:
+                    (self.inl + self.outl)[pos].fluid.val[f] -= 2 * df
+                else:
+                    (self.inl + self.outl)[pos].fluid.val[f] = 0
+                exp -= self.reaction_balance(fluid)
+                (self.inl + self.outl)[pos].fluid.val[f] = val
+
+                deriv += [exp / (2 * (dm + dp + dh + df))]
+
+        else:
+            exp = 0
+            (self.inl + self.outl)[pos].m.val_SI += dm
+            (self.inl + self.outl)[pos].p.val_SI += dp
+            (self.inl + self.outl)[pos].h.val_SI += dh
+            exp += self.reaction_balance(fluid)
+
+            (self.inl + self.outl)[pos].m.val_SI -= 2 * dm
+            (self.inl + self.outl)[pos].p.val_SI -= 2 * dp
+            (self.inl + self.outl)[pos].h.val_SI -= 2 * dh
+            exp -= self.reaction_balance(fluid)
+            deriv = exp / (2 * (dm + dp + dh + df))
+
+            (self.inl + self.outl)[pos].m.val_SI += dm
+            (self.inl + self.outl)[pos].p.val_SI += dp
+            (self.inl + self.outl)[pos].h.val_SI += dh
+
+        return deriv
+
+    def bus_func(self, bus):
+        r"""
+        functions for use on busses
+
+        :returns: val (*float*) - residual value of equation
+        """
+
+        if bus.param == 'TI':
+            return self.calc_ti()
+
+        if bus.param == 'P':
+            return self.calc_P()
+
+        if bus.param == 'Q':
+            val = 0
+            for j in range(2):
+                i = self.inl[j]
+                o = self.outl[j]
+                val += i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+            return val
+
+        if bus.param == 'Q1':
+            i = self.inl[0]
+            o = self.outl[0]
+
+            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+        if bus.param == 'Q2':
+            i = self.inl[1]
+            o = self.outl[1]
+
+            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+        if bus.param == 'Qloss':
+            return self.Qloss.val
+
+    def bus_deriv(self, bus):
+        r"""
+        calculate matrix of partial derivatives towards mass flow and fluid
+        composition for bus
+        function
+
+        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        """
+        deriv = np.zeros((1, 7 + self.num_c_vars,
+                          len(self.inl[0].fluid.val) + 3))
+
+        if bus.param == 'TI':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_ti, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_ti, 'fluid', i + 2))
+            deriv[0, 6, 0] = self.ddx_func(self.calc_ti, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_ti, 'fluid', 6)
+
+        if bus.param == 'P':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_P, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_P, 'fluid', i + 2))
+
+            deriv[0, 6, 0] = self.ddx_func(self.calc_P, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_P, 'fluid', 6)
+
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = (
+                    self.ddx_func(self.calc_P, 'P', 7))
+
+        if bus.param == 'Q':
+            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            deriv[0, 0, 2] = -self.inl[0].m.val_SI
+            deriv[0, 4, 2] = self.inl[0].m.val_SI
+            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+            deriv[0, 1, 2] = -self.inl[0].m.val_SI
+            deriv[0, 5, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Q1':
+            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            deriv[0, 0, 2] = -self.inl[0].m.val_SI
+            deriv[0, 4, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Q2':
+            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+            deriv[0, 1, 2] = -self.inl[0].m.val_SI
+            deriv[0, 5, 2] = self.inl[0].m.val_SI
+
+        if bus.param == 'Qloss':
+            for i in range(2):
+                deriv[0, i + 2, 0] = self.ddx_func(self.calc_Qloss, 'm', i + 2)
+                deriv[0, i + 2, 3:] = (
+                        self.ddx_func(self.calc_Qloss, 'fluid', i + 2))
+
+            deriv[0, 6, 0] = self.ddx_func(self.calc_Qloss, 'm', 6)
+            deriv[0, 6, 3:] = self.ddx_func(self.calc_Qloss, 'fluid', 6)
+
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = (
+                    self.ddx_func(self.calc_Qloss, 'P', 7))
+
+        return deriv
+
+    def Q1_func(self):
+        r"""
+        calculates the relation of heat output 1 and thermal input from
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            0 = \dot{m}_1 \cdot \left(h_{out,1} - h_{in,1} \right) - \dot{Q}_1
+
+        """
+
+        i = self.inl[0]
+        o = self.outl[0]
+
+        return self.Q1.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+    def Q2_func(self):
+        r"""
+        calculates the relation of heat output 2 and thermal input from
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            0 = \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) - \dot{Q}_2
+
+        """
+
+        i = self.inl[1]
+        o = self.outl[1]
+
+        return self.Q2.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+    def tiP_char_func(self):
+        r"""
+        calculates the relation of output power and thermal input from
+        specified characteristic line
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+            0 = P \cdot f_{TI}\left(\frac{P}{P_{ref}}\right)- LHV \cdot
+            \left[\sum_i \left(\dot{m}_{in,i} \cdot
+            x_{f,i}\right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
+            \; \forall i \in [1,2]
+
+        """
+
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return self.calc_ti() - self.tiP_char.func.f_x(expr) * self.P.val
+
+    def Q1_char_func(self):
+        r"""
+        calculates the relation of heat output 1 and thermal input from
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            \begin{split}
+            0 = & \dot{m}_1 \cdot \left(h_{out,1} - h_{in,1} \right) \cdot
+            f_{TI}\left(\frac{P}{P_{ref}}\right) \\
+            & - LHV \cdot \left[\sum_i
+            \left(\dot{m}_{in,i} \cdot x_{f,i}\right) -
+            \dot{m}_{out,3} \cdot x_{f,3} \right] \cdot
+            f_{Q1}\left(\frac{P}{P_{ref}}\right)\\
+            \end{split}\\
+            \forall i \in [3,4]
+
+        """
+
+        i = self.inl[0]
+        o = self.outl[0]
+
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return (self.calc_ti() * self.Q1_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * i.m.val_SI * (
+                        o.h.val_SI - i.h.val_SI))
+
+    def Q2_char_func(self):
+        r"""
+        calculates the relation of heat output 2 and thermal input from
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            \begin{split}
+            0 = & \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) \cdot
+            f_{TI}\left(\frac{P}{P_{ref}}\right) \\
+            & - LHV \cdot \left[\sum_i
+            \left(\dot{m}_{in,i} \cdot x_{f,i}\right) -
+            \dot{m}_{out,3} \cdot x_{f,3} \right] \cdot
+            f_{Q2}\left(\frac{P}{P_{ref}}\right)\\
+            \end{split}\\
+            \forall i \in [3,4]
+
+        """
+
+        i = self.inl[1]
+        o = self.outl[1]
+
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return (self.calc_ti() * self.Q2_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * i.m.val_SI * (
+                        o.h.val_SI - i.h.val_SI))
+
+    def Qloss_char_func(self):
+        r"""
+        calculates the relation of heat loss and thermal input from
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            \begin{split}
+            0 = & \dot{Q}_{loss} \cdot
+            f_{TI}\left(\frac{P}{P_{ref}}\right) \\
+            & - LHV \cdot \left[\sum_i
+            \left(\dot{m}_{in,i} \cdot x_{f,i}\right) -
+            \dot{m}_{out,3} \cdot x_{f,3} \right] \cdot
+            f_{QLOSS}\left(\frac{P}{P_{ref}}\right)\\
+            \end{split}\\
+            \forall i \in [3,4]
+
+        """
+
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) -
+                self.tiP_char.func.f_x(expr) * self.Qloss.val)
+
+    def calc_ti(self):
+        r"""
+        calculates the thermal input of the cogeneration unit
+
+        :returns: ti (*float*) - thermal input
+
+        .. math::
+            ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
+            \right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
+            \; \forall i \in [3,4]
+
+        """
+
+        m = 0
+        for i in self.inl[2:]:
+            m += i.m.val_SI * i.fluid.val[self.fuel.val]
+
+        for o in self.outl[2:]:
+            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+
+        return m * self.lhv
+
+    def calc_P(self):
+        r"""
+        calculates power from thermal input and
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            P = \frac{LHV \cdot \dot{m}_{f}}
+            {f_{TI}\left(\frac{P}{P_{ref}}\right)}
+
+        """
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return self.calc_ti() / self.tiP_char.func.f_x(expr)
+
+    def calc_Qloss(self):
+        r"""
+        calculates heat loss from thermal input and
+        specified characteristic lines
+
+        :returns: res (*float*) - residual value
+
+        .. math::
+
+            \dot{Q}_{loss} = \frac{LHV \cdot \dot{m}_{f} \cdot
+            f_{QLOSS}\left(\frac{P}{P_{ref}}\right)}
+            {f_{TI}\left(\frac{P}{P_{ref}}\right)}
+
+        """
+        if self.P_ref.is_set:
+            expr = self.P.val / self.P_ref.val
+        else:
+            expr = 1
+
+        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) /
+                self.tiP_char.func.f_x(expr))
+
+    def initialise_fluids(self, nw):
+        r"""
+        calculates reaction balance with given lambda for good generic
+        starting values
+
+        - sets the fluid composition at the combustion chambers outlet
+
+         for the reaction balance equations see
+         :func:`tespy.components.components.combustion_chamber.reaction_balance`
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: no return value
+        """
+        N_2 = 0.7655
+        O_2 = 0.2345
+
+        n_fuel = 1
+        lamb = 3
+        m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
+        m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
+
+        n_o2 = (m_co2 / molar_masses[self.co2] +
+                0.5 * m_h2o / molar_masses[self.h2o]) * lamb
+
+        m_air = n_o2 * molar_masses[self.o2] / O_2
+        m_fuel = n_fuel * molar_masses[self.fuel.val]
+        m_fg = m_air + m_fuel
+
+        m_o2 = n_o2 * molar_masses[self.o2] * (1 - 1 / lamb)
+        m_n2 = N_2 * m_air
+
+        fg = {
+            self.n2: m_n2 / m_fg,
+            self.co2: m_co2 / m_fg,
+            self.o2: m_o2 / m_fg,
+            self.h2o: m_h2o / m_fg
+        }
+
+        for o in self.outl[2:]:
+            for fluid, x in o.fluid.val.items():
+                if not o.fluid.val_set[fluid] and fluid in fg.keys():
+                    o.fluid.val[fluid] = fg[fluid]
+
+    def convergence_check(self, nw):
+        r"""
+        prevent impossible fluid properties in calculation
+
+        - check if mass fractions of fluid components at combustion chambers
+          outlet are within typical range
+        - propagate the corrected fluid composition towards target
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: no return value
+        """
+        combustion_chamber.convergence_check(self, nw)
+
+        # additional stuff here?
+
+    def initialise_source(self, c, key):
+        r"""
+        returns a starting value for fluid properties at components outlet
+
+        :param c: connection to apply initialisation
+        :type c: tespy.connections.connection
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 10 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        """
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            return 10e5
+        else:
+            return 0
+
+    def initialise_target(self, c, key):
+        r"""
+        returns a starting value for fluid properties at components inlet
+
+        :param c: connection to apply initialisation
+        :type c: tespy.connections.connection
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 5 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        """
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
+
+    def calc_parameters(self, nw, mode):
+
+        combustion_chamber.calc_parameters(self, nw, mode)
+
+        i1 = self.inl[0].to_flow()
+        i2 = self.inl[1].to_flow()
+        o1 = self.outl[0].to_flow()
+        o2 = self.outl[1].to_flow()
+
+        if (mode == 'pre' and 'pr1' in self.offdesign) or mode == 'post':
+            self.pr1.val = o1[1] / i1[1]
+        if (mode == 'pre' and 'pr2' in self.offdesign) or mode == 'post':
+            self.pr2.val = o2[1] / i2[1]
+
+        if (mode == 'pre' and 'zeta1' in self.offdesign) or mode == 'post':
+            self.zeta1.val = ((i1[1] - o1[1]) * math.pi ** 2 / (
+                    8 * i1[0] ** 2 * (v_mix_ph(i1) + v_mix_ph(o1)) / 2))
+        if (mode == 'pre' and 'zeta2' in self.offdesign) or mode == 'post':
+            self.zeta2.val = ((i2[1] - o2[1]) * math.pi ** 2 / (
+                    8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2))
+
+        if mode == 'post' or (mode == 'pre' and 'Q1' in self.offdesign):
+            self.Q1.val = i1[0] * (o1[2] - i1[2])
+        if mode == 'post' or (mode == 'pre' and 'Q2' in self.offdesign):
+            self.Q2.val = i2[0] * (o2[2] - i2[2])
+
+        if ((mode == 'post' and nw.mode == 'design') or
+                (mode == 'pre' and 'P_ref' in self.offdesign)):
+            expr = 1
+            self.P_ref.val = self.calc_ti() / self.tiP_char.func.f_x(expr)
+        else:
+            expr = self.P.val / self.P_ref.val
+
+        if not self.Qloss.is_set:
+            self.Qloss.val = self.ti.val * (self.Qloss_char.func.f_x(expr) /
+                                            self.tiP_char.func.f_x(expr))
+        if not self.P.is_set:
+            self.P.val = self.ti.val / self.tiP_char.func.f_x(expr)
 
 # %%
 
@@ -4162,12 +5318,18 @@ class vessel(component):
        :alt: alternative text
        :align: center
     """
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+    def component(self):
+        return 'vessel'
 
     def attr(self):
-        return ['pr', 'zeta', 'Sirr']
-
-    def attr_prop(self):
-        return {'pr': dc_cp(), 'zeta': dc_cp(), 'Sirr': dc_cp()}
+        return {'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'Sirr': dc_cp(),
+                'pr_char': dc_cc()}
 
     def default_design(self):
         return ['pr']
@@ -4180,9 +5342,6 @@ class vessel(component):
 
     def outlets(self):
         return ['out1']
-
-    def component(self):
-        return 'vessel'
 
     def equations(self):
         r"""
@@ -4224,6 +5383,9 @@ class vessel(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
+        if self.pr_char.is_set:
+            vec_res += self.pr_char_func().tolist()
+
         return vec_res
 
     def derivatives(self, nw):
@@ -4242,28 +5404,32 @@ class vessel(component):
         mat_deriv += self.fluid_deriv()
         mat_deriv += self.mass_flow_deriv()
 
-        h_deriv = np.zeros((1, 2, num_fl + 3))
+        h_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
         h_deriv[0, 0, 2] = 1
         h_deriv[0, 1, 2] = -1
         mat_deriv += h_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
+            if self.pr.is_var:
+                pr_deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
             mat_deriv += pr_deriv.tolist()
 
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, 2, num_fl + 3))
+            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+            zeta_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
             for i in range(2):
-                if i == 0:
-                    zeta_deriv[0, i, 0] = (
-                        self.ddx_func(self.zeta_func, 'm', i))
-                zeta_deriv[0, i, 1] = (
-                    self.ddx_func(self.zeta_func, 'p', i))
-                zeta_deriv[0, i, 2] = (
-                    self.ddx_func(self.zeta_func, 'h', i))
+                zeta_deriv[0, i, 1] = self.ddx_func(self.zeta_func, 'p', i)
+                zeta_deriv[0, i, 2] = self.ddx_func(self.zeta_func, 'h', i)
+            if self.zeta.is_var:
+                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
+                    self.ddx_func(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
+
+        if self.pr_char.is_set:
+            mat_deriv += self.pr_char_deriv()
 
         return np.asarray(mat_deriv)
 
@@ -4309,6 +5475,29 @@ class vessel(component):
         else:
             return 0
 
+    def pr_char_func(self):
+        r"""
+        equation for characteristics of a vessel
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        return np.array([i[1] - self.pr_char.func.f_x(i[1]) * o[1]])
+
+    def pr_char_deriv(self):
+        r"""
+        calculates the derivatives for the characteristics
+
+        :returns: mat_deriv (*list*) - matrix of derivatives
+        """
+        num_fl = len(self.inl[0].fluid.val)
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.ddx_func(self.pr_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
+
+        return mat_deriv.tolist()
+
     def calc_parameters(self, nw, mode):
 
         if mode == 'post' or (mode == 'pre' and 'pr' in self.offdesign):
@@ -4325,13 +5514,6 @@ class vessel(component):
             self.Sirr.val = self.inl[0].m.val_SI * (
                     s_mix_ph(self.outl[0].to_flow()) -
                     s_mix_ph(self.inl[0].to_flow()))
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s ; '
-              'Sirr = ', self.Sirr.val, 'W / K')
 
 # %%
 
@@ -4353,9 +5535,10 @@ class heat_exchanger_simple(component):
       , :math:`[ks]=\text{1}` for hazen-williams equation
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
-    - t_a: ambient temperature, provide parameter in network's temperature unit
-    - t_a_design: ambient temperature design case, provide parameter in
-      network's temperature unit
+    - Tamb: ambient temperature, provide parameter in network's temperature
+      unit
+    - Tamb_ref: ambient temperature for reference in offdesign case, provide
+      parameter in network's temperature unit
 
     .. note::
         for now, it is not possible to make these parameters part of the
@@ -4376,8 +5559,8 @@ class heat_exchanger_simple(component):
 
     **default offdesign parameters**
 
-    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
-      t_a_design, if you want the heat flow calculated by this method*
+    - kA (method: HE_COLD, param: m), Tamb_ref: *be aware that you must provide
+      Tamb (and Tamb_ref), if you want the heat flow calculated by this method*
 
     **inlets and outlets**
 
@@ -4398,20 +5581,42 @@ class heat_exchanger_simple(component):
       the appropriate equation
     """
 
+    def component(self):
+        return 'simplified heat exchanger'
+
+    def attr(self):
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'kA': dc_cp(min_val=1, d=1),
+                'Tamb': dc_cp(), 'Tamb_ref': dc_cp(),
+                'kA_char': dc_cc(method='HE_HOT', param='m'),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
+
+    def default_design(self):
+        return ['pr']
+
+    def default_offdesign(self):
+        return ['kA', 'Tamb_ref']
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
     def comp_init(self, nw):
 
-        if self.kA_char.func is None:
-            method = self.kA_char.method
-            x = self.kA_char.x
-            y = self.kA_char.y
-            self.kA_char.func = cmp_char.heat_ex(method=method, x=x, y=y)
-            self.kA_char.x = self.kA_char.func.x
-            self.kA_char.y = self.kA_char.func.y
+        component.comp_init(self, nw)
 
-        self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
-                           nw.T[nw.T_unit][1])
-        self.t_a_design.val_SI = ((self.t_a_design.val + nw.T[nw.T_unit][0]) *
-                                  nw.T[nw.T_unit][1])
+        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
+                            nw.T[nw.T_unit][1])
+        self.Tamb_ref.val_SI = ((self.Tamb_ref.val + nw.T[nw.T_unit][0]) *
+                                nw.T[nw.T_unit][1])
 
         # parameters for hydro group
         self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
@@ -4435,7 +5640,7 @@ class heat_exchanger_simple(component):
             self.hydro_group.set_attr(is_set=False)
 
         # parameters for kA group
-        self.kA_group.set_attr(elements=[self.kA, self.t_a])
+        self.kA_group.set_attr(elements=[self.kA, self.Tamb])
 
         is_set = True
         for e in self.kA_group.elements:
@@ -4448,41 +5653,12 @@ class heat_exchanger_simple(component):
             msg = ('##### WARNING #####\n'
                    'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: kA, t_a at ' + self.label + '. '
+                   'parameters: kA, Tamb at ' + self.label + '. '
                    'Group will be set to False')
             print(msg)
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
-
-    def attr(self):
-        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'kA', 't_a', 't_a_design', 'kA_char',
-                'SQ1', 'SQ2', 'Sirr',
-                'hydro_group', 'kA_group']
-
-    def attr_prop(self):
-        return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
-                'kA': dc_cp(), 't_a': dc_cp(), 't_a_design': dc_cp(),
-                'kA_char': dc_cc(method='HE_HOT', param='m'),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
-
-    def default_design(self):
-        return ['pr']
-
-    def default_offdesign(self):
-        return ['kA']
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def component(self):
-        return 'simplified heat exchanger'
 
     def equations(self):
         r"""
@@ -4524,9 +5700,8 @@ class heat_exchanger_simple(component):
         vec_res += self.mass_flow_res()
 
         if self.Q.is_set:
-            vec_res += [self.inl[0].m.val_SI *
-                        (self.outl[0].h.val_SI - self.inl[0].h.val_SI) -
-                        self.Q.val]
+            vec_res += [self.inl[0].m.val_SI * (
+                    self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val]
 
         if self.pr.is_set:
             vec_res += [self.inl[0].p.val_SI * self.pr.val -
@@ -4540,7 +5715,6 @@ class heat_exchanger_simple(component):
                 func = self.hw_func
             else:
                 func = self.darcy_func
-
             vec_res += [func()]
 
         vec_res += self.additional_equations()
@@ -4583,24 +5757,31 @@ class heat_exchanger_simple(component):
         mat_deriv += self.mass_flow_deriv()
 
         if self.Q.is_set:
-            Q_deriv = np.zeros((1, 2, num_fl + 3))
+            Q_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             Q_deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             Q_deriv[0, 0, 2] = -self.inl[0].m.val_SI
             Q_deriv[0, 1, 2] = self.inl[0].m.val_SI
+            if self.Q.is_var:
+                Q_deriv[0, 2 + self.Q.var_pos, 0] = -1
             mat_deriv += Q_deriv.tolist()
 
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2, num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
+            if self.pr.is_var:
+                pr_deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
             mat_deriv += pr_deriv.tolist()
 
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, 2, num_fl + 3))
+            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             zeta_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
             for i in range(2):
                 zeta_deriv[0, i, 1] = self.ddx_func(self.zeta_func, 'p', i)
                 zeta_deriv[0, i, 2] = self.ddx_func(self.zeta_func, 'h', i)
+            if self.zeta.is_var:
+                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
+                    self.ddx_func(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
 
         if self.hydro_group.is_set:
@@ -4609,11 +5790,15 @@ class heat_exchanger_simple(component):
             else:
                 func = self.darcy_func
 
-            deriv = np.zeros((1, 2, num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             deriv[0, 0, 0] = self.ddx_func(func, 'm', 0)
             for i in range(2):
                 deriv[0, i, 1] = self.ddx_func(func, 'p', i)
                 deriv[0, i, 2] = self.ddx_func(func, 'h', i)
+            for var in self.hydro_group.elements:
+                if var.is_var:
+                    deriv[0, 2 + var.var_pos, 0] = (
+                            self.ddx_func(func, self.vars[var], i))
             mat_deriv += deriv.tolist()
 
         mat_deriv += self.additional_derivatives(nw)
@@ -4633,11 +5818,17 @@ class heat_exchanger_simple(component):
         mat_deriv = []
 
         if self.kA_group.is_set:
-            kA_deriv = np.zeros((1, 2, num_fl + 3))
+            kA_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             kA_deriv[0, 0, 0] = self.ddx_func(self.kA_func, 'm', 0)
             for i in range(2):
                 kA_deriv[0, i, 1] = self.ddx_func(self.kA_func, 'p', i)
                 kA_deriv[0, i, 2] = self.ddx_func(self.kA_func, 'h', i)
+            # this does not work atm, as Tamb.val_SI is used instead of
+            # Tamb.val!
+            for var in self.kA_group.elements:
+                if var.is_var:
+                    kA_deriv[0, 2 + var.var_pos, 0] = (
+                            self.ddx_func(self.kA_func, self.vars[var], i))
             mat_deriv += kA_deriv.tolist()
 
         return mat_deriv
@@ -4667,6 +5858,7 @@ class heat_exchanger_simple(component):
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
+
         re = 4 * self.inl[0].m.val_SI / (math.pi * self.D.val *
                                          (visc_i + visc_o) / 2)
 
@@ -4711,13 +5903,13 @@ class heat_exchanger_simple(component):
         .. math::
 
             ttd_u = \begin{cases}
-            t_a - T_{out} & t_a > T_{in}\\
-            T_{in} - t_a & t_a \leq T_{in}
+            T_{amb} - T_{out} & T_{amb} > T_{in}\\
+            T_{in} - T_{amb} & T_{amb} \leq T_{in}
             \end{cases}
 
             ttd_l = \begin{cases}
-            t_a - T_{in} & t_a > T_{in}\\
-            T_{out} - t_a & t_a \leq T_{in}
+            T_{amb} - T_{in} & T_{amb} > T_{in}\\
+            T_{out} - T_{amb} & T_{amb} \leq T_{in}
             \end{cases}
 
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
@@ -4726,39 +5918,32 @@ class heat_exchanger_simple(component):
 
             f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right)
 
-            t_a: \text{ambient temperature}
+            T_{amb}: \text{ambient temperature}
 
         for f\ :subscript:`1` \ see class
         :func:`tespy.component.characteristics.heat_ex`
         """
 
-        i, o = self.inl, self.outl
-        T_i = T_mix_ph(i[0].to_flow())
-        T_o = T_mix_ph(o[0].to_flow())
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        T_i = T_mix_ph(i)
+        T_o = T_mix_ph(o)
 
-        if self.t_a.val_SI > T_i:
-            ttd_u = self.t_a.val_SI - T_o
-            ttd_l = self.t_a.val_SI - T_i
+        if self.Tamb.val_SI > T_i:
+            ttd_u = self.Tamb.val_SI - T_o
+            ttd_l = self.Tamb.val_SI - T_i
         else:
-            ttd_u = T_i - self.t_a.val_SI
-            ttd_l = T_o - self.t_a.val_SI
+            ttd_u = T_i - self.Tamb.val_SI
+            ttd_l = T_o - self.Tamb.val_SI
 
-        if self.kA_char.param == 'm':
-            expr = i[0].m.val_SI / self.i0[0]
-        else:
-            expr = 1
+        fkA = 1
+        if hasattr(self, 'i_ref'):
+            if self.kA_char.param == 'm':
+                fkA = self.kA_char.func.f_x(i[0] / self.i_ref[0])
 
-        if expr > self.kA_char.func.x[-1]:
-            expr = self.kA_char.func.x[-1]
-        if expr < self.kA_char.func.x[0]:
-            expr = self.kA_char.func.x[0]
+        return (i[0] * (o[2] - i[2]) + self.kA.val * fkA * (
+                (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
 
-        fkA = self.kA_char.func.f_x(expr)
-
-        return (i[0].m.val_SI * (o[0].h.val_SI - i[0].h.val_SI) + self.kA.val *
-                fkA * ((ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
-
-    def bus_func(self):
+    def bus_func(self, bus):
         r"""
         function for use on busses
 
@@ -4767,25 +5952,29 @@ class heat_exchanger_simple(component):
         .. math::
 
             val = \dot{m}_{in} \cdot \left( h_{out} - h_{in}
-            \right)
+            \right) \cdot f\left( \frac{val}{val_ref}\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        return i[0] * (o[2] - i[2])
 
-    def bus_deriv(self):
+        val = i[0] * (o[2] - i[2])
+        if np.isnan(bus.P_ref):
+            expr = 1
+        else:
+            expr = val / bus.P_ref
+        return val * bus.char.f_x(expr)
+
+    def bus_deriv(self, bus):
         r"""
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for bus function
 
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
         deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
-        deriv[0, 0, 0] = o[2] - i[2]
-        deriv[0, 0, 2] = - i[0]
-        deriv[0, 1, 2] = i[0]
+        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.ddx_func(self.bus_func, 'h', 1, bus=bus)
         return deriv
 
     def initialise_source(self, c, key):
@@ -4811,9 +6000,9 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0:
+            if self.Q.val < 0 and self.Q.is_set:
                 return 1e5
-            elif self.Q.val > 0:
+            elif self.Q.val > 0 and self.Q.is_set:
                 return 5e5
             else:
                 return 3e5
@@ -4844,9 +6033,9 @@ class heat_exchanger_simple(component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0:
+            if self.Q.val < 0 and self.Q.is_set:
                 return 5e5
-            elif self.Q.val > 0:
+            elif self.Q.val > 0 and self.Q.is_set:
                 return 1e5
             else:
                 return 3e5
@@ -4855,40 +6044,35 @@ class heat_exchanger_simple(component):
 
     def calc_parameters(self, nw, mode):
 
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
         if mode == 'post':
-            self.SQ1.val = self.inl[0].m.val_SI * (
-                    s_mix_ph(self.outl[0].to_flow()) -
-                    s_mix_ph(self.inl[0].to_flow()))
+            self.SQ1.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
         if mode == 'pre':
 
-            self.i0 = self.inl[0].to_flow()
-            self.o0 = self.outl[0].to_flow()
-            self.i0[3] = self.i0[3].copy()
-            self.o0[3] = self.o0[3].copy()
+            self.i_ref = i
+            self.o_ref = o
+            self.i_ref[3] = i[3].copy()
+            self.o_ref[3] = o[3].copy()
 
-        if nw.mode == 'design':
-            if self.t_a_design.is_set:
-                t_a = self.t_a_design.val_SI
-            else:
-                t_a = np.nan
+        if mode == 'post' and nw.mode == 'design':
+            self.Tamb_ref.val = self.Tamb.val
 
+        t_a = np.nan
         if nw.mode == 'offdesign':
             if mode == 'pre':
-                if self.t_a_design.is_set:
-                    t_a = self.t_a_design.val_SI
-                else:
-                    t_a = np.nan
+                if self.Tamb_ref.is_set:
+                    t_a = self.Tamb_ref.val_SI
             else:
-                if self.t_a.is_set:
-                    t_a = self.t_a.val_SI
-                else:
-                    t_a = np.nan
+                if self.Tamb.is_set:
+                    t_a = self.Tamb.val_SI
 
         if t_a != np.nan:
 
-            T_i = T_mix_ph(self.inl[0].to_flow())
-            T_o = T_mix_ph(self.outl[0].to_flow())
+            T_i = T_mix_ph(i)
+            T_o = T_mix_ph(o)
 
             if t_a > T_i:
                 ttd_u = t_a - T_o
@@ -4907,29 +6091,23 @@ class heat_exchanger_simple(component):
                 nw.errors += [self]
 
             if mode == 'post':
-                self.SQ2.val = - self.inl[0].m.val_SI * (
-                        self.outl[0].h.val_SI - self.inl[0].h.val_SI) / t_a
+                self.SQ2.val = -i[0] * (o[2] - i[2]) / t_a
                 self.Sirr.val = self.SQ1.val + self.SQ2.val
 
-            self.kA.val = self.inl[0].m.val_SI * (
-                            self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
-                            (ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
+            self.kA.val = i[0] * (o[2] - i[2]) / (
+                    (ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
 
         if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
-            self.Q.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                                 self.inl[0].h.val_SI)
+            self.Q.val = i[0] * (o[2] - i[2])
         if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
-            self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+            self.pr.val = o[1] / i[1]
         if (mode == 'pre' and 'zeta' in self.offdesign) or mode == 'post':
-            self.zeta.val = ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) *
-                             math.pi ** 2 /
-                             (8 * self.inl[0].m.val_SI ** 2 *
-                             (v_mix_ph(self.inl[0].to_flow()) +
-                              v_mix_ph(self.outl[0].to_flow())) / 2))
+            self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 / (
+                    8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
-            expr = self.inl[0].m.val_SI / self.i0[0]
+            expr = i[0] / self.i_ref[0]
             minval = self.kA_char.func.x[0]
             maxval = self.kA_char.func.x[-1]
             if expr > maxval or expr < minval:
@@ -4942,17 +6120,9 @@ class heat_exchanger_simple(component):
                     print(msg)
                 nw.errors += [self]
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'SQ1 = ', self.SQ1.val, 'W / K; ')
-        if self.t_a.is_set or self.t_a_design.is_set:
-            print('SQ2 = ', self.SQ2.val, 'W / K; '
-                  'Sirr = ', self.Sirr.val, 'W / K; '
-                  'kA = ', self.kA.val, 'W / (m^2 * K)')
+        if mode == 'post' and nw.mode == 'offdesign':
+            del self.i_ref
+            del self.o_ref
 
 # %%
 
@@ -4977,9 +6147,10 @@ class pipe(heat_exchanger_simple):
       , :math:`[ks]=\text{1}` for hazen-williams equation
     - kA: area independent heat transition coefficient,
       :math:`[kA]=\frac{\text{W}}{\text{K}}`
-    - t_a: ambient temperature, provide parameter in network's temperature unit
-    - t_a_design: ambient temperature design case, provide parameter in
-      network's temperature unit
+    - Tamb: ambient temperature, provide parameter in network's temperature
+      unit
+    - Tamb_ref: ambient temperature for reference in offdesign case, provide
+      parameter in network's temperature unit
 
     .. note::
         for now, it is not possible to make these parameters part of the
@@ -5000,8 +6171,8 @@ class pipe(heat_exchanger_simple):
 
     **default offdesign parameters**
 
-    - kA (method: HE_COLD, param: m): *be aware that you must provide t_a and
-      t_a_design, if you want the heat flow calculated by this method*
+    - kA (method: HE_COLD, param: m), Tamb_ref: *be aware that you must provide
+      Tamb (and Tamb_ref), if you want the heat flow calculated by this method*
 
     **inlets and outlets**
 
@@ -5050,7 +6221,8 @@ class solar_collector(heat_exchanger_simple):
     - lkf_quad: quadratic loss key figure,
       :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`
     - A: collector surface area :math:`[A]=\text{m}^2`
-    - t_a: ambient temperature, provide parameter in network's temperature unit
+    - Tamb: ambient temperature, provide parameter in network's temperature
+      unit
 
     .. note::
         for now, it is not possible to make these parameters part of the
@@ -5084,10 +6256,39 @@ class solar_collector(heat_exchanger_simple):
        :align: center
     """
 
+    def component(self):
+        return 'solar collector'
+
+    def attr(self):
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=1e-4),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
+                'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
+                'A': dc_cp(min_val=0), 'Tamb': dc_cp(),
+                'SQ': dc_cp(),
+                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
+    def default_design(self):
+        return ['pr']
+
+    def default_offdesign(self):
+        return ['zeta']
+
     def comp_init(self, nw):
 
-        self.t_a.val_SI = ((self.t_a.val + nw.T[nw.T_unit][0]) *
-                           nw.T[nw.T_unit][1])
+        component.comp_init(self, nw)
+
+        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
+                            nw.T[nw.T_unit][1])
 
         # parameters for hydro group
         self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
@@ -5112,7 +6313,7 @@ class solar_collector(heat_exchanger_simple):
 
         # parameters for kA group
         self.energy_group.set_attr(elements=[
-                self.E, self.lkf_lin, self.lkf_quad, self.A, self.t_a])
+                self.E, self.lkf_lin, self.lkf_quad, self.A, self.Tamb])
 
         is_set = True
         for e in self.energy_group.elements:
@@ -5125,41 +6326,12 @@ class solar_collector(heat_exchanger_simple):
             msg = ('##### WARNING #####\n'
                    'All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: E, lkf_lin, lkf_quad, A, t_a at ' + self.label
+                   'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' + self.label
                    + '. Group will be set to False')
             print(msg)
             self.energy_group.set_attr(is_set=False)
         else:
             self.energy_group.set_attr(is_set=False)
-
-    def attr(self):
-        return ['Q', 'pr', 'zeta', 'D', 'L', 'ks',
-                'E', 'lkf_lin', 'lkf_quad', 'A', 't_a',
-                'SQ',
-                'hydro_group', 'energy_group']
-
-    def attr_prop(self):
-        return {'Q': dc_cp(), 'pr': dc_cp(), 'zeta': dc_cp(),
-                'D': dc_cp(), 'L': dc_cp(), 'ks': dc_cp(),
-                'E': dc_cp(), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
-                'A': dc_cp(), 't_a': dc_cp(),
-                'SQ': dc_cp(),
-                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def default_design(self):
-        return ['pr']
-
-    def default_offdesign(self):
-        return ['zeta']
-
-    def component(self):
-        return 'solar collector'
 
     def additional_equations(self):
         r"""
@@ -5195,11 +6367,15 @@ class solar_collector(heat_exchanger_simple):
         mat_deriv = []
 
         if self.energy_group.is_set:
-            deriv = np.zeros((1, 2, num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
             deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             for i in range(2):
                 deriv[0, i, 1] = self.ddx_func(self.energy_func, 'p', i)
                 deriv[0, i, 2] = self.ddx_func(self.energy_func, 'h', i)
+            for var in self.energy_group.elements:
+                if var.is_var:
+                    deriv[0, 2 + var.var_pos, 0] = (
+                            self.ddx_func(self.energy_func, self.vars[var], i))
             mat_deriv += deriv.tolist()
 
         return mat_deriv
@@ -5229,39 +6405,25 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i) + T_mix_ph(o)) / 2
 
         return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val -
-                (T_m - self.t_a.val_SI) *
+                (T_m - self.Tamb.val_SI) *
                 (self.lkf_lin.val + self.lkf_quad.val * self.A.val *
-                 (T_m - self.t_a.val_SI))))
+                 (T_m - self.Tamb.val_SI))))
 
     def calc_parameters(self, nw, mode):
 
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
         if mode == 'post':
-            self.SQ.val = self.inl[0].m.val_SI * (
-                    s_mix_ph(self.outl[0].to_flow()) -
-                    s_mix_ph(self.inl[0].to_flow()))
+            self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
         if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
-            self.Q.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                                 self.inl[0].h.val_SI)
+            self.Q.val = i[0] * (o[2] - i[2])
         if (mode == 'pre' and 'pr' in self.offdesign) or mode == 'post':
-            self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+            self.pr.val = o[1] / i[1]
         if (mode == 'pre' and 'zeta' in self.offdesign) or mode == 'post':
-            self.zeta.val = ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) *
-                             math.pi ** 2 /
-                             (8 * self.inl[0].m.val_SI ** 2 *
-                             (v_mix_ph(self.inl[0].to_flow()) +
-                              v_mix_ph(self.outl[0].to_flow())) / 2))
-
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'pr = ', self.pr.val, '; '
-              'zeta = ', self.zeta.val, 'kg / m^4 * s; '
-              'SQ = ', self.SQ.val, 'W / K; ')
-        if self.energy_group.is_set:
-            print('E = ', self.E.val, 'W / m^2; '
-                  'A = ', self.A.val, 'm^2')
+            self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 / (
+                    8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
 # %%
 
@@ -5316,27 +6478,11 @@ class heat_exchanger(component):
     - add direct current heat exchangers
     """
 
-    def comp_init(self, nw):
-
-        if self.kA_char1.func is None:
-            method = self.kA_char1.method
-            x = self.kA_char1.x
-            y = self.kA_char1.y
-            self.kA_char1.func = cmp_char.heat_ex(method=method, x=x, y=y)
-
-        if self.kA_char2.func is None:
-            method = self.kA_char2.method
-            x = self.kA_char2.x
-            y = self.kA_char2.y
-            self.kA_char2.func = cmp_char.heat_ex(method=method, x=x, y=y)
+    def component(self):
+        return 'heat_exchanger'
 
     def attr(self):
-        return ['Q', 'kA', 'td_log', 'kA_char1', 'kA_char2',
-                'ttd_u', 'ttd_l',
-                'pr1', 'pr2', 'zeta1', 'zeta2',
-                'SQ1', 'SQ2', 'Sirr']
-
-    def attr_prop(self):
+        # derivatives for logarithmic temperature difference not implemented
         return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
                 'kA_char1': dc_cc(method='HE_HOT', param='m'),
                 'kA_char2': dc_cc(method='HE_COLD', param='m'),
@@ -5344,16 +6490,6 @@ class heat_exchanger(component):
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
-        # derivatives for logarithmic temperature difference not implemented
-#        return (component.attr(self) +
-#                ['Q', 'kA', 'td_log', 'ttd_u', 'ttd_l',
-#                 'pr1', 'pr2', 'zeta1', 'zeta2'])
-
-    def inlets(self):
-        return ['in1', 'in2']
-
-    def outlets(self):
-        return ['out1', 'out2']
 
     def default_design(self):
         return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
@@ -5361,8 +6497,15 @@ class heat_exchanger(component):
     def default_offdesign(self):
         return ['kA', 'zeta1', 'zeta2']
 
-    def component(self):
-        return 'heat_exchanger'
+    def inlets(self):
+        return ['in1', 'in2']
+
+    def outlets(self):
+        return ['out1', 'out2']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
     def equations(self):
         r"""
@@ -5483,7 +6626,6 @@ class heat_exchanger(component):
         q_deriv = np.zeros((1, 4, num_fl + 3))
         for k in range(2):
             q_deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-
             q_deriv[0, k, 2] = -self.inl[k].m.val_SI
         q_deriv[0, 2, 2] = self.inl[0].m.val_SI
         q_deriv[0, 3, 2] = self.inl[1].m.val_SI
@@ -5501,10 +6643,8 @@ class heat_exchanger(component):
             kA_deriv[0, 0, 0] = self.ddx_func(self.kA_func, 'm', 0)
             kA_deriv[0, 1, 0] = self.ddx_func(self.kA_func, 'm', 1)
             for i in range(4):
-                kA_deriv[0, i, 1] = (
-                    self.ddx_func(self.kA_func, 'p', i))
-                kA_deriv[0, i, 2] = (
-                    self.ddx_func(self.kA_func, 'h', i))
+                kA_deriv[0, i, 1] = self.ddx_func(self.kA_func, 'p', i)
+                kA_deriv[0, i, 2] = self.ddx_func(self.kA_func, 'h', i)
             mat_deriv += kA_deriv.tolist()
 
         # derivatives for logarithmic temperature difference not implemented
@@ -5542,26 +6682,20 @@ class heat_exchanger(component):
 
         if self.zeta1.is_set:
             zeta1_deriv = np.zeros((1, 4, num_fl + 3))
-            for i in range(2):
-                if i == 0:
-                    zeta1_deriv[0, i * 2, 0] = (
-                        self.ddx_func(self.zeta_func, 'm', i * 2))
-                zeta1_deriv[0, i * 2, 1] = (
-                    self.ddx_func(self.zeta_func, 'p', i * 2))
-                zeta1_deriv[0, i * 2, 2] = (
-                    self.ddx_func(self.zeta_func, 'h', i * 2))
+            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 2, 1] = self.ddx_func(self.zeta_func, 'p', 2)
+            zeta1_deriv[0, 2, 2] = self.ddx_func(self.zeta_func, 'h', 2)
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
             zeta2_deriv = np.zeros((1, 4, num_fl + 3))
-            for i in range(2):
-                if i == 0:
-                    zeta2_deriv[0, i * 2 + 1, 0] = (
-                        self.ddx_func(self.zeta2_func, 'm', i * 2 + 1))
-                zeta2_deriv[0, i * 2 + 1, 1] = (
-                    self.ddx_func(self.zeta2_func, 'p', i * 2 + 1))
-                zeta2_deriv[0, i * 2 + 1, 2] = (
-                    self.ddx_func(self.zeta2_func, 'h', i * 2 + 1))
+            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 3, 1] = self.ddx_func(self.zeta2_func, 'p', 3)
+            zeta2_deriv[0, 3, 2] = self.ddx_func(self.zeta2_func, 'h', 3)
             mat_deriv += zeta2_deriv.tolist()
 
         mat_deriv += self.additional_derivatives(nw)
@@ -5578,29 +6712,6 @@ class heat_exchanger(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         return []
-
-    def zeta2_func(self):
-        r"""
-        calculates pressure drop from zeta2
-
-        :returns: residual value for the pressure drop
-
-        .. math::
-
-            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
-            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
-
-        As the cross sectional area A will not change from design to offdesign
-        calculation, it is possible to handle this the following way:
-
-        .. math::
-            0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
-            \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
-        """
-        i = self.inl[1].to_flow()
-        o = self.outl[1].to_flow()
-        return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
-                (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
     def kA_func(self):
         r"""
@@ -5657,85 +6768,71 @@ class heat_exchanger(component):
                    'temperature difference is negative!')
             raise MyComponentError(msg)
 
+        fkA1 = 1
         if self.kA_char1.param == 'm':
-            expr = i1[0] / self.i10[0]
-        else:
-            expr = 1
+            if hasattr(self, 'i1_ref'):
+                fkA1 = self.kA_char1.func.f_x(i1[0] / self.i1_ref[0])
 
-        if expr > self.kA_char1.func.x[-1]:
-            expr = self.kA_char1.func.x[-1]
-        if expr < self.kA_char1.func.x[0]:
-            expr = self.kA_char1.func.x[0]
-
-        fkA1 = self.kA_char1.func.f_x(expr)
-
+        fkA2 = 1
         if self.kA_char2.param == 'm':
-            expr = i2[0] / self.i20[0]
-        else:
-            expr = 1
-
-        if expr > self.kA_char2.func.x[-1]:
-            expr = self.kA_char2.func.x[-1]
-        if expr < self.kA_char2.func.x[0]:
-            expr = self.kA_char2.func.x[0]
-
-        fkA2 = self.kA_char2.func.f_x(expr)
+            if hasattr(self, 'i2_ref'):
+                fkA2 = self.kA_char2.func.f_x(i2[0] / self.i2_ref[0])
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
                 (T_o1 - T_i2 - T_i1 + T_o2) /
                 math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-    def td_log_func(self):
-        r"""
-        equation for logarithmic temperature difference
-
-        - calculate temperatures at inlets and outlets
-        - perform convergence correction, if temperature levels do not
-          match logic:
-
-              * :math:`T_{1,in} > T_{2,out}`?
-              * :math:`T_{1,out} < T_{2,in}`?
-
-        :returns: val (*float*) - residual value of equation
-
-        .. math::
-
-            0 = td_{log} \cdot
-            \frac{\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
-            {T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
-        """
-
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-
-        T_i1 = T_mix_ph(i1)
-        T_i2 = T_mix_ph(i2)
-        T_o1 = T_mix_ph(o1)
-        T_o2 = T_mix_ph(o2)
-
-        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
-            T_i1 = T_o2 + 1
-        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
-            T_o2 = T_i1 - 1
-        if T_i1 <= T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
-                   'temperature difference is negative!')
-            raise MyComponentError(msg)
-
-        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
-            T_i2 = T_o1 - 1
-        if T_o1 <= T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
-                   'temperature difference is negative!')
-            raise MyComponentError(msg)
-
-        return (self.td_log.val *
-                math.log((T_o1 - T_i2) / (T_i1 - T_o2)) -
-                T_o1 + T_i2 + T_i1 - T_o2)
+#    def td_log_func(self):
+#        r"""
+#        equation for logarithmic temperature difference
+#
+#        - calculate temperatures at inlets and outlets
+#        - perform convergence correction, if temperature levels do not
+#          match logic:
+#
+#              * :math:`T_{1,in} > T_{2,out}`?
+#              * :math:`T_{1,out} < T_{2,in}`?
+#
+#        :returns: val (*float*) - residual value of equation
+#
+#        .. math::
+#
+#            0 = td_{log} \cdot
+#            \frac{\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+#            {T_{1,out} - T_{2,in} - T_{1,in} + T_{2,out}}
+#        """
+#
+#        i1 = self.inl[0].to_flow()
+#        i2 = self.inl[1].to_flow()
+#        o1 = self.outl[0].to_flow()
+#        o2 = self.outl[1].to_flow()
+#
+#        T_i1 = T_mix_ph(i1)
+#        T_i2 = T_mix_ph(i2)
+#        T_o1 = T_mix_ph(o1)
+#        T_o2 = T_mix_ph(o2)
+#
+#        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+#            T_i1 = T_o2 + 1
+#        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+#            T_o2 = T_i1 - 1
+#        if T_i1 <= T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Upper '
+#                   'temperature difference is negative!')
+#            raise MyComponentError(msg)
+#
+#        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+#            T_o1 = T_i2 + 1
+#        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+#            T_i2 = T_o1 - 1
+#        if T_o1 <= T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Lower '
+#                   'temperature difference is negative!')
+#            raise MyComponentError(msg)
+#
+#        return (self.td_log.val *
+#                math.log((T_o1 - T_i2) / (T_i1 - T_o2)) -
+#                T_o1 + T_i2 + T_i1 - T_o2)
 
     def ttd_u_func(self):
         r"""
@@ -5795,7 +6892,7 @@ class heat_exchanger(component):
                 self.ddx_func(self.ttd_l_func, 'h', i + 1))
         return deriv.tolist()
 
-    def bus_func(self):
+    def bus_func(self, bus):
         r"""
         function for use on busses
 
@@ -5804,26 +6901,29 @@ class heat_exchanger(component):
         .. math::
 
             val = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}
-            \right)
+            \right) \cdot  f\left( \frac{val}{val_ref}\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        return i[0] * (o[2] - i[2])
 
-    def bus_deriv(self):
+        val = i[0] * (o[2] - i[2])
+        if np.isnan(bus.P_ref):
+            expr = 1
+        else:
+            expr = val / bus.P_ref
+        return val * bus.char.f_x(expr)
+
+    def bus_deriv(self, bus):
         r"""
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for bus function
 
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, 0, 0] = o[2] - i[2]
-            deriv[0, 0, 2] = - i[0]
-            deriv[0, 2, 2] = i[0]
+        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 2, 2] = self.ddx_func(self.bus_func, 'h', 2, bus=bus)
         return deriv
 
     def convergence_check(self, nw):
@@ -5939,14 +7039,14 @@ class heat_exchanger(component):
 
         if mode == 'pre':
 
-            self.i10 = i1
-            self.i20 = i2
-            self.o10 = o1
-            self.o20 = o2
-            self.i10[3] = self.i10[3].copy()
-            self.i20[3] = self.i20[3].copy()
-            self.o10[3] = self.o10[3].copy()
-            self.o20[3] = self.o20[3].copy()
+            self.i1_ref = i1
+            self.i2_ref = i2
+            self.o1_ref = o1
+            self.o2_ref = o2
+            self.i1_ref[3] = self.i1_ref[3].copy()
+            self.i2_ref[3] = self.i2_ref[3].copy()
+            self.o1_ref[3] = self.o1_ref[3].copy()
+            self.o2_ref[3] = self.o2_ref[3].copy()
 
         T_i2 = T_mix_ph(i2)
         T_o1 = T_mix_ph(o1)
@@ -6008,7 +7108,7 @@ class heat_exchanger(component):
 
         # improve this part (for heat exchangers only atm)
         if self.kA.is_set:
-            expr = self.inl[0].m.val_SI / self.i10[0]
+            expr = self.inl[0].m.val_SI / self.i1_ref[0]
             minval = self.kA_char1.func.x[0]
             maxval = self.kA_char1.func.x[-1]
             if expr > maxval or expr < minval:
@@ -6021,7 +7121,7 @@ class heat_exchanger(component):
                     print(msg)
                 nw.errors += [self]
 
-            expr = self.inl[1].m.val_SI / self.i20[0]
+            expr = self.inl[1].m.val_SI / self.i2_ref[0]
             minval = self.kA_char2.func.x[0]
             maxval = self.kA_char2.func.x[-1]
             if expr > maxval or expr < minval:
@@ -6034,21 +7134,11 @@ class heat_exchanger(component):
                     print(msg)
                 nw.errors += [self]
 
-    def print_parameters(self, nw):
-
-        print('##### ', self.label, ' #####')
-        print('Q = ', self.Q.val, 'W; '
-              'ttd_u = ', self.ttd_u.val, 'K; '
-              'ttd_l = ', self.ttd_l.val, 'K; '
-              'td_log = ', self.td_log.val, 'K; '
-              'kA = ', self.kA.val, 'W / K; '
-              'pr1 = ', self.pr1.val, '; '
-              'pr2 = ', self.pr2.val, '; '
-              'zeta1 = ', self.zeta1.val, '; '
-              'zeta2 = ', self.zeta2.val, '; '
-              'SQ1 = ', self.SQ1.val, 'W / K; '
-              'SQ2 = ', self.SQ2.val, 'W / K; '
-              'Sirr = ', self.Sirr.val, 'W / K; ')
+        if mode == 'post' and nw.mode == 'offdesign':
+            del self.i1_ref
+            del self.o1_ref
+            del self.i2_ref
+            del self.o2_ref
 
 # %%
 
@@ -6108,7 +7198,7 @@ class condenser(heat_exchanger):
     def component(self):
         return 'condenser'
 
-    def attr_prop(self):
+    def attr(self):
         return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
                 'kA_char1': dc_cc(method='COND_HOT', param='m'),
                 'kA_char2': dc_cc(method='COND_COLD', param='m'),
@@ -6224,29 +7314,15 @@ class condenser(heat_exchanger):
         if T_o1 <= T_i2 and not self.inl[1].T.val_set:
             T_i2 = T_o1 - 1
 
+        fkA1 = 1
         if self.kA_char1.param == 'm':
-            expr = i1[0] / self.i10[0]
-        else:
-            expr = 1
+            if hasattr(self, 'i1_ref'):
+                fkA1 = self.kA_char1.func.f_x(i1[0] / self.i1_ref[0])
 
-        if expr > self.kA_char1.func.x[-1]:
-            expr = self.kA_char1.func.x[-1]
-        if expr < self.kA_char1.func.x[0]:
-            expr = self.kA_char1.func.x[0]
-
-        fkA1 = self.kA_char1.func.f_x(expr)
-
+        fkA2 = 1
         if self.kA_char2.param == 'm':
-            expr = i2[0] / self.i20[0]
-        else:
-            expr = 1
-
-        if expr > self.kA_char2.func.x[-1]:
-            expr = self.kA_char2.func.x[-1]
-        if expr < self.kA_char2.func.x[0]:
-            expr = self.kA_char2.func.x[0]
-
-        fkA2 = self.kA_char2.func.f_x(expr)
+            if hasattr(self, 'i2_ref'):
+                fkA2 = self.kA_char2.func.f_x(i2[0] / self.i2_ref[0])
 
         return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
                 (T_o1 - T_i2 - T_i1 + T_o2) /
@@ -6432,14 +7508,14 @@ class drum(component):
        :align: center
     """
 
+    def component(self):
+        return 'drum'
+
     def inlets(self):
         return ['in1', 'in2']
 
     def outlets(self):
         return ['out1', 'out2']
-
-    def component(self):
-        return 'drum'
 
     def equations(self):
         r"""
@@ -6622,11 +7698,11 @@ class subsys_interface(component):
        :align: center
     """
 
-    def attr(self):
-        return ['num_inter']
+    def component(self):
+        return 'subsystem interface'
 
-    def attr_prop(self):
-        return {'num_inter': dc_cp()}
+    def attr(self):
+        return {'num_inter': dc_cp(printout=False)}
 
     def inlets(self):
         if self.num_inter.is_set:
@@ -6639,9 +7715,6 @@ class subsys_interface(component):
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']
-
-    def component(self):
-        return 'subsystem interface'
 
     def equations(self):
         r"""

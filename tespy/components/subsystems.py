@@ -99,8 +99,7 @@ class subsystem:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(self, ' \"', self.label, '\" has no attribute \"',
-                  key, '\"')
+            print('Subsystem ' + self.label + ' has no attribute ' + key)
             return None
 
     def display_information(self):
@@ -384,7 +383,7 @@ class ph_desup_cond_subc(subsystem):
         return ([n for n in subsystem.attr(self) if
                  n != 'num_i' and n != 'num_o'] +
                 ['ttd', 'pr1_desup', 'pr2_desup',
-                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc'])
+                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc', 'pr_v'])
 
     def create_comps(self):
 
@@ -406,8 +405,9 @@ class ph_desup_cond_subc(subsystem):
         self.desup.set_attr(pr2=self.pr2_desup)
         self.condenser.set_attr(pr1=self.pr1_cond)
         self.condenser.set_attr(pr2=self.pr2_cond)
-        self.subcooler.set_attr(pr1=self.pr1_cond)
-        self.subcooler.set_attr(pr2=self.pr2_cond)
+        self.subcooler.set_attr(pr1=self.pr1_subc)
+        self.subcooler.set_attr(pr2=self.pr2_subc)
+        self.vessel.set_attr(pr=self.pr_v)
 
     def create_conns(self):
 
@@ -498,3 +498,58 @@ class ph_desup_inl_cond_subc(subsystem):
                                   self.condenser, 'in2')]
         self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
         self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
+
+# %%
+
+
+class eva_sup(subsystem):
+    """
+    Evaporator with superheater
+
+    **available parameters**
+
+    - pr1_eva: pressure drop at hot side of evaporator
+    - pr2_eva: pressure drop at cold side of evaporator
+    - pr1_sup: pressure drop at hot side of superheater
+    - pr2_sup: pressure drop at cold side of superheater
+
+    **inlets and outlets**
+
+    - in1, in2
+    - out1, out2
+
+    """
+
+    def attr(self):
+        return ([n for n in subsystem.attr(self) if
+                 n != 'num_i' and n != 'num_o'] +
+                ['pr1_eva', 'pr2_eva', 'pr1_sup', 'pr2_sup'])
+
+    def create_comps(self):
+
+        self.num_i = 2
+        self.num_o = 2
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+        self.eva = cmp.heat_exchanger(label=self.label + '_eva')
+        self.sup = cmp.heat_exchanger(label=self.label + '_sup')
+
+    def set_comps(self):
+
+        self.eva.set_attr(pr1=self.pr1_eva)
+        self.eva.set_attr(pr2=self.pr2_eva)
+        self.sup.set_attr(pr1=self.pr1_sup)
+        self.sup.set_attr(pr2=self.pr2_sup)
+
+    def create_conns(self):
+
+        self.conns = []
+
+        self.conns += [connection(self.inlet, 'out1', self.sup, 'in1')]
+        self.conns += [connection(self.sup, 'out1', self.eva, 'in1')]
+        self.conns += [connection(self.eva, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.inlet, 'out2', self.eva, 'in2')]
+        self.conns += [connection(self.eva, 'out2', self.sup, 'in2', x=1)]
+        self.conns += [connection(self.sup, 'out2', self.outlet, 'in2')]

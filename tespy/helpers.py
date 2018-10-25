@@ -148,7 +148,8 @@ class dc_cp(data_container):
       val will be used as starting value
     """
     def attr(self):
-        return {'val': 0, 'val_SI': 0, 'is_set': False, 'is_var': False}
+        return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
+                'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False}
 
 
 class dc_cc(data_container):
@@ -488,6 +489,20 @@ class memorise:
             memorise.s_ph_f[fl] = []
             memorise.count = 0
 
+        for f in fluids:
+            try:
+                pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
+            except ValueError:
+                pmin, pmax = 2000, 2000e5
+
+        for f in fluids:
+            try:
+                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+            except ValueError:
+                Tmin, Tmax = 2000, 2000e5
+
+            memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+
     def del_memory(fluids):
 
         fl = tuple(fluids)
@@ -528,6 +543,7 @@ memorise.visc_ph = {}
 memorise.visc_ph_f = {}
 memorise.s_ph = {}
 memorise.s_ph_f = {}
+memorise.vrange = {}
 
 # %%
 
@@ -1069,6 +1085,50 @@ def d_ph(p, h, fluid):
     else:
         return CPPSI('D', 'P', p, 'H', h, fluid)
 
+
+def dv_mix_dph(flow):
+    r"""
+    calculates partial derivate of volume to pressure at
+    constant enthalpy and fluid composition
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :returns: dv / dp (float) - derivative in m^3 / (Pa * kg)
+
+    .. math::
+
+        \frac{\partial v_{mix}}{\partial p} = \frac{v_{mix}(p+d,h)-
+        v_{mix}(p-d,h)}{2 \cdot d}
+    """
+    d = 1
+    u = flow.copy()
+    l = flow.copy()
+    u[1] += d
+    l[1] -= d
+    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+
+
+def dv_mix_pdh(flow):
+    r"""
+    method to calculate partial derivate of volume to enthalpy at
+    constant pressure and fluid composition
+
+    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
+    :type flow: list
+    :returns: dv / dh (float) - derivative in m^3 / J
+
+    .. math::
+
+        \frac{\partial v_{mix}}{\partial h} = \frac{v_{mix}(p,h+d)-
+        v_{mix}(p,h-d)}{2 \cdot d}
+    """
+    d = 1
+    u = flow.copy()
+    l = flow.copy()
+    u[2] += d
+    l[2] -= d
+    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+
 # %%
 
 
@@ -1087,15 +1147,12 @@ def v_mix_pT(flow, T):
         \forall i \in \text{fluid components}\\
         pp: \text{partial pressure}
     """
-    n = molar_massflow(flow[3])
-
-    d = 0
+    v = 0
     for fluid, x in flow[3].items():
         if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            d += d_pT(pp, T, fluid) * x
+            v += x / d_pT(flow[1], T, fluid)
 
-    return 1 / d
+    return v
 
 
 def d_mix_pT(flow, T):

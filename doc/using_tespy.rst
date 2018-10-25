@@ -982,15 +982,17 @@ Offdesign calculations use the referenced value from your system design point fo
 
 .. note::
 	The available keywords for the dictionary are
+	
 	- 'c' for the component instance,
 	- 'p' for the parameter (the cogeneration unit has different parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
 	- 'P_ref' for the reference heat flow/power value of the component and
 	- 'char' for the characteristic line.
 	
 	There are different specification possibilites:
+	
 	- If you specify the component only, the parameter will be default (not working with cogeneration unit) and the conversion factor of the characteristic line will be 1 for every load.
 	- If you specify a numeric value for char, the conversion factor will be that value for every load.
-	- If you want to specify a characteristic line, you need to provide a :py:class:`Source <tespy.components.characteristics.characteristics>` object.
+	- If you want to specify a characteristic line, you need to provide a :py:class:`TESPy characteristics <tespy.components.characteristics.characteristics>` object.
 
 This can be used for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network.
 If you want to use the busses for postprocessing only, you must not specify the sum of the power or heat flux on your bus.

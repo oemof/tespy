@@ -12,10 +12,11 @@ TESPy provides a set of predefined characteristics (documented in the :py:class:
 	
     Figure: Topology of a cogeneration unit.
 	
-The characteristics take the power ratio (:math:`\frac{P}{P_{ref}}` as argument. For a design case simulation the power ratio is always assumed to be equal to 1.
+The characteristics take the power ratio (:math:`\frac{P}{P_{ref}}`) as argument. For a design case simulation the power ratio is always assumed to be equal to 1.
 For offdesign calculation TESPy will automatically take the rated power from the design case and use it to determine the power ratio. Still it is possible to specify the rated power manually, if you like.
 
 In contrast to other components, the cogeneration unit has several busses, which are accessible by specifying the corresponding bus parameter:
+
 - TI (thermal input),
 - Q (total heat output),
 - Q1 and Q2 (heat output 1 and 2),

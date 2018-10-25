@@ -50,7 +50,7 @@ You need to specify a list of the fluids you need for the calculation in your pl
     my_plant = nwk.network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
-The specification of the value range is used to improve convergence stability.
+The specification of the value range is used to improve convergence stability, in case you are dealing with fluid mixtures, e. g. using a combustion chamber.
 
 .. code-block:: python
 
@@ -91,6 +91,7 @@ If two components are connected to each other the fluid properties at the source
 It is possible to set the properties on each connection in a similar way as parameters are set for components. You may specify:
 
  * mass flow* (m),
+ * volumetric flow (v),
  * pressure* (p),
  * enthalpy* (h),
  * temperature* (T),
@@ -164,15 +165,15 @@ The TESPy network contains all data of your plant, which in terms of the calcula
  * the mass fractions of the network's fluids.
 
 The solver will solve for these variables. As stated in the introduction the list of fluids is passed to your network on creation.
-You should **always make use of the value ranges** of the system variables, like in the code block below. This improves the stability of the algorithm. Try to fit the boundaries as tight as possible,
-for instance, if you kwow that the maximum pressure in the system will be at 10 bar, use it as upper boundary. You should **always state ranges for pressure and enthalpy**, temperature is optional.
-Value ranges for mass flow and fluid composition are not necessary, as these are handeled automatically.
+If your system includes fluid mixtures, you should **always make use of the value ranges** for the system variables. This improves the stability of the algorithm. Try to fit the boundaries as tight as possible,
+for instance, if you kwow that the maximum pressure in the system will be at 10 bar, use it as upper boundary.
+Value ranges for pure fluids are not required as these are dealt with automatically.
 
 .. code-block:: python
 
     from tespy import nwk
 	
-	fluid_list = ['air', 'water']
+	fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
     my_plant = nwk.network(fluids=fluid_list)
 	my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
 	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
@@ -217,7 +218,7 @@ This starts the initialisation of your network and proceeds to its calculation. 
 There are two calculation modes available (:code:`'design'` and :code:`'offdesign'`), which are explained in the subsections below.
 If you choose :code:`offdesign` as calculation mode the specification of a design_file is mandatory.
 
-The usage of an initialisation file is always optional but highly recommended, as the convergence of the solution process will be improved.
+The usage of an initialisation file is always optional but highly recommended, as the convergence of the solution process will be improved, if you provide good starting values.
 If do not specify an :code:`init_file`, the initialisation from .csv-file will be skipped.
 Parallel computation can improve the calculation velocity of very large networks or networks with a large number of fluids (if used for mixtures). **Parallel code execution does not work on windows at the moment!**
 :code:`init_only=True` usually is used for debugging. You could use this feature to export a not solved network, if you want to do the parametrisation in .csv-files rather than your python script.
@@ -263,31 +264,33 @@ if you want to replace the enthalpy with the temperature for your offdesign. **T
 	
 The table below contains frequently used offdesign parameters of the available components.
 
-=======================	======================	===================================================
+=======================	======================	=========================================================
  component             	 parameter            	 affects
-=======================	======================	===================================================
+=======================	======================	=========================================================
  vessel                	 zeta                  	 pressure drop
------------------------	----------------------	---------------------------------------------------
+-----------------------	----------------------	---------------------------------------------------------
  pipe                  	 | zeta                	 | pressure drop
                        	 | k_s, D, L           	 | pressure drop (via dimensions and roughness)
                        	 | kA, t_a             	 | heat flux (using constant ambient temperature)
------------------------	----------------------	---------------------------------------------------
+-----------------------	----------------------	---------------------------------------------------------
  simple heat exchanger 	 see pipe              	  
------------------------	----------------------	---------------------------------------------------
+-----------------------	----------------------	---------------------------------------------------------
  heat exchanger        	 | zeta1              	 | pressure drop hot side
                        	 | zeta2              	 | pressure drop cold side
                        	 | kA                 	 | heat flux
------------------------	----------------------	---------------------------------------------------
+-----------------------	----------------------	---------------------------------------------------------
  pump                  	 char                  	 isentropic efficiency
------------------------	----------------------	---------------------------------------------------
+-----------------------	----------------------	---------------------------------------------------------
  turbine               	 | cone               	 | pressure drop, volumetric flow
                        	 | char                	 | isentropic efficiency
------------------------	----------------------	---------------------------------------------------
- compressor            	 | char                	 | mass flow, pressure rise, isentropic efficiency
-                       	 | vigv :sup:`1`         | see above, one arbitrary parameter less
-=======================	======================	===================================================
+-----------------------	----------------------	---------------------------------------------------------
+ compressor            	 | char_map            	 | mass flow, pressure rise, isentropic efficiency
+                       	 | igva :sup:`1`         | shifting mass flow at (nearly) constant pressure rise
+=======================	======================	=========================================================
 
-1: When setting the vigv angle the characteristic map will be used for a specific vigv angle. The vigv angle is a result of the calculation, if you use the characteristic map only.
+.. note::
+	When setting the inlet guide vane angle (igva) the characteristic map will be used for this specific angle. If you do not specify the angle, a value of 0° is assumed.
+	However, the igva may also be a variable of the system, e. g. if you specify pressure rise and mass flow, resulting in the appropriate inlet guide vane angle.
 
 Solving
 -------
@@ -316,12 +319,12 @@ The initialisation is performed in the following steps.
  * fluid property initialisation,
  * initialisation from .csv (preprocessing with design_file for offdesign case and setting starting values with init_file).
 
-The network check is used to find errors in the network topology, the calulation can not start without a successful check. The component initialisation is important for components using charactersitcs and the combustion chamber,
+The network check is used to find errors in the network topology, the calulation can not start without a successful check. The component initialisation is important for components using characteristics and the combustion chamber,
 a preprocessing of some parameters is required. The preprocessing for the components is performed in the :code:`comp_init` method of the components.
 You will find the methods in the :py:class:`components module <tespy.components.components>`. The design/offdesign switch is described in the network setup section.
 
 **The fluid propagation is a very important step in the initialisation:** Often, you will specify the fluid at one point of the network only, thus all other connections are missing an initial information on the fluid vector,
-if you are not using an init_file. Also, you do not want to state a starting value for the fluid vector at every point of the network. The fluid propagation will push/pull the specified fluid through the network.
+if you are not using an init_file. Also, you do not need to state a starting value for the fluid vector at every point of the network. The fluid propagation will push/pull the specified fluid through the network.
 If you are using combustion chambers these will be starting points and a generic flue gas composition will be calculated prior to the propagation.
 
 .. note::
@@ -403,19 +406,19 @@ One of the main downsides of the Newton–Raphson method is that the initial ste
 for example mass fractions smaller than 0 and larger than 1 or negative pressure. Also, the large stepwidth can adjust enthalpy or pressure to quantities that are not covered by the fluid property databases.
 This would cause an inability e. g. to calculate a temperature from pressure and enthalpy in the next iteration of the algorithm. In order to improve convergence stability, we have added a convergence check.
 
-**The convergence check manipulates the system variables after the increment has been added** (if the system variable's value is not user specified). This manipulation has four steps, the first is always applied:
+**The convergence check manipulates the system variables after the increment has been added** (if the system variable's value is not user specified). This manipulation has four steps, the first two are always applied:
 
  * cutting off mass fractions smaller than 0 and larger than 1: This way a mass fraction of a single fluid components never exceeds these boundaries.
+ * check, wheather the fluid properties of pure fluids are within the available ranges of CoolProp and readjust the values if not.
 
-The next three steps are applied, if the user did not specify an init_file and the iteration count is lower than 3, thus in the first three iteration steps of the algorithm only. In other cases this convergence check is skipped.
+The next two steps are applied, if the user did not specify an init_file and the iteration count is lower than 3, thus in the first three iteration steps of the algorithm only. In other cases this convergence check is skipped.
 
- * Check, if the fluid properties (pressure, enthalpy and temperature) are within the user specified boundaries (:code:`p_range, h_range, T_range`) and if not, cut off higher/lower values.
+ * Fox mixtures: check, if the fluid properties (pressure, enthalpy and temperature) are within the user specified boundaries (:code:`p_range, h_range, T_range`) and if not, cut off higher/lower values.
  * Check the fluid properties of the connections based on the components they are connecting. E. g. check if the pressure at the outlet of a turbine is lower than the pressure at the inlet or if the flue gas composition at a combustion chamber's
    outlet is within the range of a "typical" flue gas composition. If there are any violations, the corresponding variables are manipulated. If you want to look up, what exactly the convergence check for a specific component does,
    look out for the :code:`convergence_check` methods in the tespy.components.components module.
- * A second check of the fluid properties towards the specified boundaries to cut off bad values generated by the component convergence check.
 
-In most cases the algorithm has found a near enough solution after the third iteration, further checks are usually not required.
+In a lot of different tests the algorithm has found a near enough solution after the third iteration, further checks are usually not required.
 
 Troubleshooting
 +++++++++++++++
@@ -423,11 +426,11 @@ Troubleshooting
 In this section we show you how you can troubleshoot your calculation and list up common mistakes.
 
 First of all, make sure your network topology is set up correctly, TESPy will prompt an Error, if not.
-Also, TESPy will prompt an error, if you did not provide enough or if you provide too many parameters for your calculation, but at the moment you will not be given an information which parameters are under- or overdetermined.
+Also, TESPy will prompt an error, if you did not provide enough or if you provide too many parameters for your calculation, but you will not be given an information which specific parameters are under- or overdetermined.
 
 .. note::
 	Always keep in mind, that the system has to find a value for mass flow, pressure, enthalpy and the fluid mass fractions. Try to build up your network step by step and have in mind, what parameters will be determined
-	by adding an additional component without any parametrisation. This way, you can easily find out, which parameters are still to be determined.
+	by adding an additional component without any parametrisation. This way, you can easily determine, which parameters are still to be specified.
 
 When using multiple fluids in your network, e. g. water, air and methane and at some point you want to have water only, you still need to specify the mass fractions for both air and methane (although beeing zero) at that point.
 Also, setting :code:`fluid={water: 1}, fluid_balance=True` will still not be sufficent, as the fluid_balance parameter adds only one equation to your system.
@@ -468,7 +471,7 @@ A postprocessing is performed automatically after the calculation finished. You 
  * save the results in a .csv-file (:code:`nw.save('savename')`).
 
 You can print the components and its properties to the prompt and the connections and its properties as well. If you choose to save your results in a .csv-file, open the file and look up the **connection parameters in the results file**.
-**If you want to export up the parameters of the components, too, you have to save the network structure.** In order to do this, add this line to your code: :code:`nw.save('savename', structure=True)`.
+**If you want to export the parameters of the components, too, you have to save the network structure.** In order to do this, add this line to your code: :code:`nw.save('savename', structure=True)`.
 In both cases TESPy will create a new folder 'savename' in your working directory containing the results.csv file and subfolders with the component results.
 
 In order to perform calculations based on your results, you can access all components' and connections' parameters:
@@ -487,10 +490,6 @@ Use this code for connection parameters:
 	mass_flow = myconn.m.val # value in specified network unit
 	mass_flow_SI = myconn.m.val_SI # value in SI unit
 	mass_fraction_oxy = myconn.fluid.val['O2'] # for the mass fraction of oxygen
-	
-Additionally TESPy can calculate cycle process performance figures for you, if you define busses with the labels 'P_res' (components with power input/output) and 'Q_diss'
-(add components with heat input/output for total dissipated heat) in your network: Thermal efficiency for a right-handed process, COP for left-handed processes.
-
 
 .. _using_tespy_components_label:
 
@@ -513,8 +512,10 @@ More information on the components can be gathered from the code documentation. 
 	* :py:class:`Pump <tespy.components.components.pump>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
 	* :py:class:`Compressor <tespy.components.components.compressor>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
 	* :py:class:`Turbine <tespy.components.components.turbine>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
-- :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
-- :py:class:`Combustion chamber stoichiometric <tespy.components.components.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.components.combustion_chamber_stoich.equations>`)
+- Components with combustion
+	* :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
+	* :py:class:`Combustion chamber stoichiometric <tespy.components.components.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.components.combustion_chamber_stoich.equations>`)
+	* :py:class:`Cogeneration unit <tespy.components.components.cogeneration_unit>` (:py:meth:`equations <tespy.components.components.cogeneration_unit.equations>`)
 - Heat exchangers
 	* :py:class:`Heat exchanger <tespy.components.components.heat_exchanger>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
 	* :py:class:`Condenser <tespy.components.components.condenser>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
@@ -553,7 +554,7 @@ Parameters
 	he.set_attr(kA=np.nan)
 	he.kA.set_attr(is_set=False)
 	
-	# to come in TESPy v0.0.4
+	# custom variables
 	pipe = cmp.pipe('my pipe')
 	
 	# make diameter variable of system
@@ -583,7 +584,7 @@ Characteristics
 	# specify data container (custom interpolation points x and y)
 	x = np.array([0, 0.5, 1, 2])
 	y = np.array([0, 0.8, 1, 1.2])
-	he.set_attr(kA_char1=hlp.dc_cc(method='EVA_HOT', param='m', x=x, y=y))
+	he.set_attr(kA_char1=hlp.dc_cc(param='m', x=x, y=y))
 
 
 Component characteristics
@@ -591,11 +592,25 @@ Component characteristics
 
 Characteristics are available for the following components and parameters:
 
-- pump (isentropic efficiency, not customizable at the moment, pressure rise vs. volumetric flow characteristic, customizable)
-- compressor (component map for isentropic efficiency and pressure rise, not customizable at the moment)
-- turbine (isentropic efficiency, various predefined methods and specification parameters, customizable)
-- heat exchangers (heat transfer coefficient, various predefined types, mass flows as specification parameters, customizable)
-- simple heat exchangers (e. g. pipe, see heat exchangers)
+- pump
+	* eta_s_char: isentropic efficiency vs. volumetric flow rate, not customizable at the moment
+	* flow_char: pressure rise vs. volumetric flow characteristic, customizable
+- compressor
+	* char_map: component map for isentropic efficiency and pressure rise, not customizable at the moment
+	* eta_s_char: isentropic efficiency vs. pressure ratio, customizable
+- turbine
+	* eta_s_char: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow, customizable
+- vessel
+	* pr_char: pressure ratio vs. inlet pressure, customizable
+- heat exchangers:
+	* kA1_char, kA2_char: heat transfer coefficient, various predefined types, mass flows as specification parameters, customizable
+- simple heat exchangers
+	* kA_char: e. g. pipe, see heat exchangers
+- cogeneration unit
+	* tiP_char: thermal input vs. power ratio, customizable
+	* Q1_char: heat output 1 vs. power ratio, customizable
+	* Q2_char: heat output 2 vs. power ratio, customizable
+	* Qloss_char: heat loss vs. power ratio, customizable
 
 There are two ways for specifying the customizable characteristic line of a component.
 You can specify the method directly by stating the methods name or you define the whole data container for this parameter.
@@ -605,22 +620,28 @@ You can specify the method directly by stating the methods name or you define th
 	from tespy import cmp, hlp
 	
 	turb = cmp.turbine('turbine')
-	# method specification
+	# method specification (default characteristic line "TRAUPEL")
 	turb.set_attr(eta_s_char='TRAUPEL')	
 	# data container specification
 	turb.set_attr(eta_s_char=hlp.dc_cc(method='TRAUPEL', param='dh_s', x=None, y=None))
 	
-	# defining a custom line
+	# defining a custom line (this line overrides the default characteristic line, method does not need to be specified)
 	x = np.array([0, 1, 2])
 	y = np.array([0.95, 1, 0.95])
-	turb.set_attr(eta_s_char=hlp.dc_cc(method='TRAUPEL', param='dh_s', x=x, y=y)
+	turb.set_attr(eta_s_char=hlp.dc_cc(param='dh_s', x=x, y=y)
 	
 	# heat exchanger analogously
 	he = cmp.heat_exchanger('evaporator')
 	he.set_attr(kA_char1='EVA_HOT')
 	he.set_attr(kA_char2='EVA_COLD')
 	
-Turbines, pumps (isentropic efficiency characteristic) and heat exchangers are supplied with default characteristic lines, which can be found in the :py:class:`documentation <tespy.components.characteristics>`.
+Default characteristic lines are available for
+- turbines,
+- pumps,
+- compressor,
+- heat exchangers and
+- cogeneration untis,
+which can be found in the :py:class:`documentation <tespy.components.characteristics.characteristics>`.
 
 Custom components
 -----------------
@@ -629,7 +650,6 @@ If required, you can add custom components. These components should inherit from
 In order to do that, create a python file in your working directory and import the tespy.components.components module. The most important methods are
 
 - :code:`attr(self)`,
-- :code:`attr_prop(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)`,
 - :code:`equations(self)`,
@@ -651,15 +671,11 @@ The starting lines of your file would look like this:
 Attributes
 ^^^^^^^^^^
 
-The attr method must return a list with strings in it. These are the attributes you can specify when you want to parametrize your component.
-The attr_prop method returns a dictionary with the same keys as the elements in the attr method. The values for each key are the type of data_container this parameter should hold.
+The attr method returns a dictionary with the attributes you are able to specify when you want to parametrize your component as keys. The values for each key are the type of data_container this parameter should hold.
 
 .. code:: python
-
-	def attr(self):
-		return ['par1', 'par2']
 		
-	def attr_prop(self):
+	def attr(self):
 		return {'par1': dc_cp(), 'par2': dc_cc()}
 
 
@@ -706,7 +722,7 @@ The connections connected to your component are available as a list in :code:`se
     	vec_res = []
 		
 		vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
-		vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI - self.dp()]
+		vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI - self.dp.val]
 
 The equations are added to a list one after another, which will be returned at the end.
 
@@ -899,6 +915,7 @@ Parametrisation
 As mentioned in the introduction, for each connection you can specify the following parameters:
 
  * mass flow* (m),
+ * volumetric flow (v),
  * pressure* (p),
  * enthalpy* (h),
  * temperature* (T),
@@ -958,39 +975,54 @@ Busses
 ------
 
 Busses can be used to add up the power of different turbomachinery or to add up heat flow of different heat exchangers within your network.
-The handling is very similar to connections and components. You need to add components to your busses as a list containing the component object and a factor, the power of the component will be multiplied with.
-Do not forget to add the busses to you network.
+The handling is very similar to connections and components. You need to add components to your busses as a dictionary containing at least the instance of your component.
+Additionally you may provide a characteristic line, linking the ratio of actual heat flow/power to referenced heat flow/power to a factor the actual heat flow/power of the component is multiplied with on the bus.
+For instance, you can provide a characteristic line of an electrical generator or motor for a variable conversion efficiency. The referenced value (P_ref) is retrieved by the design point of your system.
+Offdesign calculations use the referenced value from your system design point for the characteristic line. In design case, the heat flow/power ratio thus will be equal to 1.
+
+.. note::
+	The available keywords for the dictionary are
+	- 'c' for the component instance,
+	- 'p' for the parameter (the cogeneration unit has different parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
+	- 'P_ref' for the reference heat flow/power value of the component and
+	- 'char' for the characteristic line.
+	
+	There are different specification possibilites:
+	- If you specify the component only, the parameter will be default (not working with cogeneration unit) and the conversion factor of the characteristic line will be 1 for every load.
+	- If you specify a numeric value for char, the conversion factor will be that value for every load.
+	- If you want to specify a characteristic line, you need to provide a :py:class:`Source <tespy.components.characteristics.characteristics>` object.
 
 This can be used for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network.
-If you want to use the busses for postprocessing only, you do not specify the sum of the power or heat flux on your bus.
-If you set a value for P (equal parameter for heat flux or power), an additional equation will be added to your network.
+If you want to use the busses for postprocessing only, you must not specify the sum of the power or heat flux on your bus.
+If you set a value for P (equal parameter for heat flux or power), an additional equation will be added to your network. This way the total heat flow/power of the bus will equal to the specified value.
 This could be useful, e. g. for establishing relations between different components, for instance when using a steam turbine powered feed water pump.
 In the code example the power of the turbine and the feed water pump is added up and set to zero, as the turbines and feed water pumps power have to be equal in absolute value but have different sign.
 The sign can be manipulated, e. g. in order to design two turbines with equal power output.
+Do not forget to add the busses to you network.
 
 .. code-block:: python
 	
-	from tespy import nwk, con
+	from tespy import nwk, con, cmp_char
 	
 	...
 	
 	fwp_bus = con.bus('feed water pump', P=0) # set a value for the total power on this bus.
-	fwp_bus.add_comps([turbine_fwp, 1], [fwp, 1])
+	fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
 	
 	turbine_bus = con.bus('turbines', P=0) # set a value for the total power on this bus
-	turbine_bus.add_comps([turbine_hp, 1], [turbine_lp, -1])
+	turbine_bus.add_comps({'c': turbine_hp}, {'c': turbine_hp, 'char': -1})
 	# the values for the busses power can be altered by using .set_attr()
 	
-	power = con.bus('power output') # bus for postprocessing, no power (or heat flux) specified
-	power.add_comps([turbine_hp, 1], [turbine_lp, 1])
+	power = con.bus('power output') # bus for postprocessing, no power (or heat flux) specified but with variable conversion efficiency
+	x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
+	y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+	gen = cmp_char.characteristics(x=x, y=y)
+	power.add_comps({'c': turbine_hp, 'char': gen}, {'c': turbine_lp, 'char': gen})
+	
+	chp = con.bus('chp power') # bus for cogeneration unit power
+	chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
 	
 	my_network.add_busses(fwp_bus, turbine_bus, power)
-	
-Two labels for busses have a predefined function in the postprocessing analysis: 'P_res' and 'Q_diss'.
-If you specify these labels for your busses, 'P_res' will be interpreted as the total power of your process and 'Q_diss' as total amount of dissipated heat flow (from the process, not internally).
-Given these key figures, thermal efficiency or COP will be calculated and an entropy analysis for your systems components will be performed.*
-
-*Planned feature, not implemented yet!
 
 	
 How can TESPy contribute to your energy system calculations?

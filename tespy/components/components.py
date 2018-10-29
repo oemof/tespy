@@ -1861,7 +1861,7 @@ class compressor(turbomachine):
 
 
 class turbine(turbomachine):
-    """
+    r"""
     **available parameters**
 
     - P: power, :math:`[P]=\text{W}`

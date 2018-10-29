@@ -1474,7 +1474,7 @@ class pump(turbomachine):
 
 
 class compressor(turbomachine):
-    """
+    r"""
     **available parameters**
 
     - P: power, :math:`[P]=\text{W}`
@@ -1516,7 +1516,7 @@ class compressor(turbomachine):
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(method='GENERIC'),
-                'eta_s_char': dc_cc()}
+                'eta_s_char': dc_cc(param='m')}
 
     def default_offdesign(self):
         return ['char_map']
@@ -1721,9 +1721,20 @@ class compressor(turbomachine):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        return np.array([(self.h_os('post') - i[2]) -
-                        (o[2] - i[2]) *
-                        self.eta_s_char.func.f_x(o[1] / i[1])])
+        expr = 1
+        if self.eta_s_char.param == 'm':
+            if hasattr(self, 'i1_ref'):
+                expr = i[0] / self.i1_ref[0]
+        elif self.eta_s_char.param == 'pr':
+            if hasattr(self, 'i1_ref') and hasattr(self, 'o1_ref'):
+                expr = (o[1] * self.i1_ref[1]) / (i[1] * self.o1_ref[1])
+        else:
+            raise ValueError('Must provide a parameter for eta_s_char at '
+                             'component ' + self.label)
+
+        return np.array([self.dh_s_ref / (self.o_ref[2] - self.i_ref[2]) *
+                         self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) -
+                         (self.h_os('post') - i[2])])
 
     def eta_s_char_deriv(self):
         r"""
@@ -1926,7 +1937,7 @@ class turbine(turbomachine):
         vec_res = []
 
         if self.eta_s_char.is_set:
-            vec_res += self.char_func().tolist()
+            vec_res += self.eta_s_char_func().tolist()
 
         if self.cone.is_set:
             vec_res += [self.cone_func()]
@@ -1946,7 +1957,7 @@ class turbine(turbomachine):
         mat_deriv = []
 
         if self.eta_s_char.is_set:
-            mat_deriv += self.char_deriv()
+            mat_deriv += self.eta_s_char_deriv()
 
         if self.cone.is_set:
             cone_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
@@ -2027,7 +2038,7 @@ class turbine(turbomachine):
                         (self.o_ref[1] / self.i_ref[1]) ** ((n + 1) / n)))) -
                 i[0])
 
-    def char_func(self):
+    def eta_s_char_func(self):
         r"""
         equation for turbine characteristics
 
@@ -2065,7 +2076,7 @@ class turbine(turbomachine):
                          self.dh_s_ref * self.eta_s_char.func.f_x(expr) *
                          (self.h_os('post') - i[2])])
 
-    def char_deriv(self):
+    def eta_s_char_deriv(self):
         r"""
         partial derivatives for turbine characteristics
 
@@ -2075,10 +2086,10 @@ class turbine(turbomachine):
 
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, num_fl + 3))
 
-        mat_deriv[0, 0, 0] = self.ddx_func(self.char_func, 'm', 0)
+        mat_deriv[0, 0, 0] = self.ddx_func(self.eta_s_char_func, 'm', 0)
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.char_func, 'p', i)
-            mat_deriv[0, i, 2] = self.ddx_func(self.char_func, 'h', i)
+            mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_char_func, 'p', i)
+            mat_deriv[0, i, 2] = self.ddx_func(self.eta_s_char_func, 'h', i)
 
         return mat_deriv.tolist()
 

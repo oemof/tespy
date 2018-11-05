@@ -45,6 +45,7 @@ def load_nwk(path):
 
     # load components
     comps = pd.DataFrame()
+    inter = pd.DataFrame()
 
     files = os.listdir(path + '/comps/')
     for f in files:
@@ -64,11 +65,18 @@ def load_nwk(path):
                                           'bus_char']]),
                               axis=0)
 
+            df['inter'] = df.apply(get_interface, axis=1)
+            inter = pd.concat((inter, df[['instance', 'label', 'inter']]),
+                              axis=0)
+
     comps = comps.set_index('label')
     print('Created components')
 
     # create network
     nw = construct_network(path)
+    inter = inter[inter['inter'] == True].drop('inter', axis=1)
+
+    nw.inter = inter.set_index('label').to_dict()['instance']
 
     # load connections
     conns = pd.read_csv(path + '/conn.csv', sep=';', decimal='.',
@@ -85,7 +93,6 @@ def load_nwk(path):
         nw.add_conns(c)
 
     print('Created connections')
-    nw.check_network()
 
     # load busses
     busses = pd.DataFrame()
@@ -124,8 +131,11 @@ def construct_comps(c, *args):
       x and y data of characteristic functions
     """
 
-    target_class = getattr(cmp, c.cp)
-    instance = target_class(c.label)
+    if c.interface:
+        instance = cmp.subsys_interface(c.label, num_inter=1)
+    else:
+        target_class = getattr(cmp, c.cp)
+        instance = target_class(c.label)
     kwargs = {}
 
     # basic properties
@@ -156,6 +166,21 @@ def construct_comps(c, *args):
 
     instance.set_attr(**kwargs)
     return instance
+
+
+def get_interface(c, *args):
+    """
+    checks if a component is marked as interface
+
+    :param c: component information
+    :type c: pandas.core.series.Series
+    :returns: val (*bool*)
+    """
+
+    if c.interface:
+        return True
+    else:
+        return False
 
 # %% create network object
 

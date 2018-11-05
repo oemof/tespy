@@ -154,8 +154,13 @@ def construct_comps(c, *args):
             elif isinstance(value, hlp.dc_cc):
                 # finding x and y values of the characteristic function
                 values = args[0]['id'] == c[key]
-                x = args[0][values]['x'].values[0]
-                y = args[0][values]['y'].values[0]
+                try:
+                    x = args[0][values]['char'].values[0].x
+                    y = args[0][values]['char'].values[0].y
+                except IndexError:
+                    # if characteristics are missing (for compressor map atm)
+                    x = [0, 1, 2, 3]
+                    y = [0, 0, 0, 0]
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
                                param=c[key + '_param'],
@@ -226,7 +231,13 @@ def construct_chars(c):
               characteristics object
     """
 
-    char = cmp_char.characteristics(x=c.x, y=c.y)
+    try:
+        char = cmp_char.characteristics(x=c.x, y=c.y)
+    except ValueError:
+        # if characteristics are missing (for compressor map atm)
+        c.x = [0, 1, 2, 3]
+        c.y = [1, 1, 1, 1]
+        char = cmp_char.characteristics(x=c.x, y=c.y)
     return char
 
 # %% create connections

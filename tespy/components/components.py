@@ -130,6 +130,7 @@ class component:
         # set default design and offdesign parameters
         self.design = self.default_design()
         self.offdesign = self.default_offdesign()
+        self.interface = False
 
         # add container for components attributes
         var = self.attr()
@@ -197,6 +198,15 @@ class component:
                 else:
                     msg = ('Bad datatype for keyword argument ' + key +
                            ' at ' + self.label + '.')
+                    raise TypeError(msg)
+
+            # export sources or sinks as subsystem interface
+            elif key == 'interface':
+                if isinstance(kwargs[key], bool):
+                    self.interface = kwargs[key]
+                else:
+                    msg = ('Datatype for keyword argument ' + str(key) +
+                           ' must be bool.')
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
@@ -805,11 +815,11 @@ class source(component):
     - a flow originates from this component
     """
 
-    def outlets(self):
-        return ['out1']
-
     def component(self):
         return 'source'
+
+    def outlets(self):
+        return ['out1']
 
 # %%
 
@@ -821,11 +831,11 @@ class sink(component):
     - a flow drains in this component
     """
 
-    def inlets(self):
-        return ['in1']
-
     def component(self):
         return 'sink'
+
+    def inlets(self):
+        return ['in1']
 
 # %%
 

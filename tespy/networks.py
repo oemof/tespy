@@ -331,18 +331,30 @@ class network:
         adds connections to the network, calls check_conns method
 
         :param args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type args: tespy.components.subsystem
+        :type args: tespy.components.subsystems.subsystem
         :returns: no return value
         """
         for subsys in args:
             for c in subsys.conns:
                 self.add_conns(c)
 
+    def add_nwk(self, *args):
+        """
+        adds connections from another network
+
+        :param args: network objects si :code:`add_subsys(s1, s2, s3, ...)`
+        :type args: tespy.networks.network
+        :returns: no return value
+        """
+        for nw in args:
+            for c in nw.conns:
+                self.add_conns(c)
+
     def add_conns(self, *args):
         """
         add connections to the network, calls check_conns method
 
-        :param args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
+        :param args: connections objects ci :code:`add_conns(c1, c2, c3, ...)`
         :type args: tespy.connection
         :returns: no return value
         """
@@ -350,16 +362,17 @@ class network:
             self.check_conns(c)
             self.checked = False
 
-    def del_conns(self, c):
+    def del_conns(self, *args):
         """
         delets connections from a network
 
-        :param c: connections object to delete
-        :type c: tespy.connection
+        :param args: connections objects ci :code:`del_conns(c1, c2, c3, ...)`
+        :type args: tespy.connection
         :returns: no return value
         :raises: :code:`KeyError` if connections object c is not in the network
         """
-        self.conns.drop(self.conns.index(c))
+        for c in args:
+            self.conns = self.conns.drop(c)
         self.checked = False
 
     def check_conns(self, c):
@@ -1362,7 +1375,7 @@ class network:
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 
-        elif self.iter < 3 and self.init_file is None:
+        elif self.iter < 4 and self.init_file is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -1376,7 +1389,7 @@ class network:
                 c.h.val_SI = self.h_range_SI[1]
 
             # temperature
-            if c.T.val_set and not c.h.val_set and not c.p.val_set:
+            if c.T.val_set and not c.h.val_set:
                 self.solve_check_temperature(c)
 
     def solve_check_temperature(self, c):
@@ -2319,14 +2332,14 @@ class network:
                                              axis=1,
                                              args=(self.busses, 'P_ref'))
         cp_sort['bus_char'] = cp_sort.apply(network.get_bus_data,
-                                             axis=1,
-                                             args=(self.busses, 'char'))
+                                            axis=1,
+                                            args=(self.busses, 'char'))
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            cols = ['label', 'mode', 'design', 'offdesign']
+            cols = ['label', 'mode', 'design', 'offdesign', 'interface']
             for col in cols:
                 df[col] = df.apply(network.get_props, axis=1,
                                    args=(col,))

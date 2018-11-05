@@ -78,12 +78,12 @@ class network:
         for f in self.fluids:
             try:
                 hlp.molar_masses[f] = CPPSI('M', f)
-            except:
+            except ValueError:
                 hlp.molar_masses[f] = 1
 
             try:
                 hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
-            except:
+            except ValueError:
                 hlp.gas_constants[f] = np.nan
 
         # initialise memorisation function
@@ -347,7 +347,7 @@ class network:
         :returns: no return value
         """
         for nw in args:
-            for c in nw.conns:
+            for c in nw.conns.index:
                 self.add_conns(c)
 
     def add_conns(self, *args):

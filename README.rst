@@ -4,12 +4,6 @@ With the TESPy package you are able to calculate stationary operation in order t
 
 Everybody is welcome to use and/or develop TESPy. Contribution is already possible on a low level by simply fixing typos in TESPy's documentation or rephrasing sections which are unclear. If you want to support us that way please fork the TESPy repository to your own github account and make changes as described in the github guidelines: https://guides.github.com/activities/hello-world/
 
-.. contents::
-    :depth: 1
-    :local:
-    :backlinks: top
-
-
 Documentation
 =============
 

@@ -338,7 +338,7 @@ class network:
             for c in subsys.conns:
                 self.add_conns(c)
 
-    def add_nwk(self, *args):
+    def add_nwks(self, *args):
         """
         adds connections from another network
 

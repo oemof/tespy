@@ -307,7 +307,7 @@ class characteristics:
             return self.char(x)
 
     def get_attr(self, key):
-        """
+        r"""
         get the value of a characteristics attribute
 
         :param key: attribute to return its value
@@ -461,7 +461,6 @@ class compressor(characteristics):
             self.z2 = self.default(method)[3]
 
     def default(self, key):
-
         r"""
 
         default characteristic map for compressor
@@ -547,7 +546,7 @@ class compressor(characteristics):
         return x[key], y[key], z1[key], z2[key]
 
     def get_pr_eta(self, x, y, igva):
-        """
+        r"""
         returns the pressure ratio and isentropic efficiency at given speedline
         and correxted mass flow
 
@@ -591,7 +590,7 @@ class compressor(characteristics):
             return pr, eta
 
     def get_bound_errors(self, x, y, igva):
-        """
+        r"""
         returns error messages for operation out of the maps bounds
 
         :param x: speedline

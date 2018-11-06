@@ -15,7 +15,7 @@ from tespy.components import characteristics as cmp_char
 
 
 class connection:
-    """
+    r"""
     creates connection between two components
 
     - check argument consistency
@@ -122,7 +122,7 @@ class connection:
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
-        """
+        r"""
         sets, resets or unsets attributes of a connection, for the keyword
         arguments, return values and errors see object initialisation
         """
@@ -205,7 +205,7 @@ class connection:
                 raise ValueError(msg)
 
     def get_attr(self, key):
-        """
+        r"""
         get the value of a connection attribute
 
         :param key: attribute to return its value
@@ -221,7 +221,7 @@ class connection:
             return None
 
     def attr(self):
-        """
+        r"""
         get the list of attributes allowed for a connection object
 
         :returns: list object
@@ -231,7 +231,7 @@ class connection:
                 'fluid': dc_flu()}
 
     def to_flow(self):
-        """
+        r"""
         create a list containing the connections fluid information
 
         :returns: :code:`[mass flow, pressure, enthalpy, fluid vector]`
@@ -292,7 +292,7 @@ class bus:
             self.P.val_set = True
 
     def get_attr(self, key):
-        """
+        r"""
         get the value of a bus attribute
 
         :param key: attribute to return its value
@@ -308,7 +308,7 @@ class bus:
             return None
 
     def add_comps(self, *args):
-        """
+        r"""
         adds components to a bus
 
         ci are dicts containing a TESPy component object
@@ -426,7 +426,7 @@ class ref:
         self.d = delta
 
     def get_attr(self, key):
-        """
+        r"""
         get the value of a ref attribute
 
         :param key: attribute to return its value

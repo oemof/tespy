@@ -14,7 +14,7 @@ import ast
 
 
 def load_nwk(path):
-    """
+    r"""
     loads a network from a path given the following structure:
 
     - path (e. g. 'mynetwork')
@@ -110,7 +110,7 @@ def load_nwk(path):
 
 
 def construct_comps(c, *args):
-    """
+    r"""
     creates TESPy component from class name provided in the .csv-file and
     specifies its parameter
 
@@ -161,7 +161,7 @@ def construct_comps(c, *args):
 
 
 def construct_network(path):
-    """
+    r"""
     creates TESPy network from the data provided in the .csv-file
 
     :param path: path to stored network data
@@ -192,7 +192,7 @@ def construct_network(path):
 
 
 def construct_chars(c):
-    """
+    r"""
     creates TESPy characteristic functions
 
     :param c: connection information
@@ -208,7 +208,7 @@ def construct_chars(c):
 
 
 def construct_conns(c, *args):
-    """
+    r"""
     creates TESPy component from class name provided in the .csv-file and
     specifies its parameters
 
@@ -266,7 +266,7 @@ def construct_conns(c, *args):
 
 
 def conns_set_ref(c, *args):
-    """
+    r"""
     sets references on the created connections
 
     :param c: connection information
@@ -294,7 +294,7 @@ def conns_set_ref(c, *args):
 
 
 def construct_busses(c, *args):
-    """
+    r"""
     creates busses
 
     :param c: bus information
@@ -311,7 +311,7 @@ def construct_busses(c, *args):
 
 
 def busses_add_comps(c, *args):
-    """
+    r"""
     adds components to the busses
 
     :param c: component information

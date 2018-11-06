@@ -26,7 +26,7 @@ from tespy.components import characteristics as cmp_char
 
 
 def init_target(nw, c, start):
-    """
+    r"""
     propagates the fluids towards connections target,
     ends when reaching sink, merge or combustion chamber
 
@@ -140,7 +140,7 @@ class component:
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
-        """
+        r"""
         sets, resets or unsets attributes of a connection, for the keyword
         arguments, return values and errors see object initialisation
         """
@@ -227,7 +227,7 @@ class component:
                 raise ValueError(msg)
 
     def get_attr(self, key):
-        """
+        r"""
         get the value of a components attribute
 
         :param key: attribute to return its value
@@ -799,7 +799,7 @@ class component:
 
 
 class source(component):
-    """
+    r"""
     component source
 
     - a flow originates from this component
@@ -816,7 +816,7 @@ class source(component):
 
 class sink(component):
     """
-    component sink
+    rcomponent sink
 
     - a flow drains in this component
     """
@@ -831,7 +831,7 @@ class sink(component):
 
 
 class turbomachine(component):
-    """
+    r"""
     component turbomachine can be subdivided in pump, compressor and turbine
 
     **available parameters**
@@ -1118,7 +1118,7 @@ class turbomachine(component):
 
 
 class pump(turbomachine):
-    """
+    r"""
     **available parameters**
 
     - P: power, :math:`[P]=\text{W}`
@@ -2193,7 +2193,7 @@ class turbine(turbomachine):
 
 
 class split(component):
-    """
+    r"""
     component split can be subdivided in splitter and separator:
 
     splitter:
@@ -2392,7 +2392,7 @@ class split(component):
 
 
 class splitter(split):
-    """
+    r"""
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
@@ -2462,7 +2462,7 @@ class splitter(split):
 
 
 class separator(split):
-    """
+    r"""
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
@@ -2547,7 +2547,7 @@ class separator(split):
 
 
 class merge(component):
-    """
+    r"""
     **available parameters**
 
     - num_in: number of inlets (default value: 2)
@@ -6608,7 +6608,7 @@ class heat_exchanger(component):
         return vec_res
 
     def additional_equations(self):
-        """
+        r"""
         returns vector vec_res with result of additional equations for this
         component
 

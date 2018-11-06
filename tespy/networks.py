@@ -32,7 +32,7 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 
 
 class network:
-    """r
+    r"""
 
     The network class aggregates information on components, connections and
     busses and performs calculation and processing.
@@ -151,7 +151,7 @@ class network:
         self.set_attr(**kwargs)
 
     def __getstate__(self):
-        """
+        r"""
         required to pass Pool object within solving loop
         """
         self_dict = self.__dict__.copy()
@@ -160,7 +160,7 @@ class network:
         return self_dict
 
     def set_attr(self, **kwargs):
-        """
+        r"""
         allows adjustments of unit system and fluid property ranges
         """
 
@@ -250,7 +250,7 @@ class network:
                 'p_range', 'h_range', 'T_range']
 
     def set_printoptions(self, **kwargs):
-        """r
+        r"""r
 
         sets the printoptions for the calculation.
 
@@ -327,7 +327,7 @@ class network:
         self.nwkerr = kwargs.get('nwkerr', self.nwkerr)
 
     def add_subsys(self, *args):
-        """
+        r"""
         adds connections to the network, calls check_conns method
 
         :param args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
@@ -339,7 +339,7 @@ class network:
                 self.add_conns(c)
 
     def add_conns(self, *args):
-        """
+        r"""
         add connections to the network, calls check_conns method
 
         :param args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
@@ -351,7 +351,7 @@ class network:
             self.checked = False
 
     def del_conns(self, c):
-        """
+        r"""
         delets connections from a network
 
         :param c: connections object to delete
@@ -363,7 +363,7 @@ class network:
         self.checked = False
 
     def check_conns(self, c):
-        """
+        r"""
         checks the networks connections for multiple usage of inlets or outlets
         of components
 
@@ -391,7 +391,7 @@ class network:
                                      'target is already in use.')
 
     def add_busses(self, *args):
-        """
+        r"""
         adds busses to the network, if check_busses returns :code:`True`
 
         :param args: bus objects bi :code:`add_conn(b1, b2, b3, ...)`
@@ -403,7 +403,7 @@ class network:
                 self.busses += [b]
 
     def del_busses(self, b):
-        """
+        r"""
         delets busses from a network
 
         :param b: bus object to delete
@@ -415,7 +415,7 @@ class network:
             self.busses.remove(b)
 
     def check_busses(self, b):
-        """
+        r"""
         checks the networks connections for multiple usage of inlets or outlets
         of components
 
@@ -444,7 +444,7 @@ class network:
         return False
 
     def check_network(self):
-        """
+        r"""
         checks the network consistency: are all components connected?
 
         - iterates through components of the network
@@ -481,7 +481,7 @@ class network:
             print('Networkcheck successfull.')
 
     def initialise(self):
-        """
+        r"""
         initilialises the network
 
         - component initlialisation
@@ -523,7 +523,7 @@ class network:
             self.init_csv()  # initialisation from csv
 
     def init_components(self, comps):
-        """
+        r"""
         writes the networks components into dataframe
 
         .. note::
@@ -565,7 +565,7 @@ class network:
             raise hlp.MyNetworkError(msg)
 
     def init_fluids(self):
-        """
+        r"""
         initialises the fluid vector on every connection of the network
 
         - create fluid vector for every component as dict,
@@ -649,7 +649,7 @@ class network:
             c.t.initialise_fluids(self)
 
     def init_target(self, c, start):
-        """
+        r"""
         propagates the fluids towards connections target,
         ends when reaching sink, merge or combustion chamber
 
@@ -702,7 +702,7 @@ class network:
                 self.init_target(outconn, start)
 
     def init_source(self, c, start):
-        """
+        r"""
         propagates the fluids towards connections source,
         ends when reaching source, merge or combustion chamber
 
@@ -764,7 +764,7 @@ class network:
                 self.init_source(inconn, start)
 
     def init_properties(self):
-        """
+        r"""
         initialises the fluid properties on every connection of the network
 
         - sets standard values for :code:`m0, p0, h0` if not user specified
@@ -816,7 +816,7 @@ class network:
                 c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
 
     def init_val0(self, c, key):
-        """
+        r"""
         sets standard initialisation values for pressure
         values for pressure deriven by
 
@@ -859,7 +859,7 @@ class network:
                 self.get_attr(key)[self.get_attr(key + '_unit')])
 
     def init_csv(self):
-        """
+        r"""
         initialise network from .csv file, used for
 
         - preprocessing before offdesign-calculations (design_file)
@@ -902,7 +902,7 @@ class network:
             c.fluid.val0 = c.fluid.val.copy()
 
     def init_design_file(c, nw, df):
-        """
+        r"""
         overwrite variables with values from design file
 
         :param c: c are the connections of the network
@@ -933,7 +933,7 @@ class network:
             c.name.fluid.val[fluid] = df.loc[conn][fluid]
 
     def init_init_file(c, nw, df):
-        """
+        r"""
         overwrite non set variables with values from initialisation file
 
         :param c: c are the connections of the network
@@ -973,7 +973,7 @@ class network:
             c.name.h.val_SI = hlp.h_mix_pQ(c.name.to_flow(), c.name.x.val_SI)
 
     def init_offdesign(self):
-        """
+        r"""
         auto switches components and connections from design to offdesign mode.
 
         **components**
@@ -1014,7 +1014,7 @@ class network:
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
               max_iter=50, parallel=False, init_only=False):
-        """
+        r"""
         solves the network:
 
         - checks network consistency
@@ -1149,7 +1149,7 @@ class network:
             print('Calculation complete.')
 
     def solve_loop(self):
-        """
+        r"""
         loop of the newton algorithm
 
         **Improvememts**
@@ -1231,7 +1231,7 @@ class network:
             return msg
 
     def solve_control(self):
-        """
+        r"""
         calculation step of newton algorithm
 
         - calculate the residual value for each equation
@@ -1328,12 +1328,11 @@ class network:
 
         # check properties without given init_file
         if self.iter < 3 and self.init_file is None:
-#
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
     def solve_check_props(self, c):
-        """
+        r"""
         checks for invalid fluid properties in solution progress and adjusts
         values if necessary
 
@@ -1380,7 +1379,7 @@ class network:
                 self.solve_check_temperature(c)
 
     def solve_check_temperature(self, c):
-        """
+        r"""
         checks for invalid fluid temperatures in solution progress and adjusts
         values if necessary
 
@@ -1402,7 +1401,7 @@ class network:
             c.h.val_SI = hmax * 0.95
 
     def solve_components(self):
-        """
+        r"""
         calculates the equations and the partial derivatives for the networks
         components.
 
@@ -1479,7 +1478,7 @@ class network:
         return [cp.name.derivatives(nw)]
 
     def solve_connections(self):
-        """
+        r"""
         calculates the equations and the partial derivatives for the networks
         connectons.
 
@@ -1599,7 +1598,7 @@ class network:
                 nw.solve_prop_ref_deriv(c.name, 'T')]
 
     def solve_busses(self):
-        """
+        r"""
         calculates the equations and the partial derivatives for the networks
         busses.
 
@@ -1974,7 +1973,7 @@ class network:
 # %% pre and post processing
 
     def processing(self, mode):
-        """
+        r"""
         preprocessing or postprocessing for components: calculation of
         components attributes
 
@@ -2005,7 +2004,7 @@ class network:
                 print('Done.')
 
     def process_busses(self):
-        """
+        r"""
         processing the networks busses
 
         :returns: no return value
@@ -2021,7 +2020,7 @@ class network:
                     bus.P_ref = val
 
     def process_components(cols, nw, mode):
-        """
+        r"""
         postprocessing: calculate components attributes
 
         :param cols: cols are the components of the network
@@ -2033,7 +2032,7 @@ class network:
 # %% printing and plotting
 
     def print_results(self):
-        """
+        r"""
         prints the calculations results for components and connections
 
         :returns: no return value
@@ -2107,7 +2106,7 @@ class network:
                            floatfmt='.3e'))
 
     def print_components(c, *args):
-        """
+        r"""
         postprocessing: calculate components attributes and print them to
         prompt
 
@@ -2118,7 +2117,7 @@ class network:
         return c.name.get_attr(args[0]).val
 
     def plot_convergence(self):
-        """
+        r"""
         plots the convergence history of all mass flows, pressures and
         enthalpies as absolute values
 
@@ -2160,7 +2159,7 @@ class network:
 # %% saving
 
     def save(self, filename, **kwargs):
-        """
+        r"""
         saves the results in two files:
 
         - results file and
@@ -2190,7 +2189,7 @@ class network:
             self.save_characteristics(path + 'comps/char.csv')
 
     def save_network(self, fn):
-        """
+        r"""
         saves basic network configuration
 
         :param fn: filename
@@ -2216,7 +2215,7 @@ class network:
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
     def save_connections(self, fn, structure=False):
-        """
+        r"""
         saves connections to fn, saves network structure data if structure is
         True
 
@@ -2294,7 +2293,7 @@ class network:
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
     def save_components(self, path):
-        """
+        r"""
         saves the components to filename/comps/*.csv
 
         - uses components labels as row identifier
@@ -2361,7 +2360,7 @@ class network:
                       index=True, na_rep='nan')
 
     def save_busses(self, fn):
-        """
+        r"""
         saves the busses parametrisation
 
         :param fn: filename
@@ -2381,7 +2380,7 @@ class network:
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
     def save_characteristics(self, fn):
-        """
+        r"""
         saves the busses parametrisation to filename_bus.csv
 
         - uses connections object id as row identifier

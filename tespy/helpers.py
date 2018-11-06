@@ -33,7 +33,7 @@ gas_constants['uni'] = 8.3144598
 
 
 class data_container:
-    """r
+    r"""
 
     The data container stores data on components and connections attributes.
     There are subclasses for the following applications:
@@ -94,7 +94,7 @@ class data_container:
 
 
 class dc_prop(data_container):
-    """r
+    r"""
 
     data container for fluid properties
 
@@ -123,7 +123,7 @@ class dc_prop(data_container):
 
 
 class dc_flu(data_container):
-    """r
+    r"""
 
     data container for fluid vector
 
@@ -137,7 +137,7 @@ class dc_flu(data_container):
 
 
 class dc_cp(data_container):
-    """r
+    r"""
 
     data container for component properties
 
@@ -153,7 +153,7 @@ class dc_cp(data_container):
 
 
 class dc_cc(data_container):
-    """r
+    r"""
 
     data container for component characteristics
 
@@ -188,7 +188,7 @@ class dc_cc(data_container):
 
 
 class dc_gcp(data_container):
-    """r
+    r"""
 
     data container for grouped component properties
 
@@ -221,7 +221,7 @@ class MyConvergenceError(Exception):
 
 
 def query_yes_no(question, default='yes'):
-    """
+    r"""
     in prompt query
 
     :param question: question to ask in prompt
@@ -257,7 +257,7 @@ def query_yes_no(question, default='yes'):
 
 
 class tespy_fluid:
-    """r
+    r"""
 
     The tespy_fluid class allows the creation of custom fluid properies for a
     specified mixture of fluids. The created fluid properties adress an ideal
@@ -364,7 +364,7 @@ class tespy_fluid:
         print('Successfully created LUTs for custom fluid ' + self.alias)
 
     def generate_lookup(self, name, func):
-        """
+        r"""
         create lookup table
 
         .. math::
@@ -372,6 +372,8 @@ class tespy_fluid:
         :param func: function to create lookup from
         :type func: callable function
         :returns: y (*scipy.interpolate.RectBivariateSpline*) - lookup table
+
+        TODO: check if CoolProp tabular data interpolation is suitable?
         """
 
         x1 = self.p
@@ -471,6 +473,9 @@ def reverse_2d_deriv(params, y):
 
 
 class memorise:
+    r"""
+    TODO: add documentation
+    """
 
     def __init__(self, fluids):
 
@@ -958,7 +963,7 @@ def h_ps(p, s, fluid):
 
 
 def h_mix_pQ(flow, Q):
-    """
+    r"""
     calculates enthalpy from pressure and quality
 
     .. note::
@@ -1576,7 +1581,7 @@ def single_fluid(fluids):
 
 
 def fluid_structure(fluid):
-    """
+    r"""
     gets the chemical formular of a fluid
 
     :param fluid: alias of the fluid

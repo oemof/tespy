@@ -6246,7 +6246,7 @@ class solar_collector(heat_exchanger_simple):
 
     **equations**
 
-    see :func:`tespy.components.components.solar_collector.equations`
+    see :func:`tespy.components.components.heat_exchanger_simple.equations`
 
     **default design parameters**
 

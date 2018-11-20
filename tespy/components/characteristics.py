@@ -233,7 +233,8 @@ class characteristics:
             x['QLOSS'] = np.array([0.50, 0.7500, 0.90, 1.000])
             y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
 
-        elif self.comp == 'heat exchanger' or self.comp == 'desuperheater':
+        elif (self.comp == 'heat exchanger' or self.comp == 'desuperheater' or
+              self.comp == 'pipe' or self.comp == 'heat exchanger simple'):
 
             x['EVA_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,

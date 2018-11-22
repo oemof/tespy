@@ -1723,11 +1723,11 @@ class compressor(turbomachine):
 
         expr = 1
         if self.eta_s_char.param == 'm':
-            if hasattr(self, 'i1_ref'):
-                expr = i[0] / self.i1_ref[0]
+            if hasattr(self, 'i_ref'):
+                expr = i[0] / self.i_ref[0]
         elif self.eta_s_char.param == 'pr':
-            if hasattr(self, 'i1_ref') and hasattr(self, 'o1_ref'):
-                expr = (o[1] * self.i1_ref[1]) / (i[1] * self.o1_ref[1])
+            if hasattr(self, 'i_ref') and hasattr(self, 'o_ref'):
+                expr = (o[1] * self.i_ref[1]) / (i[1] * self.o_ref[1])
         else:
             raise ValueError('Must provide a parameter for eta_s_char at '
                              'component ' + self.label)

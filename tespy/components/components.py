@@ -411,13 +411,15 @@ class component:
             return vec_res
 
         if isinstance(self, merge):
-            res = 0
-            for fluid, x in self.outl[0].fluid.val.items():
-                res = -x * self.outl[0].m.val_SI
-                for i in self.inl:
-                    res += i.fluid.val[fluid] * i.m.val_SI
-                vec_res += [res]
-            return vec_res
+            if self.zero_flag['val']:
+                return [0] * len(self.inl[0].fluid.val)
+            else:
+                for fluid, x in self.outl[0].fluid.val.items():
+                    res = -x * self.outl[0].m.val_SI
+                    for i in self.inl:
+                        res += i.fluid.val[fluid] * i.m.val_SI
+                    vec_res += [res]
+                return vec_res
 
         if isinstance(self, drum):
             for o in self.outl:
@@ -498,16 +500,28 @@ class component:
 
         if isinstance(self, merge):
             mat_deriv = np.zeros((num_fl, self.num_i + 1, 3 + num_fl))
-            j = 0
-            for fluid, x in self.outl[0].fluid.val.items():
-                k = 0
-                for i in self.inl:
-                    mat_deriv[j, k, 0] = i.fluid.val[fluid]
-                    mat_deriv[j, k, j + 3] = i.m.val_SI
-                    k += 1
-                mat_deriv[j, k, 0] = -x
-                mat_deriv[j, k, j + 3] = -self.outl[0].m.val_SI
-                j += 1
+            if self.zero_flag['val']:
+                j = 0
+                for fluid, x in self.outl[0].fluid.val.items():
+                    k = 0
+                    for i in self.inl:
+                        mat_deriv[j, k, 0] = 1
+                        mat_deriv[j, k, j + 3] = 1
+                        k += 1
+                    mat_deriv[j, k, 0] = -1
+                    mat_deriv[j, k, j + 3] = -1
+                    j += 1
+            else:
+                j = 0
+                for fluid, x in self.outl[0].fluid.val.items():
+                    k = 0
+                    for i in self.inl:
+                        mat_deriv[j, k, 0] = i.fluid.val[fluid]
+                        mat_deriv[j, k, j + 3] = i.m.val_SI
+                        k += 1
+                    mat_deriv[j, k, 0] = -x
+                    mat_deriv[j, k, j + 3] = -self.outl[0].m.val_SI
+                    j += 1
             return mat_deriv.tolist()
 
         if isinstance(self, drum):
@@ -1733,11 +1747,11 @@ class compressor(turbomachine):
 
         expr = 1
         if self.eta_s_char.param == 'm':
-            if hasattr(self, 'i1_ref'):
-                expr = i[0] / self.i1_ref[0]
+            if hasattr(self, 'i_ref'):
+                expr = i[0] / self.i_ref[0]
         elif self.eta_s_char.param == 'pr':
-            if hasattr(self, 'i1_ref') and hasattr(self, 'o1_ref'):
-                expr = (o[1] * self.i1_ref[1]) / (i[1] * self.o1_ref[1])
+            if hasattr(self, 'i_ref') and hasattr(self, 'o_ref'):
+                expr = (o[1] * self.i_ref[1]) / (i[1] * self.o_ref[1])
         else:
             raise ValueError('Must provide a parameter for eta_s_char at '
                              'component ' + self.label)
@@ -2593,6 +2607,11 @@ class merge(component):
     def outlets(self):
         return ['out1']
 
+    def comp_init(self, nw):
+        self.zero_flag = {'val': False}
+
+        component.comp_init(self, nw)
+
     def equations(self):
         r"""
         returns vector vec_res with result of equations for this component
@@ -2613,14 +2632,25 @@ class merge(component):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
         """
+        if not self.zero_flag['val']:
+            inl = []
+            for i in self.inl:
+                inl += [abs(i.m.val_SI) < 1e-4]
+
+            if all(inl):
+                self.zero_flag['val'] = True
+
         vec_res = []
 
         vec_res += self.fluid_res()
         vec_res += self.mass_flow_res()
 
-        h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
-        for i in self.inl:
-            h_res += i.m.val_SI * i.h.val_SI
+        if self.zero_flag['val']:
+            h_res = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        else:
+            h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
+            for i in self.inl:
+                h_res += i.m.val_SI * i.h.val_SI
         vec_res += [h_res]
 
         for i in self.inl:
@@ -2645,13 +2675,17 @@ class merge(component):
         mat_deriv += self.mass_flow_deriv()
 
         h_deriv = np.zeros((1, self.num_i + 1, num_fl + 3))
-        h_deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
-        h_deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
-        k = 0
-        for i in self.inl:
-            h_deriv[0, k, 0] = i.h.val_SI
-            h_deriv[0, k, 2] = i.m.val_SI
-            k += 1
+        if self.zero_flag['val']:
+            h_deriv[0, 0, 2] = -1
+            h_deriv[0, self.num_i, 2] = 1
+        else:
+            h_deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
+            h_deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
+            k = 0
+            for i in self.inl:
+                h_deriv[0, k, 0] = i.h.val_SI
+                h_deriv[0, k, 2] = i.m.val_SI
+                k += 1
         mat_deriv += h_deriv.tolist()
 
         p_deriv = np.zeros((self.num_i, self.num_i + 1, num_fl + 3))
@@ -6570,9 +6604,7 @@ class heat_exchanger(component):
 
     def comp_init(self, nw):
 
-        self.zero_flag = {'cases': 6}
-        self.zero_flag['case'] = [0, 0]
-        self.zero_flag['val'] = False
+        self.zero_flag = {'cases': 6, 'case': [0, 0], 'val': False}
 
         component.comp_init(self, nw)
 

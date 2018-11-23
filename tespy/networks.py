@@ -1357,7 +1357,10 @@ class network:
             hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * 1.01, fl)
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
-                c.h.val_SI = hmin * 3
+                if c.h.val_SI < 0:
+                    c.h.val_SI = hmin / 3
+                else:
+                    c.h.val_SI = hmin * 3
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 

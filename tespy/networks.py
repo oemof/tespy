@@ -383,12 +383,14 @@ class network:
 
         if self.conns.duplicated(['s', 's_id'])[c]:
             self.conns = self.conns[self.conns.index != c]
-            raise hlp.MyNetworkError('Could not add connection to network, '
-                                     'source is already in use.')
+            raise hlp.MyNetworkError('Could not add connection from ' +
+                                     str(c.s.label) + ' to ' + str(c.t.label) +
+                                     ' to network, source is already in use.')
         if self.conns.duplicated(['t', 't_id'])[c]:
             self.conns = self.conns[self.conns.index != c]
-            raise hlp.MyNetworkError('Could not add connection to network, '
-                                     'target is already in use.')
+            raise hlp.MyNetworkError('Could not add connection from ' +
+                                     str(c.s.label) + ' to ' + str(c.t.label) +
+                                     ' to network, target is already in use.')
 
     def add_busses(self, *args):
         r"""

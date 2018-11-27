@@ -5954,14 +5954,19 @@ class heat_exchanger_simple(component):
             \lambda: \text{darcy friction factor}
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+
+        if abs(i[0]) < 1e-3:
+            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
+
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
 
-        re = 4 * self.inl[0].m.val_SI / (math.pi * self.D.val *
-                                         (visc_i + visc_o) / 2)
+        re = 4 * abs(self.inl[0].m.val_SI) / (
+                math.pi * self.D.val * (visc_i + visc_o) / 2)
 
         return ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) -
-                8 * self.inl[0].m.val_SI ** 2 * (v_i + v_o) / 2 * self.L.val *
+                8 * abs(self.inl[0].m.val_SI) * self.inl[0].m.val_SI *
+                (v_i + v_o) / 2 * self.L.val *
                 lamb(re, self.ks.val, self.D.val) /
                 (math.pi ** 2 * self.D.val ** 5))
 
@@ -5982,9 +5987,14 @@ class heat_exchanger_simple(component):
             \text{note: g is set to } 9.81 \frac{m}{s^2}
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
-        v_i, v_o = v_mix_ph(i), v_mix_ph(o)
 
-        return ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) -
+        if abs(i[0]) < 1e-3:
+            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
+
+        v_i, v_o = v_mix_ph(i), v_mix_ph(o)
+        flow_dir = np.sign(self.inl[0].m.val_SI)
+
+        return ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) * flow_dir -
                 (10.67 * self.inl[0].m.val_SI ** 1.852 * self.L.val /
                  (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
@@ -6026,12 +6036,15 @@ class heat_exchanger_simple(component):
         T_i = T_mix_ph(i)
         T_o = T_mix_ph(o)
 
-        if self.Tamb.val_SI > T_i:
-            ttd_u = self.Tamb.val_SI - T_o
-            ttd_l = self.Tamb.val_SI - T_i
+        if i[0] < 0:
+            ttd_u = T_o - self.Tamb.val_SI
+            ttd_l = T_i - self.Tamb.val_SI
         else:
             ttd_u = T_i - self.Tamb.val_SI
             ttd_l = T_o - self.Tamb.val_SI
+
+        if ttd_u == ttd_l:
+            ttd_u += 1
 
         fkA = 1
         if hasattr(self, 'i_ref'):
@@ -6204,19 +6217,19 @@ class heat_exchanger_simple(component):
                     8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
         # improve this part (for heat exchangers only atm)
-        if self.kA.is_set:
-            expr = i[0] / self.i_ref[0]
-            minval = self.kA_char.func.x[0]
-            maxval = self.kA_char.func.x[-1]
-            if expr > maxval or expr < minval:
-                if nw.compwarn:
-                    msg = ('##### WARNING #####\n'
-                           'Expression for characteristics out of bounds [' +
-                           str(minval) + ', ' + str(maxval) + '], '
-                           ' value is ' + str(expr) + ' at ' +
-                           self.label + '.')
-                    print(msg)
-                nw.errors += [self]
+#        if self.kA.is_set:
+#            expr = i[0] / self.i_ref[0]
+#            minval = self.kA_char.func.x[0]
+#            maxval = self.kA_char.func.x[-1]
+#            if expr > maxval or expr < minval:
+#                if nw.compwarn:
+#                    msg = ('##### WARNING #####\n'
+#                           'Expression for characteristics out of bounds [' +
+#                           str(minval) + ', ' + str(maxval) + '], '
+#                           ' value is ' + str(expr) + ' at ' +
+#                           self.label + '.')
+#                    print(msg)
+#                nw.errors += [self]
 
         if mode == 'post' and nw.mode == 'offdesign':
             del self.i_ref

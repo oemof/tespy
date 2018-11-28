@@ -2453,10 +2453,17 @@ class splitter(split):
             0 = h_{in} - h_{out,i} \;
             \forall i \in \mathrm{outlets}\\
         """
+#        vec_res = []
+#
+#        for o in self.outl:
+#            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+#
+#        return vec_res
         vec_res = []
 
         for o in self.outl:
-            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+            vec_res += [T_mix_ph(self.inl[0].to_flow()) -
+                        T_mix_ph(o.to_flow())]
 
         return vec_res
 
@@ -2468,17 +2475,36 @@ class splitter(split):
         :type nw: tespy.networks.network
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
+#        num_fl = len(nw.fluids)
+#        mat_deriv = []
+#
+#        h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+#        k = 0
+#        for o in self.outl:
+#            h_deriv[k, 0, 2] = 1
+#            h_deriv[k, k + 1, 2] = -1
+#            k += 1
+#
+#        mat_deriv += h_deriv.tolist()
+#
+#        return mat_deriv
         num_fl = len(nw.fluids)
         mat_deriv = []
 
-        h_deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        deriv = np.zeros((self.num_o, 1 + self.num_o, num_fl + 3))
+        i = self.inl[0].to_flow()
         k = 0
         for o in self.outl:
-            h_deriv[k, 0, 2] = 1
-            h_deriv[k, k + 1, 2] = -1
+            o = o.to_flow()
+            deriv[k, 0, 1] = dT_mix_dph(i)
+            deriv[k, 0, 2] = dT_mix_pdh(i)
+            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            deriv[k, k + 1, 1] = -dT_mix_dph(o)
+            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
+            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
             k += 1
 
-        mat_deriv += h_deriv.tolist()
+        mat_deriv += deriv.tolist()
 
         return mat_deriv
 
@@ -2686,6 +2712,224 @@ class merge(component):
                 h_deriv[0, k, 0] = i.h.val_SI
                 h_deriv[0, k, 2] = i.m.val_SI
                 k += 1
+        mat_deriv += h_deriv.tolist()
+
+        p_deriv = np.zeros((self.num_i, self.num_i + 1, num_fl + 3))
+        k = 0
+        for i in self.inl:
+            p_deriv[k, k, 1] = -1
+            p_deriv[k, self.num_i, 1] = 1
+            k += 1
+        mat_deriv += p_deriv.tolist()
+
+        return np.asarray(mat_deriv)
+
+    def initialise_fluids(self, nw):
+        r"""
+        fluid initialisation for fluid mixture at outlet of the merge
+
+        - it is recommended to specify starting values for mass flows at merges
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: no return value
+        """
+        num_fl = {}
+        for o in self.outl:
+            num_fl[o] = num_fluids(o.fluid.val)
+
+        for i in self.inl:
+            num_fl[i] = num_fluids(i.fluid.val)
+
+        ls = []
+        if any(num_fl.values()) and not all(num_fl.values()):
+            for conn, num in num_fl.items():
+                if num == 1:
+                    ls += [conn]
+
+            for c in ls:
+                for fluid in nw.fluids:
+                    for o in self.outl:
+                        if not o.fluid.val_set[fluid]:
+                            o.fluid.val[fluid] = c.fluid.val[fluid]
+                    for i in self.inl:
+                        if not i.fluid.val_set[fluid]:
+                            i.fluid.val[fluid] = c.fluid.val[fluid]
+
+    def initialise_source(self, c, key):
+        r"""
+        returns a starting value for fluid properties at components outlet
+
+        :param c: connection to apply initialisation
+        :type c: tespy.connections.connection
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    outlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    outlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        """
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
+
+    def initialise_target(self, c, key):
+        r"""
+        returns a starting value for fluid properties at components inlet
+
+        :param c: connection to apply initialisation
+        :type c: tespy.connections.connection
+        :param key: property
+        :type key: str
+        :returns: - p (*float*) - starting value for pressure at components
+                    inlet, :math:`val = 1 \cdot 10^5 \; \text{Pa}`
+                  - h (*float*) - starting value for enthalpy at components
+                    inlet,
+                    :math:`val = 5 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        """
+        if key == 'p':
+            return 1e5
+        elif key == 'h':
+            return 5e5
+        else:
+            return 0
+
+# %%
+
+
+class node(component):
+    r"""
+    **available parameters**
+
+    - num_in: number of inlets (default value: 2)
+    - num_out: number of outlets (default value: 2)
+
+    **equations**
+
+    see :func:`tespy.components.components.node.equations`
+
+    **inlets and outlets**
+
+    - specify number of inlets with :code:`num_in`
+    - specify number of inlets with :code:`num_out`
+
+    .. image:: _images/node.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
+
+    def component(self):
+        return 'node'
+
+    def attr(self):
+        return {'num_in': dc_cp(printout=False),
+                'num_out': dc_cp(printout=False)}
+
+    def inlets(self):
+        if self.num_in.is_set:
+            return ['in' + str(i + 1) for i in range(self.num_in.val)]
+        else:
+            self.set_attr(num_in=2)
+            return self.inlets()
+
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=2)
+            return self.outlets()
+
+    def comp_init(self, nw):
+        self.zero_flag = {'val': False}
+        self.inc = []
+        self.outg = []
+
+        component.comp_init(self, nw)
+
+    def equations(self):
+        r"""
+        returns vector vec_res with result of equations for this component
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - vector of residual values
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
+
+        .. math::
+            0 = - \dot{m}_{out} \cdot h_{out} + \sum_{i} \dot{m}_{in,i} \cdot
+            h_{in,i} \; \forall i \in \mathrm{inlets}
+
+            0 = p_{in,i} - p_{out} \;
+            \forall i \in \mathrm{inlets}
+        """
+
+        vec_res = []
+
+        loc = 0
+        for c in self.inl:
+            if c.m.val_SI >= 0:
+                self.inc += [[c, loc]]
+            else:
+                self.outg += [[c, loc]]
+
+        vec_res += self.fluid_res()
+        vec_res += self.mass_flow_res()
+
+        h = 0
+        m = 0
+        for i in self.inc:
+            h += abs(i.m.val_SI) * i.h.val_SI
+            m += abs(i.m.val_SI)
+
+        for o in self.outg:
+            vec_res += [o.h.val_SI - h / m]
+
+        inl = []
+        if self.num_in.val > 1:
+            inl = self.inl[1:]
+        for c in inl + self.outl:
+            vec_res += [self.inl[0].p.val_SI - c.p.val_SI]
+
+        return vec_res
+
+    def derivatives(self, nw):
+        r"""
+        calculate matrix of partial derivatives towards mass flow, pressure,
+        enthalpy and fluid composition
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
+        """
+
+        num_fl = len(nw.fluids)
+        mat_deriv = []
+
+        mat_deriv += self.fluid_deriv()
+        mat_deriv += self.mass_flow_deriv()
+
+        h_deriv = np.zeros((1, self.num_i + 1, num_fl + 3))
+        h_deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
+        h_deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
+        k = 0
+        for i in self.inl:
+            h_deriv[0, k, 0] = i.h.val_SI
+            h_deriv[0, k, 2] = i.m.val_SI
+            k += 1
+        k = 0
+        for o in self.outl:
+            h_deriv[0, k + self.num_i, 0] = o.h.val_SI
+            h_deriv[0, k + self.num_i, 2] = o.m.val_SI
+            k += 1
         mat_deriv += h_deriv.tolist()
 
         p_deriv = np.zeros((self.num_i, self.num_i + 1, num_fl + 3))
@@ -5956,18 +6200,15 @@ class heat_exchanger_simple(component):
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
         if abs(i[0]) < 1e-3:
-            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
+            return i[1] - o[1]
 
         visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
 
-        re = 4 * abs(self.inl[0].m.val_SI) / (
-                math.pi * self.D.val * (visc_i + visc_o) / 2)
+        re = 4 * abs(i[0]) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
 
-        return ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) -
-                8 * abs(self.inl[0].m.val_SI) * self.inl[0].m.val_SI *
-                (v_i + v_o) / 2 * self.L.val *
-                lamb(re, self.ks.val, self.D.val) /
+        return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
+                self.L.val * lamb(re, self.ks.val, self.D.val) /
                 (math.pi ** 2 * self.D.val ** 5))
 
     def hw_func(self):
@@ -5989,13 +6230,13 @@ class heat_exchanger_simple(component):
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
         if abs(i[0]) < 1e-3:
-            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
+            return i[1] - o[1]
 
         v_i, v_o = v_mix_ph(i), v_mix_ph(o)
-        flow_dir = np.sign(self.inl[0].m.val_SI)
+        flow_dir = np.sign(i[0])
 
-        return ((self.inl[0].p.val_SI - self.outl[0].p.val_SI) * flow_dir -
-                (10.67 * self.inl[0].m.val_SI ** 1.852 * self.L.val /
+        return ((i[1] - o[1]) * flow_dir -
+                (10.67 * abs(i[0]) ** 1.852 * self.L.val /
                  (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
 

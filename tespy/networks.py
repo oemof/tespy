@@ -1266,25 +1266,7 @@ class network:
 
         # check for linear dependency
         if self.lin_dep:
-            if len(self.zero_flag) > 0:
-                for cp in self.zero_flag.keys():
-                    cases = []
-                    val = []
-                    for c in range(cp.zero_flag['cases']):
-                        cp.zero_flag['case'][1] = c
-                        self.solve_single_component(cp)
-                        self.matrix_inversion()
-                        if not self.lin_dep:
-                            cases += [cp.zero_flag['case'].copy()]
-                            val += [norm(self.vec_res)]
-
-                    if len(val) > 0:
-                        cp.zero_flag['case'] = cases[val.index(min(val))]
-                        self.solve_single_component(cp)
-                        self.matrix_inversion()
-
-            else:
-                return
+            return
 
         # add increment
         i = 0

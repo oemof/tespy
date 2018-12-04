@@ -411,7 +411,7 @@ class component:
             return vec_res
 
         if isinstance(self, merge):
-            if self.zero_flag['val']:
+            if self.zero_flag.is_set:
                 return [0] * len(self.inl[0].fluid.val)
             else:
                 for fluid, x in self.outl[0].fluid.val.items():
@@ -500,7 +500,7 @@ class component:
 
         if isinstance(self, merge):
             mat_deriv = np.zeros((num_fl, self.num_i + 1, 3 + num_fl))
-            if self.zero_flag['val']:
+            if self.zero_flag.is_set:
                 j = 0
                 for fluid, x in self.outl[0].fluid.val.items():
                     k = 0
@@ -2621,7 +2621,8 @@ class merge(component):
         return 'merge'
 
     def attr(self):
-        return {'num_in': dc_cp(printout=False)}
+        return {'num_in': dc_cp(printout=False),
+                'zero_flag': dc_cp()}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -2634,8 +2635,6 @@ class merge(component):
         return ['out1']
 
     def comp_init(self, nw):
-        self.zero_flag = {'val': False}
-
         component.comp_init(self, nw)
 
     def equations(self):
@@ -2658,20 +2657,13 @@ class merge(component):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
         """
-        if not self.zero_flag['val']:
-            inl = []
-            for i in self.inl:
-                inl += [abs(i.m.val_SI) < 1e-4]
-
-            if all(inl):
-                self.zero_flag['val'] = True
 
         vec_res = []
 
         vec_res += self.fluid_res()
         vec_res += self.mass_flow_res()
 
-        if self.zero_flag['val']:
+        if self.zero_flag.is_set:
             h_res = self.outl[0].h.val_SI - self.inl[0].h.val_SI
         else:
             h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
@@ -2701,7 +2693,7 @@ class merge(component):
         mat_deriv += self.mass_flow_deriv()
 
         h_deriv = np.zeros((1, self.num_i + 1, num_fl + 3))
-        if self.zero_flag['val']:
+        if self.zero_flag.is_set:
             h_deriv[0, 0, 2] = -1
             h_deriv[0, self.num_i, 2] = 1
         else:
@@ -2845,7 +2837,6 @@ class node(component):
             return self.outlets()
 
     def comp_init(self, nw):
-        self.zero_flag = {'val': False}
         self.inc = []
         self.outg = []
 
@@ -5911,10 +5902,6 @@ class heat_exchanger_simple(component):
 
     def comp_init(self, nw):
 
-        self.zero_flag = {'cases': 1}
-        self.zero_flag['case'] = [0, 0]
-        self.zero_flag['val'] = False
-
         component.comp_init(self, nw)
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
@@ -6842,7 +6829,8 @@ class heat_exchanger(component):
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'zero_flag': dc_cp()}
 
     def default_design(self):
         return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
@@ -6857,8 +6845,6 @@ class heat_exchanger(component):
         return ['out1', 'out2']
 
     def comp_init(self, nw):
-
-        self.zero_flag = {'cases': 6, 'case': [0, 0], 'val': False}
 
         component.comp_init(self, nw)
 
@@ -6913,23 +6899,11 @@ class heat_exchanger(component):
         - :func:`tespy.components.components.condenser.additional_equations`
         - :func:`tespy.components.components.desuperheater.additional_equations`
 
-        """
-        if not self.zero_flag['val']:
-            if abs(self.inl[0].m.val_SI) < 1e-4:
-                self.zero_flag['val'] = True
-                self.zero_flag['case'][0] = 0
-            elif abs(self.outl[0].h.val_SI - self.inl[0].h.val_SI) < 1e-4:
-                self.zero_flag['val'] = True
-                self.zero_flag['case'][0] = 1
+        **TODO**
 
-            elif abs(self.inl[1].m.val_SI) < 1e-4:
-                self.zero_flag['val'] = True
-                self.zero_flag['case'][0] = 2
-            elif abs(self.outl[1].h.val_SI - self.inl[1].h.val_SI) < 1e-4:
-                self.zero_flag['val'] = True
-                self.zero_flag['case'][0] = 3
-            else:
-                self.zero_flag['val'] = False
+        - add zero flag case overview here
+
+        """
 
         vec_res = []
 
@@ -7079,8 +7053,8 @@ class heat_exchanger(component):
             \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
 
         """
-        if self.zero_flag['val']:
-            c = self.zero_flag['case']
+        if self.zero_flag.is_set:
+            c = self.zero_flag.val
             if c[0] > 0 and c[1] < 3:
                 return self.inl[0].m.val_SI
 
@@ -7110,8 +7084,8 @@ class heat_exchanger(component):
 
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-        if self.zero_flag['val']:
-            c = self.zero_flag['case']
+        if self.zero_flag.is_set:
+            c = self.zero_flag.val
             if c[0] > 0 and c[1] < 3:
                 deriv[0, 0, 0] = 1
 
@@ -7166,8 +7140,8 @@ class heat_exchanger(component):
         class :func:`tespy.component.characteristics.heat_ex`.
         """
 
-        if self.zero_flag['val']:
-            c = self.zero_flag['case']
+        if self.zero_flag.is_set:
+            c = self.zero_flag.val
             if c[1] == 2 or c[1] == 4 or c[1] == 5:
                 T_i1 = T_mix_ph(self.inl[0].to_flow())
                 T_i2 = T_mix_ph(self.inl[1].to_flow())
@@ -7595,7 +7569,8 @@ class condenser(heat_exchanger):
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp()}
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'zero_flag': dc_cp()}
 
     def default_design(self):
         return [n for n in heat_exchanger.default_design(self) if n != 'pr1']
@@ -7605,8 +7580,6 @@ class condenser(heat_exchanger):
                 n != 'zeta1']
 
     def comp_init(self, nw):
-
-        self.zero_flag = {'cases': 0, 'val': False, 'case': [0, 0]}
 
         component.comp_init(self, nw)
 
@@ -7726,7 +7699,7 @@ class condenser(heat_exchanger):
         class :func:`tespy.component.characteristics.heat_ex`
         """
 
-        if self.zero_flag['val']:
+        if self.zero_flag.is_set:
             return self.inl[0].p.val_SI - self.i1_ref[1]
 
         i1 = self.inl[0].to_flow()

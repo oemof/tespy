@@ -421,6 +421,15 @@ class component:
                     vec_res += [res]
                 return vec_res
 
+        if isinstance(self, node):
+            for fluid in self.outl[0].fluid.val.keys():
+                x = 0
+                for i in self.inc:
+                    x += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
+                for o in self.outg:
+                    vec_res += [x - o[0].fluid.val[fluid] * self.m_inc]
+            return vec_res
+
         if isinstance(self, drum):
             for o in self.outl:
                 for fluid, x in self.inl[0].fluid.val.items():
@@ -524,6 +533,22 @@ class component:
                     j += 1
             return mat_deriv.tolist()
 
+        if isinstance(self, node):
+            num_o = len(self.outg)
+            mat_deriv = np.zeros((num_fl * num_o, self.num_i + self.num_o,
+                                  3 + num_fl))
+            j = 0
+            for fluid in self.outl[0].fluid.val.keys():
+                k = 0
+                for o in self.outg:
+                    mat_deriv[j + k, o[1], j + 3] = self.m_inc
+                    for i in self.inc:
+                        mat_deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
+                        mat_deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
+                    k += 1
+
+            return mat_deriv.tolist()
+
         if isinstance(self, drum):
             mat_deriv = np.zeros((2 * num_fl, 4, 3 + num_fl))
             k = 0
@@ -595,6 +620,7 @@ class component:
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
+                isinstance(self, node) or
                 (self.num_i == 1 and self.num_o == 1)) and
                 not isinstance(self, cogeneration_unit)):
             res = 0
@@ -635,6 +661,7 @@ class component:
                 isinstance(self, combustion_chamber) or
                 isinstance(self, combustion_chamber_stoich) or
                 isinstance(self, drum) or
+                isinstance(self, node) or
                 (self.num_i == 1 and self.num_o == 1)) and
                 not isinstance(self, cogeneration_unit)):
             mat_deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars,
@@ -2622,7 +2649,7 @@ class merge(component):
 
     def attr(self):
         return {'num_in': dc_cp(printout=False),
-                'zero_flag': dc_cp()}
+                'zero_flag': dc_cp(printout=False)}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -2837,8 +2864,6 @@ class node(component):
             return self.outlets()
 
     def comp_init(self, nw):
-        self.inc = []
-        self.outg = []
 
         component.comp_init(self, nw)
 
@@ -2866,23 +2891,34 @@ class node(component):
         vec_res = []
 
         loc = 0
+        self.inc = []
+        self.outg = []
+        self.m_inc = 0
         for c in self.inl:
             if c.m.val_SI >= 0:
                 self.inc += [[c, loc]]
+                self.m_inc += c.m.val_SI
             else:
                 self.outg += [[c, loc]]
+            loc += 1
+
+        for c in self.outl:
+            if c.m.val_SI < 0:
+                self.inc += [[c, loc]]
+                self.m_inc -= c.m.val_SI
+            else:
+                self.outg += [[c, loc]]
+            loc += 1
 
         vec_res += self.fluid_res()
         vec_res += self.mass_flow_res()
 
         h = 0
-        m = 0
         for i in self.inc:
-            h += abs(i.m.val_SI) * i.h.val_SI
-            m += abs(i.m.val_SI)
+            h += abs(i[0].m.val_SI) * i[0].h.val_SI
 
         for o in self.outg:
-            vec_res += [o.h.val_SI - h / m]
+            vec_res += [h - o[0].h.val_SI * self.m_inc]
 
         inl = []
         if self.num_in.val > 1:
@@ -2908,27 +2944,29 @@ class node(component):
         mat_deriv += self.fluid_deriv()
         mat_deriv += self.mass_flow_deriv()
 
-        h_deriv = np.zeros((1, self.num_i + 1, num_fl + 3))
-        h_deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
-        h_deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
+        h_deriv = np.zeros((len(self.outg), self.num_i + self.num_o,
+                            num_fl + 3))
         k = 0
-        for i in self.inl:
-            h_deriv[0, k, 0] = i.h.val_SI
-            h_deriv[0, k, 2] = i.m.val_SI
+        for o in self.outg:
+            h_deriv[k, o[1], 2] = -self.m_inc
+            for i in self.inc:
+                h_deriv[k, i[1], 0] = i[0].h.val_SI - o[0].h.val_SI
+                h_deriv[k, i[1], 2] = abs(i[0].m.val_SI)
+
             k += 1
-        k = 0
-        for o in self.outl:
-            h_deriv[0, k + self.num_i, 0] = o.h.val_SI
-            h_deriv[0, k + self.num_i, 2] = o.m.val_SI
-            k += 1
+
         mat_deriv += h_deriv.tolist()
 
-        p_deriv = np.zeros((self.num_i, self.num_i + 1, num_fl + 3))
-        k = 0
-        for i in self.inl:
-            p_deriv[k, k, 1] = -1
-            p_deriv[k, self.num_i, 1] = 1
-            k += 1
+        p_deriv = np.zeros((self.num_i + self.num_o - 1,
+                            self.num_i + self.num_o, num_fl + 3))
+        inl = []
+        if self.num_in.val > 1:
+            inl = self.inl[1:]
+
+        for k in range(len(inl + self.outl)):
+            p_deriv[k, 0, 1] = 1
+            p_deriv[k, k + 1, 1] = -1
+
         mat_deriv += p_deriv.tolist()
 
         return np.asarray(mat_deriv)
@@ -4616,7 +4654,8 @@ class cogeneration_unit(combustion_chamber):
 
     def attr(self):
         return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'P': dc_cp(val=1e6, d=1, val_min=1), 'P_ref': dc_cp(),
+                'P': dc_cp(val=1e6, d=1, val_min=1),
+                'P_ref': dc_cp(printout=False),
                 'Q1': dc_cp(), 'Q2': dc_cp(),
                 'Qloss': dc_cp(val=1e5, d=1, val_min=1),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
@@ -5883,7 +5922,7 @@ class heat_exchanger_simple(component):
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
                 'kA': dc_cp(min_val=1, d=1),
-                'Tamb': dc_cp(), 'Tamb_ref': dc_cp(),
+                'Tamb': dc_cp(), 'Tamb_ref': dc_cp(printout=False),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
@@ -6830,7 +6869,7 @@ class heat_exchanger(component):
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'zero_flag': dc_cp()}
+                'zero_flag': dc_cp(printout=False)}
 
     def default_design(self):
         return ['ttd_u', 'ttd_l', 'pr1', 'pr2']

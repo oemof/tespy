@@ -1096,11 +1096,11 @@ class network:
                 print('--------+----------+----------+----------+----------+'
                       '----------+---------')
 
-            msg = ('Total iterations: ' + str(self.iter) + ', '
+            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
                    'Calculation time: ' +
                    str(round(end_time - start_time, 1)) + ' s, '
                    'Iterations per second: ' +
-                   str(round(self.iter / (end_time - start_time), 2)))
+                   str(round((self.iter + 1) / (end_time - start_time), 2)))
             print(msg)
 
         if self.nwkwarn and errmsg is not None:
@@ -1120,8 +1120,6 @@ class network:
                        'combustion chamber, provide small (near to zero, '
                        'but not zero) starting value.')
                 print(msg)
-
-            return
 
         self.processing('post')
 
@@ -1143,6 +1141,9 @@ class network:
             c.p.val0 = c.p.val
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
+
+        if self.lin_dep:
+            return
 
         if self.nwkinfo:
             print('Calculation complete.')
@@ -1441,11 +1442,6 @@ class network:
                     num_eq = len(data[part][1].iloc[k][0])
                     inlets = self.comps.loc[cp].i.tolist()
                     outlets = self.comps.loc[cp].o.tolist()
-
-                    if isinstance(cp, cmp.heat_exchanger):
-                        if cp.zero_flag['val']:
-                            self.zero_flag[cp] = [sum_eq, num_eq,
-                                                  num_cols + c_var]
 
                     for c in inlets + outlets:
 

@@ -1424,7 +1424,7 @@ class network:
             data = self.solve_parallelize(network.solve_comp, self.comps_split)
 
         else:
-            data = [network.solve_comp(args=(self, self.comps_split, ))]
+            data = [network.solve_comp(args=(self.comps_split, ))]
 
         sum_eq = 0
         vec_res = []
@@ -1509,17 +1509,17 @@ class network:
         return self.pool.map(func, [(self, [i],) for i in data])
 
     def solve_comp(args):
-        nw, data = args
+        data = args[0]
         return [
                 data[0].apply(network.solve_comp_eq, axis=1),
-                data[0].apply(network.solve_comp_deriv, axis=1, args=(nw,))
+                data[0].apply(network.solve_comp_deriv, axis=1)
         ]
 
     def solve_comp_eq(cp):
         return cp.name.equations()
 
-    def solve_comp_deriv(cp, nw):
-        return [cp.name.derivatives(nw)]
+    def solve_comp_deriv(cp):
+        return [cp.name.derivatives()]
 
     def solve_connections(self):
         r"""

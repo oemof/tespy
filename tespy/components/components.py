@@ -274,6 +274,7 @@ class component:
                     self.get_attr(key).y = self.get_attr(key).func.y
 
         self.num_fl = len(nw.fluids)
+        self.fluids = nw.fluids
 
     def attr(self):
         return {}
@@ -339,116 +340,21 @@ class component:
 
 # %%
 
-    def fluid_res(self):
+    def fluid_func(self):
         r"""
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
 
-        **components with one inlet and one outlet**
-
         .. math:: 0 = fluid_{i,in} - fluid_{i,out} \;
             \forall i \in \mathrm{fluid}
-
-        **heat exchanger, subsystem interface**
-
-        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-
-        **cogeneration unit**
-
-        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
-
-        **splitter**
-
-        .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in outlets
-
-        **merge**
-
-        .. math::
-            0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
-                \dot {m}_{out} \cdot fluid_{i,out} \\
-            \forall i \in \mathrm{fluid}, \; \forall j \in inlets
-
-        **drum**
-
-        .. math::
-            0 = fluid_{i,in_1} - fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in inlets
-
-        **separator**
-
-        .. math::
-            0 = \dot{m}_{in} \cdot fluid_{i,in} -
-                \dot {m}_{out_{j}} \cdot fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in outlets
 
         """
         vec_res = []
 
-        if self.num_i == 1 and self.num_o == 1:
-            for fluid, x in self.inl[0].fluid.val.items():
-                vec_res += [x - self.outl[0].fluid.val[fluid]]
-            return vec_res
-
-        if (isinstance(self, subsys_interface) or
-                isinstance(self, heat_exchanger)):
-            for i in range(self.num_i):
-                for fluid, x in self.inl[i].fluid.val.items():
-                    vec_res += [x - self.outl[i].fluid.val[fluid]]
-            return vec_res
-
-        if isinstance(self, cogeneration_unit):
-            for i in range(2):
-                for fluid, x in self.inl[i].fluid.val.items():
-                    vec_res += [x - self.outl[i].fluid.val[fluid]]
-            return vec_res
-
-        if isinstance(self, splitter):
-            for o in self.outl:
-                for fluid, x in self.inl[0].fluid.val.items():
-                    vec_res += [x - o.fluid.val[fluid]]
-            return vec_res
-
-        if isinstance(self, merge):
-            if self.zero_flag.is_set:
-                return [0] * len(self.inl[0].fluid.val)
-            else:
-                for fluid, x in self.outl[0].fluid.val.items():
-                    res = -x * self.outl[0].m.val_SI
-                    for i in self.inl:
-                        res += i.fluid.val[fluid] * i.m.val_SI
-                    vec_res += [res]
-                return vec_res
-
-        if isinstance(self, node):
-            for fluid in self.outl[0].fluid.val.keys():
-                x = 0
-                for i in self.inc:
-                    x += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
-                for o in self.outg:
-                    vec_res += [x - o[0].fluid.val[fluid] * self.m_inc]
-            return vec_res
-
-        if isinstance(self, drum):
-            for o in self.outl:
-                for fluid, x in self.inl[0].fluid.val.items():
-                    vec_res += [x - o.fluid.val[fluid]]
-            return vec_res
-
-        if isinstance(self, separator):
-
-            for fluid, x in self.inl[0].fluid.val.items():
-                res = x * self.inl[0].m.val_SI
-                for o in self.outl:
-                    res -= o.fluid.val[fluid] * o.m.val_SI
-                vec_res += [res]
-            return vec_res
-
-        if isinstance(self, source) or isinstance(self, sink):
-            return None
+        for fluid, x in self.inl[0].fluid.val.items():
+            vec_res += [x - self.outl[0].fluid.val[fluid]]
+        return vec_res
 
     def fluid_deriv(self):
         r"""
@@ -457,158 +363,32 @@ class component:
         :returns: mat_deriv (*list*) - a list containing the derivatives
         """
 
-        if self.num_i == 1 and self.num_o == 1:
-            mat_deriv = np.zeros((self.num_fl, 2 + self.num_c_vars, 3 + self.num_fl))
-            i = 0
-            for fluid, x in self.inl[0].fluid.val.items():
-                mat_deriv[i, 0, i + 3] = 1
-                mat_deriv[i, 1, i + 3] = -1
-                i += 1
-            return mat_deriv.tolist()
-
-        if isinstance(self, heat_exchanger):
-            mat_deriv = np.zeros((self.num_fl * 2, 4 + self.num_c_vars, 3 + self.num_fl))
-            i = 0
-            for fluid in self.inl[0].fluid.val.keys():
-                mat_deriv[i, 0, i + 3] = 1
-                mat_deriv[i, 2, i + 3] = -1
-                i += 1
-            j = 0
-            for fluid in self.inl[1].fluid.val.keys():
-                mat_deriv[i + j, 1, j + 3] = 1
-                mat_deriv[i + j, 3, j + 3] = -1
-                j += 1
-            return mat_deriv.tolist()
-
-        if isinstance(self, splitter):
-            mat_deriv = np.zeros((self.num_fl * self.num_o,
-                                  1 + self.num_o, 3 + self.num_fl))
-            k = 0
-            for o in self.outl:
-                i = 0
-                for fluid, x in self.inl[0].fluid.val.items():
-                    mat_deriv[i + k * self.num_fl, 0, i + 3] = 1
-                    mat_deriv[i + k * self.num_fl, k + 1, i + 3] = -1
-                    i += 1
-                k += 1
-            return mat_deriv.tolist()
-
-        if isinstance(self, merge):
-            mat_deriv = np.zeros((self.num_fl, self.num_i + 1, 3 + self.num_fl))
-            if self.zero_flag.is_set:
-                j = 0
-                for fluid, x in self.outl[0].fluid.val.items():
-                    k = 0
-                    for i in self.inl:
-                        mat_deriv[j, k, 0] = 1
-                        mat_deriv[j, k, j + 3] = 1
-                        k += 1
-                    mat_deriv[j, k, 0] = -1
-                    mat_deriv[j, k, j + 3] = -1
-                    j += 1
-            else:
-                j = 0
-                for fluid, x in self.outl[0].fluid.val.items():
-                    k = 0
-                    for i in self.inl:
-                        mat_deriv[j, k, 0] = i.fluid.val[fluid]
-                        mat_deriv[j, k, j + 3] = i.m.val_SI
-                        k += 1
-                    mat_deriv[j, k, 0] = -x
-                    mat_deriv[j, k, j + 3] = -self.outl[0].m.val_SI
-                    j += 1
-            return mat_deriv.tolist()
-
-        if isinstance(self, node):
-            num_o = len(self.outg)
-            mat_deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o,
-                                  3 + self.num_fl))
-            j = 0
-            for fluid in self.outl[0].fluid.val.keys():
-                k = 0
-                for o in self.outg:
-                    mat_deriv[j + k, o[1], j + 3] = self.m_inc
-                    for i in self.inc:
-                        mat_deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
-                        mat_deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
-                    k += 1
-
-            return mat_deriv.tolist()
-
-        if isinstance(self, separator):
-            mat_deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
-            j = 0
-            for fluid, x in self.inl[0].fluid.val.items():
-                k = 0
-                for o in self.outl:
-                    mat_deriv[j, k, 0] = -o.fluid.val[fluid]
-                    mat_deriv[j, k, j + 3] = -o.m.val_SI
-                    k += 1
-                mat_deriv[j, 0, 0] = x
-                mat_deriv[j, 0, j + 3] = self.inl[0].m.val_SI
-                j += 1
-            return mat_deriv.tolist()
-
-        return None
+        deriv = np.zeros((self.num_fl, 2 + self.num_c_vars, 3 + self.num_fl))
+        i = 0
+        for fluid in self.fluids:
+            deriv[i, 0, i + 3] = 1
+            deriv[i, 1, i + 3] = -1
+            i += 1
+        return deriv.tolist()
 
 # %%
 
-    def massflow_res(self):
+    def massflow_func(self):
         r"""
         returns residual values for mass flow equations
 
         :returns: vec_res (*list*) - a list containing the residual values
 
-        **heat exchanger and subsystem interface (same number of inlets and
-        outlets)**
-
-        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
-            \forall i \in inlets/outlets
-
-        **cogeneration unit**
-
-        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
-            \forall i \in [1, 2]\\
-            0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
-
-        **other components**
-
         .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
             \forall i \in inlets, \forall j \in outlets
         """
 
-        if ((isinstance(self, split) or
-                isinstance(self, merge) or
-                isinstance(self, combustion_chamber) or
-                isinstance(self, combustion_chamber_stoich) or
-                isinstance(self, drum) or
-                isinstance(self, node) or
-                (self.num_i == 1 and self.num_o == 1)) and
-                not isinstance(self, cogeneration_unit)):
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI
-            for o in self.outl:
-                res -= o.m.val_SI
-            return [res]
-
-        if (isinstance(self, subsys_interface) or
-                isinstance(self, heat_exchanger)):
-            vec_res = []
-            for i in range(self.num_i):
-                vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-            return vec_res
-
-        if isinstance(self, cogeneration_unit):
-            vec_res = []
-            for i in range(2):
-                vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-            vec_res += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
-                        self.outl[2].m.val_SI]
-            return vec_res
-
-        if isinstance(self, source) or isinstance(self, sink):
-            return None
+        res = 0
+        for i in self.inl:
+            res += i.m.val_SI
+        for o in self.outl:
+            res -= o.m.val_SI
+        return [res]
 
     def massflow_deriv(self):
         r"""
@@ -621,7 +401,7 @@ class component:
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
-            deriv[0, j + i, 0] = -1
+            deriv[0, j + i + 1, 0] = -1
         return deriv.tolist()
 
 # %%
@@ -868,8 +648,8 @@ class turbomachine(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
         **optional equations**
 
@@ -893,8 +673,8 @@ class turbomachine(component):
 
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
 
         if self.P.is_set:
             vec_res += [self.inl[0].m.val_SI *
@@ -2207,6 +1987,12 @@ class split(component):
             self.set_attr(num_out=2)
             return self.outlets()
 
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        self.m_deriv = self.massflow_deriv()
+
     def equations(self):
         r"""
         returns vector vec_res with result of equations for this component
@@ -2219,8 +2005,7 @@ class split(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.split.massflow_func`
 
         .. math::
 
@@ -2242,8 +2027,7 @@ class split(component):
         """
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.massflow_func()
 
         # pressure is the same at all connections
         for o in self.outl:
@@ -2266,8 +2050,7 @@ class split(component):
 
         mat_deriv = []
 
-        mat_deriv += self.fluid_deriv()
-        mat_deriv += self.massflow_deriv()
+        mat_deriv += self.m_deriv
 
         p_deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
         k = 0
@@ -2376,6 +2159,12 @@ class splitter(split):
     def component(self):
         return 'splitter'
 
+    def comp_init(self, nw):
+
+        split.comp_init(self, nw)
+
+        self.fl_deriv = self.fluid_deriv()
+
     def additional_equations(self):
         r"""
         additional equations for component splitter
@@ -2384,13 +2173,17 @@ class splitter(split):
         :type nw: tespy.networks.network
         :returns: vec_res (*list*) - residual value vector
 
-        **emandatory quations for splitter**
+        **mandatory quations for splitter**
+
+        !!!!!!!!!!!!!!
 
         .. math::
             0 = h_{in} - h_{out,i} \;
             \forall i \in \mathrm{outlets}\\
         """
         vec_res = []
+
+        vec_res += self.fluid_func()
 
         for o in self.outl:
             vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
@@ -2407,6 +2200,8 @@ class splitter(split):
         """
         mat_deriv = []
 
+        mat_deriv += self.fl_deriv
+
         deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
         k = 0
         for o in self.outl:
@@ -2417,6 +2212,41 @@ class splitter(split):
         mat_deriv += deriv.tolist()
 
         return mat_deriv
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in outlets
+
+        """
+        vec_res = []
+
+        for o in self.outl:
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - o.fluid.val[fluid]]
+        return vec_res
+
+    def fluid_deriv(self):
+        r"""
+        returns derivatives for fluid equations
+
+        :returns: mat_deriv (*list*) - a list containing the derivatives
+        """
+
+        deriv = np.zeros((self.num_fl * self.num_o, 1 + self.num_o, 3 + self.num_fl))
+        k = 0
+        for o in self.outl:
+            i = 0
+            for fluid in self.fluids:
+                deriv[i + k * self.num_fl, 0, i + 3] = 1
+                deriv[i + k * self.num_fl, k + 1, i + 3] = -1
+                i += 1
+            k += 1
+        return deriv.tolist()
 
 # %%
 
@@ -2455,12 +2285,16 @@ class separator(split):
 
         **mandatory equations for separator**
 
+        !!!!!!!!!!!!!!!!!!!!
+
         .. math::
 
             0 = T_{in} - T_{out,i} \;
             \forall i \in \mathrm{outlets}
         """
         vec_res = []
+
+        vec_res += self.fluid_func()
 
         for o in self.outl:
             vec_res += [T_mix_ph(self.inl[0].to_flow()) -
@@ -2485,6 +2319,8 @@ class separator(split):
         """
         mat_deriv = []
 
+        mat_deriv += self.fluid_deriv()
+
         deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
         i = self.inl[0].to_flow()
         k = 0
@@ -2501,6 +2337,47 @@ class separator(split):
         mat_deriv += deriv.tolist()
 
         return mat_deriv
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math::
+            0 = \dot{m}_{in} \cdot fluid_{i,in} -
+                \dot {m}_{out_{j}} \cdot fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in outlets
+
+        """
+        vec_res = []
+
+        for fluid, x in self.inl[0].fluid.val.items():
+            res = x * self.inl[0].m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            vec_res += [res]
+        return vec_res
+
+    def fluid_deriv(self):
+        r"""
+        returns derivatives for fluid equations
+
+        :returns: mat_deriv (*list*) - a list containing the derivatives
+        """
+
+        deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
+        j = 0
+        for fluid, x in self.inl[0].fluid.val.items():
+            k = 0
+            for o in self.outl:
+                deriv[j, k, 0] = -o.fluid.val[fluid]
+                deriv[j, k, j + 3] = -o.m.val_SI
+                k += 1
+            deriv[j, 0, 0] = x
+            deriv[j, 0, j + 3] = self.inl[0].m.val_SI
+            j += 1
+        return deriv.tolist()
 
 # %%
 
@@ -2557,8 +2434,8 @@ class merge(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.merge.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
         .. math::
             0 = - \dot{m}_{out} \cdot h_{out} + \sum_{i} \dot{m}_{in,i} \cdot
@@ -2570,8 +2447,8 @@ class merge(component):
 
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
 
         if self.zero_flag.is_set:
             h_res = self.outl[0].h.val_SI - self.inl[0].h.val_SI
@@ -2624,6 +2501,46 @@ class merge(component):
         mat_deriv += p_deriv.tolist()
 
         return np.asarray(mat_deriv)
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math::
+            0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
+                \dot {m}_{out} \cdot fluid_{i,out} \\
+            \forall i \in \mathrm{fluid}, \; \forall j \in inlets
+
+        """
+        vec_res = []
+        for fluid, x in self.outl[0].fluid.val.items():
+            res = -x * self.outl[0].m.val_SI
+            for i in self.inl:
+                res += i.fluid.val[fluid] * i.m.val_SI
+            vec_res += [res]
+        return vec_res
+
+    def fluid_deriv(self):
+        r"""
+        returns derivatives for fluid equations
+
+        :returns: mat_deriv (*list*) - a list containing the derivatives
+        """
+
+        deriv = np.zeros((self.num_fl, self.num_i + 1, 3 + self.num_fl))
+        j = 0
+        for fluid, x in self.outl[0].fluid.val.items():
+            k = 0
+            for i in self.inl:
+                deriv[j, k, 0] = i.fluid.val[fluid]
+                deriv[j, k, j + 3] = i.m.val_SI
+                k += 1
+            deriv[j, k, 0] = -x
+            deriv[j, k, j + 3] = -self.outl[0].m.val_SI
+            j += 1
+        return deriv.tolist()
 
     def initialise_fluids(self, nw):
         r"""
@@ -2718,6 +2635,8 @@ class node(component):
     - specify number of inlets with :code:`num_in`
     - specify number of inlets with :code:`num_out`
 
+    !!!!!!!!!!!!!!!!!!
+
     .. image:: _images/node.svg
        :scale: 100 %
        :alt: alternative text
@@ -2759,8 +2678,10 @@ class node(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.node.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
+
+        !!!!!!!!!!!!!!!
 
         .. math::
             0 = - \dot{m}_{out} \cdot h_{out} + \sum_{i} \dot{m}_{in,i} \cdot
@@ -2792,8 +2713,8 @@ class node(component):
                 self.outg += [[c, loc]]
             loc += 1
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
 
         h = 0
         for i in self.inc:
@@ -2835,9 +2756,7 @@ class node(component):
             k += 1
         mat_deriv += deriv.tolist()
 
-        p_deriv = np.zeros((
-                self.num_i + self.num_o - 1,
-                self.num_i + self.num_o, self.num_fl + 3))
+        p_deriv = np.zeros((self.num_i + self.num_o - 1, self.num_i + self.num_o, self.num_fl + 3))
 
         inl = []
         if self.num_in.val > 1:
@@ -2846,10 +2765,54 @@ class node(component):
             p_deriv[k, 0, 1] = 1
             p_deriv[k, k + 1, 1] = -1
 
-        mat_deriv += p_deriv.tolist()
+        mat_deriv += self.p_deriv
 
         return np.asarray(mat_deriv)
 
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        !!!!!!!!!!!!!!!
+
+        """
+        vec_res = []
+
+        for fluid in self.outl[0].fluid.val.keys():
+            x = 0
+            for i in self.inc:
+                x += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
+            for o in self.outg:
+                vec_res += [x - o[0].fluid.val[fluid] * self.m_inc]
+        return vec_res
+
+    def fluid_deriv(self):
+        r"""
+        returns derivatives for fluid equations
+
+        :returns: mat_deriv (*list*) - a list containing the derivatives
+        """
+
+        num_o = len(self.outg)
+        mat_deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o, 3 + self.num_fl))
+        j = 0
+        for fluid in self.outl[0].fluid.val.keys():
+            k = 0
+            for o in self.outg:
+                mat_deriv[j + k, o[1], j + 3] = self.m_inc
+                for i in self.inc:
+                    mat_deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
+                    mat_deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
+                k += 1
+
+        return mat_deriv.tolist()
+
+    def pressure_deriv(self):
+        """"
+        !!!!!!!!!!!!!!!
+"""
     def initialise_fluids(self, nw):
         r"""
         fluid initialisation for fluid mixture at outlet of the merge
@@ -2990,8 +2953,6 @@ class combustion_chamber(component):
 
         component.comp_init(self, nw)
 
-        self.fluids = nw.fluids
-
         if not self.fuel.is_set:
             msg = ('Must specify fuel for component ' + self.label +
                    '. Available fuels are: ' + str(self.fuels()) + '.')
@@ -3103,7 +3064,7 @@ class combustion_chamber(component):
 
         - :func:`tespy.components.components.combustion_chamber_stoich.reaction_balance`
 
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.component.massflow_func`
 
         .. math::
 
@@ -3133,7 +3094,7 @@ class combustion_chamber(component):
         for fluid in self.inl[0].fluid.val.keys():
             vec_res += [self.reaction_balance(fluid)]
 
-        vec_res += self.massflow_res()
+        vec_res += self.massflow_func()
 
         for i in self.inl:
             vec_res += [self.outl[0].p.val_SI - i.p.val_SI]
@@ -4582,7 +4543,6 @@ class cogeneration_unit(combustion_chamber):
         self.fl_deriv = self.fluid_deriv()
         self.m_deriv = self.massflow_deriv()
         self.p_deriv = self.pressure_deriv()
-        self.fluids = nw.fluids
 
     def equations(self):
         r"""
@@ -4595,9 +4555,9 @@ class cogeneration_unit(combustion_chamber):
         **mandatory equations**
 
         - :func:`tespy.components.components.cogeneration_unit.reaction_balance`
-        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.cogeneration_unit.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.cogeneration_unit.massflow_func`
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
@@ -4632,11 +4592,11 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # equations for fluids in cooling loops
-        vec_res += self.fluid_res()
+        vec_res += self.fluid_func()
 
         ######################################################################
         # equations for mass flow
-        vec_res += self.massflow_res()
+        vec_res += self.massflow_func()
 
         ######################################################################
         # equations for pressure balance in combustion
@@ -4711,20 +4671,20 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for reaction balance
-        fl_deriv = np.zeros((self.num_fl, self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((self.num_fl, self.num_vars, self.num_fl + 3))
         j = 0
         for fluid in self.fluids:
 
             # fresh air and fuel inlets
             for i in range(2):
-                fl_deriv[j, i + 2, 0] = self.drb_dx('m', i + 2, fluid)
-                fl_deriv[j, i + 2, 3:] = self.drb_dx('fluid', i + 2, fluid)
+                deriv[j, i + 2, 0] = self.drb_dx('m', i + 2, fluid)
+                deriv[j, i + 2, 3:] = self.drb_dx('fluid', i + 2, fluid)
 
             # combustion outlet
-            fl_deriv[j, 6, 0] = self.drb_dx('m', 6, fluid)
-            fl_deriv[j, 6, 3:] = self.drb_dx('fluid', 6, fluid)
+            deriv[j, 6, 0] = self.drb_dx('m', 6, fluid)
+            deriv[j, 6, 3:] = self.drb_dx('fluid', 6, fluid)
             j += 1
-        mat_deriv += fl_deriv.tolist()
+        mat_deriv += deriv.tolist()
 
         ######################################################################
         # derivatives for cooling water fluid composition and mass flow
@@ -4919,6 +4879,41 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
 
         return np.asarray(mat_deriv)
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
+
+        """
+        vec_res = []
+
+        for i in range(2):
+            for fluid, x in self.inl[i].fluid.val.items():
+                vec_res += [x - self.outl[i].fluid.val[fluid]]
+        return vec_res
+
+    def massflow_func(self):
+        r"""
+        returns residual values for mass flow equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
+            \forall i \in [1, 2]\\
+            0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
+        """
+
+        vec_res = []
+        for i in range(2):
+            vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+        vec_res += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
+                    self.outl[2].m.val_SI]
+        return vec_res
 
     def fluid_deriv(self):
         r"""
@@ -5632,8 +5627,8 @@ class vessel(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
         .. math::
 
@@ -5650,8 +5645,8 @@ class vessel(component):
         """
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
 
         vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
 
@@ -5951,8 +5946,8 @@ class heat_exchanger_simple(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
         **optional equations**
 
@@ -5975,8 +5970,8 @@ class heat_exchanger_simple(component):
 
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
 
         if self.Q.is_set:
             vec_res += [self.Q_func()]
@@ -6844,8 +6839,8 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.heat_exchanger.fluid_func`
+        - :func:`tespy.components.components.heat_exchanger.massflow_func`
 
         **heat exchanger**
         - :func:`tespy.components.components.heat_exchanger.energy_func`
@@ -6893,8 +6888,8 @@ class heat_exchanger(component):
 
         vec_res = []
 
-        vec_res += self.fluid_res()
-        vec_res += self.massflow_res()
+        vec_res += self.fluid_func()
+        vec_res += self.massflow_func()
         vec_res += [self.energy_func()]
 
         if self.Q.is_set:
@@ -7022,6 +7017,58 @@ class heat_exchanger(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         return []
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
+
+        """
+        vec_res = []
+
+        for i in range(self.num_i):
+            for fluid, x in self.inl[i].fluid.val.items():
+                vec_res += [x - self.outl[i].fluid.val[fluid]]
+        return vec_res
+
+    def massflow_func(self):
+        r"""
+        returns residual values for mass flow equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math:: 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
+            \forall i \in inlets/outlets
+        """
+
+        vec_res = []
+        for i in range(self.num_i):
+            vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+        return vec_res
+
+    def fluid_deriv(self):
+        r"""
+        returns derivatives for fluid balance equations
+
+        :returns: mat_deriv (*list*) - a list containing the derivatives
+        """
+
+        deriv = np.zeros((self.num_fl * 2, 4 + self.num_c_vars, 3 + self.num_fl))
+        i = 0
+        for fluid in self.fluids:
+            deriv[i, 0, i + 3] = 1
+            deriv[i, 2, i + 3] = -1
+            i += 1
+        j = 0
+        for fluid in self.fluids:
+            deriv[i + j, 1, j + 3] = 1
+            deriv[i + j, 3, j + 3] = -1
+            j += 1
+        return deriv.tolist()
 
     def massflow_deriv(self):
         r"""
@@ -7894,7 +7941,9 @@ class drum(component):
     def outlets(self):
         return ['out1', 'out2']
 
-    def comp_init(self):
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
         self.m_deriv = self.massflow_deriv()
@@ -7910,8 +7959,8 @@ class drum(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        - :func:`tespy.components.components.drum.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
         .. math::
 
@@ -7927,11 +7976,17 @@ class drum(component):
 
         ######################################################################
         # eqations for fluids
-        vec_res += self.fluid_res()
+        vec_res += self.fluid_func()
 
         ######################################################################
         # eqations for massflow
-        vec_res += self.massflow_res()
+        vec_res += self.massflow_func()
+
+        ######################################################################
+        # eqations for pressure
+        p = self.inl[0].p.val_SI
+        for c in [self.inl[1]] + self.outl:
+            vec_res += [p - c.p.val_SI]
 
         ######################################################################
         # eqations for enthalpy
@@ -7941,12 +7996,6 @@ class drum(component):
         for o in self.outl:
             val -= o.m.val_SI * o.h.val_SI
         vec_res += [val]
-
-        ######################################################################
-        # eqations for pressure
-        p = self.inl[0].p.val_SI
-        for c in [self.inl[1]] + self.outl:
-            vec_res += [p - c.p.val_SI]
 
         ######################################################################
         # eqations for staturated fluid state at outlets
@@ -7971,8 +8020,9 @@ class drum(component):
 
         mat_deriv = []
 
-        mat_deriv += self.fluid_deriv()
-        mat_deriv += self.massflow_deriv()
+        mat_deriv += self.fl_deriv
+        mat_deriv += self.m_deriv
+        mat_deriv += self.p_deriv
 
         deriv = np.zeros((1, 4, self.num_fl + 3))
         k = 0
@@ -7987,17 +8037,32 @@ class drum(component):
             j += 1
         mat_deriv += deriv.tolist()
 
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-
         x_deriv = np.zeros((2, 4, self.num_fl + 3))
-        x_deriv[0, 2, 1] = dh_mix_dpQ(o1, 0)
+        x_deriv[0, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
         x_deriv[0, 2, 2] = -1
-        x_deriv[1, 3, 1] = dh_mix_dpQ(o2, 1)
+        x_deriv[1, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
         x_deriv[1, 3, 2] = -1
         mat_deriv += x_deriv.tolist()
 
         return np.asarray(mat_deriv)
+
+    def fluid_func(self):
+        r"""
+        returns residual values for fluid equations
+
+        :returns: vec_res (*list*) - a list containing the residual values
+
+        .. math::
+            0 = fluid_{i,in_1} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in inlets
+
+        """
+        vec_res = []
+
+        for o in self.outl:
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - o.fluid.val[fluid]]
+        return vec_res
 
     def fluid_deriv(self):
         r"""
@@ -8134,8 +8199,6 @@ class subsys_interface(component):
 
         component.comp_init(self, nw)
 
-        self.num_fl = len(nw.fluids)
-
         # retrieve always constant derivatives
         self.fl_deriv = self.fluid_deriv()
         self.m_deriv = self.inout_deriv(0)
@@ -8152,14 +8215,17 @@ class subsys_interface(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_res`
-        - :func:`tespy.components.components.component.massflow_res`
+        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+            \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
 
-        .. math::
+        .. math:: 0 = \dot{m}_{in_{j}} - \dot{m}_{out_{j}} \;
+            \forall j \in inlets/outlets
 
-            0 = p_{i,in} - p_{i,out}\\
-            0 = h_{i,in} - h_{i,out}\\
-            \forall i \in inlets/outlets
+        .. math:: 0 = p_{in_{j}} - p_{out_{j}} \;
+            \forall j \in inlets/outlets
+
+        .. math:: 0 = h_{in_{j}} - h_{out_{j}} \;
+            \forall j \in inlets/outlets
 
         """
 
@@ -8201,7 +8267,7 @@ class subsys_interface(component):
         """
 
         ######################################################################
-        # derivatives with constant value
+        # derivatives with constant value (all for this component)
         mat_deriv = self.fl_deriv + self.m_deriv + self.p_deriv + self.h_deriv
 
         ######################################################################

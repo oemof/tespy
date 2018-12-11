@@ -406,7 +406,7 @@ class component:
 
 # %%
 
-    def ddx_func(self, func, dx, pos, **kwargs):
+    def numeric_deriv(self, func, dx, pos, **kwargs):
         r"""
         calculates derivative of the function func to dx at components inlet or
         outlet in position pos
@@ -824,9 +824,9 @@ class turbomachine(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
-        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 1, 2] = self.ddx_func(self.bus_func, 'h', 1, bus=bus)
+        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
         return deriv
 
     def calc_parameters(self, nw, mode):
@@ -993,9 +993,9 @@ class pump(turbomachine):
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
+            mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
             if i == 0:
-                mat_deriv[0, i, 2] = self.ddx_func(self.eta_s_func, 'h', i)
+                mat_deriv[0, i, 2] = self.numeric_deriv(self.eta_s_func, 'h', i)
             else:
                 mat_deriv[0, i, 2] = -self.eta_s.val
 
@@ -1044,10 +1044,10 @@ class pump(turbomachine):
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
         mat_deriv[0, 0, 0] = (
-            self.ddx_func(self.char_func, 'm', 0))
+            self.numeric_deriv(self.char_func, 'm', 0))
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.char_func, 'p', i)
-            mat_deriv[0, i, 2] = self.ddx_func(self.char_func, 'h', i)
+            mat_deriv[0, i, 1] = self.numeric_deriv(self.char_func, 'p', i)
+            mat_deriv[0, i, 2] = self.numeric_deriv(self.char_func, 'h', i)
 
         return mat_deriv.tolist()
 
@@ -1092,10 +1092,10 @@ class pump(turbomachine):
         """
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
-        mat_deriv[0, 0, 0] = self.ddx_func(self.flow_char_func, 'm', 0)
-        mat_deriv[0, 0, 2] = self.ddx_func(self.flow_char_func, 'h', 0)
+        mat_deriv[0, 0, 0] = self.numeric_deriv(self.flow_char_func, 'm', 0)
+        mat_deriv[0, 0, 2] = self.numeric_deriv(self.flow_char_func, 'h', 0)
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.flow_char_func, 'p', i)
+            mat_deriv[0, i, 1] = self.numeric_deriv(self.flow_char_func, 'p', i)
 
         return mat_deriv.tolist()
 
@@ -1352,9 +1352,9 @@ class compressor(turbomachine):
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
+            mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
             if i == 0:
-                mat_deriv[0, i, 2] = self.ddx_func(self.eta_s_func, 'h', i)
+                mat_deriv[0, i, 2] = self.numeric_deriv(self.eta_s_func, 'h', i)
             else:
                 mat_deriv[0, i, 2] = -self.eta_s.val
 
@@ -1434,15 +1434,15 @@ class compressor(turbomachine):
 
         - improve asthetics, this part of code looks horrible
         """
-        m11 = self.ddx_func(self.char_map_func, 'm', 0)
-        p11 = self.ddx_func(self.char_map_func, 'p', 0)
-        h11 = self.ddx_func(self.char_map_func, 'h', 0)
+        m11 = self.numeric_deriv(self.char_map_func, 'm', 0)
+        p11 = self.numeric_deriv(self.char_map_func, 'p', 0)
+        h11 = self.numeric_deriv(self.char_map_func, 'h', 0)
 
-        p21 = self.ddx_func(self.char_map_func, 'p', 1)
-        h21 = self.ddx_func(self.char_map_func, 'h', 1)
+        p21 = self.numeric_deriv(self.char_map_func, 'p', 1)
+        h21 = self.numeric_deriv(self.char_map_func, 'h', 1)
 
         if self.igva.is_var:
-            igva = self.ddx_func(self.char_map_func, 'igva', 1)
+            igva = self.numeric_deriv(self.char_map_func, 'igva', 1)
 
         deriv = np.zeros((2, 2 + self.num_c_vars, self.num_fl + 3))
         deriv[0, 0, 0] = m11[0]
@@ -1492,10 +1492,10 @@ class compressor(turbomachine):
         """
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
-        mat_deriv[0, 0, 1] = self.ddx_func(self.eta_s_char_func, 'p', 0)
-        mat_deriv[0, 1, 1] = self.ddx_func(self.eta_s_char_func, 'p', 1)
-        mat_deriv[0, 0, 2] = self.ddx_func(self.eta_s_char_func, 'h', 0)
-        mat_deriv[0, 1, 2] = self.ddx_func(self.eta_s_char_func, 'h', 1)
+        mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 1)
 
         return mat_deriv.tolist()
 
@@ -1707,9 +1707,9 @@ class turbine(turbomachine):
         if self.cone.is_set:
             cone_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
             cone_deriv[0, 0, 0] = -1
-            cone_deriv[0, 0, 1] = self.ddx_func(self.cone_func, 'p', 0)
-            cone_deriv[0, 0, 2] = self.ddx_func(self.cone_func, 'h', 0)
-            cone_deriv[0, 1, 2] = self.ddx_func(self.cone_func, 'p', 1)
+            cone_deriv[0, 0, 1] = self.numeric_deriv(self.cone_func, 'p', 0)
+            cone_deriv[0, 0, 2] = self.numeric_deriv(self.cone_func, 'h', 0)
+            cone_deriv[0, 1, 2] = self.numeric_deriv(self.cone_func, 'p', 1)
             mat_deriv += cone_deriv.tolist()
 
         return mat_deriv
@@ -1746,9 +1746,9 @@ class turbine(turbomachine):
         if abs(self.eta_s_res) > err ** (2):
 
             for i in range(2):
-                mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_func, 'p', i)
+                mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
                 if i == 0:
-                    mat_deriv[0, i, 2] = self.ddx_func(self.eta_s_func, 'h', i)
+                    mat_deriv[0, i, 2] = self.numeric_deriv(self.eta_s_func, 'h', i)
                 else:
                     mat_deriv[0, i, 2] = -1
 
@@ -1828,10 +1828,10 @@ class turbine(turbomachine):
         """
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
-        mat_deriv[0, 0, 0] = self.ddx_func(self.eta_s_char_func, 'm', 0)
+        mat_deriv[0, 0, 0] = self.numeric_deriv(self.eta_s_char_func, 'm', 0)
         for i in range(2):
-            mat_deriv[0, i, 1] = self.ddx_func(self.eta_s_char_func, 'p', i)
-            mat_deriv[0, i, 2] = self.ddx_func(self.eta_s_char_func, 'h', i)
+            mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', i)
+            mat_deriv[0, i, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', i)
 
         return mat_deriv.tolist()
 
@@ -3126,8 +3126,8 @@ class combustion_chamber(component):
         fl_deriv = np.zeros((self.num_fl, 3, self.num_fl + 3))
         for fluid in self.fluids:
             for i in range(3):
-                fl_deriv[j, i, 0] = self.drb_dx('m', i, fluid)
-                fl_deriv[j, i, 3:] = self.drb_dx('fluid', i, fluid)
+                fl_deriv[j, i, 0] = self.rb_numeric_deriv('m', i, fluid)
+                fl_deriv[j, i, 3:] = self.rb_numeric_deriv('fluid', i, fluid)
 
             j += 1
         mat_deriv += fl_deriv.tolist()
@@ -3146,9 +3146,9 @@ class combustion_chamber(component):
         eb_deriv = np.zeros((1, 3, self.num_fl + 3))
         for i in range(3):
             eb_deriv[0, i, 0] = (
-                self.ddx_func(self.energy_balance, 'm', i))
+                self.numeric_deriv(self.energy_balance, 'm', i))
             eb_deriv[0, i, 1] = (
-                self.ddx_func(self.energy_balance, 'p', i))
+                self.numeric_deriv(self.energy_balance, 'p', i))
             if i >= self.num_i:
                 eb_deriv[0, i, 2] = -(self.inl + self.outl)[i].m.val_SI
             else:
@@ -3164,8 +3164,8 @@ class combustion_chamber(component):
             # derivatives for specified lambda
             lamb_deriv = np.zeros((1, 3, self.num_fl + 3))
             for i in range(2):
-                lamb_deriv[0, i, 0] = self.ddx_func(self.lambda_func, 'm', i)
-                lamb_deriv[0, i, 3:] = self.ddx_func(self.lambda_func,
+                lamb_deriv[0, i, 0] = self.numeric_deriv(self.lambda_func, 'm', i)
+                lamb_deriv[0, i, 3:] = self.numeric_deriv(self.lambda_func,
                                                      'fluid', i)
             mat_deriv += lamb_deriv.tolist()
 
@@ -3428,14 +3428,14 @@ class combustion_chamber(component):
         """
         deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
         for i in range(2):
-            deriv[0, i, 0] = self.ddx_func(self.bus_func, 'm', i, bus=bus)
-            deriv[0, i, 3:] = self.ddx_func(self.bus_func, 'fluid', i, bus=bus)
+            deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
+            deriv[0, i, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus)
 
-        deriv[0, 2, 0] = self.ddx_func(self.bus_func, 'm', 2, bus=bus)
-        deriv[0, 2, 3:] = self.ddx_func(self.bus_func, 'fluid', 2, bus=bus)
+        deriv[0, 2, 0] = self.numeric_deriv(self.bus_func, 'm', 2, bus=bus)
+        deriv[0, 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 2, bus=bus)
         return deriv
 
-    def drb_dx(self, dx, pos, fluid):
+    def rb_numeric_deriv(self, dx, pos, fluid):
         r"""
         calculates derivative of the reaction balance to dx at components inlet
         or outlet in position pos for the fluid fluid
@@ -4677,12 +4677,12 @@ class cogeneration_unit(combustion_chamber):
 
             # fresh air and fuel inlets
             for i in range(2):
-                deriv[j, i + 2, 0] = self.drb_dx('m', i + 2, fluid)
-                deriv[j, i + 2, 3:] = self.drb_dx('fluid', i + 2, fluid)
+                deriv[j, i + 2, 0] = self.rb_numeric_deriv('m', i + 2, fluid)
+                deriv[j, i + 2, 3:] = self.rb_numeric_deriv('fluid', i + 2, fluid)
 
             # combustion outlet
-            deriv[j, 6, 0] = self.drb_dx('m', 6, fluid)
-            deriv[j, 6, 3:] = self.drb_dx('fluid', 6, fluid)
+            deriv[j, 6, 0] = self.rb_numeric_deriv('m', 6, fluid)
+            deriv[j, 6, 3:] = self.rb_numeric_deriv('fluid', 6, fluid)
             j += 1
         mat_deriv += deriv.tolist()
 
@@ -4705,8 +4705,8 @@ class cogeneration_unit(combustion_chamber):
 
         # mass flow and pressure for combustion reaction
         for i in [2, 3, 6]:
-            eb_deriv[0, i, 0] = self.ddx_func(self.energy_balance, 'm', i)
-            eb_deriv[0, i, 1] = self.ddx_func(self.energy_balance, 'p', i)
+            eb_deriv[0, i, 0] = self.numeric_deriv(self.energy_balance, 'm', i)
+            eb_deriv[0, i, 1] = self.numeric_deriv(self.energy_balance, 'p', i)
 
         # enthalpy
         for i in range(4):
@@ -4723,10 +4723,10 @@ class cogeneration_unit(combustion_chamber):
         # power and heat loss
         if self.P.is_var:
             eb_deriv[0, 7 + self.P.var_pos, 0] = (
-                self.ddx_func(self.energy_balance, 'P', 7))
+                self.numeric_deriv(self.energy_balance, 'P', 7))
         if self.Qloss.is_var:
             eb_deriv[0, 7 + self.Qloss.var_pos, 0] = (
-                self.ddx_func(self.energy_balance, 'Qloss', 7))
+                self.numeric_deriv(self.energy_balance, 'Qloss', 7))
         mat_deriv += eb_deriv.tolist()
 
         ######################################################################
@@ -4734,54 +4734,54 @@ class cogeneration_unit(combustion_chamber):
         tiP_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
         for i in range(2):
             tiP_deriv[0, i + 2, 0] = (
-                    self.ddx_func(self.tiP_char_func, 'm', i + 2))
+                    self.numeric_deriv(self.tiP_char_func, 'm', i + 2))
             tiP_deriv[0, i + 2, 3:] = (
-                    self.ddx_func(self.tiP_char_func, 'fluid', i + 2))
+                    self.numeric_deriv(self.tiP_char_func, 'fluid', i + 2))
 
-        tiP_deriv[0, 6, 0] = self.ddx_func(self.tiP_char_func, 'm', 6)
-        tiP_deriv[0, 6, 3:] = self.ddx_func(self.tiP_char_func, 'fluid', 6)
+        tiP_deriv[0, 6, 0] = self.numeric_deriv(self.tiP_char_func, 'm', 6)
+        tiP_deriv[0, 6, 3:] = self.numeric_deriv(self.tiP_char_func, 'fluid', 6)
 
         if self.P.is_var:
             tiP_deriv[0, 7 + self.P.var_pos, 0] = (
-                self.ddx_func(self.tiP_char_func, 'P', 7))
+                self.numeric_deriv(self.tiP_char_func, 'P', 7))
         mat_deriv += tiP_deriv.tolist()
 
         ######################################################################
         # derivatives for heat output 1 to power charactersitics
         Q1_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
-        Q1_deriv[0, 0, 0] = self.ddx_func(self.Q1_char_func, 'm', 0)
-        Q1_deriv[0, 0, 2] = self.ddx_func(self.Q1_char_func, 'h', 0)
-        Q1_deriv[0, 4, 2] = self.ddx_func(self.Q1_char_func, 'h', 4)
+        Q1_deriv[0, 0, 0] = self.numeric_deriv(self.Q1_char_func, 'm', 0)
+        Q1_deriv[0, 0, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 0)
+        Q1_deriv[0, 4, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 4)
         for i in range(2):
             Q1_deriv[0, i + 2, 0] = (
-                    self.ddx_func(self.Q1_char_func, 'm', i + 2))
+                    self.numeric_deriv(self.Q1_char_func, 'm', i + 2))
             Q1_deriv[0, i + 2, 3:] = (
-                    self.ddx_func(self.Q1_char_func, 'fluid', i + 2))
-        Q1_deriv[0, 6, 0] = self.ddx_func(self.Q1_char_func, 'm', 6)
-        Q1_deriv[0, 6, 3:] = self.ddx_func(self.Q1_char_func, 'fluid', 6)
+                    self.numeric_deriv(self.Q1_char_func, 'fluid', i + 2))
+        Q1_deriv[0, 6, 0] = self.numeric_deriv(self.Q1_char_func, 'm', 6)
+        Q1_deriv[0, 6, 3:] = self.numeric_deriv(self.Q1_char_func, 'fluid', 6)
 
         if self.P.is_var:
             Q1_deriv[0, 7 + self.P.var_pos, 0] = (
-                self.ddx_func(self.Q1_char_func, 'P', 7))
+                self.numeric_deriv(self.Q1_char_func, 'P', 7))
         mat_deriv += Q1_deriv.tolist()
 
         ######################################################################
         # derivatives for heat output 2 to power charactersitics
         Q2_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
-        Q2_deriv[0, 1, 0] = self.ddx_func(self.Q2_char_func, 'm', 1)
-        Q2_deriv[0, 1, 2] = self.ddx_func(self.Q2_char_func, 'h', 1)
-        Q2_deriv[0, 5, 2] = self.ddx_func(self.Q2_char_func, 'h', 5)
+        Q2_deriv[0, 1, 0] = self.numeric_deriv(self.Q2_char_func, 'm', 1)
+        Q2_deriv[0, 1, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 1)
+        Q2_deriv[0, 5, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 5)
         for i in range(2):
             Q2_deriv[0, i + 2, 0] = (
-                    self.ddx_func(self.Q2_char_func, 'm', i + 2))
+                    self.numeric_deriv(self.Q2_char_func, 'm', i + 2))
             Q2_deriv[0, i + 2, 3:] = (
-                    self.ddx_func(self.Q2_char_func, 'fluid', i + 2))
-        Q2_deriv[0, 6, 0] = self.ddx_func(self.Q2_char_func, 'm', 6)
-        Q2_deriv[0, 6, 3:] = self.ddx_func(self.Q2_char_func, 'fluid', 6)
+                    self.numeric_deriv(self.Q2_char_func, 'fluid', i + 2))
+        Q2_deriv[0, 6, 0] = self.numeric_deriv(self.Q2_char_func, 'm', 6)
+        Q2_deriv[0, 6, 3:] = self.numeric_deriv(self.Q2_char_func, 'fluid', 6)
 
         if self.P.is_var:
             Q2_deriv[0, 7 + self.P.var_pos, 0] = (
-                self.ddx_func(self.Q2_char_func, 'P', 7))
+                self.numeric_deriv(self.Q2_char_func, 'P', 7))
         mat_deriv += Q2_deriv.tolist()
 
         ######################################################################
@@ -4789,18 +4789,18 @@ class cogeneration_unit(combustion_chamber):
         Ql_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
         for i in range(2):
             Ql_deriv[0, i + 2, 0] = (
-                    self.ddx_func(self.Qloss_char_func, 'm', i + 2))
+                    self.numeric_deriv(self.Qloss_char_func, 'm', i + 2))
             Ql_deriv[0, i + 2, 3:] = (
-                    self.ddx_func(self.Qloss_char_func, 'fluid', i + 2))
-        Ql_deriv[0, 6, 0] = self.ddx_func(self.Qloss_char_func, 'm', 6)
-        Ql_deriv[0, 6, 3:] = self.ddx_func(self.Qloss_char_func, 'fluid', 6)
+                    self.numeric_deriv(self.Qloss_char_func, 'fluid', i + 2))
+        Ql_deriv[0, 6, 0] = self.numeric_deriv(self.Qloss_char_func, 'm', 6)
+        Ql_deriv[0, 6, 3:] = self.numeric_deriv(self.Qloss_char_func, 'fluid', 6)
 
         if self.P.is_var:
             Ql_deriv[0, 7 + self.P.var_pos, 0] = (
-                self.ddx_func(self.Qloss_char_func, 'P', 7))
+                self.numeric_deriv(self.Qloss_char_func, 'P', 7))
         if self.Qloss.is_var:
             Ql_deriv[0, 7 + self.Qloss.var_pos, 0] = (
-                self.ddx_func(self.Qloss_char_func, 'Qloss', 7))
+                self.numeric_deriv(self.Qloss_char_func, 'Qloss', 7))
         mat_deriv += Ql_deriv.tolist()
 
         ######################################################################
@@ -4809,9 +4809,9 @@ class cogeneration_unit(combustion_chamber):
             lamb_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
             for i in range(2):
                 lamb_deriv[0, i + 2, 0] = (
-                        self.ddx_func(self.lambda_func, 'm', i + 2))
+                        self.numeric_deriv(self.lambda_func, 'm', i + 2))
                 lamb_deriv[0, i + 2, 3:] = (
-                        self.ddx_func(self.lambda_func, 'fluid', i + 2))
+                        self.numeric_deriv(self.lambda_func, 'fluid', i + 2))
             mat_deriv += lamb_deriv.tolist()
 
         ######################################################################
@@ -4819,11 +4819,11 @@ class cogeneration_unit(combustion_chamber):
         if self.ti.is_set:
             ti_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
             for i in range(2):
-                ti_deriv[0, i + 2, 0] = self.ddx_func(self.ti_func, 'm', i + 2)
+                ti_deriv[0, i + 2, 0] = self.numeric_deriv(self.ti_func, 'm', i + 2)
                 ti_deriv[0, i + 2, 3:] = (
-                        self.ddx_func(self.ti_func, 'fluid', i + 2))
-            ti_deriv[0, 6, 0] = self.ddx_func(self.ti_func, 'm', 6)
-            ti_deriv[0, 6, 3:] = self.ddx_func(self.ti_func, 'fluid', 6)
+                        self.numeric_deriv(self.ti_func, 'fluid', i + 2))
+            ti_deriv[0, 6, 0] = self.numeric_deriv(self.ti_func, 'm', 6)
+            ti_deriv[0, 6, 3:] = self.numeric_deriv(self.ti_func, 'fluid', 6)
             mat_deriv += ti_deriv.tolist()
 
         ######################################################################
@@ -4860,20 +4860,20 @@ class cogeneration_unit(combustion_chamber):
         # derivatives for specified zeta values at cooling loops
         if self.zeta1.is_set:
             zeta1_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
-            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
-            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
-            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
-            zeta1_deriv[0, 4, 1] = self.ddx_func(self.zeta_func, 'p', 4)
-            zeta1_deriv[0, 4, 2] = self.ddx_func(self.zeta_func, 'h', 4)
+            zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 4, 1] = self.numeric_deriv(self.zeta_func, 'p', 4)
+            zeta1_deriv[0, 4, 2] = self.numeric_deriv(self.zeta_func, 'h', 4)
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
             zeta2_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
-            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
-            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
-            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
-            zeta2_deriv[0, 5, 1] = self.ddx_func(self.zeta2_func, 'p', 5)
-            zeta2_deriv[0, 5, 2] = self.ddx_func(self.zeta2_func, 'h', 5)
+            zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 5, 1] = self.numeric_deriv(self.zeta2_func, 'p', 5)
+            zeta2_deriv[0, 5, 2] = self.numeric_deriv(self.zeta2_func, 'h', 5)
             mat_deriv += zeta2_deriv.tolist()
 
         ######################################################################
@@ -5028,7 +5028,7 @@ class cogeneration_unit(combustion_chamber):
 
         return res
 
-    def drb_dx(self, dx, pos, fluid):
+    def rb_numeric_deriv(self, dx, pos, fluid):
         r"""
         calculates derivative of the reaction balance to dx at components inlet
         or outlet in position pos for the fluid fluid
@@ -5147,24 +5147,24 @@ class cogeneration_unit(combustion_chamber):
 
         if bus.param == 'TI':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.ddx_func(self.calc_ti, 'm', i + 2)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_ti, 'm', i + 2)
                 deriv[0, i + 2, 3:] = (
-                        self.ddx_func(self.calc_ti, 'fluid', i + 2))
-            deriv[0, 6, 0] = self.ddx_func(self.calc_ti, 'm', 6)
-            deriv[0, 6, 3:] = self.ddx_func(self.calc_ti, 'fluid', 6)
+                        self.numeric_deriv(self.calc_ti, 'fluid', i + 2))
+            deriv[0, 6, 0] = self.numeric_deriv(self.calc_ti, 'm', 6)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_ti, 'fluid', 6)
 
         if bus.param == 'P':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.ddx_func(self.calc_P, 'm', i + 2)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_P, 'm', i + 2)
                 deriv[0, i + 2, 3:] = (
-                        self.ddx_func(self.calc_P, 'fluid', i + 2))
+                        self.numeric_deriv(self.calc_P, 'fluid', i + 2))
 
-            deriv[0, 6, 0] = self.ddx_func(self.calc_P, 'm', 6)
-            deriv[0, 6, 3:] = self.ddx_func(self.calc_P, 'fluid', 6)
+            deriv[0, 6, 0] = self.numeric_deriv(self.calc_P, 'm', 6)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_P, 'fluid', 6)
 
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.ddx_func(self.calc_P, 'P', 7))
+                    self.numeric_deriv(self.calc_P, 'P', 7))
 
         if bus.param == 'Q':
             deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
@@ -5186,16 +5186,16 @@ class cogeneration_unit(combustion_chamber):
 
         if bus.param == 'Qloss':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.ddx_func(self.calc_Qloss, 'm', i + 2)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_Qloss, 'm', i + 2)
                 deriv[0, i + 2, 3:] = (
-                        self.ddx_func(self.calc_Qloss, 'fluid', i + 2))
+                        self.numeric_deriv(self.calc_Qloss, 'fluid', i + 2))
 
-            deriv[0, 6, 0] = self.ddx_func(self.calc_Qloss, 'm', 6)
-            deriv[0, 6, 3:] = self.ddx_func(self.calc_Qloss, 'fluid', 6)
+            deriv[0, 6, 0] = self.numeric_deriv(self.calc_Qloss, 'm', 6)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_Qloss, 'fluid', 6)
 
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.ddx_func(self.calc_Qloss, 'P', 7))
+                    self.numeric_deriv(self.calc_Qloss, 'P', 7))
 
         return deriv
 
@@ -5692,13 +5692,13 @@ class vessel(component):
 
         if self.zeta.is_set:
             zeta_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            zeta_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             for i in range(2):
-                zeta_deriv[0, i, 1] = self.ddx_func(self.zeta_func, 'p', i)
-                zeta_deriv[0, i, 2] = self.ddx_func(self.zeta_func, 'h', i)
+                zeta_deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
+                zeta_deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
             if self.zeta.is_var:
                 zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
-                    self.ddx_func(self.zeta_func, 'zeta', i))
+                    self.numeric_deriv(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
 
         if self.pr_char.is_set:
@@ -5765,7 +5765,7 @@ class vessel(component):
         """
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
-        mat_deriv[0, 0, 1] = self.ddx_func(self.pr_char_func, 'p', 0)
+        mat_deriv[0, 0, 1] = self.numeric_deriv(self.pr_char_func, 'p', 0)
         mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
 
         return mat_deriv.tolist()
@@ -6039,13 +6039,13 @@ class heat_exchanger_simple(component):
 
         if self.zeta.is_set:
             zeta_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            zeta_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
+            zeta_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             for i in range(2):
-                zeta_deriv[0, i, 1] = self.ddx_func(self.zeta_func, 'p', i)
-                zeta_deriv[0, i, 2] = self.ddx_func(self.zeta_func, 'h', i)
+                zeta_deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
+                zeta_deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
             if self.zeta.is_var:
                 zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
-                    self.ddx_func(self.zeta_func, 'zeta', i))
+                    self.numeric_deriv(self.zeta_func, 'zeta', i))
             mat_deriv += zeta_deriv.tolist()
 
         if self.hydro_group.is_set:
@@ -6055,14 +6055,14 @@ class heat_exchanger_simple(component):
                 func = self.darcy_func
 
             deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.ddx_func(func, 'm', 0)
+            deriv[0, 0, 0] = self.numeric_deriv(func, 'm', 0)
             for i in range(2):
-                deriv[0, i, 1] = self.ddx_func(func, 'p', i)
-                deriv[0, i, 2] = self.ddx_func(func, 'h', i)
+                deriv[0, i, 1] = self.numeric_deriv(func, 'p', i)
+                deriv[0, i, 2] = self.numeric_deriv(func, 'h', i)
             for var in self.hydro_group.elements:
                 if var.is_var:
                     deriv[0, 2 + var.var_pos, 0] = (
-                            self.ddx_func(func, self.vars[var], i))
+                            self.numeric_deriv(func, self.vars[var], i))
             mat_deriv += deriv.tolist()
 
         mat_deriv += self.additional_derivatives()
@@ -6080,16 +6080,16 @@ class heat_exchanger_simple(component):
 
         if self.kA_group.is_set:
             kA_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            kA_deriv[0, 0, 0] = self.ddx_func(self.kA_func, 'm', 0)
+            kA_deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
             for i in range(2):
-                kA_deriv[0, i, 1] = self.ddx_func(self.kA_func, 'p', i)
-                kA_deriv[0, i, 2] = self.ddx_func(self.kA_func, 'h', i)
+                kA_deriv[0, i, 1] = self.numeric_deriv(self.kA_func, 'p', i)
+                kA_deriv[0, i, 2] = self.numeric_deriv(self.kA_func, 'h', i)
             # this does not work atm, as Tamb.val_SI is used instead of
             # Tamb.val!
             for var in self.kA_group.elements:
                 if var.is_var:
                     kA_deriv[0, 2 + var.var_pos, 0] = (
-                            self.ddx_func(self.kA_func, self.vars[var], i))
+                            self.numeric_deriv(self.kA_func, self.vars[var], i))
             mat_deriv += kA_deriv.tolist()
 
         return mat_deriv
@@ -6290,9 +6290,9 @@ class heat_exchanger_simple(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
-        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 1, 2] = self.ddx_func(self.bus_func, 'h', 1, bus=bus)
+        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
         return deriv
 
     def initialise_source(self, c, key):
@@ -6381,7 +6381,7 @@ class heat_exchanger_simple(component):
         t_a = np.nan
         if nw.mode == 'offdesign':
             if mode == 'pre':
-                if self.Tamb_ref.is_set:
+                if self.Tamb.is_set:
                     t_a = self.Tamb_ref.val_SI
             else:
                 if self.Tamb.is_set:
@@ -6392,28 +6392,32 @@ class heat_exchanger_simple(component):
             T_i = T_mix_ph(i)
             T_o = T_mix_ph(o)
 
-            if t_a > T_i:
-                ttd_u = t_a - T_o
-                ttd_l = t_a - T_i
+            if i[0] < 0:
+                ttd_u = T_o - t_a
+                ttd_l = T_i - t_a
             else:
                 ttd_u = T_i - t_a
                 ttd_l = T_o - t_a
 
-            if ttd_u < 0 or ttd_l < 0:
-                if nw.comperr:
-                    msg = ('##### ERROR #####\n'
-                           'Invalid value for terminal temperature difference '
-                           'at component ' + self.label + '.\n'
-                           'ttd_u = ' + str(ttd_u) + ' ttd_l = ' + str(ttd_l))
-                    print(msg)
-                nw.errors += [self]
+            print(ttd_u, ttd_l)
+
+            print(ttd_u - ttd_l, math.log(ttd_u / ttd_l))
+
+#            if ttd_u < 0 or ttd_l < 0:
+#                if nw.comperr:
+#                    msg = ('##### ERROR #####\n'
+#                           'Invalid value for terminal temperature difference '
+#                           'at component ' + self.label + '.\n'
+#                           'ttd_u = ' + str(ttd_u) + ' ttd_l = ' + str(ttd_l))
+#                    print(msg)
+#                nw.errors += [self]
 
             if mode == 'post':
                 self.SQ2.val = -i[0] * (o[2] - i[2]) / t_a
                 self.Sirr.val = self.SQ1.val + self.SQ2.val
 
-            self.kA.val = i[0] * (o[2] - i[2]) / (
-                    (ttd_u - ttd_l) / math.log(ttd_l / ttd_u))
+            self.kA.val = abs(i[0] * (o[2] - i[2]) / (
+                    (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
 
         if (mode == 'pre' and 'Q' in self.offdesign) or mode == 'post':
             self.Q.val = i[0] * (o[2] - i[2])
@@ -6688,12 +6692,12 @@ class solar_collector(heat_exchanger_simple):
             deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             for i in range(2):
-                deriv[0, i, 1] = self.ddx_func(self.energy_func, 'p', i)
-                deriv[0, i, 2] = self.ddx_func(self.energy_func, 'h', i)
+                deriv[0, i, 1] = self.numeric_deriv(self.energy_func, 'p', i)
+                deriv[0, i, 2] = self.numeric_deriv(self.energy_func, 'h', i)
             for var in self.energy_group.elements:
                 if var.is_var:
                     deriv[0, 2 + var.var_pos, 0] = (
-                            self.ddx_func(self.energy_func, self.vars[var], i))
+                            self.numeric_deriv(self.energy_func, self.vars[var], i))
             mat_deriv += deriv.tolist()
 
         return mat_deriv
@@ -6960,11 +6964,11 @@ class heat_exchanger(component):
 
         if self.kA.is_set:
             kA_deriv = np.zeros((1, 4, self.num_fl + 3))
-            kA_deriv[0, 0, 0] = self.ddx_func(self.kA_func, 'm', 0)
-            kA_deriv[0, 1, 0] = self.ddx_func(self.kA_func, 'm', 1)
+            kA_deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
+            kA_deriv[0, 1, 0] = self.numeric_deriv(self.kA_func, 'm', 1)
             for i in range(4):
-                kA_deriv[0, i, 1] = self.ddx_func(self.kA_func, 'p', i)
-                kA_deriv[0, i, 2] = self.ddx_func(self.kA_func, 'h', i)
+                kA_deriv[0, i, 1] = self.numeric_deriv(self.kA_func, 'p', i)
+                kA_deriv[0, i, 2] = self.numeric_deriv(self.kA_func, 'h', i)
             mat_deriv += kA_deriv.tolist()
 
         if self.ttd_u.is_set:
@@ -6987,20 +6991,20 @@ class heat_exchanger(component):
 
         if self.zeta1.is_set:
             zeta1_deriv = np.zeros((1, 4, self.num_fl + 3))
-            zeta1_deriv[0, 0, 0] = self.ddx_func(self.zeta_func, 'm', 0)
-            zeta1_deriv[0, 0, 1] = self.ddx_func(self.zeta_func, 'p', 0)
-            zeta1_deriv[0, 0, 2] = self.ddx_func(self.zeta_func, 'h', 0)
-            zeta1_deriv[0, 2, 1] = self.ddx_func(self.zeta_func, 'p', 2)
-            zeta1_deriv[0, 2, 2] = self.ddx_func(self.zeta_func, 'h', 2)
+            zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
+            zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
+            zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
+            zeta1_deriv[0, 2, 1] = self.numeric_deriv(self.zeta_func, 'p', 2)
+            zeta1_deriv[0, 2, 2] = self.numeric_deriv(self.zeta_func, 'h', 2)
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
             zeta2_deriv = np.zeros((1, 4, self.num_fl + 3))
-            zeta2_deriv[0, 1, 0] = self.ddx_func(self.zeta2_func, 'm', 1)
-            zeta2_deriv[0, 1, 1] = self.ddx_func(self.zeta2_func, 'p', 1)
-            zeta2_deriv[0, 1, 2] = self.ddx_func(self.zeta2_func, 'h', 1)
-            zeta2_deriv[0, 3, 1] = self.ddx_func(self.zeta2_func, 'p', 3)
-            zeta2_deriv[0, 3, 2] = self.ddx_func(self.zeta2_func, 'h', 3)
+            zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
+            zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
+            zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
+            zeta2_deriv[0, 3, 1] = self.numeric_deriv(self.zeta2_func, 'p', 3)
+            zeta2_deriv[0, 3, 2] = self.numeric_deriv(self.zeta2_func, 'h', 3)
             mat_deriv += zeta2_deriv.tolist()
 
         mat_deriv += self.additional_derivatives()
@@ -7274,9 +7278,9 @@ class heat_exchanger(component):
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
         for i in range(2):
             deriv[0, i * 3, 1] = (
-                self.ddx_func(self.ttd_u_func, 'p', i * 3))
+                self.numeric_deriv(self.ttd_u_func, 'p', i * 3))
             deriv[0, i * 3, 2] = (
-                self.ddx_func(self.ttd_u_func, 'h', i * 3))
+                self.numeric_deriv(self.ttd_u_func, 'h', i * 3))
         return deriv.tolist()
 
     def ttd_l_func(self):
@@ -7303,9 +7307,9 @@ class heat_exchanger(component):
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
         for i in range(2):
             deriv[0, i + 1, 1] = (
-                self.ddx_func(self.ttd_l_func, 'p', i + 1))
+                self.numeric_deriv(self.ttd_l_func, 'p', i + 1))
             deriv[0, i + 1, 2] = (
-                self.ddx_func(self.ttd_l_func, 'h', i + 1))
+                self.numeric_deriv(self.ttd_l_func, 'h', i + 1))
         return deriv.tolist()
 
     def bus_func(self, bus):
@@ -7337,9 +7341,9 @@ class heat_exchanger(component):
         :returns: mat_deriv (*list*) - matrix of partial derivatives
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        deriv[0, 0, 0] = self.ddx_func(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.ddx_func(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 2, 2] = self.ddx_func(self.bus_func, 'h', 2, bus=bus)
+        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+        deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
         return deriv
 
     def convergence_check(self, nw):

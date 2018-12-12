@@ -1332,12 +1332,12 @@ class network:
                 c_vars += cp.num_c_vars
 
         # check properties without given init_file
-#        if self.iter < 3 and self.init_file is None:
-#            for cp in self.comps.index:
-#                cp.convergence_check(self)
-#
-#            for c in self.conns.index:
-#                self.solve_check_props(c)
+        if self.iter < 3 and self.init_file is None:
+            for cp in self.comps.index:
+                cp.convergence_check(self)
+
+            for c in self.conns.index:
+                self.solve_check_props(c)
 
     def solve_check_props(self, c):
         r"""

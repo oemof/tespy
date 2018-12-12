@@ -43,10 +43,6 @@ class component:
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Returns
-    -------
-    No return value.
-
     Note
     ----
     The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
@@ -119,10 +115,6 @@ class component:
 
         **kwargs :
             See the class documentation of desired component for available keywords.
-
-        Returns
-        -------
-        No return value.
 
         Note
         ----
@@ -239,10 +231,6 @@ class component:
         ----------
         nw : tespy.networks.network
             Network this component is integrated in.
-
-        Returns
-        -------
-        no return value
         """
         self.vars = {}
         self.num_c_vars = 0
@@ -360,9 +348,6 @@ class component:
         """
         Calculates the vector of residual values for component's fluid balance equations.
 
-        Parameters
-        ----------
-
         Returns
         -------
         vec_res : list
@@ -380,9 +365,6 @@ class component:
     def fluid_deriv(self):
         """
         Calculates the partial derivatives for all fluid balance equations.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -404,9 +386,6 @@ class component:
         """
         Calculates the residual value for component's massflow balance equation.
 
-        Parameters
-        ----------
-
         Returns
         -------
         vec_res : list
@@ -427,9 +406,6 @@ class component:
     def massflow_deriv(self):
         """
         Calculates the partial derivatives for all massflow balance equations.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -539,9 +515,6 @@ class component:
         """
         Calculates residual value of :math:`\zeta`-function.
 
-        Parameters
-        ----------
-
         Returns
         -------
         val : float
@@ -583,9 +556,6 @@ class component:
     def zeta2_func(self):
         """
         Calculates residual value of :math:`\zeta`-function (for heat exchangers at lower temperature side).
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -642,13 +612,8 @@ class source(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Returns
-    -------
-    No return value.
-
     Equations
-    ---------
-    This component is unconstrained.
+        This component is unconstrained.
     """
 
     def outlets(self):
@@ -678,13 +643,9 @@ class sink(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Returns
-    -------
-    No return value.
 
     Equations
-    ---------
-    This component is unconstrained.
+        This component is unconstrained.
     """
 
     def inlets(self):
@@ -727,49 +688,35 @@ class turbomachine(component):
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    Returns
-    -------
-    No return value.
-
     Equations
-    ---------
-    **mandatory equations**
+        **mandatory equations**
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
+        **optional equations**
+        .. math::
 
-    - :func:`tespy.components.components.component.fluid_func`
-    - :func:`tespy.components.components.component.massflow_func`
+            0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
+            0 = pr \cdot p_{in} - p_{out}
 
-    **optional equations**
-
-    .. math::
-
-        0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
-        0 = pr \cdot p_{in} - p_{out}
-
-    isentropic efficiency equations (optional)
-
-    - :func:`tespy.components.components.pump.eta_s_func`
-    - :func:`tespy.components.components.compressor.eta_s_func`
-    - :func:`tespy.components.components.turbine.eta_s_func`
-
-    **additional equations**
-
-    - :func:`tespy.components.components.pump.additional_equations`
-    - :func:`tespy.components.components.compressor.additional_equations`
-    - :func:`tespy.components.components.turbine.additional_equations`
+        isentropic efficiency equations (optional)
+        - :func:`tespy.components.components.pump.eta_s_func`
+        - :func:`tespy.components.components.compressor.eta_s_func`
+        - :func:`tespy.components.components.turbine.eta_s_func`
+        **additional equations**
+        - :func:`tespy.components.components.pump.additional_equations`
+        - :func:`tespy.components.components.compressor.additional_equations`
+        - :func:`tespy.components.components.turbine.additional_equations`
 
     Default Design Parameters
-    -------------------------
-    - pr
-    - eta_s
+        - pr
+        - eta_s
 
     Default Offdesign Parameters
-    ----------------------------
-    - eta_s_char
+        - eta_s_char
 
     Inlets/Outlets
-    --------------
-    - in1
-    - out1
+        - in1
+        - out1
     """
 
     def component(self):
@@ -798,9 +745,6 @@ class turbomachine(component):
     def equations(self):
         """
         Calculates vector vec_res with results of equations for this component.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -834,9 +778,6 @@ class turbomachine(component):
         """
         Calculates vector vec_res with results of additional equations for this component.
 
-        Parameters
-        ----------
-
         Returns
         -------
         vec_res : list
@@ -847,9 +788,6 @@ class turbomachine(component):
     def derivatives(self):
         """
         Calculates matrix of partial derivatives for given equations.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -885,9 +823,6 @@ class turbomachine(component):
         """
         Calculates matrix of partial derivatives for given additional equations.
 
-        Parameters
-        ----------
-
         Returns
         -------
         mat_deriv : ndarray
@@ -898,13 +833,6 @@ class turbomachine(component):
     def eta_s_func(self):
         """
         Calculates residual value of isentropic efficiency function, see subclasses.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        No return value.
         """
         msg = ('If you want to use eta_s as parameter, '
                'please specify which type of turbomachine you are using.')
@@ -913,13 +841,6 @@ class turbomachine(component):
     def eta_s_deriv(self):
         """
         Calculates partial derivatives for isentropic efficiency function, see subclasses.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        No return value.
         """
         msg = ('If you want to use eta_s as parameter, '
                'please specify which type of turbomachine you are using.')
@@ -1019,22 +940,6 @@ class turbomachine(component):
 
     def calc_parameters(self, nw, mode):
         """
-        Parameter calculation pre- or postprocessing
-
-        **postprocessing**
-
-        - calculate power P
-        - calculate pressure ratio
-
-        **preprocessing**
-
-        - set references for inlet :code:`self.i_ref` and outlet
-          :code:`self.o_ref` flows
-        - set attribute for isentropic enthalpy difference
-          :code:`self.dh_s_ref` at reference
-
-        """
-        """
         Component parameter calculation for pre- and postprocessing.
 
         Parameters
@@ -1044,10 +949,6 @@ class turbomachine(component):
 
         mode : String
             pre or post (-processing).
-
-        Returns
-        -------
-        No return value.
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
@@ -1103,87 +1004,64 @@ class pump(turbomachine):
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    flow_char :
+    flow_char : String/tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide data: :math:`[x]=\\frac{\\text{m}^3}{\\text{s}} \,
         [y]=\\text{Pa}`
 
-    Returns
-    -------
-    No return value.
-
     Equations
-    ---------
-    **mandatory equations**
+        **mandatory equations**
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
+        **optional equations**
+        .. math::
 
-    - :func:`tespy.components.components.component.fluid_func`
-    - :func:`tespy.components.components.component.massflow_func`
+            0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
+            0 = pr \cdot p_{in} - p_{out}
 
-    **optional equations**
-
-    .. math::
-
-        0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
-        0 = pr \cdot p_{in} - p_{out}
-
-    - :func:`tespy.components.components.pump.eta_s_func`
-
-    **additional equations**
-
-    - :func:`tespy.components.components.pump.additional_equations`
+        - :func:`tespy.components.components.pump.eta_s_func`
+        **additional equations**
+        - :func:`tespy.components.components.pump.additional_equations`
 
     Default Design Parameters
-    -------------------------
-    - pr
-    - eta_s
+        - pr
+        - eta_s
 
     Default Offdesign Parameters
-    ----------------------------
-    - eta_s_char (method: None, parameter: v)
+        - eta_s_char (method: None, parameter: v)
 
     Inlets/Outlets
-    --------------
-    - in1
-    - out1
+        - in1
+        - out1
 
     Image
-    -----
-    .. image:: _images/pump.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        .. image:: _images/pump.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
 
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
-
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
-
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> p = cmp.pump('pump')
-
     >>> inc = con.connection(so, 'out1', p, 'in1')
     >>> outg = con.connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
-
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
     >>> char = hlp.dc_cc(x=v, y=dp, is_set=True)
-
     >>> p.set_attr(pr=10, eta_s=0.8, flow_char=char, design=['eta_s'], offdesign=['eta_s_char'])
-
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20)
-
     >>> nw.solve('design')
     >>> nw.save('tmp')
-
     >>> p.set_attr(pr=14)
     >>> round(inc.m.val_SI, 3)
     1.198
-
     >>> nw.solve('offdesign', design_file='tmp/results.csv')
     >>> round(inc.m.val_SI, 3)
     0.624
@@ -1201,20 +1079,15 @@ class pump(turbomachine):
         """
         Calculates vector vec_res with results of additional equations for pump.
 
-        Parameters
-        ----------
-
         Returns
         -------
         vec_res : list
             Vector of residual values.
 
         Equations
-        ---------
-        **optional equations**
-
-        - :func:`tespy.components.components.pump.eta_s_char_func`
-        - :func:`tespy.components.components.pump.flow_char_func`
+            **optional equations**
+            - :func:`tespy.components.components.pump.eta_s_char_func`
+            - :func:`tespy.components.components.pump.flow_char_func`
         """
         vec_res = []
 
@@ -1229,9 +1102,6 @@ class pump(turbomachine):
     def additional_derivatives(self):
         """
         Calculates matrix of partial derivatives for given additional equations.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -1252,9 +1122,6 @@ class pump(turbomachine):
         """
         Equation for given isentropic efficiency of a pump.
 
-        Parameters
-        ----------
-
         Returns
         -------
         res : float
@@ -1270,9 +1137,6 @@ class pump(turbomachine):
     def eta_s_deriv(self):
         """
         Calculates the matrix of partial derivatives of the isentropic efficiency function.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -1294,9 +1158,6 @@ class pump(turbomachine):
         """
         Equation for given isentropic efficiency characteristic of a pump.
 
-        Parameters
-        ----------
-
         Returns
         -------
         res : ndarray
@@ -1314,9 +1175,6 @@ class pump(turbomachine):
     def eta_s_char_deriv(self):
         """
         Calculates the matrix of partial derivatives of the isentropic efficiency characteristic function.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -1336,9 +1194,6 @@ class pump(turbomachine):
         """
         Equation for given flow characteristic of a pump.
 
-        Parameters
-        ----------
-
         Returns
         -------
         res : ndarray
@@ -1357,9 +1212,6 @@ class pump(turbomachine):
     def flow_char_deriv(self):
         """
         Calculates the matrix of partial derivatives of the flow characteristic of a pump.
-
-        Parameters
-        ----------
 
         Returns
         -------

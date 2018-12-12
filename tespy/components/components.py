@@ -8,8 +8,6 @@
 import numpy as np
 import math
 
-import time
-
 import CoolProp.CoolProp as CP
 
 from tespy.helpers import (
@@ -24,58 +22,7 @@ from tespy.helpers import (
 
 from tespy.components import characteristics as cmp_char
 
-
-def init_target(nw, c, start):
-    r"""
-    propagates the fluids towards connections target,
-    ends when reaching sink, merge or combustion chamber
-
-    :param nw: network to operate on
-    :type nw: tespy.networks.network
-    :param c: connection to initialise
-    :type c: tespy.connections.connection
-    :param start: fluid propagation startingpoint, in some cases needed
-        to exit the recursion
-    :type start: tespy.connections.connection
-    :returns: no return value
-
-    .. note::
-        This method is the same as the method in the network class of the
-        networks module. This is necessary as the combustion chambers
-        convergence check requires the method while the networks module
-        requires the components module. Check, if the cicular imports can be
-        avoided in a more elegant way.
-    """
-    if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
-            isinstance(c.t, heat_exchanger) or
-            isinstance(c.t, subsys_interface)):
-
-        inconn = [x for x in nw.comps.loc[c.s].o if
-                  x in nw.comps.loc[c.t].i]
-        inconn_id = nw.comps.loc[c.t].i.tolist().index(inconn[0])
-        outconn = nw.comps.loc[c.t].o.tolist()[inconn_id]
-        for fluid, x in c.fluid.val.items():
-            if not outconn.fluid.val_set[fluid]:
-                outconn.fluid.val[fluid] = x
-
-        init_target(nw, outconn, start)
-
-    if isinstance(c.t, splitter):
-        for outconn in nw.comps.loc[c.t].o:
-            for fluid, x in c.fluid.val.items():
-                if not outconn.fluid.val_set[fluid]:
-                    outconn.fluid.val[fluid] = x
-
-            init_target(nw, outconn, start)
-
-    if isinstance(c.t, drum) and c.t != start:
-        start = c.t
-        for outconn in nw.comps.loc[c.t].o:
-            for fluid, x in c.fluid.val.items():
-                if not outconn.fluid.val_set[fluid]:
-                    outconn.fluid.val[fluid] = x
-
-            init_target(nw, outconn, start)
+# %%
 
 
 class component:
@@ -3635,7 +3582,7 @@ class combustion_chamber(component):
         for o in outl:
             if o.m.val_SI < 0 and not o.m.val_set:
                 o.m.val_SI = 10
-            init_target(nw, o, o.t)
+            nw.init_target(o, o.t)
 
             if o.h.val_SI < 7.5e5 and not o.h.val_set:
                 o.h.val_SI = 1e6
@@ -4367,7 +4314,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 if c.fluid.val[fuel] > 0:
                     c.fluid.val[fuel] = 0
 
-            init_target(nw, c, c.t)
+            nw.init_target(c, c.t)
 
         for i in nw.comps.loc[self].i:
             if i.m.val_SI < 0 and not i.m.val_set:
@@ -4376,7 +4323,7 @@ class combustion_chamber_stoich(combustion_chamber):
         for c in nw.comps.loc[self].o:
             if c.m.val_SI < 0 and not c.m.val_set:
                 c.m.val_SI = 10
-            init_target(nw, c, c.t)
+            nw.init_target(c, c.t)
 
         if self.lamb.val < 1 and not self.lamb.is_set:
             self.lamb.val = 2

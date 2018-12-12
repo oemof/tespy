@@ -57,9 +57,7 @@ class component:
     This example does not run a tespy calculation.
 
     >>> from tespy import cmp
-
     >>> comp = cmp.component('myComponent')
-
     >>> comp.set_attr(mode='man')
     >>> type(comp)
     <class 'tespy.components.components.component'>
@@ -598,6 +596,9 @@ class source(component):
     """
     A flow originates from a source.
 
+    Equations
+        This component is unconstrained.
+
     Parameters
     ----------
     label : String
@@ -611,9 +612,6 @@ class source(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
-
-    Equations
-        This component is unconstrained.
     """
 
     def outlets(self):
@@ -629,6 +627,9 @@ class sink(component):
     """
     A flow drains in a sink.
 
+    Equations
+        This component is unconstrained.
+
     Parameters
     ----------
     label : String
@@ -642,10 +643,6 @@ class sink(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
-
-
-    Equations
-        This component is unconstrained.
     """
 
     def inlets(self):
@@ -660,33 +657,6 @@ class sink(component):
 class turbomachine(component):
     """
     The component turbomachine is the parent class for pump, compressor and turbine.
-
-    Parameters
-    ----------
-    label : String
-        The label of the component.
-
-    mode : String
-        'auto' for automatic design to offdesign switch, 'man' for manual switch.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    P : Sring/float/tespy.helpers.dc_cp
-        Power, :math:`[P]=\\text{W}`
-
-    eta_s : Sring/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`[\eta_s]=1`
-
-    pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
-
-    eta_s_char : String/tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide x and y values
-        or use generic values (e. g. calculated from design case).
 
     Equations
         **mandatory equations**
@@ -717,6 +687,33 @@ class turbomachine(component):
     Inlets/Outlets
         - in1
         - out1
+
+    Parameters
+    ----------
+    label : String
+        The label of the component.
+
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : Sring/float/tespy.helpers.dc_cp
+        Power, :math:`[P]=\\text{W}`
+
+    eta_s : Sring/float/tespy.helpers.dc_cp
+        Isentropic efficiency, :math:`[\eta_s]=1`
+
+    pr : Sring/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio, :math:`[pr]=1`
+
+    eta_s_char : String/tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide x and y values
+        or use generic values (e. g. calculated from design case).
     """
 
     def component(self):
@@ -977,6 +974,37 @@ class pump(turbomachine):
     """
     The component turbomachine is the parent class for pump, compressor and turbine.
 
+    Equations
+        **mandatory equations**
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
+        **optional equations**
+        .. math::
+
+            0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
+            0 = pr \cdot p_{in} - p_{out}
+
+        - :func:`tespy.components.components.pump.eta_s_func`
+        **additional equations**
+        - :func:`tespy.components.components.pump.additional_equations`
+
+    Default Design Parameters
+        - pr
+        - eta_s
+
+    Default Offdesign Parameters
+        - eta_s_char (method: None, parameter: v)
+
+    Inlets/Outlets
+        - in1
+        - out1
+
+    Image
+        .. image:: _images/pump.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
     Parameters
     ----------
     label : String
@@ -1008,37 +1036,6 @@ class pump(turbomachine):
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide data: :math:`[x]=\\frac{\\text{m}^3}{\\text{s}} \,
         [y]=\\text{Pa}`
-
-    Equations
-        **mandatory equations**
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
-        **optional equations**
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        - :func:`tespy.components.components.pump.eta_s_func`
-        **additional equations**
-        - :func:`tespy.components.components.pump.additional_equations`
-
-    Default Design Parameters
-        - pr
-        - eta_s
-
-    Default Offdesign Parameters
-        - eta_s_char (method: None, parameter: v)
-
-    Inlets/Outlets
-        - in1
-        - out1
-
-    Image
-        .. image:: _images/pump.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
 
     Example
     -------
@@ -1079,15 +1076,15 @@ class pump(turbomachine):
         """
         Calculates vector vec_res with results of additional equations for pump.
 
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-
         Equations
             **optional equations**
             - :func:`tespy.components.components.pump.eta_s_char_func`
             - :func:`tespy.components.components.pump.flow_char_func`
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
         """
         vec_res = []
 

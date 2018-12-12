@@ -659,32 +659,42 @@ class turbomachine(component):
     The component turbomachine is the parent class for pump, compressor and turbine.
 
     Equations
+
         **mandatory equations**
+
         - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.components.component.massflow_func`
+
         **optional equations**
+
         .. math::
 
             0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
             0 = pr \cdot p_{in} - p_{out}
 
         isentropic efficiency equations (optional)
+
         - :func:`tespy.components.components.pump.eta_s_func`
         - :func:`tespy.components.components.compressor.eta_s_func`
         - :func:`tespy.components.components.turbine.eta_s_func`
+
         **additional equations**
+
         - :func:`tespy.components.components.pump.additional_equations`
         - :func:`tespy.components.components.compressor.additional_equations`
         - :func:`tespy.components.components.turbine.additional_equations`
 
     Default Design Parameters
+
         - pr
         - eta_s
 
     Default Offdesign Parameters
+
         - eta_s_char
 
     Inlets/Outlets
+
         - in1
         - out1
 
@@ -975,31 +985,41 @@ class pump(turbomachine):
     The component turbomachine is the parent class for pump, compressor and turbine.
 
     Equations
+
         **mandatory equations**
+
         - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.components.component.massflow_func`
+
         **optional equations**
+
         .. math::
 
             0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
             0 = pr \cdot p_{in} - p_{out}
 
         - :func:`tespy.components.components.pump.eta_s_func`
+
         **additional equations**
+
         - :func:`tespy.components.components.pump.additional_equations`
 
     Default Design Parameters
+
         - pr
         - eta_s
 
     Default Offdesign Parameters
+
         - eta_s_char (method: None, parameter: v)
 
     Inlets/Outlets
+
         - in1
         - out1
 
     Image
+
         .. image:: _images/pump.svg
            :scale: 100 %
            :alt: alternative text
@@ -1161,8 +1181,8 @@ class pump(turbomachine):
             Residual value of equation.
 
             .. math::
-                0 = \left( h_{out} - h_{in} \right) \cdot \\frac{\Delta h_{s,ref}}{\Delta h_{ref}}
-                \cdot char\left( \dot{m}_{in} \cdot v_{in} \right) - \left( h_{out,s} - h_{in} \right)
+                0 = \\left( h_{out} - h_{in} \\right) \cdot \\frac{\Delta h_{s,ref}}{\Delta h_{ref}}
+                \cdot char\\left( \dot{m}_{in} \cdot v_{in} \\right) - \\left( h_{out,s} - h_{in} \\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -1197,7 +1217,7 @@ class pump(turbomachine):
             Residual value of equation.
 
             .. math::
-                0 = p_{out} - p_{in} - char\left( \dot{m}_{in} \cdot v_{in} \right)
+                0 = p_{out} - p_{in} - char\\left( \dot{m}_{in} \cdot v_{in} \\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

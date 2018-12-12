@@ -26,32 +26,49 @@ from tespy.components import characteristics as cmp_char
 
 
 class component:
-    r"""
+    """
+    Class component is the base class of all TESPy components.
 
-    :param label: label for component
-    :type label: str
-    :param kwargs: for the keyword arguments see :code:`component.attr(self)`
-    :returns: no return value
-    :raises: - :code:`TypeError`, if label is not of type str
-               components
-             - :code:`ValueError`, if label contains forbidden characters
-               (';', ',', '.')
+    Parameters
+    ----------
+    label : String
+        The label of the component.
 
-    **example**
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
-    .. code-block:: python
+    design : list
+        List containing design parameters (stated as String).
 
-        cond = condenser('main condenser', ttd_u=5)
+    offdesign : list
+        List containing offdesign parameters (stated as String).
 
-    creates component condenser labeled 'main condenser' and sets the
-    terminal temperature difference at the upper side (hot side inlet to
-    cold side outlet) to 5 K
+    Returns
+    -------
+    No return value.
 
-    initialisation method is used for instances of class component and
-    its children`
+    Note
+    ----
+    The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
+    are used for instances of class component and its children.
 
-    allowed keywords in kwargs are 'mode' and additional keywords depending
-    on the type of component you want to create
+    Allowed keywords in kwargs are 'mode', 'design' and 'offdesign'. Additional
+    keywords depend on the type of component you want to create.
+
+    Example
+    -------
+    Basic example for a setting up a tespy.components.components.component object.
+    This example does not run a tespy calculation.
+
+    >>> from tespy import cmp
+
+    >>> comp = cmp.component('myComponent')
+
+    >>> comp.set_attr(mode='man')
+    >>> type(comp)
+    <class 'tespy.components.components.component'>
+    >>> comp.get_attr('mode')
+    'man'
     """
 
     def __init__(self, label, **kwargs):
@@ -61,8 +78,7 @@ class component:
             msg = 'Component label must be of type str!'
             raise TypeError(msg)
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
-            msg = ('Can\'t use ' + str([';', ',', '.']) + ' ',
-                   'in label (' + str(self.component()) + ').')
+            msg = ('Can\'t use ' + str([';', ',', '.']) + ' in label (' + str(self.component()) + ').')
             raise ValueError(msg)
         else:
             self.label = label
@@ -87,9 +103,31 @@ class component:
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
-        r"""
-        sets, resets or unsets attributes of a connection, for the keyword
-        arguments, return values and errors see object initialisation
+        """
+        Sets, resets or unsets attributes of a component for provided keyword arguments.
+
+        Parameters
+        ----------
+        mode : String
+            'auto' for automatic design to offdesign switch, 'man' for manual switch.
+
+        design : list
+            List containing design parameters (stated as String).
+
+        offdesign : list
+            List containing offdesign parameters (stated as String).
+
+        **kwargs :
+            See the class documentation of desired component for available keywords.
+
+        Returns
+        -------
+        No return value.
+
+        Note
+        ----
+        Allowed keywords in kwargs are obtained from class documentation as all
+        components share the :func:`tespy.components.components.component.set_attr` method.
         """
         var = self.attr().keys()
 
@@ -150,7 +188,7 @@ class component:
                 if not isinstance(kwargs[key], list):
                     msg = ('Please provide the design parameters as list at ' +
                            self.label + '.')
-                    raise ValueError(msg)
+                    raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
                 else:
@@ -165,7 +203,7 @@ class component:
                 else:
                     msg = ('Mode must be \'man\' or \'auto\' at ' +
                            self.label + '.')
-                    raise TypeError(msg)
+                    raise ValueError(msg)
 
             # invalid keyword
             else:
@@ -174,32 +212,37 @@ class component:
                 raise ValueError(msg)
 
     def get_attr(self, key):
-        r"""
-        get the value of a components attribute
+        """
+        Get the value of a component's attribute.
 
-        :param key: attribute to return its value
-        :type key: str
-        :returns:
-            - :code:`self.__dict__[key]` if object has attribute key
-            - :code:`None` if object has no attribute key
+        Parameters
+        ----------
+        key : String
+            The attribute you want to retrieve.
+
+        Returns
+        -------
+        out :
+            Specified attribute
         """
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(self.component(), '\"' + self.label + '\" '
-                  'has no attribute \"' + key + '\"')
-            return None
+            msg = 'Component ' + self.label + ' has no attribute \"' + key + '\".'
+            raise ValueError(msg)
 
     def comp_init(self, nw):
-        r"""
-        generic component initialisation
+        """
+        Performs component initialization in network preprocessing.
 
-        - counts/searches custom variables
-        - creates characteristics for components
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network this component is integrated in.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: no return value
+        Returns
+        -------
+        no return value
         """
         self.vars = {}
         self.num_c_vars = 0
@@ -251,28 +294,54 @@ class component:
         return
 
     def initialise_source(self, c, key):
-        r"""
-        returns a starting value for fluid properties at components outlet
+        """
+        Returns a starting value for pressure and enthalpy at component's outlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: val (*float*) - starting value for pressure at components
-                  outlet in corresponding unit system, :math:`val = 0`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \\begin{cases}
+                0 & \\text{key = 'p'}\\\\
+                0 & \\text{key = 'h'}
+                \end{cases}
         """
         return 0
 
     def initialise_target(self, c, key):
-        r"""
-        returns a starting value for fluid properties at components inlet
+        """
+        Returns a starting value for pressure and enthalpy at component's inlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: val (*float*) - starting value for property at components
-                  inlet in corresponding unit system, :math:`val = 0`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \\begin{cases}
+                0 & \\text{key = 'p'}\\\\
+                0 & \\text{key = 'h'}
+                \end{cases}
         """
         return 0
 
@@ -288,14 +357,19 @@ class component:
 # %%
 
     def fluid_func(self):
-        r"""
-        returns residual values for fluid equations
+        """
+        Calculates the vector of residual values for component's fluid balance equations.
 
-        :returns: vec_res (*list*) - a list containing the residual values
+        Parameters
+        ----------
 
-        .. math:: 0 = fluid_{i,in} - fluid_{i,out} \;
-            \forall i \in \mathrm{fluid}
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values for component's fluid balance.
 
+            .. math::
+                0 = fluid_{i,in} - fluid_{i,out} \; \\forall i \in \mathrm{fluid}
         """
         vec_res = []
 
@@ -304,10 +378,16 @@ class component:
         return vec_res
 
     def fluid_deriv(self):
-        r"""
-        returns derivatives for fluid equations
+        """
+        Calculates the partial derivatives for all fluid balance equations.
 
-        :returns: mat_deriv (*list*) - a list containing the derivatives
+        Parameters
+        ----------
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
         """
 
         deriv = np.zeros((self.num_fl, 2 + self.num_c_vars, 3 + self.num_fl))
@@ -321,13 +401,20 @@ class component:
 # %%
 
     def massflow_func(self):
-        r"""
-        returns residual values for mass flow equations
+        """
+        Calculates the residual value for component's massflow balance equation.
 
-        :returns: vec_res (*list*) - a list containing the residual values
+        Parameters
+        ----------
 
-        .. math:: 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-            \forall i \in inlets, \forall j \in outlets
+        Returns
+        -------
+        vec_res : list
+            Vector with residual value for component's massflow balance.
+
+            .. math::
+                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+                \\forall i \in inlets, \\forall j \in outlets
         """
 
         res = 0
@@ -338,13 +425,19 @@ class component:
         return [res]
 
     def massflow_deriv(self):
-        r"""
-        returns derivatives for massflow equations
+        """
+        Calculates the partial derivatives for all massflow balance equations.
 
-        :returns: mat_deriv (*list*) - a list containing the derivatives
+        Parameters
+        ----------
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the massflow balance equations.
         """
 
-        deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars, 3 + self.num_fl))
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
@@ -354,24 +447,30 @@ class component:
 # %%
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
-        r"""
-        calculates derivative of the function func to dx at components inlet or
-        outlet in position pos
+        """
+        Calculates partial derivative of the function func to dx at given connection.
 
-        :param func: function to calculate derivative
-        :type func: function
-        :param dx: dx
-        :type dx: str
-        :param pos: position of inlet or outlet, logic: ['in1', 'in2', ...,
-                    'out1', ...] -> 0, 1, ..., n, n + 1, ..., n + m
-        :type pos: int
-        :returns: deriv (list or float) - partial derivative of the function
-                  func to dx
+        Parameters
+        ----------
+        func : function
+            Function :math:`f` to calculate the partial derivative for.
 
-        .. math::
+        dx : String
+            Partial derivative.
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}
-            {2 \cdot d}
+        pos : int
+            Position of connection regarding to inlets and outlet of the component,
+            logic: ['in1', 'in2', ..., 'out1', ...] -> 0, 1, ..., n, n + 1, ..., n + m
+
+        Returns
+        -------
+        deriv : float/list
+            Partial derivative(s) of the function :math:`f` to variable(s) :math:`x`.
+
+            .. math::
+
+                \\frac{\partial f}{\partial x} = \\frac{f(x + d) + f(x - d)}
+                {2 d}
         """
 
         dm, dp, dh, df = 0, 0, 0, 0
@@ -437,22 +536,35 @@ class component:
 # %%
 
     def zeta_func(self):
-        r"""
-        calculates pressure drop from zeta (zeta1 for heat exchangers)
+        """
+        Calculates residual value of :math:`\zeta`-function.
 
-        :returns: residual value for the pressure drop
+        Parameters
+        ----------
+
+        Returns
+        -------
+        val : float
+            Residual value of function.
+
+            .. math::
+
+                val = \\begin{cases}
+                p_{in} - p_{out} & |\dot{m}| < \epsilon \\\\
+                \zeta - \\frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
+                \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \\frac{v_{in} + v_{out}}{2}} &
+                |\dot{m}| > \epsilon
+                \end{cases}
+
+        Note
+        ----
+        The zeta value is caluclated on the basis of a given pressure loss at a given flow rate.
+        As the cross sectional area A will not change, it is possible to handle the equation in this way.
 
         .. math::
 
-            \zeta = \frac{\Delta p \cdot v \cdot 2}{c^2}\\
-            c = \frac{\dot{m} \cdot v}{A}
-
-        As the cross sectional area A will not change from design to offdesign
-        calculation, it is possible to handle this the following way:
-
-        .. math::
-            0 = \zeta - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
-            \dot{m}_{in}^2 \cdot \frac{v_{in} + v_{out}}{2}}
+            \zeta = \\frac{\Delta p \cdot v \cdot 2}{c^2}\\
+            c = \\frac{\dot{m} \cdot v}{A}
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -469,22 +581,35 @@ class component:
                     (8 * abs(i[0]) * i[0] * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
     def zeta2_func(self):
-        r"""
-        calculates pressure drop from zeta2
+        """
+        Calculates residual value of :math:`\zeta`-function (for heat exchangers at lower temperature side).
 
-        :returns: residual value for the pressure drop
+        Parameters
+        ----------
+
+        Returns
+        -------
+        val : float
+            Residual value of function.
+
+            .. math::
+
+                val = \\begin{cases}
+                p_{in} - p_{out} & |\dot{m}| < \epsilon \\\\
+                \zeta_2 - \\frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
+                \dot{m}_{2,in} \cdot |\dot{m}_{2,in}| \cdot \\frac{v_{2,in} + v_{2,out}}{2}} &
+                |\dot{m}| > \epsilon
+                \end{cases}
+
+        Note
+        ----
+        The zeta value is caluclated on the basis of a given pressure loss at a given flow rate.
+        As the cross sectional area A will not change, it is possible to handle the equation in this way.
 
         .. math::
 
-            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
-            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
-
-        As the cross sectional area A will not change from design to offdesign
-        calculation, it is possible to handle this the following way:
-
-        .. math::
-            0 = \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
-            \dot{m}_{2,in}^2 \cdot \frac{v_{2,in} + v_{2,out}}{2}}
+            \zeta_2 = \\frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
+            c_2 = \\frac{\dot{m}_2 \cdot v_2}{A_2}
         """
         i = self.inl[1].to_flow()
         o = self.outl[1].to_flow()
@@ -500,10 +625,30 @@ class component:
 
 
 class source(component):
-    r"""
-    component source
+    """
+    A flow originates from a source.
 
-    - a flow originates from this component
+    Parameters
+    ----------
+    label : String
+        The label of the component.
+
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    Returns
+    -------
+    No return value.
+
+    Equations
+    ---------
+    This component is unconstrained.
     """
 
     def outlets(self):
@@ -517,9 +662,29 @@ class source(component):
 
 class sink(component):
     """
-    rcomponent sink
+    A flow drains in a sink.
 
-    - a flow drains in this component
+    Parameters
+    ----------
+    label : String
+        The label of the component.
+
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    Returns
+    -------
+    No return value.
+
+    Equations
+    ---------
+    This component is unconstrained.
     """
 
     def inlets(self):
@@ -532,32 +697,77 @@ class sink(component):
 
 
 class turbomachine(component):
-    r"""
-    component turbomachine can be subdivided in pump, compressor and turbine
+    """
+    The component turbomachine is the parent class for pump, compressor and turbine.
 
-    **available parameters**
+    Parameters
+    ----------
+    label : String
+        The label of the component.
 
-    - P: power, :math:`[P]=\text{W}`
-    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
-    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
-    - eta_s_char: characteristic curve for isentropic efficiency,
-      this characteristic is generated in preprocessing of offdesign
-      calculations
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
-    **equations**
+    design : list
+        List containing design parameters (stated as String).
 
-    see :func:`tespy.components.components.turbomachine.equations`
+    offdesign : list
+        List containing offdesign parameters (stated as String).
 
-    **default design parameters**
+    P : Sring/float/tespy.helpers.dc_cp
+        Power, :math:`[P]=\\text{W}`
 
-    - pr, eta_s
+    eta_s : Sring/float/tespy.helpers.dc_cp
+        Isentropic efficiency, :math:`[\eta_s]=1`
 
-    **default offdesign parameters**
+    pr : Sring/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio, :math:`[pr]=1`
 
-    - char
+    eta_s_char : String/tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide x and y values
+        or use generic values (e. g. calculated from design case).
 
-    **inlets and outlets**
+    Returns
+    -------
+    No return value.
 
+    Equations
+    ---------
+    **mandatory equations**
+
+    - :func:`tespy.components.components.component.fluid_func`
+    - :func:`tespy.components.components.component.massflow_func`
+
+    **optional equations**
+
+    .. math::
+
+        0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
+        0 = pr \cdot p_{in} - p_{out}
+
+    isentropic efficiency equations (optional)
+
+    - :func:`tespy.components.components.pump.eta_s_func`
+    - :func:`tespy.components.components.compressor.eta_s_func`
+    - :func:`tespy.components.components.turbine.eta_s_func`
+
+    **additional equations**
+
+    - :func:`tespy.components.components.pump.additional_equations`
+    - :func:`tespy.components.components.compressor.additional_equations`
+    - :func:`tespy.components.components.turbine.additional_equations`
+
+    Default Design Parameters
+    -------------------------
+    - pr
+    - eta_s
+
+    Default Offdesign Parameters
+    ----------------------------
+    - eta_s_char
+
+    Inlets/Outlets
+    --------------
     - in1
     - out1
     """
@@ -586,36 +796,16 @@ class turbomachine(component):
         component.comp_init(self, nw)
 
     def equations(self):
-        r"""
-        returns vector vec_res with result of equations for this component
+        """
+        Calculates vector vec_res with results of equations for this component.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: vec_res (*list*) - vector of residual values
+        Parameters
+        ----------
 
-        **mandatory equations**
-
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
-
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        isentropic efficiency
-
-        - :func:`tespy.components.components.pump.eta_s_func`
-        - :func:`tespy.components.components.compressor.eta_s_func`
-        - :func:`tespy.components.components.turbine.eta_s_func`
-
-        **additional equations**
-
-        - :func:`tespy.components.components.pump.additional_equations`
-        - :func:`tespy.components.components.compressor.additional_equations`
-        - :func:`tespy.components.components.turbine.additional_equations`
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
         """
 
         vec_res = []
@@ -642,23 +832,29 @@ class turbomachine(component):
 
     def additional_equations(self):
         """
-        returns vector vec_res with result of additional equations for this
-        component
+        Calculates vector vec_res with results of additional equations for this component.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: vec_res (*list*) - vector of residual values
+        Parameters
+        ----------
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
         """
         return []
 
     def derivatives(self):
-        r"""
-        calculate matrix of partial derivatives towards mass flow, pressure,
-        enthalpy and fluid composition
+        """
+        Calculates matrix of partial derivatives for given equations.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
+        Parameters
+        ----------
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
         mat_deriv = []
 
@@ -687,18 +883,28 @@ class turbomachine(component):
 
     def additional_derivatives(self):
         """
-        returns matrix mat_deriv with partial derivatives for additional
-        equations of this component
+        Calculates matrix of partial derivatives for given additional equations.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
+        Parameters
+        ----------
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
-        return []
+        return np.array([])
 
     def eta_s_func(self):
         """
-        see subclasses
+        Calculates residual value of isentropic efficiency function, see subclasses.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        No return value.
         """
         msg = ('If you want to use eta_s as parameter, '
                'please specify which type of turbomachine you are using.')
@@ -706,7 +912,14 @@ class turbomachine(component):
 
     def eta_s_deriv(self):
         """
-        see subclasses
+        Calculates partial derivatives for isentropic efficiency function, see subclasses.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        No return value.
         """
         msg = ('If you want to use eta_s as parameter, '
                'please specify which type of turbomachine you are using.')
@@ -714,12 +927,24 @@ class turbomachine(component):
 
     def h_os(self, mode):
         """
-        calculates the enthalpy at the outlet if compression or expansion is
-        isentropic
+        Calculates the enthalpy at the outlet if compression or expansion is isentropic.
 
-        :param mode: pre or postprocessing
-        :type inl: str
-        :returns: h (*float*) - enthalpy after isentropic state change
+        Parameters
+        ----------
+        mode : String
+            Determines wheather calculation is in preprocessing mode.
+
+        Returns
+        -------
+        h : float
+            Enthalpy after isentropic state change.
+
+            .. math::
+
+                h = \\begin{cases}
+                h\\left(p_{out}, s\\left(p_{in}, h_{in}\\right) \\right) & \\text{pure fluids}\\\\
+                h\\left(p_{out}, s\\left(p_{in}, T_{in}\\right) \\right) & \\text{mixtures}\\\\
+                \end{cases}
         """
         if mode == 'pre':
             i = self.i_ref
@@ -744,15 +969,24 @@ class turbomachine(component):
         raise MyComponentError('Function not available.')
 
     def bus_func(self, bus):
-        r"""
-        function for use on busses
+        """
+        Calculates the residual value of the bus function.
 
-        :returns: val (*float*) - residual value of equation
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
 
-        .. math::
+        Returns
+        -------
+        val : float
+            Residual value of equation.
 
-            val = \dot{m}_{in} \cdot \left( h_{out} - h_{in}
-            \right)
+            .. math::
+
+                P = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) \cdot
+
+                val = P \cdot f_{char}\\left( \\frac{P}{P_{ref}}\\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -764,11 +998,18 @@ class turbomachine(component):
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
-        r"""
-        calculate matrix of partial derivatives towards mass flow and
-        enthalpy for bus function
+        """
+        Calculates the matrix of partial derivatives of the bus function.
 
-        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
         deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
@@ -778,7 +1019,7 @@ class turbomachine(component):
 
     def calc_parameters(self, nw, mode):
         """
-        parameter calculation pre- or postprocessing
+        Parameter calculation pre- or postprocessing
 
         **postprocessing**
 
@@ -793,7 +1034,21 @@ class turbomachine(component):
           :code:`self.dh_s_ref` at reference
 
         """
+        """
+        Component parameter calculation for pre- and postprocessing.
 
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            TESPy network object.
+
+        mode : String
+            pre or post (-processing).
+
+        Returns
+        -------
+        No return value.
+        """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
         if (mode == 'pre' and 'P' in self.offdesign) or mode == 'post':
@@ -818,46 +1073,120 @@ class turbomachine(component):
 
 
 class pump(turbomachine):
-    r"""
-    **available parameters**
+    """
+    The component turbomachine is the parent class for pump, compressor and turbine.
 
-    - P: power, :math:`[P]=\text{W}`
-    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
-    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
-    - flow_char: characteristic curve for pressure rise vs. volumetric flow
-      rate, provide data: :math:`[x]=\frac{\text{m}^3}{\text{s}} \,
-      [y]=\text{Pa}`
-    - eta_s_char: characteristic curve for isentropic efficiency,
-      this characteristic is generated in preprocessing of offdesign
-      calculations
+    Parameters
+    ----------
+    label : String
+        The label of the component.
 
-    **equations**
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
-    see :func:`tespy.components.components.turbomachine.equations`
+    design : list
+        List containing design parameters (stated as String).
 
-    **default design parameters**
+    offdesign : list
+        List containing offdesign parameters (stated as String).
 
-    - pr, eta_s
+    P : Sring/float/tespy.helpers.dc_cp
+        Power, :math:`[P]=\\text{W}`
 
-    **default offdesign parameters**
+    eta_s : Sring/float/tespy.helpers.dc_cp
+        Isentropic efficiency, :math:`[\eta_s]=1`
 
+    pr : Sring/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio, :math:`[pr]=1`
+
+    eta_s_char : String/tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide x and y values
+        or use generic values (e. g. calculated from design case).
+
+    flow_char :
+        Characteristic curve for pressure rise vs. volumetric flow rate,
+        provide data: :math:`[x]=\\frac{\\text{m}^3}{\\text{s}} \,
+        [y]=\\text{Pa}`
+
+    Returns
+    -------
+    No return value.
+
+    Equations
+    ---------
+    **mandatory equations**
+
+    - :func:`tespy.components.components.component.fluid_func`
+    - :func:`tespy.components.components.component.massflow_func`
+
+    **optional equations**
+
+    .. math::
+
+        0 = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) - P\\\\
+        0 = pr \cdot p_{in} - p_{out}
+
+    - :func:`tespy.components.components.pump.eta_s_func`
+
+    **additional equations**
+
+    - :func:`tespy.components.components.pump.additional_equations`
+
+    Default Design Parameters
+    -------------------------
+    - pr
+    - eta_s
+
+    Default Offdesign Parameters
+    ----------------------------
     - eta_s_char (method: None, parameter: v)
 
-    .. note::
-
-        Using the characteristic function for isentropic efficiency of the pump
-        (char) is partly leading to unstable calculations, it is recommended
-        to use a constant values for now.
-
-    **inlets and outlets**
-
+    Inlets/Outlets
+    --------------
     - in1
     - out1
 
+    Image
+    -----
     .. image:: _images/pump.svg
        :scale: 100 %
        :alt: alternative text
        :align: center
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+
+    >>> fluid_list = ['water']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+
+    >>> si = cmp.sink('sink')
+    >>> so = cmp.source('source')
+    >>> p = cmp.pump('pump')
+
+    >>> inc = con.connection(so, 'out1', p, 'in1')
+    >>> outg = con.connection(p, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+
+    >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
+    >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
+    >>> char = hlp.dc_cc(x=v, y=dp, is_set=True)
+
+    >>> p.set_attr(pr=10, eta_s=0.8, flow_char=char, design=['eta_s'], offdesign=['eta_s_char'])
+
+    >>> inc.set_attr(fluid={'water': 1}, p=1, T=20)
+
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+
+    >>> p.set_attr(pr=14)
+    >>> round(inc.m.val_SI, 3)
+    1.198
+
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(inc.m.val_SI, 3)
+    0.624
     """
 
     def component(self):
@@ -869,23 +1198,28 @@ class pump(turbomachine):
                 'flow_char': dc_cc()}
 
     def additional_equations(self):
-        r"""
-        additional equations for pumps
+        """
+        Calculates vector vec_res with results of additional equations for pump.
 
-        - applies characteristic function for isentropic efficiency
+        Parameters
+        ----------
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: vec_res (*list*) - residual value vector
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
 
+        Equations
+        ---------
         **optional equations**
 
-        - :func:`tespy.components.components.pump.char_func`
+        - :func:`tespy.components.components.pump.eta_s_char_func`
+        - :func:`tespy.components.components.pump.flow_char_func`
         """
         vec_res = []
 
         if self.eta_s_char.is_set:
-            vec_res += self.char_func().tolist()
+            vec_res += self.eta_s_char_func().tolist()
 
         if self.flow_char.is_set:
             vec_res += self.flow_char_func().tolist()
@@ -893,18 +1227,21 @@ class pump(turbomachine):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
-        calculate matrix of partial derivatives towards mass flow, pressure,
-        enthalpy and fluid composition for the additional equations
+        """
+        Calculates matrix of partial derivatives for given additional equations.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        Parameters
+        ----------
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
         mat_deriv = []
 
         if self.eta_s_char.is_set:
-            mat_deriv += self.char_deriv()
+            mat_deriv += self.eta_s_char_deriv()
 
         if self.flow_char.is_set:
             mat_deriv += self.flow_char_deriv()
@@ -912,100 +1249,103 @@ class pump(turbomachine):
         return mat_deriv
 
     def eta_s_func(self):
-        r"""
-        equation for isentropic efficiency of a pump
+        """
+        Equation for given isentropic efficiency of a pump.
 
-        :returns: val (*float*) - residual value of equation
+        Parameters
+        ----------
 
-        .. math::
-            0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
-            \left( h_{out,s} -  h_{in} \right)
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+                0 = -\\left( h_{out} - h_{in} \\right) \cdot \eta_{s,c} +
+                \\left( h_{out,s} -  h_{in} \\right)
         """
         return (-(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
                 self.eta_s.val + (self.h_os('post') - self.inl[0].h.val_SI))
 
     def eta_s_deriv(self):
         """
-        calculates partial derivatives of the isentropic efficiency function
+        Calculates the matrix of partial derivatives of the isentropic efficiency function.
 
-        - if the residual value for this equation is lower than the square
-          value of the global error tolerance skip calculation
-        - calculates the partial derivatives for enthalpy and pressure at
-          inlet and for pressure at outlet numerically
-        - partial derivative to enthalpy at outlet can be calculated
-          analytically, :code:`-1` for expansion and :code:`-self.eta_s`
-          for compression
+        Parameters
+        ----------
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
         """
-
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
 
         for i in range(2):
-            mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
+            deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
             if i == 0:
-                mat_deriv[0, i, 2] = self.numeric_deriv(self.eta_s_func, 'h', i)
+                deriv[0, i, 2] = self.numeric_deriv(self.eta_s_func, 'h', i)
             else:
-                mat_deriv[0, i, 2] = -self.eta_s.val
+                deriv[0, i, 2] = -self.eta_s.val
 
-        return mat_deriv.tolist()
+        return deriv.tolist()
 
-    def char_func(self):
-        r"""
-        isentropic efficiency characteristic of a pump
+    def eta_s_char_func(self):
+        """
+        Equation for given isentropic efficiency characteristic of a pump.
 
-        :returns: val (*numpy array*) - residual value of equation
+        Parameters
+        ----------
 
-        .. math::
-            0 = -\left( h_{out} - h_{in} \right) \cdot char\left( \dot{m}_{in}
-            \cdot v_{in} \right) + \left( h_{out,s} - h_{in} \right)
+        Returns
+        -------
+        res : ndarray
+            Residual value of equation.
+
+            .. math::
+                0 = \left( h_{out} - h_{in} \right) \cdot \\frac{\Delta h_{s,ref}}{\Delta h_{ref}}
+                \cdot char\left( \dot{m}_{in} \cdot v_{in} \right) - \left( h_{out,s} - h_{in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        return np.array([((o[2] - i[2]) * self.dh_s_ref /
-                          (self.o_ref[2] - self.i_ref[2]) *
-                          self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) -
-                          (self.h_os('post') - i[2]))])
+        return np.array([(o[2] - i[2]) * self.dh_s_ref / (self.o_ref[2] - self.i_ref[2]) *
+                        self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) - (self.h_os('post') - i[2])])
 
-    def char_deriv(self):
-        r"""
-        calculates the derivatives for the characteristics
-
-        :returns: mat_deriv (*list*) - matrix of derivatives
-
-        **example**
-
-        one fluid in fluid vector
-
-        .. math::
-
-            \left(
-            \begin{array}{cccc}
-                \frac{\partial char}{\partial \dot{m}_{in}} &
-                \frac{\partial char}{\partial p_{in}} &
-                \frac{\partial char}{\partial h_{in}} & 0\\
-                0 & \frac{\partial char}{\partial p_{out}} &
-                \frac{\partial char}{\partial h_{out}} & 0\\
-            \end{array}
-            \right)
-
+    def eta_s_char_deriv(self):
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        Calculates the matrix of partial derivatives of the isentropic efficiency characteristic function.
 
-        mat_deriv[0, 0, 0] = (
-            self.numeric_deriv(self.char_func, 'm', 0))
+        Parameters
+        ----------
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+
+        deriv[0, 0, 0] = self.numeric_deriv(self.eta_s_char_func, 'm', 0)
         for i in range(2):
-            mat_deriv[0, i, 1] = self.numeric_deriv(self.char_func, 'p', i)
-            mat_deriv[0, i, 2] = self.numeric_deriv(self.char_func, 'h', i)
+            deriv[0, i, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', i)
+            deriv[0, i, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', i)
 
-        return mat_deriv.tolist()
+        return deriv.tolist()
 
     def flow_char_func(self):
-        r"""
-        equation for characteristics of a pump
+        """
+        Equation for given flow characteristic of a pump.
 
-        :returns: val (*numpy array*) - residual value of equation
+        Parameters
+        ----------
 
-        .. math::
-            0 = p_{out} - p_{in} - char\left( \dot{m}_{in} \cdot v_{in} \right)
+        Returns
+        -------
+        res : ndarray
+            Residual value of equation.
+
+            .. math::
+                0 = p_{out} - p_{in} - char\left( \dot{m}_{in} \cdot v_{in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -1015,55 +1355,44 @@ class pump(turbomachine):
         return np.array([o[1] - i[1] - self.flow_char.func.f_x(expr)])
 
     def flow_char_deriv(self):
-        r"""
-        calculates the derivatives for the characteristics
-
-        :returns: mat_deriv (*list*) - matrix of derivatives
-
-        **example**
-
-        one fluid in fluid vector
-
-        .. math::
-
-            \left(
-            \begin{array}{cccc}
-                \frac{\partial char}{\partial \dot{m}_{in}} &
-                \frac{\partial char}{\partial p_{in}} &
-                \frac{\partial char}{\partial h_{in}} & 0\\
-                0 & \frac{\partial char}{\partial p_{out}} &
-                \frac{\partial char}{\partial h_{out}} & 0\\
-            \end{array}
-            \right)
-
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        Calculates the matrix of partial derivatives of the flow characteristic of a pump.
 
-        mat_deriv[0, 0, 0] = self.numeric_deriv(self.flow_char_func, 'm', 0)
-        mat_deriv[0, 0, 2] = self.numeric_deriv(self.flow_char_func, 'h', 0)
+        Parameters
+        ----------
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+
+        deriv[0, 0, 0] = self.numeric_deriv(self.flow_char_func, 'm', 0)
+        deriv[0, 0, 2] = self.numeric_deriv(self.flow_char_func, 'h', 0)
         for i in range(2):
-            mat_deriv[0, i, 1] = self.numeric_deriv(self.flow_char_func, 'p', i)
+            deriv[0, i, 1] = self.numeric_deriv(self.flow_char_func, 'p', i)
 
-        return mat_deriv.tolist()
+        return deriv.tolist()
 
     def convergence_check(self, nw):
         """
-        performs a convergence check
+        Performs a convergence check.
 
-        - check if isentropic efficiency or characteristic is set
-        - manipulate enthalpies at inlet and outlet if not specified by
-          user, if function for isentropic efficiency cannot be calculated
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            The network object using this component.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: no return value
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
 
-         **Improvements**
-
-         - work on this convergence check as there is no guarantee for
-           successful performance
+        Note
+        ----
+        Manipulate enthalpies/pressure at inlet and outlet if not specified by user to match physically feasible constraints.
         """
-
         i, o = self.inl, self.outl
 
         if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
@@ -1080,25 +1409,35 @@ class pump(turbomachine):
             expr = i[0].m.val_SI * v_mix_ph(i[0].to_flow())
 
             if expr > self.flow_char.func.x[-1] and not i[0].m.val_set:
-                i[0].m.val_SI = self.flow_char.func.x[-1] / v_mix_ph(
-                        i[0].to_flow())
+                i[0].m.val_SI = self.flow_char.func.x[-1] / v_mix_ph(i[0].to_flow())
             elif expr < self.flow_char.func.x[1] and not i[0].m.val_set:
-                i[0].m.val_SI = self.flow_char.func.x[0] / v_mix_ph(
-                        i[0].to_flow())
+                i[0].m.val_SI = self.flow_char.func.x[0] / v_mix_ph(i[0].to_flow())
+            else:
+                pass
 
     def initialise_source(self, c, key):
-        r"""
-        returns a starting value for fluid properties at components outlet
+        """
+        Returns a starting value for pressure and enthalpy at component's outlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: - p (*float*) - starting value for pressure at components
-                    outlet, :math:`val = 10^6 \; \text{Pa}`
-                  - h (*float*) - starting value for enthalpy at components
-                    outlet,
-                    :math:`val = 3 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \\begin{cases}
+                10^6 & \\text{key = 'p'}\\\\
+                3 \cdot 10^5 & \\text{key = 'h'}
+                \end{cases}
         """
         if key == 'p':
             return 10e5
@@ -1108,18 +1447,28 @@ class pump(turbomachine):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
-        returns a starting value for fluid properties at components inlet
+        """
+        Returns a starting value for pressure and enthalpy at component's inlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: - p (*float*) - starting value for pressure at components
-                    inlet, :math:`val = 10^5 \; \text{Pa}`
-                  - h (*float*) - starting value for enthalpy at components
-                    inlet,
-                    :math:`val = 2,9 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \\begin{cases}
+                10^5 & \\text{key = 'p'}\\\\
+                2.9 \cdot 10^5 & \\text{key = 'h'}
+                \end{cases}
         """
         if key == 'p':
             return 1e5
@@ -1171,7 +1520,7 @@ class pump(turbomachine):
 
 
 class compressor(turbomachine):
-    r"""
+    """
     **available parameters**
 
     - P: power, :math:`[P]=\text{W}`
@@ -1228,7 +1577,7 @@ class compressor(turbomachine):
             self.char_map.func = cmp_char.compressor(method=method)
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for compressor
 
         - applies characteristic compressor map
@@ -1252,7 +1601,7 @@ class compressor(turbomachine):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for the additional equations
 
@@ -1271,7 +1620,7 @@ class compressor(turbomachine):
         return mat_deriv
 
     def eta_s_func(self):
-        r"""
+        """
         equation for isentropic efficiency of a compressor
 
         :returns: val (*float*) - residual value of equation
@@ -1308,7 +1657,7 @@ class compressor(turbomachine):
         return mat_deriv.tolist()
 
     def char_map_func(self):
-        r"""
+        """
         equation(s) for characteristics of compressor
 
         :returns: val (:code:`np.array([Z1, Z2])`) - residual values of
@@ -1366,7 +1715,7 @@ class compressor(turbomachine):
         return np.array([z1, z2])
 
     def char_map_deriv(self):
-        r"""
+        """
         calculates the derivatives for the characteristics
 
         - if vigv is set two sets of equations are used
@@ -1408,7 +1757,7 @@ class compressor(turbomachine):
         return deriv.tolist()
 
     def eta_s_char_func(self):
-        r"""
+        """
         equation for isentropic efficiency of compressor linked to pressure
         ratio
         """
@@ -1431,7 +1780,7 @@ class compressor(turbomachine):
                          (self.h_os('post') - i[2])])
 
     def eta_s_char_deriv(self):
-        r"""
+        """
         calculates the derivatives for the isentropic efficiency
         characteristics
 
@@ -1477,7 +1826,7 @@ class compressor(turbomachine):
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -1498,7 +1847,7 @@ class compressor(turbomachine):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -1565,7 +1914,7 @@ class compressor(turbomachine):
 
 
 class turbine(turbomachine):
-    r"""
+    """
     **available parameters**
 
     - P: power, :math:`[P]=\text{W}`
@@ -1612,7 +1961,7 @@ class turbine(turbomachine):
         return turbomachine.default_offdesign(self) + ['cone']
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for turbines
 
         - applies characteristic function for isentropic efficiency
@@ -1638,7 +1987,7 @@ class turbine(turbomachine):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for the additional equations
 
@@ -1662,7 +2011,7 @@ class turbine(turbomachine):
         return mat_deriv
 
     def eta_s_func(self):
-        r"""
+        """
         equation for isentropic efficiency of a turbine
 
         :returns: val (*float*) - residual value of equation
@@ -1707,7 +2056,7 @@ class turbine(turbomachine):
         return mat_deriv.tolist()
 
     def cone_func(self):
-        r"""
+        """
         equation for stodolas cone law
 
         :returns: val (*float*) - residual value of equation
@@ -1730,7 +2079,7 @@ class turbine(turbomachine):
                 i[0])
 
     def eta_s_char_func(self):
-        r"""
+        """
         equation for turbine characteristics
 
         - calculate the isentropic efficiency as function of characteristic
@@ -1768,7 +2117,7 @@ class turbine(turbomachine):
                          (self.h_os('post') - i[2])])
 
     def eta_s_char_deriv(self):
-        r"""
+        """
         partial derivatives for turbine characteristics
 
         :returns: mat_deriv (*list*) - matrix of partial derivatives
@@ -1783,7 +2132,7 @@ class turbine(turbomachine):
         return mat_deriv.tolist()
 
     def convergence_check(self, nw):
-        r"""
+        """
         prevent impossible fluid properties in calculation
 
         - set :math:`p_{out} = \frac{p_{in}}{2}` if :math:`p_{out}>p_{in}`
@@ -1807,7 +2156,7 @@ class turbine(turbomachine):
             o[0].h.val_SI = i[0].h.val_SI * 0.75
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -1828,7 +2177,7 @@ class turbine(turbomachine):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -1882,7 +2231,7 @@ class turbine(turbomachine):
 
 
 class split(component):
-    r"""
+    """
     component split can be subdivided in splitter and separator:
 
     splitter:
@@ -1941,7 +2290,7 @@ class split(component):
         self.m_deriv = self.massflow_deriv()
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         - equations are different for splitter and separator
@@ -1985,7 +2334,7 @@ class split(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -2012,7 +2361,7 @@ class split(component):
         return np.asarray(mat_deriv)
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for component split
 
         :param nw: network using this component object
@@ -2025,7 +2374,7 @@ class split(component):
         return []
 
     def additional_derivatives(self):
-        r"""
+        """
         derivatives for additional equations of component split
 
         :param nw: network using this component object
@@ -2038,7 +2387,7 @@ class split(component):
         return []
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -2059,7 +2408,7 @@ class split(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -2083,7 +2432,7 @@ class split(component):
 
 
 class splitter(split):
-    r"""
+    """
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
@@ -2113,7 +2462,7 @@ class splitter(split):
         self.fl_deriv = self.fluid_deriv()
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for component splitter
 
         :param nw: network using this component object
@@ -2138,7 +2487,7 @@ class splitter(split):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         derivatives for additional equations of component splitter
 
         :param nw: network using this component object
@@ -2161,7 +2510,7 @@ class splitter(split):
         return mat_deriv
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -2178,7 +2527,7 @@ class splitter(split):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -2199,7 +2548,7 @@ class splitter(split):
 
 
 class separator(split):
-    r"""
+    """
     **available parameters**
 
     - num_out: number of outlets (default value: 2)
@@ -2223,7 +2572,7 @@ class separator(split):
         return 'separator'
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for component separator
 
         :param nw: network using this component object
@@ -2250,7 +2599,7 @@ class separator(split):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         derivatives for additional equations of component separator
 
         :param nw: network using this component object
@@ -2286,7 +2635,7 @@ class separator(split):
         return mat_deriv
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -2307,7 +2656,7 @@ class separator(split):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -2330,7 +2679,7 @@ class separator(split):
 
 
 class merge(component):
-    r"""
+    """
     **available parameters**
 
     - num_in: number of inlets (default value: 2)
@@ -2372,7 +2721,7 @@ class merge(component):
         component.comp_init(self, nw)
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -2411,7 +2760,7 @@ class merge(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -2450,7 +2799,7 @@ class merge(component):
         return np.asarray(mat_deriv)
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -2470,7 +2819,7 @@ class merge(component):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -2490,7 +2839,7 @@ class merge(component):
         return deriv.tolist()
 
     def initialise_fluids(self, nw):
-        r"""
+        """
         fluid initialisation for fluid mixture at outlet of the merge
 
         - it is recommended to specify starting values for mass flows at merges
@@ -2522,7 +2871,7 @@ class merge(component):
                             i.fluid.val[fluid] = c.fluid.val[fluid]
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -2543,7 +2892,7 @@ class merge(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -2567,7 +2916,7 @@ class merge(component):
 
 
 class node(component):
-    r"""
+    """
     **available parameters**
 
     - num_in: number of inlets (default value: 2)
@@ -2615,8 +2964,11 @@ class node(component):
 
         component.comp_init(self, nw)
 
+        self.m_deriv = self.massflow_deriv()
+        self.p_deriv = self.pressure_deriv()
+
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -2679,7 +3031,7 @@ class node(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -2691,7 +3043,7 @@ class node(component):
         mat_deriv = []
 
         mat_deriv += self.fluid_deriv()
-        mat_deriv += self.massflow_deriv()
+        mat_deriv += self.m_deriv
 
         deriv = np.zeros((len(self.outg), self.num_i + self.num_o, self.num_fl + 3))
         k = 0
@@ -2703,21 +3055,12 @@ class node(component):
             k += 1
         mat_deriv += deriv.tolist()
 
-        p_deriv = np.zeros((self.num_i + self.num_o - 1, self.num_i + self.num_o, self.num_fl + 3))
-
-        inl = []
-        if self.num_in.val > 1:
-            inl = self.inl[1:]
-        for k in range(len(inl + self.outl)):
-            p_deriv[k, 0, 1] = 1
-            p_deriv[k, k + 1, 1] = -1
-
         mat_deriv += self.p_deriv
 
         return np.asarray(mat_deriv)
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -2736,32 +3079,42 @@ class node(component):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
         """
 
         num_o = len(self.outg)
-        mat_deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o, 3 + self.num_fl))
+        deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o, 3 + self.num_fl))
         j = 0
         for fluid in self.outl[0].fluid.val.keys():
             k = 0
             for o in self.outg:
-                mat_deriv[j + k, o[1], j + 3] = self.m_inc
+                deriv[j + k, o[1], j + 3] = self.m_inc
                 for i in self.inc:
-                    mat_deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
-                    mat_deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
+                    deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
+                    deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
                 k += 1
 
-        return mat_deriv.tolist()
+        return deriv.tolist()
 
     def pressure_deriv(self):
         """"
         !!!!!!!!!!!!!!!
-"""
+        """
+        deriv = np.zeros((self.num_i + self.num_o - 1, self.num_i + self.num_o, self.num_fl + 3))
+
+        inl = []
+        if self.num_in.val > 1:
+            inl = self.inl[1:]
+        for k in range(len(inl + self.outl)):
+            deriv[k, 0, 1] = 1
+            deriv[k, k + 1, 1] = -1
+        return deriv.tolist()
+
     def initialise_fluids(self, nw):
-        r"""
+        """
         fluid initialisation for fluid mixture at outlet of the merge
 
         - it is recommended to specify starting values for mass flows at merges
@@ -2793,7 +3146,7 @@ class node(component):
                             i.fluid.val[fluid] = c.fluid.val[fluid]
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -2814,7 +3167,7 @@ class node(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -2838,7 +3191,7 @@ class node(component):
 
 
 class combustion_chamber(component):
-    r"""
+    """
 
     .. note::
         For more information on the usage of the combustion chamber see the
@@ -2942,7 +3295,7 @@ class combustion_chamber(component):
         self.lhv = self.calc_lhv()
 
     def calc_lhv(self):
-        r"""
+        """
         calculates the lower heating value of the combustion chambers fuel
 
         :returns: val (*float*) - lhv of the specified fuel
@@ -2996,7 +3349,7 @@ class combustion_chamber(component):
         return val
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -3057,7 +3410,7 @@ class combustion_chamber(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -3130,7 +3483,7 @@ class combustion_chamber(component):
         return np.asarray(mat_deriv)
 
     def reaction_balance(self, fluid):
-        r"""
+        """
         calculates the reactions mass balance for one fluid
 
         - determine molar mass flows of fuel and oxygen
@@ -3249,7 +3602,7 @@ class combustion_chamber(component):
         return res
 
     def energy_balance(self):
-        r"""
+        """
         calculates the energy balance of the adiabatic combustion chamber
 
         .. note::
@@ -3302,7 +3655,7 @@ class combustion_chamber(component):
         return res
 
     def lambda_func(self):
-        r"""
+        """
         calculates the residual for specified lambda
 
         :returns: res (*float*) - residual value of equation
@@ -3335,7 +3688,7 @@ class combustion_chamber(component):
                 self.lamb.val)
 
     def ti_func(self):
-        r"""
+        """
         calculates the residual for specified thermal input
 
         :returns: res (*float*) - residual value of equation
@@ -3348,7 +3701,7 @@ class combustion_chamber(component):
         return self.ti.val - self.calc_ti()
 
     def bus_func(self, bus):
-        r"""
+        """
         function for use on busses
 
         :returns: val (*float*) - residual value of equation (equals thermal
@@ -3366,7 +3719,7 @@ class combustion_chamber(component):
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow and fluid
         composition for bus
         function
@@ -3383,7 +3736,7 @@ class combustion_chamber(component):
         return deriv
 
     def rb_numeric_deriv(self, dx, pos, fluid):
-        r"""
+        """
         calculates derivative of the reaction balance to dx at components inlet
         or outlet in position pos for the fluid fluid
 
@@ -3452,7 +3805,7 @@ class combustion_chamber(component):
         return deriv
 
     def calc_ti(self):
-        r"""
+        """
         calculates the thermal input of the combustion chamber
 
         :returns: ti (*float*) - thermal input
@@ -3474,7 +3827,7 @@ class combustion_chamber(component):
         return m * self.lhv
 
     def initialise_fluids(self, nw):
-        r"""
+        """
         calculates reaction balance with given lambda for good generic
         starting values
 
@@ -3518,7 +3871,7 @@ class combustion_chamber(component):
                     o.fluid.val[fluid] = fg[fluid]
 
     def convergence_check(self, nw):
-        r"""
+        """
         prevent impossible fluid properties in calculation
 
         - check if mass fractions of fluid components at combustion chambers
@@ -3601,7 +3954,7 @@ class combustion_chamber(component):
                         i.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -3622,7 +3975,7 @@ class combustion_chamber(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -3694,7 +4047,7 @@ class combustion_chamber(component):
 
 
 class combustion_chamber_stoich(combustion_chamber):
-    r"""
+    """
 
     .. note::
         This combustion chamber uses fresh air and its fuel as the only
@@ -3845,7 +4198,7 @@ class combustion_chamber_stoich(combustion_chamber):
         self.stoich_flue_gas(nw)
 
     def calc_lhv(self):
-        r"""
+        """
         calculates the lower heating value of the combustion chambers fuel
 
         :returns: val (*float*) - lhv of the specified fuel
@@ -3916,7 +4269,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return lhv
 
     def stoich_flue_gas(self, nw):
-        r"""
+        """
         calculates the fluid composition of the stoichiometric flue gas and
         creates a custom fluid
 
@@ -4044,7 +4397,7 @@ class combustion_chamber_stoich(combustion_chamber):
                         path=self.path)
 
     def reaction_balance(self, fluid):
-        r"""
+        """
         calculates the reactions mass balance for one fluid
 
         - determine molar mass flows of fuel and fresh air
@@ -4151,7 +4504,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return res
 
     def energy_balance(self):
-        r"""
+        """
         calculates the energy balance of the adiabatic combustion chamber
 
         .. note::
@@ -4189,7 +4542,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return res + self.calc_ti()
 
     def lambda_func(self):
-        r"""
+        """
         calculates the residual for specified thermal input
 
         :returns: res (*float*) - residual value of equation
@@ -4214,7 +4567,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return (self.lamb.val - (m_air / m_fuel) / self.air_min)
 
     def ti_func(self):
-        r"""
+        """
         calculates the residual for specified thermal input
 
         :returns: res (*float*) - residual value of equation
@@ -4227,7 +4580,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return self.ti.val - self.calc_ti()
 
     def calc_ti(self):
-        r"""
+        """
         calculates the thermal input of the combustion chamber
 
         :returns: ti (*float*) - thermal input
@@ -4251,7 +4604,7 @@ class combustion_chamber_stoich(combustion_chamber):
         return m * self.lhv
 
     def initialise_fluids(self, nw):
-        r"""
+        """
         calculates reaction balance with given lambda for good generic
         starting values
 
@@ -4278,7 +4631,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 c.fluid.val[flue_gas] = 0.2
 
     def convergence_check(self, nw):
-        r"""
+        """
         prevent impossible fluid properties in calculation
 
         - check if mass fractions of fluid components at combustion chambers
@@ -4374,7 +4727,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
 
 class cogeneration_unit(combustion_chamber):
-    r"""
+    """
 
     .. note::
         For more information on the usage of the cogeneration unit see the
@@ -4492,7 +4845,7 @@ class cogeneration_unit(combustion_chamber):
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -4606,7 +4959,7 @@ class cogeneration_unit(combustion_chamber):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -4828,7 +5181,7 @@ class cogeneration_unit(combustion_chamber):
         return np.asarray(mat_deriv)
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -4845,7 +5198,7 @@ class cogeneration_unit(combustion_chamber):
         return vec_res
 
     def massflow_func(self):
-        r"""
+        """
         returns residual values for mass flow equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -4863,7 +5216,7 @@ class cogeneration_unit(combustion_chamber):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for massflow equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -4879,7 +5232,7 @@ class cogeneration_unit(combustion_chamber):
         return deriv.tolist()
 
     def massflow_deriv(self):
-        r"""
+        """
         returns derivatives for massflow equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -4896,7 +5249,7 @@ class cogeneration_unit(combustion_chamber):
         return deriv.tolist()
 
     def pressure_deriv(self):
-        r"""
+        """
         returns derivatives for pressure equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -4910,7 +5263,7 @@ class cogeneration_unit(combustion_chamber):
         return deriv.tolist()
 
     def energy_balance(self):
-        r"""
+        """
         calculates the energy balance of the cogeneration unit
 
         .. note::
@@ -4976,7 +5329,7 @@ class cogeneration_unit(combustion_chamber):
         return res
 
     def rb_numeric_deriv(self, dx, pos, fluid):
-        r"""
+        """
         calculates derivative of the reaction balance to dx at components inlet
         or outlet in position pos for the fluid fluid
 
@@ -5045,7 +5398,7 @@ class cogeneration_unit(combustion_chamber):
         return deriv
 
     def bus_func(self, bus):
-        r"""
+        """
         functions for use on busses
 
         :returns: val (*float*) - residual value of equation
@@ -5082,7 +5435,7 @@ class cogeneration_unit(combustion_chamber):
             return self.Qloss.val
 
     def bus_deriv(self, bus):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow and fluid
         composition for bus
         function
@@ -5147,7 +5500,7 @@ class cogeneration_unit(combustion_chamber):
         return deriv
 
     def Q1_func(self):
-        r"""
+        """
         calculates the relation of heat output 1 and thermal input from
         specified characteristic lines
 
@@ -5165,7 +5518,7 @@ class cogeneration_unit(combustion_chamber):
         return self.Q1.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
     def Q2_func(self):
-        r"""
+        """
         calculates the relation of heat output 2 and thermal input from
         specified characteristic lines
 
@@ -5183,7 +5536,7 @@ class cogeneration_unit(combustion_chamber):
         return self.Q2.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
     def tiP_char_func(self):
-        r"""
+        """
         calculates the relation of output power and thermal input from
         specified characteristic line
 
@@ -5205,7 +5558,7 @@ class cogeneration_unit(combustion_chamber):
         return self.calc_ti() - self.tiP_char.func.f_x(expr) * self.P.val
 
     def Q1_char_func(self):
-        r"""
+        """
         calculates the relation of heat output 1 and thermal input from
         specified characteristic lines
 
@@ -5238,7 +5591,7 @@ class cogeneration_unit(combustion_chamber):
                         o.h.val_SI - i.h.val_SI))
 
     def Q2_char_func(self):
-        r"""
+        """
         calculates the relation of heat output 2 and thermal input from
         specified characteristic lines
 
@@ -5271,7 +5624,7 @@ class cogeneration_unit(combustion_chamber):
                         o.h.val_SI - i.h.val_SI))
 
     def Qloss_char_func(self):
-        r"""
+        """
         calculates the relation of heat loss and thermal input from
         specified characteristic lines
 
@@ -5300,7 +5653,7 @@ class cogeneration_unit(combustion_chamber):
                 self.tiP_char.func.f_x(expr) * self.Qloss.val)
 
     def calc_ti(self):
-        r"""
+        """
         calculates the thermal input of the cogeneration unit
 
         :returns: ti (*float*) - thermal input
@@ -5322,7 +5675,7 @@ class cogeneration_unit(combustion_chamber):
         return m * self.lhv
 
     def calc_P(self):
-        r"""
+        """
         calculates power from thermal input and
         specified characteristic lines
 
@@ -5342,7 +5695,7 @@ class cogeneration_unit(combustion_chamber):
         return self.calc_ti() / self.tiP_char.func.f_x(expr)
 
     def calc_Qloss(self):
-        r"""
+        """
         calculates heat loss from thermal input and
         specified characteristic lines
 
@@ -5364,7 +5717,7 @@ class cogeneration_unit(combustion_chamber):
                 self.tiP_char.func.f_x(expr))
 
     def initialise_fluids(self, nw):
-        r"""
+        """
         calculates reaction balance with given lambda for good generic
         starting values
 
@@ -5408,7 +5761,7 @@ class cogeneration_unit(combustion_chamber):
                     o.fluid.val[fluid] = fg[fluid]
 
     def convergence_check(self, nw):
-        r"""
+        """
         prevent impossible fluid properties in calculation
 
         - check if mass fractions of fluid components at combustion chambers
@@ -5424,7 +5777,7 @@ class cogeneration_unit(combustion_chamber):
         # additional stuff here?
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -5445,7 +5798,7 @@ class cogeneration_unit(combustion_chamber):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -5508,7 +5861,7 @@ class cogeneration_unit(combustion_chamber):
 
 
 class vessel(component):
-    r"""
+    """
     **available parameters**
 
     - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
@@ -5565,7 +5918,7 @@ class vessel(component):
         component.comp_init(self, nw)
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -5610,7 +5963,7 @@ class vessel(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -5654,7 +6007,7 @@ class vessel(component):
         return np.asarray(mat_deriv)
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -5675,7 +6028,7 @@ class vessel(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -5696,7 +6049,7 @@ class vessel(component):
             return 0
 
     def pr_char_func(self):
-        r"""
+        """
         equation for characteristics of a vessel
         """
         i = self.inl[0].to_flow()
@@ -5705,7 +6058,7 @@ class vessel(component):
         return np.array([i[1] - self.pr_char.func.f_x(i[1]) * o[1]])
 
     def pr_char_deriv(self):
-        r"""
+        """
         calculates the derivatives for the characteristics
 
         :returns: mat_deriv (*list*) - matrix of derivatives
@@ -5738,7 +6091,7 @@ class vessel(component):
 
 
 class heat_exchanger_simple(component):
-    r"""
+    """
     **available parameters**
 
     - Q: heat transfer, :math:`[Q]=\text{W}`
@@ -5884,7 +6237,7 @@ class heat_exchanger_simple(component):
             self.kA_group.set_attr(is_set=False)
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -5942,7 +6295,7 @@ class heat_exchanger_simple(component):
         return vec_res
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for simple heat exchangers and pipes
 
         :param nw: network using this component object
@@ -5961,7 +6314,7 @@ class heat_exchanger_simple(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -6017,7 +6370,7 @@ class heat_exchanger_simple(component):
         return np.asarray(mat_deriv)
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for the additional equations
 
@@ -6042,7 +6395,7 @@ class heat_exchanger_simple(component):
         return mat_deriv
 
     def Q_func(self):
-        r"""
+        """
         equation for heat transfer
 
         :returns: val (*float*) - residual value of equation
@@ -6064,7 +6417,7 @@ class heat_exchanger_simple(component):
                     self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
 
     def Q_deriv(self):
-        r"""
+        """
         derivatives for heat transfer
 
         - calculate reynolds and darcy friction factor
@@ -6089,7 +6442,7 @@ class heat_exchanger_simple(component):
         return deriv
 
     def darcy_func(self):
-        r"""
+        """
         equation for pressure drop from darcy friction factor
 
         - calculate reynolds and darcy friction factor
@@ -6125,7 +6478,7 @@ class heat_exchanger_simple(component):
                 (math.pi ** 2 * self.D.val ** 5))
 
     def hw_func(self):
-        r"""
+        """
         equation for pressure drop from Hazen–Williams equation
 
         - calculate pressure drop
@@ -6154,7 +6507,7 @@ class heat_exchanger_simple(component):
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
 
     def kA_func(self):
-        r"""
+        """
         equation for heat transfer from ambient conditions
 
         - determine hot side and cold side of the heat exchanger
@@ -6209,7 +6562,7 @@ class heat_exchanger_simple(component):
                 (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
 
     def bus_func(self, bus):
-        r"""
+        """
         function for use on busses
 
         :returns: val (*float*) - residual value of equation
@@ -6230,7 +6583,7 @@ class heat_exchanger_simple(component):
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for bus function
 
@@ -6243,7 +6596,7 @@ class heat_exchanger_simple(component):
         return deriv
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlet
 
         :param c: connection to apply initialisation
@@ -6275,7 +6628,7 @@ class heat_exchanger_simple(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlet
 
         :param c: connection to apply initialisation
@@ -6346,19 +6699,6 @@ class heat_exchanger_simple(component):
                 ttd_u = T_i - t_a
                 ttd_l = T_o - t_a
 
-            print(ttd_u, ttd_l)
-
-            print(ttd_u - ttd_l, math.log(ttd_u / ttd_l))
-
-#            if ttd_u < 0 or ttd_l < 0:
-#                if nw.comperr:
-#                    msg = ('##### ERROR #####\n'
-#                           'Invalid value for terminal temperature difference '
-#                           'at component ' + self.label + '.\n'
-#                           'ttd_u = ' + str(ttd_u) + ' ttd_l = ' + str(ttd_l))
-#                    print(msg)
-#                nw.errors += [self]
-
             if mode == 'post':
                 self.SQ2.val = -i[0] * (o[2] - i[2]) / t_a
                 self.Sirr.val = self.SQ1.val + self.SQ2.val
@@ -6397,7 +6737,7 @@ class heat_exchanger_simple(component):
 
 
 class pipe(heat_exchanger_simple):
-    r"""
+    """
 
     class pipe is an alias of class heat_exchanger_simple
 
@@ -6465,7 +6805,7 @@ class pipe(heat_exchanger_simple):
 
 
 class solar_collector(heat_exchanger_simple):
-    r"""
+    """
 
     class solar collector
 
@@ -6604,7 +6944,7 @@ class solar_collector(heat_exchanger_simple):
             self.energy_group.set_attr(is_set=False)
 
     def additional_equations(self):
-        r"""
+        """
         additional equations for solar collectors
 
         - calculates collector heat transfer from area independent absorption
@@ -6625,7 +6965,7 @@ class solar_collector(heat_exchanger_simple):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for the additional equations
 
@@ -6650,7 +6990,7 @@ class solar_collector(heat_exchanger_simple):
         return mat_deriv
 
     def energy_func(self):
-        r"""
+        """
         equation for solar collector energy balance
 
         :param inlets: the components connections at the inlets
@@ -6698,7 +7038,7 @@ class solar_collector(heat_exchanger_simple):
 
 
 class heat_exchanger(component):
-    r"""
+    """
     - all components of class heat exchanger are counter flow heat exchangers
 
     **available parameters**
@@ -6781,7 +7121,7 @@ class heat_exchanger(component):
         self.m_deriv = self.massflow_deriv()
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -6875,7 +7215,7 @@ class heat_exchanger(component):
         return vec_res
 
     def additional_equations(self):
-        r"""
+        """
         returns vector vec_res with result of additional equations for this
         component
 
@@ -6886,7 +7226,7 @@ class heat_exchanger(component):
         return []
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -6959,7 +7299,7 @@ class heat_exchanger(component):
         return np.asarray(mat_deriv)
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for additional equations
 
@@ -6970,7 +7310,7 @@ class heat_exchanger(component):
         return []
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -6987,7 +7327,7 @@ class heat_exchanger(component):
         return vec_res
 
     def massflow_func(self):
-        r"""
+        """
         returns residual values for mass flow equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -7002,7 +7342,7 @@ class heat_exchanger(component):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid balance equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -7022,7 +7362,7 @@ class heat_exchanger(component):
         return deriv.tolist()
 
     def massflow_deriv(self):
-        r"""
+        """
         returns derivatives for massflow equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -7036,7 +7376,7 @@ class heat_exchanger(component):
         return deriv.tolist()
 
     def energy_func(self):
-        r"""
+        """
         returns value for energy balance of heat exchanger
 
         - zero flags to be tested in larger networks
@@ -7073,7 +7413,7 @@ class heat_exchanger(component):
                                             self.inl[1].h.val_SI))
 
     def energy_deriv(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards pressure and
         enthalpy for energy balance function
 
@@ -7109,7 +7449,7 @@ class heat_exchanger(component):
         return deriv.tolist()
 
     def kA_func(self):
-        r"""
+        """
         equation for heat transfer from conditions on both sides of heat
         exchanger
 
@@ -7202,7 +7542,7 @@ class heat_exchanger(component):
                 math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
     def ttd_u_func(self):
-        r"""
+        """
         equation for upper terminal temperature difference
 
         :returns: val (*float*) - residual value of equation
@@ -7216,7 +7556,7 @@ class heat_exchanger(component):
         return self.ttd_u.val - T_mix_ph(i1) + T_mix_ph(o2)
 
     def ttd_u_deriv(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards pressure and
         enthalpy for upper terminal temperature equation
 
@@ -7231,7 +7571,7 @@ class heat_exchanger(component):
         return deriv.tolist()
 
     def ttd_l_func(self):
-        r"""
+        """
         equation for lower terminal temperature difference
 
         :returns: val (*float*) - residual value of equation
@@ -7245,7 +7585,7 @@ class heat_exchanger(component):
         return self.ttd_l.val - T_mix_ph(o1) + T_mix_ph(i2)
 
     def ttd_l_deriv(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards pressure and
         enthalpy for lower terminal temperature equation
 
@@ -7260,7 +7600,7 @@ class heat_exchanger(component):
         return deriv.tolist()
 
     def bus_func(self, bus):
-        r"""
+        """
         function for use on busses
 
         :returns: val (*float*) - residual value of equation
@@ -7281,7 +7621,7 @@ class heat_exchanger(component):
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for bus function
 
@@ -7294,7 +7634,7 @@ class heat_exchanger(component):
         return deriv
 
     def convergence_check(self, nw):
-        r"""
+        """
         prevent bad values for fluid properties in calculation
 
         - :math:`h_{1,in} > h_{1,out}`?
@@ -7324,7 +7664,7 @@ class heat_exchanger(component):
                 o[1].h.val_SI = h_min_o2 * 1.1
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlets
 
         - set starting temperatures in a way, that they match required logic
@@ -7361,7 +7701,7 @@ class heat_exchanger(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlets
 
         :param c: connection to apply initialisation
@@ -7506,7 +7846,7 @@ class heat_exchanger(component):
 
 
 class condenser(heat_exchanger):
-    r"""
+    """
 
     - has additional equation for enthalpy at hot side outlet
     - pressure drop via zeta at hot side is not an offdesign parameter
@@ -7578,7 +7918,7 @@ class condenser(heat_exchanger):
                 n != 'zeta1']
 
     def additional_equations(self):
-        r"""
+        """
         returns vector vec_res with result of additional equations for this
         component
 
@@ -7602,7 +7942,7 @@ class condenser(heat_exchanger):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for additional equations
 
@@ -7622,7 +7962,7 @@ class condenser(heat_exchanger):
         return mat_deriv
 
     def energy_func(self):
-        r"""
+        """
         returns value for energy balance of condenser
 
         :param nw: network using this component object
@@ -7641,7 +7981,7 @@ class condenser(heat_exchanger):
                                         self.inl[1].h.val_SI))
 
     def energy_deriv(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow and
         enthalpy for energy balance equation
 
@@ -7658,7 +7998,7 @@ class condenser(heat_exchanger):
         return deriv.tolist()
 
     def kA_func(self):
-        r"""
+        """
         equation for heat transfer from conditions on both sides of condenser
 
         - calculate temperatures at inlets and outlets
@@ -7730,7 +8070,7 @@ class condenser(heat_exchanger):
                 math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
     def ttd_u_func(self):
-        r"""
+        """
         equation for upper terminal temperature difference
 
         - ttd_u refers to boiling temperature at hot side inlet
@@ -7751,7 +8091,7 @@ class condenser(heat_exchanger):
 
 
 class desuperheater(heat_exchanger):
-    r"""
+    """
 
     - has additional equation for enthalpy at hot side outlet
 
@@ -7808,7 +8148,7 @@ class desuperheater(heat_exchanger):
         return heat_exchanger.default_offdesign(self)
 
     def additional_equations(self):
-        r"""
+        """
         returns vector vec_res with result of additional equations for this
         component
 
@@ -7832,7 +8172,7 @@ class desuperheater(heat_exchanger):
         return vec_res
 
     def additional_derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition for additional equations
 
@@ -7855,7 +8195,7 @@ class desuperheater(heat_exchanger):
 
 
 class drum(component):
-    r"""
+    """
 
     .. note::
 
@@ -7901,7 +8241,7 @@ class drum(component):
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -7960,7 +8300,7 @@ class drum(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -7998,7 +8338,7 @@ class drum(component):
         return np.asarray(mat_deriv)
 
     def fluid_func(self):
-        r"""
+        """
         returns residual values for fluid equations
 
         :returns: vec_res (*list*) - a list containing the residual values
@@ -8016,7 +8356,7 @@ class drum(component):
         return vec_res
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -8030,7 +8370,7 @@ class drum(component):
         return deriv.tolist()
 
     def pressure_deriv(self):
-        r"""
+        """
         returns derivatives for pressure equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -8042,7 +8382,7 @@ class drum(component):
         return deriv.tolist()
 
     def initialise_source(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components outlets
 
         :param c: connection to apply initialisation
@@ -8071,7 +8411,7 @@ class drum(component):
             return 0
 
     def initialise_target(self, c, key):
-        r"""
+        """
         returns a starting value for fluid properties at components inlets
 
         :param c: connection to apply initialisation
@@ -8103,7 +8443,7 @@ class drum(component):
 
 
 class subsys_interface(component):
-    r"""
+    """
     interface for subsystems
 
     - passes fluid properties/flow information at inlet i to outlet i
@@ -8157,7 +8497,7 @@ class subsys_interface(component):
         self.h_deriv = self.inout_deriv(2)
 
     def equations(self):
-        r"""
+        """
         returns vector vec_res with result of equations for this component
 
         :param nw: network using this component object
@@ -8208,7 +8548,7 @@ class subsys_interface(component):
         return vec_res
 
     def derivatives(self):
-        r"""
+        """
         calculate matrix of partial derivatives towards mass flow, pressure,
         enthalpy and fluid composition
 
@@ -8226,7 +8566,7 @@ class subsys_interface(component):
         return np.asarray(mat_deriv)
 
     def fluid_deriv(self):
-        r"""
+        """
         returns derivatives for fluid equations
 
         :returns: mat_deriv (*list*) - a list containing the derivatives
@@ -8241,7 +8581,7 @@ class subsys_interface(component):
         return deriv.tolist()
 
     def inout_deriv(self, pos):
-        r"""
+        """
         returns derivatives for equations with same value at inlet and
         corresponding outlet
 

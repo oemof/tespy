@@ -897,7 +897,7 @@ class turbomachine(component):
         raise MyComponentError('Function not available.')
 
     def bus_func(self, bus):
-        """
+        r"""
         Calculates the residual value of the bus function.
 
         Parameters
@@ -912,9 +912,9 @@ class turbomachine(component):
 
             .. math::
 
-                P = \dot{m}_{in} \cdot \\left( h_{out} - h_{in} \\right) \cdot
+                P = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) \cdot
 
-                val = P \cdot f_{char}\\left( \\frac{P}{P_{ref}}\\right)
+                val = P \cdot f_{char}\left( \frac{P}{P_{ref}}\right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

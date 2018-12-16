@@ -332,6 +332,21 @@ class component:
         return 0
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
         return
 
     def initialise_fluids(self, nw):
@@ -945,15 +960,19 @@ class turbomachine(component):
 
     def calc_parameters(self, nw, mode):
         r"""
-        Component parameter calculation for pre- and postprocessing.
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
 
         Parameters
         ----------
         nw : tespy.networks.network
-            TESPy network object.
+            Network using this component.
 
         mode : String
-            pre or post (-processing).
+            Pre- or postprocessing calculation.
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
@@ -1095,7 +1114,9 @@ class pump(turbomachine):
         Calculates vector vec_res with results of additional equations for pump.
 
         Equations
+
             **optional equations**
+
             - :func:`tespy.components.components.pump.eta_s_char_func`
             - :func:`tespy.components.components.pump.flow_char_func`
 
@@ -1346,17 +1367,20 @@ class pump(turbomachine):
 
     def calc_parameters(self, nw, mode):
         r"""
-        component specific parameter calculation pre- or postprocessing
+        Component specific parameter calculation pre- or postprocessing
 
-        **postprocessing**
+        **TODO**
 
-        - calculate isentropic efficiency
+        - rework pre and postprocessing and find consistent docstlye for this function
 
-        **preprocessing**
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
 
-        - generate characteristics for component
+        mode : String
+            Pre- or postprocessing calculation.
         """
-
         turbomachine.calc_parameters(self, nw, mode)
 
         if (mode == 'pre' and 'eta_s' in self.offdesign) or mode == 'post':
@@ -1388,37 +1412,101 @@ class pump(turbomachine):
 
 class compressor(turbomachine):
     r"""
-    **available parameters**
+    Equations
 
-    - P: power, :math:`[P]=\text{W}`
-    - eta_s: isentropic efficiency, :math:`[\eta_s]=1`
-    - eta_s_char: isentropic efficiency characteristics
-    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
-    - char_map: characteristic map for compressors, map is generated in
-      preprocessing of offdesign calculations
-    - igva: inlet guide vane angle, :math:`[igva]=^\circ`
+        **mandatory equations**
 
-    **equations**
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.massflow_func`
 
-    see :func:`tespy.components.components.turbomachine.equations`
+        **optional equations**
 
-    **default design parameters**
+        .. math::
 
-    - pr, eta_s
+            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
+            0 = pr \cdot p_{in} - p_{out}
 
-    **default offdesign parameters**
+        - :func:`tespy.components.components.compressor.eta_s_func`
 
-    - char_map
+        **additional equations**
 
-    **inlets and outlets**
+        - :func:`tespy.components.components.compressor.additional_equations`
 
-    - in1
-    - out1
+    Default Design Parameters
 
-    .. image:: _images/compressor.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        - pr
+        - eta_s
+
+    Default Offdesign Parameters
+
+        - char_map
+
+    Inlets/Outlets
+
+        - in1
+        - out1
+
+    Image
+
+        .. image:: _images/compressor.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : String
+        The label of the component.
+
+    mode : String
+        'auto' for automatic design to offdesign switch, 'man' for manual switch.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : Sring/float/tespy.helpers.dc_cp
+        Power, :math:`[P]=\text{W}`
+
+    eta_s : Sring/float/tespy.helpers.dc_cp
+        Isentropic efficiency, :math:`[\eta_s]=1`
+
+    pr : Sring/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio, :math:`[pr]=1`
+
+    eta_s_char : String/tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide x and y values
+        or use generic values (e. g. calculated from design case).
+
+    char_map : String/tespy.helpers.dc_cc
+        Characteristic map for pressure rise and isentropic efficiency vs. nondimensional massflow,
+        see tespy.components.characteristics.compressor for further information.
+
+    igva : String/float/tespy.helpers.dc_cp
+        Inlet guide vane angle, :math:`[igva]=^\circ`.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> fluid_list = ['air']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> si = cmp.sink('sink')
+    >>> so = cmp.source('source')
+    >>> cp = cmp.compressor('compressor')
+    >>> inc = con.connection(so, 'out1', cp, 'in1')
+    >>> outg = con.connection(cp, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> cp.set_attr(pr=10, eta_s=0.8, P=1e5, design=['eta_s'], offdesign=['char_map'])
+    >>> inc.set_attr(fluid={'air': 1}, p=1, T=20)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> cp.set_attr(P=9e4, igva='var')
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(cp.eta_s.val)
+    >>> 0.755
     """
 
     def component(self):
@@ -1445,17 +1533,19 @@ class compressor(turbomachine):
 
     def additional_equations(self):
         r"""
-        additional equations for compressor
+        Calculates vector vec_res with results of additional equations for compressor.
 
-        - applies characteristic compressor map
+        Equations
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: vec_res (*list*) - residual value vector
+            **optional equations**
 
-        **optional equations**
+            - :func:`tespy.components.components.compressor.eta_s_char_func`
+            - :func:`tespy.components.components.compressor.char_map_func`
 
-        - :func:`tespy.components.components.compressor.char_func`
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
         """
         vec_res = []
 
@@ -1469,12 +1559,12 @@ class compressor(turbomachine):
 
     def additional_derivatives(self):
         r"""
-        calculate matrix of partial derivatives towards mass flow, pressure,
-        enthalpy and fluid composition for the additional equations
+        Calculates matrix of partial derivatives for given additional equations.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: mat_deriv (*list*) - matrix of partial derivatives
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
         mat_deriv = []
 
@@ -1488,28 +1578,28 @@ class compressor(turbomachine):
 
     def eta_s_func(self):
         r"""
-        equation for isentropic efficiency of a compressor
+        Equation for given isentropic efficiency of a compressor.
 
-        :returns: val (*float*) - residual value of equation
+        Returns
+        -------
+        res : float
+            Residual value of equation.
 
-        .. math::
-            0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
-            \left( h_{out,s} -  h_{in} \right)
+            .. math::
+                0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
+                \left( h_{out,s} -  h_{in} \right)
         """
         return (-(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
                 self.eta_s.val + (self.h_os('post') - self.inl[0].h.val_SI))
 
     def eta_s_deriv(self):
         r"""
-        calculates partial derivatives of the isentropic efficiency function
+        Calculates the matrix of partial derivatives of the isentropic efficiency function.
 
-        - if the residual value for this equation is lower than the square
-          value of the global error tolerance skip calculation
-        - calculates the partial derivatives for enthalpy and pressure at
-          inlet and for pressure at outlet numerically
-        - partial derivative to enthalpy at outlet can be calculated
-          analytically, :code:`-1` for expansion and :code:`-self.eta_s`
-          for compression
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
         """
 
         mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
@@ -1523,50 +1613,84 @@ class compressor(turbomachine):
 
         return mat_deriv.tolist()
 
+    def eta_s_char_func(self):
+        r"""
+        Equation for given isentropic efficiency characteristic of a pump.
+
+        Returns
+        -------
+        res : ndarray
+            Residual value of equation.
+
+            .. math::
+                0 = \left( h_{out} - h_{in} \right) \cdot \frac{\Delta h_{s,ref}}{\Delta h_{ref}}
+                \cdot char\left( \dot{m}_{in} \cdot v_{in} \right) - \left( h_{out,s} - h_{in} \right)
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        expr = 1
+        if self.eta_s_char.param == 'm':
+            if hasattr(self, 'i_ref'):
+                expr = i[0] / self.i_ref[0]
+        elif self.eta_s_char.param == 'pr':
+            if hasattr(self, 'i_ref') and hasattr(self, 'o_ref'):
+                expr = (o[1] * self.i_ref[1]) / (i[1] * self.o_ref[1])
+        else:
+            raise ValueError('Must provide a parameter for eta_s_char at '
+                             'component ' + self.label)
+
+        return np.array([self.dh_s_ref / (self.o_ref[2] - self.i_ref[2]) *
+                         self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) -
+                         (self.h_os('post') - i[2])])
+
+    def eta_s_char_deriv(self):
+        r"""
+        Calculates the matrix of partial derivatives of the isentropic efficiency characteristic function.
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+
+        mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 0)
+        mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 1)
+        mat_deriv[0, 0, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 0)
+        mat_deriv[0, 1, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 1)
+
+        return mat_deriv.tolist()
+
     def char_map_func(self):
         r"""
-        equation(s) for characteristics of compressor
+        Equations for characteristic map of compressor.
 
-        :returns: val (:code:`np.array([Z1, Z2])`) - residual values of
-                  equations:
+        Parameters
 
-        .. math::
+            - X: speedline index (rotational speed is constant)
+            - Y: nondimensional mass flow
+            - Z1: pressure ratio equation
+            - Z2: isentropic efficiency equation
+            - igva: variable inlet guide vane angle (assumed 0° if not specified)
 
-            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+            .. math::
 
-            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
-            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
+                X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
 
-            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}-
-            pr_{c}(char(m))
+                Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+                {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
 
-            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
-            \eta_{s,c}(char(m))
+                Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}-
+                pr_{c}(char(m, igva))
 
-        **parameters**
+                Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
+                \eta_{s,c}(char(m, igva))
 
-        - X: speedline index (rotational speed is constant)
-        - Y: nondimensional mass flow
-        - Z1: change ratio to reference case in mass flow and pressure
-        - Z2: change of isentropic efficiency to reference case
-
-        **logic**
-
-        - calculate X
-        - calculate Y
-
-        **if vigv is set**
-
-        - calculate possible vigv range and adjust user specified vigv
-          angle, if not inside feasible range (throws warning in post-
-          processing)
-        - create new speedline to look up values for val1 and val2
-        - val1, val2 are relative factors for pressure ratio and isentropic
-          efficiency
-
-        **else**
-
-        - calculate Z1 and Z2
+        Returns
+        -------
+        res : ndarray (Z1, Z2)
+            Residual values of equations.
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -1583,19 +1707,12 @@ class compressor(turbomachine):
 
     def char_map_deriv(self):
         r"""
-        calculates the derivatives for the characteristics
+        Calculates the matrix of partial derivatives of the compressor characteristic map function.
 
-        - if vigv is set two sets of equations are used
-
-        :returns: mat_deriv (*list*) - matrix of derivatives
-
-        **example**
-
-        see method char_deriv of class pump for an example
-
-        **Improvements**
-
-        - improve asthetics, this part of code looks horrible
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
         """
         m11 = self.numeric_deriv(self.char_map_func, 'm', 0)
         p11 = self.numeric_deriv(self.char_map_func, 'p', 0)
@@ -1623,61 +1740,23 @@ class compressor(turbomachine):
             deriv[1, 2 + self.igva.var_pos, 0] = igva[1]
         return deriv.tolist()
 
-    def eta_s_char_func(self):
-        r"""
-        equation for isentropic efficiency of compressor linked to pressure
-        ratio
-        """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-
-        expr = 1
-        if self.eta_s_char.param == 'm':
-            if hasattr(self, 'i_ref'):
-                expr = i[0] / self.i_ref[0]
-        elif self.eta_s_char.param == 'pr':
-            if hasattr(self, 'i_ref') and hasattr(self, 'o_ref'):
-                expr = (o[1] * self.i_ref[1]) / (i[1] * self.o_ref[1])
-        else:
-            raise ValueError('Must provide a parameter for eta_s_char at '
-                             'component ' + self.label)
-
-        return np.array([self.dh_s_ref / (self.o_ref[2] - self.i_ref[2]) *
-                         self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) -
-                         (self.h_os('post') - i[2])])
-
-    def eta_s_char_deriv(self):
-        r"""
-        calculates the derivatives for the isentropic efficiency
-        characteristics
-
-        :returns: mat_deriv (*list*) - matrix of derivatives
-        """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-
-        mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 0)
-        mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 1)
-        mat_deriv[0, 0, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 0)
-        mat_deriv[0, 1, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 1)
-
-        return mat_deriv.tolist()
-
     def convergence_check(self, nw):
         r"""
-        performs a convergence check
+        Performs a convergence check.
 
-        - check if isentropic efficiency or characteristic is set
-        - manipulate enthalpies at inlet and outlet if not specified by
-          user, if function for isentropic efficiency cannot be calculated
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            The network object using this component.
 
-        :param nw: network using this component object
-        :type nw: tespy.networks.network
-        :returns: no return value
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
 
-         **Improvements:**
-
-         - work on this convergence check as there is no guarantee for
-           successful performance
+        Note
+        ----
+        Manipulate enthalpies/pressure at inlet and outlet if not specified by user to match physically feasible constraints.
         """
 
         i, o = self.inl, self.outl
@@ -1694,17 +1773,27 @@ class compressor(turbomachine):
 
     def initialise_source(self, c, key):
         r"""
-        returns a starting value for fluid properties at components outlet
+        Returns a starting value for pressure and enthalpy at component's outlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: - p (*float*) - starting value for pressure at components
-                    outlet, :math:`val = 10^6 \; \text{Pa}`
-                  - h (*float*) - starting value for enthalpy at components
-                    outlet,
-                    :math:`val = 6 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \begin{cases}
+                10^6 & \text{key = 'p'}\\
+                6 \cdot 10^5 & \text{key = 'h'}
+                \end{cases}
         """
         if key == 'p':
             return 10e5
@@ -1715,17 +1804,27 @@ class compressor(turbomachine):
 
     def initialise_target(self, c, key):
         r"""
-        returns a starting value for fluid properties at components inlet
+        Returns a starting value for pressure and enthalpy at component's inlet.
 
-        :param c: connection to apply initialisation
-        :type c: tespy.connections.connection
-        :param key: property
-        :type key: str
-        :returns: - p (*float*) - starting value for pressure at components
-                    inlet, :math:`val = 10^5 \; \text{Pa}`
-                  - h (*float*) - starting value for enthalpy at components
-                    inlet,
-                    :math:`val = 4 \cdot 10^5 \; \frac{\text{J}}{\text{kg}}`
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to perform initialisation on.
+
+        key : String
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \begin{cases}
+                10^5 & \text{key = 'p'}\\
+                4 \cdot 10^5 & \text{key = 'h'}
+                \end{cases}
         """
         if key == 'p':
             return 1e5
@@ -1736,15 +1835,19 @@ class compressor(turbomachine):
 
     def calc_parameters(self, nw, mode):
         r"""
-        component specific parameter calculation pre- or postprocessing
+        Component specific parameter calculation pre- or postprocessing
 
-        **postprocessing**
+        **TODO**
 
-        - calculate isentropic efficiency
+        - rework pre and postprocessing and find consistent docstlye for this function
 
-        **preprocessing**
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
 
-        - generate characteristics for component
+        mode : String
+            Pre- or postprocessing calculation.
         """
 
         if (mode == 'post' and nw.mode == 'offdesign' and
@@ -2066,15 +2169,19 @@ class turbine(turbomachine):
 
     def calc_parameters(self, nw, mode):
         r"""
-        component specific parameter calculation pre- or postprocessing
+        Component specific parameter calculation pre- or postprocessing
 
-        **postprocessing**
+        **TODO**
 
-        - calculate isentropic efficiency
+        - rework pre and postprocessing and find consistent docstlye for this function
 
-        **preprocessing**
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
 
-        - generate characteristics for component
+        mode : String
+            Pre- or postprocessing calculation.
         """
 
         turbomachine.calc_parameters(self, nw, mode)
@@ -3863,6 +3970,21 @@ class combustion_chamber(component):
             return 0
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         self.ti.val = self.calc_ti()
 
@@ -4549,6 +4671,21 @@ class combustion_chamber_stoich(combustion_chamber):
             self.lamb.val = 2
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         if self.air_alias.val in ['air', 'Air']:
             air = self.air_alias.val
@@ -5686,6 +5823,21 @@ class cogeneration_unit(combustion_chamber):
             return 0
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         combustion_chamber.calc_parameters(self, nw, mode)
 
@@ -5938,6 +6090,21 @@ class vessel(component):
         return mat_deriv.tolist()
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         if mode == 'post' or (mode == 'pre' and 'pr' in self.offdesign):
             self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
@@ -6528,6 +6695,21 @@ class heat_exchanger_simple(component):
             return 0
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -6886,6 +7068,21 @@ class solar_collector(heat_exchanger_simple):
                  (T_m - self.Tamb.val_SI))))
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -7600,6 +7797,21 @@ class heat_exchanger(component):
             return 0
 
     def calc_parameters(self, nw, mode):
+        r"""
+        Component specific parameter calculation pre- or postprocessing
+
+        **TODO**
+
+        - rework pre and postprocessing and find consistent docstlye for this function
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component.
+
+        mode : String
+            Pre- or postprocessing calculation.
+        """
 
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()

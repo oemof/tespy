@@ -2016,7 +2016,6 @@ class turbine(turbomachine):
     >>> nw.save('tmp')
     >>> t.set_attr(P=-9e4)
     >>> nw.solve('offdesign', design_file='tmp/results.csv')
-    >>> nw.print_results()
     >>> round(t.eta_s.val, 3)
     0.798
     """

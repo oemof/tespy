@@ -7785,3 +7785,121 @@ class subsys_interface(component):
         mat_deriv += h_deriv.tolist()
 
         return np.asarray(mat_deriv)
+
+
+# %%
+
+
+class elektrolyzer(component):
+    r"""
+    interface for subsystems
+
+    - passes fluid properties/flow information at inlet i to outlet i
+    - no transformation of any fluid properties
+
+    **available parameters**
+
+    - num_inter: number of connections for the interface
+
+    **equations**
+
+    see :func:`tespy.components.components.subsys_interface.equations`
+
+    **inlets and outlets**
+
+    - specify number of inlets and outlets with :code:`num_inter`
+    - predefined value: 1
+
+    .. image:: _images/subsys_interface.svg
+       :scale: 100 %
+       :alt: alternative text
+       :align: center
+    """
+
+    def component(self):
+        return 'subsystem interface'
+
+    def attr(self):
+        return {'num_inter': dc_cp(printout=False)}
+
+    def inlets(self):
+        if self.num_inter.is_set:
+            return ['in' + str(i + 1) for i in range(self.num_inter.val)]
+        else:
+            return ['in1']
+
+    def outlets(self):
+        if self.num_inter.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_inter.val)]
+        else:
+            return ['out1']
+
+    def equations(self):
+        r"""
+        returns vector vec_res with result of equations for this component
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: vec_res (*list*) - vector of residual values
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.fluid_res`
+        - :func:`tespy.components.components.component.mass_flow_res`
+
+        .. math::
+
+            0 = p_{i,in} - p_{i,out}\\
+            0 = h_{i,in} - h_{i,out}\\
+            \forall i \in inlets/outlets
+
+        """
+
+        vec_res = []
+        num_inl = len(self.inl)
+
+        vec_res += self.fluid_res()
+        vec_res += self.mass_flow_res()
+        for j in range(num_inl):
+            i = self.inl[j]
+            o = self.outl[j]
+            vec_res += [i.p.val_SI - o.p.val_SI]
+        for j in range(num_inl):
+            i = self.inl[j]
+            o = self.outl[j]
+            vec_res += [i.h.val_SI - o.h.val_SI]
+
+        return vec_res
+
+    def derivatives(self, nw):
+        r"""
+        calculate matrix of partial derivatives towards mass flow, pressure,
+        enthalpy and fluid composition
+
+        :param nw: network using this component object
+        :type nw: tespy.networks.network
+        :returns: mat_deriv (*numpy array*) - matrix of partial derivatives
+        """
+
+        num_fl = len(nw.fluids)
+        num_inl, num_outl = len(self.inl), len(self.outl)
+        mat_deriv = []
+
+        mat_deriv += self.fluid_deriv()
+        mat_deriv += self.mass_flow_deriv()
+
+        p_deriv = np.zeros((num_inl, num_inl + num_outl, num_fl + 3))
+        for i in range(num_inl):
+            p_deriv[i, i, 1] = 1
+        for j in range(num_outl):
+            p_deriv[j, j + i + 1, 1] = -1
+        mat_deriv += p_deriv.tolist()
+
+        h_deriv = np.zeros((num_inl, num_inl + num_outl, num_fl + 3))
+        for i in range(num_inl):
+            h_deriv[i, i, 2] = 1
+        for j in range(num_outl):
+            h_deriv[j, j + i + 1, 2] = -1
+        mat_deriv += h_deriv.tolist()
+
+        return np.asarray(mat_deriv)

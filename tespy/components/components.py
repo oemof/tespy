@@ -6757,7 +6757,33 @@ class heat_exchanger_simple(component):
 
     Example
     -------
-    TODO
+    >>> from tespy import cmp, con, nwk
+    >>> fluids = ['H2O']
+    >>> nw = nwk.network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source 1')
+    >>> si1 = cmp.sink('sink 1')
+    >>> pi = cmp.pipe('test')
+    >>> pi.set_attr(Tamb=10, pr=0.95, design=['pr'], offdesign=['zeta', 'kA'])
+    >>> inc = con.connection(so1, 'out1', pi, 'in1')
+    >>> outg = con.connection(pi, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> inc.set_attr(fluid={'H2O': 1}, m=1, T=200, p=12)
+    >>> outg.set_attr(T=190, design=['T'])
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(pi.Q.val, 1)
+    -22252.3
+    >>> inc.set_attr(m=1.2)
+    >>> pi.set_attr(Tamb=-10)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(pi.kA.val, 1)
+    127.2
+    >>> round(pi.Q.val, 1)
+    -26029.1
+    >>> round(outg.T.val, 1)
+    189.5
     """
 
     def component(self):
@@ -7494,6 +7520,33 @@ class pipe(heat_exchanger_simple):
     kA_group : tespy.helpers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature and area
         independent heat transfer coefficient kA.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> fluids = ['H2O']
+    >>> nw = nwk.network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source 1')
+    >>> si1 = cmp.sink('sink 1')
+    >>> pi = cmp.pipe('test')
+    >>> pi.set_attr(pr=0.95, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
+    >>> inc = con.connection(so1, 'out1', pi, 'in1')
+    >>> outg = con.connection(pi, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> inc.set_attr(fluid={'H2O': 1}, m=1, T=100, p=12)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(pi.D.val, 3)
+    0.032
+    >>> round(outg.p.val, 1)
+    11.4
+    >>> inc.set_attr(m=1.2)
+    >>> pi.set_attr(D=pi.D.val)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(outg.p.val, 2)
+    11.14
     """
 
     def component(self):
@@ -7597,31 +7650,32 @@ class solar_collector(heat_exchanger_simple):
     energy_group : tespy.helpers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
 
-
-    **available parameters**
-
-    - Q: heat transfer, :math:`[Q]=\text{W}`
-    - pr: outlet to inlet pressure ratio, :math:`[pr]=1`
-    - zeta: geometry independent friction coefficient
-      :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`, also see
-      :func:`tespy.components.components.component.zeta_func`
-    - hydro_group: choose 'HW' for hazen-williams equation, else darcy friction
-      factor is used
-    - D: diameter of the pipes, :math:`[D]=\text{m}`
-    - L: length of the pipes, :math:`[L]=\text{m}`
-    - ks: pipes roughness, :math:`[ks]=\text{m}` for darcy friction
-      , :math:`[ks]=\text{1}` for hazen-williams equation
-    - energy_group: grouped parameters for solarthermal collector energy
-      balance
-    - E: absorption on the inclined surface,
-      :math:`[E] = \frac{\text{W}}{\text{m}^2}`
-    - lkf_lin: linear loss key figure,
-      :math:`[\alpha_1]=\frac{\text{W}}{\text{K} \cdot \text{m}}`
-    - lkf_quad: quadratic loss key figure,
-      :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`
-    - A: collector surface area :math:`[A]=\text{m}^2`
-    - Tamb: ambient temperature, provide parameter in network's temperature
-      unit
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> fluids = ['H2O']
+    >>> nw = nwk.network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source 1')
+    >>> si1 = cmp.sink('sink 1')
+    >>> sc = cmp.solar_collector('test')
+    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'], Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
+    >>> inc = con.connection(so1, 'out1', sc, 'in1')
+    >>> outg = con.connection(sc, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
+    >>> outg.set_attr(T=90, design=['T'])
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(sc.A.val, 1)
+    15.8
+    >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(sc.Q.val, 1)
+    5848.8
+    >>> round(outg.T.val, 1)
+    69.3
     """
 
     def component(self):
@@ -7648,6 +7702,9 @@ class solar_collector(heat_exchanger_simple):
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
+
+        self.fl_deriv = self.fluid_deriv()
+        self.m_deriv = self.massflow_deriv()
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
@@ -9523,6 +9580,26 @@ class subsys_interface(component):
     Note
     ----
     This component passes all fluid properties and massflow from its inlet to the outlet.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> fluids = ['H2O', 'N2']
+    >>> nw = nwk.network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source 1')
+    >>> si1 = cmp.sink('sink 1')
+    >>> si = cmp.subsys_interface('test', num_inter=1)
+    >>> inc = con.connection(so1, 'out1', si, 'in1')
+    >>> outg = con.connection(si, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> inc.set_attr(fluid={'H2O': 1, 'N2': 0}, T=40, p=3, m=100)
+    >>> nw.solve('design')
+    >>> nw.iter
+    3
+    >>> nw.lin_dep
+    False
     """
 
     def component(self):

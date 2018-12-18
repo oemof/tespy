@@ -558,7 +558,7 @@ class component:
         else:
             val = self.zeta1.val
 
-        if abs(i[0]) < 1e-3:
+        if abs(i[0]) < 1e-4:
             return i[1] - o[1]
 
         else:
@@ -596,7 +596,7 @@ class component:
         i = self.inl[1].to_flow()
         o = self.outl[1].to_flow()
 
-        if abs(i[0]) < 1e-3:
+        if abs(i[0]) < 1e-4:
             return i[1] - o[1]
         else:
 
@@ -2813,6 +2813,31 @@ class splitter(node):
     num_out : float
         Number of outlets for this component.
 
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source1')
+    >>> si1 = cmp.sink('sink1')
+    >>> si2 = cmp.sink('sink2')
+    >>> si3 = cmp.sink('sink3')
+    >>> s = cmp.splitter('splitter', num_out=3)
+    >>> inc1 = con.connection(so1, 'out1', s, 'in1')
+    >>> outg1 = con.connection(s, 'out1', si1, 'in1')
+    >>> outg2 = con.connection(s, 'out2', si2, 'in1')
+    >>> outg3 = con.connection(s, 'out3', si3, 'in1')
+    >>> nw.add_conns(inc1, outg1, outg2, outg3)
+    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> outg1.set_attr(m=3)
+    >>> outg2.set_attr(m=1)
+    >>> nw.solve('design')
+    >>> nw.lin_dep
+    False
+    >>> nw.res[-1] < 1e-3
+    True
     """
 
     def component(self):
@@ -2989,10 +3014,46 @@ class separator(node):
     num_out : float
         Number of outlets for this component.
 
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source1')
+    >>> si1 = cmp.sink('sink1')
+    >>> si2 = cmp.sink('sink2')
+    >>> s = cmp.separator('separator', num_out=2)
+    >>> inc1 = con.connection(so1, 'out1', s, 'in1')
+    >>> outg1 = con.connection(s, 'out1', si1, 'in1')
+    >>> outg2 = con.connection(s, 'out2', si2, 'in1')
+    >>> nw.add_conns(inc1, outg1, outg2)
+    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> outg1.set_attr(fluid={'O2': 0.1, 'N2': 0.9}, m=1)
+    >>> outg2.set_attr(fluid0={'O2': 0.5, 'N2': 0.5}, m0=4)
+    >>> nw.solve('design')
+    >>> nw.lin_dep
+    False
+    >>> nw.res[-1] < 1e-3
+    True
     """
 
     def component(self):
         return 'separator'
+
+    def attr(self):
+        return {'num_out': dc_cp(printout=False)}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=2)
+            return self.outlets()
 
     def additional_equations(self):
         r"""
@@ -3077,13 +3138,13 @@ class separator(node):
         """
         deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
         j = 0
-        for fluid, x in self.inl[0].fluid.val.items():
+        for fluid in self.fluids:
             k = 0
             for o in self.outl:
-                deriv[j, k, 0] = -o.fluid.val[fluid]
-                deriv[j, k, j + 3] = -o.m.val_SI
+                deriv[j, k + 1, 0] = -o.fluid.val[fluid]
+                deriv[j, k + 1, j + 3] = -o.m.val_SI
                 k += 1
-            deriv[j, 0, 0] = x
+            deriv[j, 0, 0] = self.inl[0].fluid.val[fluid]
             deriv[j, 0, j + 3] = self.inl[0].m.val_SI
             j += 1
         return deriv.tolist()
@@ -3150,6 +3211,31 @@ class merge(node):
     num_in : float
         Number of inlets for this component.
 
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source1')
+    >>> so2 = cmp.source('source2')
+    >>> so3 = cmp.source('source3')
+    >>> si1 = cmp.sink('sink1')
+    >>> m = cmp.merge('merge', num_in=3)
+    >>> inc1 = con.connection(so1, 'out1', m, 'in1')
+    >>> inc2 = con.connection(so2, 'out1', m, 'in2')
+    >>> inc3 = con.connection(so3, 'out1', m, 'in3')
+    >>> outg1 = con.connection(m, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc1, inc2, inc3, outg1)
+    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=20, m=5)
+    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=20)
+    >>> outg1.set_attr(fluid={'N2': 0.4})
+    >>> nw.solve('design')
+    >>> round(inc3.m.val_SI, 2)
+    0.25
+    >>> round(outg1.fluid.val['O2'], 1)
+    0.6
     """
 
     def component(self):
@@ -3338,6 +3424,29 @@ class combustion_chamber(component):
         examples section on github or look for the combustion chamber tutorials
         at tespy.readthedocs.io
 
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw.set_printoptions(print_level='err')
+    >>> amb = cmp.source('ambient')
+    >>> sf = cmp.source('fuel')
+    >>> fg = cmp.sink('flue gas outlet')
+    >>> comb = cmp.combustion_chamber('combustion chamber')
+    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+    >>> comb.set_attr(fuel='CH4', ti=50000)
+    >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96})
+    >>> comb_fg.set_attr(T=1200)
+    >>> nw.solve('design')
+    >>> round(comb.lamb.val, 3)
+    2.009
+    >>> round(comb.ti.val)
+    50000.0
     """
 
     def component(self):
@@ -5100,6 +5209,47 @@ class cogeneration_unit(combustion_chamber):
         For more information on the usage of the cogeneration unit see the
         examples in the tespy_examples repository.
 
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw.set_printoptions(print_level='err')
+    >>> amb = cmp.source('ambient')
+    >>> sf = cmp.source('fuel')
+    >>> fg = cmp.sink('flue gas outlet')
+    >>> cw_in1 = cmp.source('cooling water inlet1')
+    >>> cw_in2 = cmp.source('cooling water inlet2')
+    >>> cw_out1 = cmp.sink('cooling water outlet1')
+    >>> cw_out2 = cmp.sink('cooling water outlet2')
+    >>> split = cmp.splitter('splitter')
+    >>> merge = cmp.merge('merge')
+    >>> chp = cmp.cogeneration_unit(label='cogeneration unit')
+    >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
+    >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
+    >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+    >>> cw1_chp1 = con.connection(cw_in1, 'out1', chp, 'in1')
+    >>> cw2_chp2 = con.connection(cw_in2, 'out1', chp, 'in2')
+    >>> nw.add_conns(cw1_chp1, cw2_chp2)
+    >>> chp1_cw = con.connection(chp, 'out1', cw_out1, 'in1')
+    >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
+    >>> nw.add_conns(chp1_cw, chp2_cw)
+    >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=10e6, lamb=1.2)
+    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
+    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> mode = 'design'
+    >>> nw.solve(mode=mode)
+    >>> nw.save('tmp')
+    >>> round(chp.ti.val)
+    22500000.0
+    >>> chp.set_attr(P=7e6)
+    >>> mode = 'offdesign'
+    >>> nw.solve(mode=mode, init_file='tmp/results.csv', design_file='tmp/results.csv')
+    >>> round(chp.ti.val)
+    16501800.0
     """
 
     def component(self):
@@ -6022,10 +6172,10 @@ class cogeneration_unit(combustion_chamber):
             self.h2o: m_h2o / m_fg
         }
 
-        for o in self.outl[2]:
-            for fluid, x in o.fluid.val.items():
-                if not o.fluid.val_set[fluid] and fluid in fg.keys():
-                    o.fluid.val[fluid] = fg[fluid]
+        o = self.outl[2]
+        for fluid, x in o.fluid.val.items():
+            if not o.fluid.val_set[fluid] and fluid in fg.keys():
+                o.fluid.val[fluid] = fg[fluid]
 
     def initialise_source(self, c, key):
         r"""
@@ -6208,6 +6358,37 @@ class vessel(component):
 
     zeta : String/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> import numpy as np
+    >>> fluid_list = ['CH4']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so = cmp.source('source')
+    >>> si = cmp.sink('sink')
+    >>> v = cmp.vessel('vessel')
+    >>> so_v = con.connection(so, 'out1', v, 'in1')
+    >>> v_si = con.connection(v, 'out1', si, 'in1')
+    >>> nw.add_conns(so_v, v_si)
+    >>> v.set_attr(pr=0.05, design=['pr'], offdesign=['zeta'])
+    >>> so_v.set_attr(fluid={'CH4': 1}, m=10)
+    >>> v_si.set_attr(p=2, T=10)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(v.zeta.val, 1)
+    122239.1
+    >>> so_v.set_attr(m=12)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(v.pr.val, 3)
+    0.036
+    >>> round(so_v.T.val, 1)
+    33.1
+    >>> so_v.set_attr(m=8)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(v.pr.val, 3)
+    0.074
     """
 
     def component(self):
@@ -6306,25 +6487,24 @@ class vessel(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            pr_deriv[0, 0, 1] = self.pr.val
-            pr_deriv[0, 1, 1] = -1
+            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv[0, 0, 1] = self.pr.val
+            deriv[0, 1, 1] = -1
             if self.pr.is_var:
-                pr_deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
-            mat_deriv += pr_deriv.tolist()
+                deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
+            mat_deriv += deriv.tolist()
 
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
-            zeta_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
+            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             for i in range(2):
-                zeta_deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
-                zeta_deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
+                deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
+                deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
             if self.zeta.is_var:
-                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(self.zeta_func, 'zeta', i))
-            mat_deriv += zeta_deriv.tolist()
+                deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
+            mat_deriv += deriv.tolist()
 
         ######################################################################
         # derivatives for characteristic line for pressure ratio
@@ -6574,6 +6754,10 @@ class heat_exchanger_simple(component):
     kA_group : tespy.helpers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature and area
         independent heat transfer coefficient kA.
+
+    Example
+    -------
+    TODO
     """
 
     def component(self):

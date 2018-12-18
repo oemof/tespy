@@ -1540,8 +1540,8 @@ class compressor(turbomachine):
     >>> nw.save('tmp')
     >>> cp.set_attr(P=9e4, igva='var')
     >>> nw.solve('offdesign', design_file='tmp/results.csv')
-    >>> round(cp.eta_s.val)
-    >>> 0.755
+    >>> round(cp.eta_s.val, 3)
+    0.755
     """
 
     def component(self):
@@ -2018,7 +2018,7 @@ class turbine(turbomachine):
     >>> nw.solve('offdesign', design_file='tmp/results.csv')
     >>> nw.print_results()
     >>> round(t.eta_s.val, 3)
-    >>> 0.798
+    0.798
     """
 
     def component(self):
@@ -2389,13 +2389,40 @@ class node(component):
 
     Note
     ----
+    - Node: Fluid composition and enthalpy at all **outgoing** connections (massflow leaves the node) is result of mixture of the properties of the incoming connections (massflow enters node).
+      Incoming and outgoing connections can be a result of the calculation and are not identical to the inlets and outlets!
+    - Splitter: Fluid composition and enthalpy at all outlets is the same as the inlet's properties.
+    - Separator: Fluid composition is variable for all outlets, temperature at all outlets is the same as the inlet's temperature.
+    - Merge: Fluid composition and enthalpy at outlet is result of mixture of the inlet's properties.
 
-        - Node: Fluid composition and enthalpy at all **outgoing** connections (massflow leaves the node) is result of mixture of the properties of the incoming connections (massflow enters node).
-          Incoming and outgoing connections can be a result of the calculation and are not identical to the inlets and outlets!
-        - Splitter: Fluid composition and enthalpy at all outlets is the same as the inlet's properties.
-        - Separator: Fluid composition is variable for all outlets, temperature at all outlets is the same as the inlet's temperature.
-        - Merge: Fluid composition and enthalpy at outlet is result of mixture of the inlet's properties.
-
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> so1 = cmp.source('source1')
+    >>> so2 = cmp.source('source2')
+    >>> si1 = cmp.sink('sink1')
+    >>> si2 = cmp.sink('sink2')
+    >>> n = cmp.node('node', num_in=2, num_out=2)
+    >>> inc1 = con.connection(so1, 'out1', n, 'in1')
+    >>> inc2 = con.connection(so2, 'out1', n, 'in2')
+    >>> outg1 = con.connection(n, 'out1', si1, 'in1')
+    >>> outg2 = con.connection(n, 'out2', si2, 'in1')
+    >>> nw.add_conns(inc1, inc2, outg1, outg2)
+    >>> inc1.set_attr(fluid={'O2': 1, 'N2': 0}, p=1, T=20, m=2)
+    >>> inc2.set_attr(fluid={'O2': 0.5, 'N2': 0.5}, T=50, m=5)
+    >>> outg1.set_attr(m=3)
+    >>> nw.solve('design')
+    >>> (round(outg1.fluid.val['O2'], 3), round(outg1.fluid.val['N2'], 3))
+    (0.643, 0.357)
+    >>> inc2.set_attr(m=np.nan)
+    >>> outg1.set_attr(fluid={'O2': 0.8})
+    >>> nw.solve('design')
+    >>> round(inc2.m.val_SI, 3)
+    1.333
     """
 
     def component(self):
@@ -2594,12 +2621,12 @@ class node(component):
         """
         vec_res = []
 
-        for fluid in self.outl[0].fluid.val.keys():
-            x = 0
+        for fluid in self.fluids:
+            m = 0
             for i in self.inc:
-                x += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
+                m += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
             for o in self.outg:
-                vec_res += [x - o[0].fluid.val[fluid] * self.m_inc]
+                vec_res += [m - o[0].fluid.val[fluid] * self.m_inc]
         return vec_res
 
     def fluid_deriv(self):
@@ -2614,14 +2641,15 @@ class node(component):
         num_o = len(self.outg)
         deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o, 3 + self.num_fl))
         j = 0
-        for fluid in self.outl[0].fluid.val.keys():
-            k = 0
+        k = 0
+        for fluid in self.fluids:
             for o in self.outg:
-                deriv[j + k, o[1], j + 3] = self.m_inc
+                deriv[k, o[1], j + 3] = -self.m_inc
                 for i in self.inc:
-                    deriv[j + k, i[1], 0] = i[0].fluid.val[fluid]
-                    deriv[j + k, i[1], j + 3] = abs(i[0].m.val_SI)
+                    deriv[k, i[1], 0] = -i[0].fluid.val[fluid]
+                    deriv[k, i[1], j + 3] = -abs(i[0].m.val_SI)
                 k += 1
+            j += 1
 
         return deriv.tolist()
 
@@ -3475,14 +3503,14 @@ class combustion_chamber(component):
         ######################################################################
         # derivatives for reaction balance
         j = 0
-        fl_deriv = np.zeros((self.num_fl, 3, self.num_fl + 3))
+        deriv = np.zeros((self.num_fl, 3, self.num_fl + 3))
         for fluid in self.fluids:
             for i in range(3):
-                fl_deriv[j, i, 0] = self.rb_numeric_deriv('m', i, fluid)
-                fl_deriv[j, i, 3:] = self.rb_numeric_deriv('fluid', i, fluid)
+                deriv[j, i, 0] = self.rb_numeric_deriv('m', i, fluid)
+                deriv[j, i, 3:] = self.rb_numeric_deriv('fluid', i, fluid)
 
             j += 1
-        mat_deriv += fl_deriv.tolist()
+        mat_deriv += deriv.tolist()
 
         ######################################################################
         # derivatives for mass balance equations

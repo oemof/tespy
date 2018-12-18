@@ -9,7 +9,6 @@ matrix:
       sudo: true
 
 install:
-  - pip install .[]
   - pip install coveralls
 
 # command to run tests

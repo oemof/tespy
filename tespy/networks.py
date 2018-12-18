@@ -1362,7 +1362,7 @@ class network:
                 c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.9
 
             # enthalpy
-            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * 1.01, fl)
+            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * 1.05, fl)
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if c.h.val_SI < 0:

@@ -43,6 +43,9 @@ class component:
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    **kwargs :
+        See the class documentation of desired component for available keywords.
+
     Note
     ----
     The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
@@ -213,7 +216,7 @@ class component:
         Returns
         -------
         out :
-            Specified attribute
+            Specified attribute.
         """
         if key in self.__dict__:
             return self.__dict__[key]
@@ -511,10 +514,10 @@ class component:
             d = self.get_attr(dx).d
             exp = 0
             self.get_attr(dx).val += d
-            exp += func()
+            exp += func(**kwargs)
 
             self.get_attr(dx).val -= 2 * d
-            exp -= func()
+            exp -= func(**kwargs)
             deriv = exp / (2 * d)
 
             self.get_attr(dx).val += d
@@ -523,7 +526,7 @@ class component:
 
 # %%
 
-    def zeta_func(self):
+    def zeta_func(self ):
         r"""
         Calculates residual value of :math:`\zeta`-function.
 
@@ -5801,10 +5804,20 @@ class cogeneration_unit(combustion_chamber):
                 \end{cases}
         """
         if bus.param == 'TI':
-            return self.calc_ti()
+            ti = self.calc_ti()
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(ti / bus.P_ref)
+            return ti * bus.char.f_x(expr)
 
         elif bus.param == 'P':
-            return self.calc_P()
+            P = self.calc_P()
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(P / bus.P_ref)
+            return P * bus.char.f_x(expr)
 
         elif bus.param == 'Q':
             val = 0
@@ -5813,20 +5826,41 @@ class cogeneration_unit(combustion_chamber):
                 o = self.outl[j]
                 val += i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
-            return val
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(val / bus.P_ref)
+            return val * bus.char.f_x(expr)
 
         elif bus.param == 'Q1':
             i = self.inl[0]
             o = self.outl[0]
-            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(val / bus.P_ref)
+            return val * bus.char.f_x(expr)
 
         elif bus.param == 'Q2':
             i = self.inl[1]
             o = self.outl[1]
-            return i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(val / bus.P_ref)
+            return val * bus.char.f_x(expr)
 
         elif bus.param == 'Qloss':
-            return self.Qloss.val
+            Q = self.calc_Qloss()
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(Q / bus.P_ref)
+            return Q * bus.char.f_x(expr)
 
         else:
             msg = 'The parameter ' +  bus.param +  'is not a valid parameter for a ' + self.component()
@@ -5852,62 +5886,60 @@ class cogeneration_unit(combustion_chamber):
         # derivatives for specified zeta values at cooling loops
         if bus.param == 'TI':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_ti, 'm', i + 2)
-                deriv[0, i + 2, 3:] = self.numeric_deriv(self.calc_ti, 'fluid', i + 2)
-            deriv[0, 6, 0] = self.numeric_deriv(self.calc_ti, 'm', 6)
-            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_ti, 'fluid', 6)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
+                deriv[0, i + 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i + 2, bus=bus)
+            deriv[0, 6, 0] = self.numeric_deriv(self.bus_func, 'm', 6, bus=bus)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 6, bus=bus)
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         elif bus.param == 'P':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_P, 'm', i + 2)
-                deriv[0, i + 2, 3:] = self.numeric_deriv(self.calc_P, 'fluid', i + 2)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
+                deriv[0, i + 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i + 2, bus=bus)
 
-            deriv[0, 6, 0] = self.numeric_deriv(self.calc_P, 'm', 6)
-            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_P, 'fluid', 6)
+            deriv[0, 6, 0] = self.numeric_deriv(self.bus_func, 'm', 6, bus=bus)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 6, bus=bus)
 
             # variable power
             if self.P.is_var:
-                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.calc_P, 'P', 7)
+                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         elif bus.param == 'Q':
-            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            deriv[0, 0, 2] = -self.inl[0].m.val_SI
-            deriv[0, 4, 2] = self.inl[0].m.val_SI
-            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
-            deriv[0, 1, 2] = -self.inl[0].m.val_SI
-            deriv[0, 5, 2] = self.inl[0].m.val_SI
+            for i in range(2):
+                deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
+                deriv[0, i, 2] = self.numeric_deriv(self.bus_func, 'h', i, bus=bus)
+                deriv[0, i + 4, 2] = self.numeric_deriv(self.bus_func, 'h', i + 4, bus=bus)
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         elif bus.param == 'Q1':
-            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            deriv[0, 0, 2] = -self.inl[0].m.val_SI
-            deriv[0, 4, 2] = self.inl[0].m.val_SI
+            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+            deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         elif bus.param == 'Q2':
-            deriv[0, 1, 0] = self.outl[1].h.val_SI - self.inl[1].h.val_SI
-            deriv[0, 1, 2] = -self.inl[0].m.val_SI
-            deriv[0, 5, 2] = self.inl[0].m.val_SI
+            deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
+            deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         elif bus.param == 'Qloss':
             for i in range(2):
-                deriv[0, i + 2, 0] = self.numeric_deriv(self.calc_Qloss, 'm', i + 2)
-                deriv[0, i + 2, 3:] = self.numeric_deriv(self.calc_Qloss, 'fluid', i + 2)
+                deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
+                deriv[0, i + 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i + 2, bus=bus)
 
-            deriv[0, 6, 0] = self.numeric_deriv(self.calc_Qloss, 'm', 6)
-            deriv[0, 6, 3:] = self.numeric_deriv(self.calc_Qloss, 'fluid', 6)
+            deriv[0, 6, 0] = self.numeric_deriv(self.bus_func, 'm', 6, bus=bus)
+            deriv[0, 6, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 6, bus=bus)
 
             # variable power
             if self.P.is_var:
-                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.calc_Qloss, 'P', 7)
+                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
         else:
             msg = 'The parameter ' +  bus.param +  'is not a valid parameter for a ' + self.component()

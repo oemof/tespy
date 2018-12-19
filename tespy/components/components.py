@@ -7970,6 +7970,40 @@ class heat_exchanger(component):
     ---
     The heat exchanger and subclasses (desuperheater, condenser) are countercurrent heat exchangers.
     Equations (kA, ttd_u, ttd_l) do not work for directcurrent and crosscurrent or combinations of different types.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> tesin = cmp.sink('TES in')
+    >>> tesout = cmp.source('TES out')
+    >>> hsin = cmp.sink('HS in')
+    >>> hsout = cmp.source('HS out')
+    >>> he = cmp.heat_exchanger('heat exchanger')
+    >>> tes_he = con.connection(tesout, 'out1', he, 'in2')
+    >>> he_tes = con.connection(he, 'out2', tesin, 'in1')
+    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
+    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
+    >>> nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> hs_he.set_attr(T=120, p=3, fluid={'water': 1})
+    >>> he_hs.set_attr(T=70)
+    >>> tes_he.set_attr(p=5, fluid={'water': 1})
+    >>> tes_he.set_attr(T=40)
+    >>> he.set_attr(Q=-80e3)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(tes_he.m.val, 2)
+    0.25
+    >>> round(he_tes.T.val, 1)
+    115.0
+    >>> he.set_attr(Q=-60e3)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(tes_he.m.val, 2)
+    0.19
+    >>> round(he_tes.T.val, 1)
+    115.9
     """
 
     def component(self):
@@ -8884,6 +8918,41 @@ class condenser(heat_exchanger):
     - The pressure drop via zeta1 at hot side is not an offdesign parameter.
     - It has different calculation method for given heat transfer coefficient
       and upper terminal temperature difference.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> amb_in = cmp.sink('ambient in')
+    >>> amb_out = cmp.source('ambient out')
+    >>> hsin = cmp.sink('HS in')
+    >>> hsout = cmp.source('HS out')
+    >>> he = cmp.condenser('condenser')
+    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
+    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
+    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
+    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
+    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
+    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'], offdesign=['zeta2', 'kA'])
+    >>> hs_he.set_attr(T=120, p=1, fluid={'water': 1, 'air': 0})
+    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
+    >>> he_amb.set_attr(p=1, T=40, design=['T'])
+    >>> he.set_attr(Q=-80e3)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(hs_he.m.val, 2)
+    0.03
+    >>> round(amb_he.m.val, 2)
+    3.97
+    >>> round(he_amb.T.val, 1)
+    40.0
+    >>> he.set_attr(Q=-60e3)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(amb_he.m.val, 2)
+    2.78
+    >>> round(he_amb.T.val, 1)
+    41.5
     """
 
     def component(self):
@@ -9180,6 +9249,43 @@ class desuperheater(heat_exchanger):
     ----
 
     - The desuperheater has an additional equation for enthalpy at hot side outlet.
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> amb_in = cmp.sink('ambient in')
+    >>> amb_out = cmp.source('ambient out')
+    >>> hsin = cmp.sink('HS in')
+    >>> hsout = cmp.source('HS out')
+    >>> he = cmp.desuperheater('desuperheater')
+    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
+    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
+    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
+    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
+    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
+    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> hs_he.set_attr(T=200, p=1, fluid={'water': 1, 'air': 0})
+    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
+    >>> he_amb.set_attr(p=1, T=40, design=['T'])
+    >>> he.set_attr(Q=-80e3)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(hs_he.m.val, 1)
+    0.4
+    >>> round(amb_he.m.val, 2)
+    3.97
+    >>> round(he_amb.T.val, 1)
+    40.0
+    >>> he.set_attr(Q=-60e3)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(hs_he.m.val, 1)
+    0.3
+    >>> round(amb_he.m.val, 2)
+    2.56
+    >>> round(he_amb.T.val, 1)
+    43.3
     """
 
     def component(self):

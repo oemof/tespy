@@ -6787,7 +6787,7 @@ class heat_exchanger_simple(component):
     """
 
     def component(self):
-        return 'simplified heat exchanger'
+        return 'heat exchanger simple'
 
     def attr(self):
         return {'Q': dc_cp(),
@@ -7973,7 +7973,7 @@ class heat_exchanger(component):
     """
 
     def component(self):
-        return 'heat_exchanger'
+        return 'heat exchanger'
 
     def attr(self):
         # derivatives for logarithmic temperature difference not implemented
@@ -9294,6 +9294,53 @@ class drum(component):
 
     This component assumes, that the fluid composition between outlet 1 and inlet 2 does not change,
     thus there is no equation for the fluid mass fraction at the inlet 2!
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk
+    >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> f = cmp.source('feed')
+    >>> ha = cmp.source('hot air')
+    >>> ch = cmp.sink('chimney')
+    >>> s = cmp.sink('steam')
+    >>> dr = cmp.drum('drum')
+    >>> ev = cmp.heat_exchanger('evaporator')
+    >>> erp = cmp.pump('evaporator reciculation pump')
+    >>> f_dr = con.connection(f, 'out1', dr, 'in1')
+    >>> dr_erp = con.connection(dr, 'out1', erp, 'in1')
+    >>> erp_ev = con.connection(erp, 'out1', ev, 'in2')
+    >>> ev_dr = con.connection(ev, 'out2', dr, 'in2')
+    >>> dr_s = con.connection(dr, 'out2', s, 'in1')
+    >>> nw.add_conns(f_dr, dr_erp, erp_ev, ev_dr, dr_s)
+    >>> ha_ev = con.connection(ha, 'out1', ev, 'in1')
+    >>> ev_ch = con.connection(ev, 'out1', ch, 'in1')
+    >>> nw.add_conns(ha_ev, ev_ch)
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=20, kA_char1='EVA_HOT', kA_char2='EVA_COLD', design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
+    >>> ev.set_attr(Q=-1e6)
+    >>> erp.set_attr(eta_s=0.8)
+    >>> f_dr.set_attr(p=5, T=-5)
+    >>> erp_ev.set_attr(m=con.ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
+    >>> ha_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=100)
+    >>> ev_ch.set_attr(p=1)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(ev.ttd_l.val, 1)
+    20.0
+    >>> round(f_dr.h.val, 1)
+    320.2
+    >>> round(dr_erp.h.val, 1)
+    362.4
+    >>> round(ev_dr.h.val, 1)
+    684.7
+    >>> round(f_dr.m.val, 2)
+    0.78
+    >>> ev.set_attr(Q=-0.75e6)
+    >>> nw.solve('offdesign', init_file='tmp/results.csv', design_file='tmp/results.csv')
+    >>> round(f_dr.m.val, 2)
+    0.58
+    >>> round(ev.ttd_l.val, 1)
+    16.9
     """
 
     def component(self):

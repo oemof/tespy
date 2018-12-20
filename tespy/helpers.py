@@ -354,13 +354,21 @@ class MyConvergenceError(Exception):
 
 def query_yes_no(question, default='yes'):
     r"""
-    in prompt query
+    Parameters
+    ----------
+    question : String
+        Question to be asked.
 
-    :param question: question to ask in prompt
-    :type question: str
-    :param default: default answer
-    :type default: str
-    :returns: bool
+    default : String
+        Default answer: default='yes'.
+
+    elements : list
+        Which component properties are part of this component group? default elements=[].
+
+    Returns
+    -------
+    answer : bool
+        Answer.
     """
     valid = {'yes': True,
              'y': True,
@@ -606,32 +614,70 @@ def reverse_2d_deriv(params, y):
 
 class memorise:
     r"""
-    TODO: add documentation
+    Memorization of fluid properties.
+
+    Parameters
+    ----------
+    fluids : list
+        List of fluid for fluid property memorization, delivered upon tespy.networks.network initilisation.
+
+    Note
+    ----
+    The memorise class creates globally accessible variables for different fluid
+    property calls as dictionaries:
+
+        - T(p,h)
+        - T(p,s)
+        - v(p,h)
+        - visc(p,h)
+        - s(p,h)
+
+    Each dictionary uses the list of fluids passed to the memorise class as
+    identifier for the fluid property memorisation. The fluid properties are
+    stored as numpy array, where each column represents the mass fraction of the
+    respective fluid and the additional columns are the values for the fluid
+    properties. The fluid property function will then look for identical fluid
+    property inputs (p, h, (s), fluid mass fraction). If the inputs are in the
+    array, the first column of that row is returned, see example.
+
+    Example
+    -------
+    T(p,h) for set of fluids ('water', 'air'), values are not :
+
+        - row 1: [282.64527752319697, 10000, 40000, 1, 0]
+        - row 2: [284.3140698256616, 10000, 47000, 1, 0]
     """
 
     def __init__(self, fluids):
 
+        #
         num_fl = len(fluids)
         if num_fl > 0:
             fl = tuple(fluids)
+            # fluid property tables
             memorise.T_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.T_ph_f[fl] = []
             memorise.T_ps[fl] = np.empty((0, num_fl + 4), float)
-            memorise.T_ps_f[fl] = []
             memorise.v_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.v_ph_f[fl] = []
             memorise.visc_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.visc_ph_f[fl] = []
             memorise.s_ph[fl] = np.empty((0, num_fl + 3), float)
+            # lists for memory cache, values not in these lists will be deleted
+            # from the table after every tespy.networks.network.solve call.
+            memorise.T_ph_f[fl] = []
+            memorise.T_ps_f[fl] = []
+            memorise.v_ph_f[fl] = []
+            memorise.visc_ph_f[fl] = []
             memorise.s_ph_f[fl] = []
             memorise.count = 0
 
+        # memorisation of fluid property ranges
+        # pressure
         for f in fluids:
             try:
                 pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
             except ValueError:
                 pmin, pmax = 2000, 2000e5
 
+        # temperature
         for f in fluids:
             try:
                 Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
@@ -644,32 +690,31 @@ class memorise:
 
         fl = tuple(fluids)
 
-        mask = np.isin(memorise.T_ph[fl][:, -1],
-                       memorise.T_ph_f[fl])
+        # delete memory
+        mask = np.isin(memorise.T_ph[fl][:, -1], memorise.T_ph_f[fl])
         memorise.T_ph[fl] = (memorise.T_ph[fl][mask])
-        memorise.T_ph_f[fl] = []
 
-        mask = np.isin(memorise.T_ps[fl][:, -1],
-                       memorise.T_ps_f[fl])
+        mask = np.isin(memorise.T_ps[fl][:, -1], memorise.T_ps_f[fl])
         memorise.T_ps[fl] = (memorise.T_ps[fl][mask])
-        memorise.T_ps_f[fl] = []
 
-        mask = np.isin(memorise.v_ph[fl][:, -1],
-                       memorise.v_ph_f[fl])
+        mask = np.isin(memorise.v_ph[fl][:, -1], memorise.v_ph_f[fl])
         memorise.v_ph[fl] = (memorise.v_ph[fl][mask])
-        memorise.v_ph_f[fl] = []
 
-        mask = np.isin(memorise.visc_ph[fl][:, -1],
-                       memorise.visc_ph_f[fl])
+        mask = np.isin(memorise.visc_ph[fl][:, -1], memorise.visc_ph_f[fl])
         memorise.visc_ph[fl] = (memorise.visc_ph[fl][mask])
-        memorise.visc_ph_f[fl] = []
 
-        mask = np.isin(memorise.s_ph[fl][:, -1],
-                       memorise.s_ph_f[fl])
+        mask = np.isin(memorise.s_ph[fl][:, -1], memorise.s_ph_f[fl])
         memorise.s_ph[fl] = (memorise.s_ph[fl][mask])
+
+        # refresh cache
+        memorise.T_ph_f[fl] = []
+        memorise.T_ps_f[fl] = []
+        memorise.v_ph_f[fl] = []
+        memorise.visc_ph_f[fl] = []
         memorise.s_ph_f[fl] = []
 
 
+# create memorise dictionaries
 memorise.T_ph = {}
 memorise.T_ph_f = {}
 memorise.T_ps = {}
@@ -685,64 +730,79 @@ memorise.vrange = {}
 # %%
 
 
-def newton(func, deriv, params, k, **kwargs):
+def newton(func, deriv, params, y, **kwargs):
     r"""
-    find zero crossings of function func with 1-D newton algorithm,
-    required for reverse functions of fluid mixtures
+    1-D newton algorithm to find zero crossings of function func with its derivative
+    deriv.
 
-    :param func: function to find zero crossing in
-    :type func: function
-    :param deriv: derivative of the function
-    :type deriv: function
-    :param params: vector containing parameters for func
-    :type params: list
-    :param k: target value for function func
-    :type k: numeric
-    :returns: val (float) - val, so that func(params, val) = k
+    Parameters
+    ----------
+    func : function
+        Function to find zero crossing in, :math:`0=y-func\left(x,\text{params}\right)`.
 
-    **allowed keywords** in kwargs:
+    deriv : function
+        First derivative of the function.
 
-    - val0 (*numeric*) - starting value
-    - valmin (*numeric*) - minimum value
-    - valmax (*numeric*) - maximum value
-    - imax (*numeric*) - maximum number of iterations
+    params : list
+        Additional parameters for function, optional.
+
+    y : float
+        Target function value.
+
+    val0 : float
+        Starting value, default: val0=300.
+
+    valmin : float
+        Lower value boundary, default: valmin=70.
+
+    valmax : float
+        Upper value boundary, default: valmax=3000.
+
+    max_iter : int
+        Maximum number of iterations, default: max_iter=10.
+
+    Returns
+    -------
+    val : float
+        x-value of zero crossing.
+
+    Note
+    ---
+    Algorithm
 
     .. math::
 
         x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
-        f(x_{n}) \leq \epsilon, \; n < 10\\
-        n: \text{number of iterations}
+        f(x_{i}) \leq \epsilon
     """
-
     # default valaues
-    val = kwargs.get('val0', 300)
+    x = kwargs.get('val0', 300)
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
-    imax = kwargs.get('imax', 10)
+    max_iter = kwargs.get('max_iter', 10)
 
     # start newton loop
     res = 1
     i = 0
     while abs(res) >= err:
-        # calculate function residual
-        res = k - func(params, val)
-        # calculate new value
-        val += res / deriv(params, val)
+        # calculate function residual and new value
+        res = y - func(params, x)
+        x += res / deriv(params, x)
 
         # check for value ranges
-        if val < valmin:
-            val = valmin
-        if val > valmax:
-            val = valmax
+        if x < valmin:
+            x = valmin
+        if x > valmax:
+            x = valmax
         i += 1
 
-        if i > imax:
+        if i > max_iter:
 #            print('Newton algorithm was not able to find a feasible '
 #                  'value for function ' + str(func) + '.')
 
             break
 
-    return val
+    return x
 
 # %%
 

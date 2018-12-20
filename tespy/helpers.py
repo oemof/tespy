@@ -65,8 +65,8 @@ class data_container:
     ...     max_val=1000, min_val=1))
     <class 'tespy.helpers.dc_cp'>
     >>> pipe = cmp.pipe('testpipe', L=100, D=0.5, ks=5e-5)
-    >>> type(hlp.dc_gcp('is_set': True, 'elements': [pipe.L, pipe.D, pipe.ks],
-    ...     'method': 'default'))
+    >>> type(hlp.dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
+    ...     method='default'))
     <class 'tespy.helpers.dc_gcp'>
     >>> type(hlp.dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
     ...     val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},

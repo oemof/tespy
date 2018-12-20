@@ -730,13 +730,13 @@ class turbomachine(component):
         List containing offdesign parameters (stated as String).
 
     P : Sring/float/tespy.helpers.dc_cp
-        Power, :math:`[P]=\text{W}`
+        Power, :math:`P/\text{W}`
 
     eta_s : Sring/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`[\eta_s]=1`
+        Isentropic efficiency, :math:`\eta_s/1`
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
+        Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : String/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
@@ -967,7 +967,7 @@ class turbomachine(component):
         if np.isnan(bus.P_ref):
             expr = 1
         else:
-            expr = val / bus.P_ref
+            expr = abs(val / bus.P_ref)
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
@@ -1089,13 +1089,13 @@ class pump(turbomachine):
         List containing offdesign parameters (stated as String).
 
     P : Sring/float/tespy.helpers.dc_cp
-        Power, :math:`[P]=\text{W}`
+        Power, :math:`P/\text{W}`
 
     eta_s : Sring/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`[\eta_s]=1`
+        Isentropic efficiency, :math:`\eta_s/1`
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
+        Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : String/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
@@ -1103,14 +1103,15 @@ class pump(turbomachine):
 
     flow_char : String/tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
-        provide data: :math:`[x]=\frac{\text{m}^3}{\text{s}} \,
-        [y]=\text{Pa}`
+        provide data: :math:`x/\frac{\text{m}^3}{\text{s}} \,
+        [y/\text{Pa}`
 
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
     >>> fluid_list = ['water']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
@@ -1121,7 +1122,8 @@ class pump(turbomachine):
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
     >>> char = hlp.dc_cc(x=v, y=dp, is_set=True)
-    >>> p.set_attr(pr=10, eta_s=0.8, flow_char=char, design=['eta_s'], offdesign=['eta_s_char'])
+    >>> p.set_attr(pr=10, eta_s=0.8, flow_char=char, design=['eta_s'],
+    ...     offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20)
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -1506,13 +1508,13 @@ class compressor(turbomachine):
         List containing offdesign parameters (stated as String).
 
     P : Sring/float/tespy.helpers.dc_cp
-        Power, :math:`[P]=\text{W}`
+        Power, :math:`P/\text{W}`
 
     eta_s : Sring/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`[\eta_s]=1`
+        Isentropic efficiency, :math:`\eta_s/1`
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
+        Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : String/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
@@ -1523,13 +1525,14 @@ class compressor(turbomachine):
         see tespy.components.characteristics.compressor for further information.
 
     igva : String/float/tespy.helpers.dc_cp
-        Inlet guide vane angle, :math:`[igva]=^\circ`.
+        Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
     >>> fluid_list = ['air']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
@@ -1537,7 +1540,8 @@ class compressor(turbomachine):
     >>> inc = con.connection(so, 'out1', cp, 'in1')
     >>> outg = con.connection(cp, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> cp.set_attr(pr=10, eta_s=0.8, P=1e5, design=['eta_s'], offdesign=['char_map'])
+    >>> cp.set_attr(pr=10, eta_s=0.8, P=1e5, design=['eta_s'],
+    ...     offdesign=['char_map'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20)
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -1985,13 +1989,13 @@ class turbine(turbomachine):
         List containing offdesign parameters (stated as String).
 
     P : Sring/float/tespy.helpers.dc_cp
-        Power, :math:`[P]=\text{W}`
+        Power, :math:`P/\text{W}`
 
     eta_s : Sring/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`[\eta_s]=1`
+        Isentropic efficiency, :math:`\eta_s/1`
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
+        Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : String/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
@@ -2004,7 +2008,8 @@ class turbine(turbomachine):
     -------
     >>> from tespy import cmp, con, nwk, hlp
     >>> fluid_list = ['water']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
@@ -2012,7 +2017,8 @@ class turbine(turbomachine):
     >>> inc = con.connection(so, 'out1', t, 'in1')
     >>> outg = con.connection(t, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'], offdesign=['eta_s_char', 'cone'])
+    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'],
+    ...     offdesign=['eta_s_char', 'cone'])
     >>> inc.set_attr(fluid={'water': 1}, T=600)
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
@@ -2402,7 +2408,8 @@ class node(component):
     >>> from tespy import cmp, con, nwk, hlp
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> so1 = cmp.source('source1')
     >>> so2 = cmp.source('source2')
@@ -2821,7 +2828,8 @@ class splitter(node):
     >>> from tespy import cmp, con, nwk, hlp
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> so1 = cmp.source('source1')
     >>> si1 = cmp.sink('sink1')
@@ -3022,7 +3030,8 @@ class separator(node):
     >>> from tespy import cmp, con, nwk, hlp
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> so1 = cmp.source('source1')
     >>> si1 = cmp.sink('sink1')
@@ -3218,7 +3227,8 @@ class merge(node):
     -------
     >>> from tespy import cmp, con, nwk, hlp
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> so1 = cmp.source('source1')
     >>> so2 = cmp.source('source2')
@@ -3414,11 +3424,11 @@ class combustion_chamber(component):
         Fuel for the combustion chamber, see list of available fluids above.
 
     lamb : float/tespy.helpers.dc_cp
-        Air to stoichiometric air ratio, :math:`[\lambda] = 1`.
+        Air to stoichiometric air ratio, :math:`\lambda/1`.
 
     ti : float/tespy.helpers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`[ti] = \text{W}`.
+        :math:`ti/\text{W}`.
 
     Note
     ----
@@ -3431,7 +3441,8 @@ class combustion_chamber(component):
     -------
     >>> from tespy import cmp, con, nwk
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     p_range=[0.5, 10], T_range=[10, 1200])
     >>> nw.set_printoptions(print_level='err')
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
@@ -3442,8 +3453,12 @@ class combustion_chamber(component):
     >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
     >>> comb.set_attr(fuel='CH4', ti=50000)
-    >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96})
+    >>> amb_comb.set_attr(p=1, T=20,
+    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+    ...         'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=25,
+    ...     fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0,
+    ...         'O2': 0, 'H2O': 0, 'CH4': 0.96})
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
@@ -4056,7 +4071,7 @@ class combustion_chamber(component):
         if np.isnan(bus.P_ref):
             expr = 1
         else:
-            expr = val / bus.P_ref
+            expr = abs(val / bus.P_ref)
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
@@ -4410,11 +4425,11 @@ class combustion_chamber_stoich(combustion_chamber):
         Path to existing fluid property table.
 
     lamb : float/tespy.helpers.dc_cp
-        Air to stoichiometric air ratio, :math:`[\lambda] = 1`.
+        Air to stoichiometric air ratio, :math:`\lambda/1`.
 
     ti : float/tespy.helpers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`[ti] = \text{W}`.
+        :math:`ti/\text{W}`.
 
     Note
     ----
@@ -5164,35 +5179,35 @@ class cogeneration_unit(combustion_chamber):
         Fuel for the combustion chamber, see list of available fluids above.
 
     lamb : float/tespy.helpers.dc_cp
-        Air to stoichiometric air ratio, :math:`[\lambda] = 1`.
+        Air to stoichiometric air ratio, :math:`\lambda/1`.
 
     ti : float/tespy.helpers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`[ti] = \text{W}`.
+        :math:`ti/\text{W}`.
 
     P : String/float/tespy.helpers.dc_cp
-        Power output, :math:`[P] = \text{W}`.
+        Power output, :math:`P/\text{W}`.
 
     Q1 : String/float/tespy.helpers.dc_cp
-        Heat output 1, :math:`[\dot Q] = \text{W}`.
+        Heat output 1, :math:`\dot Q/\text{W}`.
 
     Q2 : String/float/tespy.helpers.dc_cp
-        Heat output 2, :math:`[\dot Q] = \text{W}`.
+        Heat output 2, :math:`\dot Q/\text{W}`.
 
     Qloss : String/float/tespy.helpers.dc_cp
-        Heat loss, :math:`[\dot Q_{loss}] = \text{W}`.
+        Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
     pr1 : String/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 1, :math:`[pr] = 1`.
+        Pressure ratio heat outlet 1, :math:`pr/1`.
 
     pr2 : String/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2, :math:`[pr] = 1`.
+        Pressure ratio heat outlet 2, :math:`pr/1`.
 
     zeta1 : String/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Pressure ratio heat outlet 2, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     zeta2 : String/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Pressure ratio heat outlet 2, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     tiP_char : String/tespy.helpers.dc_cc
         Characteristic line linking fuel input to power output.
@@ -5216,7 +5231,8 @@ class cogeneration_unit(combustion_chamber):
     -------
     >>> from tespy import cmp, con, nwk
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     p_range=[0.5, 10], T_range=[10, 1200])
     >>> nw.set_printoptions(print_level='err')
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
@@ -5239,10 +5255,15 @@ class cogeneration_unit(combustion_chamber):
     >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
     >>> nw.add_conns(chp1_cw, chp2_cw)
     >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=10e6, lamb=1.2)
-    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> amb_comb.set_attr(p=5, T=30,
+    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
+    ...         'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=30,
+    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
+    >>> cw1_chp1.set_attr(p=3, T=60, m=50,
+    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw2_chp2.set_attr(p=3, T=80, m=50,
+    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
@@ -5250,7 +5271,8 @@ class cogeneration_unit(combustion_chamber):
     22500000.0
     >>> chp.set_attr(P=7e6)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_file='tmp/results.csv', design_file='tmp/results.csv')
+    >>> nw.solve(mode=mode, init_file='tmp/results.csv',
+    ...     design_file='tmp/results.csv')
     >>> round(chp.ti.val)
     16501800.0
     """
@@ -5789,19 +5811,19 @@ class cogeneration_unit(combustion_chamber):
         val : float
             Residual value of equation.
 
-            *bus.param == TI:* val = :func:`tespy.components.components.cogeneration_unit.calc_ti`
-
-            *bus.param == P:* val = :func:`tespy.components.components.cogeneration_unit.calc_P`
-
             .. math::
 
                 val = \begin{cases}
-                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) +
-                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) & \text{key = 'Q'}\\
-                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) & \text{key = 'Q1'}\\
-                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) & \text{key = 'Q2'}\\
-                \dot{Q}_{loss} & \text{key = 'Qloss'}
+                LHV \cdot \dot{m}_{f} \cdot f_{char}\left( \frac{LHV \cdot \dot{m}_{f}}{LHV \cdot \dot{m}_{f, ref}}\right) & \text{key = 'TI'}\\
+                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) & \text{key = 'P'}\\
+                \left(\dot{Q}_1 + \dot{Q}_2\right) \cdot f_{char}\left( \frac{\dot{Q}_1 + \dot{Q}_2}{\dot{Q}_{1,ref} +  \dot{Q}_{2,ref}}\right)& \text{key = 'Q'}\\
+                \dot{Q}_1 \cdot f_{char}\left( \frac{\dot{Q}_1}{\dot{Q}_{1,ref}}\right) & \text{key = 'Q1'}\\
+                \dot{Q}_2 \cdot f_{char}\left( \frac{\dot{Q}_2}{\dot{Q}_{2,ref}}\right) & \text{key = 'Q2'}\\
+                \dot{Q}_{loss} \cdot f_{char}\left( \frac{\dot{Q}_{loss}}{\dot{Q}_{loss,ref}}\right) & \text{key = 'Qloss'}
                 \end{cases}
+
+                \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
+                \dot{Q}_2=\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right)
         """
         if bus.param == 'TI':
             ti = self.calc_ti()
@@ -6386,10 +6408,10 @@ class vessel(component):
         List containing offdesign parameters (stated as String).
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`
+        Outlet to inlet pressure ratio, :math:`pr/1`
 
     zeta : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     Example
     -------
@@ -6745,30 +6767,30 @@ class heat_exchanger_simple(component):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     D : String/float/tespy.helpers.dc_cp
-        Diameter of the pipes, :math:`[D]=\text{m}`.
+        Diameter of the pipes, :math:`D/\text{m}`.
 
     L : String/float/tespy.helpers.dc_cp
-        Length of the pipes, :math:`[L]=\text{m}`.
+        Length of the pipes, :math:`L/\text{m}`.
 
     ks : String/float/tespy.helpers.dc_cp
-        Pipes roughness, :math:`[ks]=\text{m}` for darcy friction,
-        :math:`[ks]=\text{1}` for hazen-williams equation.
+        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : Sring/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is used.
 
     kA : String/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient, :math:`[kA]=\frac{\text{W}}{\text{K}}`.
+        Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char : String/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y values
@@ -7263,7 +7285,7 @@ class heat_exchanger_simple(component):
         if np.isnan(bus.P_ref):
             expr = 1
         else:
-            expr = val / bus.P_ref
+            expr = abs(val / bus.P_ref)
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
@@ -7511,30 +7533,30 @@ class pipe(heat_exchanger_simple):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     D : String/float/tespy.helpers.dc_cp
-        Diameter of the pipes, :math:`[D]=\text{m}`.
+        Diameter of the pipes, :math:`D/\text{m}`.
 
     L : String/float/tespy.helpers.dc_cp
-        Length of the pipes, :math:`[L]=\text{m}`.
+        Length of the pipes, :math:`L/\text{m}`.
 
     ks : String/float/tespy.helpers.dc_cp
-        Pipes roughness, :math:`[ks]=\text{m}` for darcy friction,
-        :math:`[ks]=\text{1}` for hazen-williams equation.
+        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : Sring/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is used.
 
     kA : String/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient, :math:`[kA]=\frac{\text{W}}{\text{K}}`.
+        Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char : String/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y values
@@ -7642,39 +7664,39 @@ class solar_collector(heat_exchanger_simple):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     D : String/float/tespy.helpers.dc_cp
-        Diameter of the pipes, :math:`[D]=\text{m}`.
+        Diameter of the pipes, :math:`D/\text{m}`.
 
     L : String/float/tespy.helpers.dc_cp
-        Length of the pipes, :math:`[L]=\text{m}`.
+        Length of the pipes, :math:`L/\text{m}`.
 
     ks : String/float/tespy.helpers.dc_cp
-        Pipes roughness, :math:`[ks]=\text{m}` for darcy friction,
-        :math:`[ks]=\text{1}` for hazen-williams equation.
+        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : Sring/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is used.
 
     E :
-        Absorption on the inclined surface, :math:`[E] = \frac{\text{W}}{\text{m}^2}`.
+        Absorption on the inclined surface, :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
     lkf_lin : String/float/tespy.helpers.dc_cp
-        Linear loss key figure, :math:`[\alpha_1]=\frac{\text{W}}{\text{K} \cdot \text{m}}`.
+        Linear loss key figure, :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}}`.
 
     lkf_quad : String/float/tespy.helpers.dc_cp
-        Quadratic loss key figure, :math:`[\alpha_2]=\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
+        Quadratic loss key figure, :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
     A : String/float/tespy.helpers.dc_cp
-        Collector surface area :math:`[A]=\text{m}^2`.
+        Collector surface area :math:`A/\text{m}^2`.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature unit.
@@ -7692,7 +7714,8 @@ class solar_collector(heat_exchanger_simple):
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> sc = cmp.solar_collector('test')
-    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'], Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
+    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
+    ...     Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = con.connection(so1, 'out1', sc, 'in1')
     >>> outg = con.connection(sc, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -7973,22 +7996,22 @@ class heat_exchanger(component):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr1 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at hot side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
     pr2 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at cold side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at hot side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     zeta2 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at cold side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     kA : String/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient, :math:`[kA]=\frac{\text{W}}{\text{K}}`.
+        Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char1 : String/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
@@ -8006,7 +8029,8 @@ class heat_exchanger(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
-    >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> tesin = cmp.sink('TES in')
     >>> tesout = cmp.source('TES out')
@@ -8018,7 +8042,8 @@ class heat_exchanger(component):
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
     >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
     >>> nw.add_conns(tes_he, he_tes, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
+    ...     design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
     >>> hs_he.set_attr(T=120, p=3, fluid={'water': 1})
     >>> he_hs.set_attr(T=70)
     >>> tes_he.set_attr(p=5, fluid={'water': 1})
@@ -8592,7 +8617,7 @@ class heat_exchanger(component):
         if np.isnan(bus.P_ref):
             expr = 1
         else:
-            expr = val / bus.P_ref
+            expr = abs(val / bus.P_ref)
         return val * bus.char.f_x(expr)
 
     def bus_deriv(self, bus):
@@ -8918,22 +8943,22 @@ class condenser(heat_exchanger):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr1 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at hot side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
     pr2 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at cold side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at hot side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     zeta2 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at cold side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     kA : String/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient, :math:`[kA]=\frac{\text{W}}{\text{K}}`.
+        Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char1 : String/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
@@ -8954,7 +8979,8 @@ class condenser(heat_exchanger):
     Example
     -------
     >>> from tespy import cmp, con, nwk
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> amb_in = cmp.sink('ambient in')
     >>> amb_out = cmp.source('ambient out')
@@ -8966,7 +8992,8 @@ class condenser(heat_exchanger):
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
     >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
     >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'], offdesign=['zeta2', 'kA'])
+    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'],
+    ...     offdesign=['zeta2', 'kA'])
     >>> hs_he.set_attr(T=120, p=1, fluid={'water': 1, 'air': 0})
     >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
@@ -9252,22 +9279,22 @@ class desuperheater(heat_exchanger):
         List containing offdesign parameters (stated as String).
 
     Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`[Q]=\text{W}`.
+        Heat transfer, :math:`Q/\text{W}`.
 
     pr1 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at hot side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
     pr2 : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at cold side, :math:`[pr]=1`.
+        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at hot side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     zeta2 : String/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at cold side, :math:`[\zeta]=\frac{\text{Pa}}{\text{m}^4}`.
+        Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     kA : String/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient, :math:`[kA]=\frac{\text{W}}{\text{K}}`.
+        Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char1 : String/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
@@ -9285,7 +9312,8 @@ class desuperheater(heat_exchanger):
     Example
     -------
     >>> from tespy import cmp, con, nwk
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> amb_in = cmp.sink('ambient in')
     >>> amb_out = cmp.source('ambient out')
@@ -9297,7 +9325,8 @@ class desuperheater(heat_exchanger):
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
     >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
     >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr1', 'pr2'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA'])
     >>> hs_he.set_attr(T=200, p=1, fluid={'water': 1, 'air': 0})
     >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
@@ -9436,7 +9465,8 @@ class drum(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
-    >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
+    ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
     >>> f = cmp.source('feed')
     >>> ha = cmp.source('hot air')
@@ -9454,7 +9484,9 @@ class drum(component):
     >>> ha_ev = con.connection(ha, 'out1', ev, 'in1')
     >>> ev_ch = con.connection(ev, 'out1', ch, 'in1')
     >>> nw.add_conns(ha_ev, ev_ch)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=20, kA_char1='EVA_HOT', kA_char2='EVA_COLD', design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=20, kA_char1='EVA_HOT',
+    ...     kA_char2='EVA_COLD', design=['pr1', 'ttd_l'],
+    ...     offdesign=['zeta1', 'kA'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)
@@ -9474,7 +9506,8 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', init_file='tmp/results.csv', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', init_file='tmp/results.csv',
+    ...     design_file='tmp/results.csv')
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev.ttd_l.val, 1)

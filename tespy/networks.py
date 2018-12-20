@@ -9,7 +9,6 @@ import math
 
 import pandas as pd
 from tabulate import tabulate
-from multiprocessing import cpu_count, Pool, freeze_support
 
 import numpy as np
 from numpy.linalg import inv
@@ -149,15 +148,6 @@ class network:
                 self.__dict__.update({key: kwargs[key]})
 
         self.set_attr(**kwargs)
-
-    def __getstate__(self):
-        r"""
-        required to pass Pool object within solving loop
-        """
-        self_dict = self.__dict__.copy()
-        if 'pool' in self_dict.keys():
-            del self_dict['pool']
-        return self_dict
 
     def set_attr(self, **kwargs):
         r"""
@@ -1014,7 +1004,7 @@ class network:
                 c.get_attr(var).set_attr(val_set=True)
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50, parallel=False, init_only=False):
+              max_iter=50, init_only=False):
         r"""
         solves the network:
 
@@ -1034,7 +1024,6 @@ class network:
         self.design_file = design_file
         self.dec = dec
         self.max_iter = max_iter
-        self.parallel = parallel
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1062,27 +1051,6 @@ class network:
         # number of variables
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
-
-        # parameters for code parallelisation
-        if self.parallel:
-            self.cores = cpu_count()
-            self.partit = self.cores
-            self.comps_split = []
-            self.conns_split = []
-            self.pool = Pool(self.cores)
-
-            for g, df in self.comps.groupby(np.arange(len(self.comps)) //
-                                            (len(self.comps) / self.partit)):
-                self.comps_split += [df]
-
-            for g, df in self.conns.groupby(np.arange(len(self.conns)) //
-                                            (len(self.conns) / self.partit)):
-                self.conns_split += [df]
-
-        else:
-            self.partit = 1
-            self.comps_split = [self.comps]
-            self.conns_split = [self.conns]
 
         start_time = time.time()
         errmsg = self.solve_loop()
@@ -1122,10 +1090,6 @@ class network:
                 print(msg)
 
         self.processing('post')
-
-        if self.parallel:
-            self.pool.close()
-            self.pool.join()
 
         for c in self.conns.index:
             c.T.val_SI = hlp.T_mix_ph(c.to_flow())
@@ -1424,49 +1388,43 @@ class network:
         :returns: no return value
         """
         num_cols = len(self.conns) * self.num_vars
-        self.zero_flag = {}
 
-        if self.parallel:
-            data = self.solve_parallelize(network.solve_comp, self.comps_split)
-
-        else:
-            data = [network.solve_comp(args=(self.comps_split, ))]
+        data = network.solve_comp(args=([self.comps], ))
 
         sum_eq = 0
         vec_res = []
-        for part in range(self.partit):
 
-            vec_res += [it for ls in data[part][0].tolist() for it in ls]
-            k = 0
-            c_var = 0
-            for cp in self.comps_split[part].index:
+        vec_res += [it for ls in data[0].tolist() for it in ls]
+        k = 0
+        c_var = 0
+        for cp in self.comps.index:
 
-                if (not isinstance(cp, cmp.source) and
-                        not isinstance(cp, cmp.sink)):
+            if (not isinstance(cp, cmp.source) and
+                    not isinstance(cp, cmp.sink)):
 
-                    i = 0
-                    num_eq = len(data[part][1].iloc[k][0])
-                    inlets = self.comps.loc[cp].i.tolist()
-                    outlets = self.comps.loc[cp].o.tolist()
+                i = 0
+                num_eq = len(data[1].iloc[k][0])
+                inlets = self.comps.loc[cp].i.tolist()
+                outlets = self.comps.loc[cp].o.tolist()
 
-                    for c in inlets + outlets:
+                for c in inlets + outlets:
 
-                        loc = self.conns.index.get_loc(c)
-                        self.mat_deriv[
-                                sum_eq:sum_eq + num_eq,
-                                loc * (self.num_vars):(loc + 1) * self.num_vars
-                                ] = data[part][1].iloc[k][0][:, i]
-                        i += 1
+                    loc = self.conns.index.get_loc(c)
+                    self.mat_deriv[
+                            sum_eq:sum_eq + num_eq,
+                            loc * (self.num_vars):(loc + 1) * self.num_vars
+                            ] = data[1].iloc[k][0][:, i]
+                    i += 1
 
-                    for j in range(cp.num_c_vars):
-                        self.mat_deriv[
-                                sum_eq:sum_eq + num_eq, num_cols + c_var
-                                ] = (data[part][1].iloc[k][0]
-                                     [:, i + j, :1].transpose()[0])
-                        c_var += 1
+                for j in range(cp.num_c_vars):
+                    self.mat_deriv[
+                            sum_eq:sum_eq + num_eq, num_cols + c_var
+                            ] = (data[1].iloc[k][0]
+                                 [:, i + j, :1].transpose()[0])
+                    c_var += 1
 
-                    sum_eq += num_eq
-                k += 1
+                sum_eq += num_eq
+            k += 1
 
         self.vec_res[0:self.num_comp_eq] = vec_res
 
@@ -1511,9 +1469,6 @@ class network:
 
         self.vec_res[sum_eq:sum_eq + num_eq] = vec_res
 
-    def solve_parallelize(self, func, data):
-        return self.pool.map(func, [(self, [i],) for i in data])
-
     def solve_comp(args):
         data = args[0]
         return [
@@ -1543,53 +1498,44 @@ class network:
 
         - parallelize fluid calculation
         """
-        # parallelization does not seem to speed up calculation for connection
-        # properties!!
 
-        if self.parallel:
-            df = self.conns_split
-            data = self.solve_parallelize(network.solve_conn, df)
-
-        else:
-            df = [self.conns]
-            data = [network.solve_conn(args=(self, df, ))]
+        data = network.solve_conn(args=(self, [self.conns], ))
 
         # write data in residual vector and jacobian matrix
         row = self.num_comp_eq
         var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v',
                6: 'm', 7: 'p', 8: 'h', 9: 'T'}
         vec_res = []
-        for part in range(self.partit):
 
-            vec_res += [it for ls in data[part][0].tolist()
-                        for it in ls if it is not None]
-            k = 0
-            for c in self.conns_split[part].index:
+        vec_res += [it for ls in data[0].tolist()
+                    for it in ls if it is not None]
+        k = 0
+        for c in self.conns.index:
 
-                # variable counter
-                i = 0
-                loc = self.conns.index.get_loc(c)
-                for it in data[part][1].iloc[k]:
+            # variable counter
+            i = 0
+            loc = self.conns.index.get_loc(c)
+            for it in data[1].iloc[k]:
 
-                    if it is not None:
+                if it is not None:
 
+                    self.mat_deriv[
+                            row:row + 1,
+                            loc * self.num_vars:(loc + 1) * self.num_vars
+                            ] = it[0, 0]
+                    if it[0].shape[0] == 2:
+
+                        c_ref = c.get_attr(var[i]).get_attr('ref')
+                        loc_ref = self.conns.index.get_loc(c_ref.obj)
                         self.mat_deriv[
                                 row:row + 1,
-                                loc * self.num_vars:(loc + 1) * self.num_vars
-                                ] = it[0, 0]
-                        if it[0].shape[0] == 2:
+                                loc_ref * self.num_vars:
+                                (loc_ref + 1) * self.num_vars
+                                ] = it[0, 1]
 
-                            c_ref = c.get_attr(var[i]).get_attr('ref')
-                            loc_ref = self.conns.index.get_loc(c_ref.obj)
-                            self.mat_deriv[
-                                    row:row + 1,
-                                    loc_ref * self.num_vars:
-                                    (loc_ref + 1) * self.num_vars
-                                    ] = it[0, 1]
-
-                        row += 1
-                    i += 1
-                k += 1
+                    row += 1
+                i += 1
+            k += 1
 
         self.vec_res[self.num_comp_eq:row] = vec_res
 

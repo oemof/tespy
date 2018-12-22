@@ -767,7 +767,7 @@ def newton(func, deriv, params, y, **kwargs):
         x-value of zero crossing.
 
     Note
-    ---
+    ----
     Algorithm
 
     .. math::
@@ -809,25 +809,34 @@ def newton(func, deriv, params, y, **kwargs):
 
 def T_mix_ph(flow):
     r"""
-    calculates the temperature from pressure and enthalpy,
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the temperature from pressure and enthalpy.
 
-    - check if property has already been memorised
-    - calculate property otherwise
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: T (float) - temperature in K
+    Returns
+    -------
+    T : float
+        Temperature T / K.
 
-    **fluid mixtures**
+    Note
+    ----
+    First, check if fluid property has been memorised already.
+    If this is the case, return stored value, otherwise calculate value and
+    store it in the memorisation class.
+
+    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
 
     .. math::
 
-        T_{mix}\left(p,h\right) = T_{i}\left(pp_{i},h_{i}\right)\;
+        T_{mix}\left(p,h\right) = T_{i}\left(p,h_{i}\right)\;
         \forall i \in \text{fluid components}\\
 
         h_{i} = h \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
+
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
@@ -866,15 +875,23 @@ def T_mix_ph(flow):
 
 def T_ph(p, h, fluid):
     r"""
-    returns the temperature of a pure fluid given pressure and enthalpy
+    Calculates the temperature from pressure and enthalpy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param h: enthalpy
-    :type h: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: T (float) - temperature in K
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    T : float
+        Temperature T / K.
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -887,17 +904,22 @@ def T_ph(p, h, fluid):
 
 def dT_mix_dph(flow):
     r"""
-    calculates partial derivate of temperature to pressure at
-    constant enthalpy and fluid composition
+    Calculate partial derivate of temperature to pressure at constant enthalpy and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: dT / dp (float) - derivative in K / Pa
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    Returns
+    -------
+    dT / dp : float
+        Partial derivative of temperature to pressure dT /dp / (K/Pa).
 
-        \frac{\partial T_{mix}}{\partial p} = \frac{T_{mix}(p+d,h)-
-        T_{mix}(p-d,h)}{2 \cdot d}
+        .. math::
+
+            \frac{\partial T_{mix}}{\partial p} = \frac{T_{mix}(p+d,h)-
+            T_{mix}(p-d,h)}{2 \cdot d}
     """
     d = 1
     u = flow.copy()
@@ -909,17 +931,22 @@ def dT_mix_dph(flow):
 
 def dT_mix_pdh(flow):
     r"""
-    method to calculate partial derivate of temperature to enthalpy at
-    constant pressure and fluid composition
+    Calculate partial derivate of temperature to enthalpy at constant pressure and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: dT / dh (float) - derivative in (K * kg) / J
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    Returns
+    -------
+    dT / dh : float
+        Partial derivative of temperature to enthalpy dT /dh / ((kgK)/J).
 
-        \frac{\partial T_{mix}}{\partial h} = \frac{T_{mix}(p,h+d)-
-        T_{mix}(p,h-d)}{2 \cdot d}
+        .. math::
+
+            \frac{\partial T_{mix}}{\partial h} = \frac{T_{mix}(p,h+d)-
+            T_{mix}(p,h-d)}{2 \cdot d}
     """
     d = 1
     u = flow.copy()
@@ -931,18 +958,23 @@ def dT_mix_pdh(flow):
 
 def dT_mix_ph_dfluid(flow):
     r"""
-    calculates partial derivates of temperature to fluid composition at
-    constant pressure and enthalpy
+    Calculate partial derivate of temperature to fluid composition at constant pressure and enthalpy.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: dT / dfluid (np.array of floats) - derivatives in K
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    Returns
+    -------
+    dT / dfluid : ndarray
+        Partial derivatives of temperature to fluid composition dT / dfluid / K.
 
-        \frac{\partial T_{mix}}{\partial fluid_{i}} =
-        \frac{T_{mix}(p,h,fluid_{i}+d)-
-        T_{mix}(p,h,fluid_{i}-d)}{2 \cdot d}
+        .. math::
+
+            \frac{\partial T_{mix}}{\partial fluid_{i}} =
+            \frac{T_{mix}(p,h,fluid_{i}+d)-
+            T_{mix}(p,h,fluid_{i}-d)}{2 \cdot d}
     """
     d = 1e-5
     u = flow.copy()
@@ -965,24 +997,37 @@ def dT_mix_ph_dfluid(flow):
 
 def T_mix_ps(flow, s):
     r"""
-    calculates the temperature from pressure and entropy,
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the temperature from pressure and entropy.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param s: entropy in J / (kg * K)
-    :type s: numeric
-    :returns: T (float) - temperature in K
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    **fluid mixtures**
+    s : float
+        Entropy of flow in J / (kgK).
+
+    Returns
+    -------
+    T : float
+        Temperature T / K.
+
+    Note
+    ----
+    First, check if fluid property has been memorised already.
+    If this is the case, return stored value, otherwise calculate value and
+    store it in the memorisation class.
+
+    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
 
     .. math::
 
-        T_{mix}\left(p,s\right) = T_{i}\left(pp_{i},s_{i}\right)\;
+        T_{mix}\left(p,s\right) = T_{i}\left(p,s_{i}\right)\;
         \forall i \in \text{fluid components}\\
 
         s_{i} = s \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
+
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
@@ -1020,15 +1065,23 @@ def T_mix_ps(flow, s):
 
 def T_ps(p, s, fluid):
     r"""
-    returns the temperature of a pure fluid given pressure and entropy
+    Calculates the temperature from pressure and entropy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param s: entropy
-    :type s: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: T (float) - temperature in K
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    s : float
+        Specific entropy h / (J/(kgK)).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    T : float
+        Temperature T / K.
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1043,21 +1096,31 @@ def T_ps(p, s, fluid):
 
 def h_mix_pT(flow, T):
     r"""
-    calculates enthalpy from pressure and temperature
+    Calculates the enthalpy from pressure and Temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: h (float) - enthalpy in J / kg
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    T : float
+        Temperature of flow T / K.
+
+    Returns
+    -------
+    h : float
+        Enthalpy h / (J/kg).
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
+
         h_{mix}(p,T)=\sum_{i} h(pp_{i},T,fluid_{i})\;
         \forall i \in \text{fluid components}\\
         pp: \text{partial pressure}
-
     """
-
     n = molar_massflow(flow[3])
 
     h = 0
@@ -1071,15 +1134,23 @@ def h_mix_pT(flow, T):
 
 def h_pT(p, T, fluid):
     r"""
-    returns the enthalpy of a pure fluid given pressure and temperature
+    Calculates the enthalpy from pressure and temperature for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param T: temperature
-    :type T: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: h (float) - enthalpy in J / kg
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    T : float
+        Temperature T / K.
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1091,18 +1162,25 @@ def h_pT(p, T, fluid):
 
 def dh_mix_pdT(flow, T):
     r"""
-    calculates partial derivate of enthalpy to temperature at constant pressure
+    Calculate partial derivate of enthalpy to temperature at constant pressure and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: dh / dT (float) - derivative in J / (kg * K)
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    T : float
+        Temperature T / K.
 
-        \frac{\partial h_{mix}}{\partial T} =
-        \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
+    Returns
+    -------
+    dh / dT : float
+        Partial derivative of enthalpy to temperature dh / dT / (J/(kgK)).
+
+        .. math::
+
+            \frac{\partial h_{mix}}{\partial T} =
+            \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
     d = 2
     return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
@@ -1112,35 +1190,51 @@ def dh_mix_pdT(flow, T):
 
 def h_mix_ps(flow, s):
     r"""
-    calculates enthalpy from pressure and entropy
+    Calculates the enthalpy from pressure and temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param s: entropy in J / (kg * K)
-    :type s: numeric
-    :returns: h (float) - enthalpy in J / kg
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    s : float
+        Specific entropy of flow s / (J/(kgK)).
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
-        h_{mix}(p,s)=\sum_{i} h(pp_{i},T,fluid_{i})\;
-        \forall i \in \text{fluid components}\\
-        pp: \text{partial pressure}
 
+        h_{mix}\left(p,s\right)=h\left(p, T_{mix}\left(p,s\right)\right)
     """
-
     return h_mix_pT(flow, T_mix_ps(flow, s))
 
 
 def h_ps(p, s, fluid):
     r"""
-    returns the enthalpy of a pure fluid given pressure and entropy
+    Calculates the enthalpy from pressure and entropy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param s: entropy
-    :type s: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: h (float) - enthalpy in J / kg
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    s : float
+        Specific entropy h / (J/(kgK)).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1156,17 +1250,24 @@ def h_ps(p, s, fluid):
 
 def h_mix_pQ(flow, Q):
     r"""
-    calculates enthalpy from pressure and quality
+    Calculates the enthalpy from pressure and vapour mass fraction.
 
-    .. note::
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-       This function works for pure fluids only!
+    Q : float
+        Vapour mass fraction Q / 1.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param Q: fraction of vapour mass to total mass in 1
-    :type Q: numeric
-    :returns: h (float) - enthalpy in J / kg
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    Note
+    ----
+    This function works for pure fluids only!
     """
     n = molar_massflow(flow[3])
 
@@ -1185,23 +1286,30 @@ def h_mix_pQ(flow, Q):
 
 def dh_mix_dpQ(flow, Q):
     r"""
-    calculates partial derivative of enthalpy to pressure at constant quality
+    Calculate partial derivate of enthalpy to vapour mass fraction at constant pressure.
 
-    .. note::
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-       This function works for pure fluids only!
+    Q : float
+        Vapour mass fraction Q / 1.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param Q: fraction of vapour mass to total mass in 1
-    :type Q: numeric
-    :returns: dh / dp (float) - derivative in J / (kg * Pa)
+    Returns
+    -------
+    dh / dQ : float
+        Partial derivative of enthalpy to vapour mass fraction dh / dQ / (J/kg).
 
-    .. math::
+        .. math::
 
-        \frac{\partial h_{mix}}{\partial p} =
-        \frac{h_{mix}(p+d,Q)-h_{mix}(p-d,Q)}{2 \cdot d}\\
-        Q: \text{vapour mass fraction}
+            \frac{\partial h_{mix}}{\partial p} =
+            \frac{h_{mix}(p+d,Q)-h_{mix}(p-d,Q)}{2 \cdot d}\\
+            Q: \text{vapour mass fraction}
+
+    Note
+    ----
+    This works for pure fluids only!
     """
     d = 1
     u = flow.copy()
@@ -1215,14 +1323,25 @@ def dh_mix_dpQ(flow, Q):
 
 def v_mix_ph(flow):
     r"""
-    calculates specific volume from pressure and enthalpy
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the specific volume from pressure and enthalpy.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: v (float) - specific volume in kg / m :sup:`3`
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    **fluid mixtures**
+    Returns
+    -------
+    v : float
+        Specific volume v / (:math:`\mathrm{m}^3`/kg).
+
+    Note
+    ----
+    First, check if fluid property has been memorised already.
+    If this is the case, return stored value, otherwise calculate value and
+    store it in the memorisation class.
+
+    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
 
     .. math::
 
@@ -1263,15 +1382,23 @@ def v_mix_ph(flow):
 
 def d_ph(p, h, fluid):
     r"""
-    returns the density of a pure fluid given pressure and enthalpy
+    Calculates the density from pressure and enthalpy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param h: enthalpy
-    :type h: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: d (float) - density in kg / m^3
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    d : float
+        Density d / (kg/:math:`\mathrm{m}^3`).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1285,17 +1412,22 @@ def d_ph(p, h, fluid):
 
 def dv_mix_dph(flow):
     r"""
-    calculates partial derivate of volume to pressure at
-    constant enthalpy and fluid composition
+    Calculate partial derivate of specific volume to pressure at constant enthalpy and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: dv / dp (float) - derivative in m^3 / (Pa * kg)
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    Returns
+    -------
+    dv / dp : float
+        Partial derivative of specific volume to pressure dv /dp / (:math:`\mathrm{m}^3`/(Pa kg)).
 
-        \frac{\partial v_{mix}}{\partial p} = \frac{v_{mix}(p+d,h)-
-        v_{mix}(p-d,h)}{2 \cdot d}
+        .. math::
+
+            \frac{\partial v_{mix}}{\partial p} = \frac{v_{mix}(p+d,h)-
+            v_{mix}(p-d,h)}{2 \cdot d}
     """
     d = 1
     u = flow.copy()
@@ -1307,17 +1439,22 @@ def dv_mix_dph(flow):
 
 def dv_mix_pdh(flow):
     r"""
-    method to calculate partial derivate of volume to enthalpy at
-    constant pressure and fluid composition
+    Calculate partial derivate of specific volume to enthalpy at constant pressure and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: dv / dh (float) - derivative in m^3 / J
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    Returns
+    -------
+    dv / dh : float
+        Partial derivative of specific volume to enthalpy dv /dh / (:math:`\mathrm{m}^3`/J).
 
-        \frac{\partial v_{mix}}{\partial h} = \frac{v_{mix}(p,h+d)-
-        v_{mix}(p,h-d)}{2 \cdot d}
+        .. math::
+
+            \frac{\partial v_{mix}}{\partial h} = \frac{v_{mix}(p,h+d)-
+            v_{mix}(p,h-d)}{2 \cdot d}
     """
     d = 1
     u = flow.copy()
@@ -1331,18 +1468,28 @@ def dv_mix_pdh(flow):
 
 def v_mix_pT(flow, T):
     r"""
-    calculates specific volume from pressure and temperature
+    Calculates the specific volume from pressure and temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: v (float) - specific volume in kg / m :sup:`3`
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    T : float
+        Temperature T / K.
+
+    Returns
+    -------
+    v : float
+        Specific volume v / (:math:`\mathrm{m}^3`/kg).
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
-        v_{mix}(p,T)=\sum_{i} v(pp_{i},T,fluid_{i})\;
-        \forall i \in \text{fluid components}\\
-        pp: \text{partial pressure}
+
+        v_{mix}(p,T)=\sum_{i} \frac{x_i}{\rho(p, T, fluid_{i})}
     """
     v = 0
     for fluid, x in flow[3].items():
@@ -1354,33 +1501,51 @@ def v_mix_pT(flow, T):
 
 def d_mix_pT(flow, T):
     r"""
-    calculates specific volume from pressure and temperature
+    Calculates the density from pressure and temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: d (float) - density in m :sup:`3` / kg
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    T : float
+        Temperature T / K.
+
+    Returns
+    -------
+    d : float
+        Density d / (kg/:math:`\mathrm{m}^3`).
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
-        \rho_{mix}(p,T)=\sum_{i} \rho(pp_{i},T,fluid_{i})\;
-        \forall i \in \text{fluid components}\\
-        pp: \text{partial pressure}
+
+        \rho_{mix}\left(p,T\right)=\frac{1}{v_{mix}\left(p,T\right)}
     """
     return 1 / v_mix_pT(flow, T)
 
 
 def d_pT(p, T, fluid):
     r"""
-    returns the density of a pure fluid given pressure and temperature
+    Calculates the density from pressure and temperature for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param T: temperature
-    :type T: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: d (float) - density in kg / m^3
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    T : float
+        Temperature T / K.
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    d : float
+        Density d / (kg/:math:`\mathrm{m}^3`).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1394,14 +1559,25 @@ def d_pT(p, T, fluid):
 
 def visc_mix_ph(flow):
     r"""
-    calculates dynamic viscosity from pressure and enthalpy,
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the dynamic viscorsity from pressure and enthalpy.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: v (float) - specific volume in Pa s
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    **fluid mixtures**
+    Returns
+    -------
+    visc : float
+        Dynamic viscosity visc / Pa s.
+
+    Note
+    ----
+    First, check if fluid property has been memorised already.
+    If this is the case, return stored value, otherwise calculate value and
+    store it in the memorisation class.
+
+    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
 
     .. math::
 
@@ -1442,15 +1618,23 @@ def visc_mix_ph(flow):
 
 def visc_ph(p, h, fluid):
     r"""
-    returns the dynamic viscosity of a pure fluid given pressure and enthalpy
+    Calculates the dynamic viscosity from pressure and enthalpy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param h: enthalpy
-    :type h: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: visc (float) - dynamic viscosity in Pa s
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    visc : float
+        Viscosity visc / Pa s.
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1466,15 +1650,27 @@ def visc_ph(p, h, fluid):
 
 def visc_mix_pT(flow, T):
     r"""
-    calculates dynamic viscosity from pressure and temperature
+    Calculates the dynamic viscosity from pressure and temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: v (float) - specific volume in kg / m :sup:`3`
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    T : float
+        Temperature T / K.
+
+    Returns
+    -------
+    visc : float
+        Dynamic viscosity visc / Pa s.
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
+
         \eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
         \cdot \sqrt{M_{i}} \right)}
         {\sum_{i} \left(y_{i} \cdot \sqrt{M_{i}} \right)}\;
@@ -1497,16 +1693,23 @@ def visc_mix_pT(flow, T):
 
 def visc_pT(p, T, fluid):
     r"""
-    returns the dynamic viscosity of a pure fluid given pressure and
-    temperature
+    Calculates the dynamic viscosity from pressure and temperature for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param T: temperature
-    :type T: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: visc (float) - dynamic viscosity in Pa s
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    T : float
+        Temperature T / K.
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    visc : float
+        Viscosity visc / Pa s.
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1520,14 +1723,25 @@ def visc_pT(p, T, fluid):
 
 def s_mix_ph(flow):
     r"""
-    calculates entropy from pressure and enthalpy
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the entropy from pressure and enthalpy.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: s (float) - entropy in J / (kg * K)
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    **fluid mixtures**
+    Returns
+    -------
+    s : float
+        Specific entropy s / (J/(kgK)).
+
+    Note
+    ----
+    First, check if fluid property has been memorised already.
+    If this is the case, return stored value, otherwise calculate value and
+    store it in the memorisation class.
+
+    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
 
     .. math::
 
@@ -1568,15 +1782,23 @@ def s_mix_ph(flow):
 
 def s_ph(p, h, fluid):
     r"""
-    returns the entropy of a pure fluid given pressure and enthalpy
+    Calculates the entropy from pressure and enthalpy for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param h: enthalpy
-    :type h: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: s (float) - entropy in J / (kg * K)
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    s : float
+        Specific entropy s / (J/(kgK)).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1592,45 +1814,33 @@ def s_ph(p, h, fluid):
 
 def s_mix_pT(flow, T):
     r"""
-    calculates entropy from pressure and temperature
-    uses CoolProp reverse functions for pure fluids, newton for mixtures
+    Calculates the entropy from pressure and temperature.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: s (float) - entropy in J / (kg * K)
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    T : float
+        Temperature T / K.
+
+    Returns
+    -------
+    s : float
+        Specific entropy s / (J/(kgK)).
+
+    Note
+    ----
+    Calculation for fluid mixtures.
 
     .. math::
+
         s_{mix}(p,T)=\sum_{i} x_{i} \cdot s(pp_{i},T,fluid_{i})-
         \sum_{i} x_{i} \cdot R_{i} \cdot \ln \frac{pp_{i}}{p}\;
         \forall i \in \text{fluid components}\\
         pp: \text{partial pressure}\\
         R: \text{gas constant}
     """
-
-# second method seems to be faster, maybe speed can further be improved
-#    n = molar_massflow(flow[3])
-#
-#    s = 0
-#    for fluid, x in flow[3].items():
-#        if x > err:
-#            if 'TESPy::' in fluid:
-#                for f, xi in tespy_fluid.fluids[fluid].fluid.items():
-#                    if xi > err:
-#                        pp = flow[1] * xi * x / (molar_masses[f] * n)
-#                        s += s_pT(pp, T, f) * xi * x
-#                        s -= (xi * x * gas_constants[f] / molar_masses[f] *
-#                              math.log(pp / flow[1]))
-#
-#            else:
-#                pp = flow[1] * x / (molar_masses[fluid] * n)
-#                s += s_pT(pp, T, fluid) * x
-#                s -= (x * gas_constants[fluid] / molar_masses[fluid] *
-#                      math.log(pp / flow[1]))
-#
-#    return s
-
     n = molar_massflow(flow[3])
 
     fluid_comps = {}
@@ -1663,15 +1873,23 @@ def s_mix_pT(flow, T):
 
 def s_pT(p, T, fluid):
     r"""
-    returns the entropy of a pure fluid given pressure and temperature
+    Calculates the entropy from pressure and temperature for a pure fluid.
 
-    :param p: pressure
-    :type p: float
-    :param T: temperature
-    :type T: float
-    :param fluid: fluid alias
-    :type fluid: str
-    :returns: s (float) - entropy in J / (kg * K)
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    T : float
+        Temperature T / K.
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    s : float
+        Specific entropy s / (J/(kgK)).
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
@@ -1683,18 +1901,25 @@ def s_pT(p, T, fluid):
 
 def ds_mix_pdT(flow, T):
     r"""
-    calculates partial derivate of entropy to temperature at constant pressure
+    Calculate partial derivate of entropy to temperature at constant pressure and fluid composition.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :param T: temperature in K
-    :type T: numeric
-    :returns: ds / dT (float) - derivative in J / (kg * K :sup:`2`)
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
+    T : float
+        Temperature T / K.
 
-        \frac{\partial s_{mix}}{\partial T} =
-        \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
+    Returns
+    -------
+    ds / dT : float
+        Partial derivative of specific entropy to temperature ds / dT / (J/(kg :math:`\mathrm{K}^2`)).
+
+        .. math::
+
+            \frac{\partial s_{mix}}{\partial T} =
+            \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
 
     d = 2
@@ -1719,7 +1944,7 @@ def molar_massflow(flow):
         if x > err:
             try:
                 mm += x / molar_masses[fluid]
-            except:
+            except KeyError:
                 mm += x / CPPSI('molar_mass', fluid)
 
     return mm

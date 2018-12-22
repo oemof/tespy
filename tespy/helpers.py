@@ -642,7 +642,7 @@ class memorise:
 
     Example
     -------
-    T(p,h) for set of fluids ('water', 'air'), values are not :
+    T(p,h) for set of fluids ('water', 'air'):
 
         - row 1: [282.64527752319697, 10000, 40000, 1, 0]
         - row 2: [284.3140698256616, 10000, 47000, 1, 0]

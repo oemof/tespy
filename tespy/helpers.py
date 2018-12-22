@@ -1921,7 +1921,6 @@ def ds_mix_pdT(flow, T):
             \frac{\partial s_{mix}}{\partial T} =
             \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
-
     d = 2
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
@@ -1930,14 +1929,21 @@ def ds_mix_pdT(flow, T):
 
 def molar_massflow(flow):
     r"""
-    calculates molar massflow
+    Calculates molar mass flow.
 
-    :param flow: vector containing [mass flow, pressure, enthalpy, fluid]
-    :type flow: list
-    :returns: mm (float) - molar massflow in mol / s
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
 
-    .. math::
-        mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
+    Returns
+    -------
+    mm : float
+        Molar mass flow mm / (mol/s).
+
+        .. math::
+
+            mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
     """
     mm = 0
     for fluid, x in flow.items():
@@ -1954,19 +1960,25 @@ def molar_massflow(flow):
 
 def num_fluids(fluids):
     r"""
-    calculates number of fluids in fluid vector
+    Returns number of fluids in fluid mixture.
 
-    :param fluids: fluid vector {fluid: mass fraction}
-    :type fluids: dict
-    :returns: n (int) - number of fluids in fluid vector in 1
+    Parameters
+    ----------
+    fluids : dict
+        Fluid mass fractions.
 
-    .. math::
+    Returns
+    -------
+    n : int
+        Number of fluids in fluid mixture n / 1.
 
-        n = \sum_{i} \left( \begin{cases}
-        0 & x_{i} < \epsilon \\
-        1 & x_{i} \geq \epsilon
-        \end{cases} \right)\;
-        \forall i \in \text{network fluids}
+        .. math::
+
+            n = \sum_{i} \left( \begin{cases}
+            0 & x_{i} < \epsilon \\
+            1 & x_{i} \geq \epsilon
+            \end{cases} \right)\;
+            \forall i \in \text{network fluids}
     """
     n = 0
     for fluid, x in fluids.items():
@@ -1980,13 +1992,18 @@ def num_fluids(fluids):
 
 def single_fluid(fluids):
     r"""
-    returns the name of the single fluid (x=1) in a fluid vector
+    Returns the name of the pure fluid in a fluid vector.
 
-    :param fluids: fluid vector {fluid: mass fraction}
-    :type fluids: dict
-    :returns: fluid (str) - name of the fluid
+    Parameters
+    ----------
+    fluids : dict
+        Fluid mass fractions.
+
+    Returns
+    -------
+    fluid : String
+        Name of the single fluid.
     """
-
     if num_fluids(fluids) == 1:
         for fluid, x in fluids.items():
             if x > err:
@@ -1999,11 +2016,17 @@ def single_fluid(fluids):
 
 def fluid_structure(fluid):
     r"""
-    gets the chemical formular of a fluid
+    Returns the checmical formula of fluid.
 
-    :param fluid: alias of the fluid
-    :type fluid: str
-    :returns: parts (dict) - returns the elements of the fluid {'element': n}
+    Parameters
+    ----------
+    fluid : String
+        Name of the fluid.
+
+    Returns
+    -------
+    parts : dict
+        Dictionary of the chemical base elements as keys and the number of atoms in a molecule as values.
     """
     parts = {}
     for element in CP.get_fluid_param_string(fluid, 'formula').split('}'):
@@ -2018,22 +2041,32 @@ def fluid_structure(fluid):
 
 def lamb(re, ks, d):
     r"""
-    calculates darcy friction factor
+    Calculates the darcy friction factor from the moody diagram.
 
-    :param re: reynolds number in 1
-    :type re: numeric
-    :param ks: roughness in m
-    :type ks: numeric
-    :param d: pipe diameter in m
-    :type d: numeric
-    :returns: lambda (float) - darcy friction factor in 1
+    Parameters
+    ----------
+    re : float
+        Reynolds number re / 1.
 
-    **laminar flow:** :math:`re \leq 2320`
+    ks : float
+        Pipe roughness ks / m.
+
+    d : float
+        Pipe diameter/characteristic lenght d / m.
+
+    Returns
+    -------
+    lamb : float
+        Darcy friction factor lamb / 1
+
+    Note
+    ----
+    **Laminar flow** (:math:`re \leq 2320`)
 
     .. math::
         \lambda = \frac{64}{re}
 
-    **turbulent flow:** :math:`re > 2320`
+    **turbulent flow** (:math:`re > 2320`)
 
     *hydraulically smooth:* :math:`\frac{re \cdot k_{s}}{d} < 65`
 
@@ -2058,7 +2091,23 @@ def lamb(re, ks, d):
         \lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}}
         \right) \right)}
 
-
+    Example
+    -------
+    >>> from tespy import hlp
+    >>> ks = 5e-5
+    >>> d = 0.05
+    >>> re_laminar = 2000
+    >>> re_turb_smooth = 20000
+    >>> re_turb_trans = 70000
+    >>> ks_rough = 1e-3
+    >>> hlp.lamb(re_laminar, ks, d)
+    0.032
+    >>> round(hlp.lamb(re_turb_smooth, ks, d), 3)
+    0.027
+    >>> round(hlp.lamb(re_turb_trans, ks, d), 3)
+    0.023
+    >>> round(hlp.lamb(re_turb_trans, ks_rough, d), 3)
+    0.049
     """
     if re <= 2320:
         return 64 / re

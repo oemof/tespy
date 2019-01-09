@@ -33,48 +33,84 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 
 class network:
     r"""
+    Class component is the base class of all TESPy components.
 
-    The network class aggregates information on components, connections and
-    busses and performs calculation and processing.
+    Parameters
+    ----------
+    fluids : list
+        A list of all fluids within the network container.
 
-    :param fluids: networks fluids
-    :type fluids: list
-    :returns: no return value
-    :raises: - :code:`MyNetworkError`, if the unit system for mass flow
-               pressure, enthalpy or temperature is not available
-             - :code:`TypeError`, if the ranges for pressure,
-               enthalpy or temperature are not stated as list
+    m_unit : String
+        Specify the unit for mass flow: 'kg / s', 't / h'.
 
-    **allowed keywords** in kwargs (also see network.attr()):
+    v_unit : String
+        Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
 
-    - m_unit (*str*)
-    - p_unit (*str*), p_range (*list*)
-    - h_unit (*str*), h_range (*list*)
-    - T_unit (*str*), T_range (*list*)
+    p_unit : String
+        Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
-    **example**
+    h_unit : String
+        Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
-    .. code-block:: python
+    T_unit : String
+        Specify the unit for mass flow: 'K', 'C', 'F'.
 
-        from tespy import nwk
+    p_range : list
+        List with minimum and maximum values for pressure value range.
 
-        fluid_list = ['Air', 'water']
-        nw = nwk.network(fluid_list, p_unit='bar')
+    h_range : list
+        List with minimum and maximum values for enthalpy value range.
 
-    **improvements**
+    T_range : list
+        List with minimum and maximum values for temperature value range.
 
-    - add container for units
+    Note
+    ----
+    Unit specification is optional: If not specified the SI unit (first element in above lists) will be applied!
 
+    Range specification is optional, too. The value range is used to stabilise the newton algorith.
+    For more information see the "getting started" section in the online-documentation.
+
+    Printoptions can be specified with the :func:`tespy.networks.network.set_printoptions`-method, see example.
+
+    Example
+    -------
+    Basic example for a setting up a tespy.networks.network object. Specifying
+    the fluids is mandatory! Unit systems, fluid property range and printlevel
+    are optional.
+
+    Standard value for printoptions print_level is info. You can modify this with the
+    :func:`tespy.networks.network.set_printoptions`-method by specifying a print_level, or specifying the printout manually.
+
+    >>> from tespy import nwk
+    >>> fluid_list = ['water', 'air', 'R134a']
+    >>> mynetwork = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    >>> mynetwork.set_attr(p_range=[1, 10])
+    >>> type(mynetwork)
+    <class 'tespy.networks.network'>
+    >>> mynetwork.set_printoptions(print_level='warn')
+    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn)
+    (True, False, True)
+    >>> mynetwork.set_printoptions(print_level='err')
+    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn)
+    (True, False, False)
+    >>> mynetwork.set_printoptions(print_level='none')
+    >>> mynetwork.set_printoptions(iterinfo=True, compwarn=True)
+    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn, mynetwork.compwarn)
+    (False, True, False, True)
     """
 
     def __init__(self, fluids, **kwargs):
 
+        # initialisation of basic properties
         self.checked = False
+        # connection dataframe
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
+        # list for busses
+        self.busses = []
 
+        # fluid list and constants
         self.fluids = sorted(fluids)
-
-        # initialise helpers
         for f in self.fluids:
             try:
                 hlp.molar_masses[f] = CPPSI('M', f)
@@ -86,39 +122,42 @@ class network:
             except:
                 hlp.gas_constants[f] = np.nan
 
-        # initialise memorisation function
+        # initialise fluid property memorisation function for this network
         hlp.memorise(self.fluids)
 
-        self.convergence = np.array([0, 0, 0], dtype=object)
-        self.busses = []
-
-    # unit systems, calculation is alsways performed with SI-units
+        # available unit systems
+        # mass flow
         self.m = {
             'kg / s': 1,
             't / h': 3.6
         }
+        # pressure
         self.p = {
             'Pa': 1,
             'psi': 6.8948e3,
             'bar': 1e5,
             'MPa': 1e6
         }
+        # enthalpy
         self.h = {
             'J / kg': 1,
             'kJ / kg': 1e3,
             'MJ / kg': 1e6
         }
+        # temperature
         self.T = {
             'C': [273.15, 1],
             'F': [459.67, 5 / 9],
             'K': [0, 1]
         }
+        # volumetric flow
         self.v = {
             'm3 / s': 1,
             'l / s': 1e-3,
             'm3 / h': 1 / 3600,
             'l / h': 1 / 3.6
         }
+        # SI unit specification
         self.SI_units = {
               'm': 'kg / s',
               'p': 'Pa',
@@ -127,7 +166,7 @@ class network:
               'v': 'm3 / s'
               }
 
-        # printoptions
+        # processing printoptions
         self.print_level = 'info'
         self.set_printoptions()
 
@@ -161,7 +200,37 @@ class network:
 
     def set_attr(self, **kwargs):
         r"""
-        allows adjustments of unit system and fluid property ranges
+        Sets, resets or unsets attributes of a network for provided keyword arguments.
+
+        Parameters
+        ----------
+        m_unit : String
+            Specify the unit for mass flow: 'kg / s', 't / h'.
+
+        v_unit : String
+            Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
+
+        p_unit : String
+            Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
+
+        h_unit : String
+            Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
+
+        T_unit : String
+            Specify the unit for mass flow: 'K', 'C', 'F'.
+
+        p_range : list
+            List with minimum and maximum values for pressure value range.
+
+        h_range : list
+            List with minimum and maximum values for enthalpy value range.
+
+        T_range : list
+            List with minimum and maximum values for temperature value range.
+
+        Note
+        ----
+        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
         """
 
         # add attributes from kwargs
@@ -2176,46 +2245,6 @@ class network:
         :returns: no return value
         """
         return c.name.get_attr(args[0]).val
-
-    def plot_convergence(self):
-        r"""
-        plots the convergence history of all mass flows, pressures and
-        enthalpies as absolute values
-
-        :returns: no return value
-        """
-
-        num_flows = len(self.conns.index)
-        cm = plt.get_cmap('autumn')
-        cNorm = colors.Normalize(vmin=0, vmax=num_flows - 1)
-        scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
-        color = [scalarMap.to_rgba(i) for i in range(num_flows)]
-
-        num_steps = len(self.convergence[0][0])
-        x = np.linspace(1, num_steps, num_steps)
-
-        i = 0
-        subplt_label = ['massflow', 'pressure', 'enthalpy']
-        f, axarr = plt.subplots(3, sharex=True)
-        f.suptitle('convergence history', fontsize=16)
-        for subplt in axarr:
-            subplt.grid()
-            subplt.title.set_text(subplt_label[i])
-            i += 1
-
-        k = 0
-        for c in self.conns.index:
-            i = 0
-            for prop in self.convergence:
-                    axarr[i].plot(x, prop[k][:],
-                                  color=color[k],
-                                  label=c.s.label + ' -> ' + c.t.label)
-                    i += 1
-            k += 1
-
-        axarr[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        f.subplots_adjust(right=0.8, hspace=0.2)
-        plt.show()
 
 # %% saving
 

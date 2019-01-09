@@ -15,7 +15,7 @@ from tespy.helpers import (
     v_mix_ph, h_mix_pT, h_mix_ps, s_mix_pT, s_mix_ph, T_mix_ph, visc_mix_ph,
     dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ,
     h_ps, s_ph,
-    molar_massflow, lamb,
+    molar_mass_flow, lamb,
     molar_masses, err,
     dc_cp, dc_cc, dc_gcp
 )
@@ -398,14 +398,14 @@ class component:
 
 # %%
 
-    def massflow_func(self):
+    def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's massflow balance equation.
+        Calculates the residual value for component's mass flow balance equation.
 
         Returns
         -------
         vec_res : list
-            Vector with residual value for component's massflow balance.
+            Vector with residual value for component's mass flow balance.
 
             .. math::
                 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
@@ -419,14 +419,14 @@ class component:
             res -= o.m.val_SI
         return [res]
 
-    def massflow_deriv(self):
+    def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all massflow balance equations.
+        Calculates the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
         deriv : list
-            Matrix with partial derivatives for the massflow balance equations.
+            Matrix with partial derivatives for the mass flow balance equations.
         """
 
         deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars, 3 + self.num_fl))
@@ -680,7 +680,7 @@ class turbomachine(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -767,7 +767,7 @@ class turbomachine(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
 
     def equations(self):
         r"""
@@ -786,8 +786,8 @@ class turbomachine(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # eqations for massflow balance
-        vec_res += self.massflow_func()
+        # eqations for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # eqations for specified power
@@ -841,7 +841,7 @@ class turbomachine(component):
         mat_deriv += self.fl_deriv
 
         ######################################################################
-        # derivatives for massflow balance
+        # derivatives for mass flow balance
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -1038,7 +1038,7 @@ class pump(turbomachine):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -1457,7 +1457,7 @@ class compressor(turbomachine):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -1521,7 +1521,7 @@ class compressor(turbomachine):
         or use generic values (e. g. calculated from design case).
 
     char_map : String/tespy.helpers.dc_cc
-        Characteristic map for pressure rise and isentropic efficiency vs. nondimensional massflow,
+        Characteristic map for pressure rise and isentropic efficiency vs. nondimensional mass flow,
         see tespy.components.characteristics.compressor for further information.
 
     igva : String/float/tespy.helpers.dc_cp
@@ -1569,7 +1569,7 @@ class compressor(turbomachine):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
 
         if (self.char_map.func is None or
                 not isinstance(self.char_map.func, cmp_char.compressor)):
@@ -1723,7 +1723,7 @@ class compressor(turbomachine):
         Parameters
 
             - X: speedline index (rotational speed is constant)
-            - Y: nondimensional massflow
+            - Y: nondimensional mass flow
             - Z1: pressure ratio equation
             - Z2: isentropic efficiency equation
             - igva: variable inlet guide vane angle (assumed 0° if not specified)
@@ -1938,7 +1938,7 @@ class turbine(turbomachine):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -2350,7 +2350,7 @@ class node(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -2397,7 +2397,7 @@ class node(component):
 
     Note
     ----
-    - Node: Fluid composition and enthalpy at all **outgoing** connections (massflow leaves the node) is result of mixture of the properties of the incoming connections (massflow enters node).
+    - Node: Fluid composition and enthalpy at all **outgoing** connections (mass flow leaves the node) is result of mixture of the properties of the incoming connections (mass flow enters node).
       Incoming and outgoing connections can be a result of the calculation and are not identical to the inlets and outlets!
     - Splitter: Fluid composition and enthalpy at all outlets is the same as the inlet's properties.
     - Separator: Fluid composition is variable for all outlets, temperature at all outlets is the same as the inlet's temperature.
@@ -2459,7 +2459,7 @@ class node(component):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
@@ -2474,8 +2474,8 @@ class node(component):
         vec_res = []
 
         ######################################################################
-        #  eqation for massflow balance
-        vec_res += self.massflow_func()
+        #  eqation for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for pressure
@@ -2503,7 +2503,7 @@ class node(component):
         mat_deriv = []
 
         ######################################################################
-        # derivative for massflow balance equation
+        # derivative for mass flow balance equation
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -2529,8 +2529,8 @@ class node(component):
             .. math::
 
                 0 = \sum_i \left(\dot{m}_{i} \cdot h_{i}\right) - h_{o} \cdot  \sum_i \dot{m}_{i}\\
-                \forall o \in \text{outgoing massflows}\\
-                \text{i: incoming massflows}
+                \forall o \in \text{outgoing mass flows}\\
+                \text{i: incoming mass flows}
 
         Returns
         -------
@@ -2540,12 +2540,12 @@ class node(component):
         vec_res = []
 
         ######################################################################
-        # check for incoming/outgoing massflows in inlets and outlets
+        # check for incoming/outgoing mass flows in inlets and outlets
 
         loc = 0
         # total incoming enthalpy
         h = 0
-        # total incoming massflow (constant within every iteration)
+        # total incoming mass flow (constant within every iteration)
         self.m_inc = 0
 
         self.inc = []
@@ -2625,8 +2625,8 @@ class node(component):
 
                 0 = \sum_i \left(\dot{m}_{i} \cdot x_{i,j}\right) - x_{o,j} \cdot  \sum_i \dot{m}_{i}\\
                 \forall j \in \text{fluids}\\
-                \forall o \in \text{outgoing massflows}\\
-                \text{i: incoming massflows}
+                \forall o \in \text{outgoing mass flows}\\
+                \text{i: incoming mass flows}
         """
         vec_res = []
 
@@ -2783,7 +2783,7 @@ class splitter(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -2980,7 +2980,7 @@ class separator(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -3183,7 +3183,7 @@ class merge(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -3372,7 +3372,7 @@ class combustion_chamber(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.combustion_chamber.reaction_balance`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -3491,7 +3491,7 @@ class combustion_chamber(component):
         if isinstance(self, cogeneration_unit):
             self.num_vars = 7 + self.num_c_vars
 
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
         if not self.fuel.is_set:
@@ -3591,8 +3591,8 @@ class combustion_chamber(component):
             vec_res += [self.reaction_balance(fluid)]
 
         ######################################################################
-        # eqation for massflow balance
-        vec_res += self.massflow_func()
+        # eqation for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for pressure
@@ -3700,7 +3700,7 @@ class combustion_chamber(component):
         r"""
         Calculates the reaction balance for one fluid.
 
-        - determine molar massflows of fuel and oxygen
+        - determine molar mass flows of fuel and oxygen
         - calculate excess fuel
         - calculate residual value of the fluids balance
 
@@ -3782,7 +3782,7 @@ class combustion_chamber(component):
             outl = self.outl
 
         ######################################################################
-        # molar massflow for fuel and oxygen
+        # molar mass flow for fuel and oxygen
         n_fuel = 0
         for i in inl:
             n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] /
@@ -3961,7 +3961,7 @@ class combustion_chamber(component):
             dh = 0
             n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
             if n_h2o > 0:
-                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
                 h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 if h < h_steam:
@@ -4335,7 +4335,7 @@ class combustion_chamber(component):
                 dS = 0
                 n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
                 if n_h2o > 0:
-                    p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                    p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                     S = CP.PropsSI('S', 'P', p, 'T', T_ref, self.h2o)
                     S_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                     if S < S_steam:
@@ -4361,7 +4361,7 @@ class combustion_chamber_stoich(combustion_chamber):
         **mandatory equations**
 
         - :func:`tespy.components.components.combustion_chamber_stoich.reaction_balance`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -4479,7 +4479,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
@@ -4669,7 +4669,7 @@ class combustion_chamber_stoich(combustion_chamber):
         """
         lamb = 1
         n_fuel = 1
-        m_fuel = 1 / molar_massflow(self.fuel.val) * n_fuel
+        m_fuel = 1 / molar_mass_flow(self.fuel.val) * n_fuel
         m_fuel_fg = m_fuel
         m_co2 = 0
         m_h2o = 0
@@ -4741,7 +4741,7 @@ class combustion_chamber_stoich(combustion_chamber):
         r"""
         Calculates the reaction balance for one fluid.
 
-        - determine molar massflows of fuel and oxygen
+        - determine molar mass flows of fuel and oxygen
         - calculate excess fuel
         - calculate residual value of the fluids balance
 
@@ -4808,7 +4808,7 @@ class combustion_chamber_stoich(combustion_chamber):
         flue_gas = 'TESPy::' + self.fuel_alias.val + '_fg'
 
         ######################################################################
-        # calculate fuel and air massflow
+        # calculate fuel and air mass flow
         m_fuel = 0
         for i in self.inl:
             m_fuel += i.m.val_SI * i.fluid.val[fuel]
@@ -5110,7 +5110,7 @@ class cogeneration_unit(combustion_chamber):
         - :func:`tespy.components.components.cogeneration_unit.reaction_balance`
         - :func:`tespy.components.components.cogeneration_unit.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.cogeneration_unit.massflow_func`
+        - :func:`tespy.components.components.cogeneration_unit.mass_flow_func`
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
@@ -5327,7 +5327,7 @@ class cogeneration_unit(combustion_chamber):
         combustion_chamber.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
@@ -5351,8 +5351,8 @@ class cogeneration_unit(combustion_chamber):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # equations for massflow
-        vec_res += self.massflow_func()
+        # equations for mass flow
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for pressure balance in combustion
@@ -5443,7 +5443,7 @@ class cogeneration_unit(combustion_chamber):
         mat_deriv += deriv.tolist()
 
         ######################################################################
-        # derivatives for cooling water fluid composition and massflow
+        # derivatives for cooling water fluid composition and mass flow
         mat_deriv += self.fl_deriv
         mat_deriv += self.m_deriv
 
@@ -5455,11 +5455,11 @@ class cogeneration_unit(combustion_chamber):
         # derivatives for energy balance
         eb_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
 
-        # massflow cooling water
+        # mass flow cooling water
         for i in [0, 1]:
             eb_deriv[0, i, 0] = -(self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
-        # massflow and pressure for combustion reaction
+        # mass flow and pressure for combustion reaction
         for i in [2, 3, 6]:
             eb_deriv[0, i, 0] = self.numeric_deriv(self.energy_balance, 'm', i)
             eb_deriv[0, i, 1] = self.numeric_deriv(self.energy_balance, 'p', i)
@@ -5655,14 +5655,14 @@ class cogeneration_unit(combustion_chamber):
                 vec_res += [x - self.outl[i].fluid.val[fluid]]
         return vec_res
 
-    def massflow_func(self):
+    def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's massflow balance equation.
+        Calculates the residual value for component's mass flow balance equation.
 
         Returns
         -------
         vec_res : list
-            Vector with residual value for component's massflow balance.
+            Vector with residual value for component's mass flow balance.
 
             .. math::
 
@@ -5696,9 +5696,9 @@ class cogeneration_unit(combustion_chamber):
             deriv[i + 1 + j, 5, j + 3] = -1
         return deriv.tolist()
 
-    def massflow_deriv(self):
+    def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all massflow balance equations.
+        Calculates the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -5775,7 +5775,7 @@ class cogeneration_unit(combustion_chamber):
             dh = 0
             n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
             if n_h2o > 0:
-                p = p_ref * n_h2o / molar_massflow(o.fluid.val)
+                p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = CP.PropsSI('H', 'P', p, 'T', T_ref, self.h2o)
                 h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 if h < h_steam:
@@ -6359,7 +6359,7 @@ class vessel(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -6471,7 +6471,7 @@ class vessel(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.h_deriv = self.enthalpy_deriv()
 
     def equations(self):
@@ -6490,8 +6490,8 @@ class vessel(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # eqations for massflow
-        vec_res += self.massflow_func()
+        # eqations for mass flow
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # eqations for enthalpy
@@ -6531,7 +6531,7 @@ class vessel(component):
         mat_deriv += self.fl_deriv
 
         ######################################################################
-        # derivatives for massflow balance
+        # derivatives for mass flow balance
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -6721,7 +6721,7 @@ class heat_exchanger_simple(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -6867,7 +6867,7 @@ class heat_exchanger_simple(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
@@ -6932,8 +6932,8 @@ class heat_exchanger_simple(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # equations for massflow balance
-        vec_res += self.massflow_func()
+        # equations for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for specified heta transfer
@@ -7007,7 +7007,7 @@ class heat_exchanger_simple(component):
         mat_deriv += self.fl_deriv
 
         ######################################################################
-        # derivatives for massflow balance
+        # derivatives for mass flow balance
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -7487,7 +7487,7 @@ class pipe(heat_exchanger_simple):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -7618,7 +7618,7 @@ class solar_collector(heat_exchanger_simple):
         **mandatory equations**
 
         - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -7759,7 +7759,7 @@ class solar_collector(heat_exchanger_simple):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
@@ -7931,7 +7931,7 @@ class heat_exchanger(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.massflow_func`
+        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
 
         **heat exchanger**
         - :func:`tespy.components.components.heat_exchanger.energy_func`
@@ -8094,7 +8094,7 @@ class heat_exchanger(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
 
     def equations(self):
         r"""
@@ -8112,8 +8112,8 @@ class heat_exchanger(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # equations for massflow balance
-        vec_res += self.massflow_func()
+        # equations for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for energy balance
@@ -8191,7 +8191,7 @@ class heat_exchanger(component):
         # derivatives for fluid balance equations
         mat_deriv += self.fl_deriv
         ######################################################################
-        # derivatives for massflow balance equations
+        # derivatives for mass flow balance equations
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -8304,14 +8304,14 @@ class heat_exchanger(component):
                 vec_res += [x - self.outl[i].fluid.val[fluid]]
         return vec_res
 
-    def massflow_func(self):
+    def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's massflow balance equation.
+        Calculates the residual value for component's mass flow balance equation.
 
         Returns
         -------
         vec_res : list
-            Vector with residual value for component's massflow balance.
+            Vector with residual value for component's mass flow balance.
 
             .. math::
 
@@ -8347,14 +8347,14 @@ class heat_exchanger(component):
             j += 1
         return deriv.tolist()
 
-    def massflow_deriv(self):
+    def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all massflow balance equations.
+        Calculates the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
         deriv : list
-            Matrix with partial derivatives for the massflow balance equations.
+            Matrix with partial derivatives for the mass flow balance equations.
         """
         deriv = np.zeros((2, 4 + self.num_c_vars, self.num_fl + 3))
         for i in range(self.num_i):
@@ -8883,7 +8883,7 @@ class condenser(heat_exchanger):
         **mandatory equations**
 
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.massflow_func`
+        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
         - :func:`tespy.components.components.condenser.energy_func`
 
         **optional equations**
@@ -9219,7 +9219,7 @@ class desuperheater(heat_exchanger):
         **mandatory equations**
 
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.massflow_func`
+        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
         - :func:`tespy.components.components.heat_exchanger.energy_func`
 
         **optional equations**
@@ -9411,7 +9411,7 @@ class drum(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.drum.fluid_func`
-        - :func:`tespy.components.components.component.massflow_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -9528,7 +9528,7 @@ class drum(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.massflow_deriv()
+        self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
@@ -9547,8 +9547,8 @@ class drum(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # eqations for massflow balance
-        vec_res += self.massflow_func()
+        # eqations for mass flow balance
+        vec_res += self.mass_flow_func()
 
         ######################################################################
         # eqations for pressure
@@ -9589,7 +9589,7 @@ class drum(component):
         mat_deriv += self.fl_deriv
 
         ######################################################################
-        # derivatives for massflow balance equation
+        # derivatives for mass flow balance equation
         mat_deriv += self.m_deriv
 
         ######################################################################
@@ -9797,7 +9797,7 @@ class subsys_interface(component):
 
     Note
     ----
-    This component passes all fluid properties and massflow from its inlet to the outlet.
+    This component passes all fluid properties and mass flow from its inlet to the outlet.
 
     Example
     -------
@@ -9866,7 +9866,7 @@ class subsys_interface(component):
                 vec_res += [x - self.outl[i].fluid.val[fluid]]
 
         ######################################################################
-        # equations for massflow
+        # equations for mass flow
         for i in range(self.num_i):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
 
@@ -9918,13 +9918,13 @@ class subsys_interface(component):
 
     def inout_deriv(self, pos):
         r"""
-        Calculates the partial derivatives for all massflow, pressure and enthalpy equations.
+        Calculates the partial derivatives for all mass flow, pressure and enthalpy equations.
 
         Parameters
         ----------
         pos : int
             Position of the variable in the matrix of derivatives.
-            massflow: 0, pressure: 1, enthalpy: 2.
+            mass flow: 0, pressure: 1, enthalpy: 2.
 
         Returns
         -------

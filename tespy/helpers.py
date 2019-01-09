@@ -472,7 +472,7 @@ class tespy_fluid:
             molar_masses[f] = CPPSI('M', f)
             gas_constants[f] = CPPSI('GAS_CONSTANT', f)
 
-        molar_masses[self.alias] = 1 / molar_massflow(self.fluid)
+        molar_masses[self.alias] = 1 / molar_mass_flow(self.fluid)
         gas_constants[self.alias] = (gas_constants['uni'] /
                                      molar_masses[self.alias])
 
@@ -1121,7 +1121,7 @@ def h_mix_pT(flow, T):
         \forall i \in \text{fluid components}\\
         pp: \text{partial pressure}
     """
-    n = molar_massflow(flow[3])
+    n = molar_mass_flow(flow[3])
 
     h = 0
     for fluid, x in flow[3].items():
@@ -1269,7 +1269,7 @@ def h_mix_pQ(flow, Q):
     ----
     This function works for pure fluids only!
     """
-    n = molar_massflow(flow[3])
+    n = molar_mass_flow(flow[3])
 
     h = 0
     for fluid, x in flow[3].items():
@@ -1678,7 +1678,7 @@ def visc_mix_pT(flow, T):
         y: \text{volume fraction}\\
         M: \text{molar mass}
     """
-    n = molar_massflow(flow[3])
+    n = molar_mass_flow(flow[3])
 
     a = 0
     b = 0
@@ -1841,7 +1841,7 @@ def s_mix_pT(flow, T):
         pp: \text{partial pressure}\\
         R: \text{gas constant}
     """
-    n = molar_massflow(flow[3])
+    n = molar_mass_flow(flow[3])
 
     fluid_comps = {}
 
@@ -1927,7 +1927,7 @@ def ds_mix_pdT(flow, T):
 # %%
 
 
-def molar_massflow(flow):
+def molar_mass_flow(flow):
     r"""
     Calculates molar mass flow.
 

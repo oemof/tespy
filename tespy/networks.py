@@ -947,7 +947,7 @@ class network:
         :type df: pandas.DataFrame
         :returns: no return value
         """
-        df = pd.read_csv(self.init_file, index_col=0, delimiter=';', decimal=self.dec)
+        df = pd.read_csv(self.design_file, index_col=0, delimiter=';', decimal=self.dec)
         for c in self.conns.index:
             c.m_tmp = c.m.val_SI
             c.p_tmp = c.p.val_SI

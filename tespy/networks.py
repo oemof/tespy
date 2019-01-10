@@ -9,7 +9,6 @@ import math
 
 import pandas as pd
 from tabulate import tabulate
-from multiprocessing import cpu_count, Pool, freeze_support
 
 import numpy as np
 from numpy.linalg import inv
@@ -123,7 +122,7 @@ class network:
                 hlp.gas_constants[f] = np.nan
 
         # initialise fluid property memorisation function for this network
-        hlp.memorise(self.fluids)
+        hlp.memorise.add_fluids(self.fluids)
 
         # available unit systems
         # mass flow
@@ -188,15 +187,6 @@ class network:
                 self.__dict__.update({key: kwargs[key]})
 
         self.set_attr(**kwargs)
-
-    def __getstate__(self):
-        r"""
-        required to pass Pool object within solving loop
-        """
-        self_dict = self.__dict__.copy()
-        if 'pool' in self_dict.keys():
-            del self_dict['pool']
-        return self_dict
 
     def set_attr(self, **kwargs):
         r"""
@@ -443,7 +433,11 @@ class network:
             The connection to be added to the network, connections objects ci :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            self.check_conns(c)
+            if not isinstance(c, con.connection):
+                raise TypeError('Must provide tespy.connections.connection objects'
+                                ' as parameters.')
+
+            self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
 
@@ -460,29 +454,20 @@ class network:
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
-    def check_conns(self, c):
+    def check_conns(self):
         r"""
         Checks the networks connections for multiple usage of inlets or outlets of components.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection
-            The connection to be checked.
         """
-        if not isinstance(c, con.connection):
-            msg = 'Must provide tespy.connections.connection objects as parameters.'
-            raise TypeError(msg)
-
-        # add connection to dataframe
-        self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
-        # check for duplicates
-        if self.conns.duplicated(['s', 's_id'])[c]:
-            self.conns = self.conns[self.conns.index != c]
-            msg = 'Could not add connection from ' +  str(c.s.label) + ' to ' + str(c.t.label) + ' to network, source is already in use.'
+        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True].index
+        for c in dub:
+            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) + ') is '
+                   'attached to more than one connection. Please check your network.')
             raise hlp.MyNetworkError(msg)
-        if self.conns.duplicated(['t', 't_id'])[c]:
-            self.conns = self.conns[self.conns.index != c]
-            msg = 'Could not add connection from ' + str(c.s.label) + ' to ' + str(c.t.label) + ' to network, target is already in use.'
+
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        for c in dub:
+            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) + ') is '
+                   'attached to more than one connection. Please check your network.')
             raise hlp.MyNetworkError(msg)
 
     def add_busses(self, *args):
@@ -539,6 +524,7 @@ class network:
         r"""
         Checks the network for consistency, have all components the correct amount of incoming and outgoing connections?
         """
+        self.check_conns()
         # get unique components in connections dataframe
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.init_components(comps)  # build the dataframe for components
@@ -944,39 +930,12 @@ class network:
         """
 
         if self.mode == 'offdesign':
-            for c in self.conns.index:
-                c.m_tmp = c.m.val_SI
-                c.p_tmp = c.p.val_SI
-                c.h_tmp = c.h.val_SI
-                c.fluid_tmp = c.fluid.val.copy()
-
-            df = pd.read_csv(self.design_file, index_col=0, delimiter=';',
-                             decimal=self.dec)
-            self.conns.apply(network.init_design_file, axis=1,
-                             args=(self, df, ))
-
-            # component characteristics creation for offdesign calculation
-            self.processing('pre')
-
-            for c in self.conns.index:
-                c.m.val_SI = c.m_tmp
-                c.p.val_SI = c.p_tmp
-                c.h.val_SI = c.h_tmp
-                c.fluid.val = c.fluid_tmp
+            self.init_design_file()
 
         if self.init_file is not None:
-            df = pd.read_csv(self.init_file, index_col=0, delimiter=';',
-                             decimal=self.dec)
-            self.conns.apply(network.init_init_file, axis=1,
-                             args=(self, df, ))
+            self.init_init_file()
 
-        for c in self.conns.index:
-            c.m.val0 = c.m.val_SI / self.m[c.m.unit]
-            c.p.val0 = c.p.val_SI / self.p[c.p.unit]
-            c.h.val0 = c.h.val_SI / self.h[c.h.unit]
-            c.fluid.val0 = c.fluid.val.copy()
-
-    def init_design_file(c, nw, df):
+    def init_design_file(self):
         r"""
         overwrite variables with values from design file
 
@@ -988,26 +947,37 @@ class network:
         :type df: pandas.DataFrame
         :returns: no return value
         """
-        # match connection (source, source_id, target, target_id) on
-        # connection objects of design file
-        df_tmp = (df.s == c.s.label).to_frame()
-        df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
-        df_tmp.loc[:, 't'] = (df.t == c.t.label)
-        df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
-        # is True does not work the intended way here!
-        s = df_tmp['s'] == True
-        s_id = df_tmp['s_id'] == True
-        t = df_tmp['t'] == True
-        t_id = df_tmp['t_id'] == True
-        # overwrite all properties with design file
-        conn = df_tmp.index[s & s_id & t & t_id][0]
-        c.name.m.val_SI = df.loc[conn].m * nw.m[df.loc[conn].m_unit]
-        c.name.p.val_SI = df.loc[conn].p * nw.p[df.loc[conn].p_unit]
-        c.name.h.val_SI = df.loc[conn].h * nw.h[df.loc[conn].h_unit]
-        for fluid in nw.fluids:
-            c.name.fluid.val[fluid] = df.loc[conn][fluid]
+        df = pd.read_csv(self.init_file, index_col=0, delimiter=';', decimal=self.dec)
+        for c in self.conns.index:
+            c.m_tmp = c.m.val_SI
+            c.p_tmp = c.p.val_SI
+            c.h_tmp = c.h.val_SI
+            c.fluid_tmp = c.fluid.val.copy()
+            # match connection (source, source_id, target, target_id) on
+            # connection objects of design file
+            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
+                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            if len(conn.index) > 0:
+                conn_id = conn.index[0]
+                c.m.val_SI = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
+                c.p.val_SI = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
+                c.h.val_SI = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                for fluid in self.fluids:
+                    c.fluid.val[fluid] = df.loc[conn_id][fluid]
 
-    def init_init_file(c, nw, df):
+            else:
+                msg = 'raise some error'
+                ValueError(msg)
+
+        self.processing('pre')
+
+        for c in self.conns.index:
+            c.m.val_SI = c.m_tmp
+            c.p.val_SI = c.p_tmp
+            c.h.val_SI = c.h_tmp
+            c.fluid.val = c.fluid_tmp
+
+    def init_init_file(self):
         r"""
         overwrite non set variables with values from initialisation file
 
@@ -1021,31 +991,26 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df_tmp = (df.s == c.s.label).to_frame()
-        df_tmp.loc[:, 's_id'] = (df.s_id == c.s_id)
-        df_tmp.loc[:, 't'] = (df.t == c.t.label)
-        df_tmp.loc[:, 't_id'] = (df.t_id == c.t_id)
-        # is True does not work the intended way here!
-        s = df_tmp['s'] == True
-        s_id = df_tmp['s_id'] == True
-        t = df_tmp['t'] == True
-        t_id = df_tmp['t_id'] == True
-        if len(df_tmp.index[s & s_id & t & t_id]) > 0:
-            conn = df_tmp.index[s & s_id & t & t_id][0]
-            if not c.name.m.val_set:
-                c.name.m.val_SI = df.loc[conn].m * nw.m[df.loc[conn].m_unit]
-            if not c.name.p.val_set:
-                c.name.p.val_SI = df.loc[conn].p * nw.p[df.loc[conn].p_unit]
-            if not c.name.h.val_set:
-                c.name.h.val_SI = df.loc[conn].h * nw.h[df.loc[conn].h_unit]
-            for fluid in nw.fluids:
-                if not c.name.fluid.val_set[fluid]:
-                    c.name.fluid.val[fluid] = df.loc[conn][fluid]
+        df = pd.read_csv(self.init_file, index_col=0, delimiter=';', decimal=self.dec)
+        for c in self.conns.index:
+            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
+                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            if len(conn.index) > 0:
+                conn_id = conn.index[0]
+                if not c.m.val_set:
+                    c.m.val_SI = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
+                if not c.p.val_set:
+                    c.p.val_SI = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
+                if not c.h.val_set:
+                    c.h.val_SI = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                for fluid in self.fluids:
+                    if not c.fluid.val_set[fluid]:
+                        c.fluid.val[fluid] = df.loc[conn_id][fluid]
 
-        if c.name.T.val_set and not c.name.h.val_set:
-            c.name.h.val_SI = hlp.h_mix_pT(c.name.to_flow(), c.name.T.val_SI)
-        if c.name.x.val_set and not c.name.h.val_set:
-            c.name.h.val_SI = hlp.h_mix_pQ(c.name.to_flow(), c.name.x.val_SI)
+                c.m.val0 = c.m.val_SI / self.m[c.m.unit]
+                c.p.val0 = c.p.val_SI / self.p[c.p.unit]
+                c.h.val0 = c.h.val_SI / self.h[c.h.unit]
+                c.fluid.val0 = c.fluid.val.copy()
 
     def init_offdesign(self):
         r"""
@@ -1088,7 +1053,7 @@ class network:
                 c.get_attr(var).set_attr(val_set=True)
 
     def solve(self, mode, init_file=None, design_file=None, dec='.',
-              max_iter=50, parallel=False, init_only=False):
+              max_iter=50, init_only=False):
         r"""
         solves the network:
 
@@ -1108,7 +1073,6 @@ class network:
         self.design_file = design_file
         self.dec = dec
         self.max_iter = max_iter
-        self.parallel = parallel
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1136,27 +1100,6 @@ class network:
         # number of variables
         self.num_vars = len(self.fluids) + 3
         self.solve_determination()
-
-        # parameters for code parallelisation
-        if self.parallel:
-            self.cores = cpu_count()
-            self.partit = self.cores
-            self.comps_split = []
-            self.conns_split = []
-            self.pool = Pool(self.cores)
-
-            for g, df in self.comps.groupby(np.arange(len(self.comps)) //
-                                            (len(self.comps) / self.partit)):
-                self.comps_split += [df]
-
-            for g, df in self.conns.groupby(np.arange(len(self.conns)) //
-                                            (len(self.conns) / self.partit)):
-                self.conns_split += [df]
-
-        else:
-            self.partit = 1
-            self.comps_split = [self.comps]
-            self.conns_split = [self.conns]
 
         start_time = time.time()
         errmsg = self.solve_loop()
@@ -1196,10 +1139,6 @@ class network:
                 print(msg)
 
         self.processing('post')
-
-        if self.parallel:
-            self.pool.close()
-            self.pool.join()
 
         for c in self.conns.index:
             c.T.val_SI = hlp.T_mix_ph(c.to_flow())
@@ -1498,49 +1437,43 @@ class network:
         :returns: no return value
         """
         num_cols = len(self.conns) * self.num_vars
-        self.zero_flag = {}
 
-        if self.parallel:
-            data = self.solve_parallelize(network.solve_comp, self.comps_split)
-
-        else:
-            data = [network.solve_comp(args=(self.comps_split, ))]
+        data = network.solve_comp(args=([self.comps], ))
 
         sum_eq = 0
         vec_res = []
-        for part in range(self.partit):
 
-            vec_res += [it for ls in data[part][0].tolist() for it in ls]
-            k = 0
-            c_var = 0
-            for cp in self.comps_split[part].index:
+        vec_res += [it for ls in data[0].tolist() for it in ls]
+        k = 0
+        c_var = 0
+        for cp in self.comps.index:
 
-                if (not isinstance(cp, cmp.source) and
-                        not isinstance(cp, cmp.sink)):
+            if (not isinstance(cp, cmp.source) and
+                    not isinstance(cp, cmp.sink)):
 
-                    i = 0
-                    num_eq = len(data[part][1].iloc[k][0])
-                    inlets = self.comps.loc[cp].i.tolist()
-                    outlets = self.comps.loc[cp].o.tolist()
+                i = 0
+                num_eq = len(data[1].iloc[k][0])
+                inlets = self.comps.loc[cp].i.tolist()
+                outlets = self.comps.loc[cp].o.tolist()
 
-                    for c in inlets + outlets:
+                for c in inlets + outlets:
 
-                        loc = self.conns.index.get_loc(c)
-                        self.mat_deriv[
-                                sum_eq:sum_eq + num_eq,
-                                loc * (self.num_vars):(loc + 1) * self.num_vars
-                                ] = data[part][1].iloc[k][0][:, i]
-                        i += 1
+                    loc = self.conns.index.get_loc(c)
+                    self.mat_deriv[
+                            sum_eq:sum_eq + num_eq,
+                            loc * (self.num_vars):(loc + 1) * self.num_vars
+                            ] = data[1].iloc[k][0][:, i]
+                    i += 1
 
-                    for j in range(cp.num_c_vars):
-                        self.mat_deriv[
-                                sum_eq:sum_eq + num_eq, num_cols + c_var
-                                ] = (data[part][1].iloc[k][0]
-                                     [:, i + j, :1].transpose()[0])
-                        c_var += 1
+                for j in range(cp.num_c_vars):
+                    self.mat_deriv[
+                            sum_eq:sum_eq + num_eq, num_cols + c_var
+                            ] = (data[1].iloc[k][0]
+                                 [:, i + j, :1].transpose()[0])
+                    c_var += 1
 
-                    sum_eq += num_eq
-                k += 1
+                sum_eq += num_eq
+            k += 1
 
         self.vec_res[0:self.num_comp_eq] = vec_res
 
@@ -1585,9 +1518,6 @@ class network:
 
         self.vec_res[sum_eq:sum_eq + num_eq] = vec_res
 
-    def solve_parallelize(self, func, data):
-        return self.pool.map(func, [(self, [i],) for i in data])
-
     def solve_comp(args):
         data = args[0]
         return [
@@ -1617,53 +1547,44 @@ class network:
 
         - parallelize fluid calculation
         """
-        # parallelization does not seem to speed up calculation for connection
-        # properties!!
 
-        if self.parallel:
-            df = self.conns_split
-            data = self.solve_parallelize(network.solve_conn, df)
-
-        else:
-            df = [self.conns]
-            data = [network.solve_conn(args=(self, df, ))]
+        data = network.solve_conn(args=(self, [self.conns], ))
 
         # write data in residual vector and jacobian matrix
         row = self.num_comp_eq
         var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v',
                6: 'm', 7: 'p', 8: 'h', 9: 'T'}
         vec_res = []
-        for part in range(self.partit):
 
-            vec_res += [it for ls in data[part][0].tolist()
-                        for it in ls if it is not None]
-            k = 0
-            for c in self.conns_split[part].index:
+        vec_res += [it for ls in data[0].tolist()
+                    for it in ls if it is not None]
+        k = 0
+        for c in self.conns.index:
 
-                # variable counter
-                i = 0
-                loc = self.conns.index.get_loc(c)
-                for it in data[part][1].iloc[k]:
+            # variable counter
+            i = 0
+            loc = self.conns.index.get_loc(c)
+            for it in data[1].iloc[k]:
 
-                    if it is not None:
+                if it is not None:
 
+                    self.mat_deriv[
+                            row:row + 1,
+                            loc * self.num_vars:(loc + 1) * self.num_vars
+                            ] = it[0, 0]
+                    if it[0].shape[0] == 2:
+
+                        c_ref = c.get_attr(var[i]).get_attr('ref')
+                        loc_ref = self.conns.index.get_loc(c_ref.obj)
                         self.mat_deriv[
                                 row:row + 1,
-                                loc * self.num_vars:(loc + 1) * self.num_vars
-                                ] = it[0, 0]
-                        if it[0].shape[0] == 2:
+                                loc_ref * self.num_vars:
+                                (loc_ref + 1) * self.num_vars
+                                ] = it[0, 1]
 
-                            c_ref = c.get_attr(var[i]).get_attr('ref')
-                            loc_ref = self.conns.index.get_loc(c_ref.obj)
-                            self.mat_deriv[
-                                    row:row + 1,
-                                    loc_ref * self.num_vars:
-                                    (loc_ref + 1) * self.num_vars
-                                    ] = it[0, 1]
-
-                        row += 1
-                    i += 1
-                k += 1
+                    row += 1
+                i += 1
+            k += 1
 
         self.vec_res[self.num_comp_eq:row] = vec_res
 

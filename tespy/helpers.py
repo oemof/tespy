@@ -5,7 +5,7 @@
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
 """
 
-import CoolProp.CoolProp as CP
+import CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -477,7 +477,7 @@ class memorise:
     TODO: add documentation
     """
 
-    def __init__(self, fluids):
+    def add_fluids(fluids):
 
         num_fl = len(fluids)
         if num_fl > 0:
@@ -495,12 +495,15 @@ class memorise:
             memorise.count = 0
 
         for f in fluids:
+            if not f in memorise.heos.keys():
+                memorise.heos[f] = CP.AbstractState('HEOS', f)
+
+        for f in fluids:
             try:
                 pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
             except ValueError:
                 pmin, pmax = 2000, 2000e5
 
-        for f in fluids:
             try:
                 Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
             except ValueError:
@@ -538,6 +541,9 @@ class memorise:
         memorise.s_ph_f[fl] = []
 
 
+memorise.heos = {}
+memorise.bicubic = {}
+memorise.tabular = {}
 memorise.T_ph = {}
 memorise.T_ph_f = {}
 memorise.T_ps = {}
@@ -690,7 +696,8 @@ def T_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
     else:
-        return CPPSI('T', 'P', p, 'H', h, fluid)
+        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.heos[fluid].T()
 
 
 def dT_mix_dph(flow):
@@ -844,7 +851,8 @@ def T_ps(p, s, fluid):
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
     else:
-        return CPPSI('T', 'P', p, 'S', s, fluid)
+        memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
+        return memorise.heos[fluid].T()
 
 # %%
 
@@ -894,7 +902,8 @@ def h_pT(p, T, fluid):
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
-        return CPPSI('H', 'P', p, 'T', T, fluid)
+        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.heos[fluid].hmass()
 
 
 def dh_mix_pdT(flow, T):
@@ -957,7 +966,8 @@ def h_ps(p, s, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
-        return CPPSI('H', 'P', p, 'S', s, fluid)
+        memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
+        return memorise.heos[fluid].hmass()
 
 # %%
 
@@ -986,7 +996,8 @@ def h_mix_pQ(flow, Q):
             if pp > pcrit:
                 pp = pcrit * 0.95
 
-            h += CPPSI('H', 'P', pp, 'Q', Q, fluid) * x
+            memorise.heos[fluid].update(CP.PQ_INPUTS, pp, Q)
+            h += memorise.heos[fluid].hmass() * x
 
     return h
 
@@ -1088,7 +1099,8 @@ def d_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     else:
-        return CPPSI('D', 'P', p, 'H', h, fluid)
+        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.heos[fluid].rhomass()
 
 
 def dv_mix_dph(flow):
@@ -1195,7 +1207,8 @@ def d_pT(p, T, fluid):
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     else:
-        return CPPSI('D', 'P', p, 'T', T, fluid)
+        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.heos[fluid].rhomass()
 
 # %%
 
@@ -1267,7 +1280,8 @@ def visc_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     else:
-        return CPPSI('V', 'P', p, 'H', h, fluid)
+        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.heos[fluid].viscosity()
 
 # %%
 
@@ -1321,7 +1335,8 @@ def visc_pT(p, T, fluid):
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     else:
-        return CPPSI('V', 'P', p, 'T', T, fluid)
+        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.heos[fluid].viscosity()
 
 # %%
 
@@ -1393,7 +1408,8 @@ def s_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
-        return CPPSI('S', 'P', p, 'H', h, fluid)
+        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.heos[fluid].smass()
 
 # %%
 
@@ -1486,7 +1502,8 @@ def s_pT(p, T, fluid):
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
-        return CPPSI('S', 'P', p, 'T', T, fluid)
+        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.heos[fluid].smass()
 
 
 def ds_mix_pdT(flow, T):
@@ -1589,7 +1606,7 @@ def fluid_structure(fluid):
     :returns: parts (dict) - returns the elements of the fluid {'element': n}
     """
     parts = {}
-    for element in CP.get_fluid_param_string(fluid, 'formula').split('}'):
+    for element in CP.CoolProp.get_fluid_param_string(fluid, 'formula').split('}'):
         if element != '':
             el = element.split('_{')
             parts[el[0]] = int(el[1])

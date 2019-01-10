@@ -34,7 +34,7 @@ class subsystem:
 
         ph_desup = ph_desup_cond('preheater 1', ttd=5)
 
-    creates a subsystem of a desuperheater and a condenser with a vessel at
+    creates a subsystem of a desuperheater and a condenser with a valve at
     the hot outlet labeled "preheater 1" and sets the
     terminal temperature difference (hot side inlet at condenser to
     cold side outlet after condenser) to 5 K
@@ -331,7 +331,7 @@ class ph_desup_cond(subsystem):
                                            num_inter=self.num_o)
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
 
     def set_comps(self):
 
@@ -347,8 +347,8 @@ class ph_desup_cond(subsystem):
 
         self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
         self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
-        self.conns += [connection(self.condenser, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.condenser, 'out1', self.valve, 'in1')]
+        self.conns += [connection(self.valve, 'out1', self.outlet, 'in1')]
         self.conns += [connection(self.inlet, 'out2', self.condenser, 'in2')]
         self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
         self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
@@ -396,7 +396,7 @@ class ph_desup_cond_subc(subsystem):
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
         self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
 
     def set_comps(self):
 
@@ -407,7 +407,7 @@ class ph_desup_cond_subc(subsystem):
         self.condenser.set_attr(pr2=self.pr2_cond)
         self.subcooler.set_attr(pr1=self.pr1_subc)
         self.subcooler.set_attr(pr2=self.pr2_subc)
-        self.vessel.set_attr(pr=self.pr_v)
+        self.valve.set_attr(pr=self.pr_v)
 
     def create_conns(self):
 
@@ -417,8 +417,8 @@ class ph_desup_cond_subc(subsystem):
         self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
         self.conns += [connection(self.condenser, 'out1',
                                   self.subcooler, 'in1')]
-        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.subcooler, 'out1', self.valve, 'in1')]
+        self.conns += [connection(self.valve, 'out1', self.outlet, 'in1')]
         self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
         self.conns += [connection(self.subcooler, 'out2',
                                   self.condenser, 'in2')]
@@ -468,7 +468,7 @@ class ph_desup_inl_cond_subc(subsystem):
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
         self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
         self.merge = cmp.merge(label=self.label + '_merge')
 
     def set_comps(self):
@@ -491,8 +491,8 @@ class ph_desup_inl_cond_subc(subsystem):
         self.conns += [connection(self.merge, 'out1', self.condenser, 'in1')]
         self.conns += [connection(self.condenser, 'out1',
                                   self.subcooler, 'in1')]
-        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.subcooler, 'out1', self.valve, 'in1')]
+        self.conns += [connection(self.valve, 'out1', self.outlet, 'in1')]
         self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
         self.conns += [connection(self.subcooler, 'out2',
                                   self.condenser, 'in2')]

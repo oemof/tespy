@@ -6350,7 +6350,7 @@ class cogeneration_unit(combustion_chamber):
 # %%
 
 
-class vessel(component):
+class valve(component):
     r"""
     The component turbomachine is the parent class for pump, compressor and turbine.
 
@@ -6388,7 +6388,7 @@ class vessel(component):
 
     Image
 
-        .. image:: _images/vessel.svg
+        .. image:: _images/valve.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -6422,7 +6422,7 @@ class vessel(component):
     >>> nw.set_printoptions(print_level='err')
     >>> so = cmp.source('source')
     >>> si = cmp.sink('sink')
-    >>> v = cmp.vessel('vessel')
+    >>> v = cmp.valve('valve')
     >>> so_v = con.connection(so, 'out1', v, 'in1')
     >>> v_si = con.connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
@@ -6446,7 +6446,7 @@ class vessel(component):
     """
 
     def component(self):
-        return 'vessel'
+        return 'valve'
 
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
@@ -6708,6 +6708,18 @@ class vessel(component):
             self.Sirr.val = self.inl[0].m.val_SI * (
                     s_mix_ph(self.outl[0].to_flow()) -
                     s_mix_ph(self.inl[0].to_flow()))
+
+# %%
+
+
+class vessel(valve):
+
+    def comp_init(self, nw):
+        valve.comp_init(self, nw)
+
+        msg = 'The component vessel will be deprecated in the next major release. Please use valve instead.'
+        if nw.compwarn:
+            print(msg)
 
 # %%
 

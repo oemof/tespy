@@ -464,7 +464,7 @@ class network:
                    'attached to more than one connection. Please check your network.')
             raise hlp.MyNetworkError(msg)
 
-        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True].index
         for c in dub:
             msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) + ') is '
                    'attached to more than one connection. Please check your network.')

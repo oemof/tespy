@@ -232,7 +232,6 @@ class network:
         ----
         Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
         """
-
         # add attributes from kwargs
         for key in kwargs:
             if key in self.attr():
@@ -307,6 +306,19 @@ class network:
                 hlp.memorise.vrange[f][1] = self.p_range_SI[1]
 
     def get_attr(self, key):
+        r"""
+        Get the value of a networks attribute.
+
+        Parameters
+        ----------
+        key : String
+            The attribute you want to retrieve.
+
+        Returns
+        -------
+        out :
+            Specified attribute.
+        """
         if key in self.__dict__:
             return self.__dict__[key]
         else:
@@ -319,31 +331,44 @@ class network:
                 'p_range', 'h_range', 'T_range']
 
     def set_printoptions(self, **kwargs):
-        r"""r
+        r"""
+        Specification of printouts for tespy.networks.network object.
 
-        sets the printoptions for the calculation.
+        Parameters
+        ----------
+        print_level : String
+            Select the print level:
 
-        :returns: no return value
+            - 'info': all printouts.
+            - 'warn': errors and warnings
+            - 'err': errors only
+            - 'none': no printouts
 
-        **allowed keywords** in kwargs:
+        compinfo : bool
+            Print information for components.
 
-        - print_level (*str*) - select the print level:
+        compwarn : bool
+            Print warnings for components.
 
-                - info: all printouts
-                - warn: errors and warnings
-                - err: errors only
-                - none: no printouts
+        comperr : bool
+            Print errors for components.
 
-        - compinfo (*bool*) - print infos of components
-        - compwarn (*bool*) - print warnings of components
-        - comperr (*bool*) - print errors of components
+        nwkinfo : bool
+            Print information for network.
 
-        - nwkinfo (*bool*) - print info of network
-        - nwkwarn (*bool*) - print warnings of network
-        - nwkerr (*bool*) - print errors of network
+        nwkwarn : bool
+            Print warnings for network.
 
-        - iterinfo (*bool*) - print iterations
+        nwkerr : bool
+            Print errors for network.
 
+        iterinfo : bool
+            Printouts of iteration information in solving process.
+
+        Note
+        ----
+        Specifying specific print leves manually overwrites the print_level information.
+        See the example in :func:`tespy.networks.network`.
         """
         self.print_level = kwargs.get('print_level', self.print_level)
 
@@ -397,11 +422,12 @@ class network:
 
     def add_subsys(self, *args):
         r"""
-        adds connections to the network, calls check_conns method
+        Adds one or more subsystem to the network.
 
-        :param args: subsystem objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type args: tespy.components.subsystem
-        :returns: no return value
+        Parameters
+        ----------
+        c : tespy.components.subsystems.subsystem
+            The subsystem to be added to the network, subsystem objects si :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
             for c in subsys.conns:
@@ -409,65 +435,64 @@ class network:
 
     def add_conns(self, *args):
         r"""
-        add connections to the network, calls check_conns method
+        Adds one or more connections to the network.
 
-        :param args: connections objects ci :code:`add_conn(c1, c2, c3, ...)`
-        :type args: tespy.connection
-        :returns: no return value
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            The connection to be added to the network, connections objects ci :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
             self.check_conns(c)
+            # set status "checked" to false, if conneciton is added to network.
             self.checked = False
 
     def del_conns(self, c):
         r"""
-        delets connections from a network
+        Removes one or more connections from the network.
 
-        :param c: connections object to delete
-        :type c: tespy.connection
-        :returns: no return value
-        :raises: :code:`KeyError` if connections object c is not in the network
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            The connection to be removed from the network, connections objects ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         self.conns.drop(self.conns.index(c))
+        # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
     def check_conns(self, c):
         r"""
-        checks the networks connections for multiple usage of inlets or outlets
-        of components
+        Checks the networks connections for multiple usage of inlets or outlets of components.
 
-        :param c: connections object to check
-        :type c: tespy.connections.connection
-        :returns: no return value
-        :raises:
-            - :code:`TypeError`, if c is not a connections object
-            - :code:`hlp.MyNetworkError`, if components inlet or outlet is
-              already connected to another connections object
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            The connection to be checked.
         """
         if not isinstance(c, con.connection):
-            raise TypeError('Must provide tespy.connections.connection objects'
-                            ' as parameters.')
+            msg = 'Must provide tespy.connections.connection objects as parameters.'
+            raise TypeError(msg)
 
+        # add connection to dataframe
         self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
-
+        # check for duplicates
         if self.conns.duplicated(['s', 's_id'])[c]:
             self.conns = self.conns[self.conns.index != c]
-            raise hlp.MyNetworkError('Could not add connection from ' +
-                                     str(c.s.label) + ' to ' + str(c.t.label) +
-                                     ' to network, source is already in use.')
+            msg = 'Could not add connection from ' +  str(c.s.label) + ' to ' + str(c.t.label) + ' to network, source is already in use.'
+            raise hlp.MyNetworkError(msg)
         if self.conns.duplicated(['t', 't_id'])[c]:
             self.conns = self.conns[self.conns.index != c]
-            raise hlp.MyNetworkError('Could not add connection from ' +
-                                     str(c.s.label) + ' to ' + str(c.t.label) +
-                                     ' to network, target is already in use.')
+            msg = 'Could not add connection from ' + str(c.s.label) + ' to ' + str(c.t.label) + ' to network, target is already in use.'
+            raise hlp.MyNetworkError(msg)
 
     def add_busses(self, *args):
         r"""
-        adds busses to the network, if check_busses returns :code:`True`
+        Adds one or more busses to the network.
 
-        :param args: bus objects bi :code:`add_conn(b1, b2, b3, ...)`
-        :type args: tespy.connections.bus
-        :returns: no return value
+        Parameters
+        ----------
+        b : tespy.connections.bus
+            The bus to be added to the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
         """
         for b in args:
             if self.check_busses(b):
@@ -475,35 +500,31 @@ class network:
 
     def del_busses(self, b):
         r"""
-        delets busses from a network
+        Removes one or more busses from the network.
 
-        :param b: bus object to delete
-        :type b: tespy.connections.bus
-        :returns: no return value
-        :raises: :code:`KeyError` if bus object b is not in the network
+        Parameters
+        ----------
+        b : tespy.connections.bus
+            The bus to be removed from the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
         """
         if b in self.busses:
             self.busses.remove(b)
 
     def check_busses(self, b):
         r"""
-        checks the networks connections for multiple usage of inlets or outlets
-        of components
+        Checks the busses to be added for type, duplicates and identical labels.
 
-        :param c: busses object to check
-        :type c: tespy.connections.bus
-        :returns: bool
-        :raises:
-            - :code:`TypeError`, if b is not a busses object
-            - :code:`hlp.MyNetworkError`, if bus is already in the network
+        Parameters
+        ----------
+        b : tespy.connections.bus
+            The bus to be checked.
         """
         if isinstance(b, con.bus):
             if b not in self.busses:
                 if b.label not in [x.label for x in self.busses]:
                     return True
                 else:
-                    msg = ('Network already has a bus with the name ' +
-                           b.label + '.')
+                    msg = ('Network already has a bus with the name ' + b.label + '.')
                     raise hlp.MyNetworkError(msg)
             else:
                 msg = 'Network contains this bus (' + str(b) + ') already.'
@@ -516,19 +537,12 @@ class network:
 
     def check_network(self):
         r"""
-        checks the network consistency: are all components connected?
-
-        - iterates through components of the network
-        - substract the number of connections in the network going in
-          and out of the component from number of connections the component
-          requires.
-
-        :returns: no return value
-        :raises: :code:`hlp.MyNetworkError`, if number of connections in the
-                 network does not match number of connections required
+        Checks the network for consistency, have all components the correct amount of incoming and outgoing connections?
         """
+        # get unique components in connections dataframe
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
         self.init_components(comps)  # build the dataframe for components
+        # count number of incoming and outgoing connections and compare to expected values
         for comp in self.comps.index:
             num_o = (self.conns[['s', 't']] == comp).sum().s
             num_i = (self.conns[['s', 't']] == comp).sum().t
@@ -545,23 +559,25 @@ class network:
             else:
                 continue
 
+            # raise an error in case network check is unsuccesful
             raise hlp.MyNetworkError(msg)
 
+        # network checked
         self.checked = True
+        msg = 'Networkcheck successfull.'
         if self.nwkinfo:
-            print('Networkcheck successfull.')
+            print(msg)
 
     def initialise(self):
         r"""
-        initilialises the network
+        !!!!!!!!!!!!!!!!!!!!!
+        Initilialises the network in the following steps:
 
-        - component initlialisation
-        - fluid propagation on all connections
-        - initilialise fluid properties
-        - initialisiation from .csv-files
-        - switch components to offdesign mode for offedesign calculation
-
-        :returns: no return value
+        - Component initialisation for design case: Call comp_init method.
+        - Component initialisation for offdesign case: Switch components to offdesign mode.
+        - Fluid propagation on all connections.
+        - Fluid property initialisation.
+        - Initialisiation from .csv-files
         """
         self.errors = []
         if self.nwkinfo:
@@ -570,16 +586,14 @@ class network:
             print(msg)
 
         if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids '
-                   'on network creation.')
+            msg = ('Network has no fluids, please specify a list with fluids on network creation.')
             raise hlp.MyNetworkError(msg)
 
         if self.mode == 'offdesign':
             # characteristics for offdesign
             self.init_offdesign()
         else:
-            # component initialisation for design case if no topological
-            # changes have been applied
+            # component initialisation for design case
             for cp in self.comps.index:
                 cp.comp_init(self)
 
@@ -587,20 +601,19 @@ class network:
         self.init_properties()  # start standard property initialisation
 
         if self.mode == 'offdesign' and self.design_file is None:
-            msg = ('Please provide \'design_file\' for every offdesign '
-                   'calculation.')
+            msg = ('Please provide \'design_file\' for every offdesign calculation.')
             raise hlp.MyNetworkError(msg)  # must provide design_file
         else:
             self.init_csv()  # initialisation from csv
 
     def init_components(self, comps):
         r"""
-        writes the networks components into dataframe
+        Sets up a dataframe for the network's components and checks, if all components have unique labels.
 
-        .. note::
-
-            This data is deriven from the network, thus it holds no additional
-            information. Instead it is used to simplify the code only.
+        Note
+        ----
+        The dataframe for the components is derived from the network's connections.
+        Thus it holds no additional information, the dataframe is used to simplify the code.
 
         dataframe :code:`network.comps`:
 
@@ -610,29 +623,28 @@ class network:
          type: component object   type: list                   see i
          value: object id         values: connection objects
         ======================== ============================ =======
-
-        :returns: no return value
         """
         self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
 
         labels = []
         for comp in self.comps.index:
+            # get for incoming and outgoing connections of a component
             s = self.conns[self.conns.s == comp]
             s = s.s_id.sort_values().index
             t = self.conns[self.conns.t == comp]
             t = t.t_id.sort_values().index
             self.comps.loc[comp] = [t, s]
+            # save the incoming and outgoing as well as the number of connections as component attribute
             comp.inl = t.tolist()
             comp.outl = s.tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
 
+        # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
-            duplicates = [item for item, count in
-                          collections.Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: ' +
-                   str(duplicates))
+            duplicates = [item for item, count in collections.Counter(labels).items() if count > 1]
+            msg = ('All Components must have unique labels, duplicates are: ' + str(duplicates))
             raise hlp.MyNetworkError(msg)
 
     def init_fluids(self):
@@ -651,7 +663,6 @@ class network:
 
         :returns: no return value
         """
-
         # iterate over connectons, create ordered dicts
         for c in self.conns.index:
             tmp = c.fluid.val.copy()
@@ -704,32 +715,37 @@ class network:
         if len(self.fluids) == 1:
             return
 
+        # fluid propagation for combustion chambers
         for cp in self.comps.index:
             if isinstance(cp, cmp.combustion_chamber):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
 
+        # fluid propagation from set values
         for c in self.conns.index:
             if any(c.fluid.val_set.values()):
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
 
+        # fluid propagation starting from all connections
         for c in self.conns.index:
             c.s.initialise_fluids(self)
             c.t.initialise_fluids(self)
 
     def init_target(self, c, start):
         r"""
-        propagates the fluids towards connections target,
-        ends when reaching sink, merge or combustion chamber
+        Propagates the fluids towards connection's target with recursive function calls.
+        If the target is a sink, a merge or a combustion chamber, the propagation stops.
 
-        :param c: connection to initialise
-        :type c: tespy.connections.connection
-        :param start: fluid propagation startingpoint, in some cases needed
-            to exit the recursion
-        :type start: tespy.connections.connection
-        :returns: no return value
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to initialise.
+
+        start : tespy.connections.connection
+            This connection is the fluid propagation starting point.
+            The starting connection is saved to prevent infinite looping.
         """
         if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
                 isinstance(c.t, cmp.heat_exchanger) or
@@ -774,15 +790,17 @@ class network:
 
     def init_source(self, c, start):
         r"""
-        propagates the fluids towards connections source,
-        ends when reaching source, merge or combustion chamber
+        Propagates the fluids towards connection's source with recursive function calls.
+        If the source is a source or a combustion chamber, the propagation stops.
 
-        :param c: connection to initialise
-        :type c: tespy.connections.connection
-        :param start: fluid propagation startingpoint, in some cases needed
-            to exit the recursion
-        :type start: tespy.connections.connection
-        :returns: no return value
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to initialise.
+
+        start : tespy.connections.connection
+            This connection is the fluid propagation starting point.
+            The starting connection is saved to prevent infinite looping.
         """
         if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
                 isinstance(c.s, cmp.heat_exchanger) or
@@ -835,16 +853,12 @@ class network:
 
     def init_properties(self):
         r"""
-        initialises the fluid properties on every connection of the network
+        Initialises the fluid properties on every connection of the network.
 
-        - sets standard values for :code:`m0, p0, h0` if not user specified
-        - sets :code:`var = var0` if var_set is False
-        - initialises reference objects
-        - performs target fluid propagation from merges
-        - sets initial values for enthalpy at given vapour mass fraction or
-          temperature
-
-        :returns: no return value
+        - Sets standard values for :code:`m0, p0, h0` if not user specified
+        - Sets :code:`var = var0` if var_set is False
+        - Initialises reference objects
+        - Sets initial values for enthalpy at given vapour mass fraction or temperature
         """
         # fluid properties
         for c in self.conns.index:
@@ -853,16 +867,11 @@ class network:
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
                 if key not in ['T', 'x', 'v'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
-                    c.get_attr(key).val_SI = (
-                        c.get_attr(key).val0 *
-                        self.get_attr(key)[c.get_attr(key).unit])
+                    c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
                 elif key not in ['T', 'x', 'v'] and c.get_attr(key).val_set:
-                    c.get_attr(key).val_SI = (
-                        c.get_attr(key).val *
-                        self.get_attr(key)[c.get_attr(key).unit])
+                    c.get_attr(key).val_SI = c.get_attr(key).val * self.get_attr(key)[c.get_attr(key).unit]
                 elif key == 'T' and c.T.val_set:
-                    c.T.val_SI = ((c.T.val + self.T[c.T.unit][0]) *
-                                  self.T[c.T.unit][1])
+                    c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
@@ -887,15 +896,13 @@ class network:
 
     def init_val0(self, c, key):
         r"""
-        sets standard initialisation values for pressure
-        values for pressure deriven by
+        Set starting values for fluid properties. The components classes provide generic starting
+        values for its inlets and outlets.
 
-        - attached components or
-        - unspecific value (1e5 for pressure)
-
-        :param c: connection to initialise
-        :type c: tespy.connections.connection
-        :returns: no return value
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Connection to initialise.
         """
         if key == 'x' or key == 'T':
             return
@@ -905,7 +912,7 @@ class network:
             c.get_attr(key).val0 = 1
             return
 
-        # generic starting values
+        # generic starting values for pressure and enthalpy
         if math.isnan(c.get_attr(key).val0):
             val_s = c.s.initialise_source(c, key)
             val_t = c.t.initialise_target(c, key)
@@ -924,9 +931,7 @@ class network:
                 c.get_attr(key).val0 = (val_s + val_t) / 2
 
             # change value to specified unit system
-            c.get_attr(key).val0 = (
-                c.get_attr(key).val0 /
-                self.get_attr(key)[self.get_attr(key + '_unit')])
+            c.get_attr(key).val0 = c.get_attr(key).val0 / self.get_attr(key)[self.get_attr(key + '_unit')]
 
     def init_csv(self):
         r"""
@@ -2113,12 +2118,10 @@ class network:
         """
         modes = ['post', 'pre']
         if mode not in modes:
-            msg = ('Processing mode must be \'pre\' for offdesign preparation '
-                   'or \'post\'.')
+            msg = ('Processing mode must be \'pre\' or \'post\'.')
             raise hlp.MyNetworkError(msg)
 
-        self.comps.apply(network.process_components, axis=1,
-                         args=(self, mode,))
+        self.comps.apply(network.process_components, axis=1, args=(self, mode,))
 
         if self.nwkinfo:
             if mode == 'pre':

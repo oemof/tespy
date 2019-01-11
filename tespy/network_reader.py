@@ -15,25 +15,64 @@ import ast
 
 def load_nwk(path):
     r"""
-    loads a network from a path given the following structure:
+    Loads a network from a base path.
 
-    - path (e. g. 'mynetwork')
-        - comps
-            - bus.csv
-            - char.csv
-            - heat_exchanger.csv
-            - ...
-        - conns.csv
-        - netw.csv
+    Parameters
+    ----------
+    path : String
+        The path to the network data.
 
-    .. note::
-        If you save the network structure of an existing TESPy network, it will
-        be stored this way for you. The returned network object is ready for
-        calculation (given good parametrisation).
+    Returns
+    -------
+    nw : tespy.networks.network
+        TESPy networks object.
 
-    :param path: path to stored network data
-    :type path: str
-    :returns: nw (*tespy.networks.network*) - TESPy network object
+    Note
+    ----
+    If you save the network structure of an existing TESPy network, it will be saved to the path you specified.
+    The structure of the saved data in that path is the structure you need to provide in the path for loading the network.
+
+    The structure of the path must be as follows:
+
+    - Folder: path (e. g. 'mynetwork')
+    - Subfolder: comps (e. g. 'mynetwork/comps') containing
+        - bus.csv*
+        - char.csv*
+        - component_class_name.csv (e. g. heat_exchanger.csv)
+    - conns.csv
+    - netw.csv
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp, nwkr
+    >>> fluid_list = ['water']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> si = cmp.sink('sink')
+    >>> so = cmp.source('source')
+    >>> t = cmp.turbine('turbine')
+    >>> inc = con.connection(so, 'out1', t, 'in1')
+    >>> outg = con.connection(t, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'],
+    ...     offdesign=['eta_s_char', 'cone'])
+    >>> inc.set_attr(fluid={'water': 1}, T=600)
+    >>> outg.set_attr(p=0.5)
+    >>> nw.solve('design')
+    >>> nw.save('tmp', structure=True)
+    >>> t.set_attr(P=-9e4)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(t.eta_s.val, 3)
+    0.798
+    >>> nw2 = nwkr.load_nwk('tmp')
+    Reading network data...
+    Created components.
+    Created connections.
+    Networkcheck successfull.
+    >>> nw2.set_printoptions(print_level='err')
+    >>> nw2.solve('design')
+    >>> nw2.solve('offdesign', design_file='tmp/results.csv')
     """
     print('Reading network data...')
 
@@ -65,7 +104,7 @@ def load_nwk(path):
                               axis=0)
 
     comps = comps.set_index('label')
-    print('Created components')
+    print('Created components.')
 
     # create network
     nw = construct_network(path)
@@ -84,7 +123,7 @@ def load_nwk(path):
     for c in conns['instance']:
         nw.add_conns(c)
 
-    print('Created connections')
+    print('Created connections.')
     nw.check_network()
 
     # load busses
@@ -101,7 +140,7 @@ def load_nwk(path):
         for b in busses['instance']:
             nw.add_busses(b)
 
-        print('Created busses')
+        print('Created busses.')
 
     return nw
 
@@ -111,19 +150,21 @@ def load_nwk(path):
 
 def construct_comps(c, *args):
     r"""
-    creates TESPy component from class name provided in the .csv-file and
-    specifies its parameter
+    Creates TESPy component from class name provided in the .csv-file and specifies its parameters.
 
-    :param c: component information
-    :type c: pandas.core.series.Series
-    :returns: instance (*tespy.components.component*) - TESPy component object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Component information from .csv-file.
 
-    **additional arguments in args**
+    args[0] : pandas.core.frame.DataFrame
+        DataFrame containing the x and y data of characteristic functions.
 
-    - args[0]: char (*pandas.core.frame.DataFrame*) - DataFrame containing the
-      x and y data of characteristic functions
+    Returns
+    -------
+    instance : tespy.components.components.component
+        TESPy component object.
     """
-
     target_class = getattr(cmp, c.cp)
     instance = target_class(c.label)
     kwargs = {}
@@ -162,13 +203,18 @@ def construct_comps(c, *args):
 
 def construct_network(path):
     r"""
-    creates TESPy network from the data provided in the .csv-file
+    Creates TESPy network from the data provided in the netw.csv-file.
 
-    :param path: path to stored network data
-    :type path: str
-    :returns: nw (*tespy.networks.network*) - TESPy network object
+    Parameters
+    ----------
+    path : String
+        Base-path to stored network data.
+
+    Returns
+    -------
+    nw : tespy.networks.network
+        TESPy network object.
     """
-
     # read network .csv-file
     netw = pd.read_csv(path + '/netw.csv', sep=';', decimal='.',
                        converters={'fluids': ast.literal_eval})
@@ -193,14 +239,18 @@ def construct_network(path):
 
 def construct_chars(c):
     r"""
-    creates TESPy characteristic functions
+    Creates TESPy characteristics.
 
-    :param c: connection information
-    :type c: pandas.core.series.Series
-    :returns: instance (*tespy.components.characteristics*) - TESPy
-              characteristics object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Characteristics information from .csv-file.
+
+    Returns
+    -------
+    char : tespy.components.characteristics.characteristics
+        TESPy characteristics object.
     """
-
     char = cmp_char.characteristics(x=c.x, y=c.y)
     return char
 
@@ -209,22 +259,23 @@ def construct_chars(c):
 
 def construct_conns(c, *args):
     r"""
-    creates TESPy component from class name provided in the .csv-file and
-    specifies its parameters
+    Creates TESPy connection from data in the .csv-file and specifies its parameters.
 
-    :param c: connection information
-    :type c: pandas.core.series.Series
-    :returns: instance (*tespy.components.component*) - TESPy component object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Connection information from .csv-file.
 
-    **additional arguments in args**
+    args[0] : pandas.core.frame.DataFrame
+        DataFrame containing all created components.
 
-    - args[0]: comps (*pandas.core.frame.DataFrame*) - DataFrame containing all
-      created components
+    Returns
+    -------
+    conn : tespy.connections.connection
+        TESPy connection object.
     """
-
     # create connection
-    conn = con.connection(args[0].instance[c.s], c.s_id,
-                          args[0].instance[c.t], c.t_id)
+    conn = con.connection(args[0].instance[c.s], c.s_id, args[0].instance[c.t], c.t_id)
 
     kwargs = {}
     # read basic properties
@@ -235,14 +286,9 @@ def construct_conns(c, *args):
     # read fluid properties
     for key in ['m', 'p', 'h', 'T', 'x']:
         if key in c:
-            dc = hlp.dc_prop(val=c[key],
-                             val0=c[key + '0'],
-                             val_set=c[key + '_set'],
-                             unit=c[key + '_unit'],
-                             unit_set=c[key + '_unit_set'],
-                             ref=None,
-                             ref_set=c[key + '_ref_set'])
-
+            dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
+                             unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
+                             ref=None, ref_set=c[key + '_ref_set'])
             kwargs[key] = dc
 
     # read fluid vector
@@ -255,8 +301,7 @@ def construct_conns(c, *args):
             val0[key] = c[key + '0']
             val_set[key] = c[key + '_set']
 
-    kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set,
-                                 balance=c['balance'])
+    kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set, balance=c['balance'])
 
     # write properties to connection and return connection object
     conn.set_attr(**kwargs)
@@ -267,18 +312,21 @@ def construct_conns(c, *args):
 
 def conns_set_ref(c, *args):
     r"""
-    sets references on the created connections
+    Sets references on connections as specified in connection data.
 
-    :param c: connection information
-    :type c: pandas.core.series.Series
-    :returns: instance (*tespy.components.component*) - TESPy component object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Connection information from .csv-file.
 
-    **additional arguments in args**
+    args[0] : pandas.core.frame.DataFrame
+        DataFrame containing all created connections.
 
-    - args[0]: conns (*pandas.core.frame.DataFrame*) - DataFrame containing all
-      created connections
+    Returns
+    -------
+    instance : tespy.connections.ref
+        TESPy reference object.
     """
-
     for col in ['m', 'p', 'h', 'T']:
         # search for referenced connections
         if isinstance(c[col + '_ref'], str):
@@ -295,13 +343,18 @@ def conns_set_ref(c, *args):
 
 def construct_busses(c, *args):
     r"""
-    creates busses
+    Creates busses of the network.
 
-    :param c: bus information
-    :type c: pandas.core.series.Series
-    :returns: b (*tespy.connection.bus*) - TESPy bus object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Bus information from .csv-file.
+
+    Returns
+    -------
+    b : tespy.connections.bus
+        TESPy bus object.
     """
-
     # set up bus with label and specify value for power
     b = con.bus(c.label, P=c.P)
     b.P.val_set = c.P_set
@@ -312,18 +365,16 @@ def construct_busses(c, *args):
 
 def busses_add_comps(c, *args):
     r"""
-    adds components to the busses
+    Adds components to busses according to data from .csv file.
 
-    :param c: component information
-    :type c: pandas.core.series.Series
-    :returns: instance (*tespy.components.component*) - TESPy component object
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Component information from .csv-file.
 
-    **additional arguments in args**
-
-    - args[0]: busses (*pandas.core.frame.DataFrame*) - DataFrame containing
-      all created busses
+    args[0] : pandas.core.frame.DataFrame
+        DataFrame containing all created busses.
     """
-
     i = 0
     for b in c.busses:
         p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
@@ -332,8 +383,6 @@ def busses_add_comps(c, *args):
         char = args[1]['char'][values[values == True].index[0]]
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['id']
-                         ].values[0].add_comps({'c': c.instance,
-                                                'p': p, 'P_ref': P_ref,
-                                                'char': char})
+        args[0].instance[b == args[0]['id']].values[0].add_comps(
+                {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
         i += 1

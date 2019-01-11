@@ -80,7 +80,7 @@ nw.add_conns(su_cp1)
 
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
 rp.set_attr(eta_s=0.8)
-cons.set_attr(pr=0.99, offdesign=['zeta'])
+cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # evaporator system
 

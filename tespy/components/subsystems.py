@@ -18,32 +18,37 @@ from tespy.components import components as cmp
 
 class subsystem:
     r"""
+    Class subsystem is the base class of all TESPy subsystems.
 
-    :param label: label for subsystem
-    :type label: str
-    :param kwargs: for the keyword arguments see :code:`subsystem.attr()`
-    :returns: no return value
-    :raises: - :code:`TypeError`, if label is not of type str
-               components
-             - :code:`ValueError`, if label contains forbidden characters
-               (';', ',', '.')
+    Parameters
+    ----------
+    label : String
+        The label of the subsystem.
 
-    **example**
+    **kwargs :
+        See the class documentation of desired subsystem for available keywords.
+        If you want to define your own subsystem, provide the keywords in the :func:`tespy.components.subsystems.subystem.attr` method.
 
-    .. code-block:: python
+    Note
+    ----
+    The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
+    are used for instances of class subsystem and its children.
 
-        ph_desup = ph_desup_cond('preheater 1', ttd=5)
+    Keywords for keyword arguments depend on the type of subsystem you want to create/use.
 
-    creates a subsystem of a desuperheater and a condenser with a vessel at
-    the hot outlet labeled "preheater 1" and sets the
-    terminal temperature difference (hot side inlet at condenser to
-    cold side outlet after condenser) to 5 K
+    Example
+    -------
+    Basic example for a setting up a tespy.components.subsystems.subsystem object.
+    This example does not run a tespy calculation!
 
-    initialisation method is used for instances of class component and its
-    children
-
-    allowed keywords in kwargs are 'mode' and additional keywords depending
-    on the type of subsystem you want to create
+    >>> from tespy import subsys
+    >>> mysub = subsys.subsystem('mySubsystem')
+    >>> type(mysub)
+    <class 'tespy.components.subsystems.subsystem'>
+    >>> mysub.get_attr('label')
+    'mySubsystem'
+    >>> type(mysub.get_network())
+    <class 'tespy.networks.network'>
     """
     def __init__(self, label, **kwargs):
 
@@ -51,8 +56,7 @@ class subsystem:
             raise MyComponentError('Subsystem label must be of type str!')
 
         elif len([x for x in [';', ', ', '.'] if x in label]) > 0:
-            raise MyComponentError('Can\'t use ' + str([';', ', ', '.']) + ' ',
-                                   'in label.')
+            raise MyComponentError('Can\'t use ' + str([';', ', ', '.']) + ' in label.')
         else:
             self.label = label
 
@@ -65,10 +69,23 @@ class subsystem:
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
-        """
-        set attributes of subsystem
-        """
+        r"""
+        Sets, resets or unsets attributes of a component for provided keyword arguments.
 
+        Parameters
+        ----------
+        label : String
+            The label of the subsystem.
+
+        **kwargs :
+            See the class documentation of desired subsystem for available keywords.
+            If you want to define your own subsystem, provide the keywords in the :func:`tespy.components.subsystems.subystem.attr` method.
+
+        Note
+        ----
+        Allowed keywords in kwargs are obtained from class documentation as all
+        subsystems share the :func:`tespy.components.subsystems.subsystem.set_attr` method.
+        """
         # set provided values,  check for invalid keys
         for key in kwargs:
             if key in self.attr():
@@ -93,8 +110,18 @@ class subsystem:
         self.set_conns()
 
     def get_attr(self, key):
-        """
-        get attribute of subsystem
+        r"""
+        Get the value of a subsystem's attribute.
+
+        Parameters
+        ----------
+        key : String
+            The attribute you want to retrieve.
+
+        Returns
+        -------
+        out :
+            Value of specified attribute.
         """
         if key in self.__dict__:
             return self.__dict__[key]
@@ -102,39 +129,12 @@ class subsystem:
             print('Subsystem ' + self.label + ' has no attribute ' + key)
             return None
 
-    def display_information(self):
-        """
-        print all attributes of subsystem
-        """
-        print(self.__dict__)
-
     def attr(self):
         return ['num_i', 'num_o']
 
-    def from_network(self, nw):
-        """
-        create a subsystem from a network
-
-        .. note::
-            Does not work by now!
-        """
-        num_inter = 0
-        for c in nw.conns.index:
-            self.nw.add_conns(c)
-            if isinstance(c, cmp.subsys_interface):
-                num_inter += 1
-
-        if num_inter != 2:
-            raise MyNetworkError('A subsystem must exactly have one inlet '
-                                 'and one outlet interface!')
-
     def subsys_init(self):
-        """
-        subsystem initialisation:
-
-        - create components and connections
-        - set components and connections parameters
-        - create network
+        r"""
+        Creates network of the subsystem on subsystem creation.
         """
         self.create_comps()
         self.create_conns()
@@ -143,7 +143,7 @@ class subsystem:
         return
 
     def create_conns(self):
-        return
+        self.conns = []
 
     def set_comps(self):
         return
@@ -165,25 +165,63 @@ class subsystem:
 
 
 class dr_eva_forced(subsystem):
-    """
-    **available parameters**
+    r"""
+    Drum with evaporator in forced flow.
 
-    - pr1_eva: pressure drop at hot side of evaporator
-    - pr2_eva: pressure drop at cold side of evaporator
-    - eta_s: isentropic efficiency of the pump
-    - PP: pinch point
-    - circ_num: circulation number, ratio of mass flow through cold side of
-      evaporator to mass flow at the drum inlet
+    Inlets/Outlets
 
-    **inlets and outlets**
+        - in1, in2
+        - out1, out2
 
-    - in1, in2
-    - out1, out2
+    Image
 
-    .. image:: _images/subsys_dr_eva_forced.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        .. image:: _images/subsys_dr_eva_forced.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : String
+        The label of the subsystem.
+
+    pr1_eva : float
+        Pressure drop at hot side of evaporator.
+
+    pr2_eva : float
+        Pressure drop at cold side of evaporator.
+
+    eta_s : float
+        Circulation pump isentropic efficiency.
+
+    PP : float
+        Pinch point of evaporator.
+
+    circ_num : float
+        Circulation number, ratio of mass flow through cold side of
+        evaporator to mass flow at the drum's inlet.
+
+    Example
+    -------
+    >>> from tespy import subsys
+    >>> import numpy as np
+    >>> mysub = subsys.dr_eva_forced('drum with evaporator')
+    >>> mysub.set_attr(pr1_eva=0.99, pr2_eva=0.98, PP=20, circ_num=3.4)
+    >>> mysub.get_attr('pr1_eva')
+    0.99
+    >>> mysub.evaporator.label
+    'drum with evaporator_evaporator'
+    >>> mysub.inlet.num_inter.val
+    2
+    >>> mysub.pump.eta_s.is_set
+    False
+    >>> mysub.evaporator.ttd_l.val == mysub.PP
+    True
+    >>> mysub.conns[3].m.ref_set
+    True
+    >>> mysub.set_attr(circ_num=np.nan)
+    >>> mysub.conns[3].m.ref_set
+    False
     """
 
     def attr(self):
@@ -233,23 +271,45 @@ class dr_eva_forced(subsystem):
 
 
 class dr_eva_natural(subsystem):
-    """
-    **available parameters**
+    r"""
+    Drum with evaporator in natural flow.
 
-    - pr1_eva: pressure drop at hot side of evaporator
-    - PP: pinch point
-    - circ_num: circulation number, ratio of mass flow through cold side of
-      evaporator to mass flow at the drum inlet
+    Inlets/Outlets
 
-    **inlets and outlets**
+        - in1, in2
+        - out1, out2
 
-    - in1, in2
-    - out1, out2
+    Image
 
-    .. image:: _images/subsys_dr_eva_natural.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        .. image:: _images/subsys_dr_eva_natural.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : String
+        The label of the subsystem.
+
+    pr1_eva : float
+        Pressure drop at hot side of evaporator.
+
+    PP : float
+        Pinch point of evaporator.
+
+    circ_num : float
+        Circulation number, ratio of mass flow through cold side of
+        evaporator to mass flow at the drum's inlet.
+
+    Example
+    -------
+    >>> from tespy import subsys
+    >>> mysub = subsys.dr_eva_forced('drum with evaporator')
+    >>> mysub.set_attr(pr1_eva=0.99, PP=20, circ_num=3.4)
+    >>> mysub.get_attr('PP')
+    20
+    >>> mysub.drum.label
+    'drum with evaporator_drum'
     """
 
     def attr(self):
@@ -296,24 +356,45 @@ class dr_eva_natural(subsystem):
 
 
 class ph_desup_cond(subsystem):
-    """
-    **available parameters**
+    r"""
+    Preheater with desuperheater, condesate at hot side outlet.
 
-    - ttd: upper terminal temperature difference of condenser
-    - pr1_desup: pressure drop at hot side of desuperheater
-    - pr2_desup: pressure drop at cold side of desuperheater
-    - pr1_cond: pressure drop at hot side of condenser
-    - pr2_cond: pressure drop at cold side of condenser
+    Inlets/Outlets
 
-    **inlets and outlets**
+        - in1, in2
+        - out1, out2
 
-    - in1, in2
-    - out1, out2
+    Image
 
-    .. image:: _images/subsys_ph_desup_cond.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        .. image:: _images/subsys_ph_desup_cond.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : String
+        The label of the subsystem.
+
+    pr1_desup : float
+        Pressure drop at hot side of desuperheater.
+
+    pr2_desup : float
+        Pressure drop at cold side of desuperheater.
+
+    pr1_cond : float
+        Pressure drop at hot side of condensator.
+
+    pr2_cond : float
+        Pressure drop at cold side of condensator.
+
+    ttd : float
+        Upper terminal temperature difference at condenser.
+
+    Example
+    -------
+    >>> from tespy import subsys
+    >>> mysub = subsys.ph_desup_cond('preheater')
     """
 
     def attr(self):
@@ -331,7 +412,7 @@ class ph_desup_cond(subsystem):
                                            num_inter=self.num_o)
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
 
     def set_comps(self):
 
@@ -347,8 +428,8 @@ class ph_desup_cond(subsystem):
 
         self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
         self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
-        self.conns += [connection(self.condenser, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.condenser, 'out1', self.valve, 'in1')]
+        self.conns += [connection(self.valve, 'out1', self.outlet, 'in1')]
         self.conns += [connection(self.inlet, 'out2', self.condenser, 'in2')]
         self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
         self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
@@ -357,26 +438,54 @@ class ph_desup_cond(subsystem):
 
 
 class ph_desup_cond_subc(subsystem):
-    """
-    **available parameters**
+    r"""
+    Preheater with desuperheater and subcooler, subcooled liquid at hot side outlet.
 
-    - ttd: upper terminal temperature difference of condenser
-    - pr1_desup: pressure drop at hot side of desuperheater
-    - pr2_desup: pressure drop at cold side of desuperheater
-    - pr1_cond: pressure drop at hot side of condenser
-    - pr2_cond: pressure drop at cold side of condenser
-    - pr1_subc: pressure drop at hot side of subcooler
-    - pr2_subc: pressure drop at cold side of subcooler
+    Inlets/Outlets
 
-    **inlets and outlets**
+        - in1, in2
+        - out1, out2
 
-    - in1, in2
-    - out1, out2
+    Image
 
-    .. image:: _images/subsys_ph_desup_cond_subc.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
+        .. image:: _images/subsys_ph_desup_cond_subc.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : String
+        The label of the subsystem.
+
+    pr1_desup : float
+        Pressure drop at hot side of desuperheater.
+
+    pr2_desup : float
+        Pressure drop at cold side of desuperheater.
+
+    pr1_cond : float
+        Pressure drop at hot side of condensator.
+
+    pr2_cond : float
+        Pressure drop at cold side of condensator.
+
+    pr1_subc : float
+        Pressure drop at hot side of subcooler.
+
+    pr2_subc : float
+        Pressure drop at cold side of subcooler.
+
+    ttd : float
+        Upper terminal temperature difference at condenser.
+
+    pr_v : float
+        Pressure ratio of the valve at hot side outlet.
+
+    Example
+    -------
+    >>> from tespy import subsys
+    >>> mysub = subsys.ph_desup_cond_subc('preheater')
     """
 
     def attr(self):
@@ -396,7 +505,7 @@ class ph_desup_cond_subc(subsystem):
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
         self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
 
     def set_comps(self):
 
@@ -407,7 +516,7 @@ class ph_desup_cond_subc(subsystem):
         self.condenser.set_attr(pr2=self.pr2_cond)
         self.subcooler.set_attr(pr1=self.pr1_subc)
         self.subcooler.set_attr(pr2=self.pr2_subc)
-        self.vessel.set_attr(pr=self.pr_v)
+        self.valve.set_attr(pr=self.pr_v)
 
     def create_conns(self):
 
@@ -417,139 +526,10 @@ class ph_desup_cond_subc(subsystem):
         self.conns += [connection(self.desup, 'out1', self.condenser, 'in1')]
         self.conns += [connection(self.condenser, 'out1',
                                   self.subcooler, 'in1')]
-        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
+        self.conns += [connection(self.subcooler, 'out1', self.valve, 'in1')]
+        self.conns += [connection(self.valve, 'out1', self.outlet, 'in1')]
         self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
         self.conns += [connection(self.subcooler, 'out2',
                                   self.condenser, 'in2')]
         self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
         self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
-
-# %%
-
-
-class ph_desup_inl_cond_subc(subsystem):
-    """
-    **available parameters**
-
-    - ttd: upper terminal temperature difference of condenser
-    - pr1_desup: pressure drop at hot side of desuperheater
-    - pr2_desup: pressure drop at cold side of desuperheater
-    - pr1_cond: pressure drop at hot side of condenser
-    - pr2_cond: pressure drop at cold side of condenser
-    - pr1_subc: pressure drop at hot side of subcooler
-    - pr2_subc: pressure drop at cold side of subcooler
-
-    **inlets and outlets**
-
-    - in1, in2, in3
-    - out1, out2
-
-    .. image:: _images/subsys_ph_desup_inl_cond_subc.svg
-       :scale: 100 %
-       :alt: alternative text
-       :align: center
-    """
-
-    def attr(self):
-        return ([n for n in subsystem.attr(self) if
-                 n != 'num_i' and n != 'num_o'] +
-                ['ttd', 'pr1_desup', 'pr2_desup',
-                 'pr1_cond', 'pr2_cond', 'pr1_subc', 'pr2_subc'])
-
-    def create_comps(self):
-
-        self.num_i = 3
-        self.num_o = 2
-        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
-                                          num_inter=self.num_i)
-        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
-                                           num_inter=self.num_o)
-        self.desup = cmp.desuperheater(label=self.label + '_desup')
-        self.condenser = cmp.condenser(label=self.label + '_condenser')
-        self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
-        self.vessel = cmp.vessel(label=self.label + '_vessel', mode='man')
-        self.merge = cmp.merge(label=self.label + '_merge')
-
-    def set_comps(self):
-
-        self.condenser.set_attr(ttd_u=self.ttd)
-        self.desup.set_attr(pr1=self.pr1_desup)
-        self.desup.set_attr(pr2=self.pr2_desup)
-        self.condenser.set_attr(pr1=self.pr1_cond)
-        self.condenser.set_attr(pr2=self.pr2_cond)
-        self.subcooler.set_attr(pr1=self.pr1_cond)
-        self.subcooler.set_attr(pr2=self.pr2_cond)
-
-    def create_conns(self):
-
-        self.conns = []
-
-        self.conns += [connection(self.inlet, 'out1', self.desup, 'in1')]
-        self.conns += [connection(self.desup, 'out1', self.merge, 'in1')]
-        self.conns += [connection(self.inlet, 'out3', self.merge, 'in2')]
-        self.conns += [connection(self.merge, 'out1', self.condenser, 'in1')]
-        self.conns += [connection(self.condenser, 'out1',
-                                  self.subcooler, 'in1')]
-        self.conns += [connection(self.subcooler, 'out1', self.vessel, 'in1')]
-        self.conns += [connection(self.vessel, 'out1', self.outlet, 'in1')]
-        self.conns += [connection(self.inlet, 'out2', self.subcooler, 'in2')]
-        self.conns += [connection(self.subcooler, 'out2',
-                                  self.condenser, 'in2')]
-        self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
-        self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
-
-# %%
-
-
-class eva_sup(subsystem):
-    """
-    Evaporator with superheater
-
-    **available parameters**
-
-    - pr1_eva: pressure drop at hot side of evaporator
-    - pr2_eva: pressure drop at cold side of evaporator
-    - pr1_sup: pressure drop at hot side of superheater
-    - pr2_sup: pressure drop at cold side of superheater
-
-    **inlets and outlets**
-
-    - in1, in2
-    - out1, out2
-
-    """
-
-    def attr(self):
-        return ([n for n in subsystem.attr(self) if
-                 n != 'num_i' and n != 'num_o'] +
-                ['pr1_eva', 'pr2_eva', 'pr1_sup', 'pr2_sup'])
-
-    def create_comps(self):
-
-        self.num_i = 2
-        self.num_o = 2
-        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
-                                          num_inter=self.num_i)
-        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
-                                           num_inter=self.num_o)
-        self.eva = cmp.heat_exchanger(label=self.label + '_eva')
-        self.sup = cmp.heat_exchanger(label=self.label + '_sup')
-
-    def set_comps(self):
-
-        self.eva.set_attr(pr1=self.pr1_eva)
-        self.eva.set_attr(pr2=self.pr2_eva)
-        self.sup.set_attr(pr1=self.pr1_sup)
-        self.sup.set_attr(pr2=self.pr2_sup)
-
-    def create_conns(self):
-
-        self.conns = []
-
-        self.conns += [connection(self.inlet, 'out1', self.sup, 'in1')]
-        self.conns += [connection(self.sup, 'out1', self.eva, 'in1')]
-        self.conns += [connection(self.eva, 'out1', self.outlet, 'in1')]
-        self.conns += [connection(self.inlet, 'out2', self.eva, 'in2')]
-        self.conns += [connection(self.eva, 'out2', self.sup, 'in2', x=1)]
-        self.conns += [connection(self.sup, 'out2', self.outlet, 'in2')]

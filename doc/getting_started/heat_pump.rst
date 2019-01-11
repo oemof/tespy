@@ -18,7 +18,12 @@ Generally, if you are performing offdesign calculation, keep in mind, that a goo
 from the calculation of the same load and the nearest ambient temperature possible (in this case always the calculation one step before). This helps the algorithm to stabilize and find a solution.
 If you skip out on a large range of temperature or power, you might run into convergence issues. The figure below shows the COP of the heat pump for the different temperature levels and at different loads.
     
-.. figure:: api/_images/heat_pump_COP.svg
+.. figure:: api/_images/heat_pump_COP_water.svg
     :align: center
 	
-    Figure: COP of the heat pump.
+    Figure: COP of the heat pump using water as heat source. 
+	
+.. figure:: api/_images/heat_pump_COP_air.svg
+    :align: center
+	
+    Figure: COP of the heat pump using air as heat source.

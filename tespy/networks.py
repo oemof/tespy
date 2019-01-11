@@ -590,7 +590,10 @@ class network:
             msg = ('Please provide \'design_file\' for every offdesign calculation.')
             raise hlp.MyNetworkError(msg)  # must provide design_file
         else:
-            self.init_csv()  # initialisation from csv
+            self.init_design_file()  # load design case
+
+        if self.init_file is not None:
+            self.init_init_file()
 
         if self.nwkinfo:
             print('Network initialised.')
@@ -919,24 +922,13 @@ class network:
             # change value to specified unit system
             c.get_attr(key).val0 = c.get_attr(key).val0 / self.get_attr(key)[self.get_attr(key + '_unit')]
 
-    def init_csv(self):
-        r"""
-        Initialise network from .csv file.
-
-        Note
-        ----
-        This method is used for preprocessing in offdesign-mode using the :code:`design_file` as input file
-        and for fluid property and fluid components starting values using the :code:`init_file` as input file.
-        """
-        if self.mode == 'offdesign':
-            self.init_design_file()
-
-        if self.init_file is not None:
-            self.init_init_file()
-
     def init_design_file(self):
         r"""
         Design file reader for preprocessing of offdesign-calculation.
+
+        Note
+        ----
+        This method is used for preprocessing in offdesign-mode using the :code:`design_file` as input file.
         """
         df = pd.read_csv(self.design_file, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
@@ -978,6 +970,10 @@ class network:
     def init_init_file(self):
         r"""
         Init file reader for starting value generation of calculation.
+
+        Note
+        ----
+        This method loads fluid property and fluid components starting values using the :code:`init_file` as input file.
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file

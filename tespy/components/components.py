@@ -216,7 +216,7 @@ class component:
         Returns
         -------
         out :
-            Specified attribute.
+            Value of specified attribute.
         """
         if key in self.__dict__:
             return self.__dict__[key]

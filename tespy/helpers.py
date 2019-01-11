@@ -684,7 +684,7 @@ class memorise:
             try:
                 Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
             except ValueError:
-                Tmin, Tmax = 2000, 2000e5
+                Tmin, Tmax = 300, 2000
 
             memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
 

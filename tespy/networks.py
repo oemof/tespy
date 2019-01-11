@@ -1304,7 +1304,8 @@ class network:
                     j += 1
 
             # check the fluid properties for physical ranges
-            self.solve_check_props(c)
+            if self.iter < 3 and self.init_file is None:
+                self.solve_check_props(c)
             i += 1
 
         # increment for the custom variables
@@ -1357,13 +1358,13 @@ class network:
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if c.h.val_SI < 0:
-                    c.h.val_SI = hmin / 3
+                    c.h.val_SI = hmin / 1.1
                 else:
-                    c.h.val_SI = hmin * 3
+                    c.h.val_SI = hmin * 1.1
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 
-        if self.iter < 3 and self.init_file is None:
+        elif self.iter < 3 and self.init_file is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]

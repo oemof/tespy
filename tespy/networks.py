@@ -420,7 +420,7 @@ class network:
             The subsystem to be added to the network, subsystem objects si :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
-            for c in subsys.conns:
+            for c in subsys.get_network.conns:
                 self.add_conns(c)
 
     def add_conns(self, *args):

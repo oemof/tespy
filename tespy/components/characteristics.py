@@ -218,6 +218,13 @@ class characteristics:
                     [0.0000, 0.3975, 0.6772, 0.8581, 0.9593, 0.9985, 1.0000,
                      0.9875, 0.9357, 0.8464, 0.7219, 0.5643])
 
+        elif self.comp == 'compressor':
+
+            x['GENERIC'] = np.array(
+                    [0.000, 0.400, 1.000, 1.500])
+            y['GENERIC'] = np.array(
+                    [0.500, 0.900, 1.000, 1.025])
+
         elif self.comp == 'cogeneration unit':
 
             x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])

@@ -1559,7 +1559,7 @@ class compressor(turbomachine):
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
                 'char_map': dc_cc(method='GENERIC'),
-                'eta_s_char': dc_cc(param='m')}
+                'eta_s_char': dc_cc(param='m', method='GENERIC')}
 
     def default_offdesign(self):
         return ['char_map']

@@ -2286,14 +2286,18 @@ class network:
         fn : String
             Path/filename for the file.
         """
-        df = pd.DataFrame({'id': self.busses}, index=self.busses)
-        df['id'] = df.apply(network.get_id, axis=1)
+        if len(self.busses) > 0:
+            df = pd.DataFrame({'id': self.busses}, index=self.busses)
+            df['id'] = df.apply(network.get_id, axis=1)
 
-        df['label'] = df.apply(network.get_props, axis=1, args=('label',))
+            df['label'] = df.apply(network.get_props, axis=1, args=('label',))
 
-        df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
-        df['P_set'] = df.apply(network.get_props, axis=1, args=('P', 'val_set'))
+            df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
+            df['P_set'] = df.apply(network.get_props, axis=1, args=('P', 'val_set'))
 
+        else:
+            df = pd.DataFrame({'id': [], 'label': [], 'P': [], 'P_set': []})
+            df.set_index('id', inplace=True)
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
     def save_characteristics(self, fn):

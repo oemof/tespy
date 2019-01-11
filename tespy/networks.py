@@ -589,7 +589,7 @@ class network:
         if self.mode == 'offdesign' and self.design_file is None:
             msg = ('Please provide \'design_file\' for every offdesign calculation.')
             raise hlp.MyNetworkError(msg)  # must provide design_file
-        else:
+        elif self.mode == 'offdesign':
             self.init_design_file()  # load design case
 
         if self.init_file is not None:

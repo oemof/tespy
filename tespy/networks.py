@@ -1348,13 +1348,19 @@ class network:
         if isinstance(fl, str):
             # pressure
             if c.p.val_SI < hlp.memorise.vrange[fl][0] and not c.p.val_set:
-                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.001
+                c.p.val_SI = hlp.memorise.vrange[fl][0] * 1.01
             if c.p.val_SI > hlp.memorise.vrange[fl][1] and not c.p.val_set:
-                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.999
+                c.p.val_SI = hlp.memorise.vrange[fl][1] * 0.99
 
             # enthalpy
-            hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * 1.001, fl)
-            hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.999, fl)
+            f = 1.01
+            try:
+                hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * f, fl)
+            except ValueError:
+                f = 1.1
+                hmin = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][2] * f, fl)
+
+            hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if c.h.val_SI < 0:
                     c.h.val_SI = hmin / 1.1

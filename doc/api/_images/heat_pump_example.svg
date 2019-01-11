@@ -13,7 +13,7 @@
    height="510.07288"
    width="1013.5684"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="heat_pump_example.svg">
+   sodipodi:docname="flow_diagram.svg">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -32,9 +32,9 @@
      inkscape:bbox-nodes="true"
      inkscape:snap-bbox-edge-midpoints="true"
      inkscape:snap-bbox-midpoints="true"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="426.24951"
-     inkscape:cy="136.37681"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="542.2764"
+     inkscape:cy="174.33016"
      inkscape:window-x="57"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
@@ -546,12 +546,12 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-427.20447"
-       y="1068.5349"
+       x="-427.2045"
+       y="1063.5349"
        id="text4762-7-3-3-6"><tspan
          sodipodi:role="line"
-         x="-427.20447"
-         y="1068.5349"
+         x="-427.2045"
+         y="1063.5349"
          id="tspan4844-6-5-2"
          style="font-size:18.75000191px;line-height:1.25">expansion valve</tspan></text>
     <text
@@ -623,14 +623,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-400.42377"
-       y="885.35223"
+       x="-400.71674"
+       y="883.53491"
        id="text4762-061-7"><tspan
          sodipodi:role="line"
-         x="-400.42377"
-         y="885.35223"
+         x="-400.71674"
+         y="883.53491"
          style="font-size:18.75000191px;line-height:1.25;text-align:center;text-anchor:middle"
-         id="tspan955-3">fan</tspan></text>
+         id="tspan955-3">fan/pump</tspan></text>
   </g>
   <path
      style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"

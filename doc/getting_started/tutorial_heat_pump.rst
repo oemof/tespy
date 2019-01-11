@@ -27,17 +27,16 @@ Set up a Network
 
 In order to simulate our heat pump we have to create an instance of the tespy.network class. The network is the main container of the model and will be required in all following sections.
 First, it is necessary to specify a list of the fluids used in the plant. In this example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\). Water is used for the cold side of the heat exchanger, for the consumer and for the hot side of the environmental temperature. Ammonia is used as coolant within the heat pump circuit.
-Further it is possible to choose a unit system and a value range for mass flow, temperature, pressure and enthalpy. If you don’t specify the unit system, the variables are set to SI-Units.
+If you don’t specify the unit system, the variables are set to SI-Units.
 
 .. code-block:: python
 
     from tespy import nwk, con, cmp
 
     nw = nwk.network(fluids=['water' , 'NH3'],
-					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-					 p_range=[0.1, 100], T_range=[1, 500], h_range=[10, 5000])
+					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 	
-We suggest using °C, bar and kJ/kg as units, and set the pressure range from 0.1 bar to 100 bar, temperature range from 1 °C to 500 °C, enthalpy range from 10 kJ/kg to 5000 kJ/kg .
+We will use °C, bar and kJ/kg as units.
 	
 Modeling the heat pump: Consumer system
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -91,7 +90,7 @@ In the next steps we will connect the components in order to form a network. Eve
 Parametrization
 +++++++++++++++
 
-For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumer's pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat flux. We marked this setting as key parameter.
+For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumer's pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat demand. We marked this setting as key parameter.
 
 .. code-block:: python
 
@@ -271,12 +270,12 @@ As done before, add the new connections to the script. After the second compress
 Parametrization
 +++++++++++++++
 
-For the two compressor we defined an isentropic efficency and for the offdesign calculation the "manual" mode, as we do not want to use the characteristic maps in this tutorial. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with pressure ratios on both sides. The parametrization of all other components remains identical.
+For the two compressor we defined an isentropic efficency and for the offdesign calculation a generic characteristic line for the isentropic efficiency will be applied. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with pressure ratios on both sides. The parametrization of all other components remains identical.
 
 .. code-block:: python
 
-	cp1.set_attr(eta_s=0.8, mode='man')
-	cp2.set_attr(eta_s=0.8, pr=5, mode='man')
+	cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+	cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
 	he.set_attr(pr1=0.99, pr2=0.98)
 
 	

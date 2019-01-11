@@ -41,6 +41,38 @@ def load_nwk(path):
         - component_class_name.csv (e. g. heat_exchanger.csv)
     - conns.csv
     - netw.csv
+
+    Example
+    -------
+    >>> from tespy import cmp, con, nwk, hlp, nwkr
+    >>> fluid_list = ['water']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='err')
+    >>> si = cmp.sink('sink')
+    >>> so = cmp.source('source')
+    >>> t = cmp.turbine('turbine')
+    >>> inc = con.connection(so, 'out1', t, 'in1')
+    >>> outg = con.connection(t, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'],
+    ...     offdesign=['eta_s_char', 'cone'])
+    >>> inc.set_attr(fluid={'water': 1}, T=600)
+    >>> outg.set_attr(p=0.5)
+    >>> nw.solve('design')
+    >>> nw.save('tmp', structure=True)
+    >>> t.set_attr(P=-9e4)
+    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> round(t.eta_s.val, 3)
+    0.798
+    >>> nw2 = nwkr.load_nwk('tmp')
+    Reading network data...
+    Created components.
+    Created connections.
+    Networkcheck successfull.
+    >>> nw2.set_printoptions(print_level='err')
+    >>> nw2.solve('design')
+    >>> nw2.solve('offdesign', design_file='tmp/results.csv')
     """
     print('Reading network data...')
 
@@ -72,7 +104,7 @@ def load_nwk(path):
                               axis=0)
 
     comps = comps.set_index('label')
-    print('Created components')
+    print('Created components.')
 
     # create network
     nw = construct_network(path)
@@ -91,7 +123,7 @@ def load_nwk(path):
     for c in conns['instance']:
         nw.add_conns(c)
 
-    print('Created connections')
+    print('Created connections.')
     nw.check_network()
 
     # load busses
@@ -108,7 +140,7 @@ def load_nwk(path):
         for b in busses['instance']:
             nw.add_busses(b)
 
-        print('Created busses')
+        print('Created busses.')
 
     return nw
 

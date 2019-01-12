@@ -2207,7 +2207,7 @@ class network:
             df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
             df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
-        cols = ['m', 'p', 'h', 'T', 'x']
+        cols = ['m', 'p', 'h', 'T', 'x', 'v']
         for key in cols:
             # values and units
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
@@ -2288,6 +2288,10 @@ class network:
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
                     df[col + '_var'] = df.apply(network.get_props, axis=1, args=(col, 'is_var'))
+
+                # component property container
+                elif isinstance(dc, hlp.dc_gcp):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'method'))
 
                 else:
                     continue

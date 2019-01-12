@@ -206,6 +206,10 @@ def construct_comps(c, *args):
                                param=c[key + '_param'],
                                x=x, y=y)
                 kwargs[key] = dc
+            # grouped component parameters
+            elif isinstance(value, hlp.dc_gcp):
+                dc = hlp.dc_cp(method=c[key])
+                kwargs[key] = dc
             else:
                 continue
 
@@ -313,7 +317,7 @@ def construct_conns(c, *args):
             kwargs[key] = c[key]
 
     # read fluid properties
-    for key in ['m', 'p', 'h', 'T', 'x']:
+    for key in ['m', 'p', 'h', 'T', 'x', 'v']:
         if key in c:
             dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
                              unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],

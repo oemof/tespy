@@ -3,14 +3,6 @@
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
-
-**TODO**
-
-- add documentation for compressor maps
-
-**Improvements**
-
-- add pump and compressor characteristics to characteristics class
 """
 
 from scipy.interpolate import interp1d
@@ -20,32 +12,39 @@ import math
 
 class characteristics:
     r"""
+    Class characteristics for components.
 
-    characteristics for components performs linear interpolation on given pairs
-    of values. Value pairs may be user-specified, default values are used
-    instead.
+    Parameters
+    ----------
+    x : ndarray
+        An array for the x-values of the lookup table. Number of x and y values must be identical.
 
-    :param method: what
-    :type method: tespy.components.components.component
-    :returns: no return value
+    y : ndarray
+        The corresponding y-values for the lookup table. Number of x and y values must be identical.
 
-    **allowed keywords** in kwargs (also see characteristics.attr()):
+    method : String
+        Specify a method to choose from the default characteristic lines. If you specify custom x and y values, this parameter will be ignored.
 
-    - x, y (*numeric*) - values for function parameters x and function values y
-    - method (*str*) - keyword method is necessary, if you do not provide any
-      x or y data. TESPy will use the characteristics as stated in the
-      subclasses
+    comp : String
+        Component base name, see :func:`tespy.components.components.component.comp` method.
+
+    Note
+    ----
+    This class generates a lookup table from the given input data x and y, then performs cubic interpolation.
+    The x and y values may be specified by the user. There are some default characteristic lines for different
+    components, see the :func:`tespy.components.characteristics.characteristics.default` method.
+    If you neither specify the method to use from the defaults nor specify x and y values,
+    the characteristic line generated will be :code:`x: [1, 2, 3, 4], y: [1, 1, 1, 1]`.
     """
 
     def __init__(self, **kwargs):
 
         for key in kwargs:
             if key not in self.attr():
-                msg = ('Invalid keyword ' + key + '. Available keywords for '
-                       'kwargs are: ' + str(self.attr()) + '.')
+                msg = ('Invalid keyword ' + key + '. Available keywords for kwargs are: ' + str(self.attr()) + '.')
                 raise KeyError(msg)
 
-        # in case of various default characteristics
+        # method to read from default characteristic lines
         method = kwargs.get('method', 'default')
 
         self.x = kwargs.get('x', None)
@@ -219,6 +218,13 @@ class characteristics:
                     [0.0000, 0.3975, 0.6772, 0.8581, 0.9593, 0.9985, 1.0000,
                      0.9875, 0.9357, 0.8464, 0.7219, 0.5643])
 
+        elif self.comp == 'compressor':
+
+            x['GENERIC'] = np.array(
+                    [0.000, 0.400, 1.000, 1.500])
+            y['GENERIC'] = np.array(
+                    [0.500, 0.900, 1.000, 1.025])
+
         elif self.comp == 'cogeneration unit':
 
             x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])
@@ -233,7 +239,8 @@ class characteristics:
             x['QLOSS'] = np.array([0.50, 0.7500, 0.90, 1.000])
             y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
 
-        elif self.comp == 'heat exchanger' or self.comp == 'desuperheater':
+        elif (self.comp == 'heat exchanger' or self.comp == 'desuperheater' or
+              self.comp == 'pipe' or self.comp == 'heat exchanger simple'):
 
             x['EVA_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
@@ -299,6 +306,24 @@ class characteristics:
         return ['x', 'y', 'method', 'comp']
 
     def f_x(self, x):
+        r"""
+        Returns characteristic line evaluation at x.
+
+        Parameters
+        ----------
+        x : float
+            Input value for lookup table.
+
+        Returns
+        -------
+        y : float
+            Evaluation of characteristic line at x.
+
+        Note
+        ----
+        This methods checks for the value range first. If the x-value is outside of the specified range,
+        the function will return the values at the corresponding boundary.
+        """
         if x > self.x[-1]:
             return self.char(self.x[-1])
         elif x < self.x[0]:
@@ -306,8 +331,35 @@ class characteristics:
         else:
             return self.char(x)
 
-    def get_attr(self, key):
+    def get_bound_errors(self, x):
+        r"""
+        Returns error messages, if operation is out of bounds of characteristc line.
+
+        Parameters
+        ----------
+        x : float
+            Input value for lookup table.
+
+        Returns
+        -------
+        msg : String
+            Error message.
         """
+        if x > self.x[-1]:
+            msg = ('##### WARNING #####\n'
+                   'Operating point above characteristic line range: '
+                   'X=' + str(round(x, 3)) + ' with maximum of ' + str(self.x[-1]))
+            return msg
+        elif x < self.x[0]:
+            msg = ('##### WARNING #####\n'
+                   'Operating point below characteristic line range: '
+                   'X=' + str(round(x, 3)) + ' with minimum of ' + str(self.x[0]))
+            return msg
+        else:
+            return ''
+
+    def get_attr(self, key):
+        r"""
         get the value of a characteristics attribute
 
         :param key: attribute to return its value
@@ -414,12 +466,7 @@ class pump(characteristics):
 
 class compressor(characteristics):
     r"""
-
-    generic characteristic map for axial compressors
-
-    - links mass flow to pressure rise and isentropic efficiency
-
-    the map can be plotted using :code:`map.plot()`
+    Generic characteristic map for axial compressors.
 
     **literature**
 
@@ -432,6 +479,37 @@ class compressor(characteristics):
     vigv:
 
     - GasTurb GmbH (2015): GasTurb 12.
+
+    Parameters
+    ----------
+    x : ndarray
+        An array for the x-values of the map.
+
+    y : ndarray
+        An array of the y-values of the map.
+
+    z1 : ndarray
+        An array of the z1-values of the map (pressure ratio to nominal pressure ratio).
+
+    z2 : ndarray
+        An array of the z2-values of the map (isentropic efficiency to nominal isentropic efficiency).
+
+    method : String
+        Specify a method to choose from the default characteristic maps. If you specify custom x, y, z1 and z2 values, this parameter will be ignored.
+
+    Note
+    ----
+    This class generates a lookup table from the given input data x, y, z1 and z2, then performs linear interpolation.
+    The output parameters are z1 and z2 to be calculated as functions from x and y. The x, y, z1 and z2 values may be specified by the user. There is a default characteristic map (GENERIC),
+    see :func:`tespy.components.characteristics.compressor.default` method.
+
+    **Want to use your own characteristic map?**
+
+    x are the speedlines, is the corrected mass flow for each speedline. Thus, the number of points in the x-array equals the number of dimensions of the y-array.
+    E. g., if you specify 5 speedline in the x-array, you will need to have an y-array with 5 dimensions, where the points of each dimension represent one of the speedlines.
+    The same logic applies for the z1 and z2 arrays!
+
+    For calculation/equations see :func:`tespy.components.characteristics.compressor.get_pr_eta`.
     """
 
     def __init__(self, **kwargs):
@@ -461,23 +539,9 @@ class compressor(characteristics):
             self.z2 = self.default(method)[3]
 
     def default(self, key):
-
         r"""
 
-        default characteristic map for compressor
-
-        .. math::
-
-            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
-
-            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
-            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
-
-            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}=
-            f\left(X, Y \right)
-
-            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}}=
-            f\left(X, Y \right)
+        Default characteristic map for compressor.
 
         .. image:: _images/CMAP_GENERIC_PR.svg
            :scale: 100 %
@@ -491,7 +555,11 @@ class compressor(characteristics):
         """
 
         if key == 'default':
-            return np.array([0, 1, 2]), np.array([1, 1, 1])
+            x = np.array([0, 1, 2])
+            y = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+            z1 = y
+            z2 = y
+            return x, y, z1, z2
 
         x = {}
         y = {}
@@ -547,16 +615,47 @@ class compressor(characteristics):
         return x[key], y[key], z1[key], z2[key]
 
     def get_pr_eta(self, x, y, igva):
-        """
-        returns the pressure ratio and isentropic efficiency at given speedline
-        and correxted mass flow
+        r"""
+        Calculates pressure ratio and isentropic efficiency at given speedline
+        and corrected mass flow.
 
-        :param x: speedline
-        :type x: float
-        :param y: corrected mass flow
-        :type y: float
-        :returns: - pr (*float*) - pressure ratio
-                  - eta (*float*) - isentropic efficiency
+        Parameters
+        ----------
+        x : float
+            Speedline.
+
+        y : float
+            Corrected mass flow.
+
+        igva : float
+            Inlet guide vane angle.
+
+        Returns
+        -------
+        pr : float
+            Pressure ratio to nominal pressure ratio (Z1).
+
+            .. math::
+
+                Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}=
+                f\left(X, Y \right)
+
+        eta : float
+            Isentropic efficiency to nominal isentropic efficiency ratio (Z2).
+
+            .. math::
+
+                Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}}=
+                f\left(X, Y \right)
+
+        Note
+        ----
+        .. math::
+
+            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+
+            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
@@ -591,15 +690,24 @@ class compressor(characteristics):
             return pr, eta
 
     def get_bound_errors(self, x, y, igva):
-        """
-        returns error messages for operation out of the maps bounds
+        r"""
+        Returns error messages, if operation is out of bounds of compressor map.
 
-        :param x: speedline
-        :type x: float
-        :param y: corrected mass flow
-        :type y: float
-        :returns: - msg (*float*) - errormessage
-                  - ypos (*float*) - position of corrected mass flow
+        Parameters
+        ----------
+        x : float
+            Speedline.
+
+        y : float
+            Corrected mass flow.
+
+        igva : float
+            Inlet guide vane angle.
+
+        Returns
+        -------
+        msg : String
+            Error message.
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x) and x != self.x[-1]:

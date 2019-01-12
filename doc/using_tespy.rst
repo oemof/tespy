@@ -50,7 +50,7 @@ You need to specify a list of the fluids you need for the calculation in your pl
     my_plant = nwk.network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
-The specification of the value range is used to improve convergence stability, in case you are dealing with fluid mixtures, e. g. using a combustion chamber.
+The specification of the **value range** is used to **improve convergence stability**, in case you are dealing with **fluid mixtures**, e. g. using a combustion chamber.
 
 .. code-block:: python
 
@@ -67,7 +67,7 @@ Set up components
 
 Available components can be found :ref:`here <using_tespy_components_label>`. If you set up a component you have to specify a (within one network) unique label.
 Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger.
-The full list of parameters for a specific component (e. g. a vessel) is stated in the classes documentation.
+The full list of parameters for a specific component (e. g. a valve) is stated in the classes documentation.
 
 .. note::
 	Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide.
@@ -267,7 +267,7 @@ The table below contains frequently used offdesign parameters of the available c
 =======================	======================	=========================================================
  component             	 parameter            	 affects
 =======================	======================	=========================================================
- vessel                	 zeta                  	 pressure drop
+ valve                 	 zeta                  	 pressure drop
 -----------------------	----------------------	---------------------------------------------------------
  pipe                  	 | zeta                	 | pressure drop
                        	 | k_s, D, L           	 | pressure drop (via dimensions and roughness)
@@ -493,6 +493,23 @@ Use this code for connection parameters:
 
 .. _using_tespy_components_label:
 
+TESPy network reader
+====================
+
+The network reader is a useful tool to import networks from a datastructure using .csv-files. In order to reimport an exported TESPy network, you can save the network with the addition :code:`structure=True`.
+
+.. code:: python
+
+	nw.save('mynetwork', structure=True)
+	
+This generates a folder structure containing all relevant files defining your network (general network information, components, connections, busses, characteristics) holding the parametrization of that network.
+You can reimport the network using following code with the path to the saved documents. The generated network object contains the same information as a TESPy network created by a python script. Thus, it is possible to set your parameters in the .csv-files, too.
+
+.. code:: python
+
+	from tespy import nwkr
+	nw = nwkr.load_nwk('path/to/mynetwork')
+
 TESPy components
 ================
 
@@ -505,21 +522,25 @@ More information on the components can be gathered from the code documentation. 
 
 - :py:class:`Source <tespy.components.components.source>` (no equations)
 - :py:class:`Sink <tespy.components.components.sink>` (no equations)
-- :py:class:`Merge <tespy.components.components.merge>` (:py:meth:`equations <tespy.components.components.merge.equations>`)
-- :py:class:`Splitter <tespy.components.components.splitter>` (:py:meth:`equations <tespy.components.components.splitter.equations>`)
-- :py:class:`Vessel <tespy.components.components.vessel>` (:py:meth:`equations <tespy.components.components.vessel.equations>`)
-- Turbomachines
+- Nodes (base class is node)
+	- :py:class:`Node <tespy.components.components.node>` (:py:meth:`equations <tespy.components.components.node.equations>`)
+	- :py:class:`Merge <tespy.components.components.merge>` (:py:meth:`equations <tespy.components.components.node.equations>`)
+	- :py:class:`Splitter <tespy.components.components.splitter>` (:py:meth:`equations <tespy.components.components.node.equations>`)
+	- :py:class:`Separator <tespy.components.components.separator>` (:py:meth:`equations <tespy.components.components.node.equations>`)
+- :py:class:`Valve <tespy.components.components.valve>` (:py:meth:`equations <tespy.components.components.valve.equations>`)
+- Turbomachines (base class is turbomachine)
 	* :py:class:`Pump <tespy.components.components.pump>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
 	* :py:class:`Compressor <tespy.components.components.compressor>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
 	* :py:class:`Turbine <tespy.components.components.turbine>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
-- Components with combustion
+- Components with combustion (base class is combustion_chamber)
 	* :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
 	* :py:class:`Combustion chamber stoichiometric <tespy.components.components.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.components.combustion_chamber_stoich.equations>`)
 	* :py:class:`Cogeneration unit <tespy.components.components.cogeneration_unit>` (:py:meth:`equations <tespy.components.components.cogeneration_unit.equations>`)
-- Heat exchangers
+- Heat exchangers (base class is heat_exchanger)
 	* :py:class:`Heat exchanger <tespy.components.components.heat_exchanger>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
 	* :py:class:`Condenser <tespy.components.components.condenser>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
 	* :py:class:`Desuperheater <tespy.components.components.desuperheater>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
+- Simplified heat exchangers (base class is heat_exchanger_simple)
 	* :py:class:`Heat exchanger simple <tespy.components.components.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 	* :py:class:`Solar collector <tespy.components.components.solar_collector>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
@@ -600,7 +621,7 @@ Characteristics are available for the following components and parameters:
 	* eta_s_char: isentropic efficiency vs. pressure ratio, customizable
 - turbine
 	* eta_s_char: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow, customizable
-- vessel
+- valve
 	* pr_char: pressure ratio vs. inlet pressure, customizable
 - heat exchangers:
 	* kA1_char, kA2_char: heat transfer coefficient, various predefined types, mass flows as specification parameters, customizable

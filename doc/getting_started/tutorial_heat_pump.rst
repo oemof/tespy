@@ -19,7 +19,7 @@ This tutorial introduces you in how to model a heat pump in TESPy. You can see t
     Figure 1: Topology of the heat pump.
 	
 The main purpose of the heat pump is to deliver heat e. g. for the consumers of a heating system. Thus, the heat pump's parameters will be set in a way, which supports this target.
-Generally, if systems are getting more complex, it is highly recommended to set up your plant in incremental steps. This tuturial divides the plant in three sections: The consumer part, the vessel and the evaporator and the compressor as last element. Each new section will be appended to the existing ones.
+Generally, if systems are getting more complex, it is highly recommended to set up your plant in incremental steps. This tuturial divides the plant in three sections: The consumer part, the valve and the evaporator and the compressor as last element. Each new section will be appended to the existing ones.
 
 
 Set up a Network
@@ -27,17 +27,16 @@ Set up a Network
 
 In order to simulate our heat pump we have to create an instance of the tespy.network class. The network is the main container of the model and will be required in all following sections.
 First, it is necessary to specify a list of the fluids used in the plant. In this example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\). Water is used for the cold side of the heat exchanger, for the consumer and for the hot side of the environmental temperature. Ammonia is used as coolant within the heat pump circuit.
-Further it is possible to choose a unit system and a value range for mass flow, temperature, pressure and enthalpy. If you don’t specify the unit system, the variables are set to SI-Units.
+If you don’t specify the unit system, the variables are set to SI-Units.
 
 .. code-block:: python
 
     from tespy import nwk, con, cmp
 
     nw = nwk.network(fluids=['water' , 'NH3'],
-					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-					 p_range=[0.1, 100], T_range=[1, 500], h_range=[10, 5000])
+					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 	
-We suggest using °C, bar and kJ/kg as units, and set the pressure range from 0.1 bar to 100 bar, temperature range from 1 °C to 500 °C, enthalpy range from 10 kJ/kg to 5000 kJ/kg .
+We will use °C, bar and kJ/kg as units.
 	
 Modeling the heat pump: Consumer system
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -45,7 +44,7 @@ Modeling the heat pump: Consumer system
 Components
 ++++++++++
 
-We will start with the consumer as the plant will be designed to deliver a specific heat flux. From figure 1 you can determine the components of the consumer system: condenser, pump and the consumer (heat-exchanger-simple). Additionally we need a source and a sink for the consumer and the heat pump circuit respectively. We label the sink for the coolant "vessel", as for our next calculation the vessel (labeled "vessel") will be attached there. In this way, the fluid properties can be initialised by csv at the interface-connection, too.
+We will start with the consumer as the plant will be designed to deliver a specific heat flux. From figure 1 you can determine the components of the consumer system: condenser, pump and the consumer (heat-exchanger-simple). Additionally we need a source and a sink for the consumer and the heat pump circuit respectively. We label the sink for the coolant "valve", as for our next calculation the valve (labeled "valve") will be attached there. In this way, the fluid properties can be initialised by csv at the interface-connection, too.
 
 .. code-block:: python
 	
@@ -55,7 +54,7 @@ We will start with the consumer as the plant will be designed to deliver a speci
 	cb = cmp.source('consumer back flow')
 	cf = cmp.sink('consumer feed flow')
 
-	ves = cmp.sink('vessel')
+	ves = cmp.sink('valve')
 
 	# consumer system
 
@@ -91,7 +90,7 @@ In the next steps we will connect the components in order to form a network. Eve
 Parametrization
 +++++++++++++++
 
-For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumer's pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat flux. We marked this setting as key parameter.
+For the condenser we set pressure ratios on hot and cold side and additionally we set a value for the upper terminal temperature difference. The consumer will have a pressure ratio, too. Further we set the isentropic efficiency for the pump and as the pump is in automatic mode, the offdesign efficiency is calculated with a characteristic function. In offdesign calculation the consumer's pressure ratio will be a function of the mass flow, thus as offdesign parameter we select zeta. The most important parameter is the consumers heat demand. We marked this setting as key parameter.
 
 .. code-block:: python
 
@@ -134,15 +133,15 @@ After creating the system, we want to solve our network. First, we calculate the
 	nw.print_results()
 
 
-Vessel and evaporator system
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Valve and evaporator system
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Next we will add the vessel and the evaporator system to our existing network.
+Next we will add the valve and the evaporator system to our existing network.
 
 Components
 ++++++++++
 
-This part contains of a vessel followed by a drum with evaporator in forced flow and a superheater. Do not forget to change the old sink labeled "vessel" to an actual vessel and the sink used in the previous calculation will represent the first compressor, labeled "compressor 1". Add the following components to the script.
+This part contains of a valve followed by a drum with evaporator in forced flow and a superheater. Do not forget to change the old sink labeled "valve" to an actual valve and the sink used in the previous calculation will represent the first compressor, labeled "compressor 1". Add the following components to the script.
 
 .. code-block:: python
 
@@ -155,7 +154,7 @@ This part contains of a vessel followed by a drum with evaporator in forced flow
 
 	# evaporator system
 
-	ves = cmp.vessel('vessel')
+	ves = cmp.valve('valve')
 	dr = cmp.drum('drum')
 	ev = cmp.heat_exchanger('evaporator')
 	su = cmp.heat_exchanger('superheater')
@@ -164,7 +163,7 @@ This part contains of a vessel followed by a drum with evaporator in forced flow
 Connections
 +++++++++++
 
-As we already redefined our variable "ves" to be a vessel instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_ves". The vessel connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drum's outlet 'out1', the evaporator's cold side connects to the drum's inlet 'in2' and the superheater's cold side connects to the drum's outlet 'out2'. This will add the following connections to the model:
+As we already redefined our variable "ves" to be a valve instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_ves". The valve connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drum's outlet 'out1', the evaporator's cold side connects to the drum's inlet 'in2' and the superheater's cold side connects to the drum's outlet 'out2'. This will add the following connections to the model:
 
 .. code-block:: python
 
@@ -191,7 +190,7 @@ As we already redefined our variable "ves" to be a vessel instead of a sink (see
 Parametrization
 +++++++++++++++
 
-Previous parametrization stays untouched. For the vessel we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference. We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. On top of that, the characteristic function of the evaporator should follow the predefined methods 'EVA_HOT' and 'EVA_COLD'. If you want to learn more about handling characteristic functions you should have a glance at the :ref:`TESPy components section <using_tespy_components_label>`. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
+Previous parametrization stays untouched. For the valve we set the calculation mode to "manual" for the offdesign, otherwise the zeta-value would be fixed for offdesign calculation and flexible pressure adjustments would not be possible on the evaporator side. Regarding the evaporator, we specify pressure ratios on hot and cold side as well as the lower terminal temperature difference. We use the hot side pressure ratio and the lower terminal temperature difference as design parameteres and choose zeta as well as the area independet heat transition coefficient as its offdesign parameters. On top of that, the characteristic function of the evaporator should follow the predefined methods 'EVA_HOT' and 'EVA_COLD'. If you want to learn more about handling characteristic functions you should have a glance at the :ref:`TESPy components section <using_tespy_components_label>`. The superheater will also use the pressure ratios on hot and cold side. Further we set a value for the upper terminal temperature difference. For the pump we set the isentropic efficiency.    
 
 .. code-block:: python
 
@@ -271,12 +270,12 @@ As done before, add the new connections to the script. After the second compress
 Parametrization
 +++++++++++++++
 
-For the two compressor we defined an isentropic efficency and for the offdesign calculation the "manual" mode, as we do not want to use the characteristic maps in this tutorial. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with pressure ratios on both sides. The parametrization of all other components remains identical.
+For the two compressor we defined an isentropic efficency and for the offdesign calculation a generic characteristic line for the isentropic efficiency will be applied. The first compressor has a fixed pressure ratio, the seconds compressor pressure ratio will result from the required pressure at the condenser. The heat exchanger comes with pressure ratios on both sides. The parametrization of all other components remains identical.
 
 .. code-block:: python
 
-	cp1.set_attr(eta_s=0.8, mode='man')
-	cp2.set_attr(eta_s=0.8, pr=5, mode='man')
+	cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+	cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
 	he.set_attr(pr1=0.99, pr2=0.98)
 
 	

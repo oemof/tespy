@@ -1,0 +1,19 @@
+language: python
+
+matrix:
+  include:
+    - python: 3.5
+    - python: 3.7
+      dist: xenial
+      sudo: true
+
+install:
+  - pip install .
+  - pip install coveralls
+
+# command to run tests
+script:
+  - nosetests --with-doctest --with-coverage -c nose.cfg
+
+after_success:
+- coveralls

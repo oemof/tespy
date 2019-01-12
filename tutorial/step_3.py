@@ -98,7 +98,7 @@ nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
 rp.set_attr(eta_s=0.8)
-cons.set_attr(pr=0.99, offdesign=['zeta'])
+cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # evaporator system
 
@@ -111,8 +111,8 @@ pu.set_attr(eta_s=0.8)
 
 # compressor system
 
-cp1.set_attr(eta_s=0.8, mode='man')
-cp2.set_attr(eta_s=0.8, pr=5, mode='man')
+cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
 
 he.set_attr(pr1=0.98, pr2=0.98)
 

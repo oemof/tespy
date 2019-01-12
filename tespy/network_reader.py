@@ -66,15 +66,15 @@ def load_nwk(path):
     >>> round(t.eta_s.val, 3)
     0.798
     >>> nw2 = nwkr.load_nwk('tmp')
-    Reading network data...
+    Reading network data.
     Created components.
     Created connections.
-    Networkcheck successfull.
+    Networkcheck successful.
     >>> nw2.set_printoptions(print_level='err')
     >>> nw2.solve('design')
     >>> nw2.solve('offdesign', design_file='tmp/results.csv')
     """
-    print('Reading network data...')
+    print('Reading network data.')
 
     # load characteristics
     chars = pd.read_csv(path + '/comps/char.csv', sep=';', decimal='.',

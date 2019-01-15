@@ -46,6 +46,7 @@ def load_nwk(path):
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp, nwkr
+    >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
@@ -61,9 +62,9 @@ def load_nwk(path):
     >>> inc.set_attr(fluid={'water': 1}, T=600)
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp', structure=True)
+    >>> nw.save('tmp')
     >>> t.set_attr(P=-9e4)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
     0.798
     >>> nw2 = nwkr.load_nwk('tmp')
@@ -72,7 +73,8 @@ def load_nwk(path):
     Created connections.
     >>> nw2.set_printoptions(print_level='err')
     >>> nw2.solve('design')
-    >>> nw2.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw2.solve('offdesign', design_path='tmp')
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
     print('Reading network data.')
 
@@ -212,11 +214,12 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
-                    char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
                 except IndexError:
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
+
+                char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -234,13 +237,14 @@ def construct_comps(c, *args):
                     y = list(args[1][values].y.values[0])
                     z1 = list(args[1][values].z1.values[0])
                     z2 = list(args[1][values].z2.values[0])
-                    char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
                 except IndexError:
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.char_map().x
                     y = cmp_char.char_map().y
                     z1 = cmp_char.char_map().z1
                     z2 = cmp_char.char_map().z2
+
+                char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],

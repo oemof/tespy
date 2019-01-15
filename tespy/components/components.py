@@ -1132,6 +1132,7 @@ class pump(turbomachine):
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
+    >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
@@ -1153,9 +1154,10 @@ class pump(turbomachine):
     >>> p.set_attr(pr=14)
     >>> round(inc.m.val_SI, 3)
     1.198
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(inc.m.val_SI, 3)
     0.624
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -1544,6 +1546,7 @@ class compressor(turbomachine):
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
+    >>> import shutil
     >>> fluid_list = ['air']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
@@ -1560,9 +1563,10 @@ class compressor(turbomachine):
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> cp.set_attr(P=9e4, igva='var')
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(cp.eta_s.val, 3)
     0.755
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -2034,6 +2038,7 @@ class turbine(turbomachine):
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
+    >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
@@ -2051,9 +2056,10 @@ class turbine(turbomachine):
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> t.set_attr(P=-9e4)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
     0.798
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -5257,6 +5263,7 @@ class cogeneration_unit(combustion_chamber):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     p_range=[0.5, 10], T_range=[10, 1200])
@@ -5298,10 +5305,10 @@ class cogeneration_unit(combustion_chamber):
     22500000.0
     >>> chp.set_attr(P=7e6)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_file='tmp/results.csv',
-    ...     design_file='tmp/results.csv')
+    >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val)
     16501800.0
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -6443,6 +6450,7 @@ class valve(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp
+    >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['CH4']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
@@ -6461,15 +6469,16 @@ class valve(component):
     >>> round(v.zeta.val, 1)
     122239.1
     >>> so_v.set_attr(m=12)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(v.pr.val, 3)
     0.036
     >>> round(so_v.T.val, 1)
     33.1
     >>> so_v.set_attr(m=8)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(v.pr.val, 3)
     0.074
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -6851,6 +6860,7 @@ class heat_exchanger_simple(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
@@ -6870,13 +6880,14 @@ class heat_exchanger_simple(component):
     -22252.3
     >>> inc.set_attr(m=1.2)
     >>> pi.set_attr(Tamb=-10)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(pi.kA.val, 1)
     127.2
     >>> round(pi.Q.val, 1)
     -26029.1
     >>> round(outg.T.val, 1)
     189.5
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -7617,6 +7628,7 @@ class pipe(heat_exchanger_simple):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
@@ -7637,9 +7649,10 @@ class pipe(heat_exchanger_simple):
     11.4
     >>> inc.set_attr(m=1.2)
     >>> pi.set_attr(D=pi.D.val)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(outg.p.val, 2)
     11.14
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -7746,6 +7759,7 @@ class solar_collector(heat_exchanger_simple):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
@@ -7765,11 +7779,12 @@ class solar_collector(heat_exchanger_simple):
     >>> round(sc.A.val, 1)
     15.8
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(sc.Q.val, 1)
     5848.8
     >>> round(outg.T.val, 1)
     69.3
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -8068,6 +8083,7 @@ class heat_exchanger(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
@@ -8095,11 +8111,12 @@ class heat_exchanger(component):
     >>> round(he_tes.T.val, 1)
     115.0
     >>> he.set_attr(Q=-60e3)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(tes_he.m.val, 2)
     0.19
     >>> round(he_tes.T.val, 1)
     115.9
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -9018,6 +9035,7 @@ class condenser(heat_exchanger):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
@@ -9046,11 +9064,12 @@ class condenser(heat_exchanger):
     >>> round(he_amb.T.val, 1)
     40.0
     >>> he.set_attr(Q=-60e3)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(amb_he.m.val, 2)
     2.78
     >>> round(he_amb.T.val, 1)
     41.5
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -9351,6 +9370,7 @@ class desuperheater(heat_exchanger):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
@@ -9379,13 +9399,14 @@ class desuperheater(heat_exchanger):
     >>> round(he_amb.T.val, 1)
     40.0
     >>> he.set_attr(Q=-60e3)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(hs_he.m.val, 1)
     0.3
     >>> round(amb_he.m.val, 2)
     2.56
     >>> round(he_amb.T.val, 1)
     43.3
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
@@ -9504,6 +9525,7 @@ class drum(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
+    >>> import shutil
     >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='err')
@@ -9545,12 +9567,12 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', init_file='tmp/results.csv',
-    ...     design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', init_path='tmp', design_path='tmp')
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev.ttd_l.val, 1)
     16.9
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):

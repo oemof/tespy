@@ -2283,6 +2283,14 @@ class network:
                     df[col + '_method'] = df.apply(network.get_props, axis=1, args=(col, 'method'))
                     df[col + '_param'] = df.apply(network.get_props, axis=1, args=(col, 'param'))
 
+                # component characteristic map container
+                elif isinstance(dc, hlp.dc_cm):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'func')).astype(str)
+                    df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
+                    df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
+                    df[col + '_method'] = df.apply(network.get_props, axis=1, args=(col, 'method'))
+                    df[col + '_param'] = df.apply(network.get_props, axis=1, args=(col, 'param'))
+
                 # component property container
                 elif isinstance(dc, hlp.dc_cp):
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))

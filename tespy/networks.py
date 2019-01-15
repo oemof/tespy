@@ -2364,13 +2364,18 @@ class network:
                 if ch not in chars:
                     chars += [ch]
 
-        # get id and data
-        df = pd.DataFrame({'id': chars}, index=chars)
-        df['id'] = df.apply(network.get_id, axis=1)
+        if len(chars) > 0:
+            # get id and data
+            df = pd.DataFrame({'id': chars}, index=chars)
+            df['id'] = df.apply(network.get_id, axis=1)
 
-        cols = ['x', 'y']
-        for val in cols:
-            df[val] = df.apply(network.get_props, axis=1, args=(val,))
+            cols = ['x', 'y']
+            for val in cols:
+                df[val] = df.apply(network.get_props, axis=1, args=(val,))
+
+        else:
+            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
+            df.set_index('id', inplace=True)
 
         # write to char.csv
         df.to_csv(path + 'char.csv', sep=';', decimal='.', index=False, na_rep='nan')
@@ -2386,14 +2391,19 @@ class network:
                 else:
                     continue
 
-        # get id and data
-        df = pd.DataFrame({'id': chars}, index=chars)
-        df['id'] = df.apply(network.get_id, axis=1)
+        if len(chars) > 0:
+            # get id and data
+            df = pd.DataFrame({'id': chars}, index=chars)
+            df['id'] = df.apply(network.get_id, axis=1)
+            print(df)
 
-        cols = ['x', 'y', 'z1', 'z2']
-        for val in cols:
-            df[val] = df.apply(network.get_props, axis=1, args=(val,))
+            cols = ['x', 'y', 'z1', 'z2']
+            for val in cols:
+                df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
+        else:
+            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
+            df.set_index('id', inplace=True)
         # write to char_map.csv
         df.to_csv(path + 'char_map.csv', sep=';', decimal='.', index=False, na_rep='nan')
 

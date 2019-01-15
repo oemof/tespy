@@ -187,7 +187,7 @@ class dc_prop(data_container):
     def attr(self):
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
-                'unit': None, 'unit_set': False}
+                'unit': None, 'unit_set': False, 'design': 0}
 
 
 class dc_flu(data_container):
@@ -266,7 +266,7 @@ class dc_cp(data_container):
         """
         return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
                 'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False,
-                'val_ref': 1}
+                'val_ref': 1, 'design': 0}
 
 
 class dc_cc(data_container):

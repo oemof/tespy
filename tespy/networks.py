@@ -1099,6 +1099,8 @@ class network:
         if 'init_file' in kwargs.keys():
             print('Warning: Keyword init_file is deprecated, please use init_path for future purposes!')
             self.init_path = kwargs['init_file'].strip('/results.csv')
+        if 'design_file' in kwargs.keys():
+            print('Warning: Keyword design_file is deprecated, please use design_path for future purposes!')
             self.design_path = kwargs['design_file'].strip('/results.csv')
 
         if mode != 'offdesign' and mode != 'design':

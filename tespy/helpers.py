@@ -50,7 +50,8 @@ class data_container:
     Example
     -------
     TESPy uses different data_containers for specific tasks:
-    Component characteristics (dc_cc), component properties (dc_cp), grouped component properites (dc_gcp), fluid composition (dc_flu),
+    Component characteristics (dc_cc), component maps (dc_cm), component properties (dc_cp),
+    grouped component properites (dc_gcp), fluid composition (dc_flu),
     fluid properties (dc_prop). Grouped component properties are used, if more than one
     component propertie has to be specified in order to apply one equation, e. g. pressure drop in pipes by
     specified length, diameter and roughness. If you specify all three of these properties,
@@ -59,6 +60,8 @@ class data_container:
     For the full list of available parameters for each data container, see its documentation.
 
     >>> from tespy import hlp, cmp
+    >>> type(hlp.dc_cm(is_set=True))
+    <class 'tespy.helpers.dc_cm'>
     >>> type(hlp.dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
     <class 'tespy.helpers.dc_cc'>
     >>> type(hlp.dc_cp(val=100, is_set=True, is_var=True, printout=True,
@@ -287,7 +290,7 @@ class dc_cc(data_container):
         Array for the x-values of the characteristic line, default x=None.
 
     y : numpy.array
-        Array for the y-values of the characteristic line, default x=None.
+        Array for the y-values of the characteristic line, default y=None.
 
     Note
     ----
@@ -307,6 +310,55 @@ class dc_cc(data_container):
         return {'func': None, 'is_set': False,
                 'method': 'default', 'param': None,
                 'x': None, 'y': None}
+
+
+class dc_cm(data_container):
+    r"""
+    Parameters
+    ----------
+
+    func : tespy.components.characteristics.characteristics
+        Function to be applied for this characteristic map, default: None.
+
+    is_set : bool
+        Should this equation be applied?, default: is_set=False.
+
+    method : String
+        Which default method for this characteristic function should be used?, default: method='default'.
+
+    param : String
+        Which parameter should be applied as the x value?, default: method='default'.
+
+    x : numpy.array
+        Array for the x-values of the characteristic line, default x=None.
+
+    y : numpy.array
+        Array for the y-values of the characteristic line, default y=None.
+
+    z1 : numpy.array
+        Array for the y-values of the characteristic line, default y=None.
+
+    z2 : numpy.array
+        Array for the y-values of the characteristic line, default y=None.
+
+    Note
+    ----
+    If you do not specify any interpolation points (x, y, z1, z2), default values according to the
+    specified method will be used. If you specify a method as well as interpolation points,
+    these will override the defaults values of the chosen method.
+    """
+    def attr(self):
+        r"""
+        Return the available attributes for a data_container type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default values.
+        """
+        return {'func': None, 'is_set': False,
+                'method': 'default', 'param': None,
+                'x': None, 'y': None, 'z1': None, 'z2': None}
 
 
 class dc_gcp(data_container):

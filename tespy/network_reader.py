@@ -6,6 +6,7 @@
 """
 
 import pandas as pd
+import numpy as np
 from tespy import cmp, con, nwk, hlp, cmp_char
 import os
 import ast
@@ -69,7 +70,6 @@ def load_nwk(path):
     Reading network data.
     Created components.
     Created connections.
-    Networkcheck successful.
     >>> nw2.set_printoptions(print_level='err')
     >>> nw2.solve('design')
     >>> nw2.solve('offdesign', design_file='tmp/results.csv')
@@ -80,14 +80,21 @@ def load_nwk(path):
     chars = pd.read_csv(path + '/comps/char.csv', sep=';', decimal='.',
                         converters={'x': ast.literal_eval,
                                     'y': ast.literal_eval})
-    chars['char'] = chars.apply(construct_chars, axis=1)
+
+    # load characteristic maps
+    char_maps = pd.read_csv(path + '/comps/char_map.csv', sep=';', decimal='.',
+                            converters={'x': ast.literal_eval,
+                                        'y': ast.literal_eval,
+                                        'z1': ast.literal_eval,
+                                        'z2': ast.literal_eval})
 
     # load components
     comps = pd.DataFrame()
+    inter = pd.DataFrame()
 
     files = os.listdir(path + '/comps/')
     for f in files:
-        if f != 'bus.csv' and f != 'char.csv':
+        if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
             df = pd.read_csv(path + '/comps/' + f, sep=';', decimal='.',
                              converters={'design': ast.literal_eval,
                                          'offdesign': ast.literal_eval,
@@ -97,10 +104,14 @@ def load_nwk(path):
                                          'bus_char': ast.literal_eval})
 
             # create components
-            df['instance'] = df.apply(construct_comps, axis=1, args=(chars,))
+            df['instance'] = df.apply(construct_comps, axis=1, args=(chars, char_maps, ))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
                                           'bus_param', 'bus_P_ref',
                                           'bus_char']]),
+                              axis=0)
+
+            df['inter'] = df.apply(get_interface, axis=1)
+            inter = pd.concat((inter, df[['instance', 'label', 'inter']]),
                               axis=0)
 
     comps = comps.set_index('label')
@@ -108,6 +119,11 @@ def load_nwk(path):
 
     # create network
     nw = construct_network(path)
+    inter = inter[inter['inter'] == True].drop('inter', axis=1)
+
+    # make interfaces and components accessible by labels
+    nw.imp_comps = comps.to_dict()['instance']
+    nw.inter = inter.set_index('label').to_dict()['instance']
 
     # load connections
     conns = pd.read_csv(path + '/conn.csv', sep=';', decimal='.',
@@ -119,17 +135,19 @@ def load_nwk(path):
     conns.apply(conns_set_ref, axis=1, args=(conns,))
     conns = conns.set_index('id')
 
+    nw.imp_conns = {}
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
+        nw.imp_conns[c.t.label + ':' + c.t_id] = c
 
     print('Created connections.')
-    nw.check_network()
 
     # load busses
     busses = pd.DataFrame()
     busses = pd.read_csv(path + '/comps/bus.csv', sep=';', decimal='.')
     # create busses
+    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -139,6 +157,7 @@ def load_nwk(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
+            nw.imp_busses[b.label] = b
 
         print('Created busses.')
 
@@ -160,13 +179,19 @@ def construct_comps(c, *args):
     args[0] : pandas.core.frame.DataFrame
         DataFrame containing the x and y data of characteristic functions.
 
+    args[1] : pandas.core.frame.DataFrame
+        DataFrame containing the x, y, z1 and z2 data of characteristic maps.
+
     Returns
     -------
     instance : tespy.components.components.component
         TESPy component object.
     """
-    target_class = getattr(cmp, c.cp)
-    instance = target_class(c.label)
+    if c.interface:
+        instance = cmp.subsys_interface(c.label, num_inter=1)
+    else:
+        target_class = getattr(cmp, c.cp)
+        instance = target_class(c.label)
     kwargs = {}
 
     # basic properties
@@ -185,18 +210,75 @@ def construct_comps(c, *args):
             elif isinstance(value, hlp.dc_cc):
                 # finding x and y values of the characteristic function
                 values = args[0]['id'] == c[key]
-                x = args[0][values]['x'].values[0]
-                y = args[0][values]['y'].values[0]
+
+                try:
+                    x = args[0][values].x.values[0]
+                    y = args[0][values].y.values[0]
+                    char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
+                except IndexError:
+                    # if characteristics are missing (for compressor map atm)
+                    x = cmp_char.characteristics().x
+                    y = cmp_char.characteristics().y
+
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
                                param=c[key + '_param'],
+                               func=char,
                                x=x, y=y)
+                kwargs[key] = dc
+            # component characteristics
+            elif isinstance(value, hlp.dc_cm):
+                # finding x and y values of the characteristic function
+                values = args[1]['id'] == c[key]
+
+                try:
+                    x = list(args[1][values].x.values[0])
+                    y = list(args[1][values].y.values[0])
+                    z1 = list(args[1][values].z1.values[0])
+                    z2 = list(args[1][values].z2.values[0])
+                    char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
+                except IndexError:
+                    # if characteristics are missing (for compressor map atm)
+                    x = cmp_char.char_map().x
+                    y = cmp_char.char_map().y
+                    z1 = cmp_char.char_map().z1
+                    z2 = cmp_char.char_map().z2
+
+                dc = hlp.dc_cc(is_set=c[key + '_set'],
+                               method=c[key + '_method'],
+                               param=c[key + '_param'],
+                               func=char_map,
+                               x=x, y=y, z1=z1, z2=z2)
+                kwargs[key] = dc
+            # grouped component parameters
+            elif isinstance(value, hlp.dc_gcp):
+                dc = hlp.dc_cp(method=c[key])
                 kwargs[key] = dc
             else:
                 continue
 
     instance.set_attr(**kwargs)
     return instance
+
+
+def get_interface(c):
+    r"""
+    Checks, if a component is marked as interface.
+
+    Parameters
+    ----------
+    c : pandas.core.series.Series
+        Component information from .csv-file.
+
+    Returns
+    -------
+    is_interface : bool
+        Returns True, if component is marked as interface.
+    """
+    if c.interface:
+        return True
+    else:
+        return False
 
 # %% create network object
 
@@ -234,26 +316,6 @@ def construct_network(path):
 
     return nw
 
-# %% create network object
-
-
-def construct_chars(c):
-    r"""
-    Creates TESPy characteristics.
-
-    Parameters
-    ----------
-    c : pandas.core.series.Series
-        Characteristics information from .csv-file.
-
-    Returns
-    -------
-    char : tespy.components.characteristics.characteristics
-        TESPy characteristics object.
-    """
-    char = cmp_char.characteristics(x=c.x, y=c.y)
-    return char
-
 # %% create connections
 
 
@@ -284,7 +346,7 @@ def construct_conns(c, *args):
             kwargs[key] = c[key]
 
     # read fluid properties
-    for key in ['m', 'p', 'h', 'T', 'x']:
+    for key in ['m', 'p', 'h', 'T', 'x', 'v']:
         if key in c:
             dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
                              unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
@@ -374,13 +436,16 @@ def busses_add_comps(c, *args):
 
     args[0] : pandas.core.frame.DataFrame
         DataFrame containing all created busses.
+
+    args[1] : pandas.core.frame.DataFrame
+        DataFrame containing all created characteristic lines.
     """
     i = 0
     for b in c.busses:
         p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
 
         values = char == args[1]['id']
-        char = args[1]['char'][values[values == True].index[0]]
+        char = cmp_char.characteristics(x=args[1][values].x.values[0], y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
         args[0].instance[b == args[0]['id']].values[0].add_comps(

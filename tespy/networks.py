@@ -113,12 +113,12 @@ class network:
         for f in self.fluids:
             try:
                 hlp.molar_masses[f] = CPPSI('M', f)
-            except:
+            except ValueError:
                 hlp.molar_masses[f] = 1
 
             try:
                 hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
-            except:
+            except ValueError:
                 hlp.gas_constants[f] = np.nan
 
         # initialise fluid property memorisation function for this network
@@ -423,6 +423,18 @@ class network:
             for c in subsys.conns:
                 self.add_conns(c)
 
+    def add_nwks(self, *args):
+        """
+        adds connections from another network
+
+        :param args: network objects si :code:`add_subsys(s1, s2, s3, ...)`
+        :type args: tespy.networks.network
+        :returns: no return value
+        """
+        for nw in args:
+            for c in nw.conns.index:
+                self.add_conns(c)
+
     def add_conns(self, *args):
         r"""
         Adds one or more connections to the network.
@@ -441,8 +453,8 @@ class network:
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
 
-    def del_conns(self, c):
-        r"""
+    def del_conns(self, *args):
+        """
         Removes one or more connections from the network.
 
         Parameters
@@ -450,7 +462,8 @@ class network:
         c : tespy.connections.connection
             The connection to be removed from the network, connections objects ci :code:`del_conns(c1, c2, c3, ...)`.
         """
-        self.conns.drop(self.conns.index(c))
+        for c in args:
+            self.conns = self.conns.drop(c)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
@@ -1369,7 +1382,7 @@ class network:
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 
-        elif self.iter < 3 and self.init_file is None:
+        elif self.iter < 4 and self.init_file is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -1383,7 +1396,7 @@ class network:
                 c.h.val_SI = self.h_range_SI[1]
 
             # temperature
-            if c.T.val_set and not c.h.val_set and not c.p.val_set:
+            if c.T.val_set and not c.h.val_set:
                 self.solve_check_temperature(c)
 
     def solve_check_temperature(self, c):
@@ -2136,7 +2149,7 @@ class network:
             self.save_connections(path + 'conn.csv', structure=True)
             self.save_components(path + 'comps/')
             self.save_busses(path + 'comps/bus.csv')
-            self.save_characteristics(path + 'comps/char.csv')
+            self.save_characteristics(path + 'comps/')
 
     def save_network(self, fn):
         r"""
@@ -2194,7 +2207,7 @@ class network:
             df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
             df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
-        cols = ['m', 'p', 'h', 'T', 'x']
+        cols = ['m', 'p', 'h', 'T', 'x', 'v']
         for key in cols:
             # values and units
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
@@ -2244,6 +2257,7 @@ class network:
         cp_sort = self.comps.copy()
         # component type
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+
         # busses
         cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1, args=(self.busses,))
         cp_sort['bus_param'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses, 'param'))
@@ -2255,7 +2269,7 @@ class network:
             df = cp_sort[cp_sort['cp'] == c]
 
             # basic information
-            cols = ['label', 'mode', 'design', 'offdesign']
+            cols = ['label', 'mode', 'design', 'offdesign', 'interface']
             for col in cols:
                 df[col] = df.apply(network.get_props, axis=1, args=(col,))
 
@@ -2269,11 +2283,23 @@ class network:
                     df[col + '_method'] = df.apply(network.get_props, axis=1, args=(col, 'method'))
                     df[col + '_param'] = df.apply(network.get_props, axis=1, args=(col, 'param'))
 
+                # component characteristic map container
+                elif isinstance(dc, hlp.dc_cm):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'func')).astype(str)
+                    df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
+                    df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
+                    df[col + '_method'] = df.apply(network.get_props, axis=1, args=(col, 'method'))
+                    df[col + '_param'] = df.apply(network.get_props, axis=1, args=(col, 'param'))
+
                 # component property container
                 elif isinstance(dc, hlp.dc_cp):
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
                     df[col + '_var'] = df.apply(network.get_props, axis=1, args=(col, 'is_var'))
+
+                # component property container
+                elif isinstance(dc, hlp.dc_gcp):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'method'))
 
                 else:
                     continue
@@ -2306,7 +2332,7 @@ class network:
             df.set_index('id', inplace=True)
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
-    def save_characteristics(self, fn):
+    def save_characteristics(self, path):
         r"""
         Saves the busses parametrisation to filename/comps/char.csv
 
@@ -2315,9 +2341,11 @@ class network:
         fn : String
             Path/filename for the file.
         """
+        # components
         cp_sort = self.comps
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
 
+        # characteristic lines in components
         chars = []
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
@@ -2328,6 +2356,7 @@ class network:
                 else:
                     continue
 
+        # characteristic lines in busses
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         for bus in df.index:
             for c in bus.comps.index:
@@ -2335,14 +2364,48 @@ class network:
                 if ch not in chars:
                     chars += [ch]
 
-        df = pd.DataFrame({'id': chars}, index=chars)
-        df['id'] = df.apply(network.get_id, axis=1)
+        if len(chars) > 0:
+            # get id and data
+            df = pd.DataFrame({'id': chars}, index=chars)
+            df['id'] = df.apply(network.get_id, axis=1)
 
-        cols = ['x', 'y']
-        for val in cols:
-            df[val] = df.apply(network.get_props, axis=1, args=(val,))
+            cols = ['x', 'y']
+            for val in cols:
+                df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+        else:
+            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
+            df.set_index('id', inplace=True)
+
+        # write to char.csv
+        df.to_csv(path + 'char.csv', sep=';', decimal='.', index=False, na_rep='nan')
+
+        # characteristic maps in components
+        chars = []
+        for c in cp_sort.cp.unique():
+            df = cp_sort[cp_sort['cp'] == c]
+
+            for col, dc in df.index[0].attr().items():
+                if isinstance(dc, hlp.dc_cm):
+                    chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
+                else:
+                    continue
+
+        if len(chars) > 0:
+            # get id and data
+            df = pd.DataFrame({'id': chars}, index=chars)
+            df['id'] = df.apply(network.get_id, axis=1)
+            print(df)
+
+            cols = ['x', 'y', 'z1', 'z2']
+            for val in cols:
+                df[val] = df.apply(network.get_props, axis=1, args=(val,))
+
+        else:
+            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
+            df.set_index('id', inplace=True)
+        # write to char_map.csv
+        df.to_csv(path + 'char_map.csv', sep=';', decimal='.', index=False, na_rep='nan')
 
     def get_id(c):
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
@@ -2371,7 +2434,10 @@ class network:
                 else:
                     return c.name.get_attr(args[0]).get_attr(args[1])
             elif isinstance(c.name.get_attr(args[0]), np.ndarray):
-                return c.name.get_attr(args[0]).tolist()
+                if len(c.name.get_attr(args[0]).shape) > 1:
+                    return tuple(c.name.get_attr(args[0]).tolist())
+                else:
+                    return c.name.get_attr(args[0]).tolist()
             else:
                 return c.name.get_attr(args[0])
         else:

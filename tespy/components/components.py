@@ -17,7 +17,7 @@ from tespy.helpers import (
     h_ps, s_ph,
     molar_mass_flow, lamb,
     molar_masses, err,
-    dc_cp, dc_cc, dc_gcp
+    dc_cp, dc_cc, dc_cm, dc_gcp
 )
 
 from tespy.components import characteristics as cmp_char
@@ -90,6 +90,7 @@ class component:
         # set default design and offdesign parameters
         self.design = self.default_design()
         self.offdesign = self.default_offdesign()
+        self.interface = False
 
         # add container for components attributes
         var = self.attr()
@@ -131,6 +132,7 @@ class component:
                 # data container specification
                 if (isinstance(kwargs[key], dc_cp) or
                         isinstance(kwargs[key], dc_cc) or
+                        isinstance(kwargs[key], dc_cm) or
                         isinstance(kwargs[key], dc_gcp)):
                     self.__dict__.update({key: kwargs[key]})
 
@@ -166,15 +168,28 @@ class component:
                         raise TypeError(msg)
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
+                      isinstance(self.get_attr(key), dc_cm) or
                       isinstance(self.get_attr(key), dc_gcp)):
                     # value specification for component characteristics
                     if isinstance(kwargs[key], str):
                         self.get_attr(key).set_attr(method=kwargs[key])
+                        if (isinstance(self.get_attr(key), dc_cc) or
+                            isinstance(self.get_attr(key), dc_cm)):
+                            self.get_attr(key).set_attr(func=None)
 
                 # invalid datatype for keyword
                 else:
                     msg = ('Bad datatype for keyword argument ' + key +
                            ' at ' + self.label + '.')
+                    raise TypeError(msg)
+
+            # export sources or sinks as subsystem interface
+            elif key == 'interface':
+                if isinstance(kwargs[key], bool):
+                    self.interface = kwargs[key]
+                else:
+                    msg = ('Datatype for keyword argument ' + str(key) +
+                           ' must be bool.')
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
@@ -245,12 +260,20 @@ class component:
         # characteristics creation
         for key, val in self.attr().items():
             if isinstance(val, dc_cc):
+                generate_char = False
                 if self.get_attr(key).func is None:
+                    generate_char = True
+                elif (not np.array_equal(self.get_attr(key).func.x, self.get_attr(key).x) or
+                      not np.array_equal(self.get_attr(key).func.y, self.get_attr(key).y)):
+                    generate_char = True
+
+                if generate_char:
                     self.get_attr(key).func = cmp_char.characteristics(
                             method=val.method, x=self.get_attr(key).x,
                             y=self.get_attr(key).y, comp=self.component())
                     self.get_attr(key).x = self.get_attr(key).func.x
                     self.get_attr(key).y = self.get_attr(key).func.y
+
 
         self.num_fl = len(nw.fluids)
         self.fluids = nw.fluids
@@ -631,11 +654,11 @@ class source(component):
         List containing offdesign parameters (stated as String).
     """
 
-    def outlets(self):
-        return ['out1']
-
     def component(self):
         return 'source'
+
+    def outlets(self):
+        return ['out1']
 
 # %%
 
@@ -662,11 +685,11 @@ class sink(component):
         List containing offdesign parameters (stated as String).
     """
 
-    def inlets(self):
-        return ['in1']
-
     def component(self):
         return 'sink'
+
+    def inlets(self):
+        return ['in1']
 
 # %%
 
@@ -1140,7 +1163,7 @@ class pump(turbomachine):
 
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
-                'eta_s_char': dc_cc(),
+                'eta_s_char': dc_cc(method='GENERIC'),
                 'flow_char': dc_cc()}
 
     def additional_equations(self):
@@ -1433,15 +1456,6 @@ class pump(turbomachine):
                 print(msg)
                 nw.errors += [self]
 
-        if (mode == 'pre' and 'eta_s_char' in self.offdesign):
-            if nw.compinfo:
-                print('Creating characteristics for component ' + self.label)
-            v_opt = (self.i_ref[0] * (
-                    v_mix_ph(self.i_ref) + v_mix_ph(self.o_ref)) / 2)
-            H_opt = ((self.o_ref[1] - self.i_ref[1]) / (9.81 * 2 / (
-                    v_mix_ph(self.i_ref) + v_mix_ph(self.o_ref))))
-            self.eta_s_char.func = cmp_char.pump(v_opt, H_opt)
-
         if mode == 'post' and nw.mode == 'offdesign':
             del self.i_ref
             del self.o_ref
@@ -1520,7 +1534,7 @@ class compressor(turbomachine):
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    char_map : String/tespy.helpers.dc_cc
+    char_map : String/tespy.helpers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs. nondimensional mass flow,
         see tespy.components.characteristics.compressor for further information.
 
@@ -1558,7 +1572,7 @@ class compressor(turbomachine):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
                 'Sirr': dc_cp(),
-                'char_map': dc_cc(method='GENERIC'),
+                'char_map': dc_cm(method='GENERIC'),
                 'eta_s_char': dc_cc(param='m', method='GENERIC')}
 
     def default_offdesign(self):
@@ -1571,10 +1585,23 @@ class compressor(turbomachine):
         self.fl_deriv = self.fluid_deriv()
         self.m_deriv = self.mass_flow_deriv()
 
-        if (self.char_map.func is None or
-                not isinstance(self.char_map.func, cmp_char.compressor)):
-            method = self.char_map.method
-            self.char_map.func = cmp_char.compressor(method=method)
+        generate_char = False
+        if self.char_map.func is None:
+            generate_char = True
+        elif (not np.array_equal(self.char_map.x, self.char_map.func.x) or
+              not np.array_equal(self.char_map.y, self.char_map.func.y) or
+              not np.array_equal(self.char_map.z1, self.char_map.func.z1) or
+              not np.array_equal(self.char_map.z2, self.char_map.func.z2)):
+            generate_char = True
+
+        if generate_char:
+            self.char_map.func = cmp_char.char_map(
+                    x=self.char_map.x, y=self.char_map.y, z1=self.char_map.z1,
+                    z2=self.char_map.z2, method=self.char_map.method, comp=self.component())
+            self.char_map.x = self.char_map.func.x
+            self.char_map.y = self.char_map.func.y
+            self.char_map.z1 = self.char_map.func.z1
+            self.char_map.z2 = self.char_map.func.z2
 
     def additional_equations(self):
         r"""

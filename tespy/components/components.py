@@ -1534,7 +1534,7 @@ class compressor(turbomachine):
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    char_map : String/tespy.helpers.dc_ccm
+    char_map : String/tespy.helpers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs. nondimensional mass flow,
         see tespy.components.characteristics.compressor for further information.
 

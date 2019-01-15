@@ -599,13 +599,13 @@ class network:
         self.init_fluids()  # start standard fluid initialisation
         self.init_properties()  # start standard property initialisation
 
-        if self.mode == 'offdesign' and self.design_file is None:
+        if self.mode == 'offdesign' and self.design_path is None:
             msg = ('Please provide \'design_file\' for every offdesign calculation.')
             raise hlp.MyNetworkError(msg)  # must provide design_file
         elif self.mode == 'offdesign':
             self.init_design_file()  # load design case
 
-        if self.init_file is not None:
+        if self.init_path is not None:
             self.init_init_file()
 
         if self.nwkinfo:
@@ -943,7 +943,8 @@ class network:
         ----
         This method is used for preprocessing in offdesign-mode using the :code:`design_file` as input file.
         """
-        df = pd.read_csv(self.design_file, index_col=0, delimiter=';', decimal='.')
+        # connections
+        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             # save actual values to temporary variables
             c.m_tmp = c.m.val_SI
@@ -980,6 +981,13 @@ class network:
             del c.h_tmp
             del c.fluid_tmp
 
+        # components
+        files = os.listdir('./' + self.design_path + '/comps/')
+        for f in files:
+            if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
+                df = pd.read_csv('./' + self.design_path + '/comps/' + f, sep=';', decimal='.')
+
+
     def init_init_file(self):
         r"""
         Init file reader for starting value generation of calculation.
@@ -990,7 +998,7 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df = pd.read_csv(self.init_file, index_col=0, delimiter=';', decimal='.')
+        df = pd.read_csv('./' + self.init_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
                            df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
@@ -1053,7 +1061,7 @@ class network:
             for var in c.offdesign:
                 c.get_attr(var).set_attr(val_set=True)
 
-    def solve(self, mode, init_file=None, design_file=None, max_iter=50, init_only=False):
+    def solve(self, mode, init_path=None, design_path=None, max_iter=50, init_only=False, **kwargs):
         r"""
         Solves the network. Tasks:
 
@@ -1067,11 +1075,11 @@ class network:
         mode : String
             Choose from 'design' and 'offdesign'.
 
-        init_file : String
-            Specify path to init_file, default: :code:`None`.
+        init_path : String
+            Path to the folder, where your network was saved to, e. g. saving to :code:`nw.save('myplant/tests')` would require loading from :code:`init_path='myplant/tests'`.
 
-        design_file : String
-            Specify path to design_file, default: :code:`None`. Required for offdesign calculation!
+        design_path : String
+            Path to the folder, where your network's design case was saved to, e. g. saving to :code:`nw.save('myplant/tests')` would require loading from :code:`design_path='myplant/tests'`.
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
@@ -1084,9 +1092,14 @@ class network:
         For more information on the solution process have a look at the online documentation
         at tespy.readthedocs.io in the section "using TESPy".
         """
-        self.init_file = init_file
-        self.design_file = design_file
+        self.init_path = init_path
+        self.design_path = design_path
         self.max_iter = max_iter
+
+        if 'init_file' in kwargs.keys():
+            print('Warning: Keyword init_file is deprecated, please use init_path for future purposes!')
+            self.init_path = kwargs['init_file'].strip('/results.csv')
+            self.design_path = kwargs['design_file'].strip('/results.csv')
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1339,7 +1352,7 @@ class network:
                 c_vars += cp.num_c_vars
 
         # second property check for first three iterations without an init_file
-        if self.iter < 3 and self.init_file is None:
+        if self.iter < 3 and self.init_path is None:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
@@ -1382,7 +1395,7 @@ class network:
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
 
-        elif self.iter < 4 and self.init_file is None:
+        elif self.iter < 4 and self.init_path is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -2116,7 +2129,7 @@ class network:
 
 # %% saving
 
-    def save(self, filename, structure=False):
+    def save(self, path, **kwargs):
         r"""
         Saves the results to results file. If structure is True, the network structure is exported.
 
@@ -2130,26 +2143,24 @@ class network:
         File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
         all network information will be saved to path ./filename/.
         """
-        path = './' + filename + '/'
+        if 'structure' in kwargs.keys():
+            print('The Keyword structure is deprecated, networks will always be saved with structure.')
+        path = './' + path + '/'
 
         # creat path, if non existent
         if not os.path.exists(path):
             os.makedirs(path)
 
-        # save connection properties
-        self.save_connections(path + 'results.csv')
+        # create path for component folder if non existent
+        if not os.path.exists(path + 'comps/'):
+            os.makedirs(path + 'comps/')
 
-        if structure:
-            # create path for component folder if non existent
-            if not os.path.exists(path + 'comps/'):
-                os.makedirs(path + 'comps/')
-
-            # save all network information
-            self.save_network(path + 'netw.csv')
-            self.save_connections(path + 'conn.csv', structure=True)
-            self.save_components(path + 'comps/')
-            self.save_busses(path + 'comps/bus.csv')
-            self.save_characteristics(path + 'comps/')
+        # save all network information
+        self.save_network(path + 'netw.csv')
+        self.save_connections(path + 'conn.csv', structure=True)
+        self.save_components(path + 'comps/')
+        self.save_busses(path + 'comps/bus.csv')
+        self.save_characteristics(path + 'comps/')
 
     def save_network(self, fn):
         r"""
@@ -2395,7 +2406,6 @@ class network:
             # get id and data
             df = pd.DataFrame({'id': chars}, index=chars)
             df['id'] = df.apply(network.get_id, axis=1)
-            print(df)
 
             cols = ['x', 'y', 'z1', 'z2']
             for val in cols:

@@ -561,8 +561,7 @@ class bus:
                                 isinstance(v, int)):
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:
-                            msg = ('Char must be a number or a TESPy '
-                                   'characteristics.')
+                            msg = ('Reference value must be numeric.')
                             raise TypeError(msg)
             else:
                 msg = ('Provide arguments as dicts. See the documentation of '

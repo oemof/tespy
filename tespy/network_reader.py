@@ -121,6 +121,8 @@ def load_nwk(path):
     nw = construct_network(path)
     inter = inter[inter['inter'] == True].drop('inter', axis=1)
 
+    # make interfaces and components accessible by labels
+    nw.imp_comps = comps.to_dict()['instance']
     nw.inter = inter.set_index('label').to_dict()['instance']
 
     # load connections
@@ -133,9 +135,11 @@ def load_nwk(path):
     conns.apply(conns_set_ref, axis=1, args=(conns,))
     conns = conns.set_index('id')
 
+    nw.imp_conns = {}
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
+        nw.imp_conns[c.t.label + ':' + c.t_id] = c
 
     print('Created connections.')
 
@@ -143,6 +147,7 @@ def load_nwk(path):
     busses = pd.DataFrame()
     busses = pd.read_csv(path + '/comps/bus.csv', sep=';', decimal='.')
     # create busses
+    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -152,6 +157,7 @@ def load_nwk(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
+            nw.imp_busses[b.label] = b
 
         print('Created busses.')
 
@@ -172,6 +178,9 @@ def construct_comps(c, *args):
 
     args[0] : pandas.core.frame.DataFrame
         DataFrame containing the x and y data of characteristic functions.
+
+    args[1] : pandas.core.frame.DataFrame
+        DataFrame containing the x, y, z1 and z2 data of characteristic maps.
 
     Returns
     -------
@@ -427,6 +436,9 @@ def busses_add_comps(c, *args):
 
     args[0] : pandas.core.frame.DataFrame
         DataFrame containing all created busses.
+
+    args[1] : pandas.core.frame.DataFrame
+        DataFrame containing all created characteristic lines.
     """
     i = 0
     for b in c.busses:

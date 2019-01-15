@@ -2149,7 +2149,7 @@ class network:
             self.save_connections(path + 'conn.csv', structure=True)
             self.save_components(path + 'comps/')
             self.save_busses(path + 'comps/bus.csv')
-            self.save_characteristics(path + 'comps/char.csv')
+            self.save_characteristics(path + 'comps/')
 
     def save_network(self, fn):
         r"""
@@ -2324,7 +2324,7 @@ class network:
             df.set_index('id', inplace=True)
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
 
-    def save_characteristics(self, fn):
+    def save_characteristics(self, path):
         r"""
         Saves the busses parametrisation to filename/comps/char.csv
 
@@ -2333,9 +2333,11 @@ class network:
         fn : String
             Path/filename for the file.
         """
+        # components
         cp_sort = self.comps
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
 
+        # characteristic lines in components
         chars = []
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
@@ -2346,6 +2348,7 @@ class network:
                 else:
                     continue
 
+        # characteristic lines in busses
         df = pd.DataFrame({'id': self.busses}, index=self.busses)
         for bus in df.index:
             for c in bus.comps.index:
@@ -2353,6 +2356,7 @@ class network:
                 if ch not in chars:
                     chars += [ch]
 
+        # get id and data
         df = pd.DataFrame({'id': chars}, index=chars)
         df['id'] = df.apply(network.get_id, axis=1)
 
@@ -2360,7 +2364,30 @@ class network:
         for val in cols:
             df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+        # write to char.csv
+        df.to_csv(path + 'char.csv', sep=';', decimal='.', index=False, na_rep='nan')
+
+        # characteristic maps in components
+        chars = []
+        for c in cp_sort.cp.unique():
+            df = cp_sort[cp_sort['cp'] == c]
+
+            for col, dc in df.index[0].attr().items():
+                if isinstance(dc, hlp.dc_cm):
+                    chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
+                else:
+                    continue
+
+        # get id and data
+        df = pd.DataFrame({'id': chars}, index=chars)
+        df['id'] = df.apply(network.get_id, axis=1)
+
+        cols = ['x', 'y', 'z1', 'z2']
+        for val in cols:
+            df[val] = df.apply(network.get_props, axis=1, args=(val,))
+
+        # write to char_map.csv
+        df.to_csv(path + 'char_map.csv', sep=';', decimal='.', index=False, na_rep='nan')
 
     def get_id(c):
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
@@ -2389,7 +2416,10 @@ class network:
                 else:
                     return c.name.get_attr(args[0]).get_attr(args[1])
             elif isinstance(c.name.get_attr(args[0]), np.ndarray):
-                return c.name.get_attr(args[0]).tolist()
+                if len(c.name.get_attr(args[0]).shape) > 1:
+                    return tuple(c.name.get_attr(args[0]).tolist())
+                else:
+                    return c.name.get_attr(args[0]).tolist()
             else:
                 return c.name.get_attr(args[0])
         else:

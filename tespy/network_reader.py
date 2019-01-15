@@ -107,12 +107,10 @@ def load_nwk(path):
             df['instance'] = df.apply(construct_comps, axis=1, args=(chars, char_maps, ))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
                                           'bus_param', 'bus_P_ref',
-                                          'bus_char']]),
-                              axis=0)
+                                          'bus_char']]), axis=0)
 
             df['inter'] = df.apply(get_interface, axis=1)
-            inter = pd.concat((inter, df[['instance', 'label', 'inter']]),
-                              axis=0)
+            inter = pd.concat((inter, df[['instance', 'label', 'inter']]), axis=0)
 
     comps = comps.set_index('label')
     print('Created components.')

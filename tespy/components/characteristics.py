@@ -448,11 +448,11 @@ class char_map(characteristics):
         if self.z2 is None:
             self.z2 = self.default(method)[3]
 
-        if self.x.shape[0] != self.y.shape[0]:
+        if np.array(self.x).shape[0] != np.array(self.y).shape[0]:
             msg = ('The number of x-values determines the number of dimension for the characteristic map. You have provided ' +
                    str(len(self.x)) + 'x-values. Thus, the y-, z1- and z2-arrays must have ' + str(len(self.x)) +' number of dimensions.')
             raise ValueError(msg)
-        elif self.y.shape != self.z1.shape or self.y.shape != self.z2.shape:
+        elif np.array(self.y).shape != np.array(self.z1).shape or np.array(self.y).shape != np.array(self.z2).shape:
             msg = 'Make sure that the number of dimensions and the number of values in the y-, z1- and z2-arrays are identical!'
             raise ValueError(msg)
 

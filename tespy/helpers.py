@@ -17,6 +17,7 @@ import sys
 from scipy import interpolate
 import pandas as pd
 import os
+import collections
 
 import warnings
 warnings.simplefilter("ignore", RuntimeWarning)
@@ -187,7 +188,7 @@ class dc_prop(data_container):
     def attr(self):
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
-                'unit': None, 'unit_set': False, 'design': 0}
+                'unit': None, 'unit_set': False, 'design': np.nan}
 
 
 class dc_flu(data_container):
@@ -219,7 +220,7 @@ class dc_flu(data_container):
         out : dict
             Dictionary of available attributes (dictionary keys) with default values.
         """
-        return {'val': {}, 'val0': {}, 'val_set': {}, 'balance': False}
+        return {'val': {}, 'val0': {}, 'val_set': {}, 'design': collections.OrderedDict(), 'balance': False}
 
 
 class dc_cp(data_container):
@@ -266,7 +267,7 @@ class dc_cp(data_container):
         """
         return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
                 'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False,
-                'val_ref': 1, 'design': 0}
+                'val_ref': 1, 'design': np.nan}
 
 
 class dc_cc(data_container):
@@ -725,7 +726,10 @@ class memorise:
         # pressure
         for f in fluids:
             if not f in memorise.heos.keys():
-                memorise.heos[f] = CP.AbstractState('HEOS', f)
+                try:
+                    memorise.heos[f] = CP.AbstractState('HEOS', f)
+                except ValueError:
+                    pass
 
         for f in fluids:
             try:

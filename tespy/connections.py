@@ -335,6 +335,17 @@ class connection:
         """
         return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
 
+    def to_flow_design(self):
+        r"""
+        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection at design point.
+
+        Returns
+        -------
+        out : list
+            List of mass flow and fluid property information.
+        """
+        return [self.m.design, self.p.design, self.h.design, self.fluid.design]
+
 
 class bus:
     r"""

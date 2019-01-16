@@ -588,9 +588,15 @@ class network:
             msg = ('Network has no fluids, please specify a list with fluids on network creation.')
             raise hlp.MyNetworkError(msg)
 
+
         if self.mode == 'offdesign':
-            # characteristics for offdesign
-            self.init_offdesign()
+            if self.design_path is None:
+                # must provide design_file
+                msg = ('Please provide \'design_path\' for every offdesign calculation.')
+                raise hlp.MyNetworkError(msg)
+            else:
+                # load design case
+                self.init_offdesign()
         else:
             # component initialisation for design case
             for cp in self.comps.index:
@@ -599,14 +605,8 @@ class network:
         self.init_fluids()  # start standard fluid initialisation
         self.init_properties()  # start standard property initialisation
 
-        if self.mode == 'offdesign' and self.design_path is None:
-            msg = ('Please provide \'design_file\' for every offdesign calculation.')
-            raise hlp.MyNetworkError(msg)  # must provide design_file
-        elif self.mode == 'offdesign':
-            self.init_design_file()  # load design case
-
         if self.init_path is not None:
-            self.init_init_file()
+            self.init_csv()
 
         if self.nwkinfo:
             print('Network initialised.')
@@ -935,60 +935,7 @@ class network:
             # change value to specified unit system
             c.get_attr(key).val0 = c.get_attr(key).val0 / self.get_attr(key)[self.get_attr(key + '_unit')]
 
-    def init_design_file(self):
-        r"""
-        Design file reader for preprocessing of offdesign-calculation.
-
-        Note
-        ----
-        This method is used for preprocessing in offdesign-mode using the :code:`design_file` as input file.
-        """
-        # connections
-        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
-        for c in self.conns.index:
-            # save actual values to temporary variables
-            c.m_tmp = c.m.val_SI
-            c.p_tmp = c.p.val_SI
-            c.h_tmp = c.h.val_SI
-            c.fluid_tmp = c.fluid.val.copy()
-            # match connection (source, source_id, target, target_id) on
-            # connection objects of design file
-            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
-            if len(conn.index) > 0:
-                conn_id = conn.index[0]
-                c.m.val_SI = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
-                c.p.val_SI = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
-                c.h.val_SI = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
-                for fluid in self.fluids:
-                    c.fluid.val[fluid] = df.loc[conn_id][fluid]
-
-            else:
-                msg = 'raise some error'
-                ValueError(msg)
-
-        # calculate reference values
-        self.processing('pre')
-
-        # reset to actual values
-        for c in self.conns.index:
-            c.m.val_SI = c.m_tmp
-            c.p.val_SI = c.p_tmp
-            c.h.val_SI = c.h_tmp
-            c.fluid.val = c.fluid_tmp
-            del c.m_tmp
-            del c.p_tmp
-            del c.h_tmp
-            del c.fluid_tmp
-
-        # components
-        files = os.listdir('./' + self.design_path + '/comps/')
-        for f in files:
-            if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
-                df = pd.read_csv('./' + self.design_path + '/comps/' + f, sep=';', decimal='.')
-
-
-    def init_init_file(self):
+    def init_csv(self):
         r"""
         Init file reader for starting value generation of calculation.
 
@@ -1041,6 +988,44 @@ class network:
         All parameters given in the connections attribute :code:`c.design`
         will be unset.
         """
+        not_required = ['source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum', 'subsys_interface']
+        cp_sort = self.comps.copy()
+        # component type
+        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1, args=('label',))
+        cp_sort['comp'] = cp_sort.index
+        cp_sort.set_index('label', inplace=True)
+        for c in cp_sort.cp.unique():
+            if c not in not_required:
+                df = pd.read_csv('./' + self.design_path + '/comps/' + c + '.csv', sep=';', decimal='.')
+                df.set_index('label', inplace=True)
+                for c in df.index:
+                    cp_sort.loc[c].comp.set_parameters(df.loc[c])
+
+        # connections
+        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+        for c in self.conns.index:
+            # match connection (source, source_id, target, target_id) on
+            # connection objects of design file
+            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
+                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            if len(conn.index) > 0:
+                conn_id = conn.index[0]
+                c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
+                c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
+                c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                for fluid in self.fluids:
+                    c.fluid.design[fluid] = df.loc[conn_id][fluid]
+
+            else:
+                msg = ('Could not find all connections in design case. '
+                       'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
+                hlp.MyNetworkError(msg)
+
+        # calculate reference values
+        self.processing('pre')
+
+        # switch components to offdesign mode
         for cp in self.comps.index:
             if cp.mode == 'auto':
                 for var in cp.design:
@@ -1051,6 +1036,7 @@ class network:
                         cp.get_attr(var).set_attr(is_set=True)
             cp.comp_init(self)
 
+        # switch connections to offdesign mode
         for c in self.conns.index:
             for var in c.design:
                 if c.get_attr(var).val_set:
@@ -1098,10 +1084,16 @@ class network:
 
         if 'init_file' in kwargs.keys():
             print('Warning: Keyword init_file is deprecated, please use init_path for future purposes!')
-            self.init_path = kwargs['init_file'].strip('/results.csv')
+            if '/results.csv' in kwargs['init_file']:
+                self.init_path = kwargs['init_file'][:-12]
+            else:
+               self.init_path = kwargs['init_file']
         if 'design_file' in kwargs.keys():
             print('Warning: Keyword design_file is deprecated, please use design_path for future purposes!')
-            self.design_path = kwargs['design_file'].strip('/results.csv')
+            if '/results.csv' in kwargs['design_file']:
+                self.design_path = kwargs['design_file'][:-12]
+            else:
+               self.design_path = kwargs['design_file']
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'

@@ -8,6 +8,7 @@
 import math
 
 import pandas as pd
+import ast
 from tabulate import tabulate
 
 import numpy as np
@@ -106,7 +107,7 @@ class network:
         # connection dataframe
         self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
         # list for busses
-        self.busses = []
+        self.busses = collections.OrderedDict()
 
         # fluid list and constants
         self.fluids = sorted(fluids)
@@ -494,7 +495,7 @@ class network:
         """
         for b in args:
             if self.check_busses(b):
-                self.busses += [b]
+                self.busses[b.label] = b
 
     def del_busses(self, b):
         r"""
@@ -506,7 +507,7 @@ class network:
             The bus to be removed from the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
         """
         if b in self.busses:
-            self.busses.remove(b)
+            del self.busses[b.label]
 
     def check_busses(self, b):
         r"""
@@ -518,15 +519,17 @@ class network:
             The bus to be checked.
         """
         if isinstance(b, con.bus):
-            if b not in self.busses:
-                if b.label not in [x.label for x in self.busses]:
-                    return True
-                else:
+            if len(self.busses) > 0:
+                if b in self.busses.values():
+                    msg = 'Network contains the bus ' + b.label + ' (' + str(b) + ') already.'
+                    raise hlp.MyNetworkError(msg)
+                elif b.label in self.busses.items():
                     msg = ('Network already has a bus with the name ' + b.label + '.')
                     raise hlp.MyNetworkError(msg)
+                else:
+                    return True
             else:
-                msg = 'Network contains this bus (' + str(b) + ') already.'
-                raise hlp.MyNetworkError(msg)
+                return True
         else:
             msg = 'Only objects of type bus are allowed in *args.'
             raise TypeError(msg)
@@ -566,50 +569,6 @@ class network:
         msg = 'Networkcheck successful.'
         if self.nwkinfo:
             print(msg)
-
-    def initialise(self):
-        r"""
-        !!!!!!!!!!!!!!!!!!!!!
-        Initilialises the network in the following steps:
-
-        - Component initialisation for design case: Call comp_init method.
-        - Component initialisation for offdesign case: Switch components to offdesign mode.
-        - Fluid propagation on all connections.
-        - Fluid property initialisation.
-        - Initialisiation from .csv-files
-        """
-        self.errors = []
-        if self.nwkinfo:
-            msg = ('Have you adjusted the value ranges for pressure, enthalpy'
-                   ' and temperature according to the specified unit system?')
-            print(msg)
-
-        if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids on network creation.')
-            raise hlp.MyNetworkError(msg)
-
-
-        if self.mode == 'offdesign':
-            if self.design_path is None:
-                # must provide design_file
-                msg = ('Please provide \'design_path\' for every offdesign calculation.')
-                raise hlp.MyNetworkError(msg)
-            else:
-                # load design case
-                self.init_offdesign()
-        else:
-            # component initialisation for design case
-            for cp in self.comps.index:
-                cp.comp_init(self)
-
-        self.init_fluids()  # start standard fluid initialisation
-        self.init_properties()  # start standard property initialisation
-
-        if self.init_path is not None:
-            self.init_csv()
-
-        if self.nwkinfo:
-            print('Network initialised.')
 
     def init_components(self, comps):
         r"""
@@ -651,6 +610,177 @@ class network:
             duplicates = [item for item, count in collections.Counter(labels).items() if count > 1]
             msg = ('All Components must have unique labels, duplicates are: ' + str(duplicates))
             raise hlp.MyNetworkError(msg)
+
+    def initialise(self):
+        r"""
+        !!!!!!!!!!!!!!!!!!!!!
+        Initilialises the network in the following steps:
+
+        - Component initialisation for design case: Call comp_init method.
+        - Component initialisation for offdesign case: Switch components to offdesign mode.
+        - Fluid propagation on all connections.
+        - Fluid property initialisation.
+        - Initialisiation from .csv-files
+        """
+        self.errors = []
+        if self.nwkinfo:
+            msg = ('Have you adjusted the value ranges for pressure, enthalpy'
+                   ' and temperature according to the specified unit system?')
+            print(msg)
+
+        if len(self.fluids) == 0:
+            msg = ('Network has no fluids, please specify a list with fluids on network creation.')
+            raise hlp.MyNetworkError(msg)
+
+
+        if self.mode == 'offdesign':
+            if self.design_path is None:
+                # must provide design_path
+                msg = ('Please provide \'design_path\' for every offdesign calculation.')
+                raise hlp.MyNetworkError(msg)
+            else:
+                # load design case
+                self.init_offdesign()
+        else:
+            # load design case
+            self.init_design()
+
+        if self.nwkinfo:
+            print('Network initialised.')
+
+    def init_design(self):
+        r"""
+        Design initialisation.
+
+            - Unset component attributes design values.
+            - Unset connection design values.
+            - Unset bus design values.
+        """
+        # connections
+        for c in self.conns.index:
+            # unset all design values
+            c.m.design = np.nan
+            c.p.design = np.nan
+            c.h.design = np.nan
+            c.fluid.design = collections.OrderedDict()
+
+        # unset design values for busses
+        for b in self.busses.values():
+            for cp in b.comps.index:
+                b.comps.loc[cp].P_ref = np.nan
+
+        series = pd.Series()
+        # switch components to offdesign mode
+        for cp in self.comps.index:
+            cp.set_parameters(self.mode, series)
+            cp.comp_init(self)
+
+        # generic fluid initialisation
+        self.init_fluids()
+        # generic fluid property initialisation
+        self.init_properties()
+
+        if self.init_path is not None:
+            self.init_csv()
+
+    def init_offdesign(self):
+        r"""
+        Offdesign initialisation from results files in :code:`design_path`.
+
+            - Set component attributes design values.
+            - Set connection design values.
+            - Set bus design values.
+            - Switch components and connections from design to offdesign mode.
+
+        Note
+        ----
+        **components**
+
+        If :code:`cp.mode == 'auto'` all parameters stated in the component's
+        attribute :code:`cp.design` will be unset and all parameters stated in
+        the component's attribute :code:`cp.offdesign` will be set instead.
+
+        The auto-switch can be deactivated by using
+        :code:`your_component.set_attr(mode='man')`
+
+        **connections**
+
+        All parameters given in the connection's attribute :code:`c.design`
+        will be unset and all parameters stated in the connections's attribute
+        :code:`cp.offdesign` will be set instead.
+        """
+        not_required = ['source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum', 'subsys_interface']
+        cp_sort = self.comps.copy()
+        # component type
+        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1, args=('label',))
+        cp_sort['comp'] = cp_sort.index
+        cp_sort.set_index('label', inplace=True)
+        for c in cp_sort.cp.unique():
+            if c not in not_required:
+                comps = pd.read_csv('./' + self.design_path + '/comps/' + c + '.csv', sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
+                comps.set_index('label', inplace=True)
+                for c in comps.index:
+                    cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
+                    i = 0
+                    for b in comps.loc[c].busses:
+                        self.busses[b].P_ref = comps.loc[c].bus_P_ref
+                        i += 1
+
+        # connections
+        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+        for c in self.conns.index:
+            # match connection (source, source_id, target, target_id) on
+            # connection objects of design file
+            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
+                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            if len(conn.index) > 0:
+                conn_id = conn.index[0]
+                c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
+                c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
+                c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                for fluid in self.fluids:
+                    c.fluid.design[fluid] = df.loc[conn_id][fluid]
+
+            else:
+                msg = ('Could not find all connections in design case. '
+                       'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
+                hlp.MyNetworkError(msg)
+
+        # set component design values for parameters specified offdesign
+        self.comps.apply(network.process_components, axis=1, args=('pre',))
+
+        # switch components to offdesign mode
+        for cp in self.comps.index:
+            if cp.mode == 'auto':
+                for var in cp.design:
+                    if cp.get_attr(var).is_set:
+                        cp.get_attr(var).set_attr(is_set=False)
+                for var in cp.offdesign:
+                    if not cp.get_attr(var).is_set:
+                        cp.get_attr(var).set_attr(is_set=True)
+            cp.comp_init(self)
+
+        # switch connections to offdesign mode
+        for c in self.conns.index:
+            for var in c.design:
+                if c.get_attr(var).val_set:
+                    c.get_attr(var).set_attr(val_set=False)
+                if c.get_attr(var).ref_set:
+                    c.get_attr(var).set_attr(ref_set=False)
+
+            for var in c.offdesign:
+                c.get_attr(var).set_attr(val_set=True)
+
+        # generic fluid initialisation
+        self.init_fluids()
+        # generic fluid property initialisation
+        self.init_properties()
+
+        # starting values from design file if not init path is specified
+        if self.init_path is None:
+            self.init_path = self.design_path
+        self.init_csv()
 
     def init_fluids(self):
         r"""
@@ -713,8 +843,9 @@ class network:
                     c.fluid.val0[fluid] = 0
                     c.fluid.val_set[fluid] = False
 
-        # fluid propagation complete for single fluid networks
-        if len(self.fluids) == 1:
+        # stop fluid propagation for single fluid networks and
+        # for offdesign cases, as good starting values are available
+        if self.mode == 'offdesign' or len(self.fluids) == 1:
             return
 
         # fluid propagation for combustion chambers
@@ -968,85 +1099,6 @@ class network:
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
 
-    def init_offdesign(self):
-        r"""
-        Auto switches components and connections from design to offdesign mode.
-
-        Note
-        ----
-        **components**
-
-        If :code:`cp.mode == 'auto'` all parameters stated in the components
-        attribute :code:`cp.design` will be unset and all parameters stated in
-        the components attribute :code:`cp.offdesign` will be set instead.
-
-        The auto-switch can be deactivated by using
-        :code:`your_component.set_attr(mode='man')`
-
-        **connections**
-
-        All parameters given in the connections attribute :code:`c.design`
-        will be unset.
-        """
-        not_required = ['source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum', 'subsys_interface']
-        cp_sort = self.comps.copy()
-        # component type
-        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1, args=('label',))
-        cp_sort['comp'] = cp_sort.index
-        cp_sort.set_index('label', inplace=True)
-        for c in cp_sort.cp.unique():
-            if c not in not_required:
-                df = pd.read_csv('./' + self.design_path + '/comps/' + c + '.csv', sep=';', decimal='.')
-                df.set_index('label', inplace=True)
-                for c in df.index:
-                    cp_sort.loc[c].comp.set_parameters(df.loc[c])
-
-        # connections
-        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
-        for c in self.conns.index:
-            # match connection (source, source_id, target, target_id) on
-            # connection objects of design file
-            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
-            if len(conn.index) > 0:
-                conn_id = conn.index[0]
-                c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
-                c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
-                c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
-                for fluid in self.fluids:
-                    c.fluid.design[fluid] = df.loc[conn_id][fluid]
-
-            else:
-                msg = ('Could not find all connections in design case. '
-                       'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
-                hlp.MyNetworkError(msg)
-
-        # calculate reference values
-        self.processing('pre')
-
-        # switch components to offdesign mode
-        for cp in self.comps.index:
-            if cp.mode == 'auto':
-                for var in cp.design:
-                    if cp.get_attr(var).is_set:
-                        cp.get_attr(var).set_attr(is_set=False)
-                for var in cp.offdesign:
-                    if not cp.get_attr(var).is_set:
-                        cp.get_attr(var).set_attr(is_set=True)
-            cp.comp_init(self)
-
-        # switch connections to offdesign mode
-        for c in self.conns.index:
-            for var in c.design:
-                if c.get_attr(var).val_set:
-                    c.get_attr(var).set_attr(val_set=False)
-                if c.get_attr(var).ref_set:
-                    c.get_attr(var).set_attr(ref_set=False)
-
-            for var in c.offdesign:
-                c.get_attr(var).set_attr(val_set=True)
-
     def solve(self, mode, init_path=None, design_path=None, max_iter=50, init_only=False, **kwargs):
         r"""
         Solves the network. Tasks:
@@ -1084,13 +1136,17 @@ class network:
 
         if 'init_file' in kwargs.keys():
             print('Warning: Keyword init_file is deprecated, please use init_path for future purposes!')
-            if '/results.csv' in kwargs['init_file']:
+            if kwargs['init_file'] is None:
+                self.init_path = None
+            elif '/results.csv' in kwargs['init_file']:
                 self.init_path = kwargs['init_file'][:-12]
             else:
                self.init_path = kwargs['init_file']
         if 'design_file' in kwargs.keys():
             print('Warning: Keyword design_file is deprecated, please use design_path for future purposes!')
-            if '/results.csv' in kwargs['design_file']:
+            if kwargs['design_file'] is None:
+                self.design_path = None
+            elif '/results.csv' in kwargs['design_file']:
                 self.design_path = kwargs['design_file'][:-12]
             else:
                self.design_path = kwargs['design_file']
@@ -1156,22 +1212,7 @@ class network:
                        'but not zero) starting value.')
                 print(msg)
 
-        self.processing('post')
-
-        for c in self.conns.index:
-            c.T.val_SI = hlp.T_mix_ph(c.to_flow())
-            c.v.val_SI = hlp.v_mix_ph(c.to_flow()) * c.m.val_SI
-            c.T.val = (c.T.val_SI /
-                       self.T[c.T.unit][1] - self.T[c.T.unit][0])
-            c.m.val = c.m.val_SI / self.m[c.m.unit]
-            c.p.val = c.p.val_SI / self.p[c.p.unit]
-            c.h.val = c.h.val_SI / self.h[c.h.unit]
-            c.v.val = c.v.val_SI / self.v[c.v.unit]
-            c.T.val0 = c.T.val
-            c.m.val0 = c.m.val
-            c.p.val0 = c.p.val
-            c.h.val0 = c.h.val
-            c.fluid.val0 = c.fluid.val.copy()
+        self.post_processing()
 
         if self.lin_dep:
             return
@@ -1636,7 +1677,7 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq
-        for b in self.busses:
+        for b in self.busses.values():
             if b.P.val_set:
                 P_res = 0
                 for cp in b.comps.index:
@@ -1651,9 +1692,7 @@ class network:
                     j = 0
                     for c in i + o:
                         loc = self.conns.index.get_loc(c)
-                        self.mat_deriv[row, loc * (self.num_vars):
-                                       (loc + 1) * self.num_vars] = (
-                            deriv[:, j])
+                        self.mat_deriv[row, loc * self.num_vars: (loc + 1) * self.num_vars] = deriv[:, j]
                         j += 1
 
                 self.vec_res[row] = b.P.val - P_res
@@ -1998,7 +2037,7 @@ class network:
         self.num_conn_eq = n
 
         n = 0
-        for b in self.busses:
+        for b in self.busses.values():
             n += [b.P.val_set].count(True)
 
         # number of equations from busses
@@ -2018,54 +2057,40 @@ class network:
                    ' supplied.')
             raise hlp.MyNetworkError(msg)
 
-# %% pre and post processing
-
-    def processing(self, mode):
+    def post_processing(self):
         r"""
-        Preprocessing or postprocessing for components: calculation of
-        components attributes.
-
-        Parameters
-        ----------
-        mode : String
-            Mode selection for pre- or postprocessing: :code:`mode='pre'` or :code:`mode='post'`.
+        Calculate bus, component parameters and connection parameters.
         """
-        modes = ['post', 'pre']
-        if mode not in modes:
-            msg = ('Processing mode must be \'pre\' or \'post\'.')
-            raise hlp.MyNetworkError(msg)
+        # components
+        self.comps.apply(network.process_components, axis=1, args=('post',))
 
-        self.comps.apply(network.process_components, axis=1, args=(self, mode,))
-
-        if self.nwkinfo:
-            if mode == 'pre':
-                print('Preprocessing done.')
-            else:
-                print('Postprocessing.')
-
-        if mode == 'post':
-            # clear fluid property memory
-            hlp.memorise.del_memory(self.fluids)
-            self.process_busses()
-            if self.nwkinfo:
-                print('Done.')
-
-    def process_busses(self):
-        r"""
-        Processing the networks busses
-        """
-        for b in self.busses:
+        # busses
+        for b in self.busses.values():
             b.P.val = 0
             for cp in b.comps.index:
-
-                bus = b.comps.loc[cp]
-                val = cp.bus_func(bus)
+                # get components bus func value
+                val = cp.bus_func(b.comps.loc[cp])
+                # save as reference value
+                b.comps.loc[cp].P_ref = val
                 b.P.val += val
-                if self.mode == 'design':
-                    bus.P_ref = val
 
-    def process_components(cols, nw, mode):
-        cols.name.calc_parameters(nw, mode)
+        # connections
+        for c in self.conns.index:
+            c.T.val_SI = hlp.T_mix_ph(c.to_flow())
+            c.v.val_SI = hlp.v_mix_ph(c.to_flow()) * c.m.val_SI
+            c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])
+            c.m.val = c.m.val_SI / self.m[c.m.unit]
+            c.p.val = c.p.val_SI / self.p[c.p.unit]
+            c.h.val = c.h.val_SI / self.h[c.h.unit]
+            c.v.val = c.v.val_SI / self.v[c.v.unit]
+            c.T.val0 = c.T.val
+            c.m.val0 = c.m.val
+            c.p.val0 = c.p.val
+            c.h.val0 = c.h.val
+            c.fluid.val0 = c.fluid.val.copy()
+
+    def process_components(cols, mode):
+        cols.name.calc_parameters(mode)
 
 # %% printing and plotting
 
@@ -2264,10 +2289,10 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
 
         # busses
-        cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1, args=(self.busses,))
-        cp_sort['bus_param'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses, 'param'))
-        cp_sort['bus_P_ref'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses, 'P_ref'))
-        cp_sort['bus_char'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses, 'char'))
+        cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1, args=(self.busses.values(),))
+        cp_sort['bus_param'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses.values(), 'param'))
+        cp_sort['bus_P_ref'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses.values(), 'P_ref'))
+        cp_sort['bus_char'] = cp_sort.apply(network.get_bus_data, axis=1, args=(self.busses.values(), 'char'))
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2324,18 +2349,16 @@ class network:
             Path/filename for the file.
         """
         if len(self.busses) > 0:
-            df = pd.DataFrame({'id': self.busses}, index=self.busses)
-            df['id'] = df.apply(network.get_id, axis=1)
-
+            df = pd.DataFrame({'id': self.busses.values()}, index=self.busses.values())
             df['label'] = df.apply(network.get_props, axis=1, args=('label',))
-
             df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
             df['P_set'] = df.apply(network.get_props, axis=1, args=('P', 'val_set'))
+            df.drop('id', axis=1, inplace=True)
 
         else:
-            df = pd.DataFrame({'id': [], 'label': [], 'P': [], 'P_set': []})
-            df.set_index('id', inplace=True)
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+            df = pd.DataFrame({'label': [], 'P': [], 'P_set': []})
+        df.set_index('label', inplace=True)
+        df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
 
     def save_characteristics(self, path):
         r"""
@@ -2362,8 +2385,7 @@ class network:
                     continue
 
         # characteristic lines in busses
-        df = pd.DataFrame({'id': self.busses}, index=self.busses)
-        for bus in df.index:
+        for bus in self.busses.values():
             for c in bus.comps.index:
                 ch = bus.comps.loc[c].char
                 if ch not in chars:
@@ -2451,7 +2473,7 @@ class network:
         busses = []
         for bus in args[0]:
             if c.name in bus.comps.index:
-                busses += [str(bus)[str(bus).find(' at ') + 4:-1]]
+                busses += [bus.label]
         return busses
 
     def get_bus_data(c, *args):

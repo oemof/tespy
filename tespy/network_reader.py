@@ -39,9 +39,16 @@ def load_nwk(path):
     - Subfolder: comps (e. g. 'mynetwork/comps') containing
         - bus.csv*
         - char.csv*
+        - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
     - conns.csv
     - netw.csv
+
+    The imported network has the following additional features:
+
+    - Connections are accessible by their target's label and id, e. g. for a connection going to 'condenser' at inlet 'in2' use :code:`myimportednetwork.imp_conns['condenser:in2']`.
+    - Components are accessible by label, e. g. for a component 'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
+    - Busses are accessible by label, e. g. for a bus 'power input' :code:`myimportednetwork.imp_busses['power input']`.
 
     Example
     -------
@@ -449,6 +456,5 @@ def busses_add_comps(c, *args):
         char = cmp_char.characteristics(x=args[1][values].x.values[0], y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['label']].values[0].add_comps(
-                {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
+        args[0].instance[b == args[0]['label']].values[0].add_comps({'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
         i += 1

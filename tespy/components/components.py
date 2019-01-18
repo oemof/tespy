@@ -359,7 +359,7 @@ class component:
 
     def set_parameters(self, mode, data):
         r"""
-        Setting design values of component parameters.
+        Set or unset design values of component parameters.
 
         Parameters
         ----------
@@ -378,19 +378,20 @@ class component:
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        The method :func:`tespy.components.components.component.calc_parameters` is the base method called by every component specific method.
+        This method is for preprocessing of offdesign calculations and sets all component attributes provided as offdesign parameters to their design value.
+
+        Postprocessing is handled by the component specific methods.
         """
         if mode == 'pre':
             # set component attributes to design-value if specified as offdesign parameter
@@ -1038,19 +1039,17 @@ class turbomachine(component):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -1453,19 +1452,17 @@ class pump(turbomachine):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         turbomachine.calc_parameters(self, mode)
 
@@ -1937,19 +1934,17 @@ class compressor(turbomachine):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         turbomachine.calc_parameters(self, mode)
 
@@ -2365,19 +2360,17 @@ class turbine(turbomachine):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         turbomachine.calc_parameters(self, mode)
 
@@ -4339,19 +4332,17 @@ class combustion_chamber(component):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -5072,19 +5063,17 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -6300,19 +6289,17 @@ class cogeneration_unit(combustion_chamber):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         combustion_chamber.calc_parameters(self, mode)
 
@@ -6663,19 +6650,17 @@ class valve(component):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -7380,19 +7365,17 @@ class heat_exchanger_simple(component):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -7832,19 +7815,17 @@ class solar_collector(heat_exchanger_simple):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 
@@ -8714,19 +8695,17 @@ class heat_exchanger(component):
 
     def calc_parameters(self, mode):
         r"""
-        Component specific parameter calculation pre- or postprocessing
-
-        **TODO**
-
-        - rework pre and postprocessing and find consistent docstlye for this function
+        Post and preprocessing parameter calculation/specification.
 
         Parameters
         ----------
-        nw : tespy.networks.network
-            Network using this component.
 
         mode : String
             Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
         component.calc_parameters(self, mode)
 

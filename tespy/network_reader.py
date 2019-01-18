@@ -144,7 +144,6 @@ def load_nwk(path):
     print('Created connections.')
 
     # load busses
-    busses = pd.DataFrame()
     busses = pd.read_csv(path + '/comps/bus.csv', sep=';', decimal='.')
     # create busses
     nw.imp_busses = {}
@@ -450,6 +449,6 @@ def busses_add_comps(c, *args):
         char = cmp_char.characteristics(x=args[1][values].x.values[0], y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['id']].values[0].add_comps(
+        args[0].instance[b == args[0]['label']].values[0].add_comps(
                 {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
         i += 1

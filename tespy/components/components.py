@@ -17,7 +17,7 @@ from tespy.helpers import (
     h_ps, h_pT ,s_ph, s_pT,
     molar_mass_flow, lamb,
     molar_masses, err,
-    dc_cp, dc_cc, dc_cm, dc_gcp, memorise
+    dc_cp, dc_cc, dc_cm, dc_gcp, memorise, single_fluid
 )
 
 from tespy.components import characteristics as cmp_char
@@ -8465,9 +8465,8 @@ class heat_exchanger(component):
                 if not i2[0] == 0:
                     fkA2 = self.kA_char2.func.f_x(i2[0] / i2_d[0])
 
-        return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
-                (T_o1 - T_i2 - T_i1 + T_o2) /
-                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+        td_log = (T_o1 - T_i2 - T_i1 + T_o2) / math.log((T_o1 - T_i2) / (T_i1 - T_o2))
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
 
     def ttd_u_func(self):
         r"""
@@ -8585,8 +8584,6 @@ class heat_exchanger(component):
 
     def convergence_check(self, nw):
         r"""
-        TODO: This is not working as it should!
-
         Performs a convergence check.
 
         Parameters
@@ -8599,23 +8596,45 @@ class heat_exchanger(component):
         Manipulate enthalpies/pressure at inlet and outlet if not specified by user to match physically feasible constraints,
         keep fluid composition within feasible range and then propagates it towards the outlet.
         """
-#        i, o = self.inl, self.outl
-#
-#        if self.ttd_l.is_set:
-#            h_min_o1 = h_mix_pT(o[0].to_flow(), nw.T_range_SI[0])
-#            h_min_i2 = h_mix_pT(i[1].to_flow(), nw.T_range_SI[0])
-#            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
-#                o[0].h.val_SI = h_min_o1 * 2
-#            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
-#                i[1].h.val_SI = h_min_i2 * 1.1
-#
-#        if self.ttd_u.is_set:
-#            h_min_i1 = h_mix_pT(i[0].to_flow(), nw.T_range_SI[0])
-#            h_min_o2 = h_mix_pT(o[1].to_flow(), nw.T_range_SI[0])
-#            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
-#                i[0].h.val_SI = h_min_i1 * 2
-#            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
-#                o[1].h.val_SI = h_min_o2 * 1.1
+        i, o = self.inl, self.outl
+
+        if self.ttd_l.is_set or self.ttd_u.is_set:
+            fl_i1 = single_fluid(i[0].fluid.val)
+            fl_i2 = single_fluid(i[1].fluid.val)
+            fl_o1 = single_fluid(o[0].fluid.val)
+            fl_o2 = single_fluid(o[1].fluid.val)
+
+        if self.ttd_l.is_set:
+            if isinstance(fl_o1, str):
+                T_min_o1 = memorise.vrange[fl_o1][2] * 1.1
+            else:
+                T_min_o1 = nw.T_range_SI[0] * 1.1
+            if isinstance(fl_i2, str):
+                T_min_i2 = memorise.vrange[fl_i2][2] * 1.1
+            else:
+                T_min_i2 = nw.T_range_SI[0] * 1.1
+            h_min_o1 = h_mix_pT(o[0].to_flow(), T_min_o1)
+            h_min_i2 = h_mix_pT(i[1].to_flow(), T_min_i2)
+            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
+                o[0].h.val_SI = h_min_o1 * 2
+            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
+                i[1].h.val_SI = h_min_i2 * 1.1
+
+        if self.ttd_u.is_set:
+            if isinstance(fl_i1, str):
+                T_min_i1 = memorise.vrange[fl_i1][2] * 1.1
+            else:
+                T_min_i1 = nw.T_range_SI[0] * 1.1
+            if isinstance(fl_o2, str):
+                T_min_o2 = memorise.vrange[fl_o2][2] * 1.1
+            else:
+                T_min_o2 = nw.T_range_SI[0] * 1.1
+            h_min_i1 = h_mix_pT(i[0].to_flow(), T_min_i1)
+            h_min_o2 = h_mix_pT(o[1].to_flow(), T_min_o2)
+            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
+                i[0].h.val_SI = h_min_i1 * 2
+            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
+                o[1].h.val_SI = h_min_o2 * 1.1
 
     def initialise_source(self, c, key):
         r"""
@@ -9101,9 +9120,8 @@ class condenser(heat_exchanger):
             if not np.isnan(i2_d[0]):
                 fkA2 = self.kA_char2.func.f_x(i2[0] / i2_d[0])
 
-        return (i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 *
-                (T_o1 - T_i2 - T_i1 + T_o2) /
-                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+        td_log = (T_o1 - T_i2 - T_i1 + T_o2) / math.log((T_o1 - T_i2) / (T_i1 - T_o2))
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
 
     def ttd_u_func(self):
         r"""
@@ -9124,9 +9142,7 @@ class condenser(heat_exchanger):
         """
         i1 = self.inl[0].to_flow()
         o2 = self.outl[1].to_flow()
-        return (self.ttd_u.val -
-                T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]]) +
-                T_mix_ph(o2))
+        return (self.ttd_u.val - T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]]) + T_mix_ph(o2))
 
 # %%
 

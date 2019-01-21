@@ -38,7 +38,7 @@ pu = cmp.pump('pump evaporator')
 
 cp1 = cmp.compressor('compressor 1')
 cp2 = cmp.compressor('compressor 2')
-he = cmp.heat_exchanger('heat_exchanger')
+he = cmp.heat_exchanger('intercooler')
 
 # %% connections
 

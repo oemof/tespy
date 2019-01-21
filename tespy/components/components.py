@@ -1174,7 +1174,7 @@ class pump(turbomachine):
         ######################################################################
         # equations for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            vec_res += self.eta_s_char_func().tolist()
+            vec_res += [self.eta_s_char_func()]
 
         ######################################################################
         # equations for specified pressure rise vs. flowrate characteristics
@@ -1264,8 +1264,7 @@ class pump(turbomachine):
         i_d = self.inl[0].to_flow_design()
         o_d = self.outl[0].to_flow_design()
 
-        return np.array([(o[2] - i[2]) * self.dh_s_ref / (o_d[2] - i_d[2]) *
-                        self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) - (self.h_os('post') - i[2])])
+        return (o[2] - i[2]) * self.dh_s_ref / (o_d[2] - i_d[2]) * self.eta_s_char.func.f_x(i[0] * v_mix_ph(i)) - (self.h_os('post') - i[2])
 
     def eta_s_char_deriv(self):
         r"""
@@ -1604,7 +1603,7 @@ class compressor(turbomachine):
         ######################################################################
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            vec_res += self.eta_s_char_func().tolist()
+            vec_res += [self.eta_s_char_func()]
 
         return vec_res
 
@@ -1700,8 +1699,7 @@ class compressor(turbomachine):
             raise ValueError('Must provide a parameter for eta_s_char at '
                              'component ' + self.label)
 
-        return (self.dh_s_ref / (o_d[2] - i_d[2]) *
-                self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) - (self.h_os('post') - i[2]))
+        return (self.dh_s_ref / (o_d[2] - i_d[2]) * self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) - (self.h_os('post') - i[2]))
 
     def eta_s_char_deriv(self):
         r"""
@@ -2053,7 +2051,7 @@ class turbine(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            vec_res += self.eta_s_char_func().tolist()
+            vec_res += [self.eta_s_char_func()]
 
         ######################################################################
         # equation for specified cone law
@@ -2190,9 +2188,7 @@ class turbine(turbomachine):
                    'isentropic efficiency to.')
             raise MyComponentError(msg)
 
-        return np.array([-(o[2] - i[2]) + (o_d[2] - i_d[2]) /
-                         self.dh_s_ref * self.eta_s_char.func.f_x(expr) *
-                         (self.h_os('post') - i[2])])
+        return -(o[2] - i[2]) + (o_d[2] - i_d[2]) / self.dh_s_ref * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
 
     def eta_s_char_deriv(self):
         r"""

@@ -88,8 +88,8 @@ class component:
             raise TypeError(msg)
 
         # set default design and offdesign parameters
-        self.design = self.default_design()
-        self.offdesign = self.default_offdesign()
+        self.design = []
+        self.offdesign = []
         self.interface = False
 
         # add container for components attributes
@@ -285,12 +285,6 @@ class component:
         return []
 
     def outlets(self):
-        return []
-
-    def default_design(self):
-        return []
-
-    def default_offdesign(self):
         return []
 
     def equations(self):
@@ -748,15 +742,6 @@ class turbomachine(component):
         - :func:`tespy.components.components.compressor.additional_equations`
         - :func:`tespy.components.components.turbine.additional_equations`
 
-    Default Design Parameters
-
-        - pr
-        - eta_s
-
-    Default Offdesign Parameters
-
-        - eta_s_char
-
     Inlets/Outlets
 
         - in1
@@ -796,12 +781,6 @@ class turbomachine(component):
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
-
-    def default_design(self):
-        return ['pr', 'eta_s']
-
-    def default_offdesign(self):
-        return ['eta_s_char']
 
     def inlets(self):
         return ['in1']
@@ -1090,15 +1069,6 @@ class pump(turbomachine):
         **additional equations**
 
         - :func:`tespy.components.components.pump.additional_equations`
-
-    Default Design Parameters
-
-        - pr
-        - eta_s
-
-    Default Offdesign Parameters
-
-        - eta_s_char (method: None, parameter: v)
 
     Inlets/Outlets
 
@@ -1501,15 +1471,6 @@ class compressor(turbomachine):
 
         - :func:`tespy.components.components.compressor.additional_equations`
 
-    Default Design Parameters
-
-        - pr
-        - eta_s
-
-    Default Offdesign Parameters
-
-        - char_map
-
     Inlets/Outlets
 
         - in1
@@ -1591,9 +1552,6 @@ class compressor(turbomachine):
                 'Sirr': dc_cp(),
                 'char_map': dc_cm(method='GENERIC'),
                 'eta_s_char': dc_cc(param='m', method='GENERIC')}
-
-    def default_offdesign(self):
-        return ['char_map']
 
     def comp_init(self, nw):
 
@@ -1996,15 +1954,6 @@ class turbine(turbomachine):
 
         - :func:`tespy.components.components.turbine.additional_equations`
 
-    Default Design Parameters
-
-        - pr
-        - eta_s
-
-    Default Offdesign Parameters
-
-        - eta_s_char (method: GENERIC, parameter: m)
-
     Inlets/Outlets
 
         - in1
@@ -2082,9 +2031,6 @@ class turbine(turbomachine):
                 'Sirr': dc_cp(),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
                 'cone': dc_cc(method='default')}
-
-    def default_offdesign(self):
-        return turbomachine.default_offdesign(self) + ['cone']
 
     def additional_equations(self):
         r"""
@@ -5152,14 +5098,6 @@ class cogeneration_unit(combustion_chamber):
 
         - methane, ethane, propane, butane, hydrogen
 
-    Default Design Parameters
-
-        - pr1, pr2
-
-    Default Offdesign Parameters
-
-        - zeta1, zeta2, P_ref
-
     Inlets/Outlets
 
         - in1, in2 (cooling water), in3, in4 (air and fuel)
@@ -5313,12 +5251,6 @@ class cogeneration_unit(combustion_chamber):
                 'Q2_char': dc_cc(method='Q2'),
                 'Qloss_char': dc_cc(method='QLOSS'),
                 'S': dc_cp()}
-
-    def default_design(self):
-        return ['pr1', 'pr2']
-
-    def default_offdesign(self):
-        return ['zeta1', 'zeta2']
 
     def inlets(self):
         return ['in1', 'in2', 'in3', 'in4']
@@ -6342,14 +6274,6 @@ class valve(component):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-    Default Design Parameters
-
-        - pr
-
-    Default Offdesign Parameters
-
-        - zeta
-
     Inlets/Outlets
 
         - in1
@@ -6424,12 +6348,6 @@ class valve(component):
                 'zeta': dc_cp(min_val=1e-4),
                 'Sirr': dc_cp(),
                 'pr_char': dc_cc()}
-
-    def default_design(self):
-        return ['pr']
-
-    def default_offdesign(self):
-        return ['zeta']
 
     def inlets(self):
         return ['in1']
@@ -7879,15 +7797,6 @@ class heat_exchanger(component):
 
         - :func:`tespy.components.components.heat_exchanger.additional_equations`
 
-    Default Design Parameters
-
-        - pr1, pr2, ttd_u, ttd_l
-
-    Default Offdesign Parameters
-
-        - zeta1, zeta2, kA (using kA_char1/kA_char2, method: HE_HOT/HE_COLD,
-          param: m/m)
-
     Inlets/Outlets
 
         - in1, in2 (index 1: hot side, index 2: cold side)
@@ -7997,12 +7906,6 @@ class heat_exchanger(component):
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
                 'zero_flag': dc_cp(printout=False)}
-
-    def default_design(self):
-        return ['ttd_u', 'ttd_l', 'pr1', 'pr2']
-
-    def default_offdesign(self):
-        return ['kA', 'zeta1', 'zeta2']
 
     def inlets(self):
         return ['in1', 'in2']
@@ -8820,15 +8723,6 @@ class condenser(heat_exchanger):
 
         - :func:`tespy.components.components.condenser.additional_equations`
 
-    Default Design Parameters
-
-        - pr2, ttd_u, ttd_l
-
-    Default Offdesign Parameters
-
-        - zeta2, kA (using kA_char1/kA_char2, method: COND_HOT/COND_COLD,
-          param: m/m)
-
     Inlets/Outlets
 
         - in1, in2 (index 1: hot side, index 2: cold side)
@@ -8941,12 +8835,6 @@ class condenser(heat_exchanger):
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
                 'zero_flag': dc_cp()}
-
-    def default_design(self):
-        return ['pr2', 'ttd_u', 'ttd_l']
-
-    def default_offdesign(self):
-        return ['zeta2', 'kA']
 
     def additional_equations(self):
         r"""
@@ -9156,15 +9044,6 @@ class desuperheater(heat_exchanger):
         **additional equations**
 
         - :func:`tespy.components.components.desuperheater.additional_equations`
-
-    Default Design Parameters
-
-        - pr1, pr2, ttd_u, ttd_l
-
-    Default Offdesign Parameters
-
-        - zeta1,zeta2, kA (using kA_char1/kA_char2, method: HE_HOT/HE_COLD,
-          param: m/m)
 
     Inlets/Outlets
 

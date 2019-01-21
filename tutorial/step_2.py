@@ -123,6 +123,6 @@ nw.save('condenser_eva')
 cons.set_attr(Q=-200e3)
 
 nw.solve('offdesign',
-         init_file='condenser_eva_results.csv',
-         design_file='condenser_eva_results.csv')
+         init_file='condenser_eva',
+         design_file='condenser_eva')
 nw.print_results()

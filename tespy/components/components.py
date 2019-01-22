@@ -7123,28 +7123,24 @@ class heat_exchanger_simple(component):
             for f\ :subscript:`1` \ see class
             :func:`tespy.components.characteristics.characteristics`
         """
-
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
-        T_i = T_mix_ph(i)
-        T_o = T_mix_ph(o)
 
-        if i[0] < 0:
-            ttd_u = T_o - self.Tamb.val_SI
-            ttd_l = T_i - self.Tamb.val_SI
+        ttd_1 = T_mix_ph(i) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o) - self.Tamb.val_SI
+
+        if ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+        elif ttd_1 < ttd_2:
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
         else:
-            ttd_u = T_i - self.Tamb.val_SI
-            ttd_l = T_o - self.Tamb.val_SI
-
-        if ttd_u == ttd_l:
-            ttd_u += 1
+            td_log = 0
 
         fkA = 1
-        if hasattr(self, 'i_ref'):
+        if not np.isnan(self.inl[0].m.design):
             if self.kA_char.param == 'm':
-                fkA = self.kA_char.func.f_x(i[0] / self.i_ref[0])
+                fkA = self.kA_char.func.f_x(i[0] / self.inl[0].m.design)
 
-        return (i[0] * (o[2] - i[2]) + self.kA.val * fkA * (
-                (ttd_u - ttd_l) / math.log(ttd_u / ttd_l)))
+        return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
     def bus_func(self, bus):
         r"""
@@ -7308,12 +7304,15 @@ class heat_exchanger_simple(component):
 
                 ttd_1 = T_mix_ph(i) - self.Tamb.val_SI
                 ttd_2 = T_mix_ph(o) - self.Tamb.val_SI
+
                 if ttd_1 > ttd_2:
-                    self.kA.val = i[0] * (o[2] - i[2]) / ((ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2))
+                    td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
                 elif ttd_1 < ttd_2:
-                    self.kA.val = i[0] * (o[2] - i[2]) / ((ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1))
+                    td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
                 else:
-                    self.kA.val = 0
+                    td_log = 0
+
+                self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
 
 # %%
 

@@ -38,7 +38,7 @@ pu = cmp.pump('pump evaporator')
 
 cp1 = cmp.compressor('compressor 1')
 cp2 = cmp.compressor('compressor 2')
-he = cmp.heat_exchanger('heat_exchanger')
+he = cmp.heat_exchanger('intercooler')
 
 # %% connections
 
@@ -96,25 +96,24 @@ nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
 # condenser system
 
-cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
-rp.set_attr(eta_s=0.8)
+cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'], offdesign=['zeta2', 'kA'])
+rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # evaporator system
 
-ves.set_attr(mode='man')
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
             kA_char1='EVA_HOT', kA_char2='EVA_COLD',
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
-su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
-pu.set_attr(eta_s=0.8)
+su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
 # compressor system
 
 cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
 
-he.set_attr(pr1=0.98, pr2=0.98)
+he.set_attr(pr1=0.98, pr2=0.98, design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2', 'kA'])
 
 # %% connection parametrization
 
@@ -150,12 +149,11 @@ cons.set_attr(Q=-230e3)
 
 nw.solve('design')
 # alternatively use:
-nw.solve('design', init_file='condenser_eva_results.csv')
+nw.solve('design', init_file='condenser_eva')
 nw.print_results()
 nw.save('heat_pump')
 
 cons.set_attr(Q=-200e3)
 
-nw.solve('offdesign', init_file='heat_pump/results.csv',
-         design_file='heat_pump/results.csv')
+nw.solve('offdesign', init_file='heat_pump', design_file='heat_pump')
 nw.print_results()

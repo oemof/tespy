@@ -39,13 +39,21 @@ def load_nwk(path):
     - Subfolder: comps (e. g. 'mynetwork/comps') containing
         - bus.csv*
         - char.csv*
+        - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
     - conns.csv
     - netw.csv
 
+    The imported network has the following additional features:
+
+    - Connections are accessible by their target's label and id, e. g. for a connection going to 'condenser' at inlet 'in2' use :code:`myimportednetwork.imp_conns['condenser:in2']`.
+    - Components are accessible by label, e. g. for a component 'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
+    - Busses are accessible by label, e. g. for a bus 'power input' :code:`myimportednetwork.imp_busses['power input']`.
+
     Example
     -------
     >>> from tespy import cmp, con, nwk, hlp, nwkr
+    >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
@@ -61,9 +69,9 @@ def load_nwk(path):
     >>> inc.set_attr(fluid={'water': 1}, T=600)
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp', structure=True)
+    >>> nw.save('tmp')
     >>> t.set_attr(P=-9e4)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
     0.798
     >>> nw2 = nwkr.load_nwk('tmp')
@@ -72,7 +80,8 @@ def load_nwk(path):
     Created connections.
     >>> nw2.set_printoptions(print_level='err')
     >>> nw2.solve('design')
-    >>> nw2.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw2.solve('offdesign', design_path='tmp')
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
     print('Reading network data.')
 
@@ -107,12 +116,10 @@ def load_nwk(path):
             df['instance'] = df.apply(construct_comps, axis=1, args=(chars, char_maps, ))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
                                           'bus_param', 'bus_P_ref',
-                                          'bus_char']]),
-                              axis=0)
+                                          'bus_char']]), axis=0)
 
             df['inter'] = df.apply(get_interface, axis=1)
-            inter = pd.concat((inter, df[['instance', 'label', 'inter']]),
-                              axis=0)
+            inter = pd.concat((inter, df[['instance', 'label', 'inter']]), axis=0)
 
     comps = comps.set_index('label')
     print('Created components.')
@@ -144,7 +151,6 @@ def load_nwk(path):
     print('Created connections.')
 
     # load busses
-    busses = pd.DataFrame()
     busses = pd.read_csv(path + '/comps/bus.csv', sep=';', decimal='.')
     # create busses
     nw.imp_busses = {}
@@ -214,11 +220,12 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
-                    char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
                 except IndexError:
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
+
+                char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -236,13 +243,14 @@ def construct_comps(c, *args):
                     y = list(args[1][values].y.values[0])
                     z1 = list(args[1][values].z1.values[0])
                     z2 = list(args[1][values].z2.values[0])
-                    char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
                 except IndexError:
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.char_map().x
                     y = cmp_char.char_map().y
                     z1 = cmp_char.char_map().z1
                     z2 = cmp_char.char_map().z2
+
+                char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -448,6 +456,5 @@ def busses_add_comps(c, *args):
         char = cmp_char.characteristics(x=args[1][values].x.values[0], y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['id']].values[0].add_comps(
-                {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
+        args[0].instance[b == args[0]['label']].values[0].add_comps({'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
         i += 1

@@ -78,8 +78,8 @@ nw.add_conns(su_cp1)
 
 # condenser system
 
-cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
-rp.set_attr(eta_s=0.8)
+cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'], offdesign=['zeta2', 'kA'])
+rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # evaporator system
@@ -88,8 +88,8 @@ ves.set_attr(mode='man')
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
             kA_char1='EVA_HOT', kA_char2='EVA_COLD',
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
-su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2)
-pu.set_attr(eta_s=0.8)
+su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
 # %% connection parametrization
 
@@ -123,6 +123,6 @@ nw.save('condenser_eva')
 cons.set_attr(Q=-200e3)
 
 nw.solve('offdesign',
-         init_file='condenser_eva_results.csv',
-         design_file='condenser_eva_results.csv')
+         init_file='condenser_eva',
+         design_file='condenser_eva')
 nw.print_results()

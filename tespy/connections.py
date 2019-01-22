@@ -335,6 +335,17 @@ class connection:
         """
         return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
 
+    def to_flow_design(self):
+        r"""
+        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection at design point.
+
+        Returns
+        -------
+        out : list
+            List of mass flow and fluid property information.
+        """
+        return [self.m.design, self.p.design, self.h.design, self.fluid.design]
+
 
 class bus:
     r"""
@@ -351,6 +362,7 @@ class bus:
     Example
     -------
     >>> from tespy import cmp, con, nwk, cmp_char
+    >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
@@ -421,11 +433,12 @@ class bus:
     >>> chp.set_attr(P=np.nan)
     >>> t.set_attr(P=-2e6)
     >>> power_bus.set_attr(P=-2.5e6)
-    >>> nw.solve('offdesign', design_file='tmp/results.csv')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(chp.P.val, 0)
     659732.0
     >>> round(heat_bus.P.val, 0)
     5173430.0
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def __init__(self, label, **kwargs):
@@ -559,8 +572,7 @@ class bus:
                                 isinstance(v, int)):
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:
-                            msg = ('Char must be a number or a TESPy '
-                                   'characteristics.')
+                            msg = ('Reference value must be numeric.')
                             raise TypeError(msg)
             else:
                 msg = ('Provide arguments as dicts. See the documentation of '

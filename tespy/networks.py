@@ -30,6 +30,8 @@ import time
 import os
 from CoolProp.CoolProp import PropsSI as CPPSI
 
+import logging
+
 
 class network:
     r"""

@@ -10,3 +10,4 @@ from tespy import connections as con
 from tespy import helpers as hlp
 from tespy import networks as nwk
 from tespy import network_reader as nwkr
+from tespy import logger as logger

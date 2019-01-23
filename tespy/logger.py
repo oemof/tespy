@@ -28,35 +28,46 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
     ----------
     logfile : str
         Name of the log file, default: oemof.log
+
     logpath : str
         The path for log files. By default a ".oemof' folder is created in your
         home directory with subfolder called 'log_files'.
+
     file_format : str
         Format of the file output.
         Default: "%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+
     screen_format : str
         Format of the screen output.
         Default: "%(asctime)s-%(levelname)s-%(message)s"
+
     file_datefmt : str
         Format of the datetime in the file output. Default: None
+
     screen_datefmt : str
         Format of the datetime in the screen output. Default: "%H:%M:%S"
+
     screen_level : int
         Level of logging to stdout. Default: 20 (logging.INFO)
+
     file_level : int
         Level of logging to file. Default: 10 (logging.DEBUG)
+
     log_version : boolean
         If True the actual version or commit is logged while initialising the
         logger.
+
     log_path : boolean
         If True the used file path is logged while initialising the logger.
+
     timed_rotating : dict
         Option to pass parameters to the TimedRotatingFileHandler.
 
 
     Returns
     -------
-    str : Place where the log file is stored.
+    file : str
+        Place where the log file is stored.
 
     Notes
     -----
@@ -94,8 +105,7 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
     log.setLevel(logging.DEBUG)
 
     if file_format is None:
-        file_format = (
-            "%(asctime)s - %(levelname)s - %(module)s - %(message)s")
+        file_format = ("%(asctime)s - %(levelname)s - %(module)s - %(message)s")
     file_formatter = logging.Formatter(file_format, file_datefmt)
 
     if screen_format is None:
@@ -111,9 +121,7 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
     ch.setLevel(screen_level)
     log.addHandler(ch)
 
-    timed_rotating_p = {
-        'when': 'midnight',
-        'backupCount': 10}
+    timed_rotating_p = {'when': 'midnight', 'backupCount': 10}
 
     if timed_rotating is not None:
         timed_rotating_p.update(timed_rotating)

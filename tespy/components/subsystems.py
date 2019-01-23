@@ -24,7 +24,7 @@ class subsystem:
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     **kwargs :
@@ -76,7 +76,7 @@ class subsystem:
 
         Parameters
         ----------
-        label : String
+        label : str
             The label of the subsystem.
 
         **kwargs :
@@ -117,7 +117,7 @@ class subsystem:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -184,7 +184,7 @@ class dr_eva_forced(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_eva : float
@@ -290,7 +290,7 @@ class dr_eva_natural(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_eva : float
@@ -375,7 +375,7 @@ class ph_desup_cond(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_desup : float
@@ -457,7 +457,7 @@ class ph_desup_cond_subc(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_desup : float

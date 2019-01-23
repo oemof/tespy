@@ -33,10 +33,10 @@ class component:
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -108,7 +108,7 @@ class component:
 
         Parameters
         ----------
-        mode : String
+        mode : str
             'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
         design : list
@@ -227,7 +227,7 @@ class component:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -310,7 +310,7 @@ class component:
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -336,7 +336,7 @@ class component:
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -359,7 +359,7 @@ class component:
 
         Parameters
         ----------
-        mode : String
+        mode : str
             Setting component design values for :code:`mode='offdesign'` and unsetting them for :code:`mode='design'`.
 
         df : pandas.core.series.Series
@@ -379,7 +379,7 @@ class component:
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -490,7 +490,7 @@ class component:
         func : function
             Function :math:`f` to calculate the partial derivative for.
 
-        dx : String
+        dx : str
             Partial derivative.
 
         pos : int
@@ -661,10 +661,10 @@ class source(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -692,10 +692,10 @@ class sink(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -751,10 +751,10 @@ class turbomachine(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -772,7 +772,7 @@ class turbomachine(component):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : String/tespy.helpers.dc_cc
+    eta_s_char : str/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
     """
@@ -933,7 +933,7 @@ class turbomachine(component):
 
         Parameters
         ----------
-        mode : String
+        mode : str
             Determines wheather calculation is in preprocessing mode.
 
         Returns
@@ -1025,7 +1025,7 @@ class turbomachine(component):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -1086,10 +1086,10 @@ class pump(turbomachine):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -1107,11 +1107,11 @@ class pump(turbomachine):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : String/tespy.helpers.dc_cc
+    eta_s_char : str/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    flow_char : String/tespy.helpers.dc_cc
+    flow_char : str/tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide data: :math:`x/\frac{\text{m}^3}{\text{s}} \,
         [y/\text{Pa}`
@@ -1368,7 +1368,7 @@ class pump(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -1399,7 +1399,7 @@ class pump(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -1428,7 +1428,7 @@ class pump(turbomachine):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -1486,10 +1486,10 @@ class compressor(turbomachine):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -1507,15 +1507,15 @@ class compressor(turbomachine):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : String/tespy.helpers.dc_cc
+    eta_s_char : str/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
-    char_map : String/tespy.helpers.dc_cm
+    char_map : str/tespy.helpers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs. nondimensional mass flow,
         see tespy.components.characteristics.compressor for further information.
 
-    igva : String/float/tespy.helpers.dc_cp
+    igva : str/float/tespy.helpers.dc_cp
         Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example
@@ -1837,7 +1837,7 @@ class compressor(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -1868,7 +1868,7 @@ class compressor(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -1897,7 +1897,7 @@ class compressor(turbomachine):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -1968,10 +1968,10 @@ class turbine(turbomachine):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -1989,7 +1989,7 @@ class turbine(turbomachine):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : String/tespy.helpers.dc_cc
+    eta_s_char : str/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
 
@@ -2249,7 +2249,7 @@ class turbine(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -2280,7 +2280,7 @@ class turbine(turbomachine):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -2309,7 +2309,7 @@ class turbine(turbomachine):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -2367,10 +2367,10 @@ class node(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -2711,7 +2711,7 @@ class node(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -2742,7 +2742,7 @@ class node(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -2798,10 +2798,10 @@ class splitter(node):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -3000,10 +3000,10 @@ class separator(node):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -3198,10 +3198,10 @@ class merge(node):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -3398,10 +3398,10 @@ class combustion_chamber(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -3763,7 +3763,7 @@ class combustion_chamber(component):
 
         Parameters
         ----------
-        fluid : String
+        fluid : str
             The fluid to calculate the reation balance for.
 
         Returns
@@ -3845,14 +3845,14 @@ class combustion_chamber(component):
 
         Parameters
         ----------
-        dx : String
+        dx : str
             Partial derivative.
 
         pos : int
             Position of connection regarding to inlets and outlet of the component,
             logic: ['in1', 'in2', ..., 'out1', ...] -> 0, 1, ..., n, n + 1, ..., n + m
 
-        fluid : String
+        fluid : str
             Fluid to calculate partial derivative of reaction balance for.
 
         Returns
@@ -4221,7 +4221,7 @@ class combustion_chamber(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -4252,7 +4252,7 @@ class combustion_chamber(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -4281,7 +4281,7 @@ class combustion_chamber(component):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -4369,10 +4369,10 @@ class combustion_chamber_stoich(combustion_chamber):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -4384,16 +4384,16 @@ class combustion_chamber_stoich(combustion_chamber):
     fuel : dict
         Fuel composition, e. g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
 
-    fuel_alias : String
+    fuel_alias : str
         Alias for the fuel, name of fuel for usage in network will be TESPy::fuel_alias.
 
     air : dict
         Fresh air composition, e. g. :code:`{'N2': 0.76, 'O2': 0.23, 'Ar': 0.01}`.
 
-    air_alias : String
+    air_alias : str
         Alias for the fresh air, name of air for usage in network will be TESPy::air_alias.
 
-    path : String
+    path : str
         Path to existing fluid property table.
 
     lamb : float/tespy.helpers.dc_cp
@@ -4758,7 +4758,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
         Parameters
         ----------
-        fluid : String
+        fluid : str
             The fluid to calculate the reation balance for.
 
         Returns
@@ -5012,7 +5012,7 @@ class combustion_chamber_stoich(combustion_chamber):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -5114,10 +5114,10 @@ class cogeneration_unit(combustion_chamber):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -5136,40 +5136,40 @@ class cogeneration_unit(combustion_chamber):
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
-    P : String/float/tespy.helpers.dc_cp
+    P : str/float/tespy.helpers.dc_cp
         Power output, :math:`P/\text{W}`.
 
-    Q1 : String/float/tespy.helpers.dc_cp
+    Q1 : str/float/tespy.helpers.dc_cp
         Heat output 1, :math:`\dot Q/\text{W}`.
 
-    Q2 : String/float/tespy.helpers.dc_cp
+    Q2 : str/float/tespy.helpers.dc_cp
         Heat output 2, :math:`\dot Q/\text{W}`.
 
-    Qloss : String/float/tespy.helpers.dc_cp
+    Qloss : str/float/tespy.helpers.dc_cp
         Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
-    pr1 : String/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 1, :math:`pr/1`.
 
-    pr2 : String/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
-    zeta1 : String/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 2, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    zeta2 : String/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 2, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    tiP_char : String/tespy.helpers.dc_cc
+    tiP_char : str/tespy.helpers.dc_cc
         Characteristic line linking fuel input to power output.
 
-    Q1_char : String/tespy.helpers.dc_cc
+    Q1_char : str/tespy.helpers.dc_cc
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : String/tespy.helpers.dc_cc
+    Q2_char : str/tespy.helpers.dc_cc
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : String/tespy.helpers.dc_cc
+    Qloss_char : str/tespy.helpers.dc_cc
         Characteristic line linking heat loss to power output.
 
     Note
@@ -6164,7 +6164,7 @@ class cogeneration_unit(combustion_chamber):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -6195,7 +6195,7 @@ class cogeneration_unit(combustion_chamber):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -6224,7 +6224,7 @@ class cogeneration_unit(combustion_chamber):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -6286,10 +6286,10 @@ class valve(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -6301,7 +6301,7 @@ class valve(component):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : String/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     Example
@@ -6511,7 +6511,7 @@ class valve(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -6542,7 +6542,7 @@ class valve(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -6571,7 +6571,7 @@ class valve(component):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -6644,10 +6644,10 @@ class heat_exchanger_simple(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -6662,16 +6662,16 @@ class heat_exchanger_simple(component):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : String/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    D : String/float/tespy.helpers.dc_cp
+    D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : String/float/tespy.helpers.dc_cp
+    L : str/float/tespy.helpers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : String/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.helpers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
@@ -6679,10 +6679,10 @@ class heat_exchanger_simple(component):
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is used.
 
-    kA : String/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : String/tespy.helpers.dc_cc
+    kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y values
         or use generic values (e. g. calculated from design case).
         Standard method 'HE_COLD', Parameter 'm'.
@@ -7203,7 +7203,7 @@ class heat_exchanger_simple(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -7244,7 +7244,7 @@ class heat_exchanger_simple(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -7282,7 +7282,7 @@ class heat_exchanger_simple(component):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -7359,10 +7359,10 @@ class pipe(heat_exchanger_simple):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -7377,16 +7377,16 @@ class pipe(heat_exchanger_simple):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : String/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    D : String/float/tespy.helpers.dc_cp
+    D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : String/float/tespy.helpers.dc_cp
+    L : str/float/tespy.helpers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : String/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.helpers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
@@ -7394,10 +7394,10 @@ class pipe(heat_exchanger_simple):
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is used.
 
-    kA : String/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : String/tespy.helpers.dc_cc
+    kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y values
         or use generic values (e. g. calculated from design case).
         Standard method 'HE_COLD', Parameter 'm'.
@@ -7492,10 +7492,10 @@ class solar_collector(heat_exchanger_simple):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -7510,16 +7510,16 @@ class solar_collector(heat_exchanger_simple):
     pr : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : String/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    D : String/float/tespy.helpers.dc_cp
+    D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : String/float/tespy.helpers.dc_cp
+    L : str/float/tespy.helpers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : String/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.helpers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
@@ -7530,13 +7530,13 @@ class solar_collector(heat_exchanger_simple):
     E :
         Absorption on the inclined surface, :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
-    lkf_lin : String/float/tespy.helpers.dc_cp
+    lkf_lin : str/float/tespy.helpers.dc_cp
         Linear loss key figure, :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}}`.
 
-    lkf_quad : String/float/tespy.helpers.dc_cp
+    lkf_quad : str/float/tespy.helpers.dc_cp
         Quadratic loss key figure, :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
-    A : String/float/tespy.helpers.dc_cp
+    A : str/float/tespy.helpers.dc_cp
         Collector surface area :math:`A/\text{m}^2`.
 
     Tamb : float/tespy.helpers.dc_cp
@@ -7735,7 +7735,7 @@ class solar_collector(heat_exchanger_simple):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -7808,10 +7808,10 @@ class heat_exchanger(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -7829,20 +7829,20 @@ class heat_exchanger(component):
     pr2 : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : String/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    zeta2 : String/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    kA : String/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : String/tespy.helpers.dc_cc
+    kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'HE_HOT', Parameter 'm'.
 
-    kA_char2 : String/tespy.helpers.dc_cc
+    kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'HE_COLD', Parameter 'm'.
 
@@ -8526,7 +8526,7 @@ class heat_exchanger(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -8564,7 +8564,7 @@ class heat_exchanger(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -8600,7 +8600,7 @@ class heat_exchanger(component):
         Parameters
         ----------
 
-        mode : String
+        mode : str
             Pre- or postprocessing calculation.
 
         Note
@@ -8734,10 +8734,10 @@ class condenser(heat_exchanger):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -8755,20 +8755,20 @@ class condenser(heat_exchanger):
     pr2 : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : String/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    zeta2 : String/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    kA : String/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : String/tespy.helpers.dc_cc
+    kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'COND_HOT', Parameter 'm'.
 
-    kA_char2 : String/tespy.helpers.dc_cc
+    kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'COND_COLD', Parameter 'm'.
 
@@ -9056,10 +9056,10 @@ class desuperheater(heat_exchanger):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -9077,20 +9077,20 @@ class desuperheater(heat_exchanger):
     pr2 : Sring/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : String/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    zeta2 : String/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
-    kA : String/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient, :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : String/tespy.helpers.dc_cc
+    kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'COND_HOT', Parameter 'm'.
 
-    kA_char2 : String/tespy.helpers.dc_cc
+    kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'COND_COLD', Parameter 'm'.
 
@@ -9233,10 +9233,10 @@ class drum(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list
@@ -9478,7 +9478,7 @@ class drum(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -9513,7 +9513,7 @@ class drum(component):
         c : tespy.connections.connection
             Connection to perform initialisation on.
 
-        key : String
+        key : str
             Fluid property to retrieve.
 
         Returns
@@ -9573,10 +9573,10 @@ class subsys_interface(component):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the component.
 
-    mode : String
+    mode : str
         'auto' for automatic design to offdesign switch, 'man' for manual switch.
 
     design : list

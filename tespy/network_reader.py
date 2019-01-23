@@ -22,7 +22,7 @@ def load_nwk(path):
 
     Parameters
     ----------
-    path : String
+    path : str
         The path to the network data.
 
     Returns
@@ -282,7 +282,7 @@ def get_interface(c):
 
     Returns
     -------
-    is_interface : bool
+    is_interface : boolean
         Returns True, if component is marked as interface.
     """
     if c.interface:
@@ -299,7 +299,7 @@ def construct_network(path):
 
     Parameters
     ----------
-    path : String
+    path : str
         Base-path to stored network data.
 
     Returns

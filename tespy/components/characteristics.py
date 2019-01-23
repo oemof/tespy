@@ -25,10 +25,10 @@ class characteristics:
     y : ndarray
         The corresponding y-values for the lookup table. Number of x and y values must be identical.
 
-    method : String
+    method : str
         Specify a method to choose from the default characteristic lines. If you specify custom x and y values, this parameter will be ignored.
 
-    comp : String
+    comp : str
         Component base name, see :func:`tespy.components.components.component.comp` method.
 
     Note
@@ -359,7 +359,7 @@ class characteristics:
 
         Returns
         -------
-        msg : String
+        msg : str
             Error message.
         """
         if x > self.x[-1]:
@@ -411,7 +411,7 @@ class char_map(characteristics):
     z2 : ndarray
         An array of the z2-values of the map.
 
-    method : String
+    method : str
         Specify a method to choose from the default characteristic maps. If you specify custom x, y, z1 and z2 values, this parameter will be ignored.
 
     Note
@@ -659,7 +659,7 @@ class char_map(characteristics):
 
         Returns
         -------
-        msg : String
+        msg : str
             Error message.
         """
         xpos = np.searchsorted(self.x, x)

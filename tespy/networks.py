@@ -39,19 +39,19 @@ class network:
     fluids : list
         A list of all fluids within the network container.
 
-    m_unit : String
+    m_unit : str
         Specify the unit for mass flow: 'kg / s', 't / h'.
 
-    v_unit : String
+    v_unit : str
         Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
 
-    p_unit : String
+    p_unit : str
         Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
-    h_unit : String
+    h_unit : str
         Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
-    T_unit : String
+    T_unit : str
         Specify the unit for mass flow: 'K', 'C', 'F'.
 
     p_range : list
@@ -115,11 +115,14 @@ class network:
                 hlp.molar_masses[f] = CPPSI('M', f)
             except ValueError:
                 hlp.molar_masses[f] = 1
+                logging.warn
 
             try:
                 hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
             except ValueError:
                 hlp.gas_constants[f] = np.nan
+
+
 
         # initialise fluid property memorisation function for this network
         hlp.memorise.add_fluids(self.fluids)
@@ -194,19 +197,19 @@ class network:
 
         Parameters
         ----------
-        m_unit : String
+        m_unit : str
             Specify the unit for mass flow: 'kg / s', 't / h'.
 
-        v_unit : String
+        v_unit : str
             Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
 
-        p_unit : String
+        p_unit : str
             Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
-        h_unit : String
+        h_unit : str
             Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
-        T_unit : String
+        T_unit : str
             Specify the unit for mass flow: 'K', 'C', 'F'.
 
         p_range : list
@@ -301,7 +304,7 @@ class network:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -326,7 +329,7 @@ class network:
 
         Parameters
         ----------
-        print_level : String
+        print_level : str
             Select the print level:
 
             - 'info': all printouts.
@@ -334,25 +337,25 @@ class network:
             - 'err': errors only
             - 'none': no printouts
 
-        compinfo : bool
+        compinfo : boolean
             Print information for components.
 
-        compwarn : bool
+        compwarn : boolean
             Print warnings for components.
 
-        comperr : bool
+        comperr : boolean
             Print errors for components.
 
-        nwkinfo : bool
+        nwkinfo : boolean
             Print information for network.
 
-        nwkwarn : bool
+        nwkwarn : boolean
             Print warnings for network.
 
-        nwkerr : bool
+        nwkerr : boolean
             Print errors for network.
 
-        iterinfo : bool
+        iterinfo : boolean
             Printouts of iteration information in solving process.
 
         Note
@@ -1109,19 +1112,19 @@ class network:
 
         Parameters
         ----------
-        mode : String
+        mode : str
             Choose from 'design' and 'offdesign'.
 
-        init_path : String
+        init_path : str
             Path to the folder, where your network was saved to, e. g. saving to :code:`nw.save('myplant/tests')` would require loading from :code:`init_path='myplant/tests'`.
 
-        design_path : String
+        design_path : str
             Path to the folder, where your network's design case was saved to, e. g. saving to :code:`nw.save('myplant/tests')` would require loading from :code:`design_path='myplant/tests'`.
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
 
-        init_only : bool
+        init_only : boolean
             Perform initialisation only? default: :code:`False`.
 
         Note
@@ -1708,7 +1711,7 @@ class network:
         c : tespy.connections.connection
             Connection to calculate the residual value for.
 
-        var : String
+        var : str
             Variable to calculate the residual value for.
 
         Returns
@@ -1774,7 +1777,7 @@ class network:
         c : tespy.connections.connection
             Connection to calculate the residual value for.
 
-        var : String
+        var : str
             Variable to calculate the residual value for.
 
         Returns
@@ -1827,7 +1830,7 @@ class network:
         c : tespy.connections.connection
             Connection to calculate the residual value for.
 
-        var : String
+        var : str
             Variable to calculate the residual value for.
 
         Returns
@@ -1939,7 +1942,7 @@ class network:
         c : tespy.connections.connection
             Connection to calculate the residual value for.
 
-        var : String
+        var : str
             Variable to calculate the residual value for.
 
         Returns
@@ -2153,7 +2156,7 @@ class network:
 
         Parameters
         ----------
-        filename : String
+        filename : str
             Path for the results.
 
         Note
@@ -2186,7 +2189,7 @@ class network:
 
         Parameters
         ----------
-        fn : String
+        fn : str
             Path/filename for the network configuration file.
         """
         data = {}
@@ -2218,7 +2221,7 @@ class network:
 
         Parameters
         ----------
-        fn : String
+        fn : str
             Path/filename for the file.
         """
         df = pd.DataFrame()
@@ -2279,7 +2282,7 @@ class network:
 
         Parameters
         ----------
-        path : String
+        path : str
             Path/filename for the file.
         """
         # create / overwrite csv file
@@ -2344,7 +2347,7 @@ class network:
 
         Parameters
         ----------
-        fn : String
+        fn : str
             Path/filename for the file.
         """
         if len(self.busses) > 0:
@@ -2365,7 +2368,7 @@ class network:
 
         Parameters
         ----------
-        fn : String
+        fn : str
             Path/filename for the file.
         """
         # components

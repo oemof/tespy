@@ -43,7 +43,7 @@ class connection:
     fluid0 : dict
         Starting value specification for fluid compostition.
 
-    fluid_balance : bool
+    fluid_balance : boolean
         Fluid balance equation specification.
 
     x : float/tespy.connections.ref/tespy.helpers.dc_prop
@@ -56,10 +56,10 @@ class connection:
         Volumetric flow specification.
 
     design : list
-        List containing design parameters (stated as String).
+        List containing design parameters (stated as string).
 
     offdesign : list
-        List containing offdesign parameters (stated as String).
+        List containing offdesign parameters (stated as string).
 
     Note
     ----
@@ -111,27 +111,21 @@ class connection:
         # check input parameters
         if not (isinstance(comp1, cmp.component) and
                 isinstance(comp2, cmp.component)):
-            msg = ('Error creating connection.'
-                   'Check if comp1, comp2 are of type component.')
+            msg = ('Error creating connection. Check if comp1, comp2 are of type component.')
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. '
-                   'Can\'t connect component to itself.')
+            msg = ('Error creating connection. Can\'t connect component to itself.')
             raise ValueError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. '
-                   'Specified oulet_id is not valid for component ' +
-                   comp1.component() + '. '
-                   'Valid ids are: ' + str(comp1.outlets()) + '.')
+            msg = ('Error creating connection. Specified oulet_id is not valid for component ' +
+                   comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. '
-                   'Specified inlet_id is not valid for component ' +
-                   comp2.component() + '. '
-                   'Valid ids are: ' + str(comp2.inlets()) + '.')
+            msg = ('Error creating connection. Specified inlet_id is not valid for component ' +
+                   comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
             raise ValueError(msg)
 
         # set specified values
@@ -181,7 +175,7 @@ class connection:
         fluid0 : dict
             Starting value specification for fluid compostition.
 
-        fluid_balance : bool
+        fluid_balance : boolean
             Fluid balance equation specification.
 
         x : float/tespy.connections.ref/tespy.helpers.dc_prop
@@ -239,8 +233,7 @@ class connection:
                 # reference object
                 elif isinstance(kwargs[key], ref):
                     if key == 'fluid' or key == 'x':
-                        print('References for fluid vector and vapour mass '
-                              'fraction not implemented.')
+                        print('References for fluid vector and vapour mass fraction not implemented.')
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
@@ -272,8 +265,7 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) +
-                           ' must be bool.')
+                    msg = ('Datatype for keyword argument ' + str(key) + ' must be boolean.')
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
@@ -298,7 +290,7 @@ class connection:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -354,7 +346,7 @@ class bus:
 
     Parameters
     ----------
-    label : String
+    label : str
         Label for the bus.
 
     P : float
@@ -459,7 +451,7 @@ class bus:
 
         Parameters
         ----------
-        label : String
+        label : str
             Label for the bus.
 
         P : float
@@ -483,7 +475,7 @@ class bus:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -512,7 +504,7 @@ class bus:
         Keys for the dictionary c:
 
         - c (tespy.components.components.component): Component you want to add to the bus.
-        - p (String): Bus parameter, optional.
+        - p (str): Bus parameter, optional.
 
             - You do not need to provide a parameter, if the component only has one
               option for the bus (turbomachines, heat exchangers, combustion
@@ -549,7 +541,7 @@ class bus:
                         if isinstance(v, str) or v is None:
                             self.comps.loc[c['c']]['param'] = v
                         else:
-                            msg = ('Parameter p must be a String.')
+                            msg = ('Parameter p must be a string.')
                             raise TypeError(msg)
 
                     elif k == 'char':
@@ -630,7 +622,7 @@ class ref:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns

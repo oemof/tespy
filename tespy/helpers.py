@@ -130,7 +130,7 @@ class data_container:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -172,19 +172,19 @@ class dc_prop(data_container):
     val_SI : float
         Value in SI_unit, default: val_SI=0.
 
-    val_set : bool
+    val_set : boolean
         Has the value for this property been set?, default: val_set=False.
 
     ref : tespy.connections.ref
         Reference object, default: ref=None.
 
-    ref_set : bool
+    ref_set : boolean
         Has a value for this property been referenced to another connection?, default: ref_set=False.
 
-    unit : String
+    unit : str
         Unit for this property, default: ref=None.
 
-    unit : bool
+    unit : boolean
         Has the unit for this property been specified manually by the user?, default: unit_set=False.
     """
     def attr(self):
@@ -210,7 +210,7 @@ class dc_flu(data_container):
         Which fluid mass fractions have been set, default val_set={}.
         Pattern for dictionary: keys are fluid name, values are True or False.
 
-    balance : bool
+    balance : boolean
         Should the fluid balance equation be applied for this mixture? default: False.
     """
     def attr(self):
@@ -237,10 +237,10 @@ class dc_cp(data_container):
         Value in SI_unit (available for temperatures only, unit transformation according to network's temperature unit),
         default: val_SI=0.
 
-    is_set : bool
+    is_set : boolean
         Has the value for this attribute been set?, default: is_set=False.
 
-    is_var : bool
+    is_var : boolean
         Is this attribute part of the system variables?, default: is_var=False.
 
     d : float
@@ -255,7 +255,7 @@ class dc_cp(data_container):
         Maximum value for this attribute, used if attribute is part of the system variables,
         default: max_val=1e12.
 
-    printout : bool
+    printout : boolean
         Should the value of this attribute be printed in the results overview?
     """
     def attr(self):
@@ -280,13 +280,13 @@ class dc_cc(data_container):
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristics, default: None.
 
-    is_set : bool
+    is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : String
+    method : str
         Which default method for this characteristic function should be used?, default: method='default'.
 
-    param : String
+    param : str
         Which parameter should be applied as the x value?, default: method='default'.
 
     x : numpy.array
@@ -323,13 +323,13 @@ class dc_cm(data_container):
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristic map, default: None.
 
-    is_set : bool
+    is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : String
+    method : str
         Which default method for this characteristic function should be used?, default: method='default'.
 
-    param : String
+    param : str
         Which parameter should be applied as the x value?, default: method='default'.
 
     x : numpy.array
@@ -368,10 +368,10 @@ class dc_gcp(data_container):
     r"""
     Parameters
     ----------
-    is_set : bool
+    is_set : boolean
         Should the equation for this parameter group be applied? default: is_set=False.
 
-    method : String
+    method : str
         Which calculation method for this parameter group should be used?, default: method='default'.
 
     elements : list
@@ -411,10 +411,10 @@ def query_yes_no(question, default='yes'):
     r"""
     Parameters
     ----------
-    question : String
+    question : str
         Question to be asked.
 
-    default : String
+    default : str
         Default answer: default='yes'.
 
     elements : list
@@ -422,7 +422,7 @@ def query_yes_no(question, default='yes'):
 
     Returns
     -------
-    answer : bool
+    answer : boolean
         Answer.
     """
     valid = {'yes': True,
@@ -2073,7 +2073,7 @@ def single_fluid(fluids):
 
     Returns
     -------
-    fluid : String
+    fluid : str
         Name of the single fluid.
     """
     if num_fluids(fluids) == 1:
@@ -2092,7 +2092,7 @@ def fluid_structure(fluid):
 
     Parameters
     ----------
-    fluid : String
+    fluid : str
         Name of the fluid.
 
     Returns

@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """
 .. module:: helpers
     :synopsis: helpers for frequently used functionalities
@@ -527,8 +529,7 @@ class tespy_fluid:
             gas_constants[f] = CPPSI('GAS_CONSTANT', f)
 
         molar_masses[self.alias] = 1 / molar_mass_flow(self.fluid)
-        gas_constants[self.alias] = (gas_constants['uni'] /
-                                     molar_masses[self.alias])
+        gas_constants[self.alias] = (gas_constants['uni'] / molar_masses[self.alias])
 
         # create look up tables
         tespy_fluid.fluids[self.alias] = {}

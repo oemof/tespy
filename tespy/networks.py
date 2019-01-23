@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """
 .. module:: networks
     :synopsis: contains logic of the network

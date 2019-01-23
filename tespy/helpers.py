@@ -451,7 +451,6 @@ def query_yes_no(question, default='yes'):
 
 class tespy_fluid:
     r"""
-
     The tespy_fluid class allows the creation of custom fluid properies for a
     specified mixture of fluids. The created fluid properties adress an ideal
     mixture of real fluids.
@@ -505,6 +504,8 @@ class tespy_fluid:
         else:
             self.alias = 'TESPy::' + alias
         self.fluid = fluid
+
+        memorise.add_fluids(self.fluid.keys())
 
         # load LUT from this path
         self.path = kwargs.get('path', dc_cp())

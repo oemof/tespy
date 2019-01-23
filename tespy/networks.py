@@ -16,13 +16,8 @@ from numpy.linalg import inv
 from numpy.linalg import norm
 
 from tespy.components import components as cmp
-from tespy.components import characteristics as char
 from tespy import connections as con
 from tespy import helpers as hlp
-
-import matplotlib.pyplot as plt
-import matplotlib.cm as mplcm
-import matplotlib.colors as colors
 
 import collections
 

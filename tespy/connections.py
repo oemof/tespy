@@ -8,8 +8,7 @@
 import numpy as np
 import pandas as pd
 
-from tespy.helpers import (MyConnectionError, data_container, dc_prop, dc_flu,
-                           dc_cp)
+from tespy.helpers import (MyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
 from tespy.components import components as cmp
 from tespy.components import characteristics as cmp_char
 

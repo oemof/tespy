@@ -10,7 +10,7 @@
 import numpy as np
 import pandas as pd
 
-from tespy.helpers import (MyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
+from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
 from tespy.components import components as cmp
 from tespy.components import characteristics as cmp_char
 
@@ -19,25 +19,25 @@ class connection:
     r"""
     Parameters
     ----------
-    m : float/tespy.connections.ref/tespy.helpers.dc_prop
+    m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Mass flow specification.
 
     m0 : float
         Starting value specification for mass flow.
 
-    p : float/tespy.connections.ref/tespy.helpers.dc_prop
+    p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Pressure specification.
 
     p0 : float
         Starting value specification for pressure.
 
-    h : float/tespy.connections.ref/tespy.helpers.dc_prop
+    h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Enthalpy specification.
 
     h0 : float
         Starting value specification for enthalpy.
 
-    fluid : dict/tespy.helpers.dc_flu
+    fluid : dict/tespy.tools.helpers.dc_flu
         Fluid compostition specification.
 
     fluid0 : dict
@@ -46,13 +46,13 @@ class connection:
     fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float/tespy.connections.ref/tespy.helpers.dc_prop
+    x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Gas phase mass fraction specification.
 
-    T : float/tespy.connections.ref/tespy.helpers.dc_prop
+    T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Temperature specification.
 
-    v : float/tespy.helpers.dc_prop
+    v : float/tespy.tools.helpers.dc_prop
         Volumetric flow specification.
 
     design : list
@@ -89,9 +89,9 @@ class connection:
     >>> p = hlp.dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
     >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200, fluid={'N2': 1}, fluid_balance=True)
     >>> type(so_si1.p)
-    <class 'tespy.helpers.dc_prop'>
+    <class 'tespy.tools.helpers.dc_prop'>
     >>> type(so_si1.fluid)
-    <class 'tespy.helpers.dc_flu'>
+    <class 'tespy.tools.helpers.dc_flu'>
     >>> so_si1.m.val0
     10
     >>> so_si1.m.get_attr('val_set')
@@ -151,25 +151,25 @@ class connection:
 
         Parameters
         ----------
-        m : float/tespy.connections.ref/tespy.helpers.dc_prop
+        m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Mass flow specification.
 
         m0 : float
             Starting value specification for mass flow.
 
-        p : float/tespy.connections.ref/tespy.helpers.dc_prop
+        p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Pressure specification.
 
         p0 : float
             Starting value specification for pressure.
 
-        h : float/tespy.connections.ref/tespy.helpers.dc_prop
+        h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Enthalpy specification.
 
         h0 : float
             Starting value specification for enthalpy.
 
-        fluid : dict/tespy.helpers.dc_flu
+        fluid : dict/tespy.tools.helpers.dc_flu
             Fluid compostition specification.
 
         fluid0 : dict
@@ -178,13 +178,13 @@ class connection:
         fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float/tespy.connections.ref/tespy.helpers.dc_prop
+        x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Gas phase mass fraction specification.
 
-        T : float/tespy.connections.ref/tespy.helpers.dc_prop
+        T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Temperature specification.
 
-        v : float/tespy.helpers.dc_prop
+        v : float/tespy.tools.helpers.dc_prop
             Volumetric flow specification.
 
         design : list
@@ -555,8 +555,7 @@ class bus:
                             self.comps.loc[c['c']]['char'] = (
                                     cmp_char.characteristics(x=x, y=y))
                         else:
-                            msg = ('Char must be a number or a TESPy '
-                                   'characteristics.')
+                            msg = ('Char must be a number or a TESPy characteristics.')
                             raise TypeError(msg)
 
                     elif k == 'P_ref':
@@ -568,9 +567,8 @@ class bus:
                             msg = ('Reference value must be numeric.')
                             raise TypeError(msg)
             else:
-                msg = ('Provide arguments as dicts. See the documentation of '
-                       'bus.add_comps() for more information.')
-                raise MyConnectionError(msg)
+                msg = ('Provide arguments as dicts. See the documentation of bus.add_comps() for more information.')
+                raise TESPyConnectionError(msg)
 
 
 class ref:

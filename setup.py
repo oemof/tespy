@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 import os
+import tespy
 
 
 def read(fname):
@@ -7,7 +8,7 @@ def read(fname):
 
 
 setup(name='TESPy',
-      version='0.0.5 dev',
+      version=tespy.__version__,
       description='Thermal Engineering Systems in Python (TESPy)',
       url='http://github.com/oemof/tespy',
       author='Francesco Witte',

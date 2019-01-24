@@ -230,60 +230,80 @@ class network:
 
         # unit sets
         if self.m_unit not in self.m.keys():
-            msg = ('Allowed units for mass flow are: ' +
-                   str(self.m.keys()))
+            msg = ('Allowed units for mass flow are: ' + str(self.m.keys()))
+            logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if self.p_unit not in self.p.keys():
-            msg = ('Allowed units for pressure are: ' +
-                   str(self.p.keys()))
+            msg = ('Allowed units for pressure are: ' + str(self.p.keys()))
+            logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if self.h_unit not in self.h.keys():
-            msg = ('Allowed units for enthalpy are: ' +
-                   str(self.h.keys()))
+            msg = ('Allowed units for enthalpy are: ' + str(self.h.keys()))
+            logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if self.T_unit not in self.T.keys():
-            msg = ('Allowed units for temperature are: ' +
-                   str(self.T.keys()))
+            msg = ('Allowed units for temperature are: ' + str(self.T.keys()))
+            logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if self.v_unit not in self.v.keys():
-            msg = ('Allowed units for volumetric flow are: ' +
-                   str(self.v.keys()))
+            msg = ('Allowed units for volumetric flow are: ' + str(self.v.keys()))
+            logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
+
+        msg = ('Unit specifications:'
+               'mass flow: ' + self.m_unit + ', ' +
+               'pressure: ' + self.p_unit + ', ' +
+               'enthalpy: ' + self.h_unit + ', ' +
+               'temperature: ' + self.T_unit + ', ' +
+               'volumetric flow: ' + self.v_unit + '.')
+        logging.debug(msg)
 
         # value ranges
         if 'p_range' in kwargs.keys():
             if not isinstance(self.p_range, list):
                 msg = ('Specify the value range as list: [p_min, p_max]')
+                logging.error(msg)
                 raise TypeError(msg)
             else:
                 self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
         else:
             self.p_range = self.p_range_SI / self.p[self.p_unit]
 
+        msg = ('Setting pressure range, min: ' + str(self.p_range_SI[0]) + ' ' + self.SI_units['p'] +
+               ', max: ' + str(self.p_range_SI[1]) + ' ' + self.SI_units['p'] + '.')
+        logging.debug(msg)
+
         if 'h_range' in kwargs.keys():
             if not isinstance(self.h_range, list):
                 msg = ('Specify the value range as list: [h_min, h_max]')
+                logging.error(msg)
                 raise TypeError(msg)
             else:
                 self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
         else:
             self.h_range = self.h_range_SI / self.h[self.h_unit]
 
+        msg = ('Setting enthalpy range, min: ' + str(self.h_range_SI[0]) + ' ' + self.SI_units['h'] +
+               ', max: ' + str(self.h_range_SI[1]) + ' ' + self.SI_units['h'] + '.')
+        logging.debug(msg)
+
         if 'T_range' in kwargs.keys():
             if not isinstance(self.T_range, list):
                 msg = ('Specify the value range as list: [T_min, T_max]')
+                logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.T_range_SI = ((np.array(self.T_range) +
-                                    self.T[self.T_unit][0]) *
-                                   self.T[self.T_unit][1])
+                self.T_range_SI = (np.array(self.T_range) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
         else:
-            self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
-                            self.T[self.T_unit][0])
+            self.T_range = self.T_range_SI / self.T[self.T_unit][1] - self.T[self.T_unit][0]
+
+        msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
+               ', max: ' + str(self.T_range_SI[1]) + ' ' + self.SI_units['T'] + '.')
+        logging.debug(msg)
 
         for f in self.fluids:
             if 'TESPy::' in f:
@@ -292,6 +312,7 @@ class network:
                 hlp.memorise.vrange[f][2] = self.T_range_SI[0]
                 hlp.memorise.vrange[f][3] = self.T_range_SI[1]
 
+            # incompressible fluids do not have pressure range
             if 'INCOMP::' in f:
                 hlp.memorise.vrange[f][0] = self.p_range_SI[0]
                 hlp.memorise.vrange[f][1] = self.p_range_SI[1]

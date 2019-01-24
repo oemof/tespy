@@ -12,8 +12,8 @@ import math
 
 import CoolProp.CoolProp as CP
 
-from tespy.helpers import (
-    num_fluids, fluid_structure, MyComponentError, tespy_fluid,
+from tespy.tools.helpers import (
+    num_fluids, fluid_structure, TESPyComponentError, tespy_fluid,
     v_mix_ph, h_mix_pT, h_mix_ps, s_mix_pT, s_mix_ph, T_mix_ph, visc_mix_ph,
     dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ,
     h_ps, h_pT ,s_ph, s_pT,
@@ -21,7 +21,6 @@ from tespy.helpers import (
     molar_masses, err,
     dc_cp, dc_cc, dc_cm, dc_gcp, memorise, single_fluid
 )
-
 from tespy.components import characteristics as cmp_char
 
 # %%
@@ -915,17 +914,15 @@ class turbomachine(component):
         r"""
         Calculates residual value of isentropic efficiency function, see subclasses.
         """
-        msg = ('If you want to use eta_s as parameter, '
-               'please specify which type of turbomachine you are using.')
-        raise MyComponentError(msg)
+        msg = 'If you want to use eta_s as parameter, please specify which type of turbomachine you are using.'
+        raise TESPyComponentError(msg)
 
     def eta_s_deriv(self):
         r"""
         Calculates partial derivatives for isentropic efficiency function, see subclasses.
         """
-        msg = ('If you want to use eta_s as parameter, '
-               'please specify which type of turbomachine you are using.')
-        raise MyComponentError(msg)
+        msg = 'If you want to use eta_s as parameter, please specify which type of turbomachine you are using.'
+        raise TESPyComponentError(msg)
 
     def h_os(self, mode):
         r"""
@@ -965,10 +962,12 @@ class turbomachine(component):
             return h_mix_ps(o, s_mix)
 
     def char_func(self):
-        raise MyComponentError('Function not available for this component.')
+        msg = 'Function not available for this component.'
+        raise TESPyComponentError(msg)
 
     def char_deriv(self):
-        raise MyComponentError('Function not available.')
+        msg = 'Function not available for this component.'
+        raise TESPyComponentError(msg)
 
     def bus_func(self, bus):
         r"""
@@ -2186,9 +2185,8 @@ class turbine(turbomachine):
         elif self.eta_s_char.param == 'pr':
             expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
         else:
-            msg = ('Please choose the parameter, you want to link the '
-                   'isentropic efficiency to.')
-            raise MyComponentError(msg)
+            msg = 'Please choose the parameter, you want to link the isentropic efficiency to.'
+            raise TESPyComponentError(msg)
 
         return -(o[2] - i[2]) + (o_d[2] - i_d[2]) / self.dh_s_ref * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
 
@@ -3485,34 +3483,25 @@ class combustion_chamber(component):
         self.p_deriv = self.pressure_deriv()
 
         if not self.fuel.is_set:
-            msg = ('Must specify fuel for component ' + self.label +
-                   '. Available fuels are: ' + str(self.fuels()) + '.')
-            raise MyComponentError(msg)
+            msg = 'Must specify fuel for component ' + self.label + '. Available fuels are: ' + str(self.fuels()) + '.'
+            raise TESPyComponentError(msg)
 
         if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]]) == 0):
-            msg = ('The fuel you specified for component ' + self.label +
-                   ' does not match the fuels available within the network.')
-            raise MyComponentError(msg)
+            msg = 'The fuel you specified for component ' + self.label + ' does not match the fuels available within the network.'
+            raise TESPyComponentError(msg)
 
         if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
                  CP.get_aliases(self.fuel.val)]])) == 0:
-            msg = ('The fuel you specified is not available for component ' +
-                   self.label + '. Available fuels are: ' + str(self.fuels()) +
-                   '.')
-            raise MyComponentError(msg)
+            msg = 'The fuel you specified is not available for component ' + self.label + '. Available fuels are: ' + str(self.fuels()) + '.'
+            raise TESPyComponentError(msg)
 
-        self.fuel.val = [x for x in nw.fluids if x in [
-                a.replace(' ', '') for a in CP.get_aliases(self.fuel.val)]][0]
+        self.fuel.val = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases(self.fuel.val)]][0]
 
-        self.o2 = [x for x in nw.fluids if x in
-                   [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
-        self.co2 = [x for x in nw.fluids if x in
-                    [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
-        self.h2o = [x for x in nw.fluids if x in
-                    [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
-        self.n2 = [x for x in nw.fluids if x in
-                   [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
+        self.o2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
+        self.co2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
+        self.h2o = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
+        self.n2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
 
         structure = fluid_structure(self.fuel.val)
 
@@ -4456,25 +4445,25 @@ class combustion_chamber_stoich(combustion_chamber):
 
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
 
         if not self.fuel_alias.is_set:
             msg = 'Must specify fuel alias for combustion chamber.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
         if 'TESPy::' in self.fuel_alias.val:
             msg = 'Can not use \'TESPy::\' at this point.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
 
         if not self.air.is_set or not isinstance(self.air.val, dict):
-            msg = ('Must specify air composition for combustion chamber.')
-            raise MyComponentError(msg)
+            msg = 'Must specify air composition for combustion chamber.'
+            raise TESPyComponentError(msg)
 
         if not self.air_alias.is_set:
             msg = 'Must specify air alias for combustion chamber.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
         if 'TESPy::' in self.air_alias.val:
             msg = 'Can not use \'TESPy::\' at this point.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
 
         # adjust the names for required fluids according to naming in the network
         # air
@@ -4496,7 +4485,7 @@ class combustion_chamber_stoich(combustion_chamber):
         alias = [x for x in fluids if x in [a.replace(' ', '') for a in CP.get_aliases('O2')]]
         if len(alias) == 0:
             msg = 'Oxygen missing in input fluids.'
-            raise MyComponentError(msg)
+            raise TESPyComponentError(msg)
         else:
             self.o2 = alias[0]
 

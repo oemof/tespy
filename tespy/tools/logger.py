@@ -1,25 +1,22 @@
 # -*- coding: utf-8
 
-"""Helpers to log your modeling process with oemof.
-
-This file is part of project oemof (github.com/oemof/oemof). It's copyrighted
-by the contributors recorded in the version control history of the file,
-available from its original location oemof/oemof/tools/logger.py
-
-SPDX-License-Identifier: GPL-3.0-or-later
 """
+.. module:: logger
+
+.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+"""
+
 
 import os
 import logging
 from logging import handlers
 import sys
-from oemof.tools import helpers
-import oemof
+import tespy
 
 
-def define_logging(logpath=None, logfile='oemof.log', file_format=None,
+def define_logging(logpath=None, logfile='tespy.log', file_format=None,
                    screen_format=None, file_datefmt=None, screen_datefmt=None,
-                   screen_level=logging.INFO, file_level=logging.DEBUG,
+                   screen_level=logging.WARNING, file_level=logging.DEBUG,
                    log_version=True, log_path=True, timed_rotating=None):
 
     r"""Initialise customisable logger.
@@ -27,10 +24,10 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
     Parameters
     ----------
     logfile : str
-        Name of the log file, default: oemof.log
+        Name of the log file, default: tespy.log
 
     logpath : str
-        The path for log files. By default a ".oemof' folder is created in your
+        The path for log files. By default a ".tespy' folder is created in your
         home directory with subfolder called 'log_files'.
 
     file_format : str
@@ -48,7 +45,7 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
         Format of the datetime in the screen output. Default: "%H:%M:%S"
 
     screen_level : int
-        Level of logging to stdout. Default: 20 (logging.INFO)
+        Level of logging to stdout. Default: 30 (logging.WARNING)
 
     file_level : int
         Level of logging to file. Default: 10 (logging.DEBUG)
@@ -71,7 +68,7 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
 
     Notes
     -----
-    By default the INFO level is printed on the screen and the DEBUG level
+    By default the WARNING level is printed on the screen and the DEBUG level
     in a file, but you can easily configure the logger.
     Every module that wants to create logging messages has to import the
     logging module. The oemof logger module has to be imported once to
@@ -84,17 +81,17 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
     path where the log file is saved to.
 
     >>> import logging
-    >>> from oemof.tools import logger
+    >>> from tespy.tools import logger
     >>> mypath = logger.define_logging(
     ...     log_path=True, log_version=True, timed_rotating={'backupCount': 4},
     ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
     >>> mypath[-9:]
-    'oemof.log'
-    >>> logging.debug("Hallo")
+    'tespy.log'
+    >>> logging.debug("Hi")
     """
 
     if logpath is None:
-        logpath = helpers.extend_basic_path('log_files')
+        logpath = extend_basic_path('log_files')
 
     file = os.path.join(logpath, logfile)
 
@@ -137,7 +134,7 @@ def define_logging(logpath=None, logfile='oemof.log', file_format=None,
         logging.info("Path for logging: {0}".format(file))
 
     if log_version:
-        logging.info("Used oemof version: {0}".format(get_version()))
+        logging.info("Used TESPy version: {0}".format(get_version()))
     return file
 
 
@@ -146,7 +143,7 @@ def get_version():
     is available the commit and the branch will be returned otherwise the
     version number.
 
-    >>> from oemof.tools import logger
+    >>> from tespy.tools import logger
     >>> v = logger.get_version()
     >>> type(v)
     <class 'str'>
@@ -160,13 +157,13 @@ def get_version():
 def check_version():
     """Returns the actual version number of the used oemof version.
 
-    >>> from oemof.tools import logger
+    >>> from tespy.tools import logger
     >>> v = logger.check_version()
     >>> int(v.split('.')[0])
     0
     """
     try:
-        version = oemof.__version__
+        version = tespy.__version__
     except AttributeError:
         version = 'No version found due to internal error.'
     return version
@@ -178,7 +175,7 @@ def check_git_branch():
     The following test reacts on a local system different than on Travis-CI.
     Therefore, a try/except test is created.
 
-    >>> from oemof.tools import logger
+    >>> from tespy import logger
     >>> try:
     ...    v = logger.check_git_branch()
     ... except FileNotFoundError:
@@ -206,3 +203,23 @@ def check_git_branch():
     f.close()
 
     return "{0}@{1}".format(last_commit, name_branch)
+
+
+def get_basic_path():
+    """
+    Returns the basic oemof path and creates it if necessary. The basic path is the '.tespy' folder in the $HOME directory.
+    """
+    basicpath = os.path.join(os.path.expanduser('~'), '.tespy')
+    if not os.path.isdir(basicpath):
+        os.mkdir(basicpath)
+    return basicpath
+
+
+def extend_basic_path(subfolder):
+    """
+    Returns a path based on the basic oemof path and creates it if necessary. The subfolder is the name of the path extension.
+    """
+    extended_path = os.path.join(get_basic_path(), subfolder)
+    if not os.path.isdir(extended_path):
+        os.mkdir(extended_path)
+    return extended_path

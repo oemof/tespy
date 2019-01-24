@@ -66,23 +66,23 @@ class data_container:
 
     >>> from tespy import hlp, cmp
     >>> type(hlp.dc_cm(is_set=True))
-    <class 'tespy.helpers.dc_cm'>
+    <class 'tespy.tools.helpers.dc_cm'>
     >>> type(hlp.dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
-    <class 'tespy.helpers.dc_cc'>
+    <class 'tespy.tools.helpers.dc_cc'>
     >>> type(hlp.dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...     max_val=1000, min_val=1))
-    <class 'tespy.helpers.dc_cp'>
+    <class 'tespy.tools.helpers.dc_cp'>
     >>> pipe = cmp.pipe('testpipe', L=100, D=0.5, ks=5e-5)
     >>> type(hlp.dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
     ...     method='default'))
-    <class 'tespy.helpers.dc_gcp'>
+    <class 'tespy.tools.helpers.dc_gcp'>
     >>> type(hlp.dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
     ...     val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
     ...     balance=False))
-    <class 'tespy.helpers.dc_flu'>
+    <class 'tespy.tools.helpers.dc_flu'>
     >>> type(hlp.dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
     ...     unit_set=False, ref=None, ref_set=False))
-    <class 'tespy.helpers.dc_prop'>
+    <class 'tespy.tools.helpers.dc_prop'>
     """
 
     def __init__(self, **kwargs):
@@ -393,19 +393,15 @@ class dc_gcp(data_container):
 # %%
 
 
-class MyNetworkError(Exception):
+class TESPyNetworkError(Exception):
     pass
 
 
-class MyConnectionError(Exception):
+class TESPyConnectionError(Exception):
     pass
 
 
-class MyComponentError(Exception):
-    pass
-
-
-class MyConvergenceError(Exception):
+class TESPyComponentError(Exception):
     pass
 
 
@@ -735,6 +731,10 @@ class memorise:
                 Tmin, Tmax = tespy_fluid[f].T_range[0], tespy_fluid[f].T_range[1]
                 msg = 'Loading fluid property ranges for TESPy-fluid ' + f + '.'
                 logging.debug(msg)
+                # value range for fluid properties
+                memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+                msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
+                logging.debug(msg)
             else:
                 if f not in memorise.heos.keys():
                     # abstractstate object
@@ -745,11 +745,10 @@ class memorise:
                     Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
                     msg = 'Generating CoolProp.AbstractState object for fluid ' + f + ' in memorise class.'
                     logging.debug(msg)
-
-            # value range for fluid properties
-            memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
-            msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
-            logging.debug(msg)
+                    # value range for fluid properties
+                    memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+                    msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
+                    logging.debug(msg)
 
 
     def del_memory(fluids):

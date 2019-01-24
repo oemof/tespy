@@ -19,7 +19,7 @@ from numpy.linalg import norm
 
 from tespy.components import components as cmp
 from tespy import connections as con
-from tespy import helpers as hlp
+from tespy.tools import helpers as hlp
 
 import collections
 
@@ -110,19 +110,17 @@ class network:
 
         # fluid list and constants
         self.fluids = sorted(fluids)
+        msg = 'Network fluids are: '
         for f in self.fluids:
-            try:
+            msg += f + ', '
+            if 'TESPy::' not in f:
+                # calculating molar masses and gas constants for network's fluids
+                # tespy_fluid molar mass and gas constant are added on lut creation
                 hlp.molar_masses[f] = CPPSI('M', f)
-            except ValueError:
-                hlp.molar_masses[f] = 1
-                logging.warn
-
-            try:
                 hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
-            except ValueError:
-                hlp.gas_constants[f] = np.nan
 
-
+        msg = msg[:-2] + '.'
+        logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
         hlp.memorise.add_fluids(self.fluids)
@@ -234,27 +232,27 @@ class network:
         if self.m_unit not in self.m.keys():
             msg = ('Allowed units for mass flow are: ' +
                    str(self.m.keys()))
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         if self.p_unit not in self.p.keys():
             msg = ('Allowed units for pressure are: ' +
                    str(self.p.keys()))
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         if self.h_unit not in self.h.keys():
             msg = ('Allowed units for enthalpy are: ' +
                    str(self.h.keys()))
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         if self.T_unit not in self.T.keys():
             msg = ('Allowed units for temperature are: ' +
                    str(self.T.keys()))
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         if self.v_unit not in self.v.keys():
             msg = ('Allowed units for volumetric flow are: ' +
                    str(self.v.keys()))
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         # value ranges
         if 'p_range' in kwargs.keys():
@@ -413,6 +411,13 @@ class network:
         self.comperr = kwargs.get('comperr', self.comperr)
         self.nwkerr = kwargs.get('nwkerr', self.nwkerr)
 
+        msg = 'Component print levels: info=' + str(self.compinfo) + ', warn=' + str(self.compwarn) + ', err=' + str(self.comperr) + '.'
+        logging.debug(msg)
+        msg = 'Network print levels: info=' + str(self.nwkinfo) + ', warn=' + str(self.nwkwarn) + ', err=' + str(self.nwkerr) + '.'
+        logging.debug(msg)
+        msg = 'Iter print levels: info=' + str(self.iterinfo) + '.'
+        logging.debug(msg)
+
     def add_subsys(self, *args):
         r"""
         Adds one or more subsystem to the network.
@@ -449,10 +454,13 @@ class network:
         """
         for c in args:
             if not isinstance(c, con.connection):
-                raise TypeError('Must provide tespy.connections.connection objects'
-                                ' as parameters.')
+                msg = 'Must provide tespy.connections.connection objects as parameters.'
+                logging.error(msg)
+                raise TypeError(msg)
 
             self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
+            msg = 'Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') to network.'
+            logging.debug(msg)
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
 
@@ -467,6 +475,8 @@ class network:
         """
         for c in args:
             self.conns = self.conns.drop(c)
+            msg = 'Deleted connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') from network.'
+            logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
@@ -478,13 +488,15 @@ class network:
         for c in dub:
             msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) + ') is '
                    'attached to more than one connection. Please check your network.')
-            raise hlp.MyNetworkError(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True].index
         for c in dub:
             msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) + ') is '
                    'attached to more than one connection. Please check your network.')
-            raise hlp.MyNetworkError(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
     def add_busses(self, *args):
         r"""
@@ -498,6 +510,8 @@ class network:
         for b in args:
             if self.check_busses(b):
                 self.busses[b.label] = b
+                msg = 'Added bus ' + b.label + ' to network.'
+                logging.debug(msg)
 
     def del_busses(self, b):
         r"""
@@ -510,6 +524,8 @@ class network:
         """
         if b in self.busses:
             del self.busses[b.label]
+            msg = 'Deleted bus ' + b.label + ' from network.'
+            logging.debug(msg)
 
     def check_busses(self, b):
         r"""
@@ -524,16 +540,19 @@ class network:
             if len(self.busses) > 0:
                 if b in self.busses.values():
                     msg = 'Network contains the bus ' + b.label + ' (' + str(b) + ') already.'
-                    raise hlp.MyNetworkError(msg)
+                    logging.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses.items():
                     msg = ('Network already has a bus with the name ' + b.label + '.')
-                    raise hlp.MyNetworkError(msg)
+                    logging.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
                 else:
                     return True
             else:
                 return True
         else:
             msg = 'Only objects of type bus are allowed in *args.'
+            logging.error(msg)
             raise TypeError(msg)
 
         return False
@@ -555,22 +574,22 @@ class network:
                        ' outgoing connections. Make sure all outlets are '
                        ' connected and all connections have been added to the '
                        'network.')
+                logging.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
             elif num_i != comp.num_i:
                 msg = (comp.label + ' is missing ' + str(comp.num_i - num_i) +
                        ' incoming connections. Make sure all inlets are '
                        ' connected and all connections have been added to the '
                        'network.')
-            else:
-                continue
-
-            # raise an error in case network check is unsuccesful
-            raise hlp.MyNetworkError(msg)
+                logging.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
 
         # network checked
         self.checked = True
         msg = 'Networkcheck successful.'
-        if self.nwkinfo:
-            print(msg)
+        logging.info(msg)
 
     def init_components(self, comps):
         r"""
@@ -611,35 +630,36 @@ class network:
         if len(labels) != len(list(set(labels))):
             duplicates = [item for item, count in collections.Counter(labels).items() if count > 1]
             msg = ('All Components must have unique labels, duplicates are: ' + str(duplicates))
-            raise hlp.MyNetworkError(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
     def initialise(self):
         r"""
-        !!!!!!!!!!!!!!!!!!!!!
-        Initilialises the network in the following steps:
+        Initilialises the network depending on calclation mode.
 
-        - Component initialisation for design case: Call comp_init method.
-        - Component initialisation for offdesign case: Switch components to offdesign mode.
-        - Fluid propagation on all connections.
-        - Fluid property initialisation.
-        - Initialisiation from .csv-files
+        Design
+
+            - Start generic fluid composition and fluid property initialisation.
+            - Gather starting values from initialisation path if provided.
+
+        Offdesign
+
+            - Check offdesign path specification.
+            - Set component and connection design point properties.
+            - Switch from design/offdesign parameter specification.
         """
-        self.errors = []
-        if self.nwkinfo:
-            msg = ('Have you adjusted the value ranges for pressure, enthalpy'
-                   ' and temperature according to the specified unit system?')
-            print(msg)
-
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids on network creation.')
-            raise hlp.MyNetworkError(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
 
         if self.mode == 'offdesign':
             if self.design_path is None:
                 # must provide design_path
                 msg = ('Please provide \'design_path\' for every offdesign calculation.')
-                raise hlp.MyNetworkError(msg)
+                logging.error(msg)
+                raise hlp.TESPyNetworkError(msg)
             else:
                 # load design case
                 self.init_offdesign()
@@ -647,8 +667,10 @@ class network:
             # load design case
             self.init_design()
 
+        msg = 'Network initialised.'
+        logging.info(msg)
         if self.nwkinfo:
-            print('Network initialised.')
+            print(msg)
 
     def init_design(self):
         r"""
@@ -720,7 +742,10 @@ class network:
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                comps = pd.read_csv('./' + self.design_path + '/comps/' + c + '.csv', sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
+                path = './' + self.design_path + '/comps/' + c + '.csv'
+                msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
+                logging.debug(path)
+                comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
                 comps.set_index('label', inplace=True)
                 for c in comps.index:
                     cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
@@ -730,7 +755,10 @@ class network:
                         i += 1
 
         # connections
-        df = pd.read_csv('./' + self.design_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+        path = './' + self.design_path + '/conn.csv'
+        df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
+        msg = 'Reading design point information for connections from path ' + path + '.'
+        logging.debug(path)
         for c in self.conns.index:
             # match connection (source, source_id, target, target_id) on
             # connection objects of design file
@@ -747,10 +775,13 @@ class network:
             else:
                 msg = ('Could not find all connections in design case. '
                        'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
-                hlp.MyNetworkError(msg)
+                logging.error(msg)
+                hlp.TESPyNetworkError(msg)
 
         # set component design values for parameters specified offdesign
         self.comps.apply(network.process_components, axis=1, args=('pre',))
+        msg = 'Component preprocessing done.'
+        logging.debug(path)
 
         # switch components to offdesign mode
         for cp in self.comps.index:
@@ -763,6 +794,9 @@ class network:
                         cp.get_attr(var).set_attr(is_set=True)
             cp.comp_init(self)
 
+        msg = 'Switched components from design to offdesign.'
+        logging.debug(path)
+
         # switch connections to offdesign mode
         for c in self.conns.index:
             for var in c.design:
@@ -773,6 +807,9 @@ class network:
 
             for var in c.offdesign:
                 c.get_attr(var).set_attr(val_set=True)
+
+        msg = 'Switched connections from design to offdesign.'
+        logging.debug(path)
 
         # generic fluid initialisation
         self.init_fluids()
@@ -848,6 +885,8 @@ class network:
         # stop fluid propagation for single fluid networks and
         # for offdesign cases, as good starting values are available
         if self.mode == 'offdesign' or len(self.fluids) == 1:
+            msg = 'Fluid initialisation done.'
+            logging.debug(msg)
             return
 
         # fluid propagation for combustion chambers
@@ -867,6 +906,9 @@ class network:
         for c in self.conns.index:
             c.s.initialise_fluids(self)
             c.t.initialise_fluids(self)
+
+        msg = 'Fluid initialisation done.'
+        logging.debug(msg)
 
     def init_target(self, c, start):
         r"""
@@ -1029,6 +1071,9 @@ class network:
             if c.T.val_set and not c.h.val_set:
                 c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
 
+        msg = 'Generic fluid property specification successful.'
+        logging.debug(msg)
+
     def init_val0(self, c, key):
         r"""
         Set starting values for fluid properties. The components classes provide generic starting
@@ -1101,6 +1146,9 @@ class network:
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
 
+        msg = 'Specified starting values from init_path.'
+        logging.debug(msg)
+
     def solve(self, mode, init_path=None, design_path=None, max_iter=50, init_only=False, **kwargs):
         r"""
         Solves the network. Tasks:
@@ -1137,7 +1185,9 @@ class network:
         self.max_iter = max_iter
 
         if 'init_file' in kwargs.keys():
-            print('Warning: Keyword init_file is deprecated, please use init_path for future purposes!')
+            msg = 'Keyword init_file is deprecated, please use init_path for future purposes!'
+            logging.warning(msg)
+            FutureWarning(msg)
             if kwargs['init_file'] is None:
                 self.init_path = None
             elif '/results.csv' in kwargs['init_file']:
@@ -1145,7 +1195,9 @@ class network:
             else:
                self.init_path = kwargs['init_file']
         if 'design_file' in kwargs.keys():
-            print('Warning: Keyword design_file is deprecated, please use design_path for future purposes!')
+            msg = 'Keyword design_file is deprecated, please use design_path for future purposes!'
+            logging.warning(msg)
+            FutureWarning(msg)
             if kwargs['design_file'] is None:
                 self.design_path = None
             elif '/results.csv' in kwargs['design_file']:
@@ -1155,9 +1207,18 @@ class network:
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
-            raise hlp.MyNetworkError(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
         else:
             self.mode = mode
+
+        msg = ('Solver properties are: '
+               'mode=' + self.mode +
+               ', init_path=' + str(self.init_path) +
+               ', design_path=' + str(self.design_path) +
+               ', max_iter=' + str(max_iter) +
+               ', init_only=' + str(init_only))
+        logging.debug(msg)
 
         if not self.checked:
             self.check_network()
@@ -1169,8 +1230,10 @@ class network:
 
         self.res = np.array([])
 
+        msg = 'Starting solver.'
+        logging.info(msg)
         if self.nwkinfo:
-            print('Solving network.')
+            print(msg)
 
         self.iter = 0
         # number of variables
@@ -1182,18 +1245,11 @@ class network:
         end_time = time.time()
 
         if self.iterinfo:
-            if self.num_c_vars == 0:
-                print('--------+----------+----------+----------+----------+'
-                      '---------')
-            else:
-                print('--------+----------+----------+----------+----------+'
-                      '----------+---------')
-
-            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
+            msg = ('Total iterations: ' + str(self.iter) + ', '
                    'Calculation time: ' +
                    str(round(end_time - start_time, 1)) + ' s, '
                    'Iterations per second: ' +
-                   str(round((self.iter + 1) / (end_time - start_time), 2)))
+                   str(round((self.iter) / (end_time - start_time), 2)))
             print(msg)
 
         if self.nwkwarn and errmsg is not None:
@@ -1229,17 +1285,13 @@ class network:
         if self.iterinfo:
             if self.num_c_vars == 0:
                 # iterinfo printout without any custom variables
-                msg = ('iter\t| residual | massflow | pressure | enthalpy |'
-                       ' fluid\n')
-                msg += ('--------+----------+----------+----------+----------+'
-                        '---------')
+                msg = ('iter\t| residual | massflow | pressure | enthalpy | fluid\n')
+                msg += ('--------+----------+----------+----------+----------+---------')
 
             else:
                 # iterinfo printout with custom variables in network
-                msg = ('iter\t| residual | massflow | pressure | enthalpy |'
-                       ' fluid    | custom\n')
-                msg += ('--------+----------+----------+----------+----------+'
-                        '----------+---------')
+                msg = ('iter\t| residual | massflow | pressure | enthalpy | fluid    | custom\n')
+                msg += ('--------+----------+----------+----------+----------+----------+---------')
 
             print(msg)
 
@@ -2051,13 +2103,13 @@ class network:
                    str(self.num_vars * len(self.conns.index) +
                        self.num_c_vars) + ' required, ' + str(n) +
                    ' supplied.')
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
         elif n < self.num_vars * len(self.conns.index) + self.num_c_vars:
             msg = ('You have not provided enough parameters: ' +
                    str(self.num_vars * len(self.conns.index) +
                        self.num_c_vars) + ' required, ' + str(n) +
                    ' supplied.')
-            raise hlp.MyNetworkError(msg)
+            raise hlp.TESPyNetworkError(msg)
 
     def post_processing(self):
         r"""

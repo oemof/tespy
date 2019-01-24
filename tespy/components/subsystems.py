@@ -9,10 +9,6 @@
 
 import numpy as np
 
-from tespy.helpers import (
-    MyComponentError, MyNetworkError
-)
-
 from tespy import networks as nwk
 from tespy.connections import connection, ref
 from tespy.components import components as cmp

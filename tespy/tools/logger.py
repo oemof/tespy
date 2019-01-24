@@ -18,7 +18,6 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
                    screen_format=None, file_datefmt=None, screen_datefmt=None,
                    screen_level=logging.WARNING, file_level=logging.DEBUG,
                    log_version=True, log_path=True, timed_rotating=None):
-
     r"""Initialise customisable logger.
 
     Parameters
@@ -139,10 +138,13 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
 
 
 def get_version():
-    """Returns a string part of the used version. If the commit and the branch
+    """
+    Returns a string part of the used version. If the commit and the branch
     is available the commit and the branch will be returned otherwise the
     version number.
 
+    Example
+    -------
     >>> from tespy.tools import logger
     >>> v = logger.get_version()
     >>> type(v)
@@ -155,8 +157,11 @@ def get_version():
 
 
 def check_version():
-    """Returns the actual version number of the used oemof version.
+    """
+    Returns the actual version number of the used TESPy version.
 
+    Example
+    -------
     >>> from tespy.tools import logger
     >>> v = logger.check_version()
     >>> int(v.split('.')[0])
@@ -170,11 +175,14 @@ def check_version():
 
 
 def check_git_branch():
-    """Passes the used branch and commit to the logger
+    """
+    Passes the used branch and commit to the logger
 
     The following test reacts on a local system different than on Travis-CI.
     Therefore, a try/except test is created.
 
+    Example
+    -------
     >>> from tespy import logger
     >>> try:
     ...    v = logger.check_git_branch()

@@ -8,10 +8,10 @@
 """
 
 import pandas as pd
-import numpy as np
 from tespy import cmp, con, nwk, hlp, cmp_char
 import os
 import ast
+import logging
 
 # %% network loading
 
@@ -74,30 +74,43 @@ def load_nwk(path):
     >>> nw.save('tmp')
     >>> t.set_attr(P=-9e4)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(t.eta_s.val, 3)
+    >>> eta_s = round(t.eta_s.val, 3)
+    >>> eta_s
     0.798
     >>> nw2 = nwkr.load_nwk('tmp')
-    Reading network data.
-    Created components.
-    Created connections.
     >>> nw2.set_printoptions(print_level='none')
     >>> nw2.solve('design')
     >>> nw2.solve('offdesign', design_path='tmp')
+    >>> nw2.imp_comps['turbine'].P.val
+    -100000.0
+    >>> nw2.imp_comps['turbine'].set_attr(P=-9e4)
+    >>> nw2.solve('offdesign', design_path='tmp')
+    >>> eta_s == round(nw2.imp_comps['turbine'].eta_s.val, 3)
+    True
+    >>> round(nw2.imp_conns['turbine:in1'].m.val_SI, 3)
+    0.11
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
-    print('Reading network data.')
+    msg = 'Reading network data from base path ' + path + '.'
+    logging.info(msg)
 
     # load characteristics
-    chars = pd.read_csv(path + '/comps/char.csv', sep=';', decimal='.',
+    fn = path + '/comps/char.csv'
+    chars = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'x': ast.literal_eval,
                                     'y': ast.literal_eval})
+    msg = 'Reading characteristic lines data from ' + fn + '.'
+    logging.debug(msg)
 
     # load characteristic maps
-    char_maps = pd.read_csv(path + '/comps/char_map.csv', sep=';', decimal='.',
+    fn = path + '/comps/char_map.csv'
+    char_maps = pd.read_csv(fn, sep=';', decimal='.',
                             converters={'x': ast.literal_eval,
                                         'y': ast.literal_eval,
                                         'z1': ast.literal_eval,
                                         'z2': ast.literal_eval})
+    msg = 'Reading characteristic maps data from ' + fn + '.'
+    logging.debug(msg)
 
     # load components
     comps = pd.DataFrame()
@@ -106,7 +119,8 @@ def load_nwk(path):
     files = os.listdir(path + '/comps/')
     for f in files:
         if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
-            df = pd.read_csv(path + '/comps/' + f, sep=';', decimal='.',
+            fn = path + '/comps/' + f
+            df = pd.read_csv(fn, sep=';', decimal='.',
                              converters={'design': ast.literal_eval,
                                          'offdesign': ast.literal_eval,
                                          'busses': ast.literal_eval,
@@ -123,8 +137,12 @@ def load_nwk(path):
             df['inter'] = df.apply(get_interface, axis=1)
             inter = pd.concat((inter, df[['instance', 'label', 'inter']]), axis=0)
 
+            msg = 'Reading component data (' + f[:-4] + ') from ' + fn + '.'
+            logging.debug(msg)
+
     comps = comps.set_index('label')
-    print('Created components.')
+    msg = 'Created network components.'
+    logging.info(msg)
 
     # create network
     nw = construct_network(path)
@@ -135,9 +153,13 @@ def load_nwk(path):
     nw.inter = inter.set_index('label').to_dict()['instance']
 
     # load connections
-    conns = pd.read_csv(path + '/conn.csv', sep=';', decimal='.',
+    fn = path + '/conn.csv'
+    conns = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'design': ast.literal_eval,
                                     'offdesign': ast.literal_eval})
+
+    msg = 'Reading connection data from ' + fn + '.'
+    logging.debug(msg)
 
     # create connections
     conns['instance'] = conns.apply(construct_conns, axis=1, args=(comps, nw,))
@@ -150,10 +172,15 @@ def load_nwk(path):
         nw.add_conns(c)
         nw.imp_conns[c.t.label + ':' + c.t_id] = c
 
-    print('Created connections.')
+    msg = 'Created connections.'
+    logging.info(msg)
 
     # load busses
-    busses = pd.read_csv(path + '/comps/bus.csv', sep=';', decimal='.')
+    fn = path + '/comps/bus.csv'
+    busses = pd.read_csv(fn, sep=';', decimal='.')
+
+    msg = 'Reading bus data from ' + fn + '.'
+    logging.debug(msg)
     # create busses
     nw.imp_busses = {}
     if len(busses) > 0:
@@ -167,8 +194,11 @@ def load_nwk(path):
             nw.add_busses(b)
             nw.imp_busses[b.label] = b
 
-        print('Created busses.')
+        msg = 'Created busses.'
+        logging.info(msg)
 
+    msg = 'Created network.'
+    logging.info(msg)
     return nw
 
 
@@ -226,8 +256,10 @@ def construct_comps(c, *args):
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
+                    msg = 'Could not find x and y values for characteristic line, using defaults instead.'
+                    logging.warning(msg)
 
-                char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'])
+                char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'], comp=instance.component())
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -252,7 +284,10 @@ def construct_comps(c, *args):
                     z1 = cmp_char.char_map().z1
                     z2 = cmp_char.char_map().z2
 
-                char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'])
+                    msg = 'Could not find x, y, z1 and z2 values for characteristic map, using defaults instead.'
+                    logging.warning(msg)
+
+                char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'], comp=instance.component())
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],

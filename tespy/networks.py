@@ -334,10 +334,8 @@ class network:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'No attribute \"' + str(key) + '\" available for network.'
+            msg = 'Network has no attribute \"' + str(key) + '\".'
             logging.warning(msg)
-            if self.nwkwarn:
-                print('WARNING: ' + msg)
             return None
 
     def attr(self):

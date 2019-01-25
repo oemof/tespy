@@ -1128,7 +1128,7 @@ class pump(turbomachine):
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> p = cmp.pump('pump')
@@ -1530,7 +1530,7 @@ class compressor(turbomachine):
     >>> fluid_list = ['air']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> cp = cmp.compressor('compressor')
@@ -2008,7 +2008,7 @@ class turbine(turbomachine):
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> t = cmp.turbine('turbine')
@@ -2404,7 +2404,7 @@ class node(component):
     >>> fluid_list = ['O2', 'N2']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source1')
     >>> so2 = cmp.source('source2')
     >>> si1 = cmp.sink('sink1')
@@ -2824,7 +2824,7 @@ class splitter(node):
     >>> fluid_list = ['O2', 'N2']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source1')
     >>> si1 = cmp.sink('sink1')
     >>> si2 = cmp.sink('sink2')
@@ -3026,7 +3026,7 @@ class separator(node):
     >>> fluid_list = ['O2', 'N2']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source1')
     >>> si1 = cmp.sink('sink1')
     >>> si2 = cmp.sink('sink2')
@@ -3223,7 +3223,7 @@ class merge(node):
     >>> fluid_list = ['O2', 'N2']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source1')
     >>> so2 = cmp.source('source2')
     >>> so3 = cmp.source('source3')
@@ -3437,7 +3437,7 @@ class combustion_chamber(component):
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
     >>> fg = cmp.sink('flue gas outlet')
@@ -5178,7 +5178,7 @@ class cogeneration_unit(combustion_chamber):
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
     >>> fg = cmp.sink('flue gas outlet')
@@ -5252,19 +5252,17 @@ class cogeneration_unit(combustion_chamber):
 
         if not self.P.is_set:
             self.set_attr(P='var')
-            if nw.compinfo:
-                msg = ('The power output of cogeneration units must be set! '
-                       'We are adding the power output of component ' +
-                       self.label + ' as custom variable of the system.')
-                print(msg)
+            msg = ('The power output of cogeneration units must be set! '
+                   'We are adding the power output of component ' +
+                   self.label + ' as custom variable of the system.')
+            logging.info(msg)
 
         if not self.Qloss.is_set:
             self.set_attr(Qloss='var')
-            if nw.compinfo:
-                msg = ('The heat loss of cogeneration units must be set! '
-                       'We are adding the heat loss of component ' +
-                       self.label + ' as custom variable of the system.')
-                print(msg)
+            msg = ('The heat loss of cogeneration units must be set! '
+                   'We are adding the heat loss of component ' +
+                   self.label + ' as custom variable of the system.')
+            logging.info(msg)
 
         combustion_chamber.comp_init(self, nw)
 
@@ -6303,7 +6301,7 @@ class valve(component):
     >>> import numpy as np
     >>> fluid_list = ['CH4']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so = cmp.source('source')
     >>> si = cmp.sink('sink')
     >>> v = cmp.valve('valve')
@@ -6698,7 +6696,7 @@ class heat_exchanger_simple(component):
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> pi = cmp.pipe('test')
@@ -7413,7 +7411,7 @@ class pipe(heat_exchanger_simple):
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> pi = cmp.pipe('test')
@@ -7544,7 +7542,7 @@ class solar_collector(heat_exchanger_simple):
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> sc = cmp.solar_collector('test')
@@ -7849,7 +7847,7 @@ class heat_exchanger(component):
     >>> import shutil
     >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> tesin = cmp.sink('TES in')
     >>> tesout = cmp.source('TES out')
     >>> hsin = cmp.sink('HS in')
@@ -8778,7 +8776,7 @@ class condenser(heat_exchanger):
     >>> import shutil
     >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> amb_in = cmp.sink('ambient in')
     >>> amb_out = cmp.source('ambient out')
     >>> hsin = cmp.sink('HS in')
@@ -9097,7 +9095,7 @@ class desuperheater(heat_exchanger):
     >>> import shutil
     >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> amb_in = cmp.sink('ambient in')
     >>> amb_out = cmp.source('ambient out')
     >>> hsin = cmp.sink('HS in')
@@ -9252,7 +9250,7 @@ class drum(component):
     >>> import shutil
     >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> f = cmp.source('feed')
     >>> ha = cmp.source('hot air')
     >>> ch = cmp.sink('chimney')
@@ -9590,7 +9588,7 @@ class subsys_interface(component):
     >>> fluids = ['H2O', 'N2']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> si = cmp.subsys_interface('test', num_inter=1)

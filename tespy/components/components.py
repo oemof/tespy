@@ -250,12 +250,12 @@ class component:
             Network this component is integrated in.
         """
         self.vars = {}
-        self.num_c_vars = 0
+        self.num_vars = 0
         for var in self.attr().keys():
             if isinstance(self.attr()[var], dc_cp):
                 if self.get_attr(var).is_var:
-                    self.get_attr(var).var_pos = self.num_c_vars
-                    self.num_c_vars += 1
+                    self.get_attr(var).var_pos = self.num_vars
+                    self.num_vars += 1
                     self.vars[self.get_attr(var)] = var
 
         # characteristics creation
@@ -430,7 +430,7 @@ class component:
             Matrix with partial derivatives for the fluid equations.
         """
 
-        deriv = np.zeros((self.num_fl, 2 + self.num_c_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_fl, 2 + self.num_vars, 3 + self.num_fl))
         i = 0
         for fluid in self.fluids:
             deriv[i, 0, i + 3] = 1
@@ -471,7 +471,7 @@ class component:
             Matrix with partial derivatives for the mass flow balance equations.
         """
 
-        deriv = np.zeros((1, self.num_i + self.num_o + self.num_c_vars, 3 + self.num_fl))
+        deriv = np.zeros((1, self.num_i + self.num_o + self.num_vars, 3 + self.num_fl))
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
@@ -874,7 +874,7 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
-            P_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            P_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             P_deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             P_deriv[0, 0, 2] = -self.inl[0].m.val_SI
             P_deriv[0, 1, 2] = self.inl[0].m.val_SI
@@ -883,7 +883,7 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
             mat_deriv += pr_deriv.tolist()
@@ -1233,7 +1233,7 @@ class pump(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         for i in range(2):
             deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
@@ -1276,7 +1276,7 @@ class pump(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         deriv[0, 0, 0] = self.numeric_deriv(self.eta_s_char_func, 'm', 0)
         for i in range(2):
@@ -1314,7 +1314,7 @@ class pump(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         deriv[0, 0, 0] = self.numeric_deriv(self.flow_char_func, 'm', 0)
         deriv[0, 0, 2] = self.numeric_deriv(self.flow_char_func, 'h', 0)
@@ -1657,7 +1657,7 @@ class compressor(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
@@ -1711,7 +1711,7 @@ class compressor(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 0)
         mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 1)
@@ -1786,7 +1786,7 @@ class compressor(turbomachine):
         if self.igva.is_var:
             igva = self.numeric_deriv(self.char_map_func, 'igva', 1)
 
-        deriv = np.zeros((2, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((2, 2 + self.num_vars, self.num_fl + 3))
         deriv[0, 0, 0] = m11[0]
         deriv[0, 0, 1] = p11[0]
         deriv[0, 0, 2] = h11[0]
@@ -2080,7 +2080,7 @@ class turbine(turbomachine):
         ######################################################################
         # derivatives for specified cone law
         if self.cone.is_set:
-            cone_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            cone_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             cone_deriv[0, 0, 0] = -1
             cone_deriv[0, 0, 1] = self.numeric_deriv(self.cone_func, 'p', 0)
             cone_deriv[0, 0, 2] = self.numeric_deriv(self.cone_func, 'h', 0)
@@ -2116,7 +2116,7 @@ class turbine(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         for i in range(2):
             mat_deriv[0, i, 1] = self.numeric_deriv(self.eta_s_func, 'p', i)
@@ -2199,7 +2199,7 @@ class turbine(turbomachine):
         deriv : list
             Matrix of partial derivatives.
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         mat_deriv[0, 0, 0] = self.numeric_deriv(self.eta_s_char_func, 'm', 0)
         for i in range(2):
@@ -3477,7 +3477,7 @@ class combustion_chamber(component):
         component.comp_init(self, nw)
 
         if isinstance(self, cogeneration_unit):
-            self.num_vars = 7 + self.num_c_vars
+            self.num_vars = 7 + self.num_vars
 
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
@@ -5819,7 +5819,7 @@ class cogeneration_unit(combustion_chamber):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 7 + self.num_c_vars, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 7 + self.num_vars, len(self.inl[0].fluid.val) + 3))
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
@@ -6417,7 +6417,7 @@ class valve(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 1] = self.pr.val
             deriv[0, 1, 1] = -1
             if self.pr.is_var:
@@ -6427,7 +6427,7 @@ class valve(component):
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             for i in range(2):
                 deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
@@ -6452,7 +6452,7 @@ class valve(component):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
         deriv[0, 0, 2] = 1
         deriv[0, 1, 2] = -1
         return deriv.tolist()
@@ -6484,7 +6484,7 @@ class valve(component):
         deriv : list
             Matrix of partial derivatives.
         """
-        mat_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
 
         mat_deriv[0, 0, 1] = self.numeric_deriv(self.pr_char_func, 'p', 0)
         mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
@@ -6897,7 +6897,7 @@ class heat_exchanger_simple(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            pr_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             pr_deriv[0, 0, 1] = self.pr.val
             pr_deriv[0, 1, 1] = -1
             # custom variable pr
@@ -6908,7 +6908,7 @@ class heat_exchanger_simple(component):
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            zeta_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             zeta_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             for i in range(2):
                 zeta_deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
@@ -6929,7 +6929,7 @@ class heat_exchanger_simple(component):
             else:
                 func = self.darcy_func
 
-            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.numeric_deriv(func, 'm', 0)
             for i in range(2):
                 deriv[0, i, 1] = self.numeric_deriv(func, 'p', i)
@@ -6961,7 +6961,7 @@ class heat_exchanger_simple(component):
         ######################################################################
         # derivatives for specified kA-group paremeters
         if self.kA_group.is_set:
-            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
             for i in range(2):
                 deriv[0, i, 1] = self.numeric_deriv(self.kA_func, 'p', i)
@@ -6998,7 +6998,7 @@ class heat_exchanger_simple(component):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
         deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
         deriv[0, 0, 2] = -self.inl[0].m.val_SI
         deriv[0, 1, 2] = self.inl[0].m.val_SI
@@ -7677,7 +7677,7 @@ class solar_collector(heat_exchanger_simple):
         ######################################################################
         # derivatives for specified energy-group paremeters
         if self.energy_group.is_set:
-            deriv = np.zeros((1, 2 + self.num_c_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
             for i in range(2):
                 deriv[0, i, 1] = self.numeric_deriv(self.energy_func, 'p', i)
@@ -8142,7 +8142,7 @@ class heat_exchanger(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl * 2, 4 + self.num_c_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_fl * 2, 4 + self.num_vars, 3 + self.num_fl))
         # hot side
         i = 0
         for fluid in self.fluids:
@@ -8166,7 +8166,7 @@ class heat_exchanger(component):
         deriv : list
             Matrix with partial derivatives for the mass flow balance equations.
         """
-        deriv = np.zeros((2, 4 + self.num_c_vars, self.num_fl + 3))
+        deriv = np.zeros((2, 4 + self.num_vars, self.num_fl + 3))
         for i in range(self.num_i):
             deriv[i, i, 0] = 1
         for j in range(self.num_o):

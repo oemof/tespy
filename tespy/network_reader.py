@@ -59,7 +59,7 @@ def load_nwk(path):
     >>> fluid_list = ['water']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> t = cmp.turbine('turbine')
@@ -80,7 +80,7 @@ def load_nwk(path):
     Reading network data.
     Created components.
     Created connections.
-    >>> nw2.set_printoptions(print_level='err')
+    >>> nw2.set_printoptions(print_level='none')
     >>> nw2.solve('design')
     >>> nw2.solve('offdesign', design_path='tmp')
     >>> shutil.rmtree('./tmp', ignore_errors=True)

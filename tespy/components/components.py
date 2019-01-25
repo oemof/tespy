@@ -10,6 +10,8 @@
 import numpy as np
 import math
 
+import logging
+
 import CoolProp.CoolProp as CP
 
 from tespy.tools.helpers import (
@@ -249,6 +251,7 @@ class component:
         nw : tespy.networks.network
             Network this component is integrated in.
         """
+        logging.debug(self)
         self.vars = {}
         self.num_vars = 0
         for var in self.attr().keys():
@@ -256,7 +259,10 @@ class component:
                 if self.get_attr(var).is_var:
                     self.get_attr(var).var_pos = self.num_vars
                     self.num_vars += 1
+                    logging.debug(self.num_vars)
+                    logging.debug(self.attr()[var])
                     self.vars[self.get_attr(var)] = var
+
 
         # characteristics creation
         for key, val in self.attr().items():
@@ -3476,9 +3482,6 @@ class combustion_chamber(component):
 
         component.comp_init(self, nw)
 
-        if isinstance(self, cogeneration_unit):
-            self.num_vars = 7 + self.num_vars
-
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
@@ -5364,7 +5367,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for reaction balance
-        deriv = np.zeros((self.num_fl, self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((self.num_fl, 7 + self.num_vars, self.num_fl + 3))
         j = 0
         for fluid in self.fluids:
 
@@ -5390,7 +5393,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for energy balance
-        eb_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+        eb_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
 
         # mass flow cooling water
         for i in [0, 1]:
@@ -5422,7 +5425,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for thermal input to power charactersitics
-        tiP_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+        tiP_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         for i in range(2):
             tiP_deriv[0, i + 2, 0] = self.numeric_deriv(self.tiP_char_func, 'm', i + 2)
             tiP_deriv[0, i + 2, 3:] = self.numeric_deriv(self.tiP_char_func, 'fluid', i + 2)
@@ -5436,7 +5439,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for heat output 1 to power charactersitics
-        Q1_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+        Q1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         Q1_deriv[0, 0, 0] = self.numeric_deriv(self.Q1_char_func, 'm', 0)
         Q1_deriv[0, 0, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 0)
         Q1_deriv[0, 4, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 4)
@@ -5452,7 +5455,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for heat output 2 to power charactersitics
-        Q2_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+        Q2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         Q2_deriv[0, 1, 0] = self.numeric_deriv(self.Q2_char_func, 'm', 1)
         Q2_deriv[0, 1, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 1)
         Q2_deriv[0, 5, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 5)
@@ -5468,7 +5471,7 @@ class cogeneration_unit(combustion_chamber):
 
         ######################################################################
         # derivatives for heat loss to power charactersitics
-        Ql_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+        Ql_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         for i in range(2):
             Ql_deriv[0, i + 2, 0] = (
                     self.numeric_deriv(self.Qloss_char_func, 'm', i + 2))
@@ -5486,7 +5489,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # derivatives for specified lambda
         if self.lamb.is_set:
-            lamb_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            lamb_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             for i in range(2):
                 lamb_deriv[0, i + 2, 0] = self.numeric_deriv(self.lambda_func, 'm', i + 2)
                 lamb_deriv[0, i + 2, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', i + 2)
@@ -5495,7 +5498,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # derivatives for specified thermal input
         if self.ti.is_set:
-            ti_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            ti_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             for i in range(2):
                 ti_deriv[0, i + 2, 0] = self.numeric_deriv(self.ti_func, 'm', i + 2)
                 ti_deriv[0, i + 2, 3:] = self.numeric_deriv(self.ti_func, 'fluid', i + 2)
@@ -5506,14 +5509,14 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # derivatives for specified heat outputs
         if self.Q1.is_set:
-            Q_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            Q_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             Q_deriv[0, 0, 0] = - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
             Q_deriv[0, 0, 2] = self.inl[0].m.val_SI
             Q_deriv[0, 4, 2] = -self.inl[0].m.val_SI
             mat_deriv += Q_deriv.tolist()
 
         if self.Q2.is_set:
-            Q_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            Q_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             Q_deriv[0, 1, 0] = - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
             Q_deriv[0, 1, 2] = self.inl[1].m.val_SI
             Q_deriv[0, 5, 2] = -self.inl[1].m.val_SI
@@ -5522,13 +5525,13 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # derivatives for specified pressure ratio at cooling loops
         if self.pr1.is_set:
-            pr1_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            pr1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             pr1_deriv[0, 0, 1] = self.pr1.val
             pr1_deriv[0, 4, 1] = -1
             mat_deriv += pr1_deriv.tolist()
 
         if self.pr2.is_set:
-            pr2_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            pr2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             pr2_deriv[0, 1, 1] = self.pr2.val
             pr2_deriv[0, 5, 1] = -1
             mat_deriv += pr2_deriv.tolist()
@@ -5536,7 +5539,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            zeta1_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            zeta1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
             zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
@@ -5545,7 +5548,7 @@ class cogeneration_unit(combustion_chamber):
             mat_deriv += zeta1_deriv.tolist()
 
         if self.zeta2.is_set:
-            zeta2_deriv = np.zeros((1, self.num_vars, self.num_fl + 3))
+            zeta2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
             zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
             zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
             zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
@@ -5608,7 +5611,7 @@ class cogeneration_unit(combustion_chamber):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl * 2, self.num_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_fl * 2, 7 + self.num_vars, 3 + self.num_fl))
         for i in range(self.num_fl):
             deriv[i, 0, i + 3] = 1
             deriv[i, 4, i + 3] = -1
@@ -5626,7 +5629,7 @@ class cogeneration_unit(combustion_chamber):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((3, self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((3, 7 + self.num_vars, self.num_fl + 3))
         for i in range(2):
             deriv[i, i, 0] = 1
         for j in range(2):
@@ -5645,7 +5648,7 @@ class cogeneration_unit(combustion_chamber):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((2, self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((2, 7 + self.num_vars, self.num_fl + 3))
         for k in range(2):
             deriv[k, 2, 1] = 1
         deriv[0, 6, 1] = -1
@@ -9597,7 +9600,7 @@ class subsys_interface(component):
     >>> inc.set_attr(fluid={'H2O': 1, 'N2': 0}, T=40, p=3, m=100)
     >>> nw.solve('design')
     >>> nw.iter
-    3
+    2
     >>> nw.lin_dep
     False
     """

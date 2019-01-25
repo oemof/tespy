@@ -10,6 +10,8 @@
 from scipy.interpolate import interp1d
 import numpy as np
 
+import logging
+
 # %%
 
 
@@ -45,6 +47,7 @@ class characteristics:
         for key in kwargs:
             if key not in self.attr():
                 msg = ('Invalid keyword ' + key + '. Available keywords for kwargs are: ' + str(self.attr()) + '.')
+                logging.error(msg)
                 raise KeyError(msg)
 
         # method to read from default characteristic lines
@@ -62,9 +65,13 @@ class characteristics:
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. Number of x-values: ' +
                    str(len(self.x)) + ', number of y-values: ' + str(len(self.y)) + '.')
+            logging.error(msg)
             raise ValueError(msg)
 
         self.char = interp1d(self.x, self.y, kind='cubic', bounds_error=True)
+
+        msg = 'Created characteristic function for component of type ' + str(self.comp) + ' with default method ' + method +'.'
+        logging.debug(msg)
 
     def default(self, key):
         r"""
@@ -363,17 +370,13 @@ class characteristics:
             Error message.
         """
         if x > self.x[-1]:
-            msg = ('##### WARNING #####\n'
-                   'Operating point above characteristic line range: '
+            msg = ('Operating point above characteristic line range: '
                    'X=' + str(round(x, 3)) + ' with maximum of ' + str(self.x[-1]))
-            return msg
+            logging.warning(msg)
         elif x < self.x[0]:
-            msg = ('##### WARNING #####\n'
-                   'Operating point below characteristic line range: '
+            msg = ('Operating point below characteristic line range: '
                    'X=' + str(round(x, 3)) + ' with minimum of ' + str(self.x[0]))
-            return msg
-        else:
-            return ''
+            logging.warning(msg)
 
     def get_attr(self, key):
         r"""
@@ -427,8 +430,8 @@ class char_map(characteristics):
 
         for key in kwargs:
             if key not in self.attr():
-                msg = ('Invalid keyword ' + key + '. Available keywords for '
-                       'kwargs are: ' + str(self.attr()) + '.')
+                msg = ('Invalid keyword ' + key + '. Available keywords for kwargs are: ' + str(self.attr()) + '.')
+                logging.error(msg)
                 raise KeyError(msg)
 
         # in case of various default characteristics
@@ -453,10 +456,15 @@ class char_map(characteristics):
         if np.array(self.x).shape[0] != np.array(self.y).shape[0]:
             msg = ('The number of x-values determines the number of dimension for the characteristic map. You have provided ' +
                    str(len(self.x)) + 'x-values. Thus, the y-, z1- and z2-arrays must have ' + str(len(self.x)) +' number of dimensions.')
+            logging.error(msg)
             raise ValueError(msg)
         elif np.array(self.y).shape != np.array(self.z1).shape or np.array(self.y).shape != np.array(self.z2).shape:
             msg = 'Make sure that the number of dimensions and the number of values in the y-, z1- and z2-arrays are identical!'
+            logging.error(msg)
             raise ValueError(msg)
+
+        msg = 'Created characteristic map for component of type ' + str(self.comp) + ' with default method ' + method + '.'
+        logging.debug(msg)
 
     def attr(self):
         return ['x', 'y', 'z1', 'z2', 'method', 'comp']
@@ -665,18 +673,14 @@ class char_map(characteristics):
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x) and x != self.x[-1]:
             yarr = self.y[xpos - 1]
-            msg = ('##### WARNING #####\n'
-                   'Operating point above compressor map range: '
-                   'X=' + str(round(x, 3)) + ' with maximum of ' +
-                   str(self.x[-1]))
-            return msg
+            msg = ('Operating point above compressor map range: '
+                   'X=' + str(round(x, 3)) + ' with maximum of ' + str(self.x[-1]) + '.')
+            logging.warning(msg)
         elif xpos == 0 and y != self.x[0]:
             yarr = self.y[0]
-            msg = ('##### WARNING #####\n'
-                   'Operating point below compressor map range: '
-                   'X=' + str(round(x, 3)) + ' with minimum of ' +
-                   str(self.x[0]))
-            return msg
+            msg = ('Operating point below compressor map range: '
+                   'X=' + str(round(x, 3)) + ' with minimum of ' + str(self.x[0]) + '.')
+            logging.warning(msg)
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
             yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
@@ -685,16 +689,11 @@ class char_map(characteristics):
 
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr) and y != yarr[-1]:
-            msg = ('##### WARNING #####\n'
-                   'Operating point above compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with maximum of ' +
-                   str(yarr[-1]))
+            msg = ('Operating point above compressor map range: '
+                   'Y=' + str(round(y, 3)) + ' with maximum of ' + str(yarr[-1]) + '.')
+            logging.warning(msg)
             return msg
         elif ypos == 0 and y != yarr[0]:
-            msg = ('##### WARNING #####\n'
-                   'Operating point below compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with minimum of ' +
-                   str(yarr[0]))
-            return msg
-        else:
-            return None
+            msg = ('Operating point below compressor map range: '
+                   'Y=' + str(round(y, 3)) + ' with minimum of ' + str(yarr[0]) + '.')
+            logging.warning(msg)

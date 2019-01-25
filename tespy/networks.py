@@ -1276,8 +1276,10 @@ class network:
             print('INFO: ' + msg)
 
         self.iter = 0
-        # number of variables
+        # number of variables per connection
         self.num_conn_vars = len(self.fluids) + 3
+
+        # check for network determination
         self.solve_determination()
 
         self.solve_loop()
@@ -1662,7 +1664,7 @@ class network:
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
-                    self.mat_deriv[sum_eq:sum_eq + num_eq, self.num_vars + c_var] = (data[1].iloc[k][0][:, i + j, :1].transpose()[0])
+                    self.mat_deriv[sum_eq:sum_eq + num_eq, self.num_vars - self.num_comp_vars + c_var] = (data[1].iloc[k][0][:, i + j, :1].transpose()[0])
                     c_var += 1
 
                 sum_eq += num_eq
@@ -2206,7 +2208,14 @@ class network:
         self.num_bus_eq = n
 
         self.num_vars = self.num_conn_vars * len(self.conns.index) + self.num_comp_vars
-        msg = 'Number of variables: ' + str(self.num_vars)
+
+        msg = 'Total number of variables: ' + str(self.num_vars)
+        logging.debug(msg)
+
+        msg = 'Number of component variables: ' + str(self.num_comp_vars)
+        logging.debug(msg)
+
+        msg = 'Number of connection variables: ' + str(self.num_conn_vars * len(self.conns.index))
         logging.debug(msg)
 
         n = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq

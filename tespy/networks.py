@@ -335,8 +335,8 @@ class network:
             return self.__dict__[key]
         else:
             msg = 'Network has no attribute \"' + str(key) + '\".'
-            logging.warning(msg)
-            return None
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         return ['m_unit', 'p_unit', 'h_unit', 'T_unit', 'v_unit',

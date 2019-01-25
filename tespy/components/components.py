@@ -244,7 +244,7 @@ class component:
         else:
             msg = 'Component ' + self.label + ' has no attribute \"' + key + '\".'
             logging.error(msg)
-            raise ValueError(msg)
+            raise KeyError(msg)
 
     def comp_init(self, nw):
         r"""

@@ -312,8 +312,9 @@ class connection:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            logging.warning('Connection has no attribute \"' + key + '\".')
-            return None
+            msg = 'Connection has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         r"""
@@ -501,8 +502,8 @@ class bus:
             return self.__dict__[key]
         else:
             msg = 'Bus ' + self.label + ' has no attribute ' + key + '.'
-            logging.warning(msg)
-            return None
+            logging.error(msg)
+            raise KeyError(msg)
 
     def add_comps(self, *args):
         r"""
@@ -662,5 +663,5 @@ class ref:
             return self.__dict__[key]
         else:
             msg = 'Reference has no attribute \"' + key + '\".'
-            logging.warning(msg)
-            return None
+            logging.error(msg)
+            raise KeyError(msg)

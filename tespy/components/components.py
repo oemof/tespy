@@ -1474,14 +1474,14 @@ class pump(turbomachine):
                 i = self.inl[0].to_flow()
                 i_d = self.inl[0].to_flow_design()
                 expr = i[0] * v_mix_ph(i) / (i_d[0] * v_mix_ph(i_d))
-                self.eta_s_char.func.get_bounds_error(expr)
+                self.eta_s_char.func.get_bound_errors(expr)
 
             if self.flow_char.is_set:
                 # get bound errors for flow characteristics
                 i = self.inl[0].to_flow()
                 o = self.outl[0].to_flow()
                 expr = i[0] * v_mix_ph(i)
-                self.flow_char.func.get_bounds_error(expr)
+                self.flow_char.func.get_bound_errors(expr)
 
 # %%
 
@@ -1974,7 +1974,7 @@ class compressor(turbomachine):
                     if not np.isnan([i_d[1], o_d[1]]).any():
                         expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
 
-                self.eta_s_char.func.get_bounds_error(expr)
+                self.eta_s_char.func.get_bound_errors(expr)
 
 # %%
 

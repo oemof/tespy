@@ -251,7 +251,6 @@ class component:
         nw : tespy.networks.network
             Network this component is integrated in.
         """
-        logging.debug(self)
         self.vars = {}
         self.num_vars = 0
         for var in self.attr().keys():
@@ -259,9 +258,10 @@ class component:
                 if self.get_attr(var).is_var:
                     self.get_attr(var).var_pos = self.num_vars
                     self.num_vars += 1
-                    logging.debug(self.num_vars)
-                    logging.debug(self.attr()[var])
                     self.vars[self.get_attr(var)] = var
+
+        msg = 'Component ' + self.label + ' has ' + str(self.num_vars) + ' custom variables.'
+        logging.debug(msg)
 
 
         # characteristics creation

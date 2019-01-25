@@ -87,16 +87,16 @@ class network:
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
     <class 'tespy.networks.network'>
-    >>> mynetwork.set_printoptions(print_level='warn')
-    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn)
-    (True, False, True)
-    >>> mynetwork.set_printoptions(print_level='err')
-    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn)
-    (True, False, False)
     >>> mynetwork.set_printoptions(print_level='none')
-    >>> mynetwork.set_printoptions(iterinfo=True, compwarn=True)
-    >>> (mynetwork.comperr, mynetwork.iterinfo, mynetwork.nwkwarn, mynetwork.compwarn)
-    (False, True, False, True)
+    >>> mynetwork.iterinfo
+    False
+    >>> mynetwork.set_printoptions(print_level='info')
+    >>> mynetwork.iterinfo
+    True
+    >>> mynetwork.set_printoptions(print_level='none')
+    >>> mynetwork.set_printoptions(iterinfo=True)
+    >>> mynetwork.iterinfo
+    True
     """
 
     def __init__(self, fluids, **kwargs):
@@ -352,91 +352,24 @@ class network:
             Select the print level:
 
             - 'info': all printouts.
-            - 'warn': errors and warnings
-            - 'err': errors only
             - 'none': no printouts
-
-        compinfo : boolean
-            Print information for components.
-
-        compwarn : boolean
-            Print warnings for components.
-
-        comperr : boolean
-            Print errors for components.
-
-        nwkinfo : boolean
-            Print information for network.
-
-        nwkwarn : boolean
-            Print warnings for network.
-
-        nwkerr : boolean
-            Print errors for network.
 
         iterinfo : boolean
             Printouts of iteration information in solving process.
-
-        Note
-        ----
-        Specifying specific print leves manually overwrites the print_level information.
-        See the example in :func:`tespy.networks.network`.
         """
         self.print_level = kwargs.get('print_level', self.print_level)
 
         if self.print_level == 'info':
-            self.compinfo = True
-            self.nwkinfo = True
             self.iterinfo = True
-            self.compwarn = True
-            self.nwkwarn = True
-            self.comperr = True
-            self.nwkerr = True
-
-        elif self.print_level == 'warn':
-            self.compinfo = False
-            self.nwkinfo = False
-            self.iterinfo = False
-            self.compwarn = True
-            self.nwkwarn = True
-            self.comperr = True
-            self.nwkerr = True
-
-        elif self.print_level == 'err':
-            self.compinfo = False
-            self.nwkinfo = False
-            self.iterinfo = False
-            self.compwarn = False
-            self.nwkwarn = False
-            self.comperr = True
-            self.nwkerr = True
 
         elif self.print_level == 'none':
-            self.compinfo = False
-            self.nwkinfo = False
             self.iterinfo = False
-            self.compwarn = False
-            self.nwkwarn = False
-            self.comperr = False
-            self.nwkerr = False
         else:
-            msg = ('Available print leves are: \'info\', \'warn\', \'err\' and \'none\'.')
+            msg = ('Available print leves are: \'info\' and \'none\'.')
+            logging.error(msg)
             raise ValueError(msg)
 
-        self.compinfo = kwargs.get('compinfo', self.compinfo)
-        self.nwkinfo = kwargs.get('nwkinfo', self.nwkinfo)
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
-        self.compwarn = kwargs.get('compwarn', self.compwarn)
-        self.nwkwarn = kwargs.get('nwkwarn', self.nwkwarn)
-        self.comperr = kwargs.get('comperr', self.comperr)
-        self.nwkerr = kwargs.get('nwkerr', self.nwkerr)
-
-        msg = 'Component print levels: info=' + str(self.compinfo) + ', warn=' + str(self.compwarn) + ', err=' + str(self.comperr) + '.'
-        logging.debug(msg)
-        msg = 'Network print levels: info=' + str(self.nwkinfo) + ', warn=' + str(self.nwkwarn) + ', err=' + str(self.nwkerr) + '.'
-        logging.debug(msg)
-        msg = 'Iter print levels: info=' + str(self.iterinfo) + '.'
-        logging.debug(msg)
 
     def add_subsys(self, *args):
         r"""
@@ -689,8 +622,6 @@ class network:
 
         msg = 'Network initialised.'
         logging.info(msg)
-        if self.nwkinfo:
-            print('INFO: ' + msg)
 
     def init_design(self):
         r"""
@@ -1270,8 +1201,6 @@ class network:
 
         msg = 'Starting solver.'
         logging.info(msg)
-        if self.nwkinfo:
-            print('INFO: ' + msg)
 
         self.iter = 0
         # number of variables per connection
@@ -1287,8 +1216,6 @@ class network:
                    'Residual value is {:.2e}'.format(norm(self.vec_res)) + '. This usually happens, if the solver '
                    'pushes the fluid properties out of their feasible range.')
             logging.warning(msg)
-            if self.nwkwarn:
-                print('WARNING: ' + msg)
 
         if self.lin_dep:
             msg = ('Singularity in jacobian matrix, calculation aborted! Make '
@@ -1304,8 +1231,6 @@ class network:
                    'combustion chamber, provide small (near to zero, '
                    'but not zero) starting value.')
             logging.error(msg)
-            if self.nwkerr:
-                print('ERROR: ' + msg)
 
         self.post_processing()
 
@@ -1314,8 +1239,6 @@ class network:
 
         msg = 'Calculation complete.'
         logging.info(msg)
-        if self.nwkinfo:
-            print('INFO: ' + msg)
 
     def solve_loop(self):
         r"""
@@ -1351,8 +1274,6 @@ class network:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) + '), calculation stopped. '
                    'Residual value is {:.2e}'.format(norm(self.vec_res)))
             logging.warning(msg)
-            if self.nwkwarn:
-                print('WARNING: ' + msg)
 
     def print_iterinfo(self, position):
 
@@ -2260,8 +2181,6 @@ class network:
 
         msg = 'Postprocessing complete.'
         logging.info(msg)
-        if self.nwkinfo:
-            print('INFO: ' + msg)
 
     def process_components(cols, mode):
         cols.name.calc_parameters(mode)

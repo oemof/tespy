@@ -16,7 +16,7 @@ import tespy
 
 def define_logging(logpath=None, logfile='tespy.log', file_format=None,
                    screen_format=None, file_datefmt=None, screen_datefmt=None,
-                   screen_level=logging.WARNING, file_level=logging.DEBUG,
+                   screen_level=logging.INFO, file_level=logging.DEBUG,
                    log_version=True, log_path=True, timed_rotating=None):
     r"""Initialise customisable logger.
 
@@ -44,7 +44,7 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
         Format of the datetime in the screen output. Default: "%H:%M:%S"
 
     screen_level : int
-        Level of logging to stdout. Default: 30 (logging.WARNING)
+        Level of logging to stdout. Default: 20 (logging.INFO)
 
     file_level : int
         Level of logging to file. Default: 10 (logging.DEBUG)

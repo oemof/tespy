@@ -370,7 +370,7 @@ class bus:
     >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
 
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
@@ -590,7 +590,7 @@ class bus:
                 logging.error(msg)
                 raise TESPyConnectionError(msg)
 
-            msg = 'Added component ' + c.label + ' to bus ' + self.label + '.'
+            msg = 'Added component ' + c['c'].label + ' to bus ' + self.label + '.'
             logging.debug(msg)
 
 
@@ -641,7 +641,7 @@ class ref:
         self.d = delta
 
         msg = ('Created reference object with factor ' + str(self.f) + ' and delta ' + str(self.d) + ' referring to connection ' +
-               self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').')
+               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' + ref_obj.t.label + ' (' + ref_obj.t_id + ').')
         logging.debug(msg)
 
     def get_attr(self, key):

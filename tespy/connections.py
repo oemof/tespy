@@ -10,6 +10,8 @@
 import numpy as np
 import pandas as pd
 
+import logging
+
 from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
 from tespy.components import components as cmp
 from tespy.components import characteristics as cmp_char
@@ -112,20 +114,24 @@ class connection:
         if not (isinstance(comp1, cmp.component) and
                 isinstance(comp2, cmp.component)):
             msg = ('Error creating connection. Check if comp1, comp2 are of type component.')
+            logging.error(msg)
             raise TypeError(msg)
 
         if comp1 == comp2:
             msg = ('Error creating connection. Can\'t connect component to itself.')
+            logging.error(msg)
             raise ValueError(msg)
 
         if outlet_id not in comp1.outlets():
             msg = ('Error creating connection. Specified oulet_id is not valid for component ' +
                    comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
+            logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
             msg = ('Error creating connection. Specified inlet_id is not valid for component ' +
                    comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
+            logging.error(msg)
             raise ValueError(msg)
 
         # set specified values
@@ -144,6 +150,9 @@ class connection:
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
+
+        msg = 'Created connection ' + self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').'
+        logging.debug(msg)
 
     def set_attr(self, **kwargs):
         r"""
@@ -222,18 +231,16 @@ class connection:
                         self.get_attr(key).set_attr(ref_set=False)
                     # starting value
                     elif key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
                     # set/reset
                     else:
-                        self.get_attr(key).set_attr(val_set=True,
-                                                    val=kwargs[key],
-                                                    val0=kwargs[key])
+                        self.get_attr(key).set_attr(val_set=True, val=kwargs[key], val0=kwargs[key])
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
                     if key == 'fluid' or key == 'x':
-                        print('References for fluid vector and vapour mass fraction not implemented.')
+                        msg = 'References for fluid vector and vapour mass fraction not implemented.'
+                        logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
@@ -258,6 +265,7 @@ class connection:
                 # invalid datatype for keyword
                 else:
                     msg = 'Bad datatype for keyword argument ' + str(key)
+                    logging.error(msg)
                     raise TypeError(msg)
 
             # fluid balance
@@ -266,22 +274,25 @@ class connection:
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
                     msg = ('Datatype for keyword argument ' + str(key) + ' must be boolean.')
+                    logging.error(msg)
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
                     msg = 'Please provide the design parameters as list!'
+                    logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(var.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design'
-                           'specification are: ' + str(var.keys()) + '.')
+                    msg = ('Available parameters for (off-)design specification are: ' + str(var.keys()) + '.')
+                    logging.error(msg)
                     raise ValueError(msg)
 
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + str(key)
+                logging.error(msg)
                 raise ValueError(msg)
 
     def get_attr(self, key):
@@ -301,7 +312,7 @@ class connection:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(str(self) + ' has no attribute \"' + key + '\".')
+            logging.warning('Connection has no attribute \"' + key + '\".')
             return None
 
     def attr(self):
@@ -445,6 +456,9 @@ class bus:
 
         self.set_attr(**kwargs)
 
+        msg = 'Created bus ' + self.label + '.'
+        logging.debug(msg)
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a bus object.
@@ -486,7 +500,8 @@ class bus:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('Bus ' + self.label + ' has no attribute ' + key + '.')
+            msg = 'Bus ' + self.label + ' has no attribute ' + key + '.'
+            logging.warning(msg)
             return None
 
     def add_comps(self, *args):
@@ -530,10 +545,12 @@ class bus:
                     if isinstance(c['c'], cmp.component):
                         self.comps.loc[c['c']] = [None, np.nan, self.char]
                     else:
-                        msg = ('c must be a TESPy component.')
+                        msg = ('Keyword c must hold a TESPy component.')
+                        logging.error(msg)
                         raise TypeError(msg)
                 else:
                         msg = ('You must provide the component c.')
+                        logging.error(msg)
                         raise TypeError(msg)
 
                 for k, v in c.items():
@@ -542,6 +559,7 @@ class bus:
                             self.comps.loc[c['c']]['param'] = v
                         else:
                             msg = ('Parameter p must be a string.')
+                            logging.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'char':
@@ -552,10 +570,10 @@ class bus:
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
-                            self.comps.loc[c['c']]['char'] = (
-                                    cmp_char.characteristics(x=x, y=y))
+                            self.comps.loc[c['c']]['char'] = (cmp_char.characteristics(x=x, y=y))
                         else:
                             msg = ('Char must be a number or a TESPy characteristics.')
+                            logging.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'P_ref':
@@ -565,10 +583,15 @@ class bus:
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:
                             msg = ('Reference value must be numeric.')
+                            logging.error(msg)
                             raise TypeError(msg)
             else:
                 msg = ('Provide arguments as dicts. See the documentation of bus.add_comps() for more information.')
+                logging.error(msg)
                 raise TESPyConnectionError(msg)
+
+            msg = 'Added component ' + c.label + ' to bus ' + self.label + '.'
+            logging.debug(msg)
 
 
 class ref:
@@ -600,19 +623,26 @@ class ref:
     def __init__(self, ref_obj, factor, delta):
         if not isinstance(ref_obj, connection):
             msg = 'First parameter must be object of type connection.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(factor, int) or isinstance(factor, float)):
             msg = 'Second parameter must be of type int or float.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(delta, int) or isinstance(delta, float)):
             msg = 'Thrid parameter must be of type int or float.'
+            logging.error(msg)
             raise TypeError(msg)
 
         self.obj = ref_obj
         self.f = factor
         self.d = delta
+
+        msg = ('Created reference object with factor ' + str(self.f) + ' and delta ' + str(self.d) + ' referring to connection ' +
+               self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').')
+        logging.debug(msg)
 
     def get_attr(self, key):
         r"""
@@ -631,5 +661,6 @@ class ref:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(str(self) + ' has no attribute \"' + key + '\".')
+            msg = 'Reference has no attribute \"' + key + '\".'
+            logging.warning(msg)
             return None

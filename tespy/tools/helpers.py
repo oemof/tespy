@@ -43,7 +43,6 @@ class data_container:
 
     Parameters
     ----------
-
     **kwargs :
         See the class documentation of desired data_container for available keywords.
 
@@ -87,22 +86,13 @@ class data_container:
 
     def __init__(self, **kwargs):
 
-        invalid = []
         var = self.attr()
 
         # default values
         for key in var.keys():
             self.__dict__.update({key: var[key]})
 
-        # specify values
-        for key in kwargs:
-            if key not in var.keys():
-                invalid += []
-            self.__dict__.update({key: kwargs[key]})
-
-        # print invalid keywords
-        if len(invalid) > 0:
-            print('The following keys are not available: ' + str(invalid))
+        self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
         r"""
@@ -113,18 +103,11 @@ class data_container:
         **kwargs :
             See the class documentation of desired data_container for available keywords.
         """
-        invalid = []
         var = self.attr()
-
         # specify values
         for key in kwargs:
-            if key not in var.keys():
-                invalid += []
-            self.__dict__.update({key: kwargs[key]})
-
-        # print invalid keywords
-        if len(invalid) > 0:
-            print('The following keys are not available: ' + str(invalid))
+            if key in var.keys():
+                self.__dict__.update({key: kwargs[key]})
 
     def get_attr(self, key):
         r"""
@@ -143,8 +126,9 @@ class data_container:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('No attribute \"', key, '\" available!')
-            return None
+            msg = 'Datacontainer of type ' + self.__class__.__name__ + ' has no attribute \"' + str(key) + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         r"""
@@ -162,7 +146,6 @@ class dc_prop(data_container):
     r"""
     Parameters
     ----------
-
     val : float
         Value in user specified unit (or network unit) if unit is unspecified,
         default: val=np.nan.
@@ -443,8 +426,7 @@ def query_yes_no(question, default='yes'):
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write('Please respond with \'yes\' or \'no\' '
-                             '(or \'y\' or \'n\').\n')
+            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
 
 # %%
 
@@ -455,47 +437,76 @@ class tespy_fluid:
     specified mixture of fluids. The created fluid properties adress an ideal
     mixture of real fluids.
 
-    Creates lookup-tables for
+    Parameters
+    ----------
+    alias : str
+        Alias for the fluid. Please note: The alias of a tespy_fluid class object
+        will always start with :code:`TESPy::`. See the example for more information!
 
-    - enthalpy,
-    - entropy,
-    - density and
-    - viscoity
+    fluid : dict
+        Fluid vector specifying the fluid composition of the TESPy fluid.
+
+    p_range : list/ndarray
+        Pressure range for the new fluid lookup table.
+
+    T_range : list/ndarray
+        Temperature range for the new fluid lookup table.
+
+    path : str
+        Path to importing tespy fluid from.
+
+    plot : boolean
+        Plot the lookup tables after creation?
+
+    Note
+    ----
+    Creates lookup tables for
+
+    - enthalpy (h),
+    - entropy (s),
+    - density (d) and
+    - viscoity (visc)
 
     from pressure and temperature. Additionally molar mass and gas constant
     will be calculated. Inverse functions, e. g. entropy from pressure and
     enthalpy are calculated via newton algorithm from these tables.
 
-    :param alias: name of the fluid mixture will be "TESPy::alias"
-    :type alias: str
-    :param fluid: fluid vector for composition {fluid_i: mass fraction, ...}
-    :type fluid: dict
-    :param p_range: range of feasible pressures for newly created fluid
-                    (provide in SI units)
-    :type p_range: list
-    :param T_range: range of feasible temperatures for newly created fluid
-                    (provide in SI units)
-    :type T_range: list
-    :returns: no return value
-    :raises: - :code:`TypeError`, if alias is not of type string
-             - :code:`ValueError`, if the alias contains "IDGAS::"
-
-    **allowed keywords** in kwargs:
-
-    - plot (*bool*), plot the lookup table after creation
+    Example
+    -------
+    >>> from tespy import con, cmp, hlp, nwk
+    >>> import shutil
+    >>> fluidvec = {'CO2': 0.05, 'H2O': 0.06, 'O2': 0.10, 'N2': 0.76, 'Ar': 0.01}
+    >>> p = np.array([0.1, 10]) * 1e5
+    >>> T = np.array([280, 1280])
+    >>> myfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec, p_range=p, T_range=T)
+    >>> type(myfluid)
+    <class 'tespy.tools.helpers.tespy_fluid'>
+    >>> nw = nwk.network(fluids=[myfluid.alias], h_unit='kJ / kg', T_unit='C', p_unit='bar')
+    >>> nw.set_printoptions(print_level='none')
+    >>> source = cmp.source('source')
+    >>> sink = cmp.sink('sink')
+    >>> c = con.connection(source, 'out1', sink, 'in1')
+    >>> nw.add_conns(c)
+    >>> c.set_attr(m=1, T=500, p=5, fluid={'TESPy::flue gas': 1})
+    >>> nw.solve('design')
+    >>> round(hlp.h_mix_pT(c.to_flow(), c.T.val_SI), 0)
+    957564.0
+    >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def __init__(self, alias, fluid, p_range, T_range, **kwargs):
+    def __init__(self, alias, fluid, p_range, T_range, path=None, plot=False):
 
         if not hasattr(tespy_fluid, 'fluids'):
             tespy_fluid.fluids = {}
 
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if 'IDGAS::' in alias:
             msg = 'You are not allowed to use "IDGAS::" within your alias.'
+            logging.error(msg)
             raise ValueError(msg)
 
         # process parameters
@@ -507,9 +518,6 @@ class tespy_fluid:
 
         memorise.add_fluids(self.fluid.keys())
 
-        # load LUT from this path
-        self.path = kwargs.get('path', dc_cp())
-
         # adjust value ranges according to specified unit system
         self.p_range = np.array(p_range)
         self.T_range = np.array(T_range)
@@ -519,7 +527,10 @@ class tespy_fluid:
         self.T = np.linspace(self.T_range[0], self.T_range[1])
 
         # plotting
-        self.plot = kwargs.get('plot', False)
+        self.plot = plot
+
+        # path for loading
+        self.path = path
 
         # calculate molar mass and gas constant
         for f in self.fluid:
@@ -541,14 +552,16 @@ class tespy_fluid:
 
         self.funcs = {}
 
-        if not self.path.is_set:
-            msg = 'Generating lookup-tables from base path ' + self.path.val + '/' + self.alias + '/.'
+        if self.path is None:
+            # generate fluid properties
+            msg = 'Generating lookup-tables from CoolProp fluid properties.'
             logging.debug(msg)
             for key in params.keys():
                 self.funcs[key] = self.generate_lookup(key, params[key])
 
         else:
-            msg = 'Generating lookup-tables from CoolProp fluid properties.'
+            # load fluid properties from specified path
+            msg = 'Generating lookup-tables from base path ' + self.path + '/' + self.alias + '/.'
             logging.debug(msg)
             for key in params.keys():
                 self.funcs[key] = self.load_lookup(key)
@@ -561,17 +574,16 @@ class tespy_fluid:
 
     def generate_lookup(self, name, func):
         r"""
-        create lookup table
+        Create lookup table from CoolProp-database
 
-        .. math::
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
 
-        :param func: function to create lookup from
-        :type func: callable function
-        :returns: y (*scipy.interpolate.RectBivariateSpline*) - lookup table
-
-        TODO: check if CoolProp tabular data interpolation is suitable?
+        func : function
+            Function to create lookup table from.
         """
-
         x1 = self.p
         x2 = self.T
 
@@ -603,7 +615,23 @@ class tespy_fluid:
         return func
 
     def save_lookup(self, name, x1, x2, y):
+        r"""
+        Save lookup table to working dir in new folder :code:`./LUT/fluid_alias/`.
 
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
+
+        x1 : ndarray
+            Pressure.
+
+        x2 : ndarray
+            Temperature.
+
+        y : ndarray
+            Lookup value (enthalpy, entropy, density or viscosity)
+        """
         df = pd.DataFrame(y, columns=x2, index=x1)
         path = './LUT/' + self.alias + '/'
         if not os.path.exists(path):
@@ -611,8 +639,15 @@ class tespy_fluid:
         df.to_csv(path + name + '.csv')
 
     def load_lookup(self, name):
+        r"""
+        Load lookup table from specified path base path and alias.
 
-        path = self.path.val + '/' + self.alias + '/' + name + '.csv'
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
+        """
+        path = self.path + '/' + self.alias + '/' + name + '.csv'
         df = pd.read_csv(path, index_col=0)
 
         x1 = df.index.get_values()
@@ -623,8 +658,7 @@ class tespy_fluid:
         if self.plot:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
-                              np.meshgrid(x2, x1)[1], y)
+            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
             ax.set_xlabel('temperature')
             ax.set_ylabel('pressure')
             ax.set_zlabel(name)
@@ -637,15 +671,20 @@ class tespy_fluid:
 
 def reverse_2d(params, y):
     r"""
-    reverse function for lookup table
+    Reverse function for lookup table.
 
-    :param params: variable function parameters
-    :type params: list
-    :param y: functional value, so that :math:`x_2 -
-              f\left(x_1, y \right) = 0`
-    :type y: float
-    :returns: residual value of the function :math:`x_2 -
-              f\left(x_1, y \right)`
+    Parameters
+    ----------
+    params : list
+        Variable function parameters.
+
+    y : float
+        Function value of function :math:`y = f \left( x_1, x_2 \right)`.
+
+    Returns
+    ------
+    deriv : float
+        Residual value of inverse function :math:`x_2 - f\left(x_1, y \right)`.
     """
     func, x1, x2 = params[0], params[1], params[2]
     return x2 - func.ev(x1, y)
@@ -653,14 +692,19 @@ def reverse_2d(params, y):
 
 def reverse_2d_deriv(params, y):
     r"""
-    derivative of the reverse function for a lookup table
+    Derivative of the reverse function for a lookup table.
 
-    :param params: variable function parameters
-    :type params: list
-    :param y: functional value, so that :math:`x_2 -
-              f\left(x_1, y \right) = 0`
-    :type y: float
-    :returns: partial derivative :math:`\frac{\partial f}{\partial y}`
+    params : list
+        Variable function parameters.
+
+    y : float
+        Function value of function :math:`y = f \left( x_1, x_2 \right)`,
+        so that :math:`x_2 - f\left(x_1, y \right) = 0`
+
+    Returns
+    ------
+    deriv : float
+        Partial derivative :math:`\frac{\partial f}{\partial y}`.
     """
     func, x1 = params[0], params[1]
     return - func.ev(x1, y, dy=1)
@@ -727,8 +771,8 @@ class memorise:
 
         for f in fluids:
             if 'TESPy::' in f:
-                pmin, pmax = tespy_fluid[f].p_range[0], tespy_fluid[f].p_range[1]
-                Tmin, Tmax = tespy_fluid[f].T_range[0], tespy_fluid[f].T_range[1]
+                pmin, pmax = tespy_fluid.fluids[f].p_range[0], tespy_fluid.fluids[f].p_range[1]
+                Tmin, Tmax = tespy_fluid.fluids[f].T_range[0], tespy_fluid.fluids[f].T_range[1]
                 msg = 'Loading fluid property ranges for TESPy-fluid ' + f + '.'
                 logging.debug(msg)
                 # value range for fluid properties

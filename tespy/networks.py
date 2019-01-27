@@ -1233,6 +1233,7 @@ class network:
             logging.error(msg)
 
         self.post_processing()
+        hlp.memorise.del_memory(self.fluids)
 
         if self.lin_dep or not self.progress:
             return

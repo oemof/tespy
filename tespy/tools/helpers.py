@@ -846,7 +846,7 @@ class memorise:
         memorise.visc_ph_f[fl] = []
         memorise.s_ph_f[fl] = []
 
-        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + fl + '.'
+        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + str(fl) + '.'
         logging.debug(msg)
 
 

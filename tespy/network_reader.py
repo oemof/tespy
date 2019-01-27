@@ -81,7 +81,7 @@ def load_nwk(path):
     >>> nw2.set_printoptions(print_level='none')
     >>> nw2.solve('design')
     >>> nw2.solve('offdesign', design_path='tmp')
-    >>> nw2.imp_comps['turbine'].P.val
+    >>> round(nw2.imp_comps['turbine'].P.val, 0)
     -100000.0
     >>> nw2.imp_comps['turbine'].set_attr(P=-9e4)
     >>> nw2.solve('offdesign', design_path='tmp')

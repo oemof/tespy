@@ -442,10 +442,8 @@ Also, TESPy will prompt an error, if you did not provide enough or if you provid
 When using multiple fluids in your network, e. g. :code:`fluids=['water', 'air', 'methane']` and at some point you want to have water only, you still need to specify the mass fractions for both air and methane (although beeing zero) at that point :code:`fluid={'water': 1, 'air': 0, 'methane': 0}`.
 Also, setting :code:`fluid={water: 1}, fluid_balance=True` will still not be sufficent, as the fluid_balance parameter adds only one equation to your system.
 
-.. note::
-
-	If you are modeling a cycle, e. g. the clausius rankine cylce, you need to make a cut in the cycle using a sink and a source not to overdetermine the system. Have a look in the :ref:`heat pump tutorial <heat_pump_tutorial_label>`
-	to understand why this is important.
+If you are modeling a cycle, e. g. the clausius rankine cylce, you need to make a cut in the cycle using a sink and a source not to overdetermine the system. Have a look in the :ref:`heat pump tutorial <heat_pump_tutorial_label>`
+to understand why this is important.
 
 If you have provided the correct number of parameters in your system and the calculations stops after or even before the first iteration, there are four frequent reasons for that:
 

@@ -653,7 +653,7 @@ class tespy_fluid:
 
         x1 = df.index.get_values()
         x2 = np.array(list(map(float, list(df))))
-        y = df.as_matrix()
+        y = df.values()
 
         # plot table after creation?
         if self.plot:

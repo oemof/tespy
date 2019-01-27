@@ -7727,7 +7727,7 @@ class solar_collector(heat_exchanger_simple):
 
         if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set and nw.compwarn:
+        elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' + self.label

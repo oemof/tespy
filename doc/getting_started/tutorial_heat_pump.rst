@@ -36,7 +36,7 @@ If you don’t specify the unit system, the variables are set to SI-Units.
     nw = nwk.network(fluids=['water' , 'NH3'],
 					 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 	
-We will use °C, bar and kJ/kg as units.
+We will use °C, bar and kJ/kg as units for temperature and enthalpy.
 	
 Modeling the heat pump: Consumer system
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

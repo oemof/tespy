@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """
 .. module:: helpers
     :synopsis: helpers for frequently used functionalities
@@ -19,6 +21,8 @@ import pandas as pd
 import os
 import collections
 
+import logging
+
 import warnings
 warnings.simplefilter("ignore", RuntimeWarning)
 
@@ -39,7 +43,6 @@ class data_container:
 
     Parameters
     ----------
-
     **kwargs :
         See the class documentation of desired data_container for available keywords.
 
@@ -62,43 +65,34 @@ class data_container:
 
     >>> from tespy import hlp, cmp
     >>> type(hlp.dc_cm(is_set=True))
-    <class 'tespy.helpers.dc_cm'>
+    <class 'tespy.tools.helpers.dc_cm'>
     >>> type(hlp.dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
-    <class 'tespy.helpers.dc_cc'>
+    <class 'tespy.tools.helpers.dc_cc'>
     >>> type(hlp.dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...     max_val=1000, min_val=1))
-    <class 'tespy.helpers.dc_cp'>
+    <class 'tespy.tools.helpers.dc_cp'>
     >>> pipe = cmp.pipe('testpipe', L=100, D=0.5, ks=5e-5)
     >>> type(hlp.dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
     ...     method='default'))
-    <class 'tespy.helpers.dc_gcp'>
+    <class 'tespy.tools.helpers.dc_gcp'>
     >>> type(hlp.dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
     ...     val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
     ...     balance=False))
-    <class 'tespy.helpers.dc_flu'>
+    <class 'tespy.tools.helpers.dc_flu'>
     >>> type(hlp.dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
     ...     unit_set=False, ref=None, ref_set=False))
-    <class 'tespy.helpers.dc_prop'>
+    <class 'tespy.tools.helpers.dc_prop'>
     """
 
     def __init__(self, **kwargs):
 
-        invalid = []
         var = self.attr()
 
         # default values
         for key in var.keys():
             self.__dict__.update({key: var[key]})
 
-        # specify values
-        for key in kwargs:
-            if key not in var.keys():
-                invalid += []
-            self.__dict__.update({key: kwargs[key]})
-
-        # print invalid keywords
-        if len(invalid) > 0:
-            print('The following keys are not available: ' + str(invalid))
+        self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
         r"""
@@ -109,18 +103,11 @@ class data_container:
         **kwargs :
             See the class documentation of desired data_container for available keywords.
         """
-        invalid = []
         var = self.attr()
-
         # specify values
         for key in kwargs:
-            if key not in var.keys():
-                invalid += []
-            self.__dict__.update({key: kwargs[key]})
-
-        # print invalid keywords
-        if len(invalid) > 0:
-            print('The following keys are not available: ' + str(invalid))
+            if key in var.keys():
+                self.__dict__.update({key: kwargs[key]})
 
     def get_attr(self, key):
         r"""
@@ -128,7 +115,7 @@ class data_container:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -139,8 +126,9 @@ class data_container:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('No attribute \"', key, '\" available!')
-            return None
+            msg = 'Datacontainer of type ' + self.__class__.__name__ + ' has no attribute \"' + str(key) + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         r"""
@@ -158,7 +146,6 @@ class dc_prop(data_container):
     r"""
     Parameters
     ----------
-
     val : float
         Value in user specified unit (or network unit) if unit is unspecified,
         default: val=np.nan.
@@ -170,19 +157,19 @@ class dc_prop(data_container):
     val_SI : float
         Value in SI_unit, default: val_SI=0.
 
-    val_set : bool
+    val_set : boolean
         Has the value for this property been set?, default: val_set=False.
 
     ref : tespy.connections.ref
         Reference object, default: ref=None.
 
-    ref_set : bool
+    ref_set : boolean
         Has a value for this property been referenced to another connection?, default: ref_set=False.
 
-    unit : String
+    unit : str
         Unit for this property, default: ref=None.
 
-    unit : bool
+    unit : boolean
         Has the unit for this property been specified manually by the user?, default: unit_set=False.
     """
     def attr(self):
@@ -208,7 +195,7 @@ class dc_flu(data_container):
         Which fluid mass fractions have been set, default val_set={}.
         Pattern for dictionary: keys are fluid name, values are True or False.
 
-    balance : bool
+    balance : boolean
         Should the fluid balance equation be applied for this mixture? default: False.
     """
     def attr(self):
@@ -235,10 +222,10 @@ class dc_cp(data_container):
         Value in SI_unit (available for temperatures only, unit transformation according to network's temperature unit),
         default: val_SI=0.
 
-    is_set : bool
+    is_set : boolean
         Has the value for this attribute been set?, default: is_set=False.
 
-    is_var : bool
+    is_var : boolean
         Is this attribute part of the system variables?, default: is_var=False.
 
     d : float
@@ -253,7 +240,7 @@ class dc_cp(data_container):
         Maximum value for this attribute, used if attribute is part of the system variables,
         default: max_val=1e12.
 
-    printout : bool
+    printout : boolean
         Should the value of this attribute be printed in the results overview?
     """
     def attr(self):
@@ -278,13 +265,13 @@ class dc_cc(data_container):
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristics, default: None.
 
-    is_set : bool
+    is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : String
+    method : str
         Which default method for this characteristic function should be used?, default: method='default'.
 
-    param : String
+    param : str
         Which parameter should be applied as the x value?, default: method='default'.
 
     x : numpy.array
@@ -321,13 +308,13 @@ class dc_cm(data_container):
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristic map, default: None.
 
-    is_set : bool
+    is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : String
+    method : str
         Which default method for this characteristic function should be used?, default: method='default'.
 
-    param : String
+    param : str
         Which parameter should be applied as the x value?, default: method='default'.
 
     x : numpy.array
@@ -366,10 +353,10 @@ class dc_gcp(data_container):
     r"""
     Parameters
     ----------
-    is_set : bool
+    is_set : boolean
         Should the equation for this parameter group be applied? default: is_set=False.
 
-    method : String
+    method : str
         Which calculation method for this parameter group should be used?, default: method='default'.
 
     elements : list
@@ -389,19 +376,15 @@ class dc_gcp(data_container):
 # %%
 
 
-class MyNetworkError(Exception):
+class TESPyNetworkError(Exception):
     pass
 
 
-class MyConnectionError(Exception):
+class TESPyConnectionError(Exception):
     pass
 
 
-class MyComponentError(Exception):
-    pass
-
-
-class MyConvergenceError(Exception):
+class TESPyComponentError(Exception):
     pass
 
 
@@ -409,10 +392,10 @@ def query_yes_no(question, default='yes'):
     r"""
     Parameters
     ----------
-    question : String
+    question : str
         Question to be asked.
 
-    default : String
+    default : str
         Default answer: default='yes'.
 
     elements : list
@@ -420,7 +403,7 @@ def query_yes_no(question, default='yes'):
 
     Returns
     -------
-    answer : bool
+    answer : boolean
         Answer.
     """
     valid = {'yes': True,
@@ -443,60 +426,88 @@ def query_yes_no(question, default='yes'):
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write('Please respond with \'yes\' or \'no\' '
-                             '(or \'y\' or \'n\').\n')
+            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
 
 # %%
 
 
 class tespy_fluid:
     r"""
-
     The tespy_fluid class allows the creation of custom fluid properies for a
     specified mixture of fluids. The created fluid properties adress an ideal
     mixture of real fluids.
 
-    Creates lookup-tables for
+    Parameters
+    ----------
+    alias : str
+        Alias for the fluid. Please note: The alias of a tespy_fluid class object
+        will always start with :code:`TESPy::`. See the example for more information!
 
-    - enthalpy,
-    - entropy,
-    - density and
-    - viscoity
+    fluid : dict
+        Fluid vector specifying the fluid composition of the TESPy fluid.
+
+    p_range : list/ndarray
+        Pressure range for the new fluid lookup table.
+
+    T_range : list/ndarray
+        Temperature range for the new fluid lookup table.
+
+    path : str
+        Path to importing tespy fluid from.
+
+    plot : boolean
+        Plot the lookup tables after creation?
+
+    Note
+    ----
+    Creates lookup tables for
+
+    - enthalpy (h),
+    - entropy (s),
+    - density (d) and
+    - viscoity (visc)
 
     from pressure and temperature. Additionally molar mass and gas constant
     will be calculated. Inverse functions, e. g. entropy from pressure and
     enthalpy are calculated via newton algorithm from these tables.
 
-    :param alias: name of the fluid mixture will be "TESPy::alias"
-    :type alias: str
-    :param fluid: fluid vector for composition {fluid_i: mass fraction, ...}
-    :type fluid: dict
-    :param p_range: range of feasible pressures for newly created fluid
-                    (provide in SI units)
-    :type p_range: list
-    :param T_range: range of feasible temperatures for newly created fluid
-                    (provide in SI units)
-    :type T_range: list
-    :returns: no return value
-    :raises: - :code:`TypeError`, if alias is not of type string
-             - :code:`ValueError`, if the alias contains "IDGAS::"
-
-    **allowed keywords** in kwargs:
-
-    - plot (*bool*), plot the lookup table after creation
+    Example
+    -------
+    >>> from tespy import con, cmp, hlp, nwk
+    >>> import shutil
+    >>> fluidvec = {'CO2': 0.05, 'H2O': 0.06, 'O2': 0.10, 'N2': 0.76, 'Ar': 0.01}
+    >>> p = np.array([0.1, 10]) * 1e5
+    >>> T = np.array([280, 1280])
+    >>> myfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec, p_range=p, T_range=T)
+    >>> type(myfluid)
+    <class 'tespy.tools.helpers.tespy_fluid'>
+    >>> nw = nwk.network(fluids=[myfluid.alias], h_unit='kJ / kg', T_unit='C', p_unit='bar')
+    >>> nw.set_printoptions(print_level='none')
+    >>> source = cmp.source('source')
+    >>> sink = cmp.sink('sink')
+    >>> c = con.connection(source, 'out1', sink, 'in1')
+    >>> nw.add_conns(c)
+    >>> c.set_attr(m=1, T=500, p=5, fluid={'TESPy::flue gas': 1})
+    >>> nw.solve('design')
+    >>> round(hlp.h_mix_pT(c.to_flow(), c.T.val_SI), 0)
+    957564.0
+    >>> loadfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec, p_range=p, T_range=T, path='./LUT')
+    >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def __init__(self, alias, fluid, p_range, T_range, **kwargs):
+    def __init__(self, alias, fluid, p_range, T_range, path=None, plot=False):
 
         if not hasattr(tespy_fluid, 'fluids'):
             tespy_fluid.fluids = {}
 
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if 'IDGAS::' in alias:
             msg = 'You are not allowed to use "IDGAS::" within your alias.'
+            logging.error(msg)
             raise ValueError(msg)
 
         # process parameters
@@ -506,8 +517,7 @@ class tespy_fluid:
             self.alias = 'TESPy::' + alias
         self.fluid = fluid
 
-        # load LUT from this path
-        self.path = kwargs.get('path', dc_cp())
+        memorise.add_fluids(self.fluid.keys())
 
         # adjust value ranges according to specified unit system
         self.p_range = np.array(p_range)
@@ -518,7 +528,10 @@ class tespy_fluid:
         self.T = np.linspace(self.T_range[0], self.T_range[1])
 
         # plotting
-        self.plot = kwargs.get('plot', False)
+        self.plot = plot
+
+        # path for loading
+        self.path = path
 
         # calculate molar mass and gas constant
         for f in self.fluid:
@@ -526,8 +539,7 @@ class tespy_fluid:
             gas_constants[f] = CPPSI('GAS_CONSTANT', f)
 
         molar_masses[self.alias] = 1 / molar_mass_flow(self.fluid)
-        gas_constants[self.alias] = (gas_constants['uni'] /
-                                     molar_masses[self.alias])
+        gas_constants[self.alias] = (gas_constants['uni'] / molar_masses[self.alias])
 
         # create look up tables
         tespy_fluid.fluids[self.alias] = {}
@@ -541,34 +553,42 @@ class tespy_fluid:
 
         self.funcs = {}
 
-        if not self.path.is_set:
-
+        if self.path is None:
+            # generate fluid properties
+            msg = 'Generating lookup-tables from CoolProp fluid properties.'
+            logging.debug(msg)
             for key in params.keys():
-
                 self.funcs[key] = self.generate_lookup(key, params[key])
+                msg = 'Loading function values for function ' + key + '.'
+                logging.debug(msg)
 
         else:
-
+            # load fluid properties from specified path
+            msg = 'Generating lookup-tables from base path ' + self.path + '/' + self.alias + '/.'
+            logging.debug(msg)
             for key in params.keys():
                 self.funcs[key] = self.load_lookup(key)
+                msg = 'Loading function values for function ' + key + '.'
+                logging.debug(msg)
 
         tespy_fluid.fluids[self.alias] = self
 
-        print('Successfully created LUTs for custom fluid ' + self.alias)
+        msg = 'Successfully created look-up-tables for custom fluid ' + self.alias + '.'
+        logging.debug(msg)
+
 
     def generate_lookup(self, name, func):
         r"""
-        create lookup table
+        Create lookup table from CoolProp-database
 
-        .. math::
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
 
-        :param func: function to create lookup from
-        :type func: callable function
-        :returns: y (*scipy.interpolate.RectBivariateSpline*) - lookup table
-
-        TODO: check if CoolProp tabular data interpolation is suitable?
+        func : function
+            Function to create lookup table from.
         """
-
         x1 = self.p
         x2 = self.T
 
@@ -600,7 +620,23 @@ class tespy_fluid:
         return func
 
     def save_lookup(self, name, x1, x2, y):
+        r"""
+        Save lookup table to working dir in new folder :code:`./LUT/fluid_alias/`.
 
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
+
+        x1 : ndarray
+            Pressure.
+
+        x2 : ndarray
+            Temperature.
+
+        y : ndarray
+            Lookup value (enthalpy, entropy, density or viscosity)
+        """
         df = pd.DataFrame(y, columns=x2, index=x1)
         path = './LUT/' + self.alias + '/'
         if not os.path.exists(path):
@@ -608,8 +644,15 @@ class tespy_fluid:
         df.to_csv(path + name + '.csv')
 
     def load_lookup(self, name):
+        r"""
+        Load lookup table from specified path base path and alias.
 
-        path = self.path.val + '/' + self.alias + '/' + name + '.csv'
+        Parameters
+        ----------
+        name : str
+            Name of the lookup table.
+        """
+        path = self.path + '/' + self.alias + '/' + name + '.csv'
         df = pd.read_csv(path, index_col=0)
 
         x1 = df.index.get_values()
@@ -620,8 +663,7 @@ class tespy_fluid:
         if self.plot:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
-                              np.meshgrid(x2, x1)[1], y)
+            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
             ax.set_xlabel('temperature')
             ax.set_ylabel('pressure')
             ax.set_zlabel(name)
@@ -634,15 +676,20 @@ class tespy_fluid:
 
 def reverse_2d(params, y):
     r"""
-    reverse function for lookup table
+    Reverse function for lookup table.
 
-    :param params: variable function parameters
-    :type params: list
-    :param y: functional value, so that :math:`x_2 -
-              f\left(x_1, y \right) = 0`
-    :type y: float
-    :returns: residual value of the function :math:`x_2 -
-              f\left(x_1, y \right)`
+    Parameters
+    ----------
+    params : list
+        Variable function parameters.
+
+    y : float
+        Function value of function :math:`y = f \left( x_1, x_2 \right)`.
+
+    Returns
+    ------
+    deriv : float
+        Residual value of inverse function :math:`x_2 - f\left(x_1, y \right)`.
     """
     func, x1, x2 = params[0], params[1], params[2]
     return x2 - func.ev(x1, y)
@@ -650,14 +697,19 @@ def reverse_2d(params, y):
 
 def reverse_2d_deriv(params, y):
     r"""
-    derivative of the reverse function for a lookup table
+    Derivative of the reverse function for a lookup table.
 
-    :param params: variable function parameters
-    :type params: list
-    :param y: functional value, so that :math:`x_2 -
-              f\left(x_1, y \right) = 0`
-    :type y: float
-    :returns: partial derivative :math:`\frac{\partial f}{\partial y}`
+    params : list
+        Variable function parameters.
+
+    y : float
+        Function value of function :math:`y = f \left( x_1, x_2 \right)`,
+        so that :math:`x_2 - f\left(x_1, y \right) = 0`
+
+    Returns
+    ------
+    deriv : float
+        Partial derivative :math:`\frac{\partial f}{\partial y}`.
     """
     func, x1 = params[0], params[1]
     return - func.ev(x1, y, dy=1)
@@ -668,42 +720,47 @@ def reverse_2d_deriv(params, y):
 class memorise:
     r"""
     Memorization of fluid properties.
-
-    Parameters
-    ----------
-    fluids : list
-        List of fluid for fluid property memorization, delivered upon tespy.networks.network initilisation.
-
-    Note
-    ----
-    The memorise class creates globally accessible variables for different fluid
-    property calls as dictionaries:
-
-        - T(p,h)
-        - T(p,s)
-        - v(p,h)
-        - visc(p,h)
-        - s(p,h)
-
-    Each dictionary uses the list of fluids passed to the memorise class as
-    identifier for the fluid property memorisation. The fluid properties are
-    stored as numpy array, where each column represents the mass fraction of the
-    respective fluid and the additional columns are the values for the fluid
-    properties. The fluid property function will then look for identical fluid
-    property inputs (p, h, (s), fluid mass fraction). If the inputs are in the
-    array, the first column of that row is returned, see example.
-
-    Example
-    -------
-    T(p,h) for set of fluids ('water', 'air'):
-
-        - row 1: [282.64527752319697, 10000, 40000, 1, 0]
-        - row 2: [284.3140698256616, 10000, 47000, 1, 0]
     """
 
     def add_fluids(fluids):
+        r"""
+        Add list of fluids to fluid memorisation class.
 
-        #
+        - Generate arrays for fluid property lookup.
+        - Calculate/set fluid property value ranges for convergence checks.
+
+        Parameters
+        ----------
+        fluids : list
+            List of fluid for fluid property memorization.
+
+        Note
+        ----
+        The memorise class creates globally accessible variables for different fluid
+        property calls as dictionaries:
+
+            - T(p,h)
+            - T(p,s)
+            - v(p,h)
+            - visc(p,h)
+            - s(p,h)
+
+        Each dictionary uses the list of fluids passed to the memorise class as
+        identifier for the fluid property memorisation. The fluid properties are
+        stored as numpy array, where each column represents the mass fraction of the
+        respective fluid and the additional columns are the values for the fluid
+        properties. The fluid property function will then look for identical fluid
+        property inputs (p, h, (s), fluid mass fraction). If the inputs are in the
+        array, the first column of that row is returned, see example.
+
+        Example
+        -------
+        T(p,h) for set of fluids ('water', 'air'):
+
+            - row 1: [282.64527752319697, 10000, 40000, 1, 0]
+            - row 2: [284.3140698256616, 10000, 47000, 1, 0]
+        """
+        # number of fluids
         num_fl = len(fluids)
         if num_fl > 0:
             fl = tuple(fluids)
@@ -722,29 +779,44 @@ class memorise:
             memorise.s_ph_f[fl] = []
             memorise.count = 0
 
-        # memorisation of fluid property ranges
-        # pressure
+            msg = 'Added fluids ' + str(fl) +' to memorise lookup tables.'
+            logging.debug(msg)
+
         for f in fluids:
-            if not f in memorise.heos.keys():
-                try:
+            if 'TESPy::' in f:
+                pmin, pmax = tespy_fluid.fluids[f].p_range[0], tespy_fluid.fluids[f].p_range[1]
+                Tmin, Tmax = tespy_fluid.fluids[f].T_range[0], tespy_fluid.fluids[f].T_range[1]
+                msg = 'Loading fluid property ranges for TESPy-fluid ' + f + '.'
+                logging.debug(msg)
+                # value range for fluid properties
+                memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+                msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
+                logging.debug(msg)
+            else:
+                if f not in memorise.heos.keys():
+                    # abstractstate object
                     memorise.heos[f] = CP.AbstractState('HEOS', f)
-                except ValueError:
-                    pass
+                    msg = 'Created CoolProp.AbstractState object for fluid ' + f + ' in memorise class.'
+                    logging.debug(msg)
+                    # pressure range
+                    pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
+                    # temperature range
+                    Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+                    # value range for fluid properties
+                    memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+                    msg = 'Specifying fluid property ranges for pressure and temperature for convergence check of fluid ' + f + '.'
+                    logging.debug(msg)
 
-        for f in fluids:
-            try:
-                pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
-            except ValueError:
-                pmin, pmax = 2000, 2000e5
-
-            try:
-                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
-            except ValueError:
-                Tmin, Tmax = 300, 2000
-
-            memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
 
     def del_memory(fluids):
+        r"""
+        Deletes non frequently used fluid property values from memorise class.
+
+        Parameters
+        ----------
+        fluids : list
+            List of fluid for fluid property memorization.
+        """
 
         fl = tuple(fluids)
 
@@ -770,6 +842,9 @@ class memorise:
         memorise.v_ph_f[fl] = []
         memorise.visc_ph_f[fl] = []
         memorise.s_ph_f[fl] = []
+
+        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + fl + '.'
+        logging.debug(msg)
 
 
 # create memorise dictionaries
@@ -856,8 +931,9 @@ def newton(func, deriv, params, y, **kwargs):
         i += 1
 
         if i > max_iter:
-#            print('Newton algorithm was not able to find a feasible '
-#                  'value for function ' + str(func) + '.')
+            msg = ('Newton algorithm was not able to find a feasible value for function ' + str(func) + '. '
+                   'Current value with x=' + str(x) + ' is ' + str(func(params, x)) + ', target value is ' + str(y) + '.')
+            logging.debug(msg)
 
             break
 
@@ -912,10 +988,8 @@ def T_mix_ph(flow):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2],
-                         val0=300, valmin=70, valmax=3000, imax=10)
-            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
-                            [val]])
+            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=300, valmin=70, valmax=3000, imax=10)
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
             return val
@@ -924,11 +998,9 @@ def T_mix_ph(flow):
             for fluid, x in flow[3].items():
                 if x > err:
                     val = T_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
+                    new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
                     # memorise the newly calculated value
-                    memorise.T_ph[fl] = np.append(memorise.T_ph[fl],
-                                                  new, axis=0)
+                    memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
                     return val
 
 
@@ -1103,10 +1175,8 @@ def T_mix_ps(flow, s):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = newton(s_mix_pT, ds_mix_pdT, flow, s,
-                         val0=300, valmin=70, valmax=3000, imax=10)
-            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
-                            [s, val]])
+            val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=300, valmin=70, valmax=3000, imax=10)
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
             # memorise the newly calculated value
             memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
             return val
@@ -1115,11 +1185,9 @@ def T_mix_ps(flow, s):
             for fluid, x in flow[3].items():
                 if x > err:
                     val = T_ps(flow[1], s, fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [s, val]])
+                    new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
                     # memorise the newly calculated value
-                    memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
-                                                  new, axis=0)
+                    memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
                     return val
 
 
@@ -1426,8 +1494,7 @@ def v_mix_ph(flow):
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
             val = v_mix_pT(flow, T_mix_ph(flow))
-            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
-                            [val]])
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
             return val
@@ -1436,11 +1503,9 @@ def v_mix_ph(flow):
             for fluid, x in flow[3].items():
                 if x > err:
                     val = 1 / d_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
+                    new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
                     # memorise the newly calculated value
-                    memorise.v_ph[fl] = np.append(memorise.v_ph[fl],
-                                                  new, axis=0)
+                    memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
                     return val
 
 
@@ -1664,8 +1729,7 @@ def visc_mix_ph(flow):
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
             val = visc_mix_pT(flow, T_mix_ph(flow))
-            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
-                            [val]])
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
             return val
@@ -1674,11 +1738,9 @@ def visc_mix_ph(flow):
             for fluid, x in flow[3].items():
                 if x > err:
                     val = visc_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
+                    new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
                     # memorise the newly calculated value
-                    memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl],
-                                                     new, axis=0)
+                    memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
                     return val
 
 
@@ -1830,8 +1892,7 @@ def s_mix_ph(flow):
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
             val = s_mix_pT(flow, T_mix_ph(flow))
-            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) +
-                            [val]])
+            new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
             return val
@@ -1840,11 +1901,9 @@ def s_mix_ph(flow):
             for fluid, x in flow[3].items():
                 if x > err:
                     val = s_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
+                    new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
                     # memorise the newly calculated value
-                    memorise.s_ph[fl] = np.append(memorise.s_ph[fl],
-                                                  new, axis=0)
+                    memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
                     return val
 
 
@@ -1934,8 +1993,7 @@ def s_mix_pT(flow, T):
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
             s += s_pT(pp, T, fluid) * x
-            s -= (x * gas_constants[fluid] / molar_masses[fluid] *
-                  math.log(pp / flow[1]))
+            s -= (x * gas_constants[fluid] / molar_masses[fluid] * math.log(pp / flow[1]))
 
     return s
 
@@ -2071,7 +2129,7 @@ def single_fluid(fluids):
 
     Returns
     -------
-    fluid : String
+    fluid : str
         Name of the single fluid.
     """
     if num_fluids(fluids) == 1:
@@ -2090,7 +2148,7 @@ def fluid_structure(fluid):
 
     Parameters
     ----------
-    fluid : String
+    fluid : str
         Name of the fluid.
 
     Returns
@@ -2189,16 +2247,14 @@ def lamb(re, ks, d):
                 return 0.0032 + 0.221 * re ** (-0.237)
             else:
                 l0 = 0.0001
-                return newton(lamb_smooth, dlamb_smooth_dl, [re], 0,
-                              val0=l0, valmin=0.00001, valmax=0.2)
+                return newton(lamb_smooth, dlamb_smooth_dl, [re], 0, val0=l0, valmin=0.00001, valmax=0.2)
 
         elif re * ks / d > 1300:
             return 1 / (2 * math.log(3.71 * d / ks, 10)) ** 2
 
         else:
             l0 = 0.002
-            return newton(lamb_trans, dlamb_trans_dl, [re, ks, d], 0,
-                          val0=l0, valmin=0.0001, valmax=0.2)
+            return newton(lamb_trans, dlamb_trans_dl, [re, ks, d], 0, val0=l0, valmin=0.0001, valmax=0.2)
 
 
 def lamb_smooth(params, l):
@@ -2212,8 +2268,7 @@ def dlamb_smooth_dl(params, l):
 
 def lamb_trans(params, l):
     re, ks, d = params[0], params[1], params[2]
-    return (2 * math.log(2.51 / (re * math.sqrt(l)) + ks / d * 0.269, 10) +
-            1 / math.sqrt(l))
+    return (2 * math.log(2.51 / (re * math.sqrt(l)) + ks / d * 0.269, 10) + 1 / math.sqrt(l))
 
 
 def dlamb_trans_dl(params, l):

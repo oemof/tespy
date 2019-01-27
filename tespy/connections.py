@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """
 .. module:: connections
     :synopsis:
@@ -8,8 +10,9 @@
 import numpy as np
 import pandas as pd
 
-from tespy.helpers import (MyConnectionError, data_container, dc_prop, dc_flu,
-                           dc_cp)
+import logging
+
+from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
 from tespy.components import components as cmp
 from tespy.components import characteristics as cmp_char
 
@@ -18,47 +21,47 @@ class connection:
     r"""
     Parameters
     ----------
-    m : float/tespy.connections.ref/tespy.helpers.dc_prop
+    m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Mass flow specification.
 
     m0 : float
         Starting value specification for mass flow.
 
-    p : float/tespy.connections.ref/tespy.helpers.dc_prop
+    p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Pressure specification.
 
     p0 : float
         Starting value specification for pressure.
 
-    h : float/tespy.connections.ref/tespy.helpers.dc_prop
+    h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Enthalpy specification.
 
     h0 : float
         Starting value specification for enthalpy.
 
-    fluid : dict/tespy.helpers.dc_flu
+    fluid : dict/tespy.tools.helpers.dc_flu
         Fluid compostition specification.
 
     fluid0 : dict
         Starting value specification for fluid compostition.
 
-    fluid_balance : bool
+    fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float/tespy.connections.ref/tespy.helpers.dc_prop
+    x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Gas phase mass fraction specification.
 
-    T : float/tespy.connections.ref/tespy.helpers.dc_prop
+    T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Temperature specification.
 
-    v : float/tespy.helpers.dc_prop
+    v : float/tespy.tools.helpers.dc_prop
         Volumetric flow specification.
 
     design : list
-        List containing design parameters (stated as String).
+        List containing design parameters (stated as string).
 
     offdesign : list
-        List containing offdesign parameters (stated as String).
+        List containing offdesign parameters (stated as string).
 
     Note
     ----
@@ -88,9 +91,9 @@ class connection:
     >>> p = hlp.dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
     >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200, fluid={'N2': 1}, fluid_balance=True)
     >>> type(so_si1.p)
-    <class 'tespy.helpers.dc_prop'>
+    <class 'tespy.tools.helpers.dc_prop'>
     >>> type(so_si1.fluid)
-    <class 'tespy.helpers.dc_flu'>
+    <class 'tespy.tools.helpers.dc_flu'>
     >>> so_si1.m.val0
     10
     >>> so_si1.m.get_attr('val_set')
@@ -110,27 +113,25 @@ class connection:
         # check input parameters
         if not (isinstance(comp1, cmp.component) and
                 isinstance(comp2, cmp.component)):
-            msg = ('Error creating connection.'
-                   'Check if comp1, comp2 are of type component.')
+            msg = ('Error creating connection. Check if comp1, comp2 are of type component.')
+            logging.error(msg)
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. '
-                   'Can\'t connect component to itself.')
+            msg = ('Error creating connection. Can\'t connect component to itself.')
+            logging.error(msg)
             raise ValueError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. '
-                   'Specified oulet_id is not valid for component ' +
-                   comp1.component() + '. '
-                   'Valid ids are: ' + str(comp1.outlets()) + '.')
+            msg = ('Error creating connection. Specified oulet_id is not valid for component ' +
+                   comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
+            logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. '
-                   'Specified inlet_id is not valid for component ' +
-                   comp2.component() + '. '
-                   'Valid ids are: ' + str(comp2.inlets()) + '.')
+            msg = ('Error creating connection. Specified inlet_id is not valid for component ' +
+                   comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
+            logging.error(msg)
             raise ValueError(msg)
 
         # set specified values
@@ -150,46 +151,49 @@ class connection:
 
         self.set_attr(**kwargs)
 
+        msg = 'Created connection ' + self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').'
+        logging.debug(msg)
+
     def set_attr(self, **kwargs):
         r"""
         Sets, resets or unsets attributes of a component for provided keyword arguments.
 
         Parameters
         ----------
-        m : float/tespy.connections.ref/tespy.helpers.dc_prop
+        m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Mass flow specification.
 
         m0 : float
             Starting value specification for mass flow.
 
-        p : float/tespy.connections.ref/tespy.helpers.dc_prop
+        p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Pressure specification.
 
         p0 : float
             Starting value specification for pressure.
 
-        h : float/tespy.connections.ref/tespy.helpers.dc_prop
+        h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Enthalpy specification.
 
         h0 : float
             Starting value specification for enthalpy.
 
-        fluid : dict/tespy.helpers.dc_flu
+        fluid : dict/tespy.tools.helpers.dc_flu
             Fluid compostition specification.
 
         fluid0 : dict
             Starting value specification for fluid compostition.
 
-        fluid_balance : bool
+        fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float/tespy.connections.ref/tespy.helpers.dc_prop
+        x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Gas phase mass fraction specification.
 
-        T : float/tespy.connections.ref/tespy.helpers.dc_prop
+        T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Temperature specification.
 
-        v : float/tespy.helpers.dc_prop
+        v : float/tespy.tools.helpers.dc_prop
             Volumetric flow specification.
 
         design : list
@@ -227,19 +231,16 @@ class connection:
                         self.get_attr(key).set_attr(ref_set=False)
                     # starting value
                     elif key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
                     # set/reset
                     else:
-                        self.get_attr(key).set_attr(val_set=True,
-                                                    val=kwargs[key],
-                                                    val0=kwargs[key])
+                        self.get_attr(key).set_attr(val_set=True, val=kwargs[key], val0=kwargs[key])
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
                     if key == 'fluid' or key == 'x':
-                        print('References for fluid vector and vapour mass '
-                              'fraction not implemented.')
+                        msg = 'References for fluid vector and vapour mass fraction not implemented.'
+                        logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
@@ -264,6 +265,7 @@ class connection:
                 # invalid datatype for keyword
                 else:
                     msg = 'Bad datatype for keyword argument ' + str(key)
+                    logging.error(msg)
                     raise TypeError(msg)
 
             # fluid balance
@@ -271,24 +273,26 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) +
-                           ' must be bool.')
+                    msg = ('Datatype for keyword argument ' + str(key) + ' must be boolean.')
+                    logging.error(msg)
                     raise TypeError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
                     msg = 'Please provide the design parameters as list!'
+                    logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(var.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design'
-                           'specification are: ' + str(var.keys()) + '.')
+                    msg = ('Available parameters for (off-)design specification are: ' + str(var.keys()) + '.')
+                    logging.error(msg)
                     raise ValueError(msg)
 
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + str(key)
+                logging.error(msg)
                 raise ValueError(msg)
 
     def get_attr(self, key):
@@ -297,7 +301,7 @@ class connection:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -308,8 +312,9 @@ class connection:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(str(self) + ' has no attribute \"' + key + '\".')
-            return None
+            msg = 'Connection has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         r"""
@@ -353,7 +358,7 @@ class bus:
 
     Parameters
     ----------
-    label : String
+    label : str
         Label for the bus.
 
     P : float
@@ -366,7 +371,7 @@ class bus:
     >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='err')
+    >>> nw.set_printoptions(print_level='none')
 
     >>> amb = cmp.source('ambient')
     >>> sf = cmp.source('fuel')
@@ -452,13 +457,16 @@ class bus:
 
         self.set_attr(**kwargs)
 
+        msg = 'Created bus ' + self.label + '.'
+        logging.debug(msg)
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a bus object.
 
         Parameters
         ----------
-        label : String
+        label : str
             Label for the bus.
 
         P : float
@@ -482,7 +490,7 @@ class bus:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -493,8 +501,9 @@ class bus:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('Bus ' + self.label + ' has no attribute ' + key + '.')
-            return None
+            msg = 'Bus ' + self.label + ' has no attribute ' + key + '.'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def add_comps(self, *args):
         r"""
@@ -511,7 +520,7 @@ class bus:
         Keys for the dictionary c:
 
         - c (tespy.components.components.component): Component you want to add to the bus.
-        - p (String): Bus parameter, optional.
+        - p (str): Bus parameter, optional.
 
             - You do not need to provide a parameter, if the component only has one
               option for the bus (turbomachines, heat exchangers, combustion
@@ -537,10 +546,12 @@ class bus:
                     if isinstance(c['c'], cmp.component):
                         self.comps.loc[c['c']] = [None, np.nan, self.char]
                     else:
-                        msg = ('c must be a TESPy component.')
+                        msg = ('Keyword c must hold a TESPy component.')
+                        logging.error(msg)
                         raise TypeError(msg)
                 else:
                         msg = ('You must provide the component c.')
+                        logging.error(msg)
                         raise TypeError(msg)
 
                 for k, v in c.items():
@@ -548,7 +559,8 @@ class bus:
                         if isinstance(v, str) or v is None:
                             self.comps.loc[c['c']]['param'] = v
                         else:
-                            msg = ('Parameter p must be a String.')
+                            msg = ('Parameter p must be a string.')
+                            logging.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'char':
@@ -559,11 +571,10 @@ class bus:
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
-                            self.comps.loc[c['c']]['char'] = (
-                                    cmp_char.characteristics(x=x, y=y))
+                            self.comps.loc[c['c']]['char'] = (cmp_char.characteristics(x=x, y=y))
                         else:
-                            msg = ('Char must be a number or a TESPy '
-                                   'characteristics.')
+                            msg = ('Char must be a number or a TESPy characteristics.')
+                            logging.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'P_ref':
@@ -573,11 +584,15 @@ class bus:
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:
                             msg = ('Reference value must be numeric.')
+                            logging.error(msg)
                             raise TypeError(msg)
             else:
-                msg = ('Provide arguments as dicts. See the documentation of '
-                       'bus.add_comps() for more information.')
-                raise MyConnectionError(msg)
+                msg = ('Provide arguments as dicts. See the documentation of bus.add_comps() for more information.')
+                logging.error(msg)
+                raise TESPyConnectionError(msg)
+
+            msg = 'Added component ' + c['c'].label + ' to bus ' + self.label + '.'
+            logging.debug(msg)
 
 
 class ref:
@@ -609,19 +624,26 @@ class ref:
     def __init__(self, ref_obj, factor, delta):
         if not isinstance(ref_obj, connection):
             msg = 'First parameter must be object of type connection.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(factor, int) or isinstance(factor, float)):
             msg = 'Second parameter must be of type int or float.'
+            logging.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(delta, int) or isinstance(delta, float)):
             msg = 'Thrid parameter must be of type int or float.'
+            logging.error(msg)
             raise TypeError(msg)
 
         self.obj = ref_obj
         self.f = factor
         self.d = delta
+
+        msg = ('Created reference object with factor ' + str(self.f) + ' and delta ' + str(self.d) + ' referring to connection ' +
+               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' + ref_obj.t.label + ' (' + ref_obj.t_id + ').')
+        logging.debug(msg)
 
     def get_attr(self, key):
         r"""
@@ -629,7 +651,7 @@ class ref:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -640,5 +662,6 @@ class ref:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print(str(self) + ' has no attribute \"' + key + '\".')
-            return None
+            msg = 'Reference has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)

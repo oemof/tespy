@@ -14,6 +14,7 @@
 
 import sys
 import os
+import tespy
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -284,7 +285,7 @@ texinfo_documents = [
 epub_title = u'tespy'
 epub_author = u'Francesco Witte'
 epub_publisher = u'Francesco Witte'
-epub_copyright = u'2018, Francesco Witte'
+epub_copyright = u'2018-2019, Francesco Witte'
 
 # The basename for the epub file. It defaults to the project name.
 #epub_basename = u'pahesmf'

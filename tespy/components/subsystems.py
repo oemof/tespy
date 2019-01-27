@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """
 .. module:: components
     :synopsis:
@@ -6,10 +8,7 @@
 """
 
 import numpy as np
-
-from tespy.helpers import (
-    MyComponentError, MyNetworkError
-)
+import logging
 
 from tespy import networks as nwk
 from tespy.connections import connection, ref
@@ -22,7 +21,7 @@ class subsystem:
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     **kwargs :
@@ -53,10 +52,14 @@ class subsystem:
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
-            raise MyComponentError('Subsystem label must be of type str!')
+            msg = 'Subsystem label must be of type str!'
+            logging.error(msg)
+            raise ValueError(msg)
 
         elif len([x for x in [';', ', ', '.'] if x in label]) > 0:
-            raise MyComponentError('Can\'t use ' + str([';', ', ', '.']) + ' in label.')
+            msg = 'Can\'t use ' + str([';', ', ', '.']) + ' in label.'
+            logging.error(msg)
+            raise ValueError(msg)
         else:
             self.label = label
 
@@ -74,7 +77,7 @@ class subsystem:
 
         Parameters
         ----------
-        label : String
+        label : str
             The label of the subsystem.
 
         **kwargs :
@@ -102,12 +105,15 @@ class subsystem:
                 elif isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
             else:
-                msg = ('Component ' + self.label + ' has no attribute ' +
-                       str(key))
+                msg = ('Component ' + self.label + ' has no attribute ' + str(key))
+                logging.error(msg)
                 raise ValueError(msg)
 
         self.set_comps()
         self.set_conns()
+
+        msg = 'Created subsystem ' + self.label + '.'
+        logging.debug(msg)
 
     def get_attr(self, key):
         r"""
@@ -115,7 +121,7 @@ class subsystem:
 
         Parameters
         ----------
-        key : String
+        key : str
             The attribute you want to retrieve.
 
         Returns
@@ -126,8 +132,9 @@ class subsystem:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            print('Subsystem ' + self.label + ' has no attribute ' + key)
-            return None
+            msg = 'Subsystem ' + self.label + ' has no attribute ' + key + '.'
+            logging.error(msg)
+            raise KeyError(msg)
 
     def attr(self):
         return ['num_i', 'num_o']
@@ -182,7 +189,7 @@ class dr_eva_forced(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_eva : float
@@ -288,7 +295,7 @@ class dr_eva_natural(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_eva : float
@@ -373,7 +380,7 @@ class ph_desup_cond(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_desup : float
@@ -455,7 +462,7 @@ class ph_desup_cond_subc(subsystem):
 
     Parameters
     ----------
-    label : String
+    label : str
         The label of the subsystem.
 
     pr1_desup : float

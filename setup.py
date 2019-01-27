@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 import os
 
 
@@ -14,7 +14,7 @@ setup(name='TESPy',
       author_email='francesco.witte@web.de',
       long_description=read('README.rst'),
       license='GPL-3.0',
-      packages=['tespy', 'tespy.components'],
+      packages=['tespy', 'tespy.components', 'tespy.tools'],
       python_requires='>=3',
       install_requires=['CoolProp >= 6.0.0',
                         'matplotlib >= 2.0.2',

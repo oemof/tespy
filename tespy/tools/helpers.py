@@ -491,6 +491,7 @@ class tespy_fluid:
     >>> nw.solve('design')
     >>> round(hlp.h_mix_pT(c.to_flow(), c.T.val_SI), 0)
     957564.0
+    >>> loadfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec, p_range=p, T_range=T, path='./LUT')
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
@@ -558,6 +559,8 @@ class tespy_fluid:
             logging.debug(msg)
             for key in params.keys():
                 self.funcs[key] = self.generate_lookup(key, params[key])
+                msg = 'Loading function values for function ' + key + '.'
+                logging.debug(msg)
 
         else:
             # load fluid properties from specified path
@@ -565,6 +568,8 @@ class tespy_fluid:
             logging.debug(msg)
             for key in params.keys():
                 self.funcs[key] = self.load_lookup(key)
+                msg = 'Loading function values for function ' + key + '.'
+                logging.debug(msg)
 
         tespy_fluid.fluids[self.alias] = self
 
@@ -715,41 +720,46 @@ def reverse_2d_deriv(params, y):
 class memorise:
     r"""
     Memorization of fluid properties.
-
-    Parameters
-    ----------
-    fluids : list
-        List of fluid for fluid property memorization, delivered upon tespy.networks.network initilisation.
-
-    Note
-    ----
-    The memorise class creates globally accessible variables for different fluid
-    property calls as dictionaries:
-
-        - T(p,h)
-        - T(p,s)
-        - v(p,h)
-        - visc(p,h)
-        - s(p,h)
-
-    Each dictionary uses the list of fluids passed to the memorise class as
-    identifier for the fluid property memorisation. The fluid properties are
-    stored as numpy array, where each column represents the mass fraction of the
-    respective fluid and the additional columns are the values for the fluid
-    properties. The fluid property function will then look for identical fluid
-    property inputs (p, h, (s), fluid mass fraction). If the inputs are in the
-    array, the first column of that row is returned, see example.
-
-    Example
-    -------
-    T(p,h) for set of fluids ('water', 'air'):
-
-        - row 1: [282.64527752319697, 10000, 40000, 1, 0]
-        - row 2: [284.3140698256616, 10000, 47000, 1, 0]
     """
 
     def add_fluids(fluids):
+        r"""
+        Add list of fluids to fluid memorisation class.
 
+        - Generate arrays for fluid property lookup.
+        - Calculate/set fluid property value ranges for convergence checks.
+
+        Parameters
+        ----------
+        fluids : list
+            List of fluid for fluid property memorization.
+
+        Note
+        ----
+        The memorise class creates globally accessible variables for different fluid
+        property calls as dictionaries:
+
+            - T(p,h)
+            - T(p,s)
+            - v(p,h)
+            - visc(p,h)
+            - s(p,h)
+
+        Each dictionary uses the list of fluids passed to the memorise class as
+        identifier for the fluid property memorisation. The fluid properties are
+        stored as numpy array, where each column represents the mass fraction of the
+        respective fluid and the additional columns are the values for the fluid
+        properties. The fluid property function will then look for identical fluid
+        property inputs (p, h, (s), fluid mass fraction). If the inputs are in the
+        array, the first column of that row is returned, see example.
+
+        Example
+        -------
+        T(p,h) for set of fluids ('water', 'air'):
+
+            - row 1: [282.64527752319697, 10000, 40000, 1, 0]
+            - row 2: [284.3140698256616, 10000, 47000, 1, 0]
+        """
         # number of fluids
         num_fl = len(fluids)
         if num_fl > 0:
@@ -769,6 +779,9 @@ class memorise:
             memorise.s_ph_f[fl] = []
             memorise.count = 0
 
+            msg = 'Added fluids ' + str(fl) +' to memorise lookup tables.'
+            logging.debug(msg)
+
         for f in fluids:
             if 'TESPy::' in f:
                 pmin, pmax = tespy_fluid.fluids[f].p_range[0], tespy_fluid.fluids[f].p_range[1]
@@ -783,19 +796,27 @@ class memorise:
                 if f not in memorise.heos.keys():
                     # abstractstate object
                     memorise.heos[f] = CP.AbstractState('HEOS', f)
+                    msg = 'Created CoolProp.AbstractState object for fluid ' + f + ' in memorise class.'
+                    logging.debug(msg)
                     # pressure range
                     pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
                     # temperature range
                     Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
-                    msg = 'Generating CoolProp.AbstractState object for fluid ' + f + ' in memorise class.'
-                    logging.debug(msg)
                     # value range for fluid properties
                     memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
-                    msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
+                    msg = 'Specifying fluid property ranges for pressure and temperature for convergence check of fluid ' + f + '.'
                     logging.debug(msg)
 
 
     def del_memory(fluids):
+        r"""
+        Deletes non frequently used fluid property values from memorise class.
+
+        Parameters
+        ----------
+        fluids : list
+            List of fluid for fluid property memorization.
+        """
 
         fl = tuple(fluids)
 
@@ -822,7 +843,7 @@ class memorise:
         memorise.visc_ph_f[fl] = []
         memorise.s_ph_f[fl] = []
 
-        msg = 'Dropping not frequently used fluid property values from memorise class.'
+        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + fl + '.'
         logging.debug(msg)
 
 

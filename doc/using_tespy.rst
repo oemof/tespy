@@ -230,6 +230,8 @@ Another type of connection is the bus: Busses are power connections for e. g. tu
 .. code-block:: python
 
 	myplant.add_busses()
+	
+You will learn more about busses and how they work in :ref:`this part<tespy_busses_label>`.
 
 Start calculation
 ^^^^^^^^^^^^^^^^^
@@ -999,6 +1001,8 @@ If you want to specify the fluid vector you can do it in the following way:
 
 References can not be used for fluid composition at the moment!
 
+
+.. _tespy_busses_label:
 
 Busses
 ------

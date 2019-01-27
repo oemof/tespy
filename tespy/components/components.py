@@ -4760,13 +4760,15 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in self.fg.keys():
             self.fg[f] /= m_fg
 
-        tespy_fluid(self.fuel_alias.val, self.fuel.val, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
-        tespy_fluid(self.fuel_alias.val + '_fg', self.fg, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
+        if not self.path.is_set:
+            self.path.val = None
+        tespy_fluid(self.fuel_alias.val, self.fuel.val, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path.val)
+        tespy_fluid(self.fuel_alias.val + '_fg', self.fg, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path.val)
         msg = 'Generated lookup table for ' + self.fuel_alias.val + ' and for stoichiometric flue gas at stoichiometric combustion chamber ' + self.label + '.'
         logging.debug(msg)
 
         if self.air_alias.val not in ['Air', 'air']:
-            tespy_fluid(self.air_alias.val, self.air.val, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path)
+            tespy_fluid(self.air_alias.val, self.air.val, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path.val)
             msg = 'Generated lookup table for ' + self.air_alias.val + ' at stoichiometric combustion chamber ' + self.label + '.'
         else:
             msg = 'Using CoolProp air at stoichiometric combustion chamber ' + self.label + '.'

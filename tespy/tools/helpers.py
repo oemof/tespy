@@ -497,9 +497,6 @@ class tespy_fluid:
 
     def __init__(self, alias, fluid, p_range, T_range, path=None, plot=False):
 
-        if not hasattr(tespy_fluid, 'fluids'):
-            tespy_fluid.fluids = {}
-
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
             logging.error(msg)
@@ -516,8 +513,6 @@ class tespy_fluid:
         else:
             self.alias = 'TESPy::' + alias
         self.fluid = fluid
-
-        memorise.add_fluids(self.fluid.keys())
 
         # adjust value ranges according to specified unit system
         self.p_range = np.array(p_range)
@@ -543,6 +538,7 @@ class tespy_fluid:
 
         # create look up tables
         tespy_fluid.fluids[self.alias] = {}
+        memorise.add_fluids(self.fluid.keys())
 
         params = {}
 
@@ -673,6 +669,9 @@ class tespy_fluid:
         func = interpolate.RectBivariateSpline(x1, x2, y)
         return func
 
+# create dict for tespy fluids
+tespy_fluid.fluids = {}
+
 
 def reverse_2d(params, y):
     r"""
@@ -784,14 +783,18 @@ class memorise:
 
         for f in fluids:
             if 'TESPy::' in f:
-                pmin, pmax = tespy_fluid.fluids[f].p_range[0], tespy_fluid.fluids[f].p_range[1]
-                Tmin, Tmax = tespy_fluid.fluids[f].T_range[0], tespy_fluid.fluids[f].T_range[1]
-                msg = 'Loading fluid property ranges for TESPy-fluid ' + f + '.'
-                logging.debug(msg)
-                # value range for fluid properties
-                memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
-                msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
-                logging.debug(msg)
+                if f in tespy_fluid.fluids.keys():
+                    pmin, pmax = tespy_fluid.fluids[f].p_range[0], tespy_fluid.fluids[f].p_range[1]
+                    Tmin, Tmax = tespy_fluid.fluids[f].T_range[0], tespy_fluid.fluids[f].T_range[1]
+                    msg = 'Loading fluid property ranges for TESPy-fluid ' + f + '.'
+                    logging.debug(msg)
+                    # value range for fluid properties
+                    memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
+                    msg = 'Specifying fluid property ranges for pressure and temperature for convergence check.'
+                    logging.debug(msg)
+                else:
+                    memorise.vrange[f] = [2000, 2000000, 300, 2000]
+
             else:
                 if f not in memorise.heos.keys():
                     # abstractstate object

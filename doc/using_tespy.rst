@@ -183,7 +183,7 @@ Value ranges for pure fluids are not required as these are dealt with automatica
 	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
 
 Printouts and logging
-*********************
++++++++++++++++++++++
 
 TESPy comes with an inbuilt logger. If you want to keep track of debugging-messages, general information, warnings or errors you should enable the logger. At the beginning of your python script e. g. add the following lines:
 
@@ -206,7 +206,7 @@ You can choose the print_level (info or none). Check out the :py:meth:`API-docum
 	myplant.set_printoptions(print_level='none') # disabling iteration information printout
 
 Adding connections
-******************
+++++++++++++++++++
 
 As seen in the introduction, you will have to create your networks from the components and the connections between them.
 You can add connections directly or via subsystems and networks holding them by using the appropriate methods:
@@ -223,7 +223,7 @@ You can add connections directly or via subsystems and networks holding them by 
 	After having set up your network and added all required elements, you can start the calculation.
 
 Busses: power connections
-*************************
++++++++++++++++++++++++++
 
 Another type of connection is the bus: Busses are power connections for e. g. turbomachines or heat exchangers. They can be used to model motors or generators, too. Add them to your network with the following method:
 
@@ -272,7 +272,7 @@ This applies to connections analogously. **The value of the newly set parameter 
 
 .. code-block:: python
 
-	myplant.solve(mode='design', design_file='design_results.csv', init_file='design_results.csv')
+	myplant.solve(mode='offdesign', design_path='mynetwork')
 
 
 .. note::

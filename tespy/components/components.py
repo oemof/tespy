@@ -77,7 +77,7 @@ class component:
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
             logging.error(msg)
-            raise TypeError(msg)
+            raise ValueError(msg)
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
             msg = ('Can\'t use ' + str([';', ',', '.']) + ' in label (' + str(self.component()) + ').')
             logging.error(msg)
@@ -85,13 +85,7 @@ class component:
         else:
             self.label = label
 
-        self.mode = kwargs.get('mode', 'auto')
-
-        # check calculation mode declaration
-        if self.mode not in ['man', 'auto']:
-            msg = 'Mode must be \'man\' or \'auto\'.'
-            logging.error(msg)
-            raise TypeError(msg)
+        self.mode = 'auto'
 
         # set default design and offdesign parameters
         self.design = []
@@ -183,20 +177,25 @@ class component:
                             isinstance(self.get_attr(key), dc_cm)):
                             self.get_attr(key).set_attr(func=None)
 
-                # invalid datatype for keyword
-                else:
-                    msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
-                    logging.error(msg)
-                    raise TypeError(msg)
+                    # invalid datatype for keyword
+                    else:
+                        msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
+                        logging.error(msg)
+                        raise TypeError(msg)
 
             # export sources or sinks as subsystem interface
             elif key == 'interface':
-                if isinstance(kwargs[key], bool):
-                    self.interface = kwargs[key]
+                if isinstance(self, source) or isinstance(self, sink):
+                    if isinstance(kwargs[key], bool):
+                        self.interface = kwargs[key]
+                    else:
+                        msg = ('Datatype for keyword argument ' + str(key) + ' must be bool at ' + self.label + '.')
+                        logging.error(msg)
+                        raise ValueError(msg)
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) + ' must be bool.')
+                    msg = ('Only sinks and sources can be attributed with the interface parameter (error at ' + self.label + ').')
                     logging.error(msg)
-                    raise TypeError(msg)
+                    raise TESPyComponentError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):

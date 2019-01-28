@@ -222,7 +222,7 @@ class component:
             else:
                 msg = ('Component ' + self.label + ' has no attribute ' + str(key) + '.')
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""

@@ -12,55 +12,45 @@ class specification_error_tests:
     def setup(self):
         self.comp = cmp.cogeneration_unit('cogeneration unit')
 
-    def test_component_instanciation(self):
+    @raises(ValueError)
+    def test_cmp_instanciation(self):
         labels = [5, 'Label,', 'Labe;l', 'Label.']
         for l in labels:
-            try:
-                cmp.cogeneration_unit(l)
-            except ValueError:
-                continue
-        pass
-
-    @with_setup(setup)
-    def test_component_parameterisation(self):
-        # component properties
-        try:
-            self.comp.set_attr(P=[5])
-        except TypeError:
-            pass
-
-        # component characteristics
-        try:
-            self.comp.set_attr(tiP_char=None)
-        except TypeError:
-            pass
-
-        # non existent property
-        try:
-            self.comp.set_attr(wow=5)
-        except ValueError:
-            pass
-
-        # mode specification
-        try:
-            self.comp.set_attr(mode=5)
-        except ValueError:
-            pass
-
-        # design/offdesign parameter specification
-        try:
-            self.comp.set_attr(design=['P', 'Q1'], offdesign=['Q'])
-        except ValueError:
-            pass
+            cmp.cogeneration_unit(l)
 
         # interface specification
+        cmp.sink('sink', interface=5)
+
+    @raises(ValueError)
+    def cmp_set_attr_ValueError(self, **kwargs):
+        self.comp.set_attr(**kwargs)
+
+    @raises(TypeError)
+    def cmp_set_attr_TypeError(self, **kwargs):
+        self.comp.set_attr(**kwargs)
+
+    @raises(KeyError)
+    def cmp_set_attr_KeyError(self, **kwargs):
+        self.comp.set_attr(**kwargs)
+
+    @raises(hlp.TESPyComponentError)
+    def cmp_set_attr_TESPyError(self, **kwargs):
+        self.comp.set_attr(**kwargs)
+
+    @with_setup(setup)
+    def test_cmp_parameterisation(self):
+        # value errors
+        self.cmp_set_attr_ValueError(mode=5)
+        self.cmp_set_attr_ValueError(design=['P', 'Q1'], offdesign=['Q'])
+        # key errors
+        self.cmp_set_attr_KeyError(wow=5)
+        # type errors
+        self.cmp_set_attr_TypeError(P=[5])
+        self.cmp_set_attr_TypeError(tiP_char=None)
+        # TESPy errors
+        self.cmp_set_attr_TESPyError(interface=True)
+
         try:
             self.comp.set_attr(interface=True)
         except hlp.TESPyComponentError:
-            pass
-
-        # interface specification
-        try:
-            cmp.sink('sink', interface=5)
-        except ValueError:
             pass

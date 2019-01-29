@@ -13,6 +13,7 @@ class specification_error_tests:
         self.comp = cmp.cogeneration_unit('cogeneration unit')
         self.pipe = cmp.pipe('pipe')
         self.conn = con.connection(self.comp, 'out1', self.pipe, 'in1')
+        self.bus = con.bus('mybus')
 
     @raises(ValueError)
     def test_cmp_instanciation(self):
@@ -35,6 +36,14 @@ class specification_error_tests:
         self.comp.set_attr(P=[5], tiP_char=None)
         con.connection(self.comp, 'out1', self.conn, 'in5')
         self.conn.set_attr(design='h', fluid_balance=1, fluid=5, h0=[4])
+        self.bus.add_comps({'c': self.conn})
+        self.bus.add_comps({'f': self.comp})
+        self.bus.add_comps({'c': self.comp, 'char': 'Hi'})
+        self.bus.add_comps({'c': self.comp, 'p': 5})
+        self.bus.add_comps({'c': self.comp, 'P_ref': 'what'})
+        con.connection(self.comp, 'out1', self.pipe, 'in1', m=con.ref(self.conn, 7, 'hi'))
+        con.connection(self.comp, 'out1', self.pipe, 'in1', m=con.ref(self.conn, 'Hi', 0))
+        con.connection(self.comp, 'out1', self.pipe, 'in1', m=con.ref(self.comp, 1, 0))
 
     @raises(KeyError)
     def test_set_attr_KeyError(self):
@@ -42,6 +51,8 @@ class specification_error_tests:
         self.conn.set_attr(key=7)
         self.comp.get_attr('wow')
         self.conn.get_attr('key')
+        self.bus.get_attr('components')
+        con.ref(self.conn, 1, 0).get_attr('comp')
 
     @raises(hlp.TESPyComponentError)
     def test_set_attr_TESPyError(self):
@@ -50,4 +61,5 @@ class specification_error_tests:
     @raises(hlp.TESPyConnectionError)
     def test_con_instanciation(self):
         con.connection(self.comp, 'out1', self.comp, 'in1')
+        self.bus.add_comps(self.comp)
 

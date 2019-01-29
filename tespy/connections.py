@@ -269,7 +269,7 @@ class connection:
                         self.get_attr(key).set_attr(ref_set=True)
 
                 # data container specification
-                elif isinstance(kwargs[key], dc_cp):
+                elif isinstance(kwargs[key], dc_prop):
                     self.__dict__.update({key: kwargs[key]})
 
                 # invalid datatype for keyword

@@ -26,10 +26,11 @@ class specification_error_tests:
 
     @raises(ValueError)
     def test_set_attr_ValueError(self):
-        self.comp.set_attr(mode=5, design=['P', 'Q1'], offdesign=['Q'])
+        self.comp.set_attr(mode=5)
+        self.comp.set_attr(offdesign=['Q'])
         con.connection(self.comp, 'out1', self.pipe, 'in5')
         con.connection(self.comp, 'out6', self.pipe, 'in1')
-        self.conn.set_attr(design=['h'], offdesign=['f'])
+        self.conn.set_attr(offdesign=['f'])
 
     @raises(TypeError)
     def test_set_attr_TypeError(self):

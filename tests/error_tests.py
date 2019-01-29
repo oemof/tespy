@@ -13,6 +13,7 @@ import numpy as np
 class specification_error_tests:
 
     def setup(self):
+        self.nw = nwk.network(['water', 'air'])
         self.comp = cmp.cogeneration_unit('cogeneration unit')
         self.pipe = cmp.pipe('pipe')
         self.conn = con.connection(self.comp, 'out1', self.pipe, 'in1')
@@ -78,7 +79,14 @@ class specification_error_tests:
         # ValueErrors
         self.set_attr_ValueError(self.comp, mode=5)
         self.set_attr_ValueError(self.comp, offdesign=['Q'])
+
         self.set_attr_ValueError(self.conn, offdesign=['f'])
+
+        self.set_attr_ValueError(self.nw, m_unit='kg')
+        self.set_attr_ValueError(self.nw, h_unit='kg')
+        self.set_attr_ValueError(self.nw, p_unit='kg')
+        self.set_attr_ValueError(self.nw, T_unit='kg')
+        self.set_attr_ValueError(self.nw, v_unit='kg')
 
         self.create_connection_ValueError('source')
         self.create_connection_ValueError('target')
@@ -91,6 +99,10 @@ class specification_error_tests:
         self.set_attr_TypeError(self.conn, fluid_balance=1)
         self.set_attr_TypeError(self.conn, h0=[4])
         self.set_attr_TypeError(self.conn, fluid=5)
+
+        self.set_attr_TypeError(self.nw, p_range=5)
+        self.set_attr_TypeError(self.nw, h_range=5)
+        self.set_attr_TypeError(self.nw, T_range=5)
 
         self.bus_add_comps_TypeError({'c': self.conn})
         self.bus_add_comps_TypeError({'f': self.comp})
@@ -110,6 +122,7 @@ class specification_error_tests:
         self.get_attr_KeyError(self.conn, 'key')
         self.get_attr_KeyError(self.bus, 'components')
         self.get_attr_KeyError(con.ref(self.conn, 1, 0), 'comp')
+        self.get_attr_KeyError(self.nw, 'test')
 
 # %% Single tests
 
@@ -117,3 +130,7 @@ class specification_error_tests:
 def test_interface_ValueError():
     # interface specification
     cmp.sink('sink', interface=5)
+
+@raises(TypeError)
+def test_network_instanciation(self):
+    nwk.network('water')

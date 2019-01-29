@@ -229,7 +229,6 @@ class network:
         ----
         Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
         """
-        logging.warning(self.m_unit)
         # add attributes from kwargs
         for key in kwargs:
             if key in self.attr():

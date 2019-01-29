@@ -34,7 +34,7 @@ class specification_error_tests:
     def test_set_attr_TypeError(self):
         self.comp.set_attr(P=[5], tiP_char=None)
         con.connection(self.comp, 'out1', self.conn, 'in5')
-        self.conn.set_attr(design='h', fluid_balance=1)
+        self.conn.set_attr(design='h', fluid_balance=1, fluid=5, h0=[4])
 
     @raises(KeyError)
     def test_set_attr_KeyError(self):

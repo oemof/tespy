@@ -223,7 +223,30 @@ class connection:
         # set specified values
         for key in kwargs:
             if key in var.keys() or key in var0:
-                if (isinstance(kwargs[key], float) or
+                if 'fluid' in key:
+                    # fluid specification
+                    if isinstance(kwargs[key], dict):
+                        # starting values
+                        if key in var0:
+                            self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                        # specified parameters
+                        else:
+                            self.get_attr(key).set_attr(val=kwargs[key].copy())
+                            for f in kwargs[key]:
+                                kwargs[key][f] = True
+                            self.get_attr(key).set_attr(val_set=kwargs[key])
+
+                    elif isinstance(kwargs[key], dc_flu):
+                        # data container for fluids
+                        self.__dict__.update({key: kwargs[key]})
+
+                    else:
+                        # bad datatype
+                        msg = 'Bad datatype for connection keyword ' + key + '.'
+                        logging.error(msg)
+                        raise TypeError(msg)
+
+                elif (isinstance(kwargs[key], float) or
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
@@ -238,33 +261,20 @@ class connection:
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
-                    if key == 'fluid' or key == 'x':
-                        msg = 'References for fluid vector and vapour mass fraction not implemented.'
+                    if key == 'x' or key == 'v':
+                        msg = 'References for volumetric flow and vapour mass fraction not implemented.'
                         logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
 
-                # fluid specification
-                elif isinstance(kwargs[key], dict):
-                    # starting values
-                    if key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key])
-                    # specified parameters
-                    else:
-                        self.get_attr(key).set_attr(val=kwargs[key].copy())
-                        for f in kwargs[key]:
-                            kwargs[key][f] = True
-                        self.get_attr(key).set_attr(val_set=kwargs[key])
-
                 # data container specification
-                elif isinstance(kwargs[key], data_container):
+                elif isinstance(kwargs[key], dc_cp):
                     self.__dict__.update({key: kwargs[key]})
 
                 # invalid datatype for keyword
                 else:
-                    msg = 'Bad datatype for keyword argument ' + str(key)
+                    msg = 'Bad datatype for keyword argument ' + str(key) + '.'
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -291,7 +301,7 @@ class connection:
 
             # invalid keyword
             else:
-                msg = 'Connection has no attribute ' + str(key)
+                msg = 'Connection has no attribute ' + str(key) + '.'
                 logging.error(msg)
                 raise KeyError(msg)
 

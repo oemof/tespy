@@ -4478,6 +4478,42 @@ class combustion_chamber_stoich(combustion_chamber):
     the fuel, TESPy will automatically create a custom fluid called:
     'TESPy::yourfuelalias'. For more information see the examples section
     or look for the combustion chamber tutorials at tespy.readthedocs.io.
+
+    Example
+    -------
+    >>> from tespy import con, cmp, nwk, hlp
+    >>> import shutil
+    >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     p_range=[0.001, 10], T_range=[10, 2000])
+    >>> amb = cmp.source('ambient')
+    >>> sf = cmp.source('fuel')
+    >>> fg = cmp.sink('flue gas outlet')
+    >>> comb = cmp.combustion_chamber_stoich('stoichiometric combustion chamber')
+    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
+    ...     air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+    ...     'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
+    ...     fuel_alias='myFuel', air_alias='myAir',
+    ...     lamb=3, ti=20000)
+    >>> amb_comb.set_attr(T=20, p=1,
+    ...     fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
+    ...     'TESPy::myFuel_fg': 0})
+    >>> sf_comb.set_attr(T=25,
+    ...     fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
+    ...     'TESPy::myFuel_fg': 0})
+    >>> nw.set_printoptions(iterinfo=False)
+    >>> nw.solve('design')
+    >>> round(comb_fg.T.val, 1)
+    860.2
+    >>> comb.set_attr(path='./LUT')
+    >>> nw.solve('design')
+    >>> round(comb_fg.T.val, 1)
+    860.2
+    >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
     def component(self):

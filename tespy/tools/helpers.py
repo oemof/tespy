@@ -795,6 +795,11 @@ class memorise:
                 else:
                     memorise.vrange[f] = [2000, 2000000, 300, 2000]
 
+            elif 'INCOMP::' in f:
+                # temperature range available only for incompressibles
+                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+                memorise.vrange[f] = [2000, 2000000, Tmin, Tmax]
+
             else:
                 if f not in memorise.heos.keys():
                     # abstractstate object
@@ -1032,6 +1037,8 @@ def T_ph(p, h, fluid):
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('T', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].T()
@@ -1219,6 +1226,8 @@ def T_ps(p, s, fluid):
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('T', 'P', p, 'H', s, fluid)
     else:
         memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
         return memorise.heos[fluid].T()
@@ -1288,6 +1297,8 @@ def h_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('H', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].hmass()
@@ -1375,6 +1386,8 @@ def h_ps(p, s, fluid):
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('H', 'P', p, 'S', s, fluid)
     else:
         memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
         return memorise.heos[fluid].hmass()
@@ -1538,6 +1551,8 @@ def d_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('D', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].rhomass()
@@ -1684,6 +1699,8 @@ def d_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('D', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].rhomass()
@@ -1773,6 +1790,8 @@ def visc_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('V', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].viscosity()
@@ -1847,6 +1866,8 @@ def visc_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('V', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].viscosity()
@@ -1936,6 +1957,8 @@ def s_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('S', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].smass()
@@ -2025,6 +2048,8 @@ def s_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('S', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].smass()

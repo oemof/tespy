@@ -112,14 +112,19 @@ class network:
         if isinstance(fluids, list):
             self.fluids = sorted(fluids)
         else:
-            msg = 'Please provide a list of fluids on network creation.'
+            msg = 'Please provide a list containing the network\'s fluids on creation.'
             logging.error(msg)
-            TypeError(msg)
+            raise TypeError(msg)
 
         msg = 'Network fluids are: '
         for f in self.fluids:
             msg += f + ', '
-            if 'TESPy::' not in f:
+            if 'INCOMP::' in f:
+                # molar mass and gas constant not available for incompressibles
+                hlp.molar_masses[f] = 1
+                hlp.gas_constants[f] = 1
+
+            elif 'TESPy::' not in f:
                 # calculating molar masses and gas constants for network's fluids
                 # tespy_fluid molar mass and gas constant are added on lut creation
                 hlp.molar_masses[f] = CPPSI('M', f)
@@ -266,7 +271,7 @@ class network:
             logging.error(msg)
             raise ValueError(msg)
 
-        msg = ('Unit specifications:'
+        msg = ('Unit specifications: '
                'mass flow: ' + self.m_unit + ', ' +
                'pressure: ' + self.p_unit + ', ' +
                'enthalpy: ' + self.h_unit + ', ' +
@@ -316,18 +321,6 @@ class network:
         msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
                ', max: ' + str(self.T_range_SI[1]) + ' ' + self.SI_units['T'] + '.')
         logging.debug(msg)
-
-        for f in self.fluids:
-            if 'TESPy::' in f:
-                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
-                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
-                hlp.memorise.vrange[f][2] = self.T_range_SI[0]
-                hlp.memorise.vrange[f][3] = self.T_range_SI[1]
-
-            # incompressible fluids do not have built in pressure range
-            if 'INCOMP::' in f:
-                hlp.memorise.vrange[f][0] = 2e3
-                hlp.memorise.vrange[f][1] = 200e5
 
     def get_attr(self, key):
         r"""

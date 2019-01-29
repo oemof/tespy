@@ -110,7 +110,12 @@ class network:
 
         # fluid list and constants
         if isinstance(fluids, list):
-            self.fluids = sorted(fluids)
+            if len(fluids) == 0:
+                msg = ('Network has no fluids, please specify a list with fluids on network creation.')
+                logging.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+            else:
+                self.fluids = sorted(fluids)
         else:
             msg = 'Please provide a list containing the network\'s fluids on creation.'
             logging.error(msg)
@@ -612,12 +617,6 @@ class network:
             - Set component and connection design point properties.
             - Switch from design/offdesign parameter specification.
         """
-        if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids on network creation.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-
         if self.mode == 'offdesign':
             if self.design_path is None:
                 # must provide design_path
@@ -1182,7 +1181,7 @@ class network:
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
         else:
             self.mode = mode
 

@@ -109,7 +109,13 @@ class network:
         self.busses = collections.OrderedDict()
 
         # fluid list and constants
-        self.fluids = sorted(fluids)
+        if isinstance(fluids, list):
+            self.fluids = sorted(fluids)
+        else:
+            msg = 'Please provide a list of fluids on network creation.'
+            logging.error(msg)
+            TypeError(msg)
+
         msg = 'Network fluids are: '
         for f in self.fluids:
             msg += f + ', '
@@ -223,36 +229,43 @@ class network:
         ----
         Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
         """
+        logging.warning(self.m_unit)
         # add attributes from kwargs
         for key in kwargs:
             if key in self.attr():
                 self.__dict__.update({key: kwargs[key]})
+        logging.warning(self.m_unit)
 
         # unit sets
         if self.m_unit not in self.m.keys():
             msg = ('Allowed units for mass flow are: ' + str(self.m.keys()))
+            self.m_unit = self.SI_units['m']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.p_unit not in self.p.keys():
             msg = ('Allowed units for pressure are: ' + str(self.p.keys()))
+            self.p_unit = self.SI_units['p']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.h_unit not in self.h.keys():
             msg = ('Allowed units for enthalpy are: ' + str(self.h.keys()))
+            self.h_unit = self.SI_units['h']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.T_unit not in self.T.keys():
             msg = ('Allowed units for temperature are: ' + str(self.T.keys()))
+            self.T_unit = self.SI_units['T']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.v_unit not in self.v.keys():
             msg = ('Allowed units for volumetric flow are: ' + str(self.v.keys()))
+            self.v_unit = self.SI_units['v']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         msg = ('Unit specifications:'
                'mass flow: ' + self.m_unit + ', ' +
@@ -312,10 +325,10 @@ class network:
                 hlp.memorise.vrange[f][2] = self.T_range_SI[0]
                 hlp.memorise.vrange[f][3] = self.T_range_SI[1]
 
-            # incompressible fluids do not have pressure range
+            # incompressible fluids do not have built in pressure range
             if 'INCOMP::' in f:
-                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
-                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
+                hlp.memorise.vrange[f][0] = 2e3
+                hlp.memorise.vrange[f][1] = 200e5
 
     def get_attr(self, key):
         r"""

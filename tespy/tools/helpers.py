@@ -2255,6 +2255,11 @@ def lamb(re, ks, d):
     >>> re_laminar = 2000
     >>> re_turb_smooth = 20000
     >>> re_turb_trans = 70000
+    >>> re_high = 1000000
+    >>> d_high = 0.8
+    >>> re_very_high = 6000000
+    >>> d_very_high = 1
+    >>> ks_low = 1e-5
     >>> ks_rough = 1e-3
     >>> hlp.lamb(re_laminar, ks, d)
     0.032
@@ -2264,6 +2269,10 @@ def lamb(re, ks, d):
     0.023
     >>> round(hlp.lamb(re_turb_trans, ks_rough, d), 3)
     0.049
+    >>> round(hlp.lamb(re_high, ks, d_high), 3)
+    0.012
+    >>> round(hlp.lamb(re_very_high, ks_low, d_very_high), 3)
+    0.009
     """
     if re <= 2320:
         return 64 / re

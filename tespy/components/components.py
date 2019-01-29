@@ -199,7 +199,7 @@ class component:
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the design parameters as list at ' + self.label + '.')
+                    msg = ('Please provide the ' + key + ' parameters as list at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):

@@ -289,7 +289,7 @@ class connection:
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the design parameters as list!'
+                    msg = 'Please provide the ' + key + ' parameters as list!'
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(var.keys()):

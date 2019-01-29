@@ -37,7 +37,7 @@ class specification_error_tests:
         instance.set_attr(**kwargs)
 
     @raises(KeyError)
-    def set_attr_KeyError(self, instance, key):
+    def get_attr_KeyError(self, instance, key):
         instance.get_attr(key)
 
     @raises(hlp.TESPyComponentError)

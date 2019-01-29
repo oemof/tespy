@@ -311,7 +311,7 @@ class dr_eva_natural(subsystem):
     Example
     -------
     >>> from tespy import subsys
-    >>> mysub = subsys.dr_eva_forced('drum with evaporator')
+    >>> mysub = subsys.dr_eva_natural('drum with evaporator')
     >>> mysub.set_attr(pr1_eva=0.99, PP=20, circ_num=3.4)
     >>> mysub.get_attr('PP')
     20

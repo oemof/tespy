@@ -238,7 +238,6 @@ class network:
         for key in kwargs:
             if key in self.attr():
                 self.__dict__.update({key: kwargs[key]})
-        logging.warning(self.m_unit)
 
         # unit sets
         if self.m_unit not in self.m.keys():
@@ -321,6 +320,13 @@ class network:
         msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
                ', max: ' + str(self.T_range_SI[1]) + ' ' + self.SI_units['T'] + '.')
         logging.debug(msg)
+
+        for f in self.fluids:
+            if 'TESPy::' in f:
+                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
+                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
+                hlp.memorise.vrange[f][2] = self.T_range_SI[0]
+                hlp.memorise.vrange[f][3] = self.T_range_SI[1]
 
     def get_attr(self, key):
         r"""

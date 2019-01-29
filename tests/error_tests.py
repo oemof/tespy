@@ -100,7 +100,7 @@ class specification_error_tests:
 
         self.create_ref_TypeError([self.conn, 7, 'hi'])
         self.create_ref_TypeError([self.conn, 'hi', 0])
-        self.create_ref_TypeError([self.cimp, 1, 0])
+        self.create_ref_TypeError([self.comp, 1, 0])
 
         # KeyErrors
         self.set_attr_KeyError(self.comp, wow=5)

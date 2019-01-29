@@ -118,18 +118,18 @@ class connection:
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. Can\'t connect component to itself.')
+            msg = ('Error creating connection. Can\'t connect component ' + comp1.label + ' to itself.')
             logging.error(msg)
-            raise ValueError(msg)
+            raise TESPyConnectionError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. Specified oulet_id is not valid for component ' +
+            msg = ('Error creating connection. Specified oulet_id (' + outlet_id + ') is not valid for component ' +
                    comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. Specified inlet_id is not valid for component ' +
+            msg = ('Error creating connection. Specified inlet_id (' + inlet_id + ') is not valid for component ' +
                    comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
@@ -293,7 +293,7 @@ class connection:
             else:
                 msg = 'Connection has no attribute ' + str(key)
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""

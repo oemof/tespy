@@ -387,47 +387,47 @@ class TESPyConnectionError(Exception):
 class TESPyComponentError(Exception):
     pass
 
-
-def query_yes_no(question, default='yes'):
-    r"""
-    Parameters
-    ----------
-    question : str
-        Question to be asked.
-
-    default : str
-        Default answer: default='yes'.
-
-    elements : list
-        Which component properties are part of this component group? default elements=[].
-
-    Returns
-    -------
-    answer : boolean
-        Answer.
-    """
-    valid = {'yes': True,
-             'y': True,
-             'ye': True,
-             'no': False,
-             'n': False}
-    if default is None:
-        prompt = '[y / n]'
-    elif default == 'yes':
-        prompt = '[Y / n]'
-    elif default == 'no':
-        prompt = '[y / N]'
-
-    while True:
-        sys.stdout.write(question + prompt)
-        choice = input().lower()
-        if default is not None and choice == '':
-            return valid[default]
-        elif choice in valid:
-            return valid[choice]
-        else:
-            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
-
+#
+#def query_yes_no(question, default='yes'):
+#    r"""
+#    Parameters
+#    ----------
+#    question : str
+#        Question to be asked.
+#
+#    default : str
+#        Default answer: default='yes'.
+#
+#    elements : list
+#        Which component properties are part of this component group? default elements=[].
+#
+#    Returns
+#    -------
+#    answer : boolean
+#        Answer.
+#    """
+#    valid = {'yes': True,
+#             'y': True,
+#             'ye': True,
+#             'no': False,
+#             'n': False}
+#    if default is None:
+#        prompt = '[y / n]'
+#    elif default == 'yes':
+#        prompt = '[Y / n]'
+#    elif default == 'no':
+#        prompt = '[y / N]'
+#
+#    while True:
+#        sys.stdout.write(question + prompt)
+#        choice = input().lower()
+#        if default is not None and choice == '':
+#            return valid[default]
+#        elif choice in valid:
+#            return valid[choice]
+#        else:
+#            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
+#
 # %%
 
 

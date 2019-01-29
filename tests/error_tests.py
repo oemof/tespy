@@ -11,6 +11,8 @@ class specification_error_tests:
 
     def setup(self):
         self.comp = cmp.cogeneration_unit('cogeneration unit')
+        self.pipe = cmp.pipe('pipe')
+        self.conn = con.connection(self.comp, 'out1', self.pipe, 'in1')
 
     @raises(ValueError)
     def test_cmp_instanciation(self):
@@ -22,35 +24,30 @@ class specification_error_tests:
         cmp.sink('sink', interface=5)
 
     @raises(ValueError)
-    def cmp_set_attr_ValueError(self, **kwargs):
-        self.comp.set_attr(**kwargs)
+    def test_set_attr_ValueError(self):
+        self.comp.set_attr(mode=5, design=['P', 'Q1'], offdesign=['Q'])
+        con.connection(self.comp, 'out1', self.pipe, 'in5')
+        con.connection(self.comp, 'out6', self.pipe, 'in1')
+        self.conn.set_attr(design=['h'], offdesign=['f'])
 
     @raises(TypeError)
-    def cmp_set_attr_TypeError(self, **kwargs):
-        self.comp.set_attr(**kwargs)
+    def test_set_attr_TypeError(self):
+        self.comp.set_attr(P=[5], tiP_char=None)
+        con.connection(self.comp, 'out1', self.conn, 'in5')
+        self.conn.set_attr(design='h', fluid_balance=1)
 
     @raises(KeyError)
-    def cmp_set_attr_KeyError(self, **kwargs):
-        self.comp.set_attr(**kwargs)
+    def test_set_attr_KeyError(self):
+        self.comp.set_attr(wow=5)
+        self.conn.set_attr(key=7)
+        self.comp.get_attr('wow')
+        self.conn.get_attr('key')
 
     @raises(hlp.TESPyComponentError)
-    def cmp_set_attr_TESPyError(self, **kwargs):
-        self.comp.set_attr(**kwargs)
+    def test_set_attr_TESPyError(self):
+        self.comp.set_attr(interface=True)
 
-    @with_setup(setup)
-    def test_cmp_parameterisation(self):
-        # value errors
-        self.cmp_set_attr_ValueError(mode=5)
-        self.cmp_set_attr_ValueError(design=['P', 'Q1'], offdesign=['Q'])
-        # key errors
-        self.cmp_set_attr_KeyError(wow=5)
-        # type errors
-        self.cmp_set_attr_TypeError(P=[5])
-        self.cmp_set_attr_TypeError(tiP_char=None)
-        # TESPy errors
-        self.cmp_set_attr_TESPyError(interface=True)
+    @raises(hlp.TESPyConnectionError)
+    def test_con_instanciation(self):
+        con.connection(self.comp, 'out1', self.comp, 'in1')
 
-        try:
-            self.comp.set_attr(interface=True)
-        except hlp.TESPyComponentError:
-            pass

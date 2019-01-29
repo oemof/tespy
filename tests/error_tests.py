@@ -141,7 +141,7 @@ def test_network_instanciation_single_fluid():
     nwk.network('water')
 
 @raises(TypeError)
-def test_network_instanciation_no_fluids():
+def test_network_add_conns():
     nwk.network(['water']).add_conns(cmp.component('test'))
 
 @raises(hlp.TESPyNetworkError)
@@ -213,4 +213,4 @@ def test_network_mode():
 
 @raises(hlp.TESPyNetworkError)
 def test_network_instanciation_no_fluids():
-    nwk.network([])
+    nwk.network([]).initialise()

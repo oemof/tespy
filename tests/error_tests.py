@@ -2,7 +2,7 @@
 
 from nose.tools import ok_, eq_, raises, with_setup
 
-from tespy import nwk, cmp, con, hlp
+from tespy import nwk, cmp, con, hlp, subsys, cmp_char
 from CoolProp.CoolProp import PropsSI as CP
 import numpy as np
 
@@ -18,6 +18,7 @@ class specification_error_tests:
         self.pipe = cmp.pipe('pipe')
         self.conn = con.connection(self.comp, 'out1', self.pipe, 'in1')
         self.bus = con.bus('mybus')
+        self.sub = subsys.subsystem('MySub')
 
     @raises(ValueError)
     def cmp_instanciation_ValueError(self, label):
@@ -132,12 +133,15 @@ class specification_error_tests:
         # KeyErrors
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
+        self.set_attr_KeyError(self.sub, a=7)
 
         self.get_attr_KeyError(self.comp, 'wow')
         self.get_attr_KeyError(self.conn, 'key')
         self.get_attr_KeyError(self.bus, 'components')
         self.get_attr_KeyError(con.ref(self.conn, 1, 0), 'comp')
         self.get_attr_KeyError(self.nw, 'test')
+        self.get_attr_KeyError(self.sub, 'test')
+        self.get_attr_KeyError(cmp_char.characteristics(), 'test')
 
 # %% Single tests
 
@@ -147,10 +151,18 @@ def test_interface_ValueError():
     # interface specification
     cmp.sink('sink', interface=5)
 
+##############################################################################
+# networks
+
 
 @raises(ValueError)
 def test_network_print_level():
     nwk.network(['INCOMP::DowQ']).set_printoptions(print_level='error')
+
+
+@raises(hlp.TESPyNetworkError)
+def test_network_instanciation_no_fluids():
+    nwk.network([]).initialise()
 
 
 @raises(TypeError)
@@ -290,7 +302,43 @@ def test_network_max_iter():
     nw.solve('design', max_iter=2)
     eq_(nw.max_iter, nw.iter + 1, 'This test must result in the itercount being equal to the max iter statement.')
 
+##############################################################################
+# subsystems
 
-@raises(hlp.TESPyNetworkError)
-def test_network_instanciation_no_fluids():
-    nwk.network([]).initialise()
+
+@raises(ValueError)
+def test_subsys_label_str():
+    subsys.subsystem(5)
+
+
+@raises(ValueError)
+def test_subsys_label_forbidden():
+    subsys.subsystem('label;')
+
+##############################################################################
+# characteristics
+
+
+@raises(KeyError)
+def test_char_missing_key():
+    cmp_char.characteristics(a=6)
+
+
+@raises(KeyError)
+def test_char_missing_key():
+    cmp_char.characteristics(a=6)
+
+
+@raises(ValueError)
+def test_char_number_of_points():
+    cmp_char.characteristics(x=[0, 1, 2], y=[1, 2, 3, 4])
+
+
+@raises(KeyError)
+def test_char_map_missing_key():
+    cmp_char.characteristics(a=6)
+
+
+@raises(ValueError)
+def test_char_map_number_of_points():
+    cmp_char.characteristics(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3]])

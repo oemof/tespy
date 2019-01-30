@@ -981,16 +981,6 @@ class turbomachine(component):
             s_mix = s_mix_pT(i, T_mix)
             return h_mix_ps(o, s_mix)
 
-    def char_func(self):
-        msg = 'Function not available for this component.'
-        logging.error(msg)
-        raise TESPyComponentError(msg)
-
-    def char_deriv(self):
-        msg = 'Function not available for this component.'
-        logging.error(msg)
-        raise TESPyComponentError(msg)
-
     def bus_func(self, bus):
         r"""
         Calculates the residual value of the bus function.
@@ -1410,8 +1400,6 @@ class pump(turbomachine):
             return 10e5
         elif key == 'h':
             return 3e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -1441,8 +1429,6 @@ class pump(turbomachine):
             return 1e5
         elif key == 'h':
             return 2.9e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -1892,8 +1878,6 @@ class compressor(turbomachine):
             return 10e5
         elif key == 'h':
             return 6e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -1923,8 +1907,6 @@ class compressor(turbomachine):
             return 1e5
         elif key == 'h':
             return 4e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -2234,7 +2216,7 @@ class turbine(turbomachine):
         else:
             msg = 'Please choose the parameter, you want to link the isentropic efficiency to.'
             logging.error(msg)
-            raise TESPyComponentError(msg)
+            raise ValueError(msg)
 
         return -(o[2] - i[2]) + (o_d[2] - i_d[2]) / self.dh_s_ref * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
 
@@ -2314,8 +2296,6 @@ class turbine(turbomachine):
             return 0.5e5
         elif key == 'h':
             return 1.5e6
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -2345,8 +2325,6 @@ class turbine(turbomachine):
             return 2.5e6
         elif key == 'h':
             return 2e6
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -2791,8 +2769,6 @@ class node(component):
             return 1e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -2822,8 +2798,6 @@ class node(component):
             return 1e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
 # %%
 
@@ -4238,9 +4212,6 @@ class combustion_chamber(component):
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 
-                else:
-                    continue
-
         ######################################################################
         # flue gas propagation
         for o in outl:
@@ -4294,8 +4265,6 @@ class combustion_chamber(component):
             return 5e5
         elif key == 'h':
             return 10e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -4325,8 +4294,6 @@ class combustion_chamber(component):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -6289,8 +6256,6 @@ class cogeneration_unit(combustion_chamber):
             return 5e5
         elif key == 'h':
             return 10e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -6320,8 +6285,6 @@ class cogeneration_unit(combustion_chamber):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -6646,8 +6609,6 @@ class valve(component):
             return 4e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -6677,8 +6638,6 @@ class valve(component):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -7353,8 +7312,6 @@ class heat_exchanger_simple(component):
                 return 5e5
             else:
                 return 3e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -7393,8 +7350,6 @@ class heat_exchanger_simple(component):
                 return 1e5
             else:
                 return 3e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -8676,8 +8631,6 @@ class heat_exchanger(component):
             else:
                 T = 250 + 273.15
                 return h_mix_pT(flow, T)
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -8714,8 +8667,6 @@ class heat_exchanger(component):
             else:
                 T = 220 + 273.15
                 return h_mix_pT(flow, T)
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -9612,8 +9563,6 @@ class drum(component):
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 1)
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -9647,8 +9596,6 @@ class drum(component):
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 0.7)
-        else:
-            return 0
 
 # %%
 

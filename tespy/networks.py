@@ -519,8 +519,6 @@ class network:
             logging.error(msg)
             raise TypeError(msg)
 
-        return False
-
     def check_network(self):
         r"""
         Checks the network for consistency, have all components the correct amount of incoming and outgoing connections?
@@ -1014,8 +1012,6 @@ class network:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
                     c.v.val_SI = c.v.val * self.v[c.v.unit]
-                else:
-                    continue
 
         msg = 'Retrieved generic starting values and specified SI-values of connection parameters.'
         logging.debug(msg)

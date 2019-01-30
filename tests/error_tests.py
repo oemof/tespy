@@ -70,6 +70,20 @@ class specification_error_tests:
     def test_bus_TESPyConnectionError(self):
         self.bus.add_comps(self.comp)
 
+    @raises(hlp.TESPyNetworkError)
+    def test_network_bus_duplicate(self):
+        self.nw.add_busses(self.bus, self.bus)
+
+    @raises(hlp.TESPyNetworkError)
+    def test_network_buslabel_duplicate(self):
+        bus = con.bus('mybus')
+        self.nw.add_busses(self.bus)
+        self.nw.add_busses(bus)
+
+    @raises(TypeError)
+    def test_network_bus_type(self):
+        self.nw.add_busses(self.conn)
+
     def test_set_attr_errors(self):
         #
         labels = [5, 'Label,', 'Labe;l', 'Label.']
@@ -127,22 +141,27 @@ class specification_error_tests:
 
 # %% Single tests
 
+
 @raises(ValueError)
 def test_interface_ValueError():
     # interface specification
     cmp.sink('sink', interface=5)
 
+
 @raises(ValueError)
 def test_network_print_level():
     nwk.network(['INCOMP::DowQ']).set_printoptions(print_level='error')
+
 
 @raises(TypeError)
 def test_network_instanciation_single_fluid():
     nwk.network('water')
 
+
 @raises(TypeError)
 def test_network_add_conns():
     nwk.network(['water']).add_conns(cmp.component('test'))
+
 
 @raises(hlp.TESPyNetworkError)
 def test_network_connection_error_source():
@@ -155,6 +174,7 @@ def test_network_connection_error_source():
     nw.add_conns(a, b)
     nw.check_network()
 
+
 @raises(hlp.TESPyNetworkError)
 def test_network_connection_error_target():
     nw = nwk.network(['water'])
@@ -166,6 +186,27 @@ def test_network_connection_error_target():
     nw.add_conns(a, b)
     nw.check_network()
 
+
+@raises(hlp.TESPyNetworkError)
+def test_network_network_consistency_inlets():
+    nw = nwk.network(['water'])
+    merge = cmp.merge('merge')
+    sink = cmp.sink('label')
+    a = con.connection(merge, 'out1', sink, 'in1')
+    nw.add_conns(a)
+    nw.check_network()
+
+
+@raises(hlp.TESPyNetworkError)
+def test_network_network_consistency_outlets():
+    nw = nwk.network(['water', 'air'])
+    source = cmp.source('source')
+    splitter = cmp.splitter('splitter')
+    a = con.connection(source, 'out1', splitter, 'in1')
+    nw.add_conns(a)
+    nw.check_network()
+
+
 @raises(hlp.TESPyNetworkError)
 def test_network_component_labels():
     nw = nwk.network(['water'])
@@ -175,41 +216,80 @@ def test_network_component_labels():
     nw.add_conns(a)
     nw.check_network()
 
+
 @raises(hlp.TESPyNetworkError)
 def test_network_offdesign_path():
     nw = nwk.network(['water'])
-    source = cmp.source('label')
-    sink = cmp.sink('label')
+    source = cmp.source('source')
+    sink = cmp.sink('sink')
     a = con.connection(source, 'out1', sink, 'in1')
     nw.add_conns(a)
     nw.solve('offdesign')
 
-@raises(hlp.TESPyNetworkError)
-def test_network_underdetermination():
-    nw = nwk.network(['water'])
-    source = cmp.source('label')
-    sink = cmp.sink('label')
-    a = con.connection(source, 'out1', sink, 'in1', m=1)
-    nw.add_conns(a)
-    nw.solve('design')
-
-@raises(hlp.TESPyNetworkError)
-def test_network_overdetermination():
-    nw = nwk.network(['water'])
-    source = cmp.source('label')
-    sink = cmp.sink('label')
-    a = con.connection(source, 'out1', sink, 'in1', m=1, p=1e5, x=1, h=1e6, fluid={'water': 1}, fluid_balance=True)
-    nw.add_conns(a)
-    nw.solve('design')
 
 @raises(ValueError)
 def test_network_mode():
     nw = nwk.network(['water'])
-    source = cmp.source('label')
-    sink = cmp.sink('label')
+    source = cmp.source('source')
+    sink = cmp.sink('sink')
     a = con.connection(source, 'out1', sink, 'in1')
     nw.add_conns(a)
     nw.solve('ofdesign')
+
+
+@raises(hlp.TESPyNetworkError)
+def test_network_underdetermination():
+    nw = nwk.network(['water'])
+    source = cmp.source('source')
+    sink = cmp.sink('sink')
+    a = con.connection(source, 'out1', sink, 'in1', m=1)
+    nw.add_conns(a)
+    nw.solve('design')
+
+
+@raises(hlp.TESPyNetworkError)
+def test_network_overdetermination():
+    nw = nwk.network(['water'])
+    source = cmp.source('source')
+    sink = cmp.sink('sink')
+    a = con.connection(source, 'out1', sink, 'in1', m=1, p=1e5, x=1, h=1e6, fluid={'water': 1}, fluid_balance=True)
+    nw.add_conns(a)
+    nw.solve('design')
+
+
+def test_network_linear_dependency():
+    nw = nwk.network(['water'])
+    source = cmp.source('source')
+    sink = cmp.sink('sink')
+    a = con.connection(source, 'out1', sink, 'in1', m=1, p=1e5, h=1e6, x=1)
+    nw.add_conns(a)
+    nw.solve('design')
+    eq_(nw.lin_dep, True, 'This test must result in a linear dependency of the jacobian matrix.')
+
+
+def test_network_no_progress():
+    nw = nwk.network(['water'])
+    source = cmp.source('source')
+    pipe = cmp.pipe('pipe', pr=1, Q=-100e3)
+    sink = cmp.sink('sink')
+    a = con.connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280, fluid={'water': 1})
+    b = con.connection(pipe, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    nw.solve('design')
+    eq_(nw.progress, False, 'This test must result in a calculation making no progress, as the pipe\'s outlet enthalpy is below fluid property range.')
+
+
+def test_network_max_iter():
+    nw = nwk.network(['water'])
+    source = cmp.source('source')
+    pipe = cmp.pipe('pipe', pr=1, Q=100e3)
+    sink = cmp.sink('sink')
+    a = con.connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280, fluid={'water': 1})
+    b = con.connection(pipe, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    nw.solve('design', max_iter=2)
+    eq_(nw.max_iter, nw.iter + 1, 'This test must result in the itercount being equal to the max iter statement.')
+
 
 @raises(hlp.TESPyNetworkError)
 def test_network_instanciation_no_fluids():

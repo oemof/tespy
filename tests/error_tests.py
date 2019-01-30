@@ -336,9 +336,14 @@ def test_char_number_of_points():
 
 @raises(KeyError)
 def test_char_map_missing_key():
-    cmp_char.characteristics(a=6)
+    cmp_char.char_map(a=6)
 
 
 @raises(ValueError)
 def test_char_map_number_of_points():
-    cmp_char.characteristics(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3]])
+    cmp_char.char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3]])
+
+
+@raises(ValueError)
+def test_char_map_number_of_dimensions():
+    cmp_char.char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])

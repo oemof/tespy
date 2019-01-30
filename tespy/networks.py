@@ -506,7 +506,7 @@ class network:
                     msg = 'Network contains the bus ' + b.label + ' (' + str(b) + ') already.'
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
-                elif b.label in self.busses.items():
+                elif b.label in self.busses.keys():
                     msg = ('Network already has a bus with the name ' + b.label + '.')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)

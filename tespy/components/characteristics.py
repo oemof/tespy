@@ -62,6 +62,11 @@ class characteristics:
         if self.y is None:
             self.y = self.default(method)[1]
 
+        if isinstance(self.x, list):
+            self.x = np.array(self.x)
+        if isinstance(self.y, list):
+            self.y = np.array(self.y)
+
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. Number of x-values: ' +
                    str(len(self.x)) + ', number of y-values: ' + str(len(self.y)) + '.')
@@ -456,12 +461,21 @@ class char_map(characteristics):
         if self.z2 is None:
             self.z2 = self.default(method)[3]
 
-        if np.array(self.x).shape[0] != np.array(self.y).shape[0]:
+        if isinstance(self.x, list):
+            self.x = np.array(self.x)
+        if isinstance(self.y, list):
+            self.y = np.array(self.y)
+        if isinstance(self.z1, list):
+            self.z1 = np.array(self.z1)
+        if isinstance(self.z2, list):
+            self.z2 = np.array(self.z2)
+
+        if self.x.shape[0] != self.y.shape[0]:
             msg = ('The number of x-values determines the number of dimension for the characteristic map. You have provided ' +
                    str(len(self.x)) + 'x-values. Thus, the y-, z1- and z2-arrays must have ' + str(len(self.x)) +' number of dimensions.')
             logging.error(msg)
             raise ValueError(msg)
-        elif np.array(self.y).shape != np.array(self.z1).shape or np.array(self.y).shape != np.array(self.z2).shape:
+        elif self.y.shape != self.z1.shape or self.y.shape != self.z2.shape:
             msg = 'Make sure that the number of dimensions and the number of values in the y-, z1- and z2-arrays are identical!'
             logging.error(msg)
             raise ValueError(msg)

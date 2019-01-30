@@ -597,18 +597,18 @@ class tespy_fluid:
                 row += [func([0, p, 0, self.fluid], T)]
 
             y = np.append(y, [np.array(row)], axis=0)
-
-        # plot table after creation?
-        if self.plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
-                              np.meshgrid(x2, x1)[1], y)
-            ax.set_xlabel('temperature')
-            ax.set_ylabel('pressure')
-            ax.set_zlabel(name)
-            ax.view_init(10, 225)
-            plt.show()
+#
+#        # plot table after creation?
+#        if self.plot:
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111, projection='3d')
+#            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
+#                              np.meshgrid(x2, x1)[1], y)
+#            ax.set_xlabel('temperature')
+#            ax.set_ylabel('pressure')
+#            ax.set_zlabel(name)
+#            ax.view_init(10, 225)
+#            plt.show()
 
         self.save_lookup(name, x1, x2, y)
 
@@ -654,17 +654,17 @@ class tespy_fluid:
         x1 = df.index.get_values()
         x2 = np.array(list(map(float, list(df))))
         y = df.values
-
-        # plot table after creation?
-        if self.plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
-            ax.set_xlabel('temperature')
-            ax.set_ylabel('pressure')
-            ax.set_zlabel(name)
-            ax.view_init(10, 225)
-            plt.show()
+#
+#        # plot table after creation?
+#        if self.plot:
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111, projection='3d')
+#            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
+#            ax.set_xlabel('temperature')
+#            ax.set_ylabel('pressure')
+#            ax.set_zlabel(name)
+#            ax.view_init(10, 225)
+#            plt.show()
 
         func = interpolate.RectBivariateSpline(x1, x2, y)
         return func

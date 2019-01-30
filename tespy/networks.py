@@ -1054,9 +1054,6 @@ class network:
         c : tespy.connections.connection
             Connection to initialise.
         """
-        if key == 'x' or key == 'T':
-            return
-
         # starting value for mass flow
         if math.isnan(c.get_attr(key).val0) and key == 'm':
             c.get_attr(key).val0 = 1

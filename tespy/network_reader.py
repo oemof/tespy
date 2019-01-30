@@ -326,8 +326,6 @@ def construct_comps(c, *args):
             elif isinstance(value, hlp.dc_gcp):
                 dc = hlp.dc_cp(method=c[key])
                 kwargs[key] = dc
-            else:
-                continue
 
     instance.set_attr(**kwargs)
     return instance

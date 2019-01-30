@@ -107,7 +107,7 @@ class subsystem:
             else:
                 msg = ('Component ' + self.label + ' has no attribute ' + str(key))
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
         self.set_comps()
         self.set_conns()

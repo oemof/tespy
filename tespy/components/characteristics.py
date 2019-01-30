@@ -391,7 +391,10 @@ class characteristics:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            return None
+            msg = 'Characteristics has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
+
 
 # %%
 

@@ -142,6 +142,7 @@ class specification_error_tests:
         self.get_attr_KeyError(self.nw, 'test')
         self.get_attr_KeyError(self.sub, 'test')
         self.get_attr_KeyError(cmp_char.characteristics(), 'test')
+        self.get_attr_KeyError(hlp.data_container(), 'somekey')
 
 # %% Single tests
 
@@ -347,3 +348,17 @@ def test_char_map_number_of_points():
 @raises(ValueError)
 def test_char_map_number_of_dimensions():
     cmp_char.char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
+
+##############################################################################
+# helpers
+
+
+@raises(TypeError)
+def test_tespy_fluid_alias_type():
+    hlp.tespy_fluid(5, {'water': 1}, [0, 1], [0, 1])
+
+
+@raises(ValueError)
+def test_tespy_fluid_alias_value():
+    hlp.tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
+

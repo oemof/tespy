@@ -2104,11 +2104,7 @@ def molar_mass_flow(flow):
     mm = 0
     for fluid, x in flow.items():
         if x > err:
-            try:
-                mm += x / molar_masses[fluid]
-            except KeyError:
-                mm += x / CPPSI('molar_mass', fluid)
-
+            mm += x / molar_masses[fluid]
     return mm
 
 # %%

@@ -1151,25 +1151,13 @@ class network:
         self.max_iter = max_iter
 
         if 'init_file' in kwargs.keys():
-            msg = 'Keyword init_file is deprecated, please use init_path for future purposes!'
-            logging.warning(msg)
-            FutureWarning(msg)
-            if kwargs['init_file'] is None:
-                self.init_path = None
-            elif '/results.csv' in kwargs['init_file']:
-                self.init_path = kwargs['init_file'][:-12]
-            else:
-               self.init_path = kwargs['init_file']
+            msg = 'Keyword init_file is deprecated, please use init_path with the path to the parent directory of the results instead!'
+            logging.error(msg)
+            raise KeyError(msg)
         if 'design_file' in kwargs.keys():
-            msg = 'Keyword design_file is deprecated, please use design_path for future purposes!'
-            logging.warning(msg)
-            FutureWarning(msg)
-            if kwargs['design_file'] is None:
-                self.design_path = None
-            elif '/results.csv' in kwargs['design_file']:
-                self.design_path = kwargs['design_file'][:-12]
-            else:
-               self.design_path = kwargs['design_file']
+            msg = 'Keyword init_file is deprecated, please use design_path with the path to the parent directory of the results instead!'
+            logging.error(msg)
+            raise KeyError(msg)
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -2259,8 +2247,6 @@ class network:
         File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
         all network information will be saved to path ./filename/.
         """
-        if 'structure' in kwargs.keys():
-            FutureWarning('The Keyword structure is deprecated, networks will always be saved with structure.')
         path = './' + path + '/'
 
         logging.debug('Saving network to path ' + path + '.')
@@ -2431,9 +2417,6 @@ class network:
                 elif isinstance(dc, hlp.dc_gcp):
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'method'))
 
-                else:
-                    continue
-
             df.set_index('label', inplace=True)
             df.drop('i', axis=1, inplace=True)
             df.drop('o', axis=1, inplace=True)
@@ -2484,8 +2467,6 @@ class network:
             for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
-                else:
-                    continue
 
         # characteristic lines in busses
         for bus in self.busses.values():
@@ -2520,8 +2501,6 @@ class network:
             for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cm):
                     chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
-                else:
-                    continue
 
         if len(chars) > 0:
             # get id and data

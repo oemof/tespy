@@ -181,6 +181,8 @@ Value ranges for pure fluids are not required as these are dealt with automatica
     my_plant = nwk.network(fluids=fluid_list)
 	my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
 	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+	
+.. _printout_logging_label:
 
 Printouts and logging
 +++++++++++++++++++++

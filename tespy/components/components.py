@@ -926,7 +926,7 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        return np.array([])
+        return []
 
     def eta_s_func(self):
         r"""
@@ -1125,7 +1125,7 @@ class pump(turbomachine):
     flow_char : str/tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide data: :math:`x/\frac{\text{m}^3}{\text{s}} \,
-        [y/\text{Pa}`
+        y/\text{Pa}`
 
     Example
     -------

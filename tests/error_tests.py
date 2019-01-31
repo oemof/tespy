@@ -240,6 +240,18 @@ def test_network_offdesign_path():
     nw.solve('offdesign')
 
 
+@raises(KeyError)
+def test_network_init_file():
+    nw = nwk.network(['water'])
+    nw.solve('design', init_file='tmp')
+
+
+@raises(KeyError)
+def test_network_design_file():
+    nw = nwk.network(['water'])
+    nw.solve('offdesign', design_file='tmp')
+
+
 @raises(ValueError)
 def test_network_mode():
     nw = nwk.network(['water'])

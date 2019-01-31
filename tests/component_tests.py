@@ -327,4 +327,27 @@ class component_tests:
         eq_(round(Qloss.P.val, 1), round(chp.Qloss.val, 1), 'Value of heat loss must be ' + str(Qloss.P.val) + ', is ' + str(chp.Qloss.val) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)
 
-
+    def test_heat_ex_simple(self):
+        """
+        Test component properties of valves.
+        """
+        instance = cmp.heat_exchanger_simple('heat exchanger')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        c1.set_attr(fluid=fl, m=1, p=10, T=100)
+        instance.set_attr(hydro_group='HW', D='var', L=100, ks=100, pr=0.99, Tamb=20)
+        b = con.bus('heat', P=-1e5)
+        b.add_comps({'c': instance})
+        self.nw.add_busses(b)
+        self.nw.solve('design')
+        eq_(round(c2.p.val_SI / c1.p.val_SI, 2), round(instance.pr.val, 2), 'Value of pressure ratio must be ' + str(c2.p.val_SI / c1.p.val_SI) + ', is ' + str(instance.pr.val) + '.')
+        zeta = instance.zeta.val
+        instance.set_attr(D=instance.D.val, zeta='var', pr=np.nan)
+        instance.D.is_var = False
+        self.nw.solve('design')
+        eq_(round(zeta, 1), round(instance.zeta.val, 1), 'Value of zeta must be ' + str(zeta) + ', is ' + str(instance.zeta.val) + '.')
+        instance.set_attr(kA='var', zeta=np.nan)
+        b.set_attr(P=-5e4)
+        self.nw.solve('design')
+        # due to heat output being half of reference (for Tamb) kA should be somewhere near to that (actual value is 677)
+        eq_(677, round(instance.kA.val, 0), 'Value of heat transfer coefficient must be ' + str(677) + ', is ' + str(instance.kA.val) + '.')

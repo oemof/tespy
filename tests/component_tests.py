@@ -345,7 +345,7 @@ class component_tests:
 
     def test_heat_ex_simple(self):
         """
-        Test component properties of valves.
+        Test component properties of simple heat exchanger.
         """
         instance = cmp.heat_exchanger_simple('heat exchanger')
         c1, c2 = self.setup_network_11(instance)
@@ -368,14 +368,10 @@ class component_tests:
         # due to heat output being half of reference (for Tamb) kA should be somewhere near to that (actual value is 677)
         eq_(677, round(instance.kA.val, 0), 'Value of heat transfer coefficient must be ' + str(677) + ', is ' + str(instance.kA.val) + '.')
 
-
-
     def test_heat_ex(self):
         """
-        Test component properties of valves.
+        Test component properties of heat exchanger.
         """
-        from tespy import cmp, con, nwk
-        import shutil
         tesin = cmp.sink('TES in')
         tesout = cmp.source('TES out')
         hsin = cmp.sink('HS in')
@@ -390,8 +386,7 @@ class component_tests:
         he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
         hs_he.set_attr(T=120, p=3, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         he_hs.set_attr(T=70)
-        tes_he.set_attr(p=5, fluid={'N2': 0, 'O2': 0, 'Ar': 1, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0})
-        tes_he.set_attr(T=40)
+        tes_he.set_attr(T=40, p=5, fluid={'N2': 0, 'O2': 0, 'Ar': 1, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         he.set_attr(Q=-80e3)
         self.nw.solve('design')
         # check heat flow
@@ -421,4 +416,43 @@ class component_tests:
             self.nw.solve('offdesign', design_path='tmp')
         except ValueError:
             pass
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+
+    def test_condenser(self):
+        """
+        Test component properties of condenser.
+        """
+        from tespy import cmp, con, nwk
+        import shutil
+        tesin = cmp.sink('TES in')
+        tesout = cmp.source('TES out')
+        hsin = cmp.sink('Cond in')
+        hsout = cmp.source('Cond out')
+        he = cmp.condenser('condenser')
+        tes_he = con.connection(tesout, 'out1', he, 'in2')
+        he_tes = con.connection(he, 'out2', tesin, 'in1')
+        hs_he = con.connection(hsout, 'out1', he, 'in1')
+        he_hs = con.connection(he, 'out1', hsin, 'in1')
+        self.nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+        # design specification
+        he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr2', 'ttd_u', 'ttd_l'], offdesign=['zeta2', 'kA'])
+        hs_he.set_attr(T=100, p0=0.5, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
+        tes_he.set_attr(T=30, p=5, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
+        he_tes.set_attr(T=40)
+        he.set_attr(Q=-80e3)
+        self.nw.solve('design')
+        # check heat flow
+        Q = hs_he.m.val_SI * (he_hs.h.val_SI - hs_he.h.val_SI)
+        self.nw.save('tmp')
+        ttd_u = hlp.T_mix_ph([0, hs_he.p.val_SI, hlp.h_mix_pQ(hs_he.to_flow(), 1), hs_he.fluid.val]) - he_tes.T.val_SI
+        p = hs_he.p.val_SI
+        eq_(round(ttd_u, 1), round(he.ttd_u.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_u.val) + ', is ' + str(ttd_u) + '.')
+        # check lower terminal temperature difference
+        he.set_attr(ttd_l=20, ttd_u=np.nan)
+        self.nw.solve('design')
+        eq_(round(he_hs.T.val - tes_he.T.val, 1), round(he.ttd_l.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_l.val) + ', is ' + str(he_hs.T.val - tes_he.T.val) + '.')
+        # check kA value
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(p, 1), round(hs_he.p.val_SI, 1), 'Value of condensing pressure be ' + str(p) + ', is ' + str(hs_he.p.val_SI) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)

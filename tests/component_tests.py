@@ -347,6 +347,33 @@ class component_tests:
         """
         Test component properties of valves.
         """
+        instance = cmp.heat_exchanger_simple('heat exchanger')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        c1.set_attr(fluid=fl, m=1, p=10, T=100)
+        instance.set_attr(hydro_group='HW', D='var', L=100, ks=100, pr=0.99, Tamb=20)
+        b = con.bus('heat', P=-1e5)
+        b.add_comps({'c': instance})
+        self.nw.add_busses(b)
+        self.nw.solve('design')
+        eq_(round(c2.p.val_SI / c1.p.val_SI, 2), round(instance.pr.val, 2), 'Value of pressure ratio must be ' + str(c2.p.val_SI / c1.p.val_SI) + ', is ' + str(instance.pr.val) + '.')
+        zeta = instance.zeta.val
+        instance.set_attr(D=instance.D.val, zeta='var', pr=np.nan)
+        instance.D.is_var = False
+        self.nw.solve('design')
+        eq_(round(zeta, 1), round(instance.zeta.val, 1), 'Value of zeta must be ' + str(zeta) + ', is ' + str(instance.zeta.val) + '.')
+        instance.set_attr(kA='var', zeta=np.nan)
+        b.set_attr(P=-5e4)
+        self.nw.solve('design')
+        # due to heat output being half of reference (for Tamb) kA should be somewhere near to that (actual value is 677)
+        eq_(677, round(instance.kA.val, 0), 'Value of heat transfer coefficient must be ' + str(677) + ', is ' + str(instance.kA.val) + '.')
+
+
+
+    def test_heat_ex(self):
+        """
+        Test component properties of valves.
+        """
         from tespy import cmp, con, nwk
         import shutil
         tesin = cmp.sink('TES in')
@@ -359,6 +386,7 @@ class component_tests:
         hs_he = con.connection(hsout, 'out1', he, 'in1')
         he_hs = con.connection(he, 'out1', hsin, 'in1')
         self.nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+        # design specification
         he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
         hs_he.set_attr(T=120, p=3, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         he_hs.set_attr(T=70)
@@ -366,13 +394,31 @@ class component_tests:
         tes_he.set_attr(T=40)
         he.set_attr(Q=-80e3)
         self.nw.solve('design')
+        # check heat flow
         Q = hs_he.m.val_SI * (he_hs.h.val_SI - hs_he.h.val_SI)
         self.nw.save('tmp')
         eq_(round(hs_he.T.val - he_tes.T.val, 1), round(he.ttd_u.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_u.val) + ', is ' + str(hs_he.T.val - he_tes.T.val) + '.')
+        # check lower terminal temperature difference
         he_hs.set_attr(T=np.nan)
         he.set_attr(ttd_l=20)
         self.nw.solve('design')
         eq_(round(he_hs.T.val - tes_he.T.val, 1), round(he.ttd_l.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_l.val) + ', is ' + str(he_hs.T.val - tes_he.T.val) + '.')
+        # check kA value
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(Q, 1), round(he.Q.val, 1), 'Value of heat flow must be ' + str(he.Q.val) + ', is ' + str(Q) + '.')
+        # trigger errors for negative terminal temperature differences at given kA-value
+        he.set_attr(ttd_l=np.nan)
+        # ttd_l
+        he_hs.set_attr(T=30)
+        try:
+            self.nw.solve('offdesign', design_path='tmp')
+        except ValueError:
+            pass
+        # ttd_u
+        he_hs.set_attr(T=np.nan)
+        he_tes.set_attr(T=130)
+        try:
+            self.nw.solve('offdesign', design_path='tmp')
+        except ValueError:
+            pass
         shutil.rmtree('./tmp', ignore_errors=True)

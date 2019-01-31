@@ -6,6 +6,7 @@ from nose.tools import ok_, eq_
 from tespy import nwk, cmp, con, hlp
 from CoolProp.CoolProp import PropsSI as CP
 import numpy as np
+import shutil
 
 
 class component_tests:
@@ -52,7 +53,7 @@ class component_tests:
             pass
 
     def test_pump(self):
-        instance = cmp.pump('turbomachine')
+        instance = cmp.pump('pump')
         c1, c2 = self.setup_network_11(instance)
         fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'H2O': 0, 'NH3': 0}
         c1.set_attr(fluid=fl, v=1, p=5,T=50)
@@ -86,3 +87,28 @@ class component_tests:
         c1.set_attr(v=1.5)
         self.nw.solve('design')
         eq_(c2.p.val_SI - c1.p.val_SI, 0, 'Value of power must be ' + str(0) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_compressor(self):
+        instance = cmp.compressor('compressor')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 1}
+        c1.set_attr(fluid=fl, v=1, p=5, T=100)
+        c2.set_attr(p=7)
+        instance.set_attr(eta_s=0.8)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+        eta_s = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
+        eq_(eta_s, instance.eta_s.val, 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
+        c2.set_attr(p=np.nan)
+        instance.set_attr(char_map=hlp.dc_cm(method='GENERIC', is_set=True), eta_s=np.nan)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(eta_s, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s) + ').')
+        # going above highes available speedline, beneath lowest mass flow at that line
+        c1.set_attr(v=np.nan, m=c1.m.val*0.8, T=30)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(eta_s * instance.char_map.z2[6, 0], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[6, 0], 4)) + ').')
+        # going below lowest available speedline, above highest mass flow at that line
+        c1.set_attr(T=300)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(eta_s * instance.char_map.z2[0, 9], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[0, 9], 4)) + ').')

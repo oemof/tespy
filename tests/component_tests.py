@@ -129,11 +129,18 @@ class component_tests:
         self.nw.solve('design')
         self.nw.save('tmp')
         # calculate isentropic efficiency the old fashioned way
+        eta_s_d = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
+        eq_(round(eta_s_d, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s_d) + ', is ' + str(instance.eta_s.val) + '.')
+        # trigger invalid isentropic efficiency
+        instance.set_attr(eta_s=1.1)
+        self.nw.solve('design')
+        # calculate isentropic efficiency the old fashioned way
         eta_s = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
         eq_(round(eta_s, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
         c2.set_attr(p=np.nan)
         instance.set_attr(char_map=hlp.dc_cm(method='GENERIC', is_set=True), eta_s=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
+        eta_s = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
         eq_(round(eta_s, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s) + ').')
         # going above highes available speedline, beneath lowest mass flow at that line
         c1.set_attr(v=np.nan, m=c1.m.val*0.8, T=30)
@@ -181,6 +188,12 @@ class component_tests:
         self.nw.solve('design')
         self.nw.save('tmp')
         # calculate isentropic efficiency the old fashioned way
+        eta_s_d = (c2.h.val_SI - c1.h.val_SI) / (instance.h_os('') - c1.h.val_SI)
+        eq_(round(eta_s_d, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s_d) + ', is ' + str(instance.eta_s.val) + '.')
+        # trigger invalid isentropic efficiency
+        instance.set_attr(eta_s=1.1)
+        self.nw.solve('design')
+        # calculate isentropic efficiency the old fashioned way
         eta_s = (c2.h.val_SI - c1.h.val_SI) / (instance.h_os('') - c1.h.val_SI)
         eq_(round(eta_s, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
         c1.set_attr(p=np.nan)
@@ -188,7 +201,7 @@ class component_tests:
         instance.eta_s_char.is_set = True
         instance.eta_s.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(round(eta_s, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s) + ').')
+        eq_(round(eta_s_d, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s_d) + ').')
         # lowering mass flow, inlet pressure must sink according to cone law
         c1.set_attr(m=c1.m.val*0.8)
         self.nw.solve('offdesign', design_path='tmp')
@@ -391,7 +404,9 @@ class component_tests:
         hs_he.set_attr(T=120, p=3, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         he_hs.set_attr(T=70)
         tes_he.set_attr(T=40, p=5, fluid={'N2': 0, 'O2': 0, 'Ar': 1, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0})
-        he.set_attr(Q=-80e3)
+        b = con.bus('heat transfer', P=-80e3)
+        b.add_comps({'c': he})
+        self.nw.add_busses(b)
         self.nw.solve('design')
         # check heat flow
         Q = hs_he.m.val_SI * (he_hs.h.val_SI - hs_he.h.val_SI)

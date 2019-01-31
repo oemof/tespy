@@ -6423,8 +6423,7 @@ class valve(component):
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
-                'Sirr': dc_cp(),
-                'pr_char': dc_cc()}
+                'Sirr': dc_cp()}
 
     def inlets(self):
         return ['in1']
@@ -6617,10 +6616,6 @@ class valve(component):
             self.pr.val = o[1] / i[1]
             self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
             self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
-
-            if self.pr_char.is_set:
-                # get bound errors for characteristic function
-                self.pr_char.func.get_bound_errors(i[1])
 
 # %%
 

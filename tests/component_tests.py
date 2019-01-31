@@ -301,26 +301,42 @@ class component_tests:
         ti = 1e6
         TI.set_attr(P=ti)
 
+        # design point
         self.nw.solve('design')
         self.nw.save('tmp')
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         eq_(round(TI.P.val, 1), round(chp.ti.val, 1), 'Value of thermal input must be ' + str(TI.P.val) + ', is ' + str(chp.ti.val) + '.')
+        # ti via component
         TI.set_attr(P=np.nan)
+        chp.set_attr(ti=ti)
+        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        eq_(round(ti, 1), round(chp.ti.val, 1), 'Value of thermal input must be ' + str(ti) + ', is ' + str(chp.ti.val) + '.')
+        chp.set_attr(ti=np.nan)
+        # Q1 via bus
         Q1.set_attr(P=chp.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         eq_(round(ti, 1), round(chp.ti.val, 1), 'Value of thermal input must be ' + str(ti) + ', is ' + str(chp.ti.val) + '.')
         heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
         eq_(round(heat1, 1), round(chp.Q1.val, 1), 'Value of thermal input must be ' + str(heat1) + ', is ' + str(chp.Q1.val) + '.')
         Q1.set_attr(P=np.nan)
+        # Q2 via bus
         Q2.set_attr(P=1.2 * chp.Q2.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         # due to characteristic function Q1 is equal to Q2 for this cogeneration unit
         heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
         eq_(round(heat1, 1), round(chp.Q2.val, 1), 'Value of heat output 2 must be ' + str(heat1) + ', is ' + str(chp.Q2.val) + '.')
+        # Q2 via component
         Q2.set_attr(P=np.nan)
+        chp.set_attr(Q2=heat1)
+        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
+        eq_(round(heat1, 1), round(chp.Q2.val, 1), 'Value of heat output 2 must be ' + str(heat1) + ', is ' + str(chp.Q2.val) + '.')
+        # Q via bus
+        chp.set_attr(Q2=np.nan)
         Q.set_attr(P=1.5 * chp.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         eq_(round(Q.P.val, 1), round(2 * chp.Q2.val, 1), 'Value of total heat output (' + str(Q.P.val) + ') must be twice as much as value of heat output 2 (' + str(chp.Q2.val) + ').')
+        # Qloss via bus
         Q.set_attr(P=np.nan)
         Qloss.set_attr(P=1e5)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')

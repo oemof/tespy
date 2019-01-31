@@ -364,6 +364,13 @@ class component_tests:
         c1, c2 = self.setup_network_11(instance)
         fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0}
         c1.set_attr(fluid=fl, m=1, p=10, T=100)
+        # trigger heat exchanger parameter groups
+        instance.set_attr(hydro_group='HW', L=100, ks=100, pr=0.99, Tamb=20)
+        instance.hydro_group.is_set = True
+        instance.kA_group.is_set = True
+        self.nw.solve('design', init_only=True)
+        eq_(instance.hydro_group.is_set, False, 'Hydro group must no be set, if one parameter is missing!')
+        eq_(instance.kA_group.is_set, False, 'kA group must no be set, if one parameter is missing!')
         instance.set_attr(hydro_group='HW', D='var', L=100, ks=100, pr=0.99, Tamb=20)
         b = con.bus('heat', P=-1e5)
         b.add_comps({'c': instance})
@@ -384,6 +391,22 @@ class component_tests:
         self.nw.solve('design')
         # due to heat output being half of reference (for Tamb) kA should be somewhere near to that (actual value is 677)
         eq_(677, round(instance.kA.val, 0), 'Value of heat transfer coefficient must be ' + str(677) + ', is ' + str(instance.kA.val) + '.')
+
+    def test_solar_collector(self):
+        """
+        Test component properties of solar collector.
+        """
+        instance = cmp.solar_collector('solar collector')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        c1.set_attr(fluid=fl, m=1, p=10, T=100)
+        # trigger solar collector parameter groups (see heat exchanger simple)
+        instance.set_attr(hydro_group='HW', L=100, ks=100, pr=0.99, Tamb=20)
+        instance.hydro_group.is_set = True
+        instance.energy_group.is_set = True
+        self.nw.solve('design', init_only=True)
+        eq_(instance.hydro_group.is_set, False, 'Hydro group must no be set, if one parameter is missing!')
+        eq_(instance.energy_group.is_set, False, 'Energy group must no be set, if one parameter is missing!')
 
     def test_heat_ex(self):
         """

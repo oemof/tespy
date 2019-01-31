@@ -6312,14 +6312,14 @@ class cogeneration_unit(combustion_chamber):
             self.zeta2.val = (i2[1] - o2[1]) * math.pi ** 2 / (8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2)
             self.Q1.val = i1[0] * (o1[2] - i1[2])
             self.Q2.val = i2[0] * (o2[2] - i2[2])
+            self.P.val = self.calc_P()
+            self.Qloss.val = self.calc_Qloss()
 
             # get bound errors for characteristic lines
             if np.isnan(self.P.design):
                 expr = 1
             else:
                 expr = self.P.val / self.P.design
-            self.P.val = self.calc_P()
-            self.Qloss.val = self.calc_Qloss()
             self.tiP_char.func.get_bound_errors(expr)
             self.Qloss_char.func.get_bound_errors(expr)
             self.Q1_char.func.get_bound_errors(expr)

@@ -51,6 +51,10 @@ class component_tests:
             self.nw.solve('design')
         except hlp.TESPyComponentError:
             pass
+        try:
+            instance.eta_s_deriv()
+        except hlp.TESPyComponentError:
+            pass
 
     def test_pump(self):
         instance = cmp.pump('pump')
@@ -99,7 +103,7 @@ class component_tests:
         self.nw.solve('design')
         self.nw.save('tmp')
         eta_s = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
-        eq_(eta_s, instance.eta_s.val, 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
+        eq_(round(eta_s, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
         c2.set_attr(p=np.nan)
         instance.set_attr(char_map=hlp.dc_cm(method='GENERIC', is_set=True), eta_s=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
@@ -112,3 +116,47 @@ class component_tests:
         c1.set_attr(T=300)
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(eta_s * instance.char_map.z2[0, 9], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[0, 9], 4)) + ').')
+        c2.set_attr(p=7)
+        c1.set_attr(v=1, T=100, m=np.nan)
+        instance.set_attr(eta_s_char=hlp.dc_cc(method='GENERIC', is_set=True, param='m'))
+        instance.char_map.is_set = False
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(eta_s, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
+        c1.set_attr(v=1.5)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(0.82, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.82) + ', is ' + str(instance.eta_s.val) + '.')
+        instance.eta_s_char.set_attr(param='pr')
+        c1.set_attr(v=1)
+        c2.set_attr(p=7.5)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(0.797, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.797) + ', is ' + str(instance.eta_s.val) + '.')
+        instance.eta_s_char.set_attr(param=None)
+        try:
+            self.nw.solve('offdesign', design_path='tmp')
+        except ValueError:
+            pass
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_turbine(self):
+        instance = cmp.turbine('turbine')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0}
+        c1.set_attr(fluid=fl, m=15, p=10, T=120)
+        c2.set_attr(p=1)
+        instance.set_attr(eta_s=0.8)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+        eta_s = (c2.h.val_SI - c1.h.val_SI) / (instance.h_os('') - c1.h.val_SI)
+        eq_(eta_s, instance.eta_s.val, 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
+        c1.set_attr(p=np.nan)
+        instance.cone.is_set = True
+        instance.eta_s_char.is_set = True
+        instance.eta_s.is_set = False
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(eta_s, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s) + ').')
+        # lowering mass flow, inlet pressure must sink according to cone law
+        c1.set_attr(m=c1.m.val*0.8)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(0.125, round(instance.pr.val, 3), 'Value of pressure ratio (' + str(instance.pr.val) + ') must be at (' + str(0.125) + ').')
+        self.nw.print_results()
+        shutil.rmtree('./tmp', ignore_errors=True)

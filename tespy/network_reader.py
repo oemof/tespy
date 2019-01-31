@@ -83,7 +83,7 @@ def load_nwk(path):
     >>> fc.set_attr(fluid={'N2': 0, 'O2': 0, 'Ar': 0,
     ...     'CH4': 0.96, 'H2O': 0, 'CO2': 0.05}, T=25)
     >>> ct.set_attr(T=1100)
-    >>> outg.set_attr(p=1)
+    >>> outg.set_attr(p=con.ref(inc, 1, 0))
     >>> power = con.bus('total power output', P=-1e6)
     >>> power.add_comps({'c': c}, {'c': t})
     >>> nw.add_busses(power)

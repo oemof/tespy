@@ -6474,11 +6474,6 @@ class valve(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
-        ######################################################################
-        # eqations for specified pressure ratio characteristic
-        if self.pr_char.is_set:
-            vec_res += [self.pr_char_func()]
-
         return vec_res
 
     def derivatives(self):
@@ -6526,11 +6521,6 @@ class valve(component):
                 deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
             mat_deriv += deriv.tolist()
 
-        ######################################################################
-        # derivatives for characteristic line for pressure ratio
-        if self.pr_char.is_set:
-            mat_deriv += self.pr_char_deriv()
-
         return np.asarray(mat_deriv)
 
     def enthalpy_deriv(self):
@@ -6546,40 +6536,6 @@ class valve(component):
         deriv[0, 0, 2] = 1
         deriv[0, 1, 2] = -1
         return deriv.tolist()
-
-    def pr_char_func(self):
-        r"""
-        Calculates the residual for specified characteristic line for pressure ratio.
-
-        Returns
-        -------
-        val : float
-            Residual value of function.
-
-            .. math::
-
-                val = p_{in} - f\left( p_{in}\right)\cdot p_{out}
-        """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-
-        return i[1] - self.pr_char.func.f_x(i[1]) * o[1]
-
-    def pr_char_deriv(self):
-        r"""
-        Calculates matrix of partial derivatives for characteristic line of pressure ratio.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-
-        mat_deriv[0, 0, 1] = self.numeric_deriv(self.pr_char_func, 'p', 0)
-        mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
-
-        return mat_deriv.tolist()
 
     def initialise_source(self, c, key):
         r"""

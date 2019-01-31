@@ -5552,10 +5552,8 @@ class cogeneration_unit(combustion_chamber):
         # derivatives for heat loss to power charactersitics
         Ql_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         for i in range(2):
-            Ql_deriv[0, i + 2, 0] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'm', i + 2))
-            Ql_deriv[0, i + 2, 3:] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'fluid', i + 2))
+            Ql_deriv[0, i + 2, 0] = self.numeric_deriv(self.Qloss_char_func, 'm', i + 2)
+            Ql_deriv[0, i + 2, 3:] = self.numeric_deriv(self.Qloss_char_func, 'fluid', i + 2)
         Ql_deriv[0, 6, 0] = self.numeric_deriv(self.Qloss_char_func, 'm', 6)
         Ql_deriv[0, 6, 3:] = self.numeric_deriv(self.Qloss_char_func, 'fluid', 6)
 
@@ -6320,6 +6318,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = 1
             else:
                 expr = self.P.val / self.P.design
+            self.P.val = self.calc_P()
+            self.Qloss.val = self.calc_Qloss()
             self.tiP_char.func.get_bound_errors(expr)
             self.Qloss_char.func.get_bound_errors(expr)
             self.Q1_char.func.get_bound_errors(expr)

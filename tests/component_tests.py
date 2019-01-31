@@ -362,7 +362,11 @@ class component_tests:
         instance.D.is_var = False
         self.nw.solve('design')
         eq_(round(zeta, 1), round(instance.zeta.val, 1), 'Value of zeta must be ' + str(zeta) + ', is ' + str(instance.zeta.val) + '.')
-        instance.set_attr(kA='var', zeta=np.nan)
+        pr = instance.pr.val
+        instance.set_attr(zeta=np.nan, pr='var')
+        self.nw.solve('design')
+        eq_(round(pr, 2), round(instance.pr.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr.val) + '.')
+        instance.set_attr(kA='var', pr=np.nan)
         b.set_attr(P=-5e4)
         self.nw.solve('design')
         # due to heat output being half of reference (for Tamb) kA should be somewhere near to that (actual value is 677)

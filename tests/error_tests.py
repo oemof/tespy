@@ -374,3 +374,134 @@ def test_tespy_fluid_alias_type():
 def test_tespy_fluid_alias_value():
     hlp.tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
 
+
+##############################################################################
+# components
+
+
+class combustion_chamber_error_tests:
+
+    def setup(self):
+        self.nw = nwk.network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'H2'])
+        self.comb = cmp.combustion_chamber('combustion chamber')
+        c1 = con.connection(cmp.source('air'), 'out1', self.comb, 'in1')
+        c2 = con.connection(cmp.source('fuel'), 'out1', self.comb, 'in2')
+        c3 = con.connection(self.comb, 'out1', cmp.sink('flue gas'), 'in1')
+        self.nw.add_conns(c1, c2, c3)
+
+    @raises(hlp.TESPyComponentError)
+    def test_combustion_chamber_missing_fuel(self):
+        """
+        Test missing fuel specification error.
+        """
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_combustion_chamber_missing_fuel(self):
+        """
+        Test fuel not in network.
+        """
+        self.comb.set_attr(fuel='CH4')
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_combustion_chamber_missing_fuel(self):
+        """
+        Test non available fuel.
+        """
+        self.comb.set_attr(fuel='NH3')
+        self.nw.solve('design', init_only=True)
+
+
+class combustion_chamber_stoich_error_tests:
+
+    def setup(self):
+        self.nw = nwk.network(['TESPy::fuel', 'TESPy::fuel_fg', 'Air'])
+        self.comb = cmp.combustion_chamber_stoich('combustion chamber')
+        c1 = con.connection(cmp.source('air'), 'out1', self.comb, 'in1')
+        c2 = con.connection(cmp.source('fuel'), 'out1', self.comb, 'in2')
+        c3 = con.connection(self.comb, 'out1', cmp.sink('flue gas'), 'in1')
+        self.nw.add_conns(c1, c2, c3)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_missing_fuel(self):
+        """
+        Test missing fuel composition.
+        """
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_missing_fuel_alias(self):
+        """
+        Test missing fuel alias.
+        """
+        self.comb.set_attr(fuel={'CH4': 1})
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_bad_fuel_alias(self):
+        """
+        Test bad name for fuel alias.
+        """
+        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_missing_air(self):
+        """
+        Test missing air composition.
+        """
+        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel')
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_missing_air_alias(self):
+        """
+        Test missing air alias.
+        """
+        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel', air={'N2': 0.76, 'O2': 0.24})
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+    def test_cc_stoich_bad_air_alias(self):
+        """
+        Test bad name for air alias.
+        """
+        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel', air={'N2': 0.76, 'O2': 0.24}, air_alias='TESPy::air')
+        self.nw.solve('design', init_only=True)
+
+    @raises(hlp.TESPyComponentError)
+
+    def test_cc_stoich_missing_oxygen(self):
+        """
+        Test bad name for air alias.
+        """
+        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel', air={'N2': 1}, air_alias='myair')
+        self.nw.solve('design', init_only=True)
+
+
+class cogeneration_unit_bus_error_tests:
+
+    def setup(self):
+        self.nw = nwk.network(['water', 'air'])
+        self.comp = cmp.cogeneration_unit('cogeneration unit')
+        self.bus = con.bus('power')
+        self.bus.add_comps({'c': self.comp, 'p': 'Param'})
+
+    @raises(ValueError)
+    def test_missing_bus_param_func(self):
+        """
+        Test missing bus parameter in bus function for cogeneration unit.
+        """
+        self.comp.bus_func(self.bus.comps.loc[self.comp])
+
+    @raises(ValueError)
+    def test_missing_bus_param_deriv(self):
+        """
+        Test missing bus parameter in bus derivatives for cogeneration unit.
+        """
+        self.comp.num_vars = 2
+        self.comp.inl = [con.connection(self.comp, 'out1', cmp.sink('sink'), 'in1')]
+        self.comp.inl[0].fluid = hlp.dc_flu(val={'water': 1})
+        self.comp.bus_deriv(self.bus.comps.loc[self.comp])
+

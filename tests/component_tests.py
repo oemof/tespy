@@ -1,0 +1,81 @@
+# -*- coding: utf-8
+# -*- coding: utf-8
+
+from nose.tools import ok_, eq_
+
+from tespy import nwk, cmp, con, hlp
+from CoolProp.CoolProp import PropsSI as CP
+import numpy as np
+
+
+class component_tests:
+
+    def setup(self):
+        self.nw = nwk.network(['INCOMP::DowQ', 'H2O', 'NH3', 'N2', 'O2', 'Ar'],
+                              T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.source = cmp.source('source')
+        self.sink = cmp.sink('sink')
+
+    def setup_network_11(self, instance):
+        c1 = con.connection(self.source, 'out1', instance, 'in1')
+        c2 = con.connection(instance, 'out1', self.sink, 'in1')
+        self.nw.add_conns(c1, c2)
+        return c1, c2
+
+    def test_turbomachine(self):
+        instance = cmp.turbomachine('turbomachine')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0}
+        c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
+        c2.set_attr(p=1, h=2e5)
+        self.nw.solve('design')
+        power = c1.m.val_SI * (c2.h.val_SI - c1.h.val_SI)
+        pr = c2.p.val_SI / c1.p.val_SI
+        # pressure ratio and power are the basic functions for turbomachines, these are inherited by all children, thus only tested here
+        eq_(power, instance.P.val, 'Value of power must be ' + str(power) + ', is ' + str(instance.P.val) + '.')
+        eq_(pr, instance.pr.val, 'Value of power must be ' + str(pr) + ', is ' + str(instance.pr.val) + '.')
+        c2.set_attr(p=np.nan)
+        instance.set_attr(pr=5)
+        self.nw.solve('design')
+        pr = c2.p.val_SI / c1.p.val_SI
+        eq_(pr, instance.pr.val, 'Value of power must be ' + str(pr) + ', is ' + str(instance.pr.val) + '.')
+        c2.set_attr(h=np.nan)
+        instance.set_attr(P=1e5)
+        self.nw.solve('design')
+        power = c1.m.val_SI * (c2.h.val_SI - c1.h.val_SI)
+        eq_(pr, instance.pr.val, 'Value of power must be ' + str(pr) + ', is ' + str(instance.pr.val) + '.')
+        instance.set_attr(eta_s=0.8)
+        c2.set_attr(h=np.nan)
+        try:
+            self.nw.solve('design')
+        except hlp.TESPyComponentError:
+            pass
+
+    def test_pump(self):
+        instance = cmp.pump('turbomachine')
+        c1, c2 = self.setup_network_11(instance)
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'H2O': 0, 'NH3': 0}
+        c1.set_attr(fluid=fl, v=1, p=5,T=50)
+        c2.set_attr(p=7)
+        instance.set_attr(eta_s=1)
+        self.nw.solve('design')
+        eta_s = (instance.h_os('') - c1.h.val_SI) / (c2.h.val_SI - c1.h.val_SI)
+        eq_(eta_s, instance.eta_s.val, 'Value of power must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
+        s1 = round(hlp.s_mix_ph(c1.to_flow()), 4)
+        s2 = round(hlp.s_mix_ph(c2.to_flow()), 4)
+        eq_(s1, s2, 'Value of entropy must be identical for inlet (' + str(s1) + ') and outlet (' + str(s2) + ') at 100 % isentropic efficiency.')
+        c2.set_attr(p=np.nan)
+        x = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]
+        y = np.array([14, 13.5, 12.5, 11, 9, 6.5, 3.5, 0]) * 1e5
+        char = hlp.dc_cc(x=x, y=y, is_set=True)
+        instance.set_attr(flow_char=char)
+        self.nw.solve('design')
+        eq_(c2.p.val_SI - c1.p.val_SI, 6.5e5, 'Value of power must be ' + str(6.5e5) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
+        instance.set_attr(eta_s=np.nan)
+        c2.set_attr(T=70)
+        c1.set_attr(v=-0.1)
+        self.nw.solve('design')
+        eq_(c2.p.val_SI - c1.p.val_SI, 14e5, 'Value of power must be ' + str(14e5) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
+        c1.set_attr(v=1.5)
+        self.nw.solve('design')
+        eq_(c2.p.val_SI - c1.p.val_SI, 0, 'Value of power must be ' + str(0) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')

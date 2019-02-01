@@ -1032,7 +1032,10 @@ class network:
                 c.h.val_SI = hlp.h_mix_pQ(c.to_flow(), c.x.val_SI)
 
             if c.T.val_set and not c.h.val_set:
-                c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
+                try:
+                    c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
+                except ValueError:
+                    pass
 
         msg = 'Generated starting values for specified temperature and vapour mass fraction.'
         logging.debug(msg)

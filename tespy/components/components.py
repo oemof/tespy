@@ -1154,7 +1154,7 @@ class pump(turbomachine):
     1.198
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(inc.m.val_SI, 3)
-    0.624
+    0.599
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -5296,14 +5296,14 @@ class cogeneration_unit(combustion_chamber):
     >>> round(chp.ti.val)
     22500000.0
     >>> round(chp.Q1.val)
-    1742059.0
+    1743636.0
     >>> chp.set_attr(Q1=1.5e6, P=np.nan)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val)
-    17525009.0
+    17427210.0
     >>> round(chp.P.val / chp.P.design, 3)
-    0.753
+    0.747
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -6752,9 +6752,9 @@ class heat_exchanger_simple(component):
     >>> pi.set_attr(Tamb=-10)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(pi.kA.val, 1)
-    127.2
+    126.5
     >>> round(pi.Q.val, 1)
-    -26029.1
+    -25890.6
     >>> round(outg.T.val, 1)
     189.5
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -9316,7 +9316,7 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev.ttd_l.val, 1)
-    16.9
+    16.1
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

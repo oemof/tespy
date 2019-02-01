@@ -450,9 +450,9 @@ class bus:
     >>> power_bus.set_attr(P=-2.5e6)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(chp.P.val, 0)
-    659732.0
+    660186.0
     >>> round(heat_bus.P.val, 0)
-    5173430.0
+    5173585.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

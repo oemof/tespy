@@ -73,8 +73,6 @@ class characteristics:
             logging.error(msg)
             raise ValueError(msg)
 
-        self.char = interp1d(self.x, self.y, kind='cubic', bounds_error=True)
-
         msg = 'Created characteristic function for component of type ' + str(self.comp) + ' with default method ' + method +'.'
         logging.debug(msg)
 
@@ -241,9 +239,9 @@ class characteristics:
         elif self.comp == 'compressor':
 
             x['GENERIC'] = np.array(
-                    [0.000, 0.400, 1.000, 1.500])
+                    [0.000, 0.400, 1.000, 1.200])
             y['GENERIC'] = np.array(
-                    [0.500, 0.900, 1.000, 1.025])
+                    [0.500, 0.900, 1.000, 1.100])
 
         elif self.comp == 'pump':
 
@@ -269,7 +267,8 @@ class characteristics:
             y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
 
         elif (self.comp == 'heat exchanger' or self.comp == 'desuperheater' or
-              self.comp == 'pipe' or self.comp == 'heat exchanger simple'):
+              self.comp == 'pipe' or self.comp == 'heat exchanger simple' or
+              self.comp == 'condenser'):
 
             x['EVA_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
@@ -305,8 +304,6 @@ class characteristics:
                     [0.018, 0.075, 0.134, 0.215, 0.300, 0.412, 0.507, 0.564,
                      0.614, 0.660, 0.701, 0.739, 0.774, 0.806, 0.836, 0.864,
                      0.890, 0.915, 0.938, 0.960, 0.981, 1.000, 1.151, 1.253])
-
-        elif self.comp == 'condenser':
 
             x['COND_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
@@ -353,12 +350,15 @@ class characteristics:
         This methods checks for the value range first. If the x-value is outside of the specified range,
         the function will return the values at the corresponding boundary.
         """
-        if x > self.x[-1]:
-            return self.char(self.x[-1])
-        elif x < self.x[0]:
-            return self.char(self.x[0])
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x):
+            y = self.y[xpos - 1]
+        elif xpos == 0:
+            y = self.y[0]
         else:
-            return self.char(x)
+            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+            y = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+        return y
 
     def get_bound_errors(self, x):
         r"""

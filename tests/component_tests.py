@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 # -*- coding: utf-8
 
-from nose.tools import ok_, eq_
+from nose.tools import eq_
 
 from tespy import nwk, cmp, con, hlp
 from CoolProp.CoolProp import PropsSI as CP
@@ -100,11 +100,11 @@ class component_tests:
         # apply flow char and eta_s char
         instance.set_attr(flow_char=char, eta_s=np.nan, eta_s_char=hlp.dc_cc(method='GENERIC', is_set=True))
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(c2.p.val_SI - c1.p.val_SI, 6.5e5, 'Value of pressure rise must be ' + str(6.5e5) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
+        eq_(round(c2.p.val_SI - c1.p.val_SI, 0), 650000, 'Value of pressure rise must be ' + str(650000) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
         c1.set_attr(v=0.9)
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(c2.p.val_SI - c1.p.val_SI, 781250.0, 'Value of pressure rise must be ' + str(781250.0) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
-        eq_(0.695, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.695) + ', is ' + str(instance.eta_s.val) + '.')
+        eq_(c2.p.val_SI - c1.p.val_SI, 775000.0, 'Value of pressure rise must be ' + str(775000.0) + ', is ' + str(c2.p.val_SI - c1.p.val_SI) + '.')
+        eq_(0.694, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.694) + ', is ' + str(instance.eta_s.val) + '.')
         instance.eta_s_char.is_set = False
         # test boundaries of characteristic line
         c2.set_attr(T=con.ref(c1, 0, 20))
@@ -160,13 +160,13 @@ class component_tests:
         eq_(round(eta_s, 3), round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(eta_s) + ', is ' + str(instance.eta_s.val) + '.')
         c1.set_attr(v=1.5)
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.82, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.82) + ', is ' + str(instance.eta_s.val) + '.')
+        eq_(0.88, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.88) + ', is ' + str(instance.eta_s.val) + '.')
         # test param specification pr
         instance.eta_s_char.set_attr(param='pr')
         c1.set_attr(v=1)
         c2.set_attr(p=7.5)
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.797, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.797) + ', is ' + str(instance.eta_s.val) + '.')
+        eq_(0.829, round(instance.eta_s.val, 3), 'Value of isentropic efficiency must be ' + str(0.829) + ', is ' + str(instance.eta_s.val) + '.')
         instance.eta_s_char.set_attr(param=None)
         # test for missing parameter declaration
         try:

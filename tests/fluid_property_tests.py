@@ -1,8 +1,8 @@
 # -*- coding: utf-8
 
-from nose.tools import ok_, eq_
+from nose.tools import eq_
 
-from tespy import nwk, cmp, con, hlp
+from tespy import hlp
 from CoolProp.CoolProp import PropsSI as CP
 import numpy as np
 

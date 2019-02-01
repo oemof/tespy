@@ -1,192 +1,209 @@
 # -*- coding: utf-8
 
+from nose.tools import eq_
+
 from tespy import cmp, con, nwk, hlp, cmp_char
 
 import numpy as np
-# %% network
 
-nw = nwk.network(fluids=['water', 'NH3'],
-                 T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-                 p_range=[0.1, 100], T_range=[1, 500], h_range=[15, 5000])
 
-# %% components
+class test_heat_pump_ebsilon:
 
-# sources & sinks
+    def setup(self):
+        # %% network
 
-c_in = cmp.source('coolant in')
-cb = cmp.source('consumer back flow')
-cf = cmp.sink('consumer feed flow')
-amb_in = cmp.source('source ambient')
-amb_out = cmp.sink('sink ambient')
-ic_in = cmp.source('source intercool')
-ic_out = cmp.sink('sink intercool')
+        self.nw = nwk.network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
-c_out = cmp.sink('coolant out')
+        # %% components
 
-# consumer system
+        # sources & sinks
 
-cd = cmp.heat_exchanger('condenser')
-rp = cmp.pump('recirculation pump')
-cons = cmp.heat_exchanger_simple('consumer')
+        c_in = cmp.source('coolant in')
+        cb = cmp.source('consumer back flow')
+        cf = cmp.sink('consumer feed flow')
+        amb_in = cmp.source('source ambient')
+        amb_out = cmp.sink('sink ambient')
+        ic_in = cmp.source('source intercool')
+        ic_out = cmp.sink('sink intercool')
 
-# evaporator system
+        c_out = cmp.sink('coolant out')
 
-va = cmp.valve('valve')
-dr = cmp.drum('drum')
-ev = cmp.heat_exchanger('evaporator')
-su = cmp.heat_exchanger('superheater')
-pu = cmp.pump('pump evaporator')
+        # consumer system
 
-# compressor-system
+        cd = cmp.heat_exchanger('condenser')
+        rp = cmp.pump('recirculation pump')
+        cons = cmp.heat_exchanger_simple('consumer')
 
-cp1 = cmp.compressor('compressor 1')
-cp2 = cmp.compressor('compressor 2')
-he = cmp.heat_exchanger('intercooler')
+        # evaporator system
 
-# busses
+        va = cmp.valve('valve')
+        dr = cmp.drum('drum')
+        ev = cmp.heat_exchanger('evaporator')
+        su = cmp.heat_exchanger('superheater')
+        pu = cmp.pump('pump evaporator')
 
-x = np.array([0, 0.7, 1, 1.3])
-y = 1 / np.array([0.5, 0.95, 1, 0.98]) / 0.9583794
-motor = cmp_char.characteristics(x=x, y=y)
+        # compressor-system
 
-power = con.bus('total compressor power')
-power.add_comps({'c': cp1, 'char': motor}, {'c': cp2, 'char': motor})
-heat = con.bus('total delivered heat')
-heat.add_comps({'c': cd, 'char': -1})
-nw.add_busses(power, heat)
+        cp1 = cmp.compressor('compressor 1')
+        cp2 = cmp.compressor('compressor 2')
+        he = cmp.heat_exchanger('intercooler')
 
-# %% connections
+        # busses
 
-# consumer system
+        x = np.array([0, 0.7, 1, 1.3])
+        y = 1 / np.array([0.5, 0.95, 1, 0.98]) / 0.9583794
+        motor = cmp_char.characteristics(x=x, y=y)
 
-c_in_cd = con.connection(c_in, 'out1', cd, 'in1')
+        self.power = con.bus('total compressor power')
+        self.power.add_comps({'c': cp1, 'char': motor}, {'c': cp2, 'char': motor})
+        self.heat = con.bus('total delivered heat')
+        self.heat.add_comps({'c': cd, 'char': -1})
+        self.nw.add_busses(self.power, self.heat)
 
-cb_rp = con.connection(cb, 'out1', rp, 'in1')
-rp_cd = con.connection(rp, 'out1', cd, 'in2')
-cd_cons = con.connection(cd, 'out2', cons, 'in1')
-cons_cf = con.connection(cons, 'out1', cf, 'in1')
+        # %% connections
 
-nw.add_conns(c_in_cd, cb_rp, rp_cd, cd_cons, cons_cf)
+        # consumer system
 
-# connection condenser - evaporator system
+        c_in_cd = con.connection(c_in, 'out1', cd, 'in1')
 
-cd_va = con.connection(cd, 'out1', va, 'in1')
+        cb_rp = con.connection(cb, 'out1', rp, 'in1')
+        rp_cd = con.connection(rp, 'out1', cd, 'in2')
+        cd_cons = con.connection(cd, 'out2', cons, 'in1')
+        cons_cf = con.connection(cons, 'out1', cf, 'in1')
 
-nw.add_conns(cd_va)
+        self.nw.add_conns(c_in_cd, cb_rp, rp_cd, cd_cons, cons_cf)
 
-# evaporator system
+        # connection condenser - evaporator system
 
-va_dr = con.connection(va, 'out1', dr, 'in1')
-dr_pu = con.connection(dr, 'out1', pu, 'in1')
-pu_ev = con.connection(pu, 'out1', ev, 'in2')
-ev_dr = con.connection(ev, 'out2', dr, 'in2')
-dr_su = con.connection(dr, 'out2', su, 'in2')
+        cd_va = con.connection(cd, 'out1', va, 'in1')
 
-nw.add_conns(va_dr, dr_pu, pu_ev, ev_dr, dr_su)
+        self.nw.add_conns(cd_va)
 
-amb_in_su = con.connection(amb_in, 'out1', su, 'in1')
-su_ev = con.connection(su, 'out1', ev, 'in1')
-ev_amb_out = con.connection(ev, 'out1', amb_out, 'in1')
+        # evaporator system
 
-nw.add_conns(amb_in_su, su_ev, ev_amb_out)
+        va_dr = con.connection(va, 'out1', dr, 'in1')
+        dr_pu = con.connection(dr, 'out1', pu, 'in1')
+        pu_ev = con.connection(pu, 'out1', ev, 'in2')
+        ev_dr = con.connection(ev, 'out2', dr, 'in2')
+        dr_su = con.connection(dr, 'out2', su, 'in2')
 
-# connection evaporator system - compressor system
+        self.nw.add_conns(va_dr, dr_pu, pu_ev, ev_dr, dr_su)
 
-su_cp1 = con.connection(su, 'out2', cp1, 'in1')
+        self.amb_in_su = con.connection(amb_in, 'out1', su, 'in1')
+        su_ev = con.connection(su, 'out1', ev, 'in1')
+        ev_amb_out = con.connection(ev, 'out1', amb_out, 'in1')
 
-nw.add_conns(su_cp1)
+        self.nw.add_conns(self.amb_in_su, su_ev, ev_amb_out)
 
-# compressor-system
+        # connection evaporator system - compressor system
 
-cp1_he = con.connection(cp1, 'out1', he, 'in1')
-he_cp2 = con.connection(he, 'out1', cp2, 'in1')
-cp2_c_out = con.connection(cp2, 'out1', c_out, 'in1')
+        su_cp1 = con.connection(su, 'out2', cp1, 'in1')
 
-ic_in_he = con.connection(ic_in, 'out1', he, 'in2')
-he_ic_out = con.connection(he, 'out2', ic_out, 'in1')
+        self.nw.add_conns(su_cp1)
 
-nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
+        # compressor-system
 
-# helping connection to reference boiling temperature
+        cp1_he = con.connection(cp1, 'out1', he, 'in1')
+        he_cp2 = con.connection(he, 'out1', cp2, 'in1')
+        cp2_c_out = con.connection(cp2, 'out1', c_out, 'in1')
 
-ref_Ts_su = con.connection(cmp.source('so'), 'out1', cmp.sink('si'), 'in1')
-ref_Ts_cd = con.connection(cmp.source('socd'), 'out1', cmp.sink('sicd'), 'in1')
-nw.add_conns(ref_Ts_su, ref_Ts_cd)
-# %% component parametrization
+        ic_in_he = con.connection(ic_in, 'out1', he, 'in2')
+        he_ic_out = con.connection(he, 'out2', ic_out, 'in1')
 
-# condenser system
+        self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
-rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
-cons.set_attr(pr=1, design=['pr'], offdesign=['zeta'])
+        # helping connection to reference boiling temperature
 
-# evaporator system
+        ref_Ts_su = con.connection(cmp.source('so'), 'out1', cmp.sink('si'), 'in1')
+        ref_Ts_cd = con.connection(cmp.source('socd'), 'out1', cmp.sink('sicd'), 'in1')
+        self.nw.add_conns(ref_Ts_su, ref_Ts_cd)
+        # %% component parametrization
 
-ev.set_attr(pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA'],
-            kA_char1='EVA_HOT', kA_char2='EVA_COLD')
+        # condenser system
 
-x = np.array([0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2])
-y = np.array([0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07])
-su_char = hlp.dc_cc(x=x, y=y, param='m')
-su.set_attr(kA_char1='default', kA_char2=su_char, offdesign=['zeta1', 'zeta2', 'kA'])
-pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+        rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+        cons.set_attr(pr=1, design=['pr'], offdesign=['zeta'])
 
-# compressor system
+        # evaporator system
 
-cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
-cp2.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+        ev.set_attr(pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA'],
+                    kA_char1='EVA_HOT', kA_char2='EVA_COLD')
 
-x = np.linspace(0, 2.5, 26)
-y = np.array([
-        0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840, 0.921,
-        1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516, 1.585, 1.654,
-        1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
-he_char_cold = hlp.dc_cc(x=x, y=y, param='m')
+        # characteristic line for superheater kA
+        x = np.array([0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2])
+        y = np.array([0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07])
+        su_char = hlp.dc_cc(x=x, y=y, param='m')
+        su.set_attr(kA_char1='default', kA_char2=su_char, offdesign=['zeta1', 'zeta2', 'kA'])
+        pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
-he.set_attr(kA_char1='default', kA_char2=he_char_cold, offdesign=['zeta1', 'zeta2', 'kA'])
-cd.set_attr(pr2=0.998, design=['pr2'], offdesign=['zeta2', 'kA'])
+        # compressor system
 
-# %% connection parametrization
+        cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+        cp2.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
-# condenser system
+        # characteristic line for intercooler kA
+        x = np.linspace(0, 2.5, 26)
+        y = np.array([
+                0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840, 0.921,
+                1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516, 1.585, 1.654,
+                1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        he_char_cold = hlp.dc_cc(x=x, y=y, param='m')
 
-c_in_cd.set_attr(fluid={'water': 0, 'NH3': 1}, p=60)
-cb_rp.set_attr(T=60, p=10, fluid={'water': 1, 'NH3': 0})
-cd_cons.set_attr(T=105)
-cons_cf.set_attr(h=con.ref(cb_rp, 1, 0), p=con.ref(cb_rp, 1, 0))
-cd_va.set_attr(p=con.ref(c_in_cd, 1, -1000), T=con.ref(ref_Ts_cd, 1, -5), h0=500, design=['T'])
+        he.set_attr(kA_char1='default', kA_char2=he_char_cold, offdesign=['zeta1', 'zeta2', 'kA'])
+        cd.set_attr(pr2=0.998, design=['pr2'], offdesign=['zeta2', 'kA'])
 
-# evaporator system cold side
+        # %% connection parametrization
 
-pu_ev.set_attr(m=con.ref(va_dr, 10, 0), p0=5)
-dr_su.set_attr(p0=5, T=5)
-su_cp1.set_attr(p=con.ref(dr_su, 1, -5000), T=con.ref(ref_Ts_su , 1, 5), h0=1700, design=['T', 'p'])
+        # condenser system
 
-# evaporator system hot side
+        c_in_cd.set_attr(fluid={'water': 0, 'NH3': 1}, p=60)
+        cb_rp.set_attr(T=60, p=10, fluid={'water': 1, 'NH3': 0})
+        cd_cons.set_attr(T=105)
+        cons_cf.set_attr(h=con.ref(cb_rp, 1, 0), p=con.ref(cb_rp, 1, 0))
+        cd_va.set_attr(p=con.ref(c_in_cd, 1, -1000), T=con.ref(ref_Ts_cd, 1, -5), h0=500, design=['T'])
 
-amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1, 'NH3': 0})
-su_ev.set_attr(p=con.ref(amb_in_su, 1, -100), design=['p'])
-ev_amb_out.set_attr()
+        # evaporator system cold side
 
-ref_Ts_su.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(su_cp1, 1, 0), x=1)
-ref_Ts_cd.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(cd_va, 1, 0), x=0)
+        pu_ev.set_attr(m=con.ref(va_dr, 10, 0), p0=5)
+        dr_su.set_attr(p0=5, T=5)
+        su_cp1.set_attr(p=con.ref(dr_su, 1, -5000), T=con.ref(ref_Ts_su , 1, 5), h0=1700, design=['T', 'p'])
 
-# compressor-system
+        # evaporator system hot side
 
-cp1_he.set_attr(p=15)
-he_cp2.set_attr(T=40, p=con.ref(cp1_he, 1, -1000), design=['T', 'p'])
-ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1, 'NH3': 0})
-he_ic_out.set_attr(p=con.ref(ic_in_he, 1, -200), design=['p'])
-cp2_c_out.set_attr(p=con.ref(c_in_cd, 1, 0), h=con.ref(c_in_cd, 1, 0))
+        self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1, 'NH3': 0})
+        su_ev.set_attr(p=con.ref(self.amb_in_su, 1, -100), design=['p'])
+        ev_amb_out.set_attr()
 
-# %% Calculation
+        ref_Ts_su.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(su_cp1, 1, 0), x=1)
+        ref_Ts_cd.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(cd_va, 1, 0), x=0)
 
-nw.solve('design')
-nw.save('tmp')
-print(heat.P.val / power.P.val)
+        # compressor-system
 
-for m in [23, 22, 18, 16, 15]:
-    amb_in_su.set_attr(m=m)
+        cp1_he.set_attr(p=15)
+        he_cp2.set_attr(T=40, p=con.ref(cp1_he, 1, -1000), design=['T', 'p'])
+        ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1, 'NH3': 0})
+        he_ic_out.set_attr(p=con.ref(ic_in_he, 1, -200), design=['p'])
+        cp2_c_out.set_attr(p=con.ref(c_in_cd, 1, 0), h=con.ref(c_in_cd, 1, 0))
 
-    nw.solve('offdesign', design_path='tmp', init_path='tmp')
-    print(heat.P.val / power.P.val)
-    print(heat.P.val, power.P.val)
+
+    def test_model(self):
+
+        self.nw.solve('design')
+        self.nw.save('tmp')
+
+        # input values from ebsilon
+        m_source = [23, 22, 20, 18, 16, 15]
+        # results from ebsilon
+        COP = [2.323, 2.306, 2.269, 2.221, 2.153, 2.116]
+        P = np.array([106.4, 104.1, 99.1, 93.7, 88.3, 85.4]) * 1e3
+
+        i = 0
+        for m in m_source:
+            self.amb_in_su.set_attr(m=m)
+            self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
+            # relative deviation should not exceed 2.5 %
+            d_rel_COP = abs(self.heat.P.val / self.power.P.val - COP[i]) / COP[i]
+            d_rel_P = abs(self.power.P.val - P[i]) / P[i]
+            eq_(d_rel_COP < 0.025, True, 'The deviation in COP should be less than 0.025, is ' + str(d_rel_COP) + ' at mass flow ' + str(m) + '.')
+            eq_(d_rel_P < 0.025, True, 'The deviation in power should be less than 0.025, is ' + str(d_rel_P) + ' at mass flow ' + str(m) + '.')
+            i += 1

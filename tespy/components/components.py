@@ -279,7 +279,7 @@ class component:
 
                 if generate_char:
                     self.get_attr(key).func = cmp_char.characteristics(
-                            method=val.method, x=self.get_attr(key).x,
+                            method=self.get_attr(key).method, x=self.get_attr(key).x,
                             y=self.get_attr(key).y, comp=self.component())
                     self.get_attr(key).x = self.get_attr(key).func.x
                     self.get_attr(key).y = self.get_attr(key).func.y

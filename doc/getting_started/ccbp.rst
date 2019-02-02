@@ -1,4 +1,4 @@
-.. _chp_example_label:
+.. _combined_cycle_example_label:
 
 Combined cycle with backpressure turbine
 ----------------------------------------

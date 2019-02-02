@@ -45,17 +45,17 @@ You need to specify a list of the fluids you need for the calculation in your pl
 
 .. code-block:: python
 
-    from tespy import nwk
+	from tespy import nwk
 	# create a network object with air and water as fluids
 	fluid_list = ['air', 'water']
-    my_plant = nwk.network(fluids=fluid_list)
+	my_plant = nwk.network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
 The specification of the **value range** is used to **improve convergence stability**, in case you are dealing with **fluid mixtures**, e. g. using a combustion chamber.
 
 .. code-block:: python
 
-    from tespy import nwk
+	from tespy import nwk
 
 	# set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
 	my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
@@ -114,8 +114,8 @@ This can be used for example if you want to have the pressure in two parts of yo
 	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
 	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1')
 	fwt_fwp = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
-	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', p=150) #  setting pressure
-	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(d, 0.98, 0)) # setting temperature and pressure via reference object
+	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
+	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
 	eva_eco = con.connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
 	eco_fgs = con.connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
 
@@ -132,7 +132,7 @@ If you want to set, reset or unset a connection parameter the same logic as for 
 .. code-block:: python
 
 	ws_cond.set_attr(x=0.95, p=0.05) # reset vapour mass fraction, set pressure
-	fwp_eco.set_attr(p=np.nan) # unset pressure
+	eco_drum.set_attr(p=np.nan) # unset pressure
 
 Start your calculation
 ----------------------
@@ -171,14 +171,17 @@ The TESPy network contains all data of your plant, which in terms of the calcula
 The solver will solve for these variables. As stated in the introduction the list of fluids is passed to your network on creation.
 If your **system includes fluid mixtures**, you should **always make use of the value ranges** for the system variables. This improves the stability of the algorithm. Try to fit the boundaries as tight as possible,
 for instance, if you kwow that the maximum pressure in the system will be at 10 bar, use it as upper boundary.
-Value ranges for pure fluids are not required as these are dealt with automatically.
+
+.. note::
+
+	Value ranges for pure fluids are not required as these are dealt with automatically.
 
 .. code-block:: python
 
     from tespy import nwk
 
 	fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
-    my_plant = nwk.network(fluids=fluid_list)
+	my_plant = nwk.network(fluids=fluid_list)
 	my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
 	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
 	
@@ -257,7 +260,7 @@ If you choose :code:`offdesign` as calculation mode the specification of a :code
 
 The usage of an initialisation path is always optional but highly recommended, as the convergence of the solution process will be improved, if you provide good starting values.
 If do not specify an :code:`init_path`, the initialisation from priorly saved results will be skipped.
-:code:`init_only=True` usually is used for debugging. You could use this feature to export a not solved network, if you want to do the parametrisation in .csv-files rather than your python script.
+:code:`init_only=True` usually is used for debugging. Or, you could use this feature to export a not solved network, if you want to do the parametrisation in .csv-files rather than your python script.
 
 Design mode
 +++++++++++
@@ -278,7 +281,6 @@ This applies to connections analogously. **The value of the newly set parameter 
 
 	myplant.solve(mode='offdesign', design_path='mynetwork')
 
-
 .. note::
 
 	Since version 0.1.0 there are no default design and offdesign parameters! All design and offdesign have to be specified manually as in the example below.
@@ -290,6 +292,11 @@ Also, the pressure drop is a result of the geometry for the offdesign case, thus
 .. code-block:: python
 
 	heat_ex.set_attr(design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2'])
+	
+.. note::
+
+	Some parameters come with characteristic functions based on the design case properties. This means, that e. g. the isentropic efficiency of a turbine is calculated as function of the actual mass flow to design mass flow ratio.
+	You can provide your own (measured) data or use the already existing data from TESPy. All standard characteristic functions are available at :py:class:`tespy.components.characteristics.characteristics`. How to specify own data and all available characteristic functions are provided in :ref:`this section <component_characteristics_label>`.
 
 If you want to **prevent the autoswitch from design to offdesign mode** for specific components, use :code:`heat_ex.set_attr(mode='man')`.
 
@@ -617,6 +624,7 @@ Characteristics
 	y = np.array([0, 0.8, 1, 1.2])
 	he.set_attr(kA_char1=hlp.dc_cc(param='m', x=x, y=y))
 
+.. _component_characteristics_label:
 
 Component characteristics
 -------------------------
@@ -624,27 +632,24 @@ Component characteristics
 Characteristics are available for the following components and parameters:
 
 - pump
-	* eta_s_char: isentropic efficiency vs. volumetric flow rate, not customizable at the moment
-	* flow_char: pressure rise vs. volumetric flow characteristic, customizable
+	* :py:meth:`eta_s_char <tespy.components.components.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
+	* :py:meth:`flow_char <tespy.components.components.pump.flow_char_func>`: pressure rise vs. volumetric flow characteristic.
 - compressor
-	* char_map: component map for isentropic efficiency and pressure rise, not customizable at the moment
-	* eta_s_char: isentropic efficiency vs. pressure ratio, customizable
+	* :py:meth:`char_map <tespy.components.components.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
+	* :py:meth:`eta_s_char <tespy.components.components.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
 - turbine
-	* eta_s_char: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow, customizable
-- valve
-	* pr_char: pressure ratio vs. inlet pressure, customizable
+	* :py:meth:`eta_s_char <tespy.components.components.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
 - heat exchangers:
-	* kA1_char, kA2_char: heat transfer coefficient, various predefined types, mass flows as specification parameters, customizable
+	* :py:meth:`kA1_char, kA2_char <tespy.components.components.heat_exchanger.kA_func>`: heat transfer coefficient, various predefined types, mass flows as specification parameters.
 - simple heat exchangers
-	* kA_char: e. g. pipe, see heat exchangers
+	* :py:meth:`kA_char <tespy.components.components.heat_exchanger_simple.kA_func>`: e. g. pipe, see heat exchangers
 - cogeneration unit
-	* tiP_char: thermal input vs. power ratio, customizable
-	* Q1_char: heat output 1 vs. power ratio, customizable
-	* Q2_char: heat output 2 vs. power ratio, customizable
-	* Qloss_char: heat loss vs. power ratio, customizable
+	* :py:meth:`tiP_char <tespy.components.components.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
+	* :py:meth:`Q1_char <tespy.components.components.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
+	* :py:meth:`Q2_char <tespy.components.components.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
+	* :py:meth:`Qloss_char <tespy.components.components.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
 
-There are two ways for specifying the customizable characteristic line of a component.
-You can specify the method directly by stating the methods name or you define the whole data container for this parameter.
+You can specify the name of a default characteristic line or you define the whole data container for this parameter. The default characteristic lines can be found in the :py:mod:`documentation <tespy.components.characteristics>`.
 
 .. code-block:: python
 
@@ -665,14 +670,6 @@ You can specify the method directly by stating the methods name or you define th
 	he = cmp.heat_exchanger('evaporator')
 	he.set_attr(kA_char1='EVA_HOT')
 	he.set_attr(kA_char2='EVA_COLD')
-
-Default characteristic lines are available for
-- turbines,
-- pumps,
-- compressor,
-- heat exchangers and
-- cogeneration untis,
-which can be found in the :py:mod:`documentation <tespy.components.characteristics>`.
 
 Custom components
 -----------------
@@ -1073,7 +1070,6 @@ In order to represent a plant within an abstract component it is possible to sup
 Thus the characteristics are a representation of a specific plant layout in terms of topology and process parameters. In the examples section we have an example of a heat pump COP at different loads and ambient temperatures
 as well as a CHP unit with backpressure turbine operating at different loads and varying feed flow temperatures of a heating system.
 
-
 .. _tespy_fluid_properties_label:
 
 Fluid properties in TESPy
@@ -1104,6 +1100,8 @@ Ideal mixtures of gaseous fluids
 
 TESPy can handle mixtures of gaseous fluids, by using the single fluid properties from CoolProp together with corresponding equations for mixtures.
 The equations can be found in the :py:mod:`tespy.tools.helpers module <tespy.tools.helpers>` and are applied automatically to the fluid vector.
+
+It is also possible create lookup-tables for fluid mixtures with fixed mass fractions of the components, as this reduces the amount of CoolProp fluid property calls and speeds up your calculation. Look up the :py:class:`tespy_fluids documentation <tespy.tools.helpers.tespy_fluid>` for more information.
 
 Other mixtures
 ^^^^^^^^^^^^^^

@@ -34,7 +34,7 @@ If you want to use the latest features, you might want to install the **develope
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provide some `basic examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_, go and check them out. You can download the python scripts of all example plants from the `tespy_examples repository <https://github.com/fwitte/tespy_examples>`_.
+For a short introduction on how TESPy works and how you can use it, we provide some `basic examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_, go and check them out. You can download the python scripts of all example plants from the `tespy_examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_.
 
 License
 =======

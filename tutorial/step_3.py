@@ -149,11 +149,11 @@ cons.set_attr(Q=-230e3)
 
 nw.solve('design')
 # alternatively use:
-nw.solve('design', init_file='condenser_eva')
+nw.solve('design', init_path='condenser_eva')
 nw.print_results()
 nw.save('heat_pump')
 
 cons.set_attr(Q=-200e3)
 
-nw.solve('offdesign', init_file='heat_pump', design_file='heat_pump')
+nw.solve('offdesign', design_path='heat_pump')
 nw.print_results()

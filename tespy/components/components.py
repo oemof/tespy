@@ -140,6 +140,7 @@ class component:
                     # value specification for component properties
                     if (isinstance(kwargs[key], float) or
                             isinstance(kwargs[key], np.float64) or
+                            isinstance(kwargs[key], np.int64) or
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)

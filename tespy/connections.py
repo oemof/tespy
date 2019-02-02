@@ -247,6 +247,8 @@ class connection:
                         raise TypeError(msg)
 
                 elif (isinstance(kwargs[key], float) or
+                        isinstance(kwargs[key], np.float64) or
+                        isinstance(kwargs[key], np.int64) or
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
@@ -578,6 +580,7 @@ class bus:
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
+                              isinstance(v, np.int64) or
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
@@ -590,6 +593,7 @@ class bus:
                     elif k == 'P_ref':
                         if (v is None or isinstance(v, float) or
                                 isinstance(v, np.float64) or
+                                isinstance(v, np.int64) or
                                 isinstance(v, int)):
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:

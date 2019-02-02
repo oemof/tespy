@@ -2048,7 +2048,7 @@ class turbine(turbomachine):
     >>> t.set_attr(P=-9e4)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
-    0.798
+    0.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

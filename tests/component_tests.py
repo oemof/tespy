@@ -4,7 +4,6 @@
 from nose.tools import eq_
 
 from tespy import nwk, cmp, con, hlp
-from CoolProp.CoolProp import PropsSI as CP
 import numpy as np
 import shutil
 
@@ -216,11 +215,11 @@ class component_tests:
         # test param specification pr
         instance.eta_s_char.param='pr'
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.792, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.792) + ').')
+        eq_(0.769, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.769) + ').')
         # test param specification dh_s
         instance.eta_s_char.param='dh_s'
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.798, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.798) + ').')
+        eq_(0.799, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.799) + ').')
         instance.eta_s_char.param=None
         # test for missing parameter declaration
         try:

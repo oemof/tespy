@@ -454,7 +454,7 @@ class bus:
     >>> round(chp.P.val, 0)
     660186.0
     >>> round(heat_bus.P.val, 0)
-    5173585.0
+    5366206.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

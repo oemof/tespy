@@ -1,10 +1,8 @@
 # -*- coding: utf-8
 
-from nose.tools import ok_, eq_, raises, with_setup
+from nose.tools import eq_, raises
 
 from tespy import nwk, cmp, con, hlp, subsys, cmp_char
-from CoolProp.CoolProp import PropsSI as CP
-import numpy as np
 
 
 # %% bulk tests

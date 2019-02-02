@@ -1,10 +1,9 @@
 # -*- coding: utf-8
 
 from nose.tools import eq_
-
 from tespy import cmp, con, nwk, hlp, cmp_char
-
 import numpy as np
+import shutil
 
 
 class test_heat_pump_ebsilon:
@@ -223,8 +222,8 @@ class test_heat_pump_ebsilon:
                 # thus it is difficult/impossible to match the models perfectly!
                 d_rel_COP = abs(self.heat.P.val / self.power.P.val - COP[i, j]) / COP[i, j]
                 d_rel_P = abs(self.power.P.val - P[i, j]) / P[i, j]
-                print(P[i, j], COP[i, j], d_rel_COP, d_rel_P)
                 eq_(d_rel_COP < 0.1, True, 'The deviation in COP should be less than 0.1, is ' + str(d_rel_COP) + ' at mass flow ' + str(m) + '.')
                 eq_(d_rel_P < 0.1, True, 'The deviation in power should be less than 0.1, is ' + str(d_rel_P) + ' at mass flow ' + str(m) + '.')
                 j += 1
             i += 1
+        shutil.rmtree('./tmp', ignore_errors=True)

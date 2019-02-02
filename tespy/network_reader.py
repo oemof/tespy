@@ -98,9 +98,9 @@ def load_nwk(path):
     >>> eta_s_t = round(t.eta_s.val, 3)
     >>> igva = round(c.igva.val, 3)
     >>> eta_s_t
-    0.798
+    0.8
     >>> igva
-    9.018
+    9.367
     >>> nw2 = nwkr.load_nwk('tmp')
     >>> nw2.set_printoptions(print_level='none')
     >>> nw2.solve('design')
@@ -113,9 +113,9 @@ def load_nwk(path):
     >>> nw2.imp_busses['total power output'].set_attr(P=-9e5)
     >>> nw2.solve('offdesign', design_path='tmp')
     >>> round(nw2.imp_comps['turbine'].eta_s.val, 3)
-    0.798
+    0.8
     >>> round(nw2.imp_comps['compressor'].igva.val, 3)
-    9.018
+    9.367
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
     msg = 'Reading network data from base path ' + path + '.'

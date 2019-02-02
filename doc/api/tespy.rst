@@ -7,6 +7,7 @@ Submodules
 .. toctree::
 
    tespy.components
+   tespy.tools
 
 tespy\.connections module
 -------------------------
@@ -17,17 +18,9 @@ tespy\.connections module
     :show-inheritance:
 
 tespy\.network\_reader module
--------------------------
+-----------------------------
 
 .. automodule:: tespy.network_reader
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tespy\.helpers module
----------------------
-
-.. automodule:: tespy.helpers
     :members:
     :undoc-members:
     :show-inheritance:
@@ -39,7 +32,6 @@ tespy\.networks module
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 Module contents
 ---------------

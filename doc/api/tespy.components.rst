@@ -1,5 +1,5 @@
 tespy.components module
-========================
+=======================
 
 tespy.components.characteristics module
 ---------------------------------------

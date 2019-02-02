@@ -43,9 +43,9 @@ nw.add_conns(cd_ves)
 
 # %% component parametrization
 
-cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
-rp.set_attr(eta_s=0.8)
-cons.set_attr(pr=0.99, offdesign=['zeta'])
+cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'], offdesign=['zeta2', 'kA'])
+rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
+cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # %% connection parametrization
 
@@ -66,7 +66,5 @@ nw.save('condenser')
 
 cons.set_attr(Q=-200e3)
 
-nw.solve('offdesign',
-         init_file='condenser/results.csv',
-         design_file='condenser/results.csv')
+nw.solve('offdesign', design_path='condenser')
 nw.print_results()

@@ -7,7 +7,6 @@
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
 """
 
-from scipy.interpolate import interp1d
 import numpy as np
 
 import logging

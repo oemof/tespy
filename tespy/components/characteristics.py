@@ -34,7 +34,7 @@ class characteristics:
 
     Note
     ----
-    This class generates a lookup table from the given input data x and y, then performs cubic interpolation.
+    This class generates a lookup table from the given input data x and y, then performs linear interpolation.
     The x and y values may be specified by the user. There are some default characteristic lines for different
     components, see the :func:`tespy.components.characteristics.characteristics.default` method.
     If you neither specify the method to use from the defaults nor specify x and y values,
@@ -84,8 +84,6 @@ class characteristics:
 
             \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
 
-        **GENERIC**
-
         .. math::
 
             \text{choose calculation method for X}
@@ -94,22 +92,21 @@ class characteristics:
             \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
             \frac{\dot{V}}{\dot{V}_{ref}} & \text{volumetric flow}\\
             \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
-            \text{pressure ratio}
+            \text{pressure ratio}\\
+            \sqrt{\frac{\Delta h_\mathrm{s,ref}}{\Delta h_\mathrm{s}}} &
+            \text{isentropic enthalpy difference}
             \end{cases}
 
-        .. image:: _images/GENERIC.svg
+        **GENERIC**
+
+        .. image:: _images/turbine_GENERIC.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
 
         **TRAUPEL**
 
-        .. math::
-
-           X=\frac{
-            \sqrt{\Delta h_\mathrm{s,ref}}}{\sqrt{\Delta h_\mathrm{s}}}
-
-        .. image:: _images/TRAUPEL.svg
+        .. image:: _images/turbine_TRAUPEL.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -119,6 +116,43 @@ class characteristics:
         - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin:
           Spinger.
           -> TRAUPEL
+
+        **default characteristic lines for compressors**
+
+        .. math::
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
+
+        .. math::
+
+            \text{choose calculation method for X}
+
+            X = \begin{cases}
+            \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
+            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
+            \text{pressure ratio}\\
+            \end{cases}
+
+        **GENERIC**
+
+        .. image:: _images/compressor_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        **default characteristic lines for pumps**
+
+        .. math::
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=
+            f\left(\frac{\dot{V}}{\dot{V}_{ref}} \right)
+
+        **GENERIC**
+
+        .. image:: _images/pump_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
 
 
         **default characteristic lines for cogeneration units**
@@ -174,7 +208,7 @@ class characteristics:
             \frac{kA}{kA_\mathrm{ref}}=f_1\left(x_1 \right)
             \cdot f_2\left(x_2 \right)
 
-        available lines characteristics:
+        available characteristic lines:
 
         **condensing fluid** (COND)
 
@@ -224,9 +258,11 @@ class characteristics:
         if self.comp == 'turbine':
 
             x['GENERIC'] = np.array(
-                    [0.000, 0.500, 0.800, 0.950, 1.000, 1.050, 1.200])
+                    [0.000, 0.300, 0.600, 0.700, 0.800, 0.900, 1.000, 1.100,
+                     1.200, 1.300, 1.400, 1.500])
             y['GENERIC'] = np.array(
-                    [0.975, 0.985, 0.994, 0.999, 1.000, 0.999, 0.990])
+                    [0.950, 0.980, 0.993, 0.996, 0.998, 0.9995, 1.000, 0.999,
+                     0.996, 0.990, 0.980, 0.960])
 
             x['TRAUPEL'] = np.array(
                     [0.0000, 0.1905, 0.3810, 0.5714, 0.7619, 0.9524, 1.0000,

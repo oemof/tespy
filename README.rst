@@ -6,6 +6,8 @@
     :target: https://tespy.readthedocs.io/en/master/?badge=master
 .. image:: https://badge.fury.io/py/TESPy.svg
     :target: https://badge.fury.io/py/TESPy
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555867.svg
+   :target: https://doi.org/10.5281/zenodo.2555867
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engineering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ and can be used as a standalone package.
 

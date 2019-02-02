@@ -13,7 +13,7 @@ New Features
 Documentation
 #############
 - Registered a DOI for TESPy version 0.1: .
-- Adapted documentation and examples in regard of new features. Examples have been moved to the `oemof-examples repository <https://github.com/oemof/oemof-examples>`_.
+- Adapted documentation and examples in regard of new features. Examples have been moved to the `oemof-examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_.
 - Improved consistency in documentation of all modules (`PR #45 <https://github.com/oemof/tespy/pull/45>`_).
 
 Parameter renaming

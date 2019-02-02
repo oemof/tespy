@@ -932,7 +932,7 @@ If you want to add even more flexibility, you might need to manipulate the :code
 For example, if you want a variable number of inlets and outlets because you have a variable number of components groups within your subsystem,
 you may introduce an attribute which is set on initialisation and lets you create and parametrize components and connections generically.
 This might be very interesting for district heating systems, turbines with several sections of equal topology, etc..
-For a good start, you can have a look into the sub_consumer.py at the `tespy_examples repository <https://github.com/fwitte/tespy_examples/tree/master/district_heating>`_.
+For a good start, you can have a look into the sub_consumer.py at the `tespy_examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/district_heating>`_.
 
 
 TESPy connections

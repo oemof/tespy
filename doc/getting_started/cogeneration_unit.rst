@@ -35,4 +35,4 @@ If you want to add a bus to the example from the tespy_examples repository, your
 	# for power output
 	bus.add_comps({'c': chp, 'p': 'P'})
 	
-Enjoy fiddling around with the source code of the `cogeneration unit <https://github.com/fwitte/tespy_examples/blob/master/cogeneration_unit>`_ in the examples repository!
+Enjoy fiddling around with the source code of the `cogeneration unit <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/cogeneration_unit>`_ in the examples repository!

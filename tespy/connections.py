@@ -118,18 +118,18 @@ class connection:
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. Can\'t connect component to itself.')
+            msg = ('Error creating connection. Can\'t connect component ' + comp1.label + ' to itself.')
             logging.error(msg)
-            raise ValueError(msg)
+            raise TESPyConnectionError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. Specified oulet_id is not valid for component ' +
+            msg = ('Error creating connection. Specified oulet_id (' + outlet_id + ') is not valid for component ' +
                    comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. Specified inlet_id is not valid for component ' +
+            msg = ('Error creating connection. Specified inlet_id (' + inlet_id + ') is not valid for component ' +
                    comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
@@ -223,7 +223,32 @@ class connection:
         # set specified values
         for key in kwargs:
             if key in var.keys() or key in var0:
-                if (isinstance(kwargs[key], float) or
+                if 'fluid' in key:
+                    # fluid specification
+                    if isinstance(kwargs[key], dict):
+                        # starting values
+                        if key in var0:
+                            self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                        # specified parameters
+                        else:
+                            self.get_attr(key).set_attr(val=kwargs[key].copy())
+                            for f in kwargs[key]:
+                                kwargs[key][f] = True
+                            self.get_attr(key).set_attr(val_set=kwargs[key])
+
+                    elif isinstance(kwargs[key], dc_flu):
+                        # data container for fluids
+                        self.__dict__.update({key: kwargs[key]})
+
+                    else:
+                        # bad datatype
+                        msg = 'Bad datatype for connection keyword ' + key + '.'
+                        logging.error(msg)
+                        raise TypeError(msg)
+
+                elif (isinstance(kwargs[key], float) or
+                        isinstance(kwargs[key], np.float64) or
+                        isinstance(kwargs[key], np.int64) or
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
@@ -238,33 +263,20 @@ class connection:
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
-                    if key == 'fluid' or key == 'x':
-                        msg = 'References for fluid vector and vapour mass fraction not implemented.'
+                    if key == 'x' or key == 'v':
+                        msg = 'References for volumetric flow and vapour mass fraction not implemented.'
                         logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
 
-                # fluid specification
-                elif isinstance(kwargs[key], dict):
-                    # starting values
-                    if key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key])
-                    # specified parameters
-                    else:
-                        self.get_attr(key).set_attr(val=kwargs[key].copy())
-                        for f in kwargs[key]:
-                            kwargs[key][f] = True
-                        self.get_attr(key).set_attr(val_set=kwargs[key])
-
                 # data container specification
-                elif isinstance(kwargs[key], data_container):
+                elif isinstance(kwargs[key], dc_prop):
                     self.__dict__.update({key: kwargs[key]})
 
                 # invalid datatype for keyword
                 else:
-                    msg = 'Bad datatype for keyword argument ' + str(key)
+                    msg = 'Bad datatype for keyword argument ' + str(key) + '.'
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -279,7 +291,7 @@ class connection:
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the design parameters as list!'
+                    msg = 'Please provide the ' + key + ' parameters as list!'
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(var.keys()):
@@ -291,9 +303,9 @@ class connection:
 
             # invalid keyword
             else:
-                msg = 'Connection has no attribute ' + str(key)
+                msg = 'Connection has no attribute ' + str(key) + '.'
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""
@@ -440,9 +452,9 @@ class bus:
     >>> power_bus.set_attr(P=-2.5e6)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(chp.P.val, 0)
-    659732.0
+    660186.0
     >>> round(heat_bus.P.val, 0)
-    5173430.0
+    5366206.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -568,6 +580,7 @@ class bus:
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
+                              isinstance(v, np.int64) or
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
@@ -580,6 +593,7 @@ class bus:
                     elif k == 'P_ref':
                         if (v is None or isinstance(v, float) or
                                 isinstance(v, np.float64) or
+                                isinstance(v, np.int64) or
                                 isinstance(v, int)):
                             self.comps.loc[c['c']]['P_ref'] = v
                         else:

@@ -387,47 +387,47 @@ class TESPyConnectionError(Exception):
 class TESPyComponentError(Exception):
     pass
 
-
-def query_yes_no(question, default='yes'):
-    r"""
-    Parameters
-    ----------
-    question : str
-        Question to be asked.
-
-    default : str
-        Default answer: default='yes'.
-
-    elements : list
-        Which component properties are part of this component group? default elements=[].
-
-    Returns
-    -------
-    answer : boolean
-        Answer.
-    """
-    valid = {'yes': True,
-             'y': True,
-             'ye': True,
-             'no': False,
-             'n': False}
-    if default is None:
-        prompt = '[y / n]'
-    elif default == 'yes':
-        prompt = '[Y / n]'
-    elif default == 'no':
-        prompt = '[y / N]'
-
-    while True:
-        sys.stdout.write(question + prompt)
-        choice = input().lower()
-        if default is not None and choice == '':
-            return valid[default]
-        elif choice in valid:
-            return valid[choice]
-        else:
-            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
-
+#
+#def query_yes_no(question, default='yes'):
+#    r"""
+#    Parameters
+#    ----------
+#    question : str
+#        Question to be asked.
+#
+#    default : str
+#        Default answer: default='yes'.
+#
+#    elements : list
+#        Which component properties are part of this component group? default elements=[].
+#
+#    Returns
+#    -------
+#    answer : boolean
+#        Answer.
+#    """
+#    valid = {'yes': True,
+#             'y': True,
+#             'ye': True,
+#             'no': False,
+#             'n': False}
+#    if default is None:
+#        prompt = '[y / n]'
+#    elif default == 'yes':
+#        prompt = '[Y / n]'
+#    elif default == 'no':
+#        prompt = '[y / N]'
+#
+#    while True:
+#        sys.stdout.write(question + prompt)
+#        choice = input().lower()
+#        if default is not None and choice == '':
+#            return valid[default]
+#        elif choice in valid:
+#            return valid[choice]
+#        else:
+#            sys.stdout.write('Please respond with \'yes\' or \'no\' (or \'y\' or \'n\').\n')
+#
 # %%
 
 
@@ -597,18 +597,18 @@ class tespy_fluid:
                 row += [func([0, p, 0, self.fluid], T)]
 
             y = np.append(y, [np.array(row)], axis=0)
-
-        # plot table after creation?
-        if self.plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
-                              np.meshgrid(x2, x1)[1], y)
-            ax.set_xlabel('temperature')
-            ax.set_ylabel('pressure')
-            ax.set_zlabel(name)
-            ax.view_init(10, 225)
-            plt.show()
+#
+#        # plot table after creation?
+#        if self.plot:
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111, projection='3d')
+#            ax.plot_wireframe(np.meshgrid(x2, x1)[0],
+#                              np.meshgrid(x2, x1)[1], y)
+#            ax.set_xlabel('temperature')
+#            ax.set_ylabel('pressure')
+#            ax.set_zlabel(name)
+#            ax.view_init(10, 225)
+#            plt.show()
 
         self.save_lookup(name, x1, x2, y)
 
@@ -653,18 +653,18 @@ class tespy_fluid:
 
         x1 = df.index.get_values()
         x2 = np.array(list(map(float, list(df))))
-        y = df.as_matrix()
-
-        # plot table after creation?
-        if self.plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
-            ax.set_xlabel('temperature')
-            ax.set_ylabel('pressure')
-            ax.set_zlabel(name)
-            ax.view_init(10, 225)
-            plt.show()
+        y = df.values
+#
+#        # plot table after creation?
+#        if self.plot:
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111, projection='3d')
+#            ax.plot_wireframe(np.meshgrid(x2, x1)[0], np.meshgrid(x2, x1)[1], y)
+#            ax.set_xlabel('temperature')
+#            ax.set_ylabel('pressure')
+#            ax.set_zlabel(name)
+#            ax.view_init(10, 225)
+#            plt.show()
 
         func = interpolate.RectBivariateSpline(x1, x2, y)
         return func
@@ -795,6 +795,11 @@ class memorise:
                 else:
                     memorise.vrange[f] = [2000, 2000000, 300, 2000]
 
+            elif 'INCOMP::' in f:
+                # temperature range available only for incompressibles
+                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
+                memorise.vrange[f] = [2000, 2000000, Tmin, Tmax]
+
             else:
                 if f not in memorise.heos.keys():
                     # abstractstate object
@@ -846,7 +851,7 @@ class memorise:
         memorise.visc_ph_f[fl] = []
         memorise.s_ph_f[fl] = []
 
-        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + fl + '.'
+        msg = 'Dropping not frequently used fluid property values from memorise class for fluids ' + str(fl) + '.'
         logging.debug(msg)
 
 
@@ -1032,6 +1037,8 @@ def T_ph(p, h, fluid):
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('T', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].T()
@@ -1219,6 +1226,8 @@ def T_ps(p, s, fluid):
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('T', 'P', p, 'H', s, fluid)
     else:
         memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
         return memorise.heos[fluid].T()
@@ -1288,6 +1297,8 @@ def h_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('H', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].hmass()
@@ -1375,6 +1386,8 @@ def h_ps(p, s, fluid):
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('H', 'P', p, 'S', s, fluid)
     else:
         memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
         return memorise.heos[fluid].hmass()
@@ -1538,6 +1551,8 @@ def d_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('D', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].rhomass()
@@ -1684,6 +1699,8 @@ def d_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('D', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].rhomass()
@@ -1773,6 +1790,8 @@ def visc_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('V', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].viscosity()
@@ -1847,6 +1866,8 @@ def visc_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('V', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].viscosity()
@@ -1936,6 +1957,8 @@ def s_ph(p, h, fluid):
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('S', 'P', p, 'H', h, fluid)
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].smass()
@@ -2025,6 +2048,8 @@ def s_pT(p, T, fluid):
         print('Ideal gas calculation not available by now.')
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
+    elif 'INCOMP::' in fluid:
+        return CPPSI('S', 'P', p, 'T', T, fluid)
     else:
         memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.heos[fluid].smass()
@@ -2079,11 +2104,7 @@ def molar_mass_flow(flow):
     mm = 0
     for fluid, x in flow.items():
         if x > err:
-            try:
-                mm += x / molar_masses[fluid]
-            except KeyError:
-                mm += x / CPPSI('molar_mass', fluid)
-
+            mm += x / molar_masses[fluid]
     return mm
 
 # %%
@@ -2230,6 +2251,11 @@ def lamb(re, ks, d):
     >>> re_laminar = 2000
     >>> re_turb_smooth = 20000
     >>> re_turb_trans = 70000
+    >>> re_high = 1000000
+    >>> d_high = 0.8
+    >>> re_very_high = 6000000
+    >>> d_very_high = 1
+    >>> ks_low = 1e-5
     >>> ks_rough = 1e-3
     >>> hlp.lamb(re_laminar, ks, d)
     0.032
@@ -2239,6 +2265,10 @@ def lamb(re, ks, d):
     0.023
     >>> round(hlp.lamb(re_turb_trans, ks_rough, d), 3)
     0.049
+    >>> round(hlp.lamb(re_high, ks, d_high), 3)
+    0.012
+    >>> round(hlp.lamb(re_very_high, ks_low, d_very_high), 3)
+    0.009
     """
     if re <= 2320:
         return 64 / re

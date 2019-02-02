@@ -7,7 +7,6 @@
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
 """
 
-from scipy.interpolate import interp1d
 import numpy as np
 
 import logging
@@ -35,7 +34,7 @@ class characteristics:
 
     Note
     ----
-    This class generates a lookup table from the given input data x and y, then performs cubic interpolation.
+    This class generates a lookup table from the given input data x and y, then performs linear interpolation.
     The x and y values may be specified by the user. There are some default characteristic lines for different
     components, see the :func:`tespy.components.characteristics.characteristics.default` method.
     If you neither specify the method to use from the defaults nor specify x and y values,
@@ -62,13 +61,16 @@ class characteristics:
         if self.y is None:
             self.y = self.default(method)[1]
 
+        if isinstance(self.x, list):
+            self.x = np.array(self.x)
+        if isinstance(self.y, list):
+            self.y = np.array(self.y)
+
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. Number of x-values: ' +
                    str(len(self.x)) + ', number of y-values: ' + str(len(self.y)) + '.')
             logging.error(msg)
             raise ValueError(msg)
-
-        self.char = interp1d(self.x, self.y, kind='cubic', bounds_error=True)
 
         msg = 'Created characteristic function for component of type ' + str(self.comp) + ' with default method ' + method +'.'
         logging.debug(msg)
@@ -82,8 +84,6 @@ class characteristics:
 
             \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
 
-        **GENERIC**
-
         .. math::
 
             \text{choose calculation method for X}
@@ -92,22 +92,21 @@ class characteristics:
             \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
             \frac{\dot{V}}{\dot{V}_{ref}} & \text{volumetric flow}\\
             \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
-            \text{pressure ratio}
+            \text{pressure ratio}\\
+            \sqrt{\frac{\Delta h_\mathrm{s,ref}}{\Delta h_\mathrm{s}}} &
+            \text{isentropic enthalpy difference}
             \end{cases}
 
-        .. image:: _images/GENERIC.svg
+        **GENERIC**
+
+        .. image:: _images/turbine_GENERIC.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
 
         **TRAUPEL**
 
-        .. math::
-
-           X=\frac{
-            \sqrt{\Delta h_\mathrm{s,ref}}}{\sqrt{\Delta h_\mathrm{s}}}
-
-        .. image:: _images/TRAUPEL.svg
+        .. image:: _images/turbine_TRAUPEL.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -117,6 +116,43 @@ class characteristics:
         - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin:
           Spinger.
           -> TRAUPEL
+
+        **default characteristic lines for compressors**
+
+        .. math::
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
+
+        .. math::
+
+            \text{choose calculation method for X}
+
+            X = \begin{cases}
+            \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
+            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
+            \text{pressure ratio}\\
+            \end{cases}
+
+        **GENERIC**
+
+        .. image:: _images/compressor_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+        **default characteristic lines for pumps**
+
+        .. math::
+
+            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=
+            f\left(\frac{\dot{V}}{\dot{V}_{ref}} \right)
+
+        **GENERIC**
+
+        .. image:: _images/pump_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
 
 
         **default characteristic lines for cogeneration units**
@@ -172,7 +208,7 @@ class characteristics:
             \frac{kA}{kA_\mathrm{ref}}=f_1\left(x_1 \right)
             \cdot f_2\left(x_2 \right)
 
-        available lines characteristics:
+        available characteristic lines:
 
         **condensing fluid** (COND)
 
@@ -222,9 +258,11 @@ class characteristics:
         if self.comp == 'turbine':
 
             x['GENERIC'] = np.array(
-                    [0.000, 0.500, 0.800, 0.950, 1.000, 1.050, 1.200])
+                    [0.000, 0.300, 0.600, 0.700, 0.800, 0.900, 1.000, 1.100,
+                     1.200, 1.300, 1.400, 1.500])
             y['GENERIC'] = np.array(
-                    [0.975, 0.985, 0.994, 0.999, 1.000, 0.999, 0.990])
+                    [0.950, 0.980, 0.993, 0.996, 0.998, 0.9995, 1.000, 0.999,
+                     0.996, 0.990, 0.980, 0.960])
 
             x['TRAUPEL'] = np.array(
                     [0.0000, 0.1905, 0.3810, 0.5714, 0.7619, 0.9524, 1.0000,
@@ -236,9 +274,9 @@ class characteristics:
         elif self.comp == 'compressor':
 
             x['GENERIC'] = np.array(
-                    [0.000, 0.400, 1.000, 1.500])
+                    [0.000, 0.400, 1.000, 1.200])
             y['GENERIC'] = np.array(
-                    [0.500, 0.900, 1.000, 1.025])
+                    [0.500, 0.900, 1.000, 1.100])
 
         elif self.comp == 'pump':
 
@@ -264,7 +302,8 @@ class characteristics:
             y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
 
         elif (self.comp == 'heat exchanger' or self.comp == 'desuperheater' or
-              self.comp == 'pipe' or self.comp == 'heat exchanger simple'):
+              self.comp == 'pipe' or self.comp == 'heat exchanger simple' or
+              self.comp == 'condenser'):
 
             x['EVA_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
@@ -300,8 +339,6 @@ class characteristics:
                     [0.018, 0.075, 0.134, 0.215, 0.300, 0.412, 0.507, 0.564,
                      0.614, 0.660, 0.701, 0.739, 0.774, 0.806, 0.836, 0.864,
                      0.890, 0.915, 0.938, 0.960, 0.981, 1.000, 1.151, 1.253])
-
-        elif self.comp == 'condenser':
 
             x['COND_HOT'] = np.array(
                     [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
@@ -348,12 +385,15 @@ class characteristics:
         This methods checks for the value range first. If the x-value is outside of the specified range,
         the function will return the values at the corresponding boundary.
         """
-        if x > self.x[-1]:
-            return self.char(self.x[-1])
-        elif x < self.x[0]:
-            return self.char(self.x[0])
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x):
+            y = self.y[xpos - 1]
+        elif xpos == 0:
+            y = self.y[0]
         else:
-            return self.char(x)
+            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+            y = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+        return y
 
     def get_bound_errors(self, x):
         r"""
@@ -391,7 +431,10 @@ class characteristics:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            return None
+            msg = 'Characteristics has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
+
 
 # %%
 
@@ -453,12 +496,21 @@ class char_map(characteristics):
         if self.z2 is None:
             self.z2 = self.default(method)[3]
 
-        if np.array(self.x).shape[0] != np.array(self.y).shape[0]:
+        if isinstance(self.x, list):
+            self.x = np.array(self.x)
+        if isinstance(self.y, list):
+            self.y = np.array(self.y)
+        if isinstance(self.z1, list):
+            self.z1 = np.array(self.z1)
+        if isinstance(self.z2, list):
+            self.z2 = np.array(self.z2)
+
+        if self.x.shape[0] != self.y.shape[0]:
             msg = ('The number of x-values determines the number of dimension for the characteristic map. You have provided ' +
                    str(len(self.x)) + 'x-values. Thus, the y-, z1- and z2-arrays must have ' + str(len(self.x)) +' number of dimensions.')
             logging.error(msg)
             raise ValueError(msg)
-        elif np.array(self.y).shape != np.array(self.z1).shape or np.array(self.y).shape != np.array(self.z2).shape:
+        elif self.y.shape != self.z1.shape or self.y.shape != self.z2.shape:
             msg = 'Make sure that the number of dimensions and the number of values in the y-, z1- and z2-arrays are identical!'
             logging.error(msg)
             raise ValueError(msg)

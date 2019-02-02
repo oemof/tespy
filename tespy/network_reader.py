@@ -56,39 +56,66 @@ def load_nwk(path):
     -------
     >>> from tespy import cmp, con, nwk, hlp, nwkr
     >>> import shutil
-    >>> fluid_list = ['water']
+    >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
     >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> si = cmp.sink('sink')
-    >>> so = cmp.source('source')
+    >>> air = cmp.source('air')
+    >>> f = cmp.source('fuel')
+    >>> c = cmp.compressor('compressor')
+    >>> comb = cmp.combustion_chamber('combustion')
     >>> t = cmp.turbine('turbine')
-    >>> inc = con.connection(so, 'out1', t, 'in1')
+    >>> si = cmp.sink('sink')
+    >>> inc = con.connection(air, 'out1', c, 'in1')
+    >>> cc = con.connection(c, 'out1', comb, 'in1')
+    >>> fc = con.connection(f, 'out1', comb, 'in2')
+    >>> ct = con.connection(comb, 'out1', t, 'in1')
     >>> outg = con.connection(t, 'out1', si, 'in1')
-    >>> nw.add_conns(inc, outg)
-    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'],
+    >>> nw.add_conns(inc, cc, fc, ct, outg)
+    >>> c.set_attr(pr=10, eta_s=0.8, design=['eta_s', 'pr'],
+    ...     offdesign=['char_map'])
+    >>> comb.set_attr(fuel='CH4')
+    >>> t.set_attr(eta_s=0.8, design=['eta_s'],
     ...     offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'water': 1}, T=600)
-    >>> outg.set_attr(p=0.5)
+    >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315,
+    ...     'Ar': 0.0129, 'CH4': 0, 'H2O': 0},
+    ...     fluid_balance=True, T=25, p=1)
+    >>> fc.set_attr(fluid={'N2': 0, 'O2': 0, 'Ar': 0,
+    ...     'CH4': 0.96, 'H2O': 0, 'CO2': 0.05}, T=25)
+    >>> ct.set_attr(T=1100)
+    >>> outg.set_attr(p=con.ref(inc, 1, 0))
+    >>> power = con.bus('total power output', P=-1e6)
+    >>> power.add_comps({'c': c}, {'c': t})
+    >>> nw.add_busses(power)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> t.set_attr(P=-9e4)
+    >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> eta_s = round(t.eta_s.val, 3)
-    >>> eta_s
-    0.798
+    >>> round(t.eta_s.val, 1)
+    0.8
+    >>> power.set_attr(P=-9e5)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> eta_s_t = round(t.eta_s.val, 3)
+    >>> igva = round(c.igva.val, 3)
+    >>> eta_s_t
+    0.8
+    >>> igva
+    9.367
     >>> nw2 = nwkr.load_nwk('tmp')
     >>> nw2.set_printoptions(print_level='none')
     >>> nw2.solve('design')
+    >>> round(nw2.imp_comps['turbine'].eta_s.val, 3)
+    0.8
+    >>> nw2.imp_comps['compressor'].set_attr(igva='var')
     >>> nw2.solve('offdesign', design_path='tmp')
-    >>> nw2.imp_comps['turbine'].P.val
-    -100000.0
-    >>> nw2.imp_comps['turbine'].set_attr(P=-9e4)
+    >>> round(nw2.imp_comps['turbine'].eta_s.val, 3)
+    0.8
+    >>> nw2.imp_busses['total power output'].set_attr(P=-9e5)
     >>> nw2.solve('offdesign', design_path='tmp')
-    >>> eta_s == round(nw2.imp_comps['turbine'].eta_s.val, 3)
-    True
-    >>> round(nw2.imp_conns['turbine:in1'].m.val_SI, 3)
-    0.11
+    >>> round(nw2.imp_comps['turbine'].eta_s.val, 3)
+    0.8
+    >>> round(nw2.imp_comps['compressor'].igva.val, 3)
+    9.367
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
     msg = 'Reading network data from base path ' + path + '.'
@@ -289,7 +316,7 @@ def construct_comps(c, *args):
 
                 char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'], comp=instance.component())
 
-                dc = hlp.dc_cc(is_set=c[key + '_set'],
+                dc = hlp.dc_cm(is_set=c[key + '_set'],
                                method=c[key + '_method'],
                                param=c[key + '_param'],
                                func=char_map,
@@ -299,8 +326,6 @@ def construct_comps(c, *args):
             elif isinstance(value, hlp.dc_gcp):
                 dc = hlp.dc_cp(method=c[key])
                 kwargs[key] = dc
-            else:
-                continue
 
     instance.set_attr(**kwargs)
     return instance

@@ -7,7 +7,7 @@ New Features
   Please beware, that the amount of the equations of a splitter and a merge is not the same, thus the number of equations provided by the node depend on the flow direction and may change within the calculation process. In order to make use of the node,
   a network should always contain more than one node, so that a different node can compensate a possible change in flow direction (`PR #43 <https://github.com/oemof/tespy/pull/43>`_).
 - Added examples for components, busses, connections etc. in the docstrings. You will find the examples in either your editors help pane or the online documentation of the API (`PR #45 <https://github.com/oemof/tespy/pull/45>`_).
-- Added an interface attribute for sinks and sources changing the component type from sink/source to subsys_interface when exporting the network, if you specify :code:`interface=True` for these type of components. This way, you can reimport the saved network and connect it to a different network. Also imported components, connections and busses are easily accessible by their label (components/busses) or their target with target id (connections). For an example, see the module documentation :py:mod:`tespy.network_reader.py`. (`PR #46 <https://github.com/oemof/tespy/pull/46>`_).
+- Added an interface attribute for sinks and sources changing the component type from sink/source to subsys_interface when exporting the network, if you specify :code:`interface=True` for these type of components. This way, you can reimport the saved network and connect it to a different network. Also imported components, connections and busses are easily accessible by their label (components/busses) or their target with target id (connections). For an example, see the module documentation :py:mod:`tespy.network_reader`. (`PR #46 <https://github.com/oemof/tespy/pull/46>`_).
 - Added logging (console and log-file), :ref:`see how to use it<printout_logging_label>` (`PR #51 <https://github.com/oemof/tespy/pull/51>`_).
 
 Documentation
@@ -20,6 +20,7 @@ Parameter renaming
 ##################
 
 **networks**
+
 - init_file -> init_path
 - design_file -> design_path		
 - structure -> deprecated: Providing :code:`structure=True` on saving the network is not required anymore, the network structure is exported automatically.

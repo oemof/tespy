@@ -2360,7 +2360,7 @@ class network:
 
     def save_components(self, path):
         r"""
-        Saves the components to filename/comps/*.csv
+        Saves the components to filename/comps/name_of_component_type.csv
 
         - Uses components labels as row identifier.
         - Writes:

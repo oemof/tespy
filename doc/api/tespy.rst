@@ -18,7 +18,7 @@ tespy\.connections module
     :show-inheritance:
 
 tespy\.network\_reader module
--------------------------
+-----------------------------
 
 .. automodule:: tespy.network_reader
     :members:

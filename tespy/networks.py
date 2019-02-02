@@ -2364,8 +2364,9 @@ class network:
 
         - Uses components labels as row identifier.
         - Writes:
-            * component's incomming and outgoing connections (object id) and
-            * component's parametrisation.
+
+            - component's incomming and outgoing connections (object id) and
+            - component's parametrisation.
 
         Parameters
         ----------

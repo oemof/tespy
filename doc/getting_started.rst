@@ -14,7 +14,7 @@ In the example section we provide a variety of TESPy applications, amongst other
 * modeling approach for a district heating system with various consumers and system infrastructure and
 * the COP of a heat pump dependent on load, ambient temperature and heat delivering fluid (air vs. water).
 
-You can find all examples in the `tespy examples github repository <https://github.com/fwitte/tespy_examples/>`_. Additional small examples can be found in the API-documentation:
+You can find all examples in the `tespy examples github repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_. Additional small examples can be found in the API-documentation:
 
 * :py:class:`Components <tespy.components.components>`
 * :py:class:`Connections and busses <tespy.connections>`

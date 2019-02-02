@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 
 """
-.. module:: components
+.. module:: subsystems
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>

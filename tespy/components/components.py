@@ -2318,7 +2318,7 @@ class turbine(turbomachine):
             .. math::
 
                 val = \begin{cases}
-                2.5 \cdo 10^6 & \text{key = 'p'}\\
+                2.5 \cdot 10^6 & \text{key = 'p'}\\
                 2 \cdot 10^6 & \text{key = 'h'}
                 \end{cases}
         """
@@ -5144,6 +5144,7 @@ class cogeneration_unit(combustion_chamber):
         - :func:`tespy.components.components.cogeneration_unit.fluid_func`
           (for cooling water)
         - :func:`tespy.components.components.cogeneration_unit.mass_flow_func`
+
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\

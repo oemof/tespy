@@ -4,7 +4,7 @@ Clausius rankine cycle
 ----------------------
 
 This example provides a model for a basic clausius rankine cycle.
-The process flow diagram is shown in the image below, the source code can be found at the `tespy_examples repository <https://github.com/fwitte/tespy_examples/blob/master/basic/clausius_rankine.py>`_.
+The process flow diagram is shown in the image below, the source code can be found at the `tespy_examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/basic>`_.
 
 .. figure:: api/_images/basic.svg
     :align: center

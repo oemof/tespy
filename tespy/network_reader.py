@@ -324,7 +324,7 @@ def construct_comps(c, *args):
                 kwargs[key] = dc
             # grouped component parameters
             elif isinstance(value, hlp.dc_gcp):
-                dc = hlp.dc_cp(method=c[key])
+                dc = hlp.dc_gcp(method=c[key])
                 kwargs[key] = dc
 
     instance.set_attr(**kwargs)

@@ -634,7 +634,8 @@ class tespy_fluid:
             Lookup value (enthalpy, entropy, density or viscosity)
         """
         df = pd.DataFrame(y, columns=x2, index=x1)
-        path = './LUT/' + self.alias + '/'
+        alias = self.alias.replace('::','_')
+        path = './LUT/' + alias + '/'
         if not os.path.exists(path):
             os.makedirs(path)
         df.to_csv(path + name + '.csv')
@@ -648,7 +649,8 @@ class tespy_fluid:
         name : str
             Name of the lookup table.
         """
-        path = self.path + '/' + self.alias + '/' + name + '.csv'
+        alias = self.alias.replace('::','_')
+        path = self.path + '/' + alias + '/' + name + '.csv'
         df = pd.read_csv(path, index_col=0)
 
         x1 = df.index.get_values()

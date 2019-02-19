@@ -701,7 +701,11 @@ class network:
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = './' + self.design_path + '/comps/' + c + '.csv'
+                if self.path_abs:
+                    path = self.design_path + '/comps/' + c + '.csv'
+                else:
+                    path = './' + self.design_path + '/comps/' + c + '.csv'
+
                 msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
                 logging.debug(msg)
                 comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
@@ -714,7 +718,10 @@ class network:
                         i += 1
 
         # connections
-        path = './' + self.design_path + '/conn.csv'
+        if self.path_abs:
+            path = self.design_path + '/conn.csv'
+        else:
+            path = './' + self.design_path + '/conn.csv'
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = 'Reading design point information for connections from path ' + path + '.'
         logging.debug(msg)
@@ -1089,7 +1096,11 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df = pd.read_csv('./' + self.init_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+        if self.path_abs:
+            path = self.design_path + '/conn.csv'
+        else:
+            path = './' + self.design_path + '/conn.csv'
+        df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
                            df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
@@ -1144,6 +1155,9 @@ class network:
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
 
+        path_abs : boolean
+            Absolute path specified?
+
         Note
         ----
         For more information on the solution process have a look at the online documentation
@@ -1152,6 +1166,7 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.path_abs = kwargs.get('path_abs', False)
 
         if 'init_file' in kwargs.keys():
             msg = 'Keyword init_file is deprecated, please use init_path with the path to the parent directory of the results instead!'
@@ -2245,12 +2260,18 @@ class network:
         filename : str
             Path for the results.
 
+        path_abs : boolean
+            Absolute path specified?
+
         Note
         ----
         File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
         all network information will be saved to path ./filename/.
         """
-        path = './' + path + '/'
+        if kwargs.get('path_abs', False):
+            path = path + '/'
+        else:
+            path = './' + path + '/'
 
         logging.debug('Saving network to path ' + path + '.')
         # creat path, if non existent

@@ -2238,7 +2238,8 @@ class network:
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
-            df.loc[c.s.label + ' -> ' + c.t.label] = (
+            row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
+            df.loc[row] = (
                     [c.m.val_SI / self.m[self.m_unit],
                      c.p.val_SI / self.p[self.p_unit],
                      c.h.val_SI / self.h[self.h_unit],

@@ -109,11 +109,22 @@ class network:
         self.busses = collections.OrderedDict()
 
         # fluid list and constants
-        self.fluids = sorted(fluids)
+        if isinstance(fluids, list):
+                self.fluids = sorted(fluids)
+        else:
+            msg = 'Please provide a list containing the network\'s fluids on creation.'
+            logging.error(msg)
+            raise TypeError(msg)
+
         msg = 'Network fluids are: '
         for f in self.fluids:
             msg += f + ', '
-            if 'TESPy::' not in f:
+            if 'INCOMP::' in f:
+                # molar mass and gas constant not available for incompressibles
+                hlp.molar_masses[f] = 1
+                hlp.gas_constants[f] = 1
+
+            elif 'TESPy::' not in f:
                 # calculating molar masses and gas constants for network's fluids
                 # tespy_fluid molar mass and gas constant are added on lut creation
                 hlp.molar_masses[f] = CPPSI('M', f)
@@ -231,30 +242,35 @@ class network:
         # unit sets
         if self.m_unit not in self.m.keys():
             msg = ('Allowed units for mass flow are: ' + str(self.m.keys()))
+            self.m_unit = self.SI_units['m']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.p_unit not in self.p.keys():
             msg = ('Allowed units for pressure are: ' + str(self.p.keys()))
+            self.p_unit = self.SI_units['p']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.h_unit not in self.h.keys():
             msg = ('Allowed units for enthalpy are: ' + str(self.h.keys()))
+            self.h_unit = self.SI_units['h']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.T_unit not in self.T.keys():
             msg = ('Allowed units for temperature are: ' + str(self.T.keys()))
+            self.T_unit = self.SI_units['T']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
         if self.v_unit not in self.v.keys():
             msg = ('Allowed units for volumetric flow are: ' + str(self.v.keys()))
+            self.v_unit = self.SI_units['v']
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
 
-        msg = ('Unit specifications:'
+        msg = ('Unit specifications: '
                'mass flow: ' + self.m_unit + ', ' +
                'pressure: ' + self.p_unit + ', ' +
                'enthalpy: ' + self.h_unit + ', ' +
@@ -311,11 +327,6 @@ class network:
                 hlp.memorise.vrange[f][1] = self.p_range_SI[1]
                 hlp.memorise.vrange[f][2] = self.T_range_SI[0]
                 hlp.memorise.vrange[f][3] = self.T_range_SI[1]
-
-            # incompressible fluids do not have pressure range
-            if 'INCOMP::' in f:
-                hlp.memorise.vrange[f][0] = self.p_range_SI[0]
-                hlp.memorise.vrange[f][1] = self.p_range_SI[1]
 
     def get_attr(self, key):
         r"""
@@ -495,7 +506,7 @@ class network:
                     msg = 'Network contains the bus ' + b.label + ' (' + str(b) + ') already.'
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
-                elif b.label in self.busses.items():
+                elif b.label in self.busses.keys():
                     msg = ('Network already has a bus with the name ' + b.label + '.')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
@@ -507,8 +518,6 @@ class network:
             msg = 'Only objects of type bus are allowed in *args.'
             logging.error(msg)
             raise TypeError(msg)
-
-        return False
 
     def check_network(self):
         r"""
@@ -606,7 +615,6 @@ class network:
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-
         if self.mode == 'offdesign':
             if self.design_path is None:
                 # must provide design_path
@@ -693,7 +701,11 @@ class network:
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = './' + self.design_path + '/comps/' + c + '.csv'
+                if self.path_abs:
+                    path = self.design_path + '/comps/' + c + '.csv'
+                else:
+                    path = './' + self.design_path + '/comps/' + c + '.csv'
+
                 msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
                 logging.debug(msg)
                 comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
@@ -706,7 +718,10 @@ class network:
                         i += 1
 
         # connections
-        path = './' + self.design_path + '/conn.csv'
+        if self.path_abs:
+            path = self.design_path + '/conn.csv'
+        else:
+            path = './' + self.design_path + '/conn.csv'
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = 'Reading design point information for connections from path ' + path + '.'
         logging.debug(msg)
@@ -1004,8 +1019,6 @@ class network:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
                     c.v.val_SI = c.v.val * self.v[c.v.unit]
-                else:
-                    continue
 
         msg = 'Retrieved generic starting values and specified SI-values of connection parameters.'
         logging.debug(msg)
@@ -1026,7 +1039,10 @@ class network:
                 c.h.val_SI = hlp.h_mix_pQ(c.to_flow(), c.x.val_SI)
 
             if c.T.val_set and not c.h.val_set:
-                c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
+                try:
+                    c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
+                except ValueError:
+                    pass
 
         msg = 'Generated starting values for specified temperature and vapour mass fraction.'
         logging.debug(msg)
@@ -1044,9 +1060,6 @@ class network:
         c : tespy.connections.connection
             Connection to initialise.
         """
-        if key == 'x' or key == 'T':
-            return
-
         # starting value for mass flow
         if math.isnan(c.get_attr(key).val0) and key == 'm':
             c.get_attr(key).val0 = 1
@@ -1083,7 +1096,11 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df = pd.read_csv('./' + self.init_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+        if self.path_abs:
+            path = self.init_path + '/conn.csv'
+        else:
+            path = './' + self.init_path + '/conn.csv'
+        df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
                            df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
@@ -1138,6 +1155,9 @@ class network:
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
 
+        path_abs : boolean
+            Absolute path specified?
+
         Note
         ----
         For more information on the solution process have a look at the online documentation
@@ -1146,32 +1166,21 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.path_abs = kwargs.get('path_abs', False)
 
         if 'init_file' in kwargs.keys():
-            msg = 'Keyword init_file is deprecated, please use init_path for future purposes!'
-            logging.warning(msg)
-            FutureWarning(msg)
-            if kwargs['init_file'] is None:
-                self.init_path = None
-            elif '/results.csv' in kwargs['init_file']:
-                self.init_path = kwargs['init_file'][:-12]
-            else:
-               self.init_path = kwargs['init_file']
+            msg = 'Keyword init_file is deprecated, please use init_path with the path to the parent directory of the results instead!'
+            logging.error(msg)
+            raise KeyError(msg)
         if 'design_file' in kwargs.keys():
-            msg = 'Keyword design_file is deprecated, please use design_path for future purposes!'
-            logging.warning(msg)
-            FutureWarning(msg)
-            if kwargs['design_file'] is None:
-                self.design_path = None
-            elif '/results.csv' in kwargs['design_file']:
-                self.design_path = kwargs['design_file'][:-12]
-            else:
-               self.design_path = kwargs['design_file']
+            msg = 'Keyword init_file is deprecated, please use design_path with the path to the parent directory of the results instead!'
+            logging.error(msg)
+            raise KeyError(msg)
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
             logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            raise ValueError(msg)
         else:
             self.mode = mode
 
@@ -1233,6 +1242,7 @@ class network:
             logging.error(msg)
 
         self.post_processing()
+        hlp.memorise.del_memory(self.fluids)
 
         if self.lin_dep or not self.progress:
             return
@@ -2161,7 +2171,8 @@ class network:
                 # get components bus func value
                 val = cp.bus_func(b.comps.loc[cp])
                 # save as reference value
-                b.comps.loc[cp].P_ref = val
+                if self.mode == 'design':
+                    b.comps.loc[cp].P_ref = cp.bus_func(b.comps.loc[cp]) / abs(b.comps.loc[cp].char.f_x(1))
                 b.P.val += val
 
         # connections
@@ -2227,7 +2238,8 @@ class network:
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
-            df.loc[c.s.label + ' -> ' + c.t.label] = (
+            row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
+            df.loc[row] = (
                     [c.m.val_SI / self.m[self.m_unit],
                      c.p.val_SI / self.p[self.p_unit],
                      c.h.val_SI / self.h[self.h_unit],
@@ -2250,14 +2262,18 @@ class network:
         filename : str
             Path for the results.
 
+        path_abs : boolean
+            Absolute path specified?
+
         Note
         ----
         File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
         all network information will be saved to path ./filename/.
         """
-        if 'structure' in kwargs.keys():
-            FutureWarning('The Keyword structure is deprecated, networks will always be saved with structure.')
-        path = './' + path + '/'
+        if kwargs.get('path_abs', False):
+            path = path + '/'
+        else:
+            path = './' + path + '/'
 
         logging.debug('Saving network to path ' + path + '.')
         # creat path, if non existent
@@ -2367,12 +2383,13 @@ class network:
 
     def save_components(self, path):
         r"""
-        Saves the components to filename/comps/*.csv
+        Saves the components to filename/comps/name_of_component_type.csv
 
         - Uses components labels as row identifier.
         - Writes:
-            * component's incomming and outgoing connections (object id) and
-            * component's parametrisation.
+
+            - component's incomming and outgoing connections (object id) and
+            - component's parametrisation.
 
         Parameters
         ----------
@@ -2427,9 +2444,6 @@ class network:
                 elif isinstance(dc, hlp.dc_gcp):
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'method'))
 
-                else:
-                    continue
-
             df.set_index('label', inplace=True)
             df.drop('i', axis=1, inplace=True)
             df.drop('o', axis=1, inplace=True)
@@ -2480,8 +2494,6 @@ class network:
             for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cc):
                     chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
-                else:
-                    continue
 
         # characteristic lines in busses
         for bus in self.busses.values():
@@ -2516,8 +2528,6 @@ class network:
             for col, dc in df.index[0].attr().items():
                 if isinstance(dc, hlp.dc_cm):
                     chars += df.apply(network.get_props, axis=1, args=(col, 'func')).tolist()
-                else:
-                    continue
 
         if len(chars) > 0:
             # get id and data

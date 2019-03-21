@@ -77,7 +77,7 @@ class component:
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
             logging.error(msg)
-            raise TypeError(msg)
+            raise ValueError(msg)
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
             msg = ('Can\'t use ' + str([';', ',', '.']) + ' in label (' + str(self.component()) + ').')
             logging.error(msg)
@@ -85,13 +85,7 @@ class component:
         else:
             self.label = label
 
-        self.mode = kwargs.get('mode', 'auto')
-
-        # check calculation mode declaration
-        if self.mode not in ['man', 'auto']:
-            msg = 'Mode must be \'man\' or \'auto\'.'
-            logging.error(msg)
-            raise TypeError(msg)
+        self.mode = 'auto'
 
         # set default design and offdesign parameters
         self.design = []
@@ -146,6 +140,7 @@ class component:
                     # value specification for component properties
                     if (isinstance(kwargs[key], float) or
                             isinstance(kwargs[key], np.float64) or
+                            isinstance(kwargs[key], np.int64) or
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
@@ -183,24 +178,29 @@ class component:
                             isinstance(self.get_attr(key), dc_cm)):
                             self.get_attr(key).set_attr(func=None)
 
-                # invalid datatype for keyword
-                else:
-                    msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
-                    logging.error(msg)
-                    raise TypeError(msg)
+                    # invalid datatype for keyword
+                    else:
+                        msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
+                        logging.error(msg)
+                        raise TypeError(msg)
 
             # export sources or sinks as subsystem interface
             elif key == 'interface':
-                if isinstance(kwargs[key], bool):
-                    self.interface = kwargs[key]
+                if isinstance(self, source) or isinstance(self, sink):
+                    if isinstance(kwargs[key], bool):
+                        self.interface = kwargs[key]
+                    else:
+                        msg = ('Datatype for keyword argument ' + str(key) + ' must be bool at ' + self.label + '.')
+                        logging.error(msg)
+                        raise ValueError(msg)
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) + ' must be bool.')
+                    msg = ('Only sinks and sources can be attributed with the interface parameter (error at ' + self.label + ').')
                     logging.error(msg)
-                    raise TypeError(msg)
+                    raise TESPyComponentError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the design parameters as list at ' + self.label + '.')
+                    msg = ('Please provide the ' + key + ' parameters as list at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):
@@ -223,7 +223,7 @@ class component:
             else:
                 msg = ('Component ' + self.label + ' has no attribute ' + str(key) + '.')
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""
@@ -280,7 +280,7 @@ class component:
 
                 if generate_char:
                     self.get_attr(key).func = cmp_char.characteristics(
-                            method=val.method, x=self.get_attr(key).x,
+                            method=self.get_attr(key).method, x=self.get_attr(key).x,
                             y=self.get_attr(key).y, comp=self.component())
                     self.get_attr(key).x = self.get_attr(key).func.x
                     self.get_attr(key).y = self.get_attr(key).func.y
@@ -927,7 +927,7 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        return np.array([])
+        return []
 
     def eta_s_func(self):
         r"""
@@ -981,16 +981,6 @@ class turbomachine(component):
             T_mix = T_mix_ph(i)
             s_mix = s_mix_pT(i, T_mix)
             return h_mix_ps(o, s_mix)
-
-    def char_func(self):
-        msg = 'Function not available for this component.'
-        logging.error(msg)
-        raise TESPyComponentError(msg)
-
-    def char_deriv(self):
-        msg = 'Function not available for this component.'
-        logging.error(msg)
-        raise TESPyComponentError(msg)
 
     def bus_func(self, bus):
         r"""
@@ -1136,7 +1126,7 @@ class pump(turbomachine):
     flow_char : str/tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide data: :math:`x/\frac{\text{m}^3}{\text{s}} \,
-        [y/\text{Pa}`
+        y/\text{Pa}`
 
     Example
     -------
@@ -1165,7 +1155,7 @@ class pump(turbomachine):
     1.198
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(inc.m.val_SI, 3)
-    0.624
+    0.599
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1411,8 +1401,6 @@ class pump(turbomachine):
             return 10e5
         elif key == 'h':
             return 3e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -1442,8 +1430,6 @@ class pump(turbomachine):
             return 1e5
         elif key == 'h':
             return 2.9e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -1893,8 +1879,6 @@ class compressor(turbomachine):
             return 10e5
         elif key == 'h':
             return 6e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -1924,8 +1908,6 @@ class compressor(turbomachine):
             return 1e5
         elif key == 'h':
             return 4e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -2066,7 +2048,7 @@ class turbine(turbomachine):
     >>> t.set_attr(P=-9e4)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
-    0.798
+    0.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2235,7 +2217,7 @@ class turbine(turbomachine):
         else:
             msg = 'Please choose the parameter, you want to link the isentropic efficiency to.'
             logging.error(msg)
-            raise TESPyComponentError(msg)
+            raise ValueError(msg)
 
         return -(o[2] - i[2]) + (o_d[2] - i_d[2]) / self.dh_s_ref * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
 
@@ -2315,8 +2297,6 @@ class turbine(turbomachine):
             return 0.5e5
         elif key == 'h':
             return 1.5e6
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -2338,7 +2318,7 @@ class turbine(turbomachine):
             .. math::
 
                 val = \begin{cases}
-                2.5 \cdo 10^6 & \text{key = 'p'}\\
+                2.5 \cdot 10^6 & \text{key = 'p'}\\
                 2 \cdot 10^6 & \text{key = 'h'}
                 \end{cases}
         """
@@ -2346,8 +2326,6 @@ class turbine(turbomachine):
             return 2.5e6
         elif key == 'h':
             return 2e6
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -2792,8 +2770,6 @@ class node(component):
             return 1e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -2823,8 +2799,6 @@ class node(component):
             return 1e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
 # %%
 
@@ -4239,9 +4213,6 @@ class combustion_chamber(component):
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 
-                else:
-                    continue
-
         ######################################################################
         # flue gas propagation
         for o in outl:
@@ -4295,8 +4266,6 @@ class combustion_chamber(component):
             return 5e5
         elif key == 'h':
             return 10e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -4326,8 +4295,6 @@ class combustion_chamber(component):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -4479,6 +4446,42 @@ class combustion_chamber_stoich(combustion_chamber):
     the fuel, TESPy will automatically create a custom fluid called:
     'TESPy::yourfuelalias'. For more information see the examples section
     or look for the combustion chamber tutorials at tespy.readthedocs.io.
+
+    Example
+    -------
+    >>> from tespy import con, cmp, nwk, hlp
+    >>> import shutil
+    >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     p_range=[0.001, 10], T_range=[10, 2000])
+    >>> amb = cmp.source('ambient')
+    >>> sf = cmp.source('fuel')
+    >>> fg = cmp.sink('flue gas outlet')
+    >>> comb = cmp.combustion_chamber_stoich('stoichiometric combustion chamber')
+    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
+    ...     air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+    ...     'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
+    ...     fuel_alias='myFuel', air_alias='myAir',
+    ...     lamb=3, ti=20000)
+    >>> amb_comb.set_attr(T=20, p=1,
+    ...     fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
+    ...     'TESPy::myFuel_fg': 0})
+    >>> sf_comb.set_attr(T=25,
+    ...     fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
+    ...     'TESPy::myFuel_fg': 0})
+    >>> nw.set_printoptions(iterinfo=False)
+    >>> nw.solve('design')
+    >>> round(comb_fg.T.val, 1)
+    860.2
+    >>> comb.set_attr(path='./LUT')
+    >>> nw.solve('design')
+    >>> round(comb_fg.T.val, 1)
+    860.2
+    >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
     def component(self):
@@ -5141,6 +5144,7 @@ class cogeneration_unit(combustion_chamber):
         - :func:`tespy.components.components.cogeneration_unit.fluid_func`
           (for cooling water)
         - :func:`tespy.components.components.cogeneration_unit.mass_flow_func`
+
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
@@ -5294,14 +5298,14 @@ class cogeneration_unit(combustion_chamber):
     >>> round(chp.ti.val)
     22500000.0
     >>> round(chp.Q1.val)
-    1742059.0
+    1743636.0
     >>> chp.set_attr(Q1=1.5e6, P=np.nan)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val)
-    17525009.0
+    17427210.0
     >>> round(chp.P.val / chp.P.design, 3)
-    0.753
+    0.747
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -5550,10 +5554,8 @@ class cogeneration_unit(combustion_chamber):
         # derivatives for heat loss to power charactersitics
         Ql_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
         for i in range(2):
-            Ql_deriv[0, i + 2, 0] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'm', i + 2))
-            Ql_deriv[0, i + 2, 3:] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'fluid', i + 2))
+            Ql_deriv[0, i + 2, 0] = self.numeric_deriv(self.Qloss_char_func, 'm', i + 2)
+            Ql_deriv[0, i + 2, 3:] = self.numeric_deriv(self.Qloss_char_func, 'fluid', i + 2)
         Ql_deriv[0, 6, 0] = self.numeric_deriv(self.Qloss_char_func, 'm', 6)
         Ql_deriv[0, 6, 3:] = self.numeric_deriv(self.Qloss_char_func, 'fluid', 6)
 
@@ -6254,8 +6256,6 @@ class cogeneration_unit(combustion_chamber):
             return 5e5
         elif key == 'h':
             return 10e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -6285,8 +6285,6 @@ class cogeneration_unit(combustion_chamber):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -6316,6 +6314,8 @@ class cogeneration_unit(combustion_chamber):
             self.zeta2.val = (i2[1] - o2[1]) * math.pi ** 2 / (8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2)
             self.Q1.val = i1[0] * (o1[2] - i1[2])
             self.Q2.val = i2[0] * (o2[2] - i2[2])
+            self.P.val = self.calc_P()
+            self.Qloss.val = self.calc_Qloss()
 
             # get bound errors for characteristic lines
             if np.isnan(self.P.design):
@@ -6425,8 +6425,7 @@ class valve(component):
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
-                'Sirr': dc_cp(),
-                'pr_char': dc_cc()}
+                'Sirr': dc_cp()}
 
     def inlets(self):
         return ['in1']
@@ -6476,11 +6475,6 @@ class valve(component):
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
-        ######################################################################
-        # eqations for specified pressure ratio characteristic
-        if self.pr_char.is_set:
-            vec_res += [self.pr_char_func()]
-
         return vec_res
 
     def derivatives(self):
@@ -6528,11 +6522,6 @@ class valve(component):
                 deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
             mat_deriv += deriv.tolist()
 
-        ######################################################################
-        # derivatives for characteristic line for pressure ratio
-        if self.pr_char.is_set:
-            mat_deriv += self.pr_char_deriv()
-
         return np.asarray(mat_deriv)
 
     def enthalpy_deriv(self):
@@ -6548,40 +6537,6 @@ class valve(component):
         deriv[0, 0, 2] = 1
         deriv[0, 1, 2] = -1
         return deriv.tolist()
-
-    def pr_char_func(self):
-        r"""
-        Calculates the residual for specified characteristic line for pressure ratio.
-
-        Returns
-        -------
-        val : float
-            Residual value of function.
-
-            .. math::
-
-                val = p_{in} - f\left( p_{in}\right)\cdot p_{out}
-        """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-
-        return i[1] - self.pr_char.func.f_x(i[1]) * o[1]
-
-    def pr_char_deriv(self):
-        r"""
-        Calculates matrix of partial derivatives for characteristic line of pressure ratio.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-
-        mat_deriv[0, 0, 1] = self.numeric_deriv(self.pr_char_func, 'p', 0)
-        mat_deriv[0, 1, 1] = -self.pr_char.func.f_x(self.outl[0].p.val_SI)
-
-        return mat_deriv.tolist()
 
     def initialise_source(self, c, key):
         r"""
@@ -6611,8 +6566,6 @@ class valve(component):
             return 4e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -6642,8 +6595,6 @@ class valve(component):
             return 5e5
         elif key == 'h':
             return 5e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -6667,10 +6618,6 @@ class valve(component):
             self.pr.val = o[1] / i[1]
             self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
             self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
-
-            if self.pr_char.is_set:
-                # get bound errors for characteristic function
-                self.pr_char.func.get_bound_errors(i[1])
 
 # %%
 
@@ -6807,9 +6754,9 @@ class heat_exchanger_simple(component):
     >>> pi.set_attr(Tamb=-10)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(pi.kA.val, 1)
-    127.2
+    126.5
     >>> round(pi.Q.val, 1)
-    -26029.1
+    -25890.6
     >>> round(outg.T.val, 1)
     189.5
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -7318,8 +7265,6 @@ class heat_exchanger_simple(component):
                 return 5e5
             else:
                 return 3e5
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -7358,8 +7303,6 @@ class heat_exchanger_simple(component):
                 return 1e5
             else:
                 return 3e5
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -7727,7 +7670,7 @@ class solar_collector(heat_exchanger_simple):
 
         if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set and nw.compwarn:
+        elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' + self.label
@@ -8641,8 +8584,6 @@ class heat_exchanger(component):
             else:
                 T = 250 + 273.15
                 return h_mix_pT(flow, T)
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -8679,8 +8620,6 @@ class heat_exchanger(component):
             else:
                 T = 220 + 273.15
                 return h_mix_pT(flow, T)
-        else:
-            return 0
 
     def calc_parameters(self, mode):
         r"""
@@ -9379,7 +9318,7 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev.ttd_l.val, 1)
-    16.9
+    16.1
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -9577,8 +9516,6 @@ class drum(component):
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 1)
-        else:
-            return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -9612,8 +9549,6 @@ class drum(component):
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 0.7)
-        else:
-            return 0
 
 # %%
 

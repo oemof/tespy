@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 
 """
-.. module:: components
+.. module:: subsystems
     :synopsis:
 
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
@@ -107,7 +107,7 @@ class subsystem:
             else:
                 msg = ('Component ' + self.label + ' has no attribute ' + str(key))
                 logging.error(msg)
-                raise ValueError(msg)
+                raise KeyError(msg)
 
         self.set_comps()
         self.set_conns()
@@ -311,7 +311,7 @@ class dr_eva_natural(subsystem):
     Example
     -------
     >>> from tespy import subsys
-    >>> mysub = subsys.dr_eva_forced('drum with evaporator')
+    >>> mysub = subsys.dr_eva_natural('drum with evaporator')
     >>> mysub.set_attr(pr1_eva=0.99, PP=20, circ_num=3.4)
     >>> mysub.get_attr('PP')
     20

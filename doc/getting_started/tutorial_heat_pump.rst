@@ -135,8 +135,7 @@ After creating the system, we want to solve our network. First, we calculate the
 
 	cons.set_attr(Q=-200e3)
 
-	nw.solve('offdesign',
-			 init_file='condenser', design_file='condenser')
+	nw.solve('offdesign', design_path='condenser')
 	nw.print_results()
 
 
@@ -227,7 +226,7 @@ Next step is the connetion parametrization: The pressure in the drum and the ent
 Solve
 +++++
 
-Again, you should calculate your network after you added these parts. As we have already calculated one part of our network, this time we can use the :code:`init_file` for the design calculation and load the results from the previous network. This step is not required, but in larger, more complex networks, it might help, to archieve better convergence. For the offdesign calculation see part 3.1.4.
+Again, you should calculate your network after you added these parts. As we have already calculated one part of our network, this time we can use the :code:`init_path` for the design calculation and load the results from the previous network. This step is not required, but in larger, more complex networks, it might help, to archieve better convergence. For the offdesign calculation see part 3.1.4.
 
 	
 Compressor system
@@ -310,7 +309,7 @@ Here again, using the saved results from previous calculations is always favoura
 
 .. code-block:: python
 
-	nw.solve('design', init_file='condenser_eva')
+	nw.solve('design', init_path='condenser_eva')
 
 
 Further tasks

@@ -6,7 +6,7 @@ COP of a heat pump
 This example is based on the :ref:`heat pump tutorial <heat_pump_tutorial_label>` and shows how to calculate the COP of a heat pump at different ambient temperatures and different loads of the plant.
 The idea is very similar to the :ref:`CHP example <chp_example_label>`, thus you should have a look at the tutorial and the CHP example first.
 Be aware, that there are slight changes regarding the topology of the system from the tutorial to this example.
-You will find the source code `in this repository <https://github.com/fwitte/tespy_examples/blob/master/heat_pump>`_.
+You will find the source code `in this repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/heat_pump>`_.
 
 .. figure:: api/_images/heat_pump_example.svg
     :align: center

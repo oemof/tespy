@@ -3,9 +3,11 @@
 .. image:: https://travis-ci.org/oemof/tespy.svg?branch=dev
     :target: https://travis-ci.org/oemof/tespy
 .. image:: https://readthedocs.org/projects/tespy/badge/?version=dev
-    :target: https://tespy.readthedocs.io/en/master/?badge=dev
+    :target: https://tespy.readthedocs.io/en/dev/?badge=dev
 .. image:: https://badge.fury.io/py/TESPy.svg
     :target: https://badge.fury.io/py/TESPy
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
+   :target: https://doi.org/10.5281/zenodo.2555866
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engineering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy System Modeling Framework <https://oemof.org/>`_ and can be used as a standalone package.
 
@@ -34,7 +36,7 @@ If you want to use the latest features, you might want to install the **develope
 Examples
 ========
 
-For a short introduction on how TESPy works and how you can use it, we provide some `basic examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_, go and check them out. You can download the python scripts of all example plants from the `tespy_examples repository <https://github.com/fwitte/tespy_examples>`_.
+For a short introduction on how TESPy works and how you can use it, we provide some `basic examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_, go and check them out. You can download the python scripts of all example plants from the `tespy_examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_.
 
 License
 =======

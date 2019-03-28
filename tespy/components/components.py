@@ -7886,7 +7886,7 @@ class heat_exchanger_simple(component):
         vec_res += self.mass_flow_func()
 
         ######################################################################
-        # equations for specified heta transfer
+        # equations for specified heat transfer
         if self.Q.is_set:
             vec_res += [self.Q_func()]
 
@@ -7901,7 +7901,7 @@ class heat_exchanger_simple(component):
             vec_res += [self.zeta_func()]
 
         ######################################################################
-        # equation for specified hydro-group paremeters
+        # equation for specified hydro-group parameters
         if self.hydro_group.is_set:
             # hazen williams equation
             if self.hydro_group.method == 'HW':
@@ -7935,7 +7935,7 @@ class heat_exchanger_simple(component):
         vec_res = []
 
         ######################################################################
-        # equation for specified kA-group paremeters
+        # equation for specified kA-group parameters
         if self.kA_group.is_set:
             vec_res += [self.kA_func()]
 
@@ -8028,7 +8028,7 @@ class heat_exchanger_simple(component):
         mat_deriv = []
 
         ######################################################################
-        # derivatives for specified kA-group paremeters
+        # derivatives for specified kA-group parameters
         if self.kA_group.is_set:
             deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
@@ -8731,7 +8731,7 @@ class solar_collector(heat_exchanger_simple):
         vec_res = []
 
         ######################################################################
-        # equation for specified energy-group paremeters
+        # equation for specified energy-group parameters
         if self.energy_group.is_set:
             vec_res += [self.energy_func()]
 
@@ -8749,7 +8749,7 @@ class solar_collector(heat_exchanger_simple):
         mat_deriv = []
 
         ######################################################################
-        # derivatives for specified energy-group paremeters
+        # derivatives for specified energy-group parameters
         if self.energy_group.is_set:
             deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI

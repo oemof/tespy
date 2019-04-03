@@ -783,9 +783,8 @@ class network:
         self.init_properties()
 
         # starting values from design file if not init path is specified
-        if self.init_path is None:
-            self.init_path = self.design_path
-        self.init_csv()
+        if self.init_path is not None:
+            self.init_csv()
 
     def init_fluids(self):
         r"""

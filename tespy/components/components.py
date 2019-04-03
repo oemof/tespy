@@ -8347,9 +8347,9 @@ class heat_exchanger(component):
         T_o2 = T_mix_ph(o2)
 
         if T_i1 <= T_o2 and not self.inl[0].T.val_set:
-            T_i1 = T_o2 + 2
+            T_i1 = T_o2 + 0.01
         if T_i1 <= T_o2 and not self.outl[1].T.val_set:
-            T_o2 = T_i1 - 1
+            T_o2 = T_i1 - 0.01
         if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Value for upper '
                    'temperature difference is ' + str(round(T_i1 - T_o2)) + '.')
@@ -8357,9 +8357,9 @@ class heat_exchanger(component):
             raise ValueError(msg)
 
         if T_o1 <= T_i2 and not self.outl[0].T.val_set:
-            T_o1 = T_i2 + 1
+            T_o1 = T_i2 + 0.02
         if T_o1 <= T_i2 and not self.inl[1].T.val_set:
-            T_i2 = T_o1 - 1
+            T_i2 = T_o1 - 0.02
         if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
             msg = ('Infeasibility at ' + str(self.label) + ': Value for lower '
                    'temperature difference is ' + str(round(T_o1 - T_i2)) + '.')

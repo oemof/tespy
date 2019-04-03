@@ -197,7 +197,7 @@ def load_nwk(path):
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.t.label + ':' + c.t_id] = c
+        nw.imp_conns[c.s.label + ':' + c.s_id + '_' + c.t.label + ':' + c.t_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)

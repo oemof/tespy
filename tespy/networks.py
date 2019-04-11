@@ -1007,7 +1007,7 @@ class network:
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'td_bp']:
                 if not c.get_attr(key).unit_set and key != 'x' and key != 'td_bp':
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x', 'v'] and not c.get_attr(key).val_set:
+                if key not in ['T', 'x', 'v', 'td_bp'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
                 elif key not in ['T', 'x', 'v', 'td_bp'] and c.get_attr(key).val_set:

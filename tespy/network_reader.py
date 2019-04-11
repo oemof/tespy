@@ -283,7 +283,7 @@ def construct_comps(c, *args):
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
-                    msg = 'Could not find x and y values for characteristic line, using defaults instead.'
+                    msg = 'Could not find x and y values for characteristic line, using defaults instead for function ' + key + ' at component ' + c.label + '.'
                     logging.warning(msg)
 
                 char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'], comp=instance.component())

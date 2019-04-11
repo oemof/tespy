@@ -54,7 +54,7 @@ class connection:
     T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Temperature specification.
 
-    td_pb : float/tespy.tools.helpers.dc_prop
+    td_bp : float/tespy.tools.helpers.dc_prop
         Temperature difference to boiling point at pressure corresponding
         pressure of this connection in K.
 
@@ -111,10 +111,10 @@ class connection:
     -5
     >>> type(so_si2.m.ref.get_attr('obj'))
     <class 'tespy.connections.connection'>
-    >>> so_si2.set_attr(td_pb=5, T=np.nan)
-    >>> type(so_si2.td_pb)
+    >>> so_si2.set_attr(td_bp=5, T=np.nan)
+    >>> type(so_si2.td_bp)
     <class 'tespy.tools.helpers.dc_prop'>
-    >>> so_si2.td_pb.val
+    >>> so_si2.td_bp.val
     5
     """
 
@@ -203,7 +203,7 @@ class connection:
         T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Temperature specification.
 
-        td_pb : float/tespy.tools.helpers.dc_prop
+        td_bp : float/tespy.tools.helpers.dc_prop
             Temperature difference to boiling point at pressure corresponding
             pressure of this connection in K.
 

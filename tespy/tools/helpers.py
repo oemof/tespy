@@ -1471,6 +1471,68 @@ def dh_mix_dpQ(flow, Q):
 # %%
 
 
+def T_bp_p(flow):
+    r"""
+    Calculates temperature from boiling point pressure.
+
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    Returns
+    -------
+    T : float
+        Temperature at boiling point.
+
+    Note
+    ----
+    This function works for pure fluids only!
+    """
+    n = molar_mass_flow(flow[3])
+
+    for fluid, x in flow[3].items():
+        if x > err:
+            pp = flow[1] * x / (molar_masses[fluid] * n)
+
+            memorise.heos[fluid].update(CP.PQ_INPUTS, pp, 1)
+            return memorise.heos[fluid].T()
+
+
+def dT_bp_dp(flow):
+    r"""
+    Calculate partial derivate of temperature to boiling point pressure.
+
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass flow, pressure, enthalpy and fluid composition.
+
+    Returns
+    -------
+    dT / dp : float
+        Partial derivative of temperature to boiling point pressure in K / Pa.
+
+        .. math::
+
+            \frac{\partial h_{mix}}{\partial p} =
+            \frac{T_{bp}(p+d)-T_{bp}(p-d)}{2 \cdot d}\\
+            Q: \text{vapour mass fraction}
+
+    Note
+    ----
+    This works for pure fluids only!
+    """
+    d = 1
+    u = flow.copy()
+    l = flow.copy()
+    u[1] += d
+    l[1] -= d
+    return (T_bp_p(u) - T_bp_p(l)) / (2 * d)
+
+# %%
+
+
 def v_mix_ph(flow):
     r"""
     Calculates the specific volume from pressure and enthalpy.

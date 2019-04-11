@@ -48,11 +48,15 @@ class connection:
     fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+    x : float/tespy.tools.helpers.dc_prop
         Gas phase mass fraction specification.
 
     T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Temperature specification.
+
+    td_pb : float/tespy.tools.helpers.dc_prop
+        Temperature difference to boiling point at pressure corresponding
+        pressure of this connection in K.
 
     v : float/tespy.tools.helpers.dc_prop
         Volumetric flow specification.
@@ -81,6 +85,7 @@ class connection:
     Example
     -------
     >>> from tespy import con, cmp, hlp
+    >>> import numpy as np
     >>> so1 = cmp.source('source1')
     >>> so2 = cmp.source('source2')
     >>> si1 = cmp.sink('sink1')
@@ -106,6 +111,11 @@ class connection:
     -5
     >>> type(so_si2.m.ref.get_attr('obj'))
     <class 'tespy.connections.connection'>
+    >>> so_si2.set_attr(td_pb=5, T=np.nan)
+    >>> type(so_si2.td_pb)
+    <class 'tespy.tools.helpers.dc_prop'>
+    >>> so_si2.td_pb.val
+    5
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -193,6 +203,10 @@ class connection:
         T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Temperature specification.
 
+        td_pb : float/tespy.tools.helpers.dc_prop
+            Temperature difference to boiling point at pressure corresponding
+            pressure of this connection in K.
+
         v : float/tespy.tools.helpers.dc_prop
             Volumetric flow specification.
 
@@ -263,8 +277,8 @@ class connection:
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
-                    if key == 'x' or key == 'v':
-                        msg = 'References for volumetric flow and vapour mass fraction not implemented.'
+                    if key == 'x' or key == 'v' or key == 'td_bp':
+                        msg = 'References for volumetric flow, vapour mass fraction and subcooling/superheating not implemented.'
                         logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
@@ -339,7 +353,7 @@ class connection:
         """
         return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
                 'x': dc_prop(), 'v': dc_prop(),
-                'fluid': dc_flu()}
+                'fluid': dc_flu(), 'td_bp': dc_prop()}
 
     def to_flow(self):
         r"""

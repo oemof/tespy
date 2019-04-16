@@ -2511,6 +2511,11 @@ class network:
                     df[col + '_var'] = df.apply(network.get_props, axis=1, args=(col, 'is_var'))
 
                 # component property container
+                elif isinstance(dc, hlp.dc_simple):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
+                    df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'val_set'))
+
+                # component property container
                 elif isinstance(dc, hlp.dc_gcp):
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'method'))
 

@@ -7912,7 +7912,7 @@ class heat_exchanger(component):
     >>> nw.add_conns(tes_he, he_tes, hs_he, he_hs)
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
     ...     design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
-    >>> hs_he.set_attr(td_bp=-10, p=3, fluid={'water': 1})
+    >>> hs_he.set_attr(Td_bp=-10, p=3, fluid={'water': 1})
     >>> he_hs.set_attr(T=70)
     >>> tes_he.set_attr(p=5, fluid={'water': 1})
     >>> tes_he.set_attr(T=40)
@@ -8826,7 +8826,7 @@ class condenser(heat_exchanger):
     >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
     >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'],
     ...     offdesign=['zeta2', 'kA'])
-    >>> hs_he.set_attr(td_bp=20, p=1, fluid={'water': 1, 'air': 0})
+    >>> hs_he.set_attr(Td_bp=20, p=1, fluid={'water': 1, 'air': 0})
     >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> he.set_attr(Q=-80e3)

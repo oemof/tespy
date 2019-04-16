@@ -275,7 +275,10 @@ class connection:
                     if kwargs[key] in ['l', 'g']:
                         self.state.set_attr(val=kwargs[key], val_set=True)
                     else:
-                        if isinstance(kwargs[key], float):
+                    if (isinstance(kwargs[key], float) or
+                            isinstance(kwargs[key], np.float64) or
+                            isinstance(kwargs[key], np.int64) or
+                            isinstance(kwargs[key], int)):
                             if np.isnan(kwargs[key]):
                                 self.state.set_attr(val=kwargs[key], val_set=False)
                             else:

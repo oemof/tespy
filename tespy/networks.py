@@ -1004,18 +1004,18 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'td_bp']:
-                if not c.get_attr(key).unit_set and key != 'x' and key != 'td_bp':
+            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
+                if not c.get_attr(key).unit_set and key != 'x' and key != 'Td_bp':
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x', 'v', 'td_bp'] and not c.get_attr(key).val_set:
+                if key not in ['T', 'x', 'v', 'Td_bp'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
-                elif key not in ['T', 'x', 'v', 'td_bp'] and c.get_attr(key).val_set:
+                elif key not in ['T', 'x', 'v', 'Td_bp'] and c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = c.get_attr(key).val * self.get_attr(key)[c.get_attr(key).unit]
                 elif key == 'T' and c.T.val_set:
                     c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
-                elif key == 'td_bp' and c.td_bp.val_set:
-                    c.td_bp.val_SI = c.td_bp.val
+                elif key == 'Td_bp' and c.Td_bp.val_set:
+                    c.Td_bp.val_SI = c.Td_bp.val
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
@@ -1045,8 +1045,8 @@ class network:
                 except ValueError:
                     pass
 
-            if c.td_bp.val_set and not c.h.val_set:
-                if c.td_bp.val_SI > 0:
+            if c.Td_bp.val_set and not c.h.val_set:
+                if c.Td_bp.val_SI > 0:
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.2
@@ -1521,8 +1521,8 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if c.td_bp.val_set and not c.h.val_set and self.iter < 3:
-                if c.td_bp.val_SI > 0:
+            if c.Td_bp.val_set and not c.h.val_set and self.iter < 3:
+                if c.Td_bp.val_SI > 0:
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.05
@@ -1686,7 +1686,7 @@ class network:
         data = network.solve_conn(args=(self, [self.conns], ))
 
         row = self.num_comp_eq
-        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v', 6: 'td_bp',
+        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v', 6: 'Td_bp',
                7: 'm', 8: 'p', 9: 'h', 10: 'T'}
         vec_res = []
 
@@ -1755,7 +1755,7 @@ class network:
                 nw.solve_prop_eq(c.name, 'T'),
                 nw.solve_prop_eq(c.name, 'x'),
                 nw.solve_prop_eq(c.name, 'v'),
-                nw.solve_prop_eq(c.name, 'td_bp'),
+                nw.solve_prop_eq(c.name, 'Td_bp'),
                 nw.solve_prop_ref_eq(c.name, 'm'),
                 nw.solve_prop_ref_eq(c.name, 'p'),
                 nw.solve_prop_ref_eq(c.name, 'h'),
@@ -1768,7 +1768,7 @@ class network:
                 nw.solve_prop_deriv(c.name, 'T'),
                 nw.solve_prop_deriv(c.name, 'x'),
                 nw.solve_prop_deriv(c.name, 'v'),
-                nw.solve_prop_deriv(c.name, 'td_bp'),
+                nw.solve_prop_deriv(c.name, 'Td_bp'),
                 nw.solve_prop_ref_deriv(c.name, 'm'),
                 nw.solve_prop_ref_deriv(c.name, 'p'),
                 nw.solve_prop_ref_deriv(c.name, 'h'),
@@ -1873,10 +1873,10 @@ class network:
             else:
                 return None
 
-        elif var == 'td_bp':
-            if c.td_bp.val_set:
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
                 flow = c.to_flow()
-                return hlp.T_mix_ph(flow) - c.td_bp.val_SI - hlp.T_bp_p(flow)
+                return hlp.T_mix_ph(flow) - c.Td_bp.val_SI - hlp.T_bp_p(flow)
             else:
                 return None
 
@@ -2060,8 +2060,8 @@ class network:
             else:
                 return None
 
-        elif var == 'td_bp':
-            if c.td_bp.val_set:
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
                 flow = c.to_flow()
                 deriv = np.zeros((1, 1, self.num_conn_vars))
                 # dtd / dp
@@ -2184,7 +2184,7 @@ class network:
         n = 0
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
-                  c.x.val_set, c.v.val_set, c.td_bp.val_set].count(True)
+                  c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
             n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
                   c.T.ref_set].count(True)
             n += list(c.fluid.val_set.values()).count(True)
@@ -2418,7 +2418,7 @@ class network:
             df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
             df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
-        cols = ['m', 'p', 'h', 'T', 'x', 'v']
+        cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
             # values and units
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))

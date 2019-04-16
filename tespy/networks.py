@@ -1045,12 +1045,13 @@ class network:
                 except ValueError:
                     pass
 
-            if c.Td_bp.val_set and not c.h.val_set:
-                if c.Td_bp.val_SI > 0:
+            # check if fluid enthalpy is below/above wet steam area
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.2
-                else:
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
                     h = hlp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.8
@@ -1521,15 +1522,15 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if c.Td_bp.val_set and not c.h.val_set and self.iter < 3:
-                if c.Td_bp.val_SI > 0:
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set and self.iter < 3:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.05
-                else:
+                        c.h.val_SI = h * 1.02
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
                     h = hlp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.95
+                        c.h.val_SI = h * 0.98
 
         elif self.iter < 4 and self.init_path is None:
             # pressure

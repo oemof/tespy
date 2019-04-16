@@ -131,7 +131,7 @@ class component:
 
                 # data container specification
                 if isinstance(kwargs[key], data_container):
-                    if isinstance(kwargs[key], self.get_attr(key)):
+                    if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
                     else:
                         msg = ('The keyword ' + key + ' expects a data_container of type ' + str(type(self.get_attr(key))) +

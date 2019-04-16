@@ -21,7 +21,7 @@ from tespy.tools.helpers import (
     h_ps, h_pT ,s_ph, s_pT,
     molar_mass_flow, lamb,
     molar_masses, err,
-    dc_cp, dc_cc, dc_cm, dc_gcp, memorise, single_fluid
+    dc_cp, dc_cc, dc_cm, dc_gcp, memorise, single_fluid, dc_simple, data_container
 )
 from tespy.components import characteristics as cmp_char
 
@@ -130,11 +130,14 @@ class component:
             if key in var:
 
                 # data container specification
-                if (isinstance(kwargs[key], dc_cp) or
-                        isinstance(kwargs[key], dc_cc) or
-                        isinstance(kwargs[key], dc_cm) or
-                        isinstance(kwargs[key], dc_gcp)):
-                    self.__dict__.update({key: kwargs[key]})
+                if isinstance(kwargs[key], data_container):
+                    if isinstance(kwargs[key], self.get_attr(key)):
+                        self.__dict__.update({key: kwargs[key]})
+                    else:
+                        msg = ('The keyword ' + key + ' expects a data_container of type ' + str(type(self.get_attr(key))) +
+                               ', a data_container of type ' + str(type(kwargs[key])) + ' was supplied.')
+                        logging.error(msg)
+                        raise TypeError(msg)
 
                 elif isinstance(self.get_attr(key), dc_cp):
                     # value specification for component properties
@@ -183,6 +186,15 @@ class component:
                         msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
+
+                elif isinstance(self.get_attr(key), dc_simple):
+                    if isinstance(kwargs[key], float):
+                        if np.isnan(kwargs[key]):
+                            self.get_attr(key).set_attr(val_set=False)
+                        else:
+                            self.get_attr(key).set_attr(val=kwargs[key], val_set=True)
+                    else:
+                        self.get_attr(key).set_attr(val=kwargs[key], val_set=True)
 
             # export sources or sinks as subsystem interface
             elif key == 'interface':
@@ -2419,10 +2431,10 @@ class node(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_in : float
+    num_in : float/tespy.helpers.dc_simple
         Number of inlets for this component.
 
-    num_out : float
+    num_out : float/tespy.helpers.dc_simple
         Number of outlets for this component.
 
     Note
@@ -2468,18 +2480,18 @@ class node(component):
         return 'node'
 
     def attr(self):
-        return {'num_in': dc_cp(printout=False),
-                'num_out': dc_cp(printout=False)}
+        return {'num_in': dc_simple(),
+                'num_out': dc_simple()}
 
     def inlets(self):
-        if self.num_in.is_set:
+        if self.num_in.val_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()
 
     def outlets(self):
-        if self.num_out.is_set:
+        if self.num_out.val_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -2846,7 +2858,7 @@ class splitter(node):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_out : float
+    num_out : float/tespy.helpers.dc_simple
         Number of outlets for this component.
 
     Example
@@ -2881,13 +2893,13 @@ class splitter(node):
         return 'splitter'
 
     def attr(self):
-        return {'num_out': dc_cp(printout=False)}
+        return {'num_out': dc_simple()}
 
     def inlets(self):
         return ['in1']
 
     def outlets(self):
-        if self.num_out.is_set:
+        if self.num_out.val_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -3048,7 +3060,7 @@ class separator(node):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_out : float
+    num_out : float/tespy.helpers.dc_simple
         Number of outlets for this component.
 
     Example
@@ -3081,13 +3093,13 @@ class separator(node):
         return 'separator'
 
     def attr(self):
-        return {'num_out': dc_cp(printout=False)}
+        return {'num_out': dc_simple()}
 
     def inlets(self):
         return ['in1']
 
     def outlets(self):
-        if self.num_out.is_set:
+        if self.num_out.val_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -3246,7 +3258,7 @@ class merge(node):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_in : float
+    num_in : float/tespy.helpers.dc_simple
         Number of inlets for this component.
 
     Example
@@ -3281,11 +3293,11 @@ class merge(node):
         return 'merge'
 
     def attr(self):
-        return {'num_in': dc_cp(printout=False),
+        return {'num_in': dc_simple(),
                 'zero_flag': dc_cp(printout=False)}
 
     def inlets(self):
-        if self.num_in.is_set:
+        if self.num_in.val_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
@@ -3446,7 +3458,7 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str
+    fuel : str/tespy.helpers.dc_simple
         Fuel for the combustion chamber, see list of available fluids above.
 
     lamb : float/tespy.helpers.dc_cp
@@ -3497,7 +3509,7 @@ class combustion_chamber(component):
         return 'combustion chamber'
 
     def attr(self):
-        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+        return {'fuel': dc_simple(), 'lamb': dc_cp(), 'ti': dc_cp(),
                 'S': dc_cp()}
 
     def inlets(self):
@@ -3517,7 +3529,7 @@ class combustion_chamber(component):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.is_set:
+        if not self.fuel.val_set:
             msg = 'Must specify fuel for component ' + self.label + '. Available fuels are: ' + str(self.fuels()) + '.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -4488,11 +4500,11 @@ class combustion_chamber_stoich(combustion_chamber):
         return 'combustion chamber stoichiometric flue gas'
 
     def attr(self):
-        return {'fuel': dc_cp(printout=False),
-                'fuel_alias': dc_cp(printout=False),
-                'air': dc_cp(printout=False),
-                'air_alias': dc_cp(printout=False),
-                'path': dc_cp(printout=False),
+        return {'fuel': dc_simple(),
+                'fuel_alias': dc_simple(),
+                'air': dc_simple(),
+                'air_alias': dc_simple(),
+                'path': dc_simple(),
                 'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
 
     def inlets(self):
@@ -4512,12 +4524,12 @@ class combustion_chamber_stoich(combustion_chamber):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
+        if not self.fuel.val_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.fuel_alias.is_set:
+        if not self.fuel_alias.val_set:
             msg = 'Must specify fuel alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -4526,12 +4538,12 @@ class combustion_chamber_stoich(combustion_chamber):
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air.is_set or not isinstance(self.air.val, dict):
+        if not self.air.val_set or not isinstance(self.air.val, dict):
             msg = 'Must specify air composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air_alias.is_set:
+        if not self.air_alias.val_set:
             msg = 'Must specify air alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -4763,7 +4775,7 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in self.fg.keys():
             self.fg[f] /= m_fg
 
-        if not self.path.is_set:
+        if not self.path.val_set:
             self.path.val = None
         tespy_fluid(self.fuel_alias.val, self.fuel.val, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path.val)
         tespy_fluid(self.fuel_alias.val + '_fg', self.fg, [1000, nw.p_range_SI[1]], nw.T_range_SI, path=self.path.val)
@@ -5313,7 +5325,7 @@ class cogeneration_unit(combustion_chamber):
         return 'cogeneration unit'
 
     def attr(self):
-        return {'fuel': dc_cp(printout=False), 'lamb': dc_cp(), 'ti': dc_cp(),
+        return {'fuel': dc_simple(), 'lamb': dc_cp(), 'ti': dc_cp(),
                 'P': dc_cp(val=1e6, d=1, val_min=1),
                 'Q1': dc_cp(), 'Q2': dc_cp(),
                 'Qloss': dc_cp(val=1e5, d=1, val_min=1),
@@ -9596,7 +9608,7 @@ class subsys_interface(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_inter : float/tespy.helpers.dc_cp
+    num_inter : float/tespy.helpers.dc_simple
         Number of interfaces for subsystem.
 
     Note
@@ -9628,16 +9640,16 @@ class subsys_interface(component):
         return 'subsystem interface'
 
     def attr(self):
-        return {'num_inter': dc_cp(printout=False)}
+        return {'num_inter': dc_simple()}
 
     def inlets(self):
-        if self.num_inter.is_set:
+        if self.num_inter.val_set:
             return ['in' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['in1']
 
     def outlets(self):
-        if self.num_inter.is_set:
+        if self.num_inter.val_set:
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']

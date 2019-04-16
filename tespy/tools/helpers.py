@@ -82,6 +82,8 @@ class data_container:
     >>> type(hlp.dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
     ...     unit_set=False, ref=None, ref_set=False))
     <class 'tespy.tools.helpers.dc_prop'>
+    >>> type(hlp.dc_simple(val=5, val_set=False))
+    <class 'tespy.tools.helpers.dc_simple'>
     """
 
     def __init__(self, **kwargs):
@@ -176,6 +178,23 @@ class dc_prop(data_container):
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
                 'unit': None, 'unit_set': False, 'design': np.nan}
+
+
+class dc_simple(data_container):
+    r"""
+    Simple data container without data type restrictions to val field.
+
+    Parameters
+    ----------
+    val : no specific datatype
+        Value for the property, no predefined datatype. Unset this property by
+        stating val=np.nan.
+
+    val_set : boolean
+        Has the value for this property been set? default: val_set=False.
+    """
+    def attr(self):
+        return {'val': np.nan, 'val_set': False}
 
 
 class dc_flu(data_container):

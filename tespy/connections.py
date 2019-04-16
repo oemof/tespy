@@ -12,7 +12,7 @@ import pandas as pd
 
 import logging
 
-from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp)
+from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp, dc_simple)
 from tespy.components import components as cmp
 from tespy.components import characteristics as cmp_char
 
@@ -54,12 +54,15 @@ class connection:
     T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
         Temperature specification.
 
-    td_bp : float/tespy.tools.helpers.dc_prop
+    Td_bp : float/tespy.tools.helpers.dc_prop
         Temperature difference to boiling point at pressure corresponding
         pressure of this connection in K.
 
     v : float/tespy.tools.helpers.dc_prop
         Volumetric flow specification.
+
+    state : str
+        State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
 
     design : list
         List containing design parameters (stated as string).
@@ -111,10 +114,10 @@ class connection:
     -5
     >>> type(so_si2.m.ref.get_attr('obj'))
     <class 'tespy.connections.connection'>
-    >>> so_si2.set_attr(td_bp=5, T=np.nan)
-    >>> type(so_si2.td_bp)
+    >>> so_si2.set_attr(Td_bp=5, T=np.nan)
+    >>> type(so_si2.Td_bp)
     <class 'tespy.tools.helpers.dc_prop'>
-    >>> so_si2.td_bp.val
+    >>> so_si2.Td_bp.val
     5
     """
 
@@ -203,12 +206,15 @@ class connection:
         T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
             Temperature specification.
 
-        td_bp : float/tespy.tools.helpers.dc_prop
+        Td_bp : float/tespy.tools.helpers.dc_prop
             Temperature difference to boiling point at pressure corresponding
             pressure of this connection in K.
 
         v : float/tespy.tools.helpers.dc_prop
             Volumetric flow specification.
+
+        state : str
+            State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
 
         design : list
             List containing design parameters (stated as String).
@@ -230,6 +236,11 @@ class connection:
           in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
           calculation, parameters given in 'offdesign' are set for offdesign
           calculation.
+
+        - The property state is applied on pure fluids only. If you specify the
+          desired state of the fluid at a connection the convergence check will
+          adjust the enthalpy values of that connection for the first iterations
+          in order to meet the state requirement.
         """
         var = self.attr()
         var0 = [x + '0' for x in var.keys()]
@@ -260,14 +271,30 @@ class connection:
                         logging.error(msg)
                         raise TypeError(msg)
 
+                elif key == 'state':
+                    if kwargs[key] in ['l', 'g']:
+                        self.state.set_attr(val=kwargs[key], val_set=True)
+                    else:
+                        if isinstance(kwargs[key], float):
+                            if np.isnan(kwargs[key]):
+                                self.state.set_attr(val=kwargs[key], val_set=False)
+                            else:
+                                msg = 'Datatype for keyword argument ' + str(key) + ' must be str.'
+                                logging.error(msg)
+                                raise TypeError(msg)
+                        else:
+                            msg = 'Keyword argument ' + str(key) + ' must be \'l\' or \'g\'.'
+                            logging.error(msg)
+                            raise ValueError(msg)
+
+
                 elif (isinstance(kwargs[key], float) or
                         isinstance(kwargs[key], np.float64) or
                         isinstance(kwargs[key], np.int64) or
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
-                        self.get_attr(key).set_attr(val_set=False)
-                        self.get_attr(key).set_attr(ref_set=False)
+                        self.get_attr(key).set_attr(val_set=False, ref_set=False)
                     # starting value
                     elif key in var0:
                         self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
@@ -277,7 +304,7 @@ class connection:
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
-                    if key == 'x' or key == 'v' or key == 'td_bp':
+                    if key == 'x' or key == 'v' or key == 'Td_bp':
                         msg = 'References for volumetric flow, vapour mass fraction and subcooling/superheating not implemented.'
                         logging.warning(msg)
                     else:
@@ -353,7 +380,7 @@ class connection:
         """
         return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
                 'x': dc_prop(), 'v': dc_prop(),
-                'fluid': dc_flu(), 'td_bp': dc_prop()}
+                'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()}
 
     def to_flow(self):
         r"""

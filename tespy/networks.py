@@ -1005,8 +1005,11 @@ class network:
         # fluid properties
         for c in self.conns.index:
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
-                if not c.get_attr(key).unit_set and key != 'x' and key != 'Td_bp':
-                    c.get_attr(key).unit = self.get_attr(key + '_unit')
+                if not c.get_attr(key).unit_set and key != 'x':
+                    if key == 'Td_bp':
+                        c.get_attr(key).unit = self.get_attr('T_unit')
+                    else:
+                        c.get_attr(key).unit = self.get_attr(key + '_unit')
                 if key not in ['T', 'x', 'v', 'Td_bp'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
@@ -1015,7 +1018,7 @@ class network:
                 elif key == 'T' and c.T.val_set:
                     c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
                 elif key == 'Td_bp' and c.Td_bp.val_set:
-                    c.Td_bp.val_SI = c.Td_bp.val
+                    c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:

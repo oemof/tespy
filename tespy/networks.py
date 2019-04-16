@@ -2435,6 +2435,10 @@ class network:
                 df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
                 df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
 
+        key = 'state'
+        df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
+        df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
+
         for val in self.fluids:
             # fluid mass fraction
             df[val] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val', val))

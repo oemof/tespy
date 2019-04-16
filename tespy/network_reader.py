@@ -272,7 +272,7 @@ def construct_comps(c, *args):
                 kwargs[key] = dc
             # component parameters
             if isinstance(value, hlp.dc_simple):
-                dc = hlp.dc_simple(val=c[key], is_set=c[key + '_set'])
+                dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
                 kwargs[key] = dc
             # component characteristics
             elif isinstance(value, hlp.dc_cc):

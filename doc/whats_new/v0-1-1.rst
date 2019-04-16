@@ -1,0 +1,33 @@
+v0.1.1
+++++++
+
+New Features
+############
+- Specifcation of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+
+Documentation
+#############
+
+Parameter renaming
+##################		
+
+Testing
+#######
+
+Bug fixes
+#########
+- Fixed naming-error on windows when creating tespy_fluids (`PR #60 <https://github.com/oemof/tespy/pull/60>`_).
+- Added missing grouped component parameter import in network reader (`731b9f <https://github.com/oemof/tespy/commit/731b9f43635afa82fcb874b92e645f1247ce6a56>`_).
+
+Other changes
+#############
+- Modified printouts of connection properties for :code:`network.print_results()`-function (`668ca6 <https://github.com/oemof/tespy/commit/668ca632a754b6b55a532a91fcff7bdd7bd81152>`_)
+- Changed access to imported network's connections (:code:`mynetwork.imp_conns['{source}:{source id}_{target}:{target id}']`, replace :code:`{...}` by the respectve component or id). (`a5a867 <https://github.com/oemof/tespy/commit/a5a8674a029a7b9eab81e41de39c303b278577a9>`_).
+- Improved convergence stability for temperatures specified near to the two phase area using the keyowrd :code:`state='l'` (for liquid) or :code:`state='g'` (for gaseous).
+  The convergence check manipulates the enthalpy values at this connection in order to meet the phase specification, for an example see (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+
+Contributors
+############
+
+- Francesco Witte
+- Shuang Chen

@@ -157,14 +157,6 @@ class component:
                         self.get_attr(key).set_attr(is_set=True)
                         self.get_attr(key).set_attr(is_var=True)
 
-                    elif isinstance(kwargs[key], str) and kwargs[key] != 'var':
-                        self.get_attr(key).set_attr(val=kwargs[key])
-                        self.get_attr(key).set_attr(is_set=True)
-
-                    elif isinstance(kwargs[key], dict):
-                        self.get_attr(key).set_attr(val=kwargs[key])
-                        self.get_attr(key).set_attr(is_set=True)
-
                     # invalid datatype for keyword
                     else:
                         msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
@@ -188,7 +180,10 @@ class component:
                         raise TypeError(msg)
 
                 elif isinstance(self.get_attr(key), dc_simple):
-                    if isinstance(kwargs[key], float):
+                    if (isinstance(kwargs[key], float) or
+                            isinstance(kwargs[key], np.float64) or
+                            isinstance(kwargs[key], np.int64) or
+                            isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(val_set=False)
                         else:
@@ -9625,6 +9620,9 @@ class subsys_interface(component):
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> si = cmp.subsys_interface('test', num_inter=1)
+    >>> si2 = cmp.subsys_interface('test2', num_inter=np.nan)
+    >>> len(si.inlets()) == len(si2.inlets())
+    True
     >>> inc = con.connection(so1, 'out1', si, 'in1')
     >>> outg = con.connection(si, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)

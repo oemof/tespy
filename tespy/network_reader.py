@@ -268,8 +268,11 @@ def construct_comps(c, *args):
             # component parameters
             if isinstance(value, hlp.dc_cp):
                 dc = hlp.dc_cp(val=c[key],
-                               is_set=c[key + '_set'],
-                               is_var=c[key + '_var'])
+                               is_set=c[key + '_set'], is_var=c[key + '_var'])
+                kwargs[key] = dc
+            # component parameters
+            if isinstance(value, hlp.dc_simple):
+                dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
                 kwargs[key] = dc
             # component characteristics
             elif isinstance(value, hlp.dc_cc):
@@ -416,12 +419,15 @@ def construct_conns(c, *args):
             kwargs[key] = c[key]
 
     # read fluid properties
-    for key in ['m', 'p', 'h', 'T', 'x', 'v']:
+    for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
         if key in c:
             dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
                              unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
                              ref=None, ref_set=c[key + '_ref_set'])
             kwargs[key] = dc
+
+    key = 'state'
+    dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
 
     # read fluid vector
     val = {}

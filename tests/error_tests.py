@@ -94,6 +94,7 @@ class specification_error_tests:
         self.set_attr_ValueError(self.comp, offdesign=['Q'])
 
         self.set_attr_ValueError(self.conn, offdesign=['f'])
+        self.set_attr_ValueError(self.conn, state='f')
 
         self.set_attr_ValueError(self.nw, m_unit='kg')
         self.set_attr_ValueError(self.nw, h_unit='kg')
@@ -108,11 +109,13 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, P=[5])
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
+        self.set_attr_TypeError(self.comp, fuel=hlp.dc_cp(val='CH4'))
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)
         self.set_attr_TypeError(self.conn, h0=[4])
         self.set_attr_TypeError(self.conn, fluid=5)
+        self.set_attr_TypeError(self.conn, state=5)
 
         self.set_attr_TypeError(self.nw, p_range=5)
         self.set_attr_TypeError(self.nw, h_range=5)

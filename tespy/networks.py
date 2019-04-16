@@ -1004,16 +1004,21 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            for key in ['m', 'p', 'h', 'T', 'x', 'v']:
+            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if not c.get_attr(key).unit_set and key != 'x':
-                    c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x', 'v'] and not c.get_attr(key).val_set:
+                    if key == 'Td_bp':
+                        c.get_attr(key).unit = self.get_attr('T_unit')
+                    else:
+                        c.get_attr(key).unit = self.get_attr(key + '_unit')
+                if key not in ['T', 'x', 'v', 'Td_bp'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
-                elif key not in ['T', 'x', 'v'] and c.get_attr(key).val_set:
+                elif key not in ['T', 'x', 'v', 'Td_bp'] and c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = c.get_attr(key).val * self.get_attr(key)[c.get_attr(key).unit]
                 elif key == 'T' and c.T.val_set:
                     c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
+                elif key == 'Td_bp' and c.Td_bp.val_set:
+                    c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
@@ -1042,6 +1047,17 @@ class network:
                     c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
                 except ValueError:
                     pass
+
+            # check if fluid enthalpy is below/above wet steam area
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.2
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.8
 
         msg = 'Generated starting values for specified temperature and vapour mass fraction.'
         logging.debug(msg)
@@ -1509,6 +1525,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set and self.iter < 3:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.02
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.98
+
         elif self.iter < 4 and self.init_path is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
@@ -1664,8 +1690,8 @@ class network:
         data = network.solve_conn(args=(self, [self.conns], ))
 
         row = self.num_comp_eq
-        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v',
-               6: 'm', 7: 'p', 8: 'h', 9: 'T'}
+        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v', 6: 'Td_bp',
+               7: 'm', 8: 'p', 9: 'h', 10: 'T'}
         vec_res = []
 
         # write data in residual vector and jacobian matrix
@@ -1733,6 +1759,7 @@ class network:
                 nw.solve_prop_eq(c.name, 'T'),
                 nw.solve_prop_eq(c.name, 'x'),
                 nw.solve_prop_eq(c.name, 'v'),
+                nw.solve_prop_eq(c.name, 'Td_bp'),
                 nw.solve_prop_ref_eq(c.name, 'm'),
                 nw.solve_prop_ref_eq(c.name, 'p'),
                 nw.solve_prop_ref_eq(c.name, 'h'),
@@ -1745,6 +1772,7 @@ class network:
                 nw.solve_prop_deriv(c.name, 'T'),
                 nw.solve_prop_deriv(c.name, 'x'),
                 nw.solve_prop_deriv(c.name, 'v'),
+                nw.solve_prop_deriv(c.name, 'Td_bp'),
                 nw.solve_prop_ref_deriv(c.name, 'm'),
                 nw.solve_prop_ref_deriv(c.name, 'p'),
                 nw.solve_prop_ref_deriv(c.name, 'h'),
@@ -1817,6 +1845,13 @@ class network:
         .. math::
             val = \dot{V}_{j} - v \left( p_{j}, h_{j} \right) \cdot \dot{m}_j
 
+        **superheating or subcooling** *Works with pure fluids only!*
+
+        .. math::
+            val = T_{j} - td_{bp} - T_{bp}\left( p_{j}, fluid_{j} \right)
+
+            \text{td: temperature difference, bp: boiling point}
+
         **vapour mass fraction** *Works with pure fluids only!*
 
         .. math::
@@ -1839,6 +1874,13 @@ class network:
             if c.v.val_set:
                 flow = c.to_flow()
                 return c.v.val_SI - hlp.v_mix_ph(flow) * c.m.val_SI
+            else:
+                return None
+
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
+                flow = c.to_flow()
+                return hlp.T_mix_ph(flow) - c.Td_bp.val_SI - hlp.T_bp_p(flow)
             else:
                 return None
 
@@ -1924,6 +1966,7 @@ class network:
         **mass flow, pressure and enthalpy**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
             \text{for equation i, connection j}\\
             \text{pressure and enthalpy analogously}
@@ -1931,31 +1974,51 @@ class network:
         **temperatures**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{dT_{j}}{dp_{j}}\\
+            -\frac{\partial T_{j}}{\partial p_{j}}\\
             J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{dT_{j}}{dh_{j}}\\
+            -\frac{\partial T_{j}}{\partial h_{j}}\\
             J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
-            - \frac{dT_{j}}{dfluid_{j,k}}
-            \; , \forall k \in \text{fluid components}\\
+            - \frac{\partial T_{j}}{\partial fluid_{j,k}}
+
+            \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
 
         **volumetric flow**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) =
             -v \left( p_{j}, h_{j} \right)\\
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{dv_{j}}{dp_{j}} \cdot \dot{m}_j\\
+            -\frac{\partial v_{j}}{\partial p_{j}} \cdot \dot{m}_j\\
             J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{dv_{j}}{dh_{j}} \cdot \dot{m}_j\\
+            -\frac{\partial v_{j}}{\partial h_{j}} \cdot \dot{m}_j\\
 
-            \; , \forall k \in \text{fluid components}\\
+            \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
+
+        **superheating or subcooling** *Works with pure fluids only!*
+
+        .. math::
+
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
+            {\partial p_{j}} -
+            \frac{\partial T_{bp} \left( p_{j}, fluid_{j} \right)}
+            {\partial p_{j}} \\
+            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
+            {\partial h_{j}}\\
+
+            \text{for equation i, connection j}\\
+            \text{td: temperature difference, bp: boiling point}
 
         **vapour mass fraction** *Works with pure fluids only!*
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
             -\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
             {\partial p_{j}}\\
@@ -1997,6 +2060,18 @@ class network:
                 deriv[0, 0, 1] = -hlp.dv_mix_dph(flow) * c.m.val_SI
                 # dv / dh
                 deriv[0, 0, 2] = -hlp.dv_mix_pdh(flow) * c.m.val_SI
+                return deriv
+            else:
+                return None
+
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
+                flow = c.to_flow()
+                deriv = np.zeros((1, 1, self.num_conn_vars))
+                # dtd / dp
+                deriv[0, 0, 1] = hlp.dT_mix_dph(flow) - hlp.dT_bp_dp(flow)
+                # dtd / dh
+                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow)
                 return deriv
             else:
                 return None
@@ -2112,8 +2187,8 @@ class network:
 
         n = 0
         for c in self.conns.index:
-            n += [c.m.val_set, c.p.val_set, c.h.val_set,
-                  c.T.val_set, c.x.val_set, c.v.val_set].count(True)
+            n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
+                  c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
             n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
                   c.T.ref_set].count(True)
             n += list(c.fluid.val_set.values()).count(True)
@@ -2347,7 +2422,7 @@ class network:
             df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
             df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
-        cols = ['m', 'p', 'h', 'T', 'x', 'v']
+        cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
             # values and units
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
@@ -2363,6 +2438,10 @@ class network:
                 df[key + '_ref_f'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'f',))
                 df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
                 df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
+
+        key = 'state'
+        df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
+        df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
 
         for val in self.fluids:
             # fluid mass fraction
@@ -2438,6 +2517,11 @@ class network:
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
                     df[col + '_var'] = df.apply(network.get_props, axis=1, args=(col, 'is_var'))
+
+                # component property container
+                elif isinstance(dc, hlp.dc_simple):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
+                    df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'val_set'))
 
                 # component property container
                 elif isinstance(dc, hlp.dc_gcp):

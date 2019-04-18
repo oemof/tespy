@@ -2390,3 +2390,38 @@ def lamb_trans(params, l):
 def dlamb_trans_dl(params, l):
     d = 0.001
     return (lamb_trans(params, l + d) - lamb_trans(params, l - d)) / (2 * d)
+
+
+def modify_path_os(path):
+    """
+    Modify the path according the os. Also detects weather the path
+    specification is absolute or relative and adjusts the path respectively.
+
+    Parameters
+    ----------
+    path : str
+        Path to modify.
+
+    Returns
+    -------
+    path : str
+        Modified path.
+    """
+
+    if os.name == 'nt':
+        # windows
+        path = path.replace('/', '\\')
+        if path[0] != '\\' and path[1:2] != ':\\':
+            # relative path
+            path = '.\\' + path
+    elif os.name == 'posix':
+        # linux, max
+        if path[0] != '/':
+            # absolute path
+            path = './' + path
+    else:
+        # unkown os
+        msg = 'Unknown operating system, using posix pathing logic.'
+        logging.warning(msg)
+
+    return path

@@ -701,10 +701,7 @@ class network:
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                if self.path_abs:
-                    path = self.design_path + '/comps/' + c + '.csv'
-                else:
-                    path = './' + self.design_path + '/comps/' + c + '.csv'
+                path = hlp.modify_path_os(self.design_path + '/comps/' + c + '.csv')
 
                 msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
                 logging.debug(msg)
@@ -718,10 +715,7 @@ class network:
                         i += 1
 
         # connections
-        if self.path_abs:
-            path = self.design_path + '/conn.csv'
-        else:
-            path = './' + self.design_path + '/conn.csv'
+        path = hlp.modify_path_os(self.design_path + '/conn.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = 'Reading design point information for connections from path ' + path + '.'
         logging.debug(msg)
@@ -1111,10 +1105,9 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        if self.path_abs:
-            path = self.init_path + '/conn.csv'
-        else:
-            path = './' + self.init_path + '/conn.csv'
+
+        path = hlp.modify_path_os(self.init_path + '/conn.csv')
+
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
@@ -2336,18 +2329,18 @@ class network:
         filename : str
             Path for the results.
 
-        path_abs : boolean
-            Absolute path specified?
-
         Note
         ----
-        File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
-        all network information will be saved to path ./filename/.
+        Results will be saved to path. The results contain:
+
+        - netw.csv (network information)
+        - conn.csv (connection information)
+        - folder comps containing .csv files (bus.csv, char.csv, char_map.csv)
+          as well as .csv files for all types of components within your network.
         """
-        if kwargs.get('path_abs', False):
-            path = path + '/'
-        else:
-            path = './' + path + '/'
+        if path[-1] != '/' and path[-1] != '\\':
+            path += '/'
+        path = hlp.modify_path_os(path)
 
         logging.debug('Saving network to path ' + path + '.')
         # creat path, if non existent
@@ -2355,15 +2348,16 @@ class network:
             os.makedirs(path)
 
         # create path for component folder if non existent
-        if not os.path.exists(path + 'comps/'):
-            os.makedirs(path + 'comps/')
+        path_comps = hlp.modify_path_os(path + 'comps/')
+        if not os.path.exists(path_comps):
+            os.makedirs(path_comps)
 
         # save all network information
         self.save_network(path + 'netw.csv')
-        self.save_connections(path + 'conn.csv', structure=True)
-        self.save_components(path + 'comps/')
-        self.save_busses(path + 'comps/bus.csv')
-        self.save_characteristics(path + 'comps/')
+        self.save_connections(path + 'conn.csv')
+        self.save_components(path_comps)
+        self.save_busses(path_comps + 'bus.csv')
+        self.save_characteristics(path_comps)
 
     def save_network(self, fn):
         r"""
@@ -2392,7 +2386,7 @@ class network:
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Network information saved to ' + fn + '.')
 
-    def save_connections(self, fn, structure=False):
+    def save_connections(self, fn):
         r"""
         Saves connections to fn, saves network structure data if structure is True.
 
@@ -2417,10 +2411,9 @@ class network:
         df['t'] = self.conns.apply(network.get_props, axis=1, args=('t', 'label'))
         df['t_id'] = self.conns.apply(network.get_props, axis=1, args=('t_id',))
 
-        if structure:
-            # design and offdesign parameters
-            df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
-            df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
+        # design and offdesign parameters
+        df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
+        df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
         cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
@@ -2428,16 +2421,15 @@ class network:
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
             df[key + '_unit'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit'))
 
-            if structure:
-                # connection parametrisation
-                df[key + '_unit_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit_set'))
-                df[key + '0'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val0'))
-                df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
-                df[key + '_ref'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'obj',)).astype(str)
-                df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>', expand=False)
-                df[key + '_ref_f'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'f',))
-                df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
-                df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
+            # connection parametrisation
+            df[key + '_unit_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit_set'))
+            df[key + '0'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val0'))
+            df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
+            df[key + '_ref'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'obj',)).astype(str)
+            df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>', expand=False)
+            df[key + '_ref_f'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'f',))
+            df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
+            df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
 
         key = 'state'
         df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
@@ -2447,14 +2439,12 @@ class network:
             # fluid mass fraction
             df[val] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val', val))
 
-            if structure:
-                # fluid mass fraction parametrisation
-                df[val + '0'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val0', val))
-                df[val + '_set'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val_set', val))
+            # fluid mass fraction parametrisation
+            df[val + '0'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val0', val))
+            df[val + '_set'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val_set', val))
 
-        if structure:
-            # fluid balance parametrisation
-            df['balance'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'balance'))
+        # fluid balance parametrisation
+        df['balance'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Connection information saved to ' + fn + '.')

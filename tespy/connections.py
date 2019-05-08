@@ -274,6 +274,8 @@ class connection:
                 elif key == 'state':
                     if kwargs[key] in ['l', 'g']:
                         self.state.set_attr(val=kwargs[key], val_set=True)
+                    elif isinstance(kwargs[key], dc_simple):
+                        self.state = kwargs[key]
                     else:
                         if (isinstance(kwargs[key], float) or
                                 isinstance(kwargs[key], np.float64) or

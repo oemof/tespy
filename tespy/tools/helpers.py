@@ -2411,7 +2411,7 @@ def modify_path_os(path):
     if os.name == 'nt':
         # windows
         path = path.replace('/', '\\')
-        if path[0] != '\\' and path[1:2] != ':\\':
+        if path[0] != '\\' and path[1:2] != ':':
             # relative path
             path = '.\\' + path
     elif os.name == 'posix':

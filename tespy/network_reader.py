@@ -122,8 +122,8 @@ def load_nwk(path):
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
-    path = hlp.modify_path_os(path)
     path_comps = hlp.modify_path_os(path + 'comps/')
+    path = hlp.modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
     logging.info(msg)

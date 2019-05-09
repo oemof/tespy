@@ -4,15 +4,17 @@ v0.1.1
 New Features
 ############
 - Specifcation of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+- :code:`init_path` and :code:`design_path` now work with absolute and relative specification. The feature has been tested on windows and linux machines (`PR #66 <https://github.com/oemof/tespy/pull/66>`_).
 
 Documentation
 #############
 
 Parameter renaming
-##################		
+##################
 
 Testing
 #######
+- Tests and doctests have been adjusted and updated to test the new features.
 
 Bug fixes
 #########

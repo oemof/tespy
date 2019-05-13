@@ -23,6 +23,7 @@ matrix:
 install:
   - pip3 install .
   - pip3 install coveralls
+  - pip3 install nose
 
 # command to run tests
 script:

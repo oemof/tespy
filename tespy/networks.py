@@ -1248,11 +1248,12 @@ class network:
                    'combustion chamber, provide small (near to zero, '
                    'but not zero) starting value.')
             logging.error(msg)
+            return
 
         self.post_processing()
         hlp.memorise.del_memory(self.fluids)
 
-        if self.lin_dep or not self.progress:
+        if not self.progress:
             return
 
         msg = 'Calculation complete.'

@@ -6629,16 +6629,6 @@ class valve(component):
 # %%
 
 
-class vessel(valve):
-
-    def comp_init(self, nw):
-        valve.comp_init(self, nw)
-        msg = 'The component vessel will be deprecated in the next major release. Please use valve instead.'
-        logging.warning(msg)
-
-# %%
-
-
 class heat_exchanger_simple(component):
     r"""
     The component heat_exchanger_simple is the parent class for pipe and solar_collector.

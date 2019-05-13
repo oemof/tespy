@@ -17,12 +17,12 @@ matrix:
     - name: "Python 3.7.3 on Windows"
       os: windows
       language: shell
-      before_install: choco install python
+      before_install: choco install python3
       env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 install:
-  - pip install .
-  - pip install coveralls
+  - pip3 install .
+  - pip3 install coveralls
 
 # command to run tests
 script:

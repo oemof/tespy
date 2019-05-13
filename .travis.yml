@@ -26,7 +26,7 @@ install:
 
 # command to run tests
 script:
-  - nosetests --with-doctest --with-coverage -c nose.cfg
+  - python3 -m nose --with-doctest --with-coverage -c nose.cfg
 
 after_success:
 - coveralls

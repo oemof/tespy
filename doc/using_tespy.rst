@@ -99,11 +99,14 @@ It is possible to set the properties on each connection in a similar way as para
  * enthalpy* (h),
  * temperature* (T),
  * vapour mass fraction for pure fluids (x),
+ * temperature difference to boiling point for pure fluids (Td_bp),
+ * fluids state for pure fluids (state='l' for liquid or state='g' for gaseous),
  * a fluid vector (fluid) and
  * a balance closer for the fluid vector (fluid_balance).
 
-All parameters but the fluid vector have to be numeric values. The fluid vector has to be specified as dictonary, see the example below.
-The parameter :code:`fluid_balance` can only be :code:`True` or :code:`False`. For the properties marked with * it is possible to use references instead of numeric values.
+All parameters but the fluid vector, state and balance have to be numeric values. The fluid vector has to be specified as dictonary, see the example below.
+The parameter :code:`fluid_balance` can only be :code:`True` or :code:`False`, the parameter :code:`state` can only be :code:`'l'` (liquid) or :code:`'g'` (gaseous).
+For the properties marked with * it is possible to use references instead of numeric values.
 This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.
 
 .. code-block:: python
@@ -111,8 +114,8 @@ This can be used for example if you want to have the pressure in two parts of yo
 	from tespy import con
 
 	ws_cond = con.connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
-	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}) # setting a fluid vector: {'fluid i': mass fraction i}
-	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1')
+	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}, Td_bp=-3) # setting a fluid vector: {'fluid i': mass fraction i}, subcooling to 3 K (15/9 K if temperature unit is Fahrenheit)
+	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1', state='l') # enthalpy values will be manipulated in calculation process in a way, that the fluids state is liquid all the time
 	fwt_fwp = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
 	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
 	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
@@ -436,6 +439,11 @@ The next two steps are applied, if the user did not specify an init_file and the
 
 In a lot of different tests the algorithm has found a near enough solution after the third iteration, further checks are usually not required.
 
+**Improve the convergence stability with the :code:`state` keyword for connections:**
+
+It is possible to improve the convergence stability manually when using pure fluids. If you know the fluid's state is liquid or gaseous prior to the calculation, you may provide the according value for the keyword e. g. :code:`myconn.set_attr(state='l')`.
+The convergence check manipulates the enthalpy values so that the fluid is always in the desired state at that point. For an example see :ref:`the release information of version 0.1.1 <whats_new_011_example_label>`
+
 Troubleshooting
 +++++++++++++++
 
@@ -464,7 +472,7 @@ If you have provided the correct number of parameters in your system and the cal
 The first reason can be eleminated by carefully choosing the parametrisation. **A linear dependendy due to bad starting values is often more difficult to resolve and it may require some experience.**
 In many cases, the linear dependency is caused by equations, that require the **calculation of a temperature**, e. g. specifying a temperature at some point of the network, terminal temperature differences at heat exchangers, etc..
 In this case, **the starting enthalpy and pressure should be adjusted in a way, that the fluid state is not within the two-phase region:** The specification of temperature and pressure in a two-phase region does not yield a distict value for the enthalpy.
-Even if this specific case appears after some iterations, better starting values often do the trick.
+Even if this specific case appears after some iterations, better starting values often do the trick. Also consider reading :ref:`this <using_tespy_convergence_check_label>`.
 
 Another frequent error is that fluid properties move out of the bounds given by the fluid property database. The calculation will stop immediately. **Adjusting pressure and enthalpy ranges for the convergence check** might help in this case.
 

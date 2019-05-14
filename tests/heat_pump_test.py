@@ -50,7 +50,7 @@ class test_heat_pump_ebsilon:
         # busses
 
         x = np.array([0, 0.7, 1, 1.3])
-        y = 1 / np.array([0.5, 0.95, 1, 0.98]) / 0.9583794
+        y = 1 / np.array([0.8, 0.95, 1, 0.98]) / 0.9583794
         motor = cmp_char.characteristics(x=x, y=y)
 
         self.power = con.bus('total compressor power')

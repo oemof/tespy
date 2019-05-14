@@ -701,7 +701,8 @@ class network:
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = './' + self.design_path + '/comps/' + c + '.csv'
+                path = hlp.modify_path_os(self.design_path + '/comps/' + c + '.csv')
+
                 msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
                 logging.debug(msg)
                 comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
@@ -714,7 +715,7 @@ class network:
                         i += 1
 
         # connections
-        path = './' + self.design_path + '/conn.csv'
+        path = hlp.modify_path_os(self.design_path + '/conn.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = 'Reading design point information for connections from path ' + path + '.'
         logging.debug(msg)
@@ -776,9 +777,8 @@ class network:
         self.init_properties()
 
         # starting values from design file if not init path is specified
-        if self.init_path is None:
-            self.init_path = self.design_path
-        self.init_csv()
+        if self.init_path is not None:
+            self.init_csv()
 
     def init_fluids(self):
         r"""
@@ -998,16 +998,21 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            for key in ['m', 'p', 'h', 'T', 'x', 'v']:
+            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if not c.get_attr(key).unit_set and key != 'x':
-                    c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x', 'v'] and not c.get_attr(key).val_set:
+                    if key == 'Td_bp':
+                        c.get_attr(key).unit = self.get_attr('T_unit')
+                    else:
+                        c.get_attr(key).unit = self.get_attr(key + '_unit')
+                if key not in ['T', 'x', 'v', 'Td_bp'] and not c.get_attr(key).val_set:
                     self.init_val0(c, key)
                     c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
-                elif key not in ['T', 'x', 'v'] and c.get_attr(key).val_set:
+                elif key not in ['T', 'x', 'v', 'Td_bp'] and c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = c.get_attr(key).val * self.get_attr(key)[c.get_attr(key).unit]
                 elif key == 'T' and c.T.val_set:
                     c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
+                elif key == 'Td_bp' and c.Td_bp.val_set:
+                    c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
                 elif key == 'x' and c.x.val_set:
                     c.x.val_SI = c.x.val
                 elif key == 'v' and c.v.val_set:
@@ -1036,6 +1041,17 @@ class network:
                     c.h.val_SI = hlp.h_mix_pT(c.to_flow(), c.T.val_SI)
                 except ValueError:
                     pass
+
+            # check if fluid enthalpy is below/above wet steam area
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.2
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.8
 
         msg = 'Generated starting values for specified temperature and vapour mass fraction.'
         logging.debug(msg)
@@ -1089,7 +1105,10 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df = pd.read_csv('./' + self.init_path + '/conn.csv', index_col=0, delimiter=';', decimal='.')
+
+        path = hlp.modify_path_os(self.init_path + '/conn.csv')
+
+        df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
             conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
                            df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
@@ -1144,6 +1163,9 @@ class network:
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
 
+        path_abs : boolean
+            Absolute path specified?
+
         Note
         ----
         For more information on the solution process have a look at the online documentation
@@ -1152,6 +1174,7 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.path_abs = kwargs.get('path_abs', False)
 
         if 'init_file' in kwargs.keys():
             msg = 'Keyword init_file is deprecated, please use init_path with the path to the parent directory of the results instead!'
@@ -1225,11 +1248,12 @@ class network:
                    'combustion chamber, provide small (near to zero, '
                    'but not zero) starting value.')
             logging.error(msg)
+            return
 
         self.post_processing()
         hlp.memorise.del_memory(self.fluids)
 
-        if self.lin_dep or not self.progress:
+        if not self.progress:
             return
 
         msg = 'Calculation complete.'
@@ -1495,6 +1519,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
+            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set and self.iter < 3:
+                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.02
+                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
+                    h = hlp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.98
+
         elif self.iter < 4 and self.init_path is None:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
@@ -1650,8 +1684,8 @@ class network:
         data = network.solve_conn(args=(self, [self.conns], ))
 
         row = self.num_comp_eq
-        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v',
-               6: 'm', 7: 'p', 8: 'h', 9: 'T'}
+        var = {0: 'm', 1: 'p', 2: 'h', 3: 'T', 4: 'x', 5: 'v', 6: 'Td_bp',
+               7: 'm', 8: 'p', 9: 'h', 10: 'T'}
         vec_res = []
 
         # write data in residual vector and jacobian matrix
@@ -1719,6 +1753,7 @@ class network:
                 nw.solve_prop_eq(c.name, 'T'),
                 nw.solve_prop_eq(c.name, 'x'),
                 nw.solve_prop_eq(c.name, 'v'),
+                nw.solve_prop_eq(c.name, 'Td_bp'),
                 nw.solve_prop_ref_eq(c.name, 'm'),
                 nw.solve_prop_ref_eq(c.name, 'p'),
                 nw.solve_prop_ref_eq(c.name, 'h'),
@@ -1731,6 +1766,7 @@ class network:
                 nw.solve_prop_deriv(c.name, 'T'),
                 nw.solve_prop_deriv(c.name, 'x'),
                 nw.solve_prop_deriv(c.name, 'v'),
+                nw.solve_prop_deriv(c.name, 'Td_bp'),
                 nw.solve_prop_ref_deriv(c.name, 'm'),
                 nw.solve_prop_ref_deriv(c.name, 'p'),
                 nw.solve_prop_ref_deriv(c.name, 'h'),
@@ -1803,6 +1839,13 @@ class network:
         .. math::
             val = \dot{V}_{j} - v \left( p_{j}, h_{j} \right) \cdot \dot{m}_j
 
+        **superheating or subcooling** *Works with pure fluids only!*
+
+        .. math::
+            val = T_{j} - td_{bp} - T_{bp}\left( p_{j}, fluid_{j} \right)
+
+            \text{td: temperature difference, bp: boiling point}
+
         **vapour mass fraction** *Works with pure fluids only!*
 
         .. math::
@@ -1825,6 +1868,13 @@ class network:
             if c.v.val_set:
                 flow = c.to_flow()
                 return c.v.val_SI - hlp.v_mix_ph(flow) * c.m.val_SI
+            else:
+                return None
+
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
+                flow = c.to_flow()
+                return hlp.T_mix_ph(flow) - c.Td_bp.val_SI - hlp.T_bp_p(flow)
             else:
                 return None
 
@@ -1910,6 +1960,7 @@ class network:
         **mass flow, pressure and enthalpy**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
             \text{for equation i, connection j}\\
             \text{pressure and enthalpy analogously}
@@ -1917,31 +1968,51 @@ class network:
         **temperatures**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{dT_{j}}{dp_{j}}\\
+            -\frac{\partial T_{j}}{\partial p_{j}}\\
             J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{dT_{j}}{dh_{j}}\\
+            -\frac{\partial T_{j}}{\partial h_{j}}\\
             J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
-            - \frac{dT_{j}}{dfluid_{j,k}}
-            \; , \forall k \in \text{fluid components}\\
+            - \frac{\partial T_{j}}{\partial fluid_{j,k}}
+
+            \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
 
         **volumetric flow**
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) =
             -v \left( p_{j}, h_{j} \right)\\
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{dv_{j}}{dp_{j}} \cdot \dot{m}_j\\
+            -\frac{\partial v_{j}}{\partial p_{j}} \cdot \dot{m}_j\\
             J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{dv_{j}}{dh_{j}} \cdot \dot{m}_j\\
+            -\frac{\partial v_{j}}{\partial h_{j}} \cdot \dot{m}_j\\
 
-            \; , \forall k \in \text{fluid components}\\
+            \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
+
+        **superheating or subcooling** *Works with pure fluids only!*
+
+        .. math::
+
+            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
+            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
+            {\partial p_{j}} -
+            \frac{\partial T_{bp} \left( p_{j}, fluid_{j} \right)}
+            {\partial p_{j}} \\
+            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
+            {\partial h_{j}}\\
+
+            \text{for equation i, connection j}\\
+            \text{td: temperature difference, bp: boiling point}
 
         **vapour mass fraction** *Works with pure fluids only!*
 
         .. math::
+
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
             -\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
             {\partial p_{j}}\\
@@ -1983,6 +2054,18 @@ class network:
                 deriv[0, 0, 1] = -hlp.dv_mix_dph(flow) * c.m.val_SI
                 # dv / dh
                 deriv[0, 0, 2] = -hlp.dv_mix_pdh(flow) * c.m.val_SI
+                return deriv
+            else:
+                return None
+
+        elif var == 'Td_bp':
+            if c.Td_bp.val_set:
+                flow = c.to_flow()
+                deriv = np.zeros((1, 1, self.num_conn_vars))
+                # dtd / dp
+                deriv[0, 0, 1] = hlp.dT_mix_dph(flow) - hlp.dT_bp_dp(flow)
+                # dtd / dh
+                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow)
                 return deriv
             else:
                 return None
@@ -2098,8 +2181,8 @@ class network:
 
         n = 0
         for c in self.conns.index:
-            n += [c.m.val_set, c.p.val_set, c.h.val_set,
-                  c.T.val_set, c.x.val_set, c.v.val_set].count(True)
+            n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
+                  c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
             n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
                   c.T.ref_set].count(True)
             n += list(c.fluid.val_set.values()).count(True)
@@ -2156,7 +2239,8 @@ class network:
                 # get components bus func value
                 val = cp.bus_func(b.comps.loc[cp])
                 # save as reference value
-                b.comps.loc[cp].P_ref = val
+                if self.mode == 'design':
+                    b.comps.loc[cp].P_ref = cp.bus_func(b.comps.loc[cp]) / abs(b.comps.loc[cp].char.f_x(1))
                 b.P.val += val
 
         # connections
@@ -2222,7 +2306,8 @@ class network:
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
-            df.loc[c.s.label + ' -> ' + c.t.label] = (
+            row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
+            df.loc[row] = (
                     [c.m.val_SI / self.m[self.m_unit],
                      c.p.val_SI / self.p[self.p_unit],
                      c.h.val_SI / self.h[self.h_unit],
@@ -2247,10 +2332,16 @@ class network:
 
         Note
         ----
-        File results will be saved to ./filename/results.csv. If you provide :code:`save(structure=True)`,
-        all network information will be saved to path ./filename/.
+        Results will be saved to path. The results contain:
+
+        - netw.csv (network information)
+        - conn.csv (connection information)
+        - folder comps containing .csv files (bus.csv, char.csv, char_map.csv)
+          as well as .csv files for all types of components within your network.
         """
-        path = './' + path + '/'
+        if path[-1] != '/' and path[-1] != '\\':
+            path += '/'
+        path = hlp.modify_path_os(path)
 
         logging.debug('Saving network to path ' + path + '.')
         # creat path, if non existent
@@ -2258,15 +2349,16 @@ class network:
             os.makedirs(path)
 
         # create path for component folder if non existent
-        if not os.path.exists(path + 'comps/'):
-            os.makedirs(path + 'comps/')
+        path_comps = hlp.modify_path_os(path + 'comps/')
+        if not os.path.exists(path_comps):
+            os.makedirs(path_comps)
 
         # save all network information
         self.save_network(path + 'netw.csv')
-        self.save_connections(path + 'conn.csv', structure=True)
-        self.save_components(path + 'comps/')
-        self.save_busses(path + 'comps/bus.csv')
-        self.save_characteristics(path + 'comps/')
+        self.save_connections(path + 'conn.csv')
+        self.save_components(path_comps)
+        self.save_busses(path_comps + 'bus.csv')
+        self.save_characteristics(path_comps)
 
     def save_network(self, fn):
         r"""
@@ -2295,7 +2387,7 @@ class network:
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Network information saved to ' + fn + '.')
 
-    def save_connections(self, fn, structure=False):
+    def save_connections(self, fn):
         r"""
         Saves connections to fn, saves network structure data if structure is True.
 
@@ -2320,40 +2412,40 @@ class network:
         df['t'] = self.conns.apply(network.get_props, axis=1, args=('t', 'label'))
         df['t_id'] = self.conns.apply(network.get_props, axis=1, args=('t_id',))
 
-        if structure:
-            # design and offdesign parameters
-            df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
-            df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
+        # design and offdesign parameters
+        df['design'] = self.conns.apply(network.get_props, axis=1, args=('design',))
+        df['offdesign'] = self.conns.apply(network.get_props, axis=1, args=('offdesign',))
 
-        cols = ['m', 'p', 'h', 'T', 'x', 'v']
+        cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
             # values and units
             df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
             df[key + '_unit'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit'))
 
-            if structure:
-                # connection parametrisation
-                df[key + '_unit_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit_set'))
-                df[key + '0'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val0'))
-                df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
-                df[key + '_ref'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'obj',)).astype(str)
-                df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>', expand=False)
-                df[key + '_ref_f'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'f',))
-                df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
-                df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
+            # connection parametrisation
+            df[key + '_unit_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'unit_set'))
+            df[key + '0'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val0'))
+            df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
+            df[key + '_ref'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'obj',)).astype(str)
+            df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>', expand=False)
+            df[key + '_ref_f'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'f',))
+            df[key + '_ref_d'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref', 'd',))
+            df[key + '_ref_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'ref_set',))
+
+        key = 'state'
+        df[key] = self.conns.apply(network.get_props, axis=1, args=(key, 'val'))
+        df[key + '_set'] = self.conns.apply(network.get_props, axis=1, args=(key, 'val_set'))
 
         for val in self.fluids:
             # fluid mass fraction
             df[val] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val', val))
 
-            if structure:
-                # fluid mass fraction parametrisation
-                df[val + '0'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val0', val))
-                df[val + '_set'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val_set', val))
+            # fluid mass fraction parametrisation
+            df[val + '0'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val0', val))
+            df[val + '_set'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'val_set', val))
 
-        if structure:
-            # fluid balance parametrisation
-            df['balance'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'balance'))
+        # fluid balance parametrisation
+        df['balance'] = self.conns.apply(network.get_props, axis=1, args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Connection information saved to ' + fn + '.')
@@ -2416,6 +2508,11 @@ class network:
                     df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'is_set'))
                     df[col + '_var'] = df.apply(network.get_props, axis=1, args=(col, 'is_var'))
+
+                # component property container
+                elif isinstance(dc, hlp.dc_simple):
+                    df[col] = df.apply(network.get_props, axis=1, args=(col, 'val'))
+                    df[col + '_set'] = df.apply(network.get_props, axis=1, args=(col, 'val_set'))
 
                 # component property container
                 elif isinstance(dc, hlp.dc_gcp):

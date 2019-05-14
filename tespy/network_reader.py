@@ -8,6 +8,7 @@
 """
 
 import pandas as pd
+import numpy as np
 from tespy import cmp, con, nwk, hlp, cmp_char
 import os
 import ast
@@ -118,11 +119,17 @@ def load_nwk(path):
     9.367
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
+    if path[-1] != '/' and path[-1] != '\\':
+        path += '/'
+
+    path_comps = hlp.modify_path_os(path + 'comps/')
+    path = hlp.modify_path_os(path)
+
     msg = 'Reading network data from base path ' + path + '.'
     logging.info(msg)
 
     # load characteristics
-    fn = path + '/comps/char.csv'
+    fn = path_comps + 'char.csv'
     chars = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'x': ast.literal_eval,
                                     'y': ast.literal_eval})
@@ -130,7 +137,7 @@ def load_nwk(path):
     logging.debug(msg)
 
     # load characteristic maps
-    fn = path + '/comps/char_map.csv'
+    fn = path_comps + 'char_map.csv'
     char_maps = pd.read_csv(fn, sep=';', decimal='.',
                             converters={'x': ast.literal_eval,
                                         'y': ast.literal_eval,
@@ -143,10 +150,10 @@ def load_nwk(path):
     comps = pd.DataFrame()
     inter = pd.DataFrame()
 
-    files = os.listdir(path + '/comps/')
+    files = os.listdir(path_comps)
     for f in files:
         if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
-            fn = path + '/comps/' + f
+            fn = path_comps + f
             df = pd.read_csv(fn, sep=';', decimal='.',
                              converters={'design': ast.literal_eval,
                                          'offdesign': ast.literal_eval,
@@ -180,7 +187,7 @@ def load_nwk(path):
     nw.inter = inter.set_index('label').to_dict()['instance']
 
     # load connections
-    fn = path + '/conn.csv'
+    fn = path + 'conn.csv'
     conns = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'design': ast.literal_eval,
                                     'offdesign': ast.literal_eval})
@@ -197,13 +204,13 @@ def load_nwk(path):
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.t.label + ':' + c.t_id] = c
+        nw.imp_conns[c.s.label + ':' + c.s_id + '_' + c.t.label + ':' + c.t_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)
 
     # load busses
-    fn = path + '/comps/bus.csv'
+    fn = path_comps + 'bus.csv'
     busses = pd.read_csv(fn, sep=';', decimal='.')
 
     msg = 'Reading bus data from ' + fn + '.'
@@ -268,8 +275,11 @@ def construct_comps(c, *args):
             # component parameters
             if isinstance(value, hlp.dc_cp):
                 dc = hlp.dc_cp(val=c[key],
-                               is_set=c[key + '_set'],
-                               is_var=c[key + '_var'])
+                               is_set=c[key + '_set'], is_var=c[key + '_var'])
+                kwargs[key] = dc
+            # component parameters
+            if isinstance(value, hlp.dc_simple):
+                dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
                 kwargs[key] = dc
             # component characteristics
             elif isinstance(value, hlp.dc_cc):
@@ -283,7 +293,7 @@ def construct_comps(c, *args):
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
-                    msg = 'Could not find x and y values for characteristic line, using defaults instead.'
+                    msg = 'Could not find x and y values for characteristic line, using defaults instead for function ' + key + ' at component ' + c.label + '.'
                     logging.warning(msg)
 
                 char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'], comp=instance.component())
@@ -324,7 +334,7 @@ def construct_comps(c, *args):
                 kwargs[key] = dc
             # grouped component parameters
             elif isinstance(value, hlp.dc_gcp):
-                dc = hlp.dc_cp(method=c[key])
+                dc = hlp.dc_gcp(method=c[key])
                 kwargs[key] = dc
 
     instance.set_attr(**kwargs)
@@ -368,7 +378,7 @@ def construct_network(path):
         TESPy network object.
     """
     # read network .csv-file
-    netw = pd.read_csv(path + '/netw.csv', sep=';', decimal='.',
+    netw = pd.read_csv(path + 'netw.csv', sep=';', decimal='.',
                        converters={'fluids': ast.literal_eval})
     f_list = netw['fluids'][0]
 
@@ -416,12 +426,18 @@ def construct_conns(c, *args):
             kwargs[key] = c[key]
 
     # read fluid properties
-    for key in ['m', 'p', 'h', 'T', 'x', 'v']:
+    for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
         if key in c:
-            dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
-                             unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
-                             ref=None, ref_set=c[key + '_ref_set'])
-            kwargs[key] = dc
+            if key in c:
+                dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
+                                 unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
+                                 ref=None, ref_set=c[key + '_ref_set'])
+                kwargs[key] = dc
+
+    key = 'state'
+    if key in c:
+        dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
+        kwargs[key] = dc
 
     # read fluid vector
     val = {}

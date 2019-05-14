@@ -1,5 +1,4 @@
 # -*- coding: utf-8
-# -*- coding: utf-8
 
 from nose.tools import eq_
 
@@ -147,7 +146,7 @@ class component_tests:
         eq_(round(eta_s * instance.char_map.z2[6, 0], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[6, 0], 4)) + ').')
         # going below lowest available speedline, above highest mass flow at that line
         c1.set_attr(T=300)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
         eq_(round(eta_s * instance.char_map.z2[0, 9], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[0, 9], 4)) + ').')
         # back to design properties, test eta_s_char
         c2.set_attr(p=7)

@@ -14,11 +14,11 @@ matrix:
       os: osx
       osx_image: xcode10.2
       language: shell
-    - name: "Python 3.7.3 on Windows"
-      os: windows
-      language: shell
-      before_install: choco install python3
-      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
+#    - name: "Python 3.7.3 on Windows"
+#      os: windows
+#      language: shell
+#      before_install: choco install python3
+#      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 install:
   - pip3 install .

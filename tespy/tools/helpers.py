@@ -2416,6 +2416,7 @@ def modify_path_os(path):
             path = '.\\' + path
     elif os.name == 'posix':
         # linux, max
+        path = path.replace('\\', '/')
         if path[0] != '/' and path[0] != '.':
             # absolute path
             path = './' + path

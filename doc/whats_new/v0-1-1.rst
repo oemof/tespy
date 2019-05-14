@@ -15,6 +15,7 @@ Parameter renaming
 Testing
 #######
 - Tests and doctests have been adjusted and updated to test the new features.
+- Added software tests for OS X (`PR #68 <https://github.com/oemof/tespy/pull/68>`_), windows tests to follow.
 
 Bug fixes
 #########

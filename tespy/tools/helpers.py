@@ -2411,12 +2411,13 @@ def modify_path_os(path):
     if os.name == 'nt':
         # windows
         path = path.replace('/', '\\')
-        if path[0] != '\\' and path[1:2] != ':':
+        if path[0] != '\\' and path[1:2] != ':' and path[0] != '.':
             # relative path
             path = '.\\' + path
     elif os.name == 'posix':
         # linux, max
-        if path[0] != '/':
+        path = path.replace('\\', '/')
+        if path[0] != '/' and path[0] != '.':
             # absolute path
             path = './' + path
     else:

@@ -4,10 +4,11 @@ v0.1.1 (May, 14, 2019)
 New Features
 ############
 - Specifcation of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
-- :code:`init_path` and :code:`design_path` now work with absolute and relative specification. The feature has been tested on windows and linux machines (`PR #66 <https://github.com/oemof/tespy/pull/66>`_).
+- Path specifications for the :code:`init_path` and :code:`design_path` in the networks module as well as :code:`path` in the network_reader module now work with relative and absolute paths. The feature has been tested on windows and linux machines (`PR #66 <https://github.com/oemof/tespy/pull/66>`_).
 
 Documentation
 #############
+- Updated "Using TESPy" according to the new features, you can find an Example for the usage of the :code:`Td_bp` and the :code:`state` keyword at the bottom of this release message.
 
 Parameter renaming
 ##################

@@ -2,7 +2,7 @@
 .. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
 
 """
-__version__ = '0.1.0 dev'
+__version__ = '0.1.2 dev'
 
 from tespy.components import characteristics as cmp_char, components as cmp, subsystems as subsys
 from tespy import connections as con

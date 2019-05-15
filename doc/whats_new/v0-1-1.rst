@@ -1,0 +1,111 @@
+v0.1.1 (May, 14, 2019)
+++++++++++++++++++++++
+
+New Features
+############
+- Specifcation of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+- Path specifications for the :code:`init_path` and :code:`design_path` in the networks module as well as :code:`path` in the network_reader module now work with relative and absolute paths. The feature has been tested on windows and linux machines (`PR #66 <https://github.com/oemof/tespy/pull/66>`_).
+
+Documentation
+#############
+- Updated "Using TESPy" according to the new features, you can find an Example for the usage of the :code:`Td_bp` and the :code:`state` keyword at the bottom of this release message.
+
+Parameter renaming
+##################
+
+Testing
+#######
+- Tests and doctests have been adjusted and updated to test the new features.
+- Added software tests for OS X (`PR #68 <https://github.com/oemof/tespy/pull/68>`_), windows tests to follow.
+
+Bug fixes
+#########
+- Fixed naming-error on windows when creating tespy_fluids (`PR #60 <https://github.com/oemof/tespy/pull/60>`_).
+- Added missing grouped component parameter import in network reader (`731b9f <https://github.com/oemof/tespy/commit/731b9f43635afa82fcb874b92e645f1247ce6a56>`_).
+
+Other changes
+#############
+- Modified printouts of connection properties for :code:`network.print_results()`-function (`668ca6 <https://github.com/oemof/tespy/commit/668ca632a754b6b55a532a91fcff7bdd7bd81152>`_)
+- Changed access to imported network's connections (:code:`mynetwork.imp_conns['{source}:{source id}_{target}:{target id}']`, replace :code:`{...}` by the respectve component or id). (`a5a867 <https://github.com/oemof/tespy/commit/a5a8674a029a7b9eab81e41de39c303b278577a9>`_).
+- Improved convergence stability for temperatures specified near to the two phase area using the keyowrd :code:`state='l'` (for liquid) or :code:`state='g'` (for gaseous).
+  The convergence check manipulates the enthalpy values at this connection in order to meet the phase specification (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+  
+.. _whats_new_011_example_label:
+
+Example
+#######
+
+.. code-block:: python
+
+	from tespy import cmp, con, nwk
+	import numpy as np
+
+	# network
+	fluid_list = ['NH3', 'water']
+	nw = nwk.network(fluids=fluid_list, T_unit='C', p_unit='bar', h_unit='kJ / kg')
+
+	# components
+	tesin = cmp.sink('TES in')
+	tesout = cmp.source('TES out')
+	hsin = cmp.sink('HS in')
+	hsout = cmp.source('HS out')
+	he = cmp.heat_exchanger('heat exchanger')
+
+	# connection
+	tes_he = con.connection(tesout, 'out1', he, 'in2')
+	he_tes = con.connection(he, 'out2', tesin, 'in1')
+	hs_he = con.connection(hsout, 'out1', he, 'in1')
+	he_hs = con.connection(he, 'out1', hsin, 'in1')
+	nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+
+	# heat exchanger parameters
+	he.set_attr(pr1=0.98, pr2=0.98, ttd_u=42, Q=-90e3)
+
+	# hot side parameters
+	hs_he.set_attr(T=70, p=9.4, fluid={'NH3': 1, 'water': 0})
+	he_hs.set_attr(T=35)
+
+	# cold side inlet
+	tes_he.set_attr(T=18, p=5, fluid={'NH3': 0, 'water': 1})
+
+	# solve
+	nw.solve('design')
+
+	fill = '############################################################'
+
+	print(fill)
+	print('See, the calculation did not work: The temperature value for the '
+		  'hot side outlet is near to the two phase region. A singularity '
+		  'appears in the solution process, as the temperature equation\'s '
+		  'derivative towards enthalpy will be zero in this region.')
+	print(fill)
+
+	## let's retry with state keyword (state should be gaseous)
+	he_hs.set_attr(state='g')
+
+	nw.solve('design')
+	nw.print_results()
+
+	print(fill)
+	print('The state keyword prevents the fluids state at the hot side outlet '
+		  'from going into two phase region, a solution is found.')
+	print(fill)
+
+	# so how does the superheating or subcooling work?
+	# remove state and temperature specification, add superheating specification
+	# temperature difference to boiling point = 10 K
+	he_hs.set_attr(state=np.nan, T=np.nan, Td_bp=10)
+	nw.solve('design')
+	nw.print_results()
+
+	print(fill)
+	print('The temperature at hot side outlet is 10 K above the (prior) unkown '
+		  'boiling point temperature at that point.')
+	print(fill)
+
+
+Contributors
+############
+
+- Francesco Witte
+- Shuang Chen

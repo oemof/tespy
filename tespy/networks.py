@@ -216,10 +216,10 @@ class network:
             Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
         h_unit : str
-            Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
+            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
         T_unit : str
-            Specify the unit for mass flow: 'K', 'C', 'F'.
+            Specify the unit for temperature: 'K', 'C', 'F'.
 
         p_range : list
             List with minimum and maximum values for pressure value range.
@@ -232,7 +232,7 @@ class network:
 
         Note
         ----
-        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
+        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting iterinfo printouts.
         """
         # add attributes from kwargs
         for key in kwargs:
@@ -1162,9 +1162,6 @@ class network:
 
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
-
-        path_abs : boolean
-            Absolute path specified?
 
         Note
         ----

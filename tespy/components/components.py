@@ -2427,10 +2427,10 @@ class node(component):
         List containing offdesign parameters (stated as String).
 
     num_in : float/tespy.helpers.dc_simple
-        Number of inlets for this component.
+        Number of inlets for this component, default value: 2.
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Note
     ----
@@ -2854,7 +2854,7 @@ class splitter(node):
         List containing offdesign parameters (stated as String).
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -3056,7 +3056,7 @@ class separator(node):
         List containing offdesign parameters (stated as String).
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -3254,7 +3254,7 @@ class merge(node):
         List containing offdesign parameters (stated as String).
 
     num_in : float/tespy.helpers.dc_simple
-        Number of inlets for this component.
+        Number of inlets for this component, default value: 2.
 
     Example
     -------

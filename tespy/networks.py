@@ -854,6 +854,10 @@ class network:
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
+            elif isinstance(cp, cmp.water_electrolyzer):
+                cp.initialise_fluids(self)
+                for c in self.comps.loc[cp].o:
+                    self.init_target(c, c.t)
 
         # fluid propagation from set values
         for c in self.conns.index:
@@ -906,6 +910,14 @@ class network:
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
+                
+        if isinstance(c.t, cmp.water_electrolyzer):
+            if c == self.comps.loc[c.t].i[0]:
+                outconn = self.comps.loc[c.t].o[0]
+                
+                for fluid, x in c.fluid.val.items():
+                    if not outconn.fluid.val_set[fluid]:
+                        outconn.fluid.val[fluid] = x
 
         if isinstance(c.t, cmp.cogeneration_unit):
             for outconn in self.comps.loc[c.t].o[:2]:

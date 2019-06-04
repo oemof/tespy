@@ -1507,10 +1507,10 @@ class network:
 
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
-                if c.h.val_SI < 0:
-                    c.h.val_SI = hmin / 1.1
+                if hmin < 0:
+                    c.h.val_SI = hmin / 1.05
                 else:
-                    c.h.val_SI = hmin * 1.1
+                    c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9

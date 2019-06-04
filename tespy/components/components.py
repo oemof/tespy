@@ -8213,7 +8213,7 @@ class heat_exchanger(component):
 
     def energy_func(self):
         r"""
-        Equation for condenser energy balance.
+        Equation for heat exchanger energy balance.
 
         Returns
         -------

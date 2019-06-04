@@ -39,7 +39,7 @@ gas_constants['uni'] = 8.3144598
 
 class data_container:
     r"""
-    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop.
+    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop, dc_simple.
 
     Parameters
     ----------

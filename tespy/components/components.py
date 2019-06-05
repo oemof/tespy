@@ -6400,6 +6400,7 @@ class water_electrolyzer(component):
 
     >>> fluid_list = ['O2', 'water', 'H2']
     >>> nw = nwk.network(fluids=fluid_list, T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    >>> nw.set_printoptions(print_level='none')
     
     >>> fw = cmp.source('feed water')
     >>> oxy = cmp.sink('oxygen sink')
@@ -6417,8 +6418,9 @@ class water_electrolyzer(component):
     >>> cw_el = con.connection(cw, 'out1', el, 'in1', fluid={'water': 1, 'H2': 0, 'O2': 0}, p=5, T=15)
     >>> el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
+    >>> nw.solve('design')
     >>> el.Q.val
-    120e3
+    551005.0
     
     """
 

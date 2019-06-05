@@ -6419,7 +6419,7 @@ class water_electrolyzer(component):
     >>> el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
     >>> nw.solve('design')
-    >>> el.Q.val
+    >>> round(el.Q.val, 0)
     551005.0
     
     """

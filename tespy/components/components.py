@@ -6532,7 +6532,7 @@ class water_electrolyzer(component):
         """
     import CoolProp.CoolProp.PropsSi as CP
 
-        hf = {}
+        hf = {} # unexpected indent
         hf['H2O'] = -286 #kj
         hf['H2'] = 0
         hf['O2'] = 0
@@ -6624,6 +6624,33 @@ class water_electrolyzer(component):
             vec_res += [self.inl[0].p.val_SI * self.pr_c.val - self.outl[0].p.val_SI]
         
         return vec_res
+    
+        if self.zeta.is_set:
+            i = self.inl[0].to_flow()
+            o = self.outl[0].to_flow()
+            if hasattr(self, 'zeta'):
+                val = self.zeta.val
+            else:
+                val = self.zeta1.val
+
+            if abs(i[0]) < 1e-4:
+                return i[1] - o[1]
+
+            else:
+                return (val - (i[1] - o[1]) * math.pi ** 2 /
+                        (8 * abs(i[0]) * i[0] * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+                
+        if self.zeta2.is_set:
+           i = self.inl[1].to_flow()
+           o = self.outl[1].to_flow()
+
+            if abs(i[0]) < 1e-4:
+                return i[1] - o[1]
+            else:
+
+                return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
+                        (8 * abs(i[0]) * i[0] * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+ 
 
     def derivatives(self):
         r"""

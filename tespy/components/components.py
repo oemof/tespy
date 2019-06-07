@@ -6472,7 +6472,8 @@ class water_electrolyzer(component):
 
     def attr(self):
         return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(), 'char': dc_cc(),
-                'S': dc_cp(), 'pr_c': dc_cp(), 'e': dc_cp(val=150e6)}
+                'S': dc_cp(), 'pr_c': dc_cp(), 'e': dc_cp(val=150e6),
+                'zeta': dc_cp()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -6530,13 +6531,12 @@ class water_electrolyzer(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
-    import CoolProp.CoolProp.PropsSi as CP
 
         hf = {} # unexpected indent
         hf['H2O'] = -286 #kj
         hf['H2'] = 0
         hf['O2'] = 0
-        M = PSI('M', 'H2')
+        M = molar_masses['H2']
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
 
         val = e0

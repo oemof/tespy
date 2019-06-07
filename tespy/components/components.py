@@ -6345,13 +6345,56 @@ class water_electrolyzer(component):
         - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
-
-            0 = p_{in,i} - p_{out} \;
-            \forall i \in \mathrm{inlets}
-
-        - :func:`tespy.components.components.combustion_chamber.energy_balance`
-
+            
+            0  = x_in1 - x_out1
+            
+            0 = 1 - x_in2
+            0 = 1 - x_out2
+            0 = 1 - x_out3
+            
+            
+            ### wie soll man das umschreiben?
+             for fluid in self.inl[1].fluid.val.keys():
+            if fluid != self.h2o:
+                vec_res += [0 - self.inl[1].fluid.val[fluid]]
+            if fluid != self.o2:
+                vec_res += [0 - self.outl[1].fluid.val[fluid]]
+            if fluid != self.h2:    
+                vec_res += [0 - self.outl[2].fluid.val[fluid]]
+            0 = 0 - x_in2
+            0 = 0 - x_out2
+            0 = 0 - x_out3
+            
+            o2 = M_o2 / (M_o2 + 2 * M_h2)
+            0 = m_in1 - m_out1
+            0 = o2 * m_in2 - m_out2
+            0 = (1 - o2) * m_in2 - m_out3
+            
+            0 = p_in2 - p_out2
+            0 = p_in2 - p_out3
+            
+             T_ref = 293.15
+             p_ref = 1e5
+        
+            h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
+            h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
+            h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
+        
+            
+            0 = P - m_out3 * e0 + m_in1 * (h_in1 - h_out1) + 
+                m_in2 * (h_in2 - h_refh2o) - m_out2 * (h_out2 - h_refo2) -
+                m_out3 * (h_out3 - h_refh2)
+            
+            0 = T_out2 - T_out3
+            
+            0 = P - m_out3 * e
+       
+        
+        
         **optional equations**
+
+            0 = p_in1 * pr - p_out1
+
 
         - :func:`tespy.components.components.combustion_chamber.lambda_func`
         - :func:`tespy.components.components.combustion_chamber.ti_func`
@@ -6487,8 +6530,16 @@ class water_electrolyzer(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
-        val = 150e6
+    import CoolProp.CoolProp.PropsSi as CP
 
+        hf = {}
+        hf['H2O'] = -286 #kj
+        hf['H2'] = 0
+        hf['O2'] = 0
+        M = PSI('M', 'H2')
+        e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
+        
+        val = e0
         return val
 
     def equations(self):

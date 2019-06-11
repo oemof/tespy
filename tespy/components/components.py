@@ -7004,14 +7004,16 @@ class water_electrolyzer(component):
             .. math::
 
                 val = \begin{cases}
-                5 \cdot 10^5 & \text{key = 'p'}\\
-                10^6 & \text{key = 'h'}
+                5  \cdot 10^5 & \text{key = 'p'}\\
+                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 10e5
+            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            T = 50 + 273.15
+            return h_mix_pT(flow, T)
 
     def initialise_target(self, c, key):
         r"""
@@ -7034,13 +7036,15 @@ class water_electrolyzer(component):
 
                 val = \begin{cases}
                 5  \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
+                h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 5e5
+            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            T = 20 + 273.15
+            return h_mix_pT(flow, T)
 
     def calc_parameters(self, mode):
         r"""

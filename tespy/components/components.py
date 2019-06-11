@@ -6346,26 +6346,26 @@ class water_electrolyzer(component):
 
         .. math::
 
-            0  = x_in1 - x_out1
+            0  = x_{i,in1} - x_{i,out1} \forall i \in \text{fluids}\\
 
-            0 = 1 - x_in2
-            0 = 1 - x_out2
-            0 = 1 - x_out3
+            \forall i \in \text{network fluids}:
+
+            0 = \begin{cases}
+                1 - x_{i,in2} & \text{i=}H_{2}O\\
+                x_{i,in2} & \text{else}
+            \end{cases}
 
 
-            ### wie soll man das umschreiben?
-             for fluid in self.inl[1].fluid.val.keys():
-            if fluid != self.h2o:
-                vec_res += [0 - self.inl[1].fluid.val[fluid]]
-            if fluid != self.o2:
-                vec_res += [0 - self.outl[1].fluid.val[fluid]]
-            if fluid != self.h2:
-                vec_res += [0 - self.outl[2].fluid.val[fluid]]
-            0 = 0 - x_in2
-            0 = 0 - x_out2
-            0 = 0 - x_out3
+            0 = 1 - x_{i,in2}\\
+            0 = 1 - x_{i,out}\\
+            0 = 1 - x_{H_{2},out3}\\
+            0 = x_{in2}\\
+            0 = x_{out2}\\
+            0 = x_{out3}\\
 
-            o2 = M_o2 / (M_o2 + 2 * M_h2)
+            o2 = M_{O_2} / (M_{O_2} + 2 * M_{H_2})
+
+
             0 = m_in1 - m_out1
             0 = o2 * m_in2 - m_out2
             0 = (1 - o2) * m_in2 - m_out3
@@ -6390,14 +6390,13 @@ class water_electrolyzer(component):
             0 = P - m_out3 * e
 
 
-
         **optional equations**
+
+        .. math::
 
             0 = p_in1 * pr - p_out1
 
-
-        - :func:`tespy.components.components.combustion_chamber.lambda_func`
-        - :func:`tespy.components.components.combustion_chamber.ti_func`
+        - :func:`tespy.components.components.component.zeta_func`
 
     Inlets/Outlets
 
@@ -6451,7 +6450,7 @@ class water_electrolyzer(component):
     >>> cw = cmp.source('cooling water')
     >>> cw_hot = cmp.sink('cooling water out')
 
-    >>> el = cmp.water_electrolyzer('electrolyzer 1', e=200e6, P='var')
+    >>> el = cmp.water_electrolyzer('electrolyzer 1', P='var', Q=-5e5)
     >>> comp = cmp.compressor('compressor', eta_s=0.9)
 
     >>> fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=40, T=15)
@@ -6616,7 +6615,8 @@ class water_electrolyzer(component):
 
         ######################################################################
         # power vs hydrogen production
-        vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
+        if self.e.is_set:
+            vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
 
         ######################################################################
         #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
@@ -6625,6 +6625,11 @@ class water_electrolyzer(component):
 
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
+
+        # equation for heat transfer
+
+        if self.Q.is_set:
+            vec_res += [self.Q.val - self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI)]
 
         return vec_res
 
@@ -6775,19 +6780,20 @@ class water_electrolyzer(component):
         ######################################################################
         # power vs hydrogen production
 
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+        if self.e.is_set:
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
-        # derivatives for P in energy balance
-        deriv[0, 4, 0] = - self.e.val
+            # derivatives for P in energy balance
+            deriv[0, 4, 0] = - self.e.val
 
-        if self.P.is_var:
-            deriv[0, 5 + self.P.var_pos, 0] = 1
+            if self.P.is_var:
+                deriv[0, 5 + self.P.var_pos, 0] = 1
 
-        # derivative to allow e to be variable
-        if self.e.is_var:
-            deriv[0, 5 + self.e.var_pos, 0] = - self.outl[2].m.val_SI
+            # derivative to allow e to be variable
+            if self.e.is_var:
+                deriv[0, 5 + self.e.var_pos, 0] = - self.outl[2].m.val_SI
 
-        mat_deriv += deriv.tolist()
+            mat_deriv += deriv.tolist()
 
         ######################################################################
         #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
@@ -6812,6 +6818,18 @@ class water_electrolyzer(component):
                 deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
 
             mat_deriv += deriv.tolist()
+
+        # derivative for heat flow
+        if self.Q.is_set:
+
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+
+            deriv[0, 0, 0] = - (self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+            deriv[0, 0, 2] = - self.inl[0].m.val_SI
+            deriv[0, 2, 2] = self.inl[0].m.val_SI
+
+            mat_deriv += deriv.tolist()
+
 
         ######################################################################
 
@@ -7041,10 +7059,11 @@ class water_electrolyzer(component):
         component.calc_parameters(self, mode)
 
         if mode == 'post':
-            # do something
-            self.Q.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.P.val = self.outl[2].m.val_SI * self.e.val
+            self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
             self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+            # zeta
+            # e
+
 # %%
 
 

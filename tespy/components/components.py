@@ -1069,8 +1069,6 @@ class turbomachine(component):
 
 class pump(turbomachine):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**
@@ -6339,8 +6337,6 @@ class cogeneration_unit(combustion_chamber):
 
 class valve(component):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**
@@ -7483,8 +7479,6 @@ class pipe(heat_exchanger_simple):
 
 class solar_collector(heat_exchanger_simple):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**

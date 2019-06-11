@@ -6892,97 +6892,9 @@ class water_electrolyzer(component):
         nw : tespy.networks.network
             Network using this component object.
         """
-
         self.outl[1].fluid.val[self.o2] = 1
         self.outl[2].fluid.val[self.h2] = 1
         self.inl[1].fluid.val[self.h2o] = 1
-
-#    def convergence_check(self, nw):
-#        r"""
-#        Performs a convergence check.
-#
-#        Parameters
-#        ----------
-#        nw : tespy.networks.network
-#            The network object using this component.
-#
-#        Note
-#        ----
-#        Manipulate enthalpies/pressure at inlet and outlet if not specified by user to match physically feasible constraints,
-#        keep fluid composition within feasible range and then propagates it towards the outlet.
-#        """
-#        if isinstance(self, cogeneration_unit):
-#            inl = self.inl[2:]
-#            outl = self.outl[2:]
-#        else:
-#            inl = self.inl
-#            outl = self.outl
-#
-#        m = 0
-#        for i in inl:
-#            if i.m.val_SI < 0 and not i.m.val_set:
-#                i.m.val_SI = 0.01
-#            m += i.m.val_SI
-#
-#        ######################################################################
-#        # check fluid composition
-#        for o in outl:
-#            fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
-#            for f in fluids:
-#                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
-#                    m_f = 0
-#                    for i in inl:
-#                        m_f += i.fluid.val[f] * i.m.val_SI
-#
-#                    if abs(o.fluid.val[f] - m_f / m) > 0.03:
-#                        o.fluid.val[f] = m_f / m
-#
-#                elif f == self.o2:
-#                    if o.fluid.val[f] > 0.25:
-#                        o.fluid.val[f] = 0.2
-#                    if o.fluid.val[f] < 0.05:
-#                        o.fluid.val[f] = 0.05
-#
-#                elif f == self.co2:
-#                    if o.fluid.val[f] > 0.075:
-#                        o.fluid.val[f] = 0.075
-#                    if o.fluid.val[f] < 0.02:
-#                        o.fluid.val[f] = 0.02
-#
-#                elif f == self.h2o:
-#                    if o.fluid.val[f] > 0.075:
-#                        o.fluid.val[f] = 0.075
-#                    if o.fluid.val[f] < 0.02:
-#                        o.fluid.val[f] = 0.02
-#
-#                elif f == self.fuel.val:
-#                    if o.fluid.val[f] > 0:
-#                        o.fluid.val[f] = 0
-#
-#        ######################################################################
-#        # flue gas propagation
-#        for o in outl:
-#            if o.m.val_SI < 0 and not o.m.val_set:
-#                o.m.val_SI = 10
-#            nw.init_target(o, o.t)
-#
-#            if o.h.val_SI < 7.5e5 and not o.h.val_set:
-#                o.h.val_SI = 1e6
-#
-#        ######################################################################
-#        # additional checks for performance improvement
-#        if self.lamb.val < 2 and not self.lamb.is_set:
-#            for i in inl:
-#                fuel_set = True
-#                if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
-#                    fuel_set = False
-#                if i.fluid.val[self.fuel.val] < 0.75:
-#                    air_tmp = i.m.val_SI
-#
-#            if not fuel_set:
-#                for i in inl:
-#                    if i.fluid.val[self.fuel.val] > 0.75:
-#                        i.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
         r"""

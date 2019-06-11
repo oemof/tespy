@@ -5803,7 +5803,7 @@ class cogeneration_unit(combustion_chamber):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculates the value of the bus function.
 
         Parameters
         ----------
@@ -5813,7 +5813,7 @@ class cogeneration_unit(combustion_chamber):
         Returns
         -------
         val : float
-            Residual value of equation.
+            Residual value of bus function.
 
             .. math::
 
@@ -5829,6 +5829,9 @@ class cogeneration_unit(combustion_chamber):
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
                 \dot{Q}_2=\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right)
         """
+
+        ######################################################################
+        # value for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             ti = self.calc_ti()
             if np.isnan(bus.P_ref):
@@ -5837,6 +5840,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(ti / bus.P_ref)
             return ti * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of power output (P)
         elif bus.param == 'P':
             P = self.calc_P()
             if np.isnan(bus.P_ref):
@@ -5845,6 +5850,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(P / bus.P_ref)
             return P * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             val = 0
             for j in range(2):
@@ -5858,6 +5865,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
             i = self.inl[0]
             o = self.outl[0]
@@ -5869,6 +5878,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
             i = self.inl[1]
             o = self.outl[1]
@@ -5880,6 +5891,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             Q = self.calc_Qloss()
             if np.isnan(bus.P_ref):
@@ -5888,6 +5901,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(Q / bus.P_ref)
             return Q * bus.char.f_x(expr)
 
+        ######################################################################
+        # missing/invalid bus parameter
         else:
             msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
@@ -5910,7 +5925,7 @@ class cogeneration_unit(combustion_chamber):
         deriv = np.zeros((1, 7 + self.num_vars, len(self.inl[0].fluid.val) + 3))
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5919,7 +5934,7 @@ class cogeneration_unit(combustion_chamber):
             deriv[0, 6, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 6, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of power production (P)
         elif bus.param == 'P':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5933,7 +5948,7 @@ class cogeneration_unit(combustion_chamber):
                 deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             for i in range(2):
                 deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
@@ -5941,21 +5956,21 @@ class cogeneration_unit(combustion_chamber):
                 deriv[0, i + 4, 2] = self.numeric_deriv(self.bus_func, 'h', i + 4, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
             deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
             deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
             deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
             deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
             deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5968,6 +5983,8 @@ class cogeneration_unit(combustion_chamber):
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
+        ######################################################################
+        # missing/invalid bus parameter
         else:
             msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
@@ -6851,14 +6868,41 @@ class water_electrolyzer(component):
 
             .. math::
 
-                val = LHV \cdot \dot{m}_{f} \cdot f_{char}\left( \frac{\dot{m}_{f}}{\dot{m}_{f,ref}}\right)
+                val = \begin{cases}
+                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) & \text{key = 'P'}\\
+                \dot{Q} \cdot f_{char}\left( \frac{\dot{Q}}{\dot{Q}_{ref}}\right)& \text{key = 'Q'}\\
+                \end{cases}\\
+                \dot{Q} = \dot{m}_{1,in} \cdot \left(h_{1,in} - h_{1,out} \right)\\
         """
-        val = self.calc_ti()
-        if np.isnan(bus.P_ref):
-            expr = 1
+        ######################################################################
+        # equations for power on bus
+        if bus.param == 'P':
+            P = self.P.val
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(P / bus.P_ref)
+            return P * bus.char.f_x(expr)
+
+        ######################################################################
+        # equations for heat on bus
+
+        elif bus.param == 'Q':
+            val = self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(val / bus.P_ref)
+            return val * bus.char.f_x(expr)
+
+        ######################################################################
+        # missing/invalid bus parameter
+
         else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+            msg = ('The parameter ' + bus.param + 'is not a valid parameter for a component of type ' +
+                   self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
 
     def bus_deriv(self, bus):
         r"""
@@ -6874,13 +6918,34 @@ class water_electrolyzer(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
-            deriv[0, i, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus)
+        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
-        deriv[0, 2, 0] = self.numeric_deriv(self.bus_func, 'm', 2, bus=bus)
-        deriv[0, 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 2, bus=bus)
+        ######################################################################
+        # derivatives for power on bus
+        if bus.param == 'P':
+            # variable power
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 6, bus=bus)
+
+        ######################################################################
+        # derivatives for heat on bus
+        elif bus.param == 'Q':
+
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+
+            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+            deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+
+        ######################################################################
+        # missing/invalid bus parameter
+
+        else:
+            msg = ('The parameter ' + bus.param + 'is not a valid parameter for a component of type ' +
+                   self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+
         return deriv
 
     def initialise_fluids(self, nw):

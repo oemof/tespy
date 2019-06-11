@@ -6555,8 +6555,7 @@ class water_electrolyzer(component):
         M = molar_masses['H2']
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
 
-        val = e0
-        return val
+        return e0 * 1000
 
     def equations(self):
         r"""

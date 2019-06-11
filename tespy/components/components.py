@@ -5904,7 +5904,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
+            msg = 'The parameter ' + str(bus.param) + ' is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
             raise ValueError(msg)
 
@@ -5986,7 +5986,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
+            msg = 'The parameter ' + str(bus.param) + ' is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
             raise ValueError(msg)
 
@@ -6898,7 +6898,7 @@ class water_electrolyzer(component):
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + bus.param + 'is not a valid parameter for a component of type ' +
+            msg = ('The parameter ' + str(bus.param) + ' is not a valid parameter for a component of type ' +
                    self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
@@ -6940,7 +6940,7 @@ class water_electrolyzer(component):
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + bus.param + 'is not a valid parameter for a component of type ' +
+            msg = ('The parameter ' + str(bus.param) + ' is not a valid parameter for a component of type ' +
                    self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)

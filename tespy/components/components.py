@@ -5847,7 +5847,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # value for bus parameter of power output (P)
         elif bus.param == 'P':
-            P = self.energy_balance()
+            P = self.calc_P()
             if np.isnan(bus.P_ref):
                 expr = 1
             else:

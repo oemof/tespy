@@ -6424,7 +6424,7 @@ class water_electrolyzer(component):
 
     Image
 
-        .. image:: _images/electrolyzer.svg
+        .. image:: _images/water_electrolyzer.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -6897,7 +6897,7 @@ class water_electrolyzer(component):
         # equations for heat on bus
 
         elif bus.param == 'Q':
-            val = -  self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
             if np.isnan(bus.P_ref):
                 expr = 1
             else:

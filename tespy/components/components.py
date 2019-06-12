@@ -7039,10 +7039,18 @@ class water_electrolyzer(component):
         component.calc_parameters(self, mode)
 
         if mode == 'post':
+            # self.P.val = self.outl[2].m.val_SI * self.e.val 
             self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            # self.eta.val is not set in water_electrolyzer
+            # self.char.val is not set in water_electrolyzer
+            # self.S.val is not set in water_electrolyzer
             self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-            # zeta
-            # e
+            self.e.val = self.P.val / self.out[2].m.val_SI
+            
+            i = self.inl[0].to_flow()
+            o = self.outl[0].to_flow()
+            self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
+            
 
 # %%
 

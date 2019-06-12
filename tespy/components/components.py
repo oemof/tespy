@@ -6341,9 +6341,6 @@ class water_electrolyzer(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_chamber.reaction_balance`
-        - :func:`tespy.components.components.component.mass_flow_func`
-
         .. math::
 
             0  = x_{i,in1} - x_{i,out1} \forall i \in \text{fluids}\\
@@ -6353,48 +6350,70 @@ class water_electrolyzer(component):
             0 = \begin{cases}
                 1 - x_{i,in2} & \text{i=}H_{2}O\\
                 x_{i,in2} & \text{else}
-            \end{cases}
+            \end{cases}\\
+            
+            0 = \begin{cases}
+                1 - x_{i,out2} & \text{i=}O_{2}\\
+                x_{i,out2} & \text{else}
+            \end{cases}\\
+
+            0 = \begin{cases}
+                1 - x_{i,out3} & \text{i=}H_{2}\\
+                x_{i,out3} & \text{else}
+            \end{cases}\\
+            
+            o2 = M_{O_2} / (M_{O_2} + 2 * M_{H_2})\\
+
+            0 = m_{H_{2}O,in1} - m_{H_{2}O,out1}\\
+            \text{entweder so}\\
+            0 = o2 * m_{H_{2}O,in2} - m_{O_2,out2}\\
+            0 = (1 - o2) * m_{H_{2}O,in2} - m_{H_2,out3}\\
+            \text{oder so}\\
+            o2 * m_{H_{2}O,in2} = m_{O_2,out2}\\
+            (1 - o2) * m_{H_{2}O,in2} = m_{H_2,out3}\\
+            \text{oder so}\\
+            m_{H_{2}O,in2} = \begin{cases}
+                m_{O_2,out2} \div o2 & \text{and}\\
+                m_{H_2,out3} \div \left(1 - o2\right) & 
+            \end{cases}\\
 
 
-            0 = 1 - x_{i,in2}\\
-            0 = 1 - x_{i,out}\\
-            0 = 1 - x_{H_{2},out3}\\
-            0 = x_{in2}\\
-            0 = x_{out2}\\
-            0 = x_{out3}\\
+            \text{Entweder die eine oder die andere Variante!}
 
-            o2 = M_{O_2} / (M_{O_2} + 2 * M_{H_2})
+            0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
+            0 = p_{H_{2}O,in2} - p_{H_2,out3}\\
 
-
-            0 = m_in1 - m_out1
-            0 = o2 * m_in2 - m_out2
-            0 = (1 - o2) * m_in2 - m_out3
-
-            0 = p_in2 - p_out2
-            0 = p_in2 - p_out3
-
-             T_ref = 293.15
-             p_ref = 1e5
-
-            h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
-            h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
-            h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
+            p_{H_{2}O,in2} = \begin{cases}
+                p_{O_2,out2} & \text{and}\\
+                p_{H_2,out3} & 
+            \end{cases}\\
 
 
-            0 = P - m_out3 * e0 + m_in1 * (h_in1 - h_out1) +
-                m_in2 * (h_in2 - h_refh2o) - m_out2 * (h_out2 - h_refo2) -
-                m_out3 * (h_out3 - h_refh2)
 
-            0 = T_out2 - T_out3
+            T_{ref} = 293.15\text{ [K]}\\
+            p_{ref} = 1e5\text{ Pa}\\
+            
+            \text{Wie sollen die h_ref dargestellt werden?}\\
+            
+            h_{ref,H_{2}O} = h_{mix_{pT}}([1, p_ref, 0, self.inl[1].fluid.val], T_ref)\\
+            h_{ref,H_2} = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)\\
+            h_{ref,O_2} = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)\\
 
-            0 = P - m_out3 * e
+
+            0 = P - m_{H_2,out3} * e_0 +\\ m_{H_{2}O,in1} * (h_{H_{2}O,in1} - h_{H_{2}O,out1}) +\\
+                m_{H_{2}O,in2} * (h_{H_{2}O,in2} - h_{ref,H_{2}O})\\ - m_{O_2,out2} * (h_{O_2,out2} - h_{ref,O_2}) -\\
+                m_{H_2,out3} * (h_{H_2,out3} - h_{ref,H_2})\\
+
+            0 = T_{O_2,out2} - T_{H_2,out3}\\
+
+            0 = P - m_{H_2,out3} * e\\
 
 
         **optional equations**
 
         .. math::
 
-            0 = p_in1 * pr - p_out1
+            0 = p_{H_{2}O,in1} * pr - p_{H_{2}O,out1}
 
         - :func:`tespy.components.components.component.zeta_func`
 

@@ -6379,19 +6379,20 @@ class water_electrolyzer(component):
                 x_{i,out3} & \text{else}
             \end{cases}\\
             
-            o2 = M_{O_2} / (M_{O_2} + 2 * M_{H_2})\\
+            o2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
+            o2 = M_{O_2} / (M_{O_2} + 2 \cdot M_{H_2})\\
 
             0 = m_{H_{2}O,in1} - m_{H_{2}O,out1}\\
             \text{entweder so}\\
-            0 = o2 * m_{H_{2}O,in2} - m_{O_2,out2}\\
-            0 = (1 - o2) * m_{H_{2}O,in2} - m_{H_2,out3}\\
+            0 = o2 \cdot m_{H_{2}O,in2} - m_{O_2,out2}\\
+            0 = (1 - o2) \cdot m_{H_{2}O,in2} - m_{H_2,out3}\\
             \text{oder so}\\
-            o2 * m_{H_{2}O,in2} = m_{O_2,out2}\\
-            (1 - o2) * m_{H_{2}O,in2} = m_{H_2,out3}\\
+            o2 \cdot m_{H_{2}O,in2} = m_{O_2,out2}\\
+            (1 - o2) \cdot m_{H_{2}O,in2} = m_{H_2,out3}\\
             \text{oder so}\\
             m_{H_{2}O,in2} = \begin{cases}
-                m_{O_2,out2} \div o2 & \text{and}\\
-                m_{H_2,out3} \div \left(1 - o2\right) & 
+                \frac{m_{O_2,out2}}{o2} & \text{and}\\
+                \frac{m_{H_2,out3}}{\left(1 - o2\right)} & 
             \end{cases}\\
 
 
@@ -6417,20 +6418,20 @@ class water_electrolyzer(component):
             h_{ref,O_2} = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)\\
 
 
-            0 = P - m_{H_2,out3} * e_0 +\\ m_{H_{2}O,in1} * (h_{H_{2}O,in1} - h_{H_{2}O,out1}) +\\
-                m_{H_{2}O,in2} * (h_{H_{2}O,in2} - h_{ref,H_{2}O})\\ - m_{O_2,out2} * (h_{O_2,out2} - h_{ref,O_2}) -\\
-                m_{H_2,out3} * (h_{H_2,out3} - h_{ref,H_2})\\
+            0 = P - m_{H_2,out3} \cdot e_0 +\\ m_{H_{2}O,in1} \cdot (h_{H_{2}O,in1} - h_{H_{2}O,out1}) +\\
+                m_{H_{2}O,in2} \cdot (h_{H_{2}O,in2} - h_{ref,H_{2}O}) -\\ m_{O_2,out2} \cdot (h_{O_2,out2} - h_{ref,O_2}) -\\
+                m_{H_2,out3} \cdot (h_{H_2,out3} - h_{ref,H_2})\\
 
             0 = T_{O_2,out2} - T_{H_2,out3}\\
 
-            0 = P - m_{H_2,out3} * e\\
+            0 = P - m_{H_2,out3} \cdot e\\
 
 
         **optional equations**
 
         .. math::
 
-            0 = p_{H_{2}O,in1} * pr - p_{H_{2}O,out1}
+            0 = p_{H_{2}O,in1} \cdot pr - p_{H_{2}O,out1}
 
         - :func:`tespy.components.components.component.zeta_func`
 

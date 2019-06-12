@@ -6392,11 +6392,6 @@ class water_electrolyzer(component):
             0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
             0 = p_{H_{2}O,in2} - p_{H_2,out3}\\
 
-            p_{H_{2}O,in2} = \begin{cases}
-                p_{O_2,out2} & \text{and}\\
-                p_{H_2,out3} &
-            \end{cases}\\
-
             0 = P - \text{energy_balance}()
 
         For energy balance calculation see

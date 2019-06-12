@@ -5803,7 +5803,7 @@ class cogeneration_unit(combustion_chamber):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculates the value of the bus function.
 
         Parameters
         ----------
@@ -5813,7 +5813,7 @@ class cogeneration_unit(combustion_chamber):
         Returns
         -------
         val : float
-            Residual value of equation.
+            Residual value of bus function.
 
             .. math::
 
@@ -5829,6 +5829,9 @@ class cogeneration_unit(combustion_chamber):
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
                 \dot{Q}_2=\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right)
         """
+
+        ######################################################################
+        # value for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             ti = self.calc_ti()
             if np.isnan(bus.P_ref):
@@ -5837,6 +5840,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(ti / bus.P_ref)
             return ti * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of power output (P)
         elif bus.param == 'P':
             P = self.calc_P()
             if np.isnan(bus.P_ref):
@@ -5845,6 +5850,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(P / bus.P_ref)
             return P * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             val = 0
             for j in range(2):
@@ -5858,6 +5865,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
             i = self.inl[0]
             o = self.outl[0]
@@ -5869,6 +5878,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
             i = self.inl[1]
             o = self.outl[1]
@@ -5880,6 +5891,8 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(val / bus.P_ref)
             return val * bus.char.f_x(expr)
 
+        ######################################################################
+        # value for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             Q = self.calc_Qloss()
             if np.isnan(bus.P_ref):
@@ -5888,8 +5901,10 @@ class cogeneration_unit(combustion_chamber):
                 expr = abs(Q / bus.P_ref)
             return Q * bus.char.f_x(expr)
 
+        ######################################################################
+        # missing/invalid bus parameter
         else:
-            msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
+            msg = 'The parameter ' + str(bus.param) + ' is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
             raise ValueError(msg)
 
@@ -5910,7 +5925,7 @@ class cogeneration_unit(combustion_chamber):
         deriv = np.zeros((1, 7 + self.num_vars, len(self.inl[0].fluid.val) + 3))
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5919,7 +5934,7 @@ class cogeneration_unit(combustion_chamber):
             deriv[0, 6, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 6, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of power production (P)
         elif bus.param == 'P':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5933,7 +5948,7 @@ class cogeneration_unit(combustion_chamber):
                 deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             for i in range(2):
                 deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
@@ -5941,21 +5956,21 @@ class cogeneration_unit(combustion_chamber):
                 deriv[0, i + 4, 2] = self.numeric_deriv(self.bus_func, 'h', i + 4, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
             deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
             deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
             deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
             deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
             deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
 
         ######################################################################
-        # derivatives for specified zeta values at cooling loops
+        # derivatives for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             for i in range(2):
                 deriv[0, i + 2, 0] = self.numeric_deriv(self.bus_func, 'm', i + 2, bus=bus)
@@ -5968,8 +5983,10 @@ class cogeneration_unit(combustion_chamber):
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 7, bus=bus)
 
+        ######################################################################
+        # missing/invalid bus parameter
         else:
-            msg = 'The parameter ' + bus.param + 'is not a valid parameter for a ' + self.component() + '.'
+            msg = 'The parameter ' + str(bus.param) + ' is not a valid parameter for a ' + self.component() + '.'
             logging.error(msg)
             raise ValueError(msg)
 
@@ -6557,8 +6574,7 @@ class water_electrolyzer(component):
         M = molar_masses['H2']
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
 
-        val = e0
-        return val
+        return e0 * 1000
 
     def equations(self):
         r"""
@@ -6870,14 +6886,41 @@ class water_electrolyzer(component):
 
             .. math::
 
-                val = LHV \cdot \dot{m}_{f} \cdot f_{char}\left( \frac{\dot{m}_{f}}{\dot{m}_{f,ref}}\right)
+                val = \begin{cases}
+                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) & \text{key = 'P'}\\
+                \dot{Q} \cdot f_{char}\left( \frac{\dot{Q}}{\dot{Q}_{ref}}\right)& \text{key = 'Q'}\\
+                \end{cases}\\
+                \dot{Q} = \dot{m}_{1,in} \cdot \left(h_{1,in} - h_{1,out} \right)\\
         """
-        val = self.calc_ti()
-        if np.isnan(bus.P_ref):
-            expr = 1
+        ######################################################################
+        # equations for power on bus
+        if bus.param == 'P':
+            P = self.P.val
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(P / bus.P_ref)
+            return P * bus.char.f_x(expr)
+
+        ######################################################################
+        # equations for heat on bus
+
+        elif bus.param == 'Q':
+            val = self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+            if np.isnan(bus.P_ref):
+                expr = 1
+            else:
+                expr = abs(val / bus.P_ref)
+            return val * bus.char.f_x(expr)
+
+        ######################################################################
+        # missing/invalid bus parameter
+
         else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+            msg = ('The parameter ' + str(bus.param) + ' is not a valid parameter for a component of type ' +
+                   self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
 
     def bus_deriv(self, bus):
         r"""
@@ -6893,13 +6936,34 @@ class water_electrolyzer(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, i, 0] = self.numeric_deriv(self.bus_func, 'm', i, bus=bus)
-            deriv[0, i, 3:] = self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus)
+        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
-        deriv[0, 2, 0] = self.numeric_deriv(self.bus_func, 'm', 2, bus=bus)
-        deriv[0, 2, 3:] = self.numeric_deriv(self.bus_func, 'fluid', 2, bus=bus)
+        ######################################################################
+        # derivatives for power on bus
+        if bus.param == 'P':
+            # variable power
+            if self.P.is_var:
+                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 6, bus=bus)
+
+        ######################################################################
+        # derivatives for heat on bus
+        elif bus.param == 'Q':
+
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+
+            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+            deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+
+        ######################################################################
+        # missing/invalid bus parameter
+
+        else:
+            msg = ('The parameter ' + str(bus.param) + ' is not a valid parameter for a component of type ' +
+                   self.component() + '. Please specify a bus parameter (P/Q) for component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+
         return deriv
 
     def initialise_fluids(self, nw):
@@ -6911,97 +6975,9 @@ class water_electrolyzer(component):
         nw : tespy.networks.network
             Network using this component object.
         """
-
         self.outl[1].fluid.val[self.o2] = 1
         self.outl[2].fluid.val[self.h2] = 1
         self.inl[1].fluid.val[self.h2o] = 1
-
-#    def convergence_check(self, nw):
-#        r"""
-#        Performs a convergence check.
-#
-#        Parameters
-#        ----------
-#        nw : tespy.networks.network
-#            The network object using this component.
-#
-#        Note
-#        ----
-#        Manipulate enthalpies/pressure at inlet and outlet if not specified by user to match physically feasible constraints,
-#        keep fluid composition within feasible range and then propagates it towards the outlet.
-#        """
-#        if isinstance(self, cogeneration_unit):
-#            inl = self.inl[2:]
-#            outl = self.outl[2:]
-#        else:
-#            inl = self.inl
-#            outl = self.outl
-#
-#        m = 0
-#        for i in inl:
-#            if i.m.val_SI < 0 and not i.m.val_set:
-#                i.m.val_SI = 0.01
-#            m += i.m.val_SI
-#
-#        ######################################################################
-#        # check fluid composition
-#        for o in outl:
-#            fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
-#            for f in fluids:
-#                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
-#                    m_f = 0
-#                    for i in inl:
-#                        m_f += i.fluid.val[f] * i.m.val_SI
-#
-#                    if abs(o.fluid.val[f] - m_f / m) > 0.03:
-#                        o.fluid.val[f] = m_f / m
-#
-#                elif f == self.o2:
-#                    if o.fluid.val[f] > 0.25:
-#                        o.fluid.val[f] = 0.2
-#                    if o.fluid.val[f] < 0.05:
-#                        o.fluid.val[f] = 0.05
-#
-#                elif f == self.co2:
-#                    if o.fluid.val[f] > 0.075:
-#                        o.fluid.val[f] = 0.075
-#                    if o.fluid.val[f] < 0.02:
-#                        o.fluid.val[f] = 0.02
-#
-#                elif f == self.h2o:
-#                    if o.fluid.val[f] > 0.075:
-#                        o.fluid.val[f] = 0.075
-#                    if o.fluid.val[f] < 0.02:
-#                        o.fluid.val[f] = 0.02
-#
-#                elif f == self.fuel.val:
-#                    if o.fluid.val[f] > 0:
-#                        o.fluid.val[f] = 0
-#
-#        ######################################################################
-#        # flue gas propagation
-#        for o in outl:
-#            if o.m.val_SI < 0 and not o.m.val_set:
-#                o.m.val_SI = 10
-#            nw.init_target(o, o.t)
-#
-#            if o.h.val_SI < 7.5e5 and not o.h.val_set:
-#                o.h.val_SI = 1e6
-#
-#        ######################################################################
-#        # additional checks for performance improvement
-#        if self.lamb.val < 2 and not self.lamb.is_set:
-#            for i in inl:
-#                fuel_set = True
-#                if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
-#                    fuel_set = False
-#                if i.fluid.val[self.fuel.val] < 0.75:
-#                    air_tmp = i.m.val_SI
-#
-#            if not fuel_set:
-#                for i in inl:
-#                    if i.fluid.val[self.fuel.val] > 0.75:
-#                        i.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
         r"""
@@ -7023,14 +6999,16 @@ class water_electrolyzer(component):
             .. math::
 
                 val = \begin{cases}
-                5 \cdot 10^5 & \text{key = 'p'}\\
-                10^6 & \text{key = 'h'}
+                5  \cdot 10^5 & \text{key = 'p'}\\
+                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 10e5
+            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            T = 50 + 273.15
+            return h_mix_pT(flow, T)
 
     def initialise_target(self, c, key):
         r"""
@@ -7053,13 +7031,15 @@ class water_electrolyzer(component):
 
                 val = \begin{cases}
                 5  \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
+                h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 5e5
+            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            T = 20 + 273.15
+            return h_mix_pT(flow, T)
 
     def calc_parameters(self, mode):
         r"""
@@ -7078,10 +7058,18 @@ class water_electrolyzer(component):
         component.calc_parameters(self, mode)
 
         if mode == 'post':
+            # self.P.val = self.outl[2].m.val_SI * self.e.val 
             self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            # self.eta.val is not set in water_electrolyzer
+            # self.char.val is not set in water_electrolyzer
+            # self.S.val is not set in water_electrolyzer
             self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-            # zeta
-            # e
+            self.e.val = self.P.val / self.out[2].m.val_SI
+            
+            i = self.inl[0].to_flow()
+            o = self.outl[0].to_flow()
+            self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
+            
 
 # %%
 

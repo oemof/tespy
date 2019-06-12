@@ -3957,12 +3957,16 @@ class combustion_chamber(component):
             Residual value of equation.
 
             .. math::
-                res = \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref}
-                \right) - \sum_j \dot{m}_{out,j} \cdot
-                \left( h_{out,j} - h_{out,j,ref} \right) +\\
-                H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
-                \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)\\
-                \forall i \in \text{inlets}\; \forall j \in \text{outlets}
+
+                \begin{split}
+                res = & \sum_i \dot{m}_{in,i} \cdot \left( h_{in,i} - h_{in,i,ref} \right)\\
+                & - \sum_j \dot{m}_{out,j} \cdot \left( h_{out,j} - h_{out,j,ref} \right)\\
+                & + H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
+                \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
+                \end{split}\\
+
+                \forall i \in \text{inlets}\; \forall j \in \text{outlets}\\
+                x_{f}\text{: mass fraction of fuel}
 
         Note
         ----
@@ -5843,7 +5847,7 @@ class cogeneration_unit(combustion_chamber):
         ######################################################################
         # value for bus parameter of power output (P)
         elif bus.param == 'P':
-            P = self.calc_P()
+            P = self.energy_balance()
             if np.isnan(bus.P_ref):
                 expr = 1
             else:
@@ -6368,7 +6372,7 @@ class water_electrolyzer(component):
                 1 - x_{i,in2} & \text{i=}H_{2}O\\
                 x_{i,in2} & \text{else}
             \end{cases}\\
-            
+
             0 = \begin{cases}
                 1 - x_{i,out2} & \text{i=}O_{2}\\
                 x_{i,out2} & \text{else}
@@ -6378,48 +6382,27 @@ class water_electrolyzer(component):
                 1 - x_{i,out3} & \text{i=}H_{2}\\
                 x_{i,out3} & \text{else}
             \end{cases}\\
-            
-            o2 = M_{O_2} / (M_{O_2} + 2 * M_{H_2})\\
+
+            o2 = \frac{M_{O_2}}{M_{O_2} + 2 * M_{H_2}}\\
 
             0 = m_{H_{2}O,in1} - m_{H_{2}O,out1}\\
-            \text{entweder so}\\
-            0 = o2 * m_{H_{2}O,in2} - m_{O_2,out2}\\
+            0 = o2 \cdot m_{H_{2}O,in2} - m_{O_2,out2}\\
             0 = (1 - o2) * m_{H_{2}O,in2} - m_{H_2,out3}\\
-            \text{oder so}\\
-            o2 * m_{H_{2}O,in2} = m_{O_2,out2}\\
-            (1 - o2) * m_{H_{2}O,in2} = m_{H_2,out3}\\
-            \text{oder so}\\
-            m_{H_{2}O,in2} = \begin{cases}
-                m_{O_2,out2} \div o2 & \text{and}\\
-                m_{H_2,out3} \div \left(1 - o2\right) & 
-            \end{cases}\\
-
-
-            \text{Entweder die eine oder die andere Variante!}
 
             0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
             0 = p_{H_{2}O,in2} - p_{H_2,out3}\\
 
             p_{H_{2}O,in2} = \begin{cases}
                 p_{O_2,out2} & \text{and}\\
-                p_{H_2,out3} & 
+                p_{H_2,out3} &
             \end{cases}\\
 
+            0 = P - \text{energy_balance}()
 
+        For energy balance calculation see
+        :func:`tespy.components.componentes.water_electrolyzer.energy_balance`.
 
-            T_{ref} = 293.15\text{ [K]}\\
-            p_{ref} = 1e5\text{ Pa}\\
-            
-            \text{Wie sollen die h_ref dargestellt werden?}\\
-            
-            h_{ref,H_{2}O} = h_{mix_{pT}}([1, p_ref, 0, self.inl[1].fluid.val], T_ref)\\
-            h_{ref,H_2} = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)\\
-            h_{ref,O_2} = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)\\
-
-
-            0 = P - m_{H_2,out3} * e_0 +\\ m_{H_{2}O,in1} * (h_{H_{2}O,in1} - h_{H_{2}O,out1}) +\\
-                m_{H_{2}O,in2} * (h_{H_{2}O,in2} - h_{ref,H_{2}O})\\ - m_{O_2,out2} * (h_{O_2,out2} - h_{ref,O_2}) -\\
-                m_{H_2,out3} * (h_{H_2,out3} - h_{ref,H_2})\\
+        .. math::
 
             0 = T_{O_2,out2} - T_{H_2,out3}\\
 
@@ -6507,7 +6490,7 @@ class water_electrolyzer(component):
 
     def attr(self):
         return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(), 'char': dc_cc(),
-                'S': dc_cp(), 'pr_c': dc_cp(), 'e': dc_cp(val=150e6),
+                'S': dc_simple(), 'pr_c': dc_cp(), 'e': dc_cp(val=150e6),
                 'zeta': dc_cp()}
 
     def inlets(self):
@@ -6627,22 +6610,7 @@ class water_electrolyzer(component):
 
         ######################################################################
         # equation for energy balance
-        # - Reference temperature: 293.15 K.
-        # - Reference pressure: 1 bar.
-        T_ref = 293.15
-        p_ref = 1e5
-
-        # equations to set a reference point for each h2o, h2 and o2
-        h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
-        h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
-        h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
-
-        # equation for energy balance
-        vec_res += [self.P.val - self.outl[2].m.val_SI * self.e0 +
-            self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI) +
-            self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refh2o) -
-            self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refo2) -
-            self.outl[2].m.val_SI * (self.outl[2].h.val_SI - h_refh2)]
+        vec_res += [self.P.val + self.energy_balance()]
 
         ######################################################################
         # temperature electrolyzer outlet
@@ -6665,6 +6633,11 @@ class water_electrolyzer(component):
 
         if self.Q.is_set:
             vec_res += [self.Q.val - self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI)]
+
+        ######################################################################
+        # specified efficiency (efficiency definition: e0 / e)
+        if self.eta.is_set:
+            vec_res += [self.P.val - self.outl[2].m.val_SI * self.e0 / self.eta.val]
 
         return vec_res
 
@@ -6734,13 +6707,12 @@ class water_electrolyzer(component):
         deriv[0, 0, 0] = 1
         deriv[0, 2, 0] = -1
 
-        # derivatives for mass flow balance for o2 output
+        # derivatives for mass flow balance for oxygen output
         o2 = molar_masses[self.o2] / (molar_masses[self.o2] + 2 * molar_masses[self.h2])
         deriv[1, 1, 0] = o2
         deriv[1, 3, 0] = -1
 
-        # derivatives for mass flow balance for h2 output
-        o2 = molar_masses[self.o2] / (molar_masses[self.o2] + 2 * molar_masses[self.h2])
+        # derivatives for mass flow balance for hydrogen output
         deriv[2, 1, 0] = (1 - o2)
         deriv[2, 4, 0] = -1
 
@@ -6749,13 +6721,13 @@ class water_electrolyzer(component):
         ######################################################################
         # derivatives for pressure equations
 
-        # derivatives for pressure o2
+        # derivatives for pressure oxygen outlet
         deriv = np.zeros((2, 5 + self.num_vars, self.num_fl + 3))
 
         deriv[0, 1, 1] = 1
         deriv[0, 3, 1] = -1
 
-        # derivatives for pressure h2
+        # derivatives for pressure hydrogen outlet
         deriv[1, 1, 1] = 1
         deriv[1, 4, 1] = -1
 
@@ -6773,32 +6745,33 @@ class water_electrolyzer(component):
         h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
         h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
 
-        # derivatives inl[0]
-        deriv[0, 0, 0] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        # derivatives cooling water inlet
+        deriv[0, 0, 0] = - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         deriv[0, 0, 2] = self.inl[0].m.val_SI
 
-        # derivatives inl[1]
+        # derivatives feed water inlet
         deriv[0, 1, 0] = (self.inl[1].h.val_SI - h_refh2o)
         deriv[0, 1, 2] = self.inl[1].m.val_SI
 
-        # derivative outl[0]
+        # derivative cooling water outlet
         deriv[0, 2, 2] = - self.inl[0].m.val_SI
-        # derivatives outl[1]
+
+        # derivatives oxygen outlet
         deriv[0, 3, 0] = - (self.outl[1].h.val_SI - h_refo2)
         deriv[0, 3, 2] = - self.outl[1].m.val_SI
 
-        # derivatives outl[2]
+        # derivatives hydrogen outlet
         deriv[0, 4, 0] = - self.e0 - (self.outl[2].h.val_SI - h_refh2)
         deriv[0, 4, 2] = - self.outl[2].m.val_SI
 
-        # derivatives to allow P to be  varable
+        # derivatives for variable P
         if self.P.is_var:
             deriv[0, 5 + self.P.var_pos, 0] = 1
 
         mat_deriv += deriv.tolist()
 
         ######################################################################
-        # temperature electrolyzer outlet
+        # derivatives for temperature at gas outlets
 
         deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
@@ -6813,25 +6786,24 @@ class water_electrolyzer(component):
         mat_deriv += deriv.tolist()
 
         ######################################################################
-        # power vs hydrogen production
+        # derivatives for power vs. hydrogen production
 
         if self.e.is_set:
             deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
-            # derivatives for P in energy balance
             deriv[0, 4, 0] = - self.e.val
 
+            # derivatives for variable P
             if self.P.is_var:
                 deriv[0, 5 + self.P.var_pos, 0] = 1
 
-            # derivative to allow e to be variable
+            # derivatives for variable e
             if self.e.is_var:
                 deriv[0, 5 + self.e.var_pos, 0] = - self.outl[2].m.val_SI
 
             mat_deriv += deriv.tolist()
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
         # derivatives for pressure ratio
         if self.pr_c.is_set:
 
@@ -6842,6 +6814,9 @@ class water_electrolyzer(component):
 
             mat_deriv += deriv.tolist()
 
+        ######################################################################
+        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
+        # derivatives for zeta value
         if self.zeta.is_set:
 
             deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
@@ -6849,12 +6824,15 @@ class water_electrolyzer(component):
             for i in range(2):
                 deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
                 deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
+
+            # derivatives for variable zeta
             if self.zeta.is_var:
                 deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
 
             mat_deriv += deriv.tolist()
 
-        # derivative for heat flow
+        ######################################################################
+        # derivatives for heat flow
         if self.Q.is_set:
 
             deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
@@ -6865,6 +6843,19 @@ class water_electrolyzer(component):
 
             mat_deriv += deriv.tolist()
 
+        ######################################################################
+        # specified efficiency (efficiency definition: e0 / e)
+        if self.eta.is_set:
+
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+
+            deriv[0, 4, 0] = - self.e0 / self.eta.val
+
+            # derivatives for variable P
+            if self.P.is_var:
+                deriv[0, 5 + self.P.var_pos, 0] = 1
+
+            mat_deriv += deriv.tolist()
 
         ######################################################################
 
@@ -6890,12 +6881,12 @@ class water_electrolyzer(component):
                 P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) & \text{key = 'P'}\\
                 \dot{Q} \cdot f_{char}\left( \frac{\dot{Q}}{\dot{Q}_{ref}}\right)& \text{key = 'Q'}\\
                 \end{cases}\\
-                \dot{Q} = \dot{m}_{1,in} \cdot \left(h_{1,in} - h_{1,out} \right)\\
+                \dot{Q} = - \dot{m}_{1,in} \cdot \left(h_{out,1} - h_{in,1} \right)\\
         """
         ######################################################################
         # equations for power on bus
         if bus.param == 'P':
-            P = self.P.val
+            P = - self.energy_balance()
             if np.isnan(bus.P_ref):
                 expr = 1
             else:
@@ -6906,7 +6897,7 @@ class water_electrolyzer(component):
         # equations for heat on bus
 
         elif bus.param == 'Q':
-            val = self.inl[0].m.val_SI * (self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+            val = -  self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
             if np.isnan(bus.P_ref):
                 expr = 1
             else:
@@ -6941,9 +6932,22 @@ class water_electrolyzer(component):
         ######################################################################
         # derivatives for power on bus
         if bus.param == 'P':
+            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+
+            deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
+
+            deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+
+            deriv[0, 3, 0] = self.numeric_deriv(self.bus_func, 'm', 3, bus=bus)
+            deriv[0, 3, 2] = self.numeric_deriv(self.bus_func, 'h', 3, bus=bus)
+
+            deriv[0, 4, 0] = self.numeric_deriv(self.bus_func, 'm', 4, bus=bus)
+            deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
             # variable power
             if self.P.is_var:
-                deriv[0, 7 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 6, bus=bus)
+                deriv[0, 5 + self.P.var_pos, 0] = self.numeric_deriv(self.bus_func, 'P', 5, bus=bus)
 
         ######################################################################
         # derivatives for heat on bus
@@ -6965,6 +6969,54 @@ class water_electrolyzer(component):
             raise ValueError(msg)
 
         return deriv
+
+    def energy_balance(self):
+        r"""
+        Calculates the residual in energy balance of the adiabatic water electrolyzer.
+        The residual is the negative to the necessary power input.
+
+        Returns
+        -------
+        res : float
+            Residual value.
+
+            .. math::
+
+                \begin{split}
+                res = & \dot{m}_{in,2} \cdot \left( h_{in,2} - h_{in,2,ref} \right)\\
+                & - \dot{m}_{out,3} \cdot e_0\\
+                & -\dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1} \right)\\
+                & - \dot{m}_{out,2} \cdot \left( h_{out,2} - h_{out,2,ref} \right)\\
+                & - \dot{m}_{out,3} \cdot \left( h_{out,3} - h_{out,3,ref} \right)\\
+                \end{split}
+
+        Note
+        ----
+        The temperature for the reference state is set to 20 °C, thus
+        the feed water must be liquid as proposed in the calculation of
+        the minimum specific energy consumption for electrolysis:
+        :func:`tespy.components.components.water_electrolyzer.calc_e0`.
+        The part of the equation regarding the cooling water is implemented
+        with negative sign as the energy for cooling is extracted from the
+        reactor.
+
+        - Reference temperature: 293.15 K.
+        - Reference pressure: 1 bar.
+        """
+        T_ref = 293.15
+        p_ref = 1e5
+
+        # equations to set a reference point for each h2o, h2 and o2
+        h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
+        h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
+        h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
+
+        val = (self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refh2o) -
+               self.outl[2].m.val_SI * self.e0 -
+               self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) -
+               self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refo2) -
+               self.outl[2].m.val_SI * (self.outl[2].h.val_SI - h_refh2))
+        return val
 
     def initialise_fluids(self, nw):
         r"""
@@ -7058,18 +7110,14 @@ class water_electrolyzer(component):
         component.calc_parameters(self, mode)
 
         if mode == 'post':
-            # self.P.val = self.outl[2].m.val_SI * self.e.val 
             self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            # self.eta.val is not set in water_electrolyzer
-            # self.char.val is not set in water_electrolyzer
-            # self.S.val is not set in water_electrolyzer
             self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-            self.e.val = self.P.val / self.out[2].m.val_SI
-            
+            self.e.val = self.P.val / self.outl[2].m.val_SI
+            self.eta.val = self.e0 / self.e.val
+
             i = self.inl[0].to_flow()
             o = self.outl[0].to_flow()
             self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
-            
 
 # %%
 

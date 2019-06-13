@@ -9741,3 +9741,462 @@ class subsys_interface(component):
         for j in range(self.num_i):
             deriv[j, j + self.num_i, pos] = -1
         return deriv.tolist()
+
+
+class district_heating_pipe(heat_exchanger):
+    @staticmethod
+    def component():
+        return 'district heating pipes'
+
+    @staticmethod
+    def attr():
+        return {'Q': dc_cp(),
+                'Q_u': dc_cp(),
+                'Q_l': dc_cp(),
+                'zeta1': dc_cp(min_val=1e4),
+                'zeta2': dc_cp(min_val=1e4),
+                'D': dc_cp(min_val=1e-2, max_val=2),    # Inner pipe diameter
+                'L': dc_cp(),                           # Pipe length
+                'lambda_ins': dc_cp(),                  # Thermal conductivity of the insulation
+                'lambda_soil': dc_cp(),                 # Thermal conductivity of the soil
+                'dist': dc_cp(d=0.2),                   # Distance between feed pipe and back pipe
+                'Dout': dc_cp(min_val=0.01),            # Outer diameter of the pipe
+                'depth': dc_cp(min_val=0.01, d=0.6),    # Height of the soil above the pipes
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=.01),
+                'Tamb': dc_cp(),
+                'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
+                'pr1': dc_cp(), 'pr2': dc_cp(),
+                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp,
+                'hydro_group': dc_gcp(),
+                'zero_flag': dc_cp(printout=False)}
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        self.fl_deriv = self.fluid_deriv()
+        self.m_deriv = self.mass_flow_deriv()
+
+        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
+        self.Tamb.design = ((self.Tamb.design + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
+
+        # parameters for hydro group
+        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
+
+        is_set = True
+        for e in self.hydro_group.elements:
+            if not e.is_set:
+                is_set = False
+
+        if is_set:
+            self.hydro_group.set_attr(is_set=True)
+            # self.hydro_group.method = 'HW'
+        elif self.hydro_group.is_set:
+            msg = ('All parameters of the component group have to be '
+                   'specified! This component group uses the following '
+                   'parameters: L, ks, D at ' + self.label + '. '
+                                                             'Group will be set to False.')
+            logging.info(msg)
+            self.hydro_group.set_attr(is_set=False)
+        else:
+            self.hydro_group.set_attr(is_set=False)
+
+    def equations(self):
+        r"""
+        Calculates vector vec_res with results of equations for this component.
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equations for fluid balance
+        vec_res += self.fluid_func()
+
+        ######################################################################
+        # equations for mass flow balance
+        vec_res += self.mass_flow_func()
+
+        ######################################################################
+        # equations for energy balance
+        # vec_res += [self.energy_func()]
+
+        ######################################################################
+        # equations for specified heat transfer
+        # if self.Q.is_set:
+        #     vec_res += [self.Q_func()]
+
+        ######################################################################
+        # equations for specified heat transfer coefficient
+        # if self.kA.is_set:
+        #     vec_res += [self.kA_func()]
+
+        ######################################################################
+        # equations for specified upper terminal temperature difference
+        # if self.ttd_u.is_set:
+        #     vec_res += [self.ttd_u_func()]
+        vec_res += [self.t0out_func()]
+
+        ######################################################################
+        # equations for specified lower terminal temperature difference
+        # if self.ttd_l.is_set:
+        #     vec_res += [self.ttd_l_func()]
+        vec_res += [self.t1out_func()]
+        # print(vec_res)
+
+        ######################################################################
+        # equations for specified pressure ratio at hot side
+        if self.pr1.is_set:
+            vec_res += [self.pr1.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+
+        ######################################################################
+        # equations for specified pressure ratio at cold side
+        if self.pr2.is_set:
+            vec_res += [self.pr2.val * self.inl[1].p.val_SI - self.outl[1].p.val_SI]
+
+        ######################################################################
+        # equation for specified hydro-group parameters
+        if self.hydro_group.is_set:
+            # darcy friction factor
+            func_u = self.darcy_func_u
+            func_l = self.darcy_func_l
+            # logging.info(self.component() + " using friction equation " + self.hydro_group.method)
+            vec_res += [func_u()]
+            vec_res += [func_l()]
+
+        ######################################################################
+        # additional equations
+        vec_res += self.additional_equations()
+        return vec_res
+
+    def t0out_func(self):
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        r_r = self.D.val / 2
+        cp_w = 4184 # [J/(kg K)]
+        r_m = self.Dout.val / 2
+        u_r = 1 / (r_r / self.lambda_ins.val * math.log(r_m / r_r) +
+                   r_r / self.lambda_soil.val * math.log(4 * (self.depth.val + r_m) / r_m) +
+                   r_r / self.lambda_soil.val * math.log(
+                    (((2 * (self.depth.val + r_m) / (self.dist.val + 2 * r_m)) ** 2) + 1) ** .5))
+        # print("U_R Vorlauf: " + str(u_r))
+        return T_mix_ph(o) - (self.Tamb.val_SI + (T_mix_ph(i) - self.Tamb.val_SI) * math.exp(
+            0 - ((u_r * 2 * math.pi * r_r * self.L.val) / (cp_w * self.inl[0].m.val_SI))))
+
+    def t1out_func(self):
+        i, o = self.inl[1].to_flow(), self.outl[1].to_flow()
+        r_r = self.D.val / 2
+        cp_w = 4184
+        r_m = self.Dout.val / 2
+        u_r = 1 / (r_r / self.lambda_ins.val * math.log(r_m / r_r) +
+                   r_r / self.lambda_soil.val * math.log(4 * (self.depth.val + r_m) / r_m) +
+                   r_r / self.lambda_soil.val * math.log(
+                    (((2 * (self.depth.val + r_m) / (self.dist.val + 2 * r_m)) ** 2) + 1) ** .5))
+        # print("U_R Ruecklauf: " + str(u_r))
+        return T_mix_ph(o) - (self.Tamb.val_SI + (T_mix_ph(i) - self.Tamb.val_SI) * math.exp(
+            0 - ((u_r * 2 * math.pi * r_r * self.L.val) / (cp_w * self.inl[1].m.val_SI))))
+
+    def calc_parameters(self, mode):
+        r"""
+        Post and preprocessing parameter calculation/specification.
+
+        Parameters
+        ----------
+
+        mode : str
+            Pre- or postprocessing calculation.
+
+        Note
+        ----
+        Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
+        """
+        component.calc_parameters(self, mode)
+
+        if mode == 'post':
+            # connection information
+            i1 = self.inl[0].to_flow()
+            i2 = self.inl[1].to_flow()
+            o1 = self.outl[0].to_flow()
+            o2 = self.outl[1].to_flow()
+
+            # temperatures
+            T_i2 = T_mix_ph(i2)
+            T_o1 = T_mix_ph(o1)
+            T_o2 = T_mix_ph(o2)
+            #
+            if isinstance(self, condenser):
+                T_i1 = T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]])
+            else:
+                T_i1 = T_mix_ph(i1)
+
+            # component parameters
+            self.ttd_u.val = T_i1 - T_o1
+            self.ttd_l.val = T_i2 - T_o2
+            self.Q_u.val = i1[0] * (o1[2] - i1[2])
+            self.Q_l.val = i2[0] * (o2[2] - i2[2])
+            self.Q.val = self.Q_u.val + self.Q_l.val
+
+            self.pr1.val = o1[1] / i1[1]
+            self.pr2.val = o2[1] / i2[1]
+            self.zeta1.val = (i1[1] - o1[1]) * math.pi ** 2 / (8 * i1[0] ** 2 * (v_mix_ph(i1) + v_mix_ph(o1)) / 2)
+            self.zeta2.val = (i2[1] - o2[1]) * math.pi ** 2 / (8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2)
+
+            self.SQ1.val = self.inl[0].m.val_SI * (s_mix_ph(o1) - s_mix_ph(i1))
+            self.SQ2.val = self.inl[1].m.val_SI * (s_mix_ph(o2) - s_mix_ph(i2))
+            self.Sirr.val = self.SQ1.val + self.SQ2.val
+
+            if self.ttd_u.val < 0:
+                msg = ('Invalid value for terminal temperature difference (upper) '
+                       'at component ' + self.label + ': ttd_u = ' + str(self.ttd_u.val) + ' K.')
+                logging.error(msg)
+
+            if self.ttd_l.val < 0:
+                msg = ('Invalid value for terminal temperature difference (lower) '
+                       'at component ' + self.label + ': ttd_l = ' + str(self.ttd_l.val) + ' K.')
+                logging.error(msg)
+
+    def derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given equations.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        mat_deriv = []
+
+        ######################################################################
+        # derivatives for fluid balance equations
+        mat_deriv += self.fl_deriv
+        ######################################################################
+        # derivatives for mass flow balance equations
+        mat_deriv += self.m_deriv
+
+        ######################################################################
+        # derivatives for energy balance equation
+        # mat_deriv += self.energy_deriv()
+
+        ######################################################################
+        # derivatives for specified heat transfer
+        # if self.Q.is_set:
+        #     mat_deriv += self.Q_deriv()
+
+        # ######################################################################
+        # # derivatives for specified upper terminal temperature difference
+        # if self.ttd_u.is_set:
+        #     mat_deriv += self.ttd_u_deriv()
+
+        ######################################################################
+        # # derivatives for specified lower terminal temperature difference
+        # if self.ttd_l.is_set:
+        #     mat_deriv += self.ttd_l_deriv()
+
+        func = self.t0out_func
+
+        deriv = np.zeros((1, 4, self.num_fl + 3))
+        # deriv[0, 0, 0] = self.numeric_deriv(func, 'm', 0)
+        for i in [0, 2]:
+            deriv[0, i, 1] = self.numeric_deriv(func, 'p', i)
+            deriv[0, i, 2] = self.numeric_deriv(func, 'h', i)
+        mat_deriv += deriv.tolist()
+
+        func = self.t1out_func
+
+        deriv = np.zeros((1, 4, self.num_fl + 3))
+        # deriv[0, 1, 0] = self.numeric_deriv(func, 'm', 1)
+        for i in [1, 3]:
+            deriv[0, i, 1] = self.numeric_deriv(func, 'p', i)
+            deriv[0, i, 2] = self.numeric_deriv(func, 'h', i)
+        mat_deriv += deriv.tolist()
+
+        ######################################################################
+        # derivatives for specified pressure ratio at hot side
+        if self.pr1.is_set:
+            pr1_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr1_deriv[0, 0, 1] = self.pr1.val
+            pr1_deriv[0, 2, 1] = -1
+            mat_deriv += pr1_deriv.tolist()
+
+        ######################################################################
+        # derivatives for specified pressure ratio at cold side
+        if self.pr2.is_set:
+            pr2_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr2_deriv[0, 1, 1] = self.pr2.val
+            pr2_deriv[0, 3, 1] = -1
+            mat_deriv += pr2_deriv.tolist()
+
+        ######################################################################
+        # derivatives for specified hydro-group parameters
+        if self.hydro_group.is_set:
+            # darcy friction factor
+            func_u = self.darcy_func_u
+            func_l = self.darcy_func_l
+
+            deriv = np.zeros((1, 4, self.num_fl + 3))
+            deriv[0, 0, 0] = self.numeric_deriv(func_u, 'm', 0)
+            for i in [0, 2]:
+                deriv[0, i, 1] = self.numeric_deriv(func_u, 'p', i)
+                deriv[0, i, 2] = self.numeric_deriv(func_u, 'h', i)
+                # custom variables of hydro group
+                for var in self.hydro_group.elements:
+                    if var.is_var:
+                        deriv[0, 2 + var.var_pos, 0] = self.numeric_deriv(func_u, self.vars[var], i)
+            mat_deriv += deriv.tolist()
+
+            deriv = np.zeros((1, 4, self.num_fl + 3))
+            deriv[0, 1, 0] = self.numeric_deriv(func_l, 'm', 1)
+            for i in [1, 3]:
+                deriv[0, i, 1] = self.numeric_deriv(func_l, 'p', i)
+                deriv[0, i, 2] = self.numeric_deriv(func_l, 'h', i)
+                # custom variables of hydro group
+                for var in self.hydro_group.elements:
+                    if var.is_var:
+                        deriv[0, 2 + var.var_pos, 0] = self.numeric_deriv(func_l, self.vars[var], i)
+            mat_deriv += deriv.tolist()
+
+        ######################################################################
+        # derivatives for additional equations
+        mat_deriv += self.additional_derivatives()
+
+        return np.asarray(mat_deriv)
+
+    def darcy_func_u(self):
+        r"""
+        Equation for pressure drop calculation from darcy friction factor.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                Re = \frac{4 \cdot |\dot{m}_{in}|}{\pi \cdot D \cdot
+                \frac{\eta_{in}+\eta_{out}}{2}}\\
+
+                0 = p_{in} - p_{out} - \frac{8 \cdot |\dot{m}_{in}| \cdot \dot{m}_{in} \cdot
+                \frac{v_{in}+v_{out}}{2} \cdot L \cdot \lambda\left(
+                Re, ks, D\right)}{\pi^2 \cdot D^5}\\
+
+                \eta: \text{dynamic viscosity}\\
+                v: \text{specific volume}\\
+                \lambda: \text{darcy friction factor}
+        """
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+
+        if abs(i[0]) < 1e-4:
+            return i[1] - o[1]
+
+        visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
+        v_i, v_o = v_mix_ph(i), v_mix_ph(o)
+
+        re = 4 * abs(i[0]) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
+
+        return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
+                self.L.val * lamb(re, self.ks.val, self.D.val) /
+                (math.pi ** 2 * self.D.val ** 5))
+
+    def darcy_func_l(self):
+            r"""
+            Equation for pressure drop calculation from darcy friction factor.
+
+            Returns
+            -------
+            res : float
+                Residual value of equation.
+
+                .. math::
+
+                    Re = \frac{4 \cdot |\dot{m}_{in}|}{\pi \cdot D \cdot
+                    \frac{\eta_{in}+\eta_{out}}{2}}\\
+
+                    0 = p_{in} - p_{out} - \frac{8 \cdot |\dot{m}_{in}| \cdot \dot{m}_{in} \cdot
+                    \frac{v_{in}+v_{out}}{2} \cdot L \cdot \lambda\left(
+                    Re, ks, D\right)}{\pi^2 \cdot D^5}\\
+
+                    \eta: \text{dynamic viscosity}\\
+                    v: \text{specific volume}\\
+                    \lambda: \text{darcy friction factor}
+            """
+            i, o = self.inl[1].to_flow(), self.outl[1].to_flow()
+
+            if abs(i[0]) < 1e-4:
+                return i[1] - o[1]
+
+            visc_i, visc_o = visc_mix_ph(i), visc_mix_ph(o)
+            v_i, v_o = v_mix_ph(i), v_mix_ph(o)
+
+            re = 4 * abs(i[0]) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
+
+            return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
+                    self.L.val * lamb(re, self.ks.val, self.D.val) /
+                    (math.pi ** 2 * self.D.val ** 5))
+
+
+
+# def ttd_u_func(self):
+    #     r"""
+    #     Equation for upper terminal temperature difference.
+    #
+    #     Returns
+    #     -------
+    #     res : float
+    #         Residual value of equation.
+    #
+    #         .. math::
+    #
+    #             res = ttd_{u} - T_{1,in} + T_{2,out}
+    #     """
+    #     i1 = self.inl[0].to_flow()
+    #     o1 = self.outl[0].to_flow()
+    #     return self.ttd_u.val - T_mix_ph(i1) + T_mix_ph(o1)
+    #
+    # def ttd_u_deriv(self):
+    #     r"""
+    #     Calculates the matrix of partial derivatives for upper temperature difference equation.
+    #
+    #     Returns
+    #     -------
+    #     deriv : list
+    #         Matrix of partial derivatives.
+    #     """
+    #     deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
+    #     for i in [0, 2]:
+    #         deriv[0, i, 1] = self.numeric_deriv(self.ttd_u_func, 'p', i)
+    #         deriv[0, i, 2] = self.numeric_deriv(self.ttd_u_func, 'h', i)
+    #     return deriv.tolist()
+    #
+    # def ttd_l_deriv(self):
+    #     r"""
+    #     Calculates the matrix of partial derivatives for lower temperature difference equation.
+    #
+    #     Returns
+    #     -------
+    #     deriv : list
+    #         Matrix of partial derivatives.
+    #     """
+    #     deriv = np.zeros((1, 4, len(self.inl[1].fluid.val) + 3))
+    #     for i in [1, 3]:
+    #         deriv[0, i, 1] = self.numeric_deriv(self.ttd_l_func, 'p', i)
+    #         deriv[0, i, 2] = self.numeric_deriv(self.ttd_l_func, 'h', i)
+    #     return deriv.tolist()
+    #
+    # def ttd_l_func(self):
+    #     r"""
+    #     Equation for upper terminal temperature difference.
+    #
+    #     Returns
+    #     -------
+    #     res : float
+    #         Residual value of equation.
+    #
+    #         .. math::
+    #
+    #             res = ttd_{l} - T_{1,out} + T_{2,in}
+    #     """
+    #     i2 = self.inl[1].to_flow()
+    #     o2 = self.outl[1].to_flow()
+    #     return self.ttd_l.val - T_mix_ph(o2) + T_mix_ph(i2)

@@ -1641,6 +1641,37 @@ def d_ph(p, h, fluid):
         return memorise.heos[fluid].rhomass()
 
 
+def Q_ph(p, h, fluid):
+    r"""
+    Calculates the steam mass fraction from pressure and enthalpy for a pure fluid.
+
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    d : float
+        Density d / (kg/:math:`\mathrm{m}^3`).
+    """
+    if 'IDGAS::' in fluid:
+        print('Ideal gas calculation not available by now.')
+    elif 'TESPy::' in fluid:
+        print('TESPy fluid calculation not available by now.')
+    elif 'INCOMP::' in fluid:
+        print('No two-phase region for incrompressibles.')
+    else:
+        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.heos[fluid].Q()
+
+
 def dv_mix_dph(flow):
     r"""
     Calculate partial derivate of specific volume to pressure at constant enthalpy and fluid composition.

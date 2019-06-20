@@ -2250,8 +2250,9 @@ class network:
             c.h.val = c.h.val_SI / self.h[c.h.unit]
             c.v.val = c.v.val_SI / self.v[c.v.unit]
             fluid = hlp.single_fluid(c.fluid.val)
-            if isinstance(fluid, str):
-                c.x.val = hlp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+            if isinstance(fluid, str) and not c.x.val_set:
+                c.x.val_SI = hlp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+                c.x.val = c.x.val_SI
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val

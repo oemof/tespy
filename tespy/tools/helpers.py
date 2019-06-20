@@ -1663,10 +1663,13 @@ def Q_ph(p, h, fluid):
     """
     if 'IDGAS::' in fluid:
         print('Ideal gas calculation not available by now.')
+        return np.nan
     elif 'TESPy::' in fluid:
         print('TESPy fluid calculation not available by now.')
+        return np.nan
     elif 'INCOMP::' in fluid:
         print('No two-phase region for incrompressibles.')
+        return np.nan
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.heos[fluid].Q()

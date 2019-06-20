@@ -1054,7 +1054,8 @@ def T_ph(p, h, fluid):
         Temperature T / K.
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
@@ -1243,7 +1244,8 @@ def T_ps(p, s, fluid):
         Temperature T / K.
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
@@ -1315,7 +1317,8 @@ def h_pT(p, T, fluid):
         Specific enthalpy h / (J/kg).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     elif 'INCOMP::' in fluid:
@@ -1402,7 +1405,8 @@ def h_ps(p, s, fluid):
         Specific enthalpy h / (J/kg).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
@@ -1629,7 +1633,8 @@ def d_ph(p, h, fluid):
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
@@ -1662,13 +1667,16 @@ def Q_ph(p, h, fluid):
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
         return np.nan
     elif 'TESPy::' in fluid:
-        print('TESPy fluid calculation not available by now.')
+        msg = 'TESPy fluid calculation not available by now.'
+        logging.warning(msg)
         return np.nan
     elif 'INCOMP::' in fluid:
-        print('No two-phase region for incrompressibles.')
+        msg = 'No two-phase region for incrompressibles.'
+        logging.warning(msg)
         return np.nan
     else:
         memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
@@ -1813,7 +1821,8 @@ def d_pT(p, T, fluid):
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     elif 'INCOMP::' in fluid:
@@ -1902,7 +1911,8 @@ def visc_ph(p, h, fluid):
         Viscosity visc / Pa s.
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
@@ -1980,7 +1990,8 @@ def visc_pT(p, T, fluid):
         Viscosity visc / Pa s.
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     elif 'INCOMP::' in fluid:
@@ -2069,7 +2080,8 @@ def s_ph(p, h, fluid):
         Specific entropy s / (J/(kgK)).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
@@ -2162,7 +2174,8 @@ def s_pT(p, T, fluid):
         Specific entropy s / (J/(kgK)).
     """
     if 'IDGAS::' in fluid:
-        print('Ideal gas calculation not available by now.')
+        msg = 'Ideal gas calculation not available by now.'
+        logging.warning(msg)
     elif 'TESPy::' in fluid:
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     elif 'INCOMP::' in fluid:

@@ -6385,9 +6385,9 @@ class water_electrolyzer(component):
 
             o2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
 
-            0 = m_{H_{2}O,in1} - m_{H_{2}O,out1}\\
-            0 = o2 \cdot m_{H_{2}O,in2} - m_{O_2,out2}\\
-            0 = (1 - o2) \cdot m_{H_{2}O,in2} - m_{H_2,out3}\\
+            0 = \dot{m}_{H_{2}O,in1} - \dot{m}_{H_{2}O,out1}\\
+            0 = o2 \cdot \dot{m}_{H_{2}O,in2} - \dot{m}_{O_2,out2}\\
+            0 = (1 - o2) \cdot \dot{m}_{H_{2}O,in2} - \dot{m}_{H_2,out3}\\
 
             0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
             0 = p_{H_{2}O,in2} - p_{H_2,out3}\\
@@ -6401,16 +6401,21 @@ class water_electrolyzer(component):
 
             0 = T_{O_2,out2} - T_{H_2,out3}\\
 
-            0 = P - m_{H_2,out3} \cdot e\\
-
-
         **optional equations**
 
         .. math::
 
+            0 = P - \dot{m}_{H_2,out3} \cdot e\\
+
             0 = p_{H_{2}O,in1} \cdot pr - p_{H_{2}O,out1}
 
         - :func:`tespy.components.components.component.zeta_func`
+
+        .. math::
+
+            0 = \dot{Q} - \dot{m}_{in1} \cdot \left(h_{in1} - h_{out1}\right) \\
+
+            0 = P -  \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
     Inlets/Outlets
 
@@ -6444,8 +6449,18 @@ class water_electrolyzer(component):
     Q : float/tespy.helpers.dc_cp
         Heat output of cooling, :math:`Q/\text{W}`
 
+    e : float/tespy.helpers.dc_cp
+        Electrolysis specific energy consumption, :math:`e/(\text{J}/\text{m}^3)`.
+
     eta : float/tespy.helpers.dc_cp
-        Electrolysis efficiency, :math:`\eta/(\text{J}/\text{m}^3)`.
+        Electrolysis efficiency, :math:`\eta/1`.
+
+    pr : float/tespy.helpers.dc_cp
+        Cooling loop pressure ratio, :math:`pr/1`.
+
+    zeta : float/tespy.helpers.dc_cp
+        Geometry independent friction coefficient for cooling loop pressure drop,
+        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
 
     Note
     ----
@@ -6464,19 +6479,19 @@ class water_electrolyzer(component):
     >>> cw = cmp.source('cooling water')
     >>> cw_hot = cmp.sink('cooling water out')
 
-    >>> el = cmp.water_electrolyzer('electrolyzer 1', P='var', Q=-5e5)
+    >>> el = cmp.water_electrolyzer('electrolyzer 1', Q=-5e5)
     >>> comp = cmp.compressor('compressor', eta_s=0.9)
 
-    >>> fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=40, T=15)
+    >>> fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=10, T=15)
     >>> el_o = con.connection(el, 'out2', oxy, 'in1')
     >>> el_cmp = con.connection(el, 'out3', comp, 'in1', T=50)
-    >>> cmp_h = con.connection(comp, 'out1', hydro, 'in1', p=700)
+    >>> cmp_h = con.connection(comp, 'out1', hydro, 'in1', p=50)
     >>> cw_el = con.connection(cw, 'out1', el, 'in1', fluid={'water': 1, 'H2': 0, 'O2': 0}, p=5, T=15)
     >>> el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
     >>> nw.solve('design')
     >>> round(el.Q.val, 0)
-    551005.0
+    -500000.0
 
     """
 
@@ -6485,7 +6500,7 @@ class water_electrolyzer(component):
 
     def attr(self):
         return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(), 'char': dc_cc(),
-                'S': dc_simple(), 'pr_c': dc_cp(), 'e': dc_cp(val=150e6),
+                'S': dc_simple(), 'pr_c': dc_cp(), 'e': dc_cp(),
                 'zeta': dc_cp()}
 
     def inlets(self):
@@ -6495,6 +6510,13 @@ class water_electrolyzer(component):
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
+
+        if not self.P.is_set:
+            self.set_attr(P='var')
+            msg = ('The power output of cogeneration units must be set! '
+                   'We are adding the power output of component ' +
+                   self.label + ' as custom variable of the system.')
+            logging.info(msg)
 
         component.comp_init(self, nw)
 

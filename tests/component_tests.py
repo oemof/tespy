@@ -268,6 +268,20 @@ class component_tests:
         self.nw.print_results()
         eq_(round(b.P.val, 1), round(instance.ti.val, 1), 'Value of thermal input must be ' + str(b.P.val) + ', is ' + str(instance.ti.val) + '.')
 
+        # test unspecified fuel
+        instance.set_attr(fuel=np.nan)
+        try:
+            self.nw.solve('design')
+        except hlp.TESPyComponentError:
+            pass
+
+        # test wrongly specified fuel
+        instance.set_attr(fuel='Ar')
+        try:
+            self.nw.solve('design')
+        except hlp.TESPyComponentError:
+            pass
+
     def test_valve(self):
         """
         Test component properties of valves.

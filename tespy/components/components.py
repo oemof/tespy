@@ -6834,15 +6834,16 @@ class water_electrolyzer(component):
         # derivatives for zeta value
         if self.zeta.is_set:
 
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
+            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
             deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-            for i in range(2):
-                deriv[0, i, 1] = self.numeric_deriv(self.zeta_func, 'p', i)
-                deriv[0, i, 2] = self.numeric_deriv(self.zeta_func, 'h', i)
+            deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
+            deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
+            deriv[0, 2, 1] = self.numeric_deriv(self.zeta_func, 'p', 2)
+            deriv[0, 2, 2] = self.numeric_deriv(self.zeta_func, 'h', 2)
 
             # derivatives for variable zeta
             if self.zeta.is_var:
-                deriv[0, 2 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
+                deriv[0, 5 + self.zeta.var_pos, 0] = self.numeric_deriv(self.zeta_func, 'zeta', i)
 
             mat_deriv += deriv.tolist()
 

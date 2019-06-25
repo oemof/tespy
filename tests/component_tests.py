@@ -598,23 +598,31 @@ class component_tests:
         except ValueError:
             pass
 
+        # check invald bus parameter error in derivatives
+        try:
+            instance.derivatives()
+        except ValueError:
+            pass
+
         self.nw.del_busses(some_bus)
 
-        instance.set_attr(eta=0.9)
+        instance.set_attr(eta=0.9, e='var')
         self.nw.solve('design')
         eq_(round(instance.eta.val, 2), round(instance.e0 / instance.e.val, 2), 'Value of efficiency must be ' + str(instance.eta.val) + ', is ' + str(instance.e0 / instance.e.val) + '.')
 
         e = 150e6
-        instance.set_attr(e=e, eta=np.nan)
+        instance.set_attr(e=np.nan, eta=np.nan)
+        instance.set_attr(e=e)
         self.nw.solve('design')
         eq_(round(e, 1), round(instance.e.val, 1), 'Value of efficiency must be ' + str(e) + ', is ' + str(instance.e.val) + '.')
 
         pr = 0.95
-        instance.set_attr(pr_c=pr, e=np.nan, P=2.5e6, design=['pr_c'], offdesign=['zeta'])
+        instance.set_attr(pr_c=pr, e=np.nan, zeta='var',  P=2.5e6, design=['pr_c'], offdesign=['zeta'])
         self.nw.solve('design')
         self.nw.save('tmp')
         eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
 
+        instance.set_attr(zeta=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)

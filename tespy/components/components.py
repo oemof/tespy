@@ -3900,10 +3900,6 @@ class combustion_chamber(component):
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
             dm = 1e-4
-        elif dx == 'p':
-            dp = 1
-        elif dx == 'h':
-            dh = 1
         else:
             df = 1e-5
 

@@ -1144,6 +1144,8 @@ class pump(turbomachine):
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> p = cmp.pump('pump')
+    >>> p.component()
+    'pump'
     >>> inc = con.connection(so, 'out1', p, 'in1')
     >>> outg = con.connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -1556,6 +1558,8 @@ class compressor(turbomachine):
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> cp = cmp.compressor('compressor')
+    >>> cp.component()
+    'compressor'
     >>> inc = con.connection(so, 'out1', cp, 'in1')
     >>> outg = con.connection(cp, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -2041,6 +2045,8 @@ class turbine(turbomachine):
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
     >>> t = cmp.turbine('turbine')
+    >>> t.component()
+    'turbine'
     >>> inc = con.connection(so, 'out1', t, 'in1')
     >>> outg = con.connection(t, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -2451,6 +2457,8 @@ class node(component):
     >>> si1 = cmp.sink('sink1')
     >>> si2 = cmp.sink('sink2')
     >>> n = cmp.node('node', num_in=2, num_out=2)
+    >>> n.component()
+    'node'
     >>> inc1 = con.connection(so1, 'out1', n, 'in1')
     >>> inc2 = con.connection(so2, 'out1', n, 'in2')
     >>> outg1 = con.connection(n, 'out1', si1, 'in1')
@@ -2867,6 +2875,8 @@ class splitter(node):
     >>> si2 = cmp.sink('sink2')
     >>> si3 = cmp.sink('sink3')
     >>> s = cmp.splitter('splitter', num_out=3)
+    >>> s.component()
+    'splitter'
     >>> inc1 = con.connection(so1, 'out1', s, 'in1')
     >>> outg1 = con.connection(s, 'out1', si1, 'in1')
     >>> outg2 = con.connection(s, 'out2', si2, 'in1')
@@ -3068,6 +3078,8 @@ class separator(node):
     >>> si1 = cmp.sink('sink1')
     >>> si2 = cmp.sink('sink2')
     >>> s = cmp.separator('separator', num_out=2)
+    >>> s.component()
+    'separator'
     >>> inc1 = con.connection(so1, 'out1', s, 'in1')
     >>> outg1 = con.connection(s, 'out1', si1, 'in1')
     >>> outg2 = con.connection(s, 'out2', si2, 'in1')
@@ -3266,6 +3278,8 @@ class merge(node):
     >>> so3 = cmp.source('source3')
     >>> si1 = cmp.sink('sink1')
     >>> m = cmp.merge('merge', num_in=3)
+    >>> m.component()
+    'merge'
     >>> inc1 = con.connection(so1, 'out1', m, 'in1')
     >>> inc2 = con.connection(so2, 'out1', m, 'in2')
     >>> inc3 = con.connection(so3, 'out1', m, 'in3')
@@ -3478,6 +3492,8 @@ class combustion_chamber(component):
     >>> sf = cmp.source('fuel')
     >>> fg = cmp.sink('flue gas outlet')
     >>> comb = cmp.combustion_chamber('combustion chamber')
+    >>> comb.component()
+    'combustion chamber'
     >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
     >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
     >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
@@ -4471,6 +4487,8 @@ class combustion_chamber_stoich(combustion_chamber):
     ...     'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
     ...     fuel_alias='myFuel', air_alias='myAir',
     ...     lamb=3, ti=20000)
+    >>> comb.component()
+    'combustion chamber stoichiometric flue gas'
     >>> amb_comb.set_attr(T=20, p=1,
     ...     fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
     ...     'TESPy::myFuel_fg': 0})
@@ -5275,6 +5293,8 @@ class cogeneration_unit(combustion_chamber):
     >>> split = cmp.splitter('splitter')
     >>> merge = cmp.merge('merge')
     >>> chp = cmp.cogeneration_unit(label='cogeneration unit')
+    >>> chp.component()
+    'cogeneration unit'
     >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
     >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
     >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
@@ -6474,6 +6494,8 @@ class water_electrolyzer(component):
     >>> cw_hot = cmp.sink('cooling water out')
 
     >>> el = cmp.water_electrolyzer('electrolyzer 1', Q=-5e5)
+    >>> el.component()
+    'water electrolyzer'
     >>> comp = cmp.compressor('compressor', eta_s=0.9)
 
     >>> fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=10, T=15)
@@ -7198,6 +7220,8 @@ class valve(component):
     >>> so = cmp.source('source')
     >>> si = cmp.sink('sink')
     >>> v = cmp.valve('valve')
+    >>> v.component()
+    'valve'
     >>> so_v = con.connection(so, 'out1', v, 'in1')
     >>> v_si = con.connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
@@ -7531,7 +7555,9 @@ class heat_exchanger_simple(component):
     >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
-    >>> pi = cmp.pipe('test')
+    >>> pi = cmp.pipe('pipe')
+    >>> pi.component()
+    'pipe'
     >>> pi.set_attr(Tamb=10, pr=0.95, design=['pr'], offdesign=['zeta', 'kA'])
     >>> inc = con.connection(so1, 'out1', pi, 'in1')
     >>> outg = con.connection(pi, 'out1', si1, 'in1')
@@ -8250,7 +8276,9 @@ class pipe(heat_exchanger_simple):
     >>> nw.set_printoptions(print_level='none')
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
-    >>> pi = cmp.pipe('test')
+    >>> pi = cmp.pipe('pipe')
+    >>> pi.component()
+    'pipe'
     >>> pi.set_attr(pr=0.95, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
     >>> inc = con.connection(so1, 'out1', pi, 'in1')
     >>> outg = con.connection(pi, 'out1', si1, 'in1')
@@ -8380,6 +8408,8 @@ class solar_collector(heat_exchanger_simple):
     >>> so1 = cmp.source('source 1')
     >>> si1 = cmp.sink('sink 1')
     >>> sc = cmp.solar_collector('test')
+    >>> sc.component()
+    'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
     ...     Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = con.connection(so1, 'out1', sc, 'in1')
@@ -8683,6 +8713,8 @@ class heat_exchanger(component):
     >>> hsin = cmp.sink('HS in')
     >>> hsout = cmp.source('HS out')
     >>> he = cmp.heat_exchanger('heat exchanger')
+    >>> he.component()
+    'heat exchanger'
     >>> tes_he = con.connection(tesout, 'out1', he, 'in2')
     >>> he_tes = con.connection(he, 'out2', tesin, 'in1')
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
@@ -9600,6 +9632,8 @@ class condenser(heat_exchanger):
     >>> hsin = cmp.sink('HS in')
     >>> hsout = cmp.source('HS out')
     >>> he = cmp.condenser('condenser')
+    >>> he.component()
+    'condenser'
     >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
     >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
@@ -9922,6 +9956,8 @@ class desuperheater(heat_exchanger):
     >>> hsin = cmp.sink('HS in')
     >>> hsout = cmp.source('HS out')
     >>> he = cmp.desuperheater('desuperheater')
+    >>> he.component()
+    'desuperheater'
     >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
     >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
     >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
@@ -10077,6 +10113,8 @@ class drum(component):
     >>> ch = cmp.sink('chimney')
     >>> s = cmp.sink('steam')
     >>> dr = cmp.drum('drum')
+    >>> dr.component()
+    'drum'
     >>> ev = cmp.heat_exchanger('evaporator')
     >>> erp = cmp.pump('evaporator reciculation pump')
     >>> f_dr = con.connection(f, 'out1', dr, 'in1')
@@ -10410,6 +10448,8 @@ class subsys_interface(component):
     >>> si1 = cmp.sink('sink 1')
     >>> si = cmp.subsys_interface('test', num_inter=1)
     >>> si2 = cmp.subsys_interface('test2', num_inter=np.nan)
+    >>> si.component()
+    'subsystem interface'
     >>> len(si.inlets()) == len(si2.inlets())
     True
     >>> inc = con.connection(so1, 'out1', si, 'in1')

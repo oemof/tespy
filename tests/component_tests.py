@@ -34,6 +34,27 @@ class component_tests:
         self.nw.add_conns(c1, c2, c3)
         return c1, c2, c3
 
+    def setup_network_electrolyzer(self, instance):
+        """
+        Set up network for electrolyzer tests.
+        """
+        fw = cmp.source('feed water')
+        cw_in = cmp.source('cooling water')
+        o2 = cmp.sink('oxygen sink')
+        h2 = cmp.sink('hydrogen sink')
+        cw_out = cmp.sink('cooling water sink')
+
+        cw_el = con.connection(cw_in, 'out1', instance, 'in1', fluid={'H2O': 1, 'H2': 0, 'O2': 0}, T=20, p=1)
+        el_cw = con.connection(instance, 'out1', cw_out, 'in1', T=50, p=0.99)
+
+        self.nw.add_conns(cw_el, el_cw)
+
+        fw_el = con.connection(fw, 'out1', instance, 'in2', m=0.1, T=20, p=1)
+        el_o2 = con.connection(instance, 'out2', o2, 'in1')
+        el_h2 = con.connection(instance, 'out3', h2, 'in1', T=45)
+
+        self.nw.add_conns(fw_el, el_o2, el_h2)
+
     def test_turbomachine(self):
         """
         Test component properties of turbomachines.
@@ -463,8 +484,6 @@ class component_tests:
         """
         Test component properties of condenser.
         """
-        from tespy import cmp, con, nwk
-        import shutil
         tesin = cmp.sink('TES in')
         tesout = cmp.source('TES out')
         hsin = cmp.sink('Cond in')
@@ -496,3 +515,41 @@ class component_tests:
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(p, 1), round(hs_he.p.val_SI, 1), 'Value of condensing pressure be ' + str(p) + ', is ' + str(hs_he.p.val_SI) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_water_electrolyzer(self):
+        """
+        Test component properties of water electrolyzer.
+        """
+        self.nw = nwk.network(['H2O', 'O2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        power = con.bus('power')
+        power.add_comps({'c': instance, 'p': 'P'})
+        self.nw.add_busses(power)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        self.nw = nwk.network(['H2O', 'H2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        self.nw = nwk.network(['O2', 'H2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+#        power.set_attr(P=instance.P.val)
+#        self.nw.solve('design')

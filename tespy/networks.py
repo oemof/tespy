@@ -216,10 +216,10 @@ class network:
             Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
         h_unit : str
-            Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
+            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
         T_unit : str
-            Specify the unit for mass flow: 'K', 'C', 'F'.
+            Specify the unit for temperature: 'K', 'C', 'F'.
 
         p_range : list
             List with minimum and maximum values for pressure value range.
@@ -232,7 +232,7 @@ class network:
 
         Note
         ----
-        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
+        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting iterinfo printouts.
         """
         # add attributes from kwargs
         for key in kwargs:
@@ -1175,9 +1175,6 @@ class network:
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
 
-        path_abs : boolean
-            Absolute path specified?
-
         Note
         ----
         For more information on the solution process have a look at the online documentation
@@ -1522,10 +1519,10 @@ class network:
 
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
-                if c.h.val_SI < 0:
-                    c.h.val_SI = hmin / 1.1
+                if hmin < 0:
+                    c.h.val_SI = hmin / 1.05
                 else:
-                    c.h.val_SI = hmin * 1.1
+                    c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
@@ -2264,6 +2261,10 @@ class network:
             c.p.val = c.p.val_SI / self.p[c.p.unit]
             c.h.val = c.h.val_SI / self.h[c.h.unit]
             c.v.val = c.v.val_SI / self.v[c.v.unit]
+            fluid = hlp.single_fluid(c.fluid.val)
+            if isinstance(fluid, str) and not c.x.val_set:
+                c.x.val_SI = hlp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+                c.x.val = c.x.val_SI
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val

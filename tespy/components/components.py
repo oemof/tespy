@@ -810,7 +810,7 @@ class turbomachine(component):
 
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'eta_s_char': dc_cc(), 'Sirr': dc_cp()}
+                'eta_s_char': dc_cc(), 'Sirr': dc_simple()}
 
     def inlets(self):
         return ['in1']
@@ -1069,8 +1069,6 @@ class turbomachine(component):
 
 class pump(turbomachine):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**
@@ -1170,7 +1168,7 @@ class pump(turbomachine):
         return 'pump'
 
     def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_cp(),
+        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_simple(),
                 'eta_s_char': dc_cc(method='GENERIC'),
                 'flow_char': dc_cc()}
 
@@ -1467,14 +1465,14 @@ class pump(turbomachine):
                 i = self.inl[0].to_flow()
                 i_d = self.inl[0].to_flow_design()
                 expr = i[0] * v_mix_ph(i) / (i_d[0] * v_mix_ph(i_d))
-                self.eta_s_char.func.get_bound_errors(expr)
+                self.eta_s_char.func.get_bound_errors(expr, self.label)
 
             if self.flow_char.is_set:
                 # get bound errors for flow characteristics
                 i = self.inl[0].to_flow()
                 o = self.outl[0].to_flow()
                 expr = i[0] * v_mix_ph(i)
-                self.flow_char.func.get_bound_errors(expr)
+                self.flow_char.func.get_bound_errors(expr, self.label)
 
 # %%
 
@@ -1579,7 +1577,7 @@ class compressor(turbomachine):
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
-                'Sirr': dc_cp(),
+                'Sirr': dc_simple(),
                 'char_map': dc_cm(method='GENERIC'),
                 'eta_s_char': dc_cc(param='m', method='GENERIC')}
 
@@ -1946,7 +1944,7 @@ class compressor(turbomachine):
                 i_d = self.inl[0].to_flow_design()
                 x = math.sqrt(T_mix_ph(i_d)) / math.sqrt(T_mix_ph(i))
                 y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
-                self.char_map.func.get_bound_errors(x, y, self.igva.val)
+                self.char_map.func.get_bound_errors(x, y, self.igva.val, self.label)
 
             if self.eta_s_char.is_set:
                 # get bound errors for isentropic efficiency characteristics
@@ -1963,7 +1961,7 @@ class compressor(turbomachine):
                     if not np.isnan([i_d[1], o_d[1]]).any():
                         expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
 
-                self.eta_s_char.func.get_bound_errors(expr)
+                self.eta_s_char.func.get_bound_errors(expr, self.label)
 
 # %%
 
@@ -2064,7 +2062,7 @@ class turbine(turbomachine):
 
     def attr(self):
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'Sirr': dc_cp(),
+                'Sirr': dc_simple(),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
                 'cone': dc_cc(method='default')}
 
@@ -2374,7 +2372,7 @@ class turbine(turbomachine):
                 elif self.eta_s_char.param == 'pr':
                     expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
 
-                self.eta_s_char.func.get_bound_errors(expr)
+                self.eta_s_char.func.get_bound_errors(expr, self.label)
 
 # %%
 
@@ -2427,10 +2425,10 @@ class node(component):
         List containing offdesign parameters (stated as String).
 
     num_in : float/tespy.helpers.dc_simple
-        Number of inlets for this component.
+        Number of inlets for this component, default value: 2.
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Note
     ----
@@ -2854,7 +2852,7 @@ class splitter(node):
         List containing offdesign parameters (stated as String).
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -3056,7 +3054,7 @@ class separator(node):
         List containing offdesign parameters (stated as String).
 
     num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component.
+        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -3254,7 +3252,7 @@ class merge(node):
         List containing offdesign parameters (stated as String).
 
     num_in : float/tespy.helpers.dc_simple
-        Number of inlets for this component.
+        Number of inlets for this component, default value: 2.
 
     Example
     -------
@@ -3289,7 +3287,7 @@ class merge(node):
 
     def attr(self):
         return {'num_in': dc_simple(),
-                'zero_flag': dc_cp(printout=False)}
+                'zero_flag': dc_simple()}
 
     def inlets(self):
         if self.num_in.val_set:
@@ -4503,7 +4501,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 'air': dc_simple(),
                 'air_alias': dc_simple(),
                 'path': dc_simple(),
-                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_cp()}
+                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -6348,10 +6346,10 @@ class cogeneration_unit(combustion_chamber):
                 expr = 1
             else:
                 expr = self.P.val / self.P.design
-            self.tiP_char.func.get_bound_errors(expr)
-            self.Qloss_char.func.get_bound_errors(expr)
-            self.Q1_char.func.get_bound_errors(expr)
-            self.Q2_char.func.get_bound_errors(expr)
+            self.tiP_char.func.get_bound_errors(expr, self.label)
+            self.Qloss_char.func.get_bound_errors(expr, self.label)
+            self.Q1_char.func.get_bound_errors(expr, self.label)
+            self.Q2_char.func.get_bound_errors(expr, self.label)
 
 # %%
 
@@ -7141,8 +7139,6 @@ class water_electrolyzer(component):
 
 class valve(component):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**
@@ -7234,7 +7230,7 @@ class valve(component):
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4),
                 'zeta': dc_cp(min_val=1e-4),
-                'Sirr': dc_cp()}
+                'Sirr': dc_simple()}
 
     def inlets(self):
         return ['in1']
@@ -7574,7 +7570,7 @@ class heat_exchanger_simple(component):
                 'kA': dc_cp(min_val=1, d=1),
                 'Tamb': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
+                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
     def inlets(self):
@@ -8147,7 +8143,7 @@ class heat_exchanger_simple(component):
             if self.kA.is_set:
                 # get bound errors for kA characteristic line
                 if self.kA_char.param == 'm':
-                    self.kA_char.func.get_bound_errors(i[0] / self.inl[0].m.design)
+                    self.kA_char.func.get_bound_errors(i[0] / self.inl[0].m.design, self.label)
 
 # %%
 
@@ -8285,8 +8281,6 @@ class pipe(heat_exchanger_simple):
 
 class solar_collector(heat_exchanger_simple):
     r"""
-    The component turbomachine is the parent class for pump, compressor and turbine.
-
     Equations
 
         **mandatory equations**
@@ -8421,7 +8415,7 @@ class solar_collector(heat_exchanger_simple):
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
                 'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
                 'A': dc_cp(min_val=0), 'Tamb': dc_cp(),
-                'SQ': dc_cp(),
+                'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 
     def inlets(self):
@@ -8730,8 +8724,8 @@ class heat_exchanger(component):
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'zero_flag': dc_cp(printout=False)}
+                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+                'zero_flag': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -9015,7 +9009,7 @@ class heat_exchanger(component):
 
     def energy_func(self):
         r"""
-        Equation for condenser energy balance.
+        Equation for heat exchanger energy balance.
 
         Returns
         -------
@@ -9027,7 +9021,7 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-        if self.zero_flag.is_set:
+        if self.zero_flag.val_set:
             c = self.zero_flag.val
             if c[0] > 0 and c[1] < 3:
                 return self.inl[0].m.val_SI
@@ -9059,7 +9053,7 @@ class heat_exchanger(component):
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-        if self.zero_flag.is_set:
+        if self.zero_flag.val_set:
             c = self.zero_flag.val
             if c[0] > 0 and c[1] < 3:
                 deriv[0, 0, 0] = 1
@@ -9113,7 +9107,7 @@ class heat_exchanger(component):
         - Perform value manipulation, if temperature levels are not physically feasible.
         """
 
-        if self.zero_flag.is_set:
+        if self.zero_flag.val_set:
             c = self.zero_flag.val
             if c[1] == 2 or c[1] == 4 or c[1] == 5:
                 T_i1 = T_mix_ph(self.inl[0].to_flow())
@@ -9491,14 +9485,14 @@ class heat_exchanger(component):
                     i1_d = self.inl[0].to_flow_design()
                     if not np.isnan(i1_d[0]):
                         if not i1[0] == 0:
-                            self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0])
+                            self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0], self.label)
 
                 # get bound errors for kA copld side characteristics
                 if self.kA_char2.param == 'm':
                     i2_d = self.inl[1].to_flow_design()
                     if not np.isnan(i2_d[0]):
                         if not i1[0] == 0:
-                            self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0])
+                            self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0], self.label)
 
 # %%
 
@@ -9586,6 +9580,9 @@ class condenser(heat_exchanger):
         Characteristic curve for heat transfer coefficient at cold side, provide x and y values
         or use generic values (e. g. calculated from design case). Standard method 'COND_COLD', Parameter 'm'.
 
+    subcooling : bool
+        Enable/disable subcooling, default value: disabled.
+
     Note
     ----
 
@@ -9644,8 +9641,9 @@ class condenser(heat_exchanger):
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
                 'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'SQ1': dc_cp(), 'SQ2': dc_cp(), 'Sirr': dc_cp(),
-                'zero_flag': dc_cp()}
+                'subcooling': dc_simple(val=False),
+                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+                'zero_flag': dc_simple()}
 
     def additional_equations(self):
         r"""
@@ -9669,9 +9667,10 @@ class condenser(heat_exchanger):
 
         ######################################################################
         # equation for saturated liquid at hot side outlet
-        outl = self.outl
-        o1 = outl[0].to_flow()
-        vec_res += [o1[2] - h_mix_pQ(o1, 0)]
+        if not self.subcooling.val:
+            outl = self.outl
+            o1 = outl[0].to_flow()
+            vec_res += [o1[2] - h_mix_pQ(o1, 0)]
 
         return vec_res
 
@@ -9688,11 +9687,12 @@ class condenser(heat_exchanger):
 
         ######################################################################
         # derivatives for saturated liquid at hot side outlet equation
-        o1 = self.outl[0].to_flow()
-        x_deriv = np.zeros((1, 4, self.num_fl + 3))
-        x_deriv[0, 2, 1] = -dh_mix_dpQ(o1, 0)
-        x_deriv[0, 2, 2] = 1
-        mat_deriv += x_deriv.tolist()
+        if not self.subcooling.val:
+            o1 = self.outl[0].to_flow()
+            x_deriv = np.zeros((1, 4, self.num_fl + 3))
+            x_deriv[0, 2, 1] = -dh_mix_dpQ(o1, 0)
+            x_deriv[0, 2, 2] = 1
+            mat_deriv += x_deriv.tolist()
 
         return mat_deriv
 
@@ -9762,7 +9762,7 @@ class condenser(heat_exchanger):
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically feasible.
         """
-        if self.zero_flag.is_set:
+        if self.zero_flag.val_set:
             return self.inl[0].p.val_SI - self.inl[0].p.design
 
         i1 = self.inl[0].to_flow()

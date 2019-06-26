@@ -1,0 +1,79 @@
+v0.1.2 (July, some day, 2019)
++++++++++++++++++++++++++++++
+
+New Features
+############
+- The water electrolyzer is available as new component of TESPy (`PR #73 <https://github.com/oemof/tespy/pull/73>`_).
+
+Documentation
+#############
+- Fix some typos in the docstrings and improvements of default values (`PR #69 <https://github.com/oemof/tespy/pull/69>`_ and `PR #71 <https://github.com/oemof/tespy/pull/71>`_).
+
+Parameter renaming
+##################
+
+Testing
+#######
+
+Bug fixes
+#########
+- Fix convergence check for negative minimum enthalpy values (`PR #71 <https://github.com/oemof/tespy/pull/71>`_).
+
+Other changes
+#############
+- Add method to calculate and export vapour mass fraction values of pure fluids in the post processing (`PR #74 <https://github.com/oemof/tespy/pull/74>`_).
+- Only allow label and P as parameters for busses to avoid misleading parameter specification (`PR #78 <https://github.com/oemof/tespy/pull/78>`_).
+  
+.. _whats_new_012_example_label:
+
+Water Electrolyzer Example
+##########################
+
+.. code-block:: python
+	
+	from tespy import cmp, con, nwk
+
+	fluid_list = ['O2', 'H2O', 'H2']
+	nw = nwk.network(fluids=fluid_list, T_unit='C', p_unit='bar')
+	
+	# sinks and sources
+	fw = cmp.source('feed water')
+	oxy = cmp.sink('oxygen sink')
+	hydro = cmp.sink('hydrogen sink')
+	cw = cmp.source('cooling water')
+	cw_hot = cmp.sink('cooling water out')
+	
+	# specification of electrolysis efficiency
+	el = cmp.water_electrolyzer('electrolyzer 1', eta=0.8, design=['eta'], offdesign=['eta_char'])
+	
+	# hydrogen compression
+	comp = cmp.compressor('compressor', eta_s=0.9)
+
+	# specify the feed water mass flow
+	# the fluid composition at the feed water inlet and the oxygen as well as
+	# hydrogen outlets are not required. These parameters are set automatically.
+	fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=10, T=15)
+	el_o = con.connection(el, 'out2', oxy, 'in1')
+	el_cmp = con.connection(el, 'out3', comp, 'in1', T=50)
+	cmp_h = con.connection(comp, 'out1', hydro, 'in1', p=50)
+	
+	# cooling water specifications
+	cw_el = con.connection(cw, 'out1', el, 'in1', fluid={'H2O': 1, 'H2': 0, 'O2': 0}, p=5, T=15)
+	el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
+	nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
+	
+	# solve design case
+	nw.solve('design')
+	nw.save('tmp')
+	# test offdesign case
+	nw.solve('offdesign', design_path='tmp')
+	
+	# change feed water flow and recalculate operation
+	fw_el.set_attr(m=0.05)
+	nw.solve('offdesign', design_path='tmp')
+
+Contributors
+############
+
+- Francesco Witte
+- Tim Hoener, Nils Stolze, Markus Brandt

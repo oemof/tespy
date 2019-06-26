@@ -477,7 +477,7 @@ class network:
                 msg = 'Added bus ' + b.label + ' to network.'
                 logging.debug(msg)
 
-    def del_busses(self, b):
+    def del_busses(self, *args):
         r"""
         Removes one or more busses from the network.
 
@@ -486,10 +486,11 @@ class network:
         b : tespy.connections.bus
             The bus to be removed from the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
         """
-        if b in self.busses:
-            del self.busses[b.label]
-            msg = 'Deleted bus ' + b.label + ' from network.'
-            logging.debug(msg)
+        for b in args:
+            if b in self.busses.values():
+                del self.busses[b.label]
+                msg = 'Deleted bus ' + b.label + ' from network.'
+                logging.debug(msg)
 
     def check_busses(self, b):
         r"""
@@ -854,6 +855,10 @@ class network:
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
+            elif isinstance(cp, cmp.water_electrolyzer):
+                cp.initialise_fluids(self)
+                for c in self.comps.loc[cp].o:
+                    self.init_target(c, c.t)
 
         # fluid propagation from set values
         for c in self.conns.index:
@@ -906,6 +911,14 @@ class network:
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
+
+        if isinstance(c.t, cmp.water_electrolyzer):
+            if c == self.comps.loc[c.t].i[0]:
+                outconn = self.comps.loc[c.t].o[0]
+
+                for fluid, x in c.fluid.val.items():
+                    if not outconn.fluid.val_set[fluid]:
+                        outconn.fluid.val[fluid] = x
 
         if isinstance(c.t, cmp.cogeneration_unit):
             for outconn in self.comps.loc[c.t].o[:2]:

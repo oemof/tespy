@@ -119,6 +119,14 @@ class connection:
     <class 'tespy.tools.helpers.dc_prop'>
     >>> so_si2.Td_bp.val
     5
+    >>> so_si2.set_attr(state='l')
+    >>> so_si2.state.val_set
+    True
+    >>> so_si2.set_attr(state=np.nan)
+    >>> so_si2.state.val_set
+    False
+    >>> # this will not work and prompt a warning message in logging
+    >>> so_si2.set_attr(Td_bp=con.ref(so_si1, 1, 0))
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):

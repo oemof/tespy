@@ -7213,9 +7213,21 @@ class water_electrolyzer(component):
             self.e.val = self.P.val / self.outl[2].m.val_SI
             self.eta.val = self.e0 / self.e.val
 
+            if self.eta.val > 1:
+                msg = ('The electrolyzer efficiency is above 1 '
+                       '(specific energy consumption is ' + str(round(self.e.val), 0) + ' J / kg, '
+                       'miniumum energy required is ' + str(round(self.e0), 0) + ') '
+                       'at component ' + self.label)
+                logging.warning(msg)
+
             i = self.inl[0].to_flow()
             o = self.outl[0].to_flow()
             self.zeta.val = (i[1] - o[1]) * math.pi ** 2 / (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2)
+
+            if self.eta_char.is_set:
+                # get bound errors for kA hot side characteristics
+                expr = self.outl[2].m.val_SI / self.outl[2].m.design
+                self.eta_char.func.get_bound_errors(expr, self.label)
 
 # %%
 

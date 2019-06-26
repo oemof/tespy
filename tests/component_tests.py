@@ -611,6 +611,12 @@ class component_tests:
         eq_(round(instance.eta.val, 2), round(instance.e0 / instance.e.val, 2),
             'Value of efficiency must be ' + str(instance.eta.val) + ', is ' + str(instance.e0 / instance.e.val) + '.')
 
+        # isentropic efficiency value > 1
+        e = 130e6
+        instance.set_attr(e=np.nan, eta=np.nan)
+        instance.set_attr(e=e)
+        self.nw.solve('design')
+
         e = 150e6
         instance.set_attr(e=np.nan, eta=np.nan)
         instance.set_attr(e=e)
@@ -627,9 +633,3 @@ class component_tests:
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)
-
-        # isentropic efficiency value > 1
-        e = 130e6
-        instance.set_attr(e=np.nan, eta=np.nan)
-        instance.set_attr(e=e)
-        self.nw.solve('design')

@@ -6391,6 +6391,13 @@ class water_electrolyzer(component):
                 x_{i,out2} & \text{else}
             \end{cases}\\
 
+            0 = \begin{cases}
+                1 - x_{i,out3} & \text{i=}H_{2}\\
+                x_{i,out3} & \text{else}
+            \end{cases}\\
+
+            0 = P - \text{energy_balance}
+
         For energy balance calculation see
         :func:`tespy.components.componentes.water_electrolyzer.energy_balance`.
 

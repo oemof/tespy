@@ -7215,8 +7215,8 @@ class water_electrolyzer(component):
 
             if self.eta.val > 1:
                 msg = ('The electrolyzer efficiency is above 1 '
-                       '(specific energy consumption is ' + str(round(self.e.val), 0) + ' J / kg, '
-                       'miniumum energy required is ' + str(round(self.e0), 0) + ') '
+                       '(specific energy consumption is: ' + str(round(self.e.val / 1e6, 0)) + ' MJ / kg, '
+                       'miniumum energy required is: ' + str(round(self.e0 / 1e6, 0)) + ' MJ / kg) '
                        'at component ' + self.label)
                 logging.warning(msg)
 

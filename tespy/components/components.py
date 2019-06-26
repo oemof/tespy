@@ -1283,11 +1283,10 @@ class pump(turbomachine):
         o = self.outl[0].to_flow()
         # design values
         i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
 
         expr = i[0] * v_mix_ph(i) / (i_d[0] * v_mix_ph(i_d))
 
-        return (o[2] - i[2]) * self.dh_s_ref / (o_d[2] - i_d[2]) * self.eta_s_char.func.f_x(expr) - (self.h_os('post') - i[2])
+        return (o[2] - i[2]) * self.eta_s.design * self.eta_s_char.func.f_x(expr) - (self.h_os('post') - i[2])
 
     def eta_s_char_deriv(self):
         r"""
@@ -1733,7 +1732,7 @@ class compressor(turbomachine):
             logging.error(msg)
             raise ValueError(msg)
 
-        return (self.dh_s_ref / (o_d[2] - i_d[2]) * self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) - (self.h_os('post') - i[2]))
+        return (self.eta_s.design * self.eta_s_char.func.f_x(expr) * (o[2] - i[2]) - (self.h_os('post') - i[2]))
 
     def eta_s_char_deriv(self):
         r"""
@@ -1796,7 +1795,7 @@ class compressor(turbomachine):
         pr, eta = self.char_map.func.get_pr_eta(x, y, self.igva.val)
 
         z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
-        z2 = (self.h_os('post') - i[2]) / (o[2] - i[2]) / (self.dh_s_ref / (o_d[2] - i_d[2])) - eta
+        z2 = (self.h_os('post') - i[2]) / (o[2] - i[2]) / self.eta_s.design - eta
 
         return np.array([z1, z2])
 
@@ -2230,7 +2229,7 @@ class turbine(turbomachine):
             logging.error(msg)
             raise ValueError(msg)
 
-        return -(o[2] - i[2]) + (o_d[2] - i_d[2]) / self.dh_s_ref * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
+        return -(o[2] - i[2]) + self.eta_s.design * self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2])
 
     def eta_s_char_deriv(self):
         r"""
@@ -6482,7 +6481,7 @@ class water_electrolyzer(component):
     Example
     -------
     >>> from tespy import cmp, con, nwk
-
+    >>> import shutil
     >>> fluid_list = ['O2', 'water', 'H2']
     >>> nw = nwk.network(fluids=fluid_list, T_unit='C', p_unit='bar', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
@@ -6493,7 +6492,7 @@ class water_electrolyzer(component):
     >>> cw = cmp.source('cooling water')
     >>> cw_hot = cmp.sink('cooling water out')
 
-    >>> el = cmp.water_electrolyzer('electrolyzer 1', Q=-5e5)
+    >>> el = cmp.water_electrolyzer('electrolyzer 1', eta=0.8, design=['eta'], offdesign=['eta_char'])
     >>> el.component()
     'water electrolyzer'
     >>> comp = cmp.compressor('compressor', eta_s=0.9)
@@ -6506,17 +6505,26 @@ class water_electrolyzer(component):
     >>> el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
     >>> nw.solve('design')
-    >>> round(el.Q.val, 0)
-    -500000.0
-
+    >>> round(el.eta.val, 1)
+    0.8
+    >>> nw.save('tmp')
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(el.eta.val, 1)
+    0.8
+    >>> fw_el.set_attr(m=0.05)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(el.eta.val, 2)
+    0.82
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):
         return 'water electrolyzer'
 
     def attr(self):
-        return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(), 'char': dc_cc(),
-                'S': dc_simple(), 'pr_c': dc_cp(), 'e': dc_cp(),
+        return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(),
+                'eta_char': dc_cc(method='GENERIC'), 'S': dc_simple(),
+                'pr_c': dc_cp(), 'e': dc_cp(),
                 'zeta': dc_cp()}
 
     def inlets(self):
@@ -6671,6 +6679,11 @@ class water_electrolyzer(component):
         # specified efficiency (efficiency definition: e0 / e)
         if self.eta.is_set:
             vec_res += [self.P.val - self.outl[2].m.val_SI * self.e0 / self.eta.val]
+
+        ######################################################################
+        # specified characteristic line for efficiency
+        if self.eta_char.is_set:
+            vec_res += [self.eta_char_func()]
 
         return vec_res
 
@@ -6892,8 +6905,54 @@ class water_electrolyzer(component):
             mat_deriv += deriv.tolist()
 
         ######################################################################
+        # specified characteristic line for efficiency
+        if self.eta_char.is_set:
+
+            mat_deriv += self.eta_char_deriv()
+
+        ######################################################################
 
         return np.asarray(mat_deriv)
+
+    def eta_char_func(self):
+        r"""
+        Equation for given efficiency characteristic of a water electrolyzer.
+        Efficiency is linked to hydrogen production.
+
+        Returns
+        -------
+        res : ndarray
+            Residual value of equation.
+
+            .. math::
+
+                0 = P -  \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta_0 \cdot
+                f\left(\frac{\dot{m}_{H_2,out3}}{\dot{m}_{H_2,out3,0}} \right)}
+        """
+        expr = self.outl[2].m.val_SI / self.outl[2].m.design
+
+        return (self.P.val - self.outl[2].m.val_SI * self.e0 / (
+                self.eta.design * self.eta_char.func.f_x(expr)))
+
+    def eta_char_deriv(self):
+        r"""
+        Calculates the matrix of partial derivatives of the efficiency characteristic function.
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+
+        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+
+        deriv[0, 4, 0] = self.numeric_deriv(self.eta_char_func, 'm', 4)
+
+        # derivatives for variable P
+        if self.P.is_var:
+            deriv[0, 5 + self.P.var_pos, 0] = 1
+
+        return deriv.tolist()
 
     def bus_func(self, bus):
         r"""

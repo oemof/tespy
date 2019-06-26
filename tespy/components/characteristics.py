@@ -247,6 +247,14 @@ class characteristics:
            :alt: alternative text
            :align: center
 
+
+        **default characteristic line for electrolysis**
+
+        .. image:: _images/electrolysis_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         """
 
         if key == 'default':
@@ -357,6 +365,13 @@ class characteristics:
                     [0.019, 0.075, 0.134, 0.192, 0.243, 0.303, 0.359, 0.412,
                      0.463, 0.512, 0.559, 0.604, 0.648, 0.691, 0.733, 0.774,
                      0.813, 0.852, 0.890, 0.928, 0.964, 1.000, 1.327, 1.612])
+
+        elif self.comp == 'water electrolyzer':
+
+            x['GENERIC'] = np.array(
+                    [0.000, 0.0833, 0.250, 0.500, 0.750, 1.000, 1.333])
+            y['GENERIC'] = np.array(
+                    [1.100, 1.075, 1.050, 1.025, 1.0125, 1.000, 0.9875])
 
         else:
             return np.array([0, 1, 2, 3]), np.array([1, 1, 1, 1])

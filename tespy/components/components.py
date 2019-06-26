@@ -6377,7 +6377,7 @@ class water_electrolyzer(component):
 
         .. math::
 
-            0  = x_{i,in1} - x_{i,out1} \forall i \in \text{fluids}\\
+            0  = x_{i,in1} - x_{i,out1} \forall i \in \text{fluids}
 
             \forall i \in \text{network fluids}:
 
@@ -6391,28 +6391,12 @@ class water_electrolyzer(component):
                 x_{i,out2} & \text{else}
             \end{cases}\\
 
-            0 = \begin{cases}
-                1 - x_{i,out3} & \text{i=}H_{2}\\
-                x_{i,out3} & \text{else}
-            \end{cases}\\
-
-            o2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-
-            0 = \dot{m}_{H_{2}O,in1} - \dot{m}_{H_{2}O,out1}\\
-            0 = o2 \cdot \dot{m}_{H_{2}O,in2} - \dot{m}_{O_2,out2}\\
-            0 = (1 - o2) \cdot \dot{m}_{H_{2}O,in2} - \dot{m}_{H_2,out3}\\
-
-            0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
-            0 = p_{H_{2}O,in2} - p_{H_2,out3}\\
-
-            0 = P - \text{energy_balance}()
-
         For energy balance calculation see
         :func:`tespy.components.componentes.water_electrolyzer.energy_balance`.
 
         .. math::
 
-            0 = T_{O_2,out2} - T_{H_2,out3}\\
+            0 = T_{O_2,out2} - T_{H_2,out3}
 
         **optional equations**
 
@@ -6428,7 +6412,7 @@ class water_electrolyzer(component):
 
             0 = \dot{Q} - \dot{m}_{in1} \cdot \left(h_{in1} - h_{out1}\right) \\
 
-            0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}\\
+            0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
         - :func:`tespy.components.components.water_electrolyzer.eta_char_func`
 

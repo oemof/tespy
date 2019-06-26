@@ -570,6 +570,7 @@ More information on the components can be gathered from the code documentation. 
 	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 	* :py:class:`Solar collector <tespy.components.components.solar_collector>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 - :py:class:`Drum <tespy.components.components.drum>` (:py:meth:`equations <tespy.components.components.drum.equations>`)
+- :py:class:`Water electrolyzer <tespy.components.components.water_electrolyzer>` (:py:meth:`equations <tespy.components.components.water_electrolyzer.equations>`)
 - :py:class:`Subsystem interface <tespy.components.components.subsys_interface>` (:py:meth:`equations <tespy.components.components.subsys_interface.equations>`)
 
 

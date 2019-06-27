@@ -252,9 +252,9 @@ class characteristics:
 
         .. math::
 
-            \frac{\eta}{eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}{\dot{m}_{H_2,ref}}\right)
+            \frac{\eta}{\eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}{\dot{m}_{H_2,ref}}\right)
 
-        .. image:: _images/water electrolyzer_GENERIC.svg
+        .. image:: _images/water_electrolyzer_GENERIC.svg
            :scale: 100 %
            :alt: alternative text
            :align: center

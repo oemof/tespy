@@ -250,6 +250,10 @@ class characteristics:
 
         **default characteristic line for electrolysis**
 
+        .. math::
+
+            \frac{\eta}{eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}{\dot{m}_{H_2,ref}}\right)
+
         .. image:: _images/electrolysis_GENERIC.svg
            :scale: 100 %
            :alt: alternative text

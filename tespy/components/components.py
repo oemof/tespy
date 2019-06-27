@@ -9206,7 +9206,7 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.component.characteristics.characteristics`.
+        class :func:`tespy.components.characteristics.characteristics`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically feasible.
@@ -9864,7 +9864,7 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.component.characteristics.characteristics`.
+        class :func:`tespy.components.characteristics.characteristics`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically feasible.

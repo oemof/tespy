@@ -9701,7 +9701,7 @@ class condenser(heat_exchanger):
     >>> from tespy import cmp, con, nwk
     >>> import shutil
     >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
+    ...     h_unit='kJ / kg', m_range=[0.01, 10])
     >>> nw.set_printoptions(print_level='none')
     >>> amb_in = cmp.sink('ambient in')
     >>> amb_out = cmp.source('ambient out')

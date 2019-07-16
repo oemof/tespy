@@ -117,6 +117,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.conn, fluid=5)
         self.set_attr_TypeError(self.conn, state=5)
 
+        self.set_attr_TypeError(self.nw, m_range=5)
         self.set_attr_TypeError(self.nw, p_range=5)
         self.set_attr_TypeError(self.nw, h_range=5)
         self.set_attr_TypeError(self.nw, T_range=5)

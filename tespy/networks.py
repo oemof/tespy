@@ -189,6 +189,7 @@ class network:
         self.v_unit = self.SI_units['v']
 
         # standard value range
+        self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
         self.h_range_SI = np.array([1e3, 7e6])
         self.T_range_SI = np.array([273.16, 1773.15])
@@ -220,6 +221,9 @@ class network:
 
         T_unit : str
             Specify the unit for temperature: 'K', 'C', 'F'.
+
+        m_range : list
+            List with minimum and maximum values for mass flow value range.
 
         p_range : list
             List with minimum and maximum values for pressure value range.
@@ -279,13 +283,27 @@ class network:
         logging.debug(msg)
 
         # value ranges
+        if 'm_range' in kwargs.keys():
+            if not isinstance(kwargs['m_range'], list):
+                msg = ('Specify the value range as list: [m_min, m_max]')
+                logging.error(msg)
+                raise TypeError(msg)
+            else:
+                self.m_range_SI = np.array(kwargs['m_range']) * self.m[self.m_unit]
+        else:
+            self.m_range = self.m_range_SI / self.m[self.m_unit]
+
+        msg = ('Setting pressure range, min: ' + str(self.m_range_SI[0]) + ' ' + self.SI_units['m'] +
+               ', max: ' + str(self.m_range_SI[1]) + ' ' + self.SI_units['m'] + '.')
+        logging.debug(msg)
+
         if 'p_range' in kwargs.keys():
-            if not isinstance(self.p_range, list):
+            if not isinstance(kwargs['p_range'], list):
                 msg = ('Specify the value range as list: [p_min, p_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
+                self.p_range_SI = np.array(kwargs['p_range']) * self.p[self.p_unit]
         else:
             self.p_range = self.p_range_SI / self.p[self.p_unit]
 
@@ -294,12 +312,12 @@ class network:
         logging.debug(msg)
 
         if 'h_range' in kwargs.keys():
-            if not isinstance(self.h_range, list):
+            if not isinstance(kwargs['h_range'], list):
                 msg = ('Specify the value range as list: [h_min, h_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
+                self.h_range_SI = np.array(kwargs['h_range']) * self.h[self.h_unit]
         else:
             self.h_range = self.h_range_SI / self.h[self.h_unit]
 
@@ -308,12 +326,12 @@ class network:
         logging.debug(msg)
 
         if 'T_range' in kwargs.keys():
-            if not isinstance(self.T_range, list):
+            if not isinstance(kwargs['T_range'], list):
                 msg = ('Specify the value range as list: [T_min, T_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.T_range_SI = (np.array(self.T_range) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
+                self.T_range_SI = (np.array(kwargs['T_range']) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
         else:
             self.T_range = self.T_range_SI / self.T[self.T_unit][1] - self.T[self.T_unit][0]
 
@@ -1482,8 +1500,12 @@ class network:
         """
         if prop == 'p':
             msg = 'Pressure '
-        else:
+        elif prop == 'h':
             msg = 'Enthalpy '
+        elif prop == 'm':
+            msg = 'Mass flow '
+        else:
+            msg = 'Unspecified '
         msg += ('out of fluid property range at connection ' +
                c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id +
                ') adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' + self.SI_units[prop] + '.')
@@ -1559,6 +1581,15 @@ class network:
             # temperature
             if c.T.val_set and not c.h.val_set:
                 self.solve_check_temperature(c)
+
+        # mass flow
+        if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
+            c.m.val_SI = self.m_range_SI[0]
+            logging.debug(self.property_range_message(c, 'm'))
+        if c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
+            c.m.val_SI = self.m_range_SI[1]
+            logging.debug(self.property_range_message(c, 'm'))
+
 
     def solve_check_temperature(self, c):
         r"""

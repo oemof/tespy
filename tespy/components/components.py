@@ -3570,6 +3570,11 @@ class combustion_chamber(component):
         r"""
         calculates the lower heating value of the combustion chambers fuel.
 
+        Parameters
+        ----------
+        f : str
+            Alias of the fuel.
+
         Returns
         -------
         val : float
@@ -3583,9 +3588,6 @@ class combustion_chamber(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
-        if f not in molar_masses.keys():
-            molar_masses[f] = CP.PropsSI('M', f)
-
         hf = {}
         hf['hydrogen'] = 0
         hf['methane'] = -74.85
@@ -3754,8 +3756,14 @@ class combustion_chamber(component):
         Calculates the reaction balance for one fluid.
 
         - determine molar mass flows of fuel and oxygen
-        - calculate excess fuel
+        - calculate mole number of carbon and hydrogen atoms in fuel
+        - calculate molar oxygen flow for stoichiometric combustion
         - calculate residual value of the fluids balance
+
+        for excess fuel
+
+        - calculate excess carbon and hydrogen in fuels
+        - calculate excess fuel shares
 
         General equations
 
@@ -3771,8 +3779,24 @@ class combustion_chamber(component):
                 \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
                 {M_{fluid}} \; \forall i
 
-                \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
-                \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
+                \dot{m}_{O_2,m,stoich}=\frac{\dot{m}_{H_m}}{4} + \dot{m}_{C_m}
+
+                \lambda = \frac{\dot{m}_{O_2,m}}{\dot{m}_{O_2,m,stoich}}
+
+        Excess carbon and hydrogen
+
+            .. math::
+
+               \dot{m}_{H_{exc,m}} = \begin{cases}
+               0 & \lambda \geq 1\\
+               4 \cdot \left( \dot{m}_{O_2,m,stoich} -
+               \dot{m}_{O_2,m}\right) & \lambda < 1
+                \end{cases}
+
+               \dot{m}_{C_{exc,m}} = \begin{cases}
+               0 & \lambda \geq 1\\
+               \dot{m}_{O_2,m,stoich} - \dot{m}_{O_2,m} & \lambda < 1
+                \end{cases}
 
         Equation for fuel
 
@@ -3784,7 +3808,7 @@ class combustion_chamber(component):
                 \dot{m}_{f,exc,m} = \begin{cases}
                 0 & \lambda \geq 1\\
                 \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
-                {n_{C,fuel} + 0.25 \cdot n_{H,fuel}} & \lambda < 1
+                {n_{C,fuel} + 0.25 \cdot n_{H,fuel}}
                 \end{cases}
 
         Equation for oxygen
@@ -3800,15 +3824,15 @@ class combustion_chamber(component):
 
             .. math::
 
-                0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-                \cdot 0.5 \cdot n_{H,fuel} \cdot M_{H_2O}
+                0 = res + \left( \dot{m}_{H_m} - \dot{m}_{H_{exc,m}} \right)
+                \cdot 0.5 \cdot M_{H_2O}
 
         Equation for carbondioxide
 
             .. math::
 
-                0 = res + \left( \dot{m}_{f,m} - \dot{m}_{f,exc,m} \right)
-                \cdot n_{C,fuel} \cdot M_{CO_2}
+                0 = res + \left( \dot{m}_{C_m} - \dot{m}_{C_{exc,m}} \right)
+                \cdot M_{CO_2}
 
         Equation for all other fluids
 
@@ -3853,14 +3877,6 @@ class combustion_chamber(component):
         n_oxygen = 0
         for i in inl:
             n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
-
-        ######################################################################
-        # convergence helper
-        if n_h == 0:
-            n_h = 4
-
-        if n_c == 0:
-            n_c = 1
 
         ######################################################################
         # calculate stoichiometric oxygen

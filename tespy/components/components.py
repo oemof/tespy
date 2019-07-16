@@ -3525,10 +3525,6 @@ class combustion_chamber(component):
     def outlets(self):
         return ['out1']
 
-    def fuels(self):
-        return ['methane', 'ethane', 'propane', 'butane',
-                'hydrogen']
-
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -3536,44 +3532,41 @@ class combustion_chamber(component):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.val_set:
-            msg = 'Must specify fuel for component ' + self.label + '. Available fuels are: ' + str(self.fuels()) + '.'
+        self.fuel_list = []
+        fuels = ['methane', 'ethane', 'propane', 'butane', 'hydrogen']
+        for f in fuels:
+            self.fuel_list += [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases(f)]]
+
+        if len(self.fuel_list) == 0:
+            msg = ('Your network\'s fluids do not contain any fuels, that are '
+                   'available for the component ' + self.label + ' of type ' +
+                   self.component() + '. Available fuels are: ' + str(fuels) +
+                   '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if (len([x for x in nw.fluids if x in [a.replace(' ', '') for a in
-                 CP.get_aliases(self.fuel.val)]]) == 0):
-            msg = 'The fuel you specified for component ' + self.label + ' does not match the fuels available within the network.'
-            logging.error(msg)
-            raise TESPyComponentError(msg)
-
-        if (len([x for x in self.fuels() if x in [a.replace(' ', '') for a in
-                 CP.get_aliases(self.fuel.val)]])) == 0:
-            msg = 'The fuel you specified is not available for component ' + self.label + '. Available fuels are: ' + str(self.fuels()) + '.'
-            logging.error(msg)
-            raise TESPyComponentError(msg)
-
-        self.fuel.val = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases(self.fuel.val)]][0]
+        else:
+            msg = ('The fuels for component ' + self.label + 'of type ' +
+                   self.component() + 'are: ' + str(self.fuel_list) + '.')
+            logging.debug(msg)
 
         self.o2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
         self.co2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
         self.h2o = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
         self.n2 = [x for x in nw.fluids if x in [a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
 
-        structure = fluid_structure(self.fuel.val)
+        self.fuels = {}
+        for f in self.fuel_list:
+            self.fuels[f] = {}
+            structure = fluid_structure(f)
+            for el in ['C', 'H', 'O']:
+                if el in structure.keys():
+                    self.fuels[f][el] = structure[el]
+                else:
+                    self.fuels[f][el] = 0
+            self.fuels[f]['LHV'] = self.calc_lhv(f)
 
-        self.n = {}
-        for el in ['C', 'H', 'O']:
-            if el in structure.keys():
-                self.n[el] = structure[el]
-            else:
-                self.n[el] = 0
-
-        self.lhv = self.calc_lhv()
-        msg = 'Combustion chamber fuel (' + self.fuel.val + ') LHV is ' + str(self.lhv) + ' for component ' + self.label + '.'
-        logging.debug(msg)
-
-    def calc_lhv(self):
+    def calc_lhv(self, f):
         r"""
         calculates the lower heating value of the combustion chambers fuel.
 
@@ -3590,6 +3583,9 @@ class combustion_chamber(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
+        if f not in molar_masses.keys():
+            molar_masses[f] = CP.PropsSI('M', f)
+
         hf = {}
         hf['hydrogen'] = 0
         hf['methane'] = -74.85
@@ -3603,12 +3599,13 @@ class combustion_chamber(component):
 
         key = set(list(hf.keys())).intersection(
                 set([a.replace(' ', '')
-                     for a in CP.get_aliases(self.fuel.val)]))
+                     for a in CP.get_aliases(f)]))
 
-        val = (-(self.n['H'] / 2 * hf[self.h2o] + self.n['C'] * hf[self.co2] -
-                 ((self.n['C'] + self.n['H'] / 4) * hf[self.o2] +
+        val = (-(self.fuels[f]['H'] / 2 * hf[self.h2o] +
+                 self.fuels[f]['C'] * hf[self.co2] -
+                 ((self.fuels[f]['C'] + self.fuels[f]['H'] / 4) * hf[self.o2] +
                   hf[list(key)[0]])) /
-               molar_masses[self.fuel.val] * 1000)
+               molar_masses[f] * 1000)
 
         return val
 
@@ -3712,18 +3709,28 @@ class combustion_chamber(component):
             if isinstance(self, combustion_chamber_stoich):
                 pos = 3 + self.fluids.index('TESPy::' + self.fuel_alias.val)
                 fuel = 'TESPy::' + self.fuel_alias.val
+
+                deriv = np.zeros((1, 3, self.num_fl + 3))
+                for i in range(2):
+                    deriv[0, i, 0] = -self.inl[i].fluid.val[fuel]
+                    deriv[0, i, pos] = -self.inl[i].m.val_SI
+                deriv[0, 2, 0] = self.outl[0].fluid.val[fuel]
+                deriv[0, 2, pos] = self.outl[0].m.val_SI
+                mat_deriv += (deriv * self.lhv).tolist()
             # combustion chamber
             else:
-                pos = 3 + self.fluids.index(self.fuel.val)
-                fuel = self.fuel.val
 
-            deriv = np.zeros((1, 3, self.num_fl + 3))
-            for i in range(2):
-                deriv[0, i, 0] = -self.inl[i].fluid.val[fuel]
-                deriv[0, i, pos] = -self.inl[i].m.val_SI
-            deriv[0, 2, 0] = self.outl[0].fluid.val[fuel]
-            deriv[0, 2, pos] = self.outl[0].m.val_SI
-            mat_deriv += (deriv * self.lhv).tolist()
+                deriv = np.zeros((1, 3, self.num_fl + 3))
+                for f in self.fuel_list:
+                    pos = 3 + self.fluids.index(f)
+                    lhv = self.fuels[f]['LHV']
+
+                    for i in range(2):
+                        deriv[0, i, 0] += -self.inl[i].fluid.val[f] * lhv
+                        deriv[0, i, pos] = -self.inl[i].m.val_SI * lhv
+                    deriv[0, 2, 0] += self.outl[0].fluid.val[f] * lhv
+                    deriv[0, 2, pos] = self.outl[0].m.val_SI * lhv
+                mat_deriv += deriv.tolist()
 
         return np.asarray(mat_deriv)
 
@@ -3829,37 +3836,59 @@ class combustion_chamber(component):
 
         ######################################################################
         # molar mass flow for fuel and oxygen
-        n_fuel = 0
-        for i in inl:
-            n_fuel += i.m.val_SI * i.fluid.val[self.fuel.val] / molar_masses[self.fuel.val]
+        n_fuel = {}
+        n_oxy_stoich = {}
+        n_h = 0
+        n_c = 0
+        for f in self.fuel_list:
+            n_fuel[f] = 0
+            for i in inl:
+                n_fuel[f] += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                n_h += n_fuel[f] * self.fuels[f]['H']
+                n_c += n_fuel[f] * self.fuels[f]['C']
+
+            # stoichiometric oxygen requirement for each fuel
+            n_oxy_stoich[f] = n_fuel[f] * (self.fuels[f]['H'] / 4 + self.fuels[f]['C'])
 
         n_oxygen = 0
         for i in inl:
             n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
 
-        if n_fuel == 0:
-            n_fuel = 1
+        ######################################################################
+        # convergence helper
+        if n_h == 0:
+            n_h = 4
+
+        if n_c == 0:
+            n_c = 1
+
+        ######################################################################
+        # calculate stoichiometric oxygen
+        n_oxygen_stoich = n_h / 4 + n_c
 
         ######################################################################
         # calculate lambda if not set
         if not self.lamb.is_set:
-            self.lamb.val = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
+            self.lamb.val = n_oxygen / n_oxygen_stoich
 
         ######################################################################
         # calculate excess fuel if lambda is lower than 1
-        n_fuel_exc = 0
         if self.lamb.val < 1:
-            n_fuel_exc = n_fuel - n_oxygen / (self.n['C'] + self.n['H'] / 4)
+            n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
+            n_c_exc = (n_oxygen_stoich - n_oxygen)
+        else:
+            n_h_exc = 0
+            n_c_exc = 0
 
         ######################################################################
         # equation for carbondioxide
         if fluid == self.co2:
-            dm = (n_fuel - n_fuel_exc) * self.n['C'] * molar_masses[self.co2]
+            dm = (n_c - n_c_exc) * molar_masses[self.co2]
 
         ######################################################################
         # equation for water
         elif fluid == self.h2o:
-            dm = (n_fuel - n_fuel_exc) * self.n['H'] / 2 * molar_masses[self.h2o]
+            dm = (n_h - n_h_exc) / 2 * molar_masses[self.h2o]
 
         ######################################################################
         # equation for oxygen
@@ -3871,8 +3900,12 @@ class combustion_chamber(component):
 
         ######################################################################
         # equation for fuel
-        elif fluid == self.fuel.val:
-            dm = -(n_fuel - n_fuel_exc) * molar_masses[self.fuel.val]
+        elif fluid in self.fuel_list:
+            if self.lamb.val < 1:
+                n_fuel_exc = (-(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]) * (self.fuels[f]['H'] / 4 + self.fuels[f]['C'])
+            else:
+                n_fuel_exc = 0
+            dm = -(n_fuel[fluid] - n_fuel_exc) * molar_masses[fluid]
 
         ######################################################################
         # equation for other fluids
@@ -4035,15 +4068,22 @@ class combustion_chamber(component):
         else:
             inl = self.inl
 
-        n_fuel = 0
-        for i in inl:
-            n_fuel += (i.m.val_SI * i.fluid.val[self.fuel.val] / molar_masses[self.fuel.val])
+        n_h = 0
+        n_c = 0
+        for f in self.fuel_list:
+            n_fuel = 0
+            for i in inl:
+                n_fuel += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                n_h += n_fuel * self.fuels[f]['H']
+                n_c += n_fuel * self.fuels[f]['C']
 
         n_oxygen = 0
         for i in inl:
-            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2])
+            n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
 
-        return (n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4)) - self.lamb.val)
+        n_oxygen_stoich = n_h / 4 + n_c
+
+        return n_oxygen / n_oxygen_stoich - self.lamb.val
 
     def ti_func(self):
         r"""
@@ -4075,14 +4115,18 @@ class combustion_chamber(component):
                 \right) - \dot{m}_{out,1} \cdot x_{f,1} \right]
                 \; \forall i \in [1,2]
         """
-        m = 0
-        for i in self.inl:
-            m += i.m.val_SI * i.fluid.val[self.fuel.val]
+        ti = 0
+        for f in self.fuel_list:
+            m = 0
+            for i in self.inl:
+                m += i.m.val_SI * i.fluid.val[f]
 
-        for o in self.outl:
-            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+            for o in self.outl:
+                m -= o.m.val_SI * o.fluid.val[f]
 
-        return m * self.lhv
+            ti += m * self.fuels[f]['LHV']
+
+        return ti
 
     def bus_func(self, bus):
         r"""
@@ -4146,13 +4190,29 @@ class combustion_chamber(component):
 
         n_fuel = 1
         lamb = 3
-        m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
-        m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
+
+        fact_fuel = {}
+        sum_fuel = 0
+        for f in self.fuel_list:
+            fact_fuel[f] = 0
+            for i in self.inl:
+                fact_fuel[f] += i.fluid.val[f] / 2
+            sum_fuel += fact_fuel[f]
+
+        for f in self.fuel_list:
+            fact_fuel[f] /= sum_fuel
+
+        m_co2 = 0
+        m_h2o = 0
+        m_fuel = 0
+        for f in self.fuel_list:
+            m_co2 += n_fuel * self.fuels[f]['C'] * molar_masses[self.co2] * fact_fuel[f]
+            m_h2o += n_fuel * self.fuels[f]['H'] / 2 * molar_masses[self.h2o] * fact_fuel[f]
+            m_fuel += n_fuel * molar_masses[f] * fact_fuel[f]
 
         n_o2 = (m_co2 / molar_masses[self.co2] + 0.5 * m_h2o / molar_masses[self.h2o]) * lamb
 
         m_air = n_o2 * molar_masses[self.o2] / O_2
-        m_fuel = n_fuel * molar_masses[self.fuel.val]
         m_fg = m_air + m_fuel
 
         m_o2 = n_o2 * molar_masses[self.o2] * (1 - 1 / lamb)
@@ -4202,7 +4262,7 @@ class combustion_chamber(component):
         for o in outl:
             fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
             for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o, self.fuel.val]:
+                if f not in [self.o2, self.co2, self.h2o] + self.fuel_list:
                     m_f = 0
                     for i in inl:
                         m_f += i.fluid.val[f] * i.m.val_SI
@@ -4228,7 +4288,7 @@ class combustion_chamber(component):
                     if o.fluid.val[f] < 0.02:
                         o.fluid.val[f] = 0.02
 
-                elif f == self.fuel.val:
+                elif f in self.fuel_list:
                     if o.fluid.val[f] > 0:
                         o.fluid.val[f] = 0
 
@@ -4245,17 +4305,23 @@ class combustion_chamber(component):
         ######################################################################
         # additional checks for performance improvement
         if self.lamb.val < 2 and not self.lamb.is_set:
+            # search fuel and air inlet
             for i in inl:
-                fuel_set = True
-                if i.fluid.val[self.fuel.val] > 0.75 and not i.m.val_set:
-                    fuel_set = False
-                if i.fluid.val[self.fuel.val] < 0.75:
+                fuel_found = False
+                fuel = 0
+                for f in self.fuel_list:
+                    fuel += i.fluid.val[f]
+                # found the fuel inlet
+                if fuel > 0.75 and not i.m.val_set:
+                    fuel_found = True
+                    fuel_inlet = i
+
+                # found the air inlet
+                if fuel < 0.75:
                     air_tmp = i.m.val_SI
 
-            if not fuel_set:
-                for i in inl:
-                    if i.fluid.val[self.fuel.val] > 0.75:
-                        i.m.val_SI = air_tmp / 25
+            if fuel_found is True:
+                fuel_inlet.m.val_SI = air_tmp / 25
 
     def initialise_source(self, c, key):
         r"""
@@ -4334,35 +4400,42 @@ class combustion_chamber(component):
         if mode == 'post':
             self.ti.val = self.calc_ti()
 
-            n_fuel = 0
-            for i in self.inl:
-                n_fuel += i.m.val_SI * i.fluid.val[self.fuel.val] / molar_masses[self.fuel.val]
+            n_h = 0
+            n_c = 0
+            for f in self.fuel_list:
+                n_fuel = 0
+                for i in self.inl:
+                    n_fuel += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                    n_h += n_fuel * self.fuels[f]['H']
+                    n_c += n_fuel * self.fuels[f]['C']
 
             n_oxygen = 0
             for i in self.inl:
                 n_oxygen += i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2]
 
-            self.lamb.val = n_oxygen / (n_fuel * (self.n['C'] + self.n['H'] / 4))
+            n_oxygen_stoich = n_h / 4 + n_c
 
-            val = 0
-            T_ref = 293.15
-            p_ref = 1e5
+            self.lamb.val = n_oxygen / n_oxygen_stoich
 
-            for i in self.inl:
-                val += i.m.val_SI * (s_mix_ph(i.to_flow()) - s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-
-            for o in self.outl:
-                dS = 0
-                n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
-                if n_h2o > 0:
-                    p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
-                    S = s_pT(p, T_ref, self.h2o)
-                    S_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
-                    if S < S_steam:
-                        dS = (S_steam - S) * o.fluid.val[self.h2o]
-                val -= o.m.val_SI * (s_mix_ph(o.to_flow()) - s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dS)
-
-            self.S.val = val
+#            val = 0
+#            T_ref = 293.15
+#            p_ref = 1e5
+#
+#            for i in self.inl:
+#                val += i.m.val_SI * (s_mix_ph(i.to_flow()) - s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+#
+#            for o in self.outl:
+#                dS = 0
+#                n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
+#                if n_h2o > 0:
+#                    p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
+#                    S = s_pT(p, T_ref, self.h2o)
+#                    S_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+#                    if S < S_steam:
+#                        dS = (S_steam - S) * o.fluid.val[self.h2o]
+#                val -= o.m.val_SI * (s_mix_ph(o.to_flow()) - s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dS)
+#
+#            self.S.val = val
 
 # %%
 
@@ -5514,10 +5587,12 @@ class cogeneration_unit(combustion_chamber):
             eb_deriv[0, i + 4, 2] = -self.outl[i].m.val_SI
 
         # fluid composition
-        pos = 3 + self.fluids.index(self.fuel.val)
-        eb_deriv[0, 2, pos] = self.inl[2].m.val_SI * self.lhv
-        eb_deriv[0, 3, pos] = self.inl[3].m.val_SI * self.lhv
-        eb_deriv[0, 6, pos] = -self.outl[2].m.val_SI * self.lhv
+        for f in self.fuel_list:
+            pos = 3 + self.fluids.index(f)
+            lhv = self.fuels[f]['LHV']
+            eb_deriv[0, 2, pos] = self.inl[2].m.val_SI * lhv
+            eb_deriv[0, 3, pos] = self.inl[3].m.val_SI * lhv
+            eb_deriv[0, 6, pos] = -self.outl[2].m.val_SI * lhv
 
         # power and heat loss
         if self.P.is_var:
@@ -6177,14 +6252,19 @@ class cogeneration_unit(combustion_chamber):
 
                 \forall i \in [3,4]
         """
-        m = 0
-        for i in self.inl[2:]:
-            m += i.m.val_SI * i.fluid.val[self.fuel.val]
 
-        for o in self.outl[2:]:
-            m -= o.m.val_SI * o.fluid.val[self.fuel.val]
+        ti = 0
+        for f in self.fuel_list:
+            m = 0
+            for i in self.inl[2:]:
+                m += i.m.val_SI * i.fluid.val[f]
 
-        return m * self.lhv
+            for o in self.outl[2:]:
+                m -= o.m.val_SI * o.fluid.val[f]
+
+            ti += m * self.fuels[f]['LHV']
+
+        return ti
 
     def calc_P(self):
         r"""
@@ -6243,13 +6323,29 @@ class cogeneration_unit(combustion_chamber):
 
         n_fuel = 1
         lamb = 3
-        m_co2 = n_fuel * self.n['C'] * molar_masses[self.co2]
-        m_h2o = n_fuel * self.n['H'] / 2 * molar_masses[self.h2o]
+
+        fact_fuel = {}
+        sum_fuel = 0
+        for f in self.fuel_list:
+            fact_fuel[f] = 0
+            for i in self.inl:
+                fact_fuel[f] += i.fluid.val[f] / 2
+            sum_fuel += fact_fuel[f]
+
+        for f in self.fuel_list:
+            fact_fuel[f] /= sum_fuel
+
+        m_co2 = 0
+        m_h2o = 0
+        m_fuel = 0
+        for f in self.fuel_list:
+            m_co2 += n_fuel * self.fuels[f]['C'] * molar_masses[self.co2] * fact_fuel[f]
+            m_h2o += n_fuel * self.fuels[f]['H'] / 2 * molar_masses[self.h2o] * fact_fuel[f]
+            m_fuel += n_fuel * molar_masses[f] * fact_fuel[f]
 
         n_o2 = (m_co2 / molar_masses[self.co2] + 0.5 * m_h2o / molar_masses[self.h2o]) * lamb
 
         m_air = n_o2 * molar_masses[self.o2] / O_2
-        m_fuel = n_fuel * molar_masses[self.fuel.val]
         m_fg = m_air + m_fuel
 
         m_o2 = n_o2 * molar_masses[self.o2] * (1 - 1 / lamb)

@@ -4,10 +4,14 @@ v0.1.2 (July, some day, 2019)
 New Features
 ############
 - The water electrolyzer is available as new component of TESPy (`PR #73 <https://github.com/oemof/tespy/pull/73>`_).
+- The components :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` and :py:class:`Cogeneration unit <tespy.components.components.cogeneration_unit>`
+  now work with fuel mixtures, too. Specification of the component's fuel is not required anymore, the software automatically detects,
+  which fuels are connected to the component's inlets. Available fuels are: methane, ethane, propane, butane and hydrogen (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
 
 Documentation
 #############
 - Fix some typos in the docstrings and improvements of default values (`PR #69 <https://github.com/oemof/tespy/pull/69>`_ and `PR #71 <https://github.com/oemof/tespy/pull/71>`_).
+- Update combustion chamber tutorial (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
 
 Parameter renaming
 ##################
@@ -18,6 +22,7 @@ Testing
 Bug fixes
 #########
 - Fix convergence check for negative minimum enthalpy values (`PR #71 <https://github.com/oemof/tespy/pull/71>`_).
+- Add an error message if the user did not add any connections to the network (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
 
 Other changes
 #############

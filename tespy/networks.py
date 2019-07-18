@@ -737,7 +737,9 @@ class network:
                     cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
                     i = 0
                     for b in comps.loc[c].busses:
-                        self.busses[b].P_ref = comps.loc[c].bus_P_ref
+                        bus = self.busses[b].comps
+                        component = cp_sort.loc[c].comp
+                        bus.loc[component].P_ref = comps.loc[c].bus_P_ref[i]
                         i += 1
 
         # connections
@@ -2357,6 +2359,7 @@ class network:
                                    'p / (' + self.p_unit + ')',
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
+        print('##### RESULTS (connections) #####')
         for c in self.conns.index:
             row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
             df.loc[row] = (
@@ -2367,6 +2370,17 @@ class network:
                      self.T[self.T_unit][0]]
                     )
         print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
+
+        for b in self.busses.values():
+            print('##### RESULTS (' + b.label + ') #####')
+            df = pd.DataFrame(columns = ['component', 'value'])
+            df['cp'] = b.comps.index
+            df['ref'] = b.comps['P_ref'].values
+            df['component'] = df['cp'].apply(lambda x: x.label)
+            df['value'] = df['cp'].apply(lambda x: x.bus_func(b.comps.loc[x]))
+            df.set_index('component', inplace=True)
+            df.drop('cp', axis=1, inplace=True)
+            print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
     def print_components(c, *args):
         return c.name.get_attr(args[0]).val

@@ -9751,18 +9751,21 @@ class district_heating_pipe(heat_exchanger):
     @staticmethod
     def attr():
         return {'Q': dc_cp(),
+                'DN_type': dc_cp(),                     # According to EN 10255
                 'Q_u': dc_cp(),
                 'Q_l': dc_cp(),
                 'zeta1': dc_cp(min_val=1e4),
                 'zeta2': dc_cp(min_val=1e4),
-                'D': dc_cp(min_val=1e-2, max_val=2),    # Inner pipe diameter
-                'L': dc_cp(),                           # Pipe length
-                'lambda_ins': dc_cp(),                  # Thermal conductivity of the insulation
-                'lambda_soil': dc_cp(),                 # Thermal conductivity of the soil
-                'dist': dc_cp(d=0.2),                   # Distance between feed pipe and back pipe
-                'Dout': dc_cp(min_val=0.01),            # Outer diameter of the pipe
-                'depth': dc_cp(min_val=0.01, d=0.6),    # Height of the soil above the pipes
-                'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=.01),
+                'D': dc_cp(min_val=1e-2, max_val=2),   # Pipe inner diameter
+                'thickness': dc_cp(d=.0027),           # Pipe wall thickness
+                'L': dc_cp(),                          # Pipe length
+                'lambda_ins': dc_cp(),                 # Thermal conductivity of the insulation
+                'lambda_soil': dc_cp(),                # Thermal conductivity of the soil
+                'dist': dc_cp(),                       # Distance between outer diameters of feed pipe and
+                # back pipe
+                'Dout': dc_cp(min_val=0.01),           # Outer diameter of the pipe including insulation
+                'depth': dc_cp(min_val=0.01),          # Height of the soil above the pipes
+                'ks': dc_cp(min_val=1e-7, max_val=1e-4),
                 'Tamb': dc_cp(),
                 'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
                 'pr1': dc_cp(), 'pr2': dc_cp(),
@@ -9771,6 +9774,18 @@ class district_heating_pipe(heat_exchanger):
                 'zero_flag': dc_cp(printout=False)}
 
     def comp_init(self, nw):
+        known_types = {20: [.0216, .0027, .110],
+                       25: [.0285, .0026, .110],
+                       32: [.0372, .0026, .125],
+                       40: [.0431, .0026, .125]}
+
+        if self.DN_type.is_set:
+            self.D.val = known_types.get(self.DN_type.val)[0]
+            self.D.is_set = True
+            self.thickness.val = known_types.get(self.DN_type.val)[1]
+            self.thickness.is_set = True
+            self.Dout.val = known_types.get(self.DN_type.val)[2]
+            self.Dout.is_set = True
 
         component.comp_init(self, nw)
 
@@ -9873,9 +9888,10 @@ class district_heating_pipe(heat_exchanger):
         return vec_res
 
     def t0out_func(self):
+        # TODO: Split effect of losses to the ground and heat that is transferred between feed and back pipe.
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
-        r_r = self.D.val / 2
-        cp_w = 4184 # [J/(kg K)]
+        r_r = self.D.val / 2 + self.thickness.val
+        cp_w = 4184     # [J/(kg K)]
         r_m = self.Dout.val / 2
         u_r = 1 / (r_r / self.lambda_ins.val * math.log(r_m / r_r) +
                    r_r / self.lambda_soil.val * math.log(4 * (self.depth.val + r_m) / r_m) +
@@ -9887,7 +9903,7 @@ class district_heating_pipe(heat_exchanger):
 
     def t1out_func(self):
         i, o = self.inl[1].to_flow(), self.outl[1].to_flow()
-        r_r = self.D.val / 2
+        r_r = self.D.val / 2 + self.thickness.val
         cp_w = 4184
         r_m = self.Dout.val / 2
         u_r = 1 / (r_r / self.lambda_ins.val * math.log(r_m / r_r) +
@@ -10134,69 +10150,3 @@ class district_heating_pipe(heat_exchanger):
             return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
                     self.L.val * lamb(re, self.ks.val, self.D.val) /
                     (math.pi ** 2 * self.D.val ** 5))
-
-
-
-# def ttd_u_func(self):
-    #     r"""
-    #     Equation for upper terminal temperature difference.
-    #
-    #     Returns
-    #     -------
-    #     res : float
-    #         Residual value of equation.
-    #
-    #         .. math::
-    #
-    #             res = ttd_{u} - T_{1,in} + T_{2,out}
-    #     """
-    #     i1 = self.inl[0].to_flow()
-    #     o1 = self.outl[0].to_flow()
-    #     return self.ttd_u.val - T_mix_ph(i1) + T_mix_ph(o1)
-    #
-    # def ttd_u_deriv(self):
-    #     r"""
-    #     Calculates the matrix of partial derivatives for upper temperature difference equation.
-    #
-    #     Returns
-    #     -------
-    #     deriv : list
-    #         Matrix of partial derivatives.
-    #     """
-    #     deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-    #     for i in [0, 2]:
-    #         deriv[0, i, 1] = self.numeric_deriv(self.ttd_u_func, 'p', i)
-    #         deriv[0, i, 2] = self.numeric_deriv(self.ttd_u_func, 'h', i)
-    #     return deriv.tolist()
-    #
-    # def ttd_l_deriv(self):
-    #     r"""
-    #     Calculates the matrix of partial derivatives for lower temperature difference equation.
-    #
-    #     Returns
-    #     -------
-    #     deriv : list
-    #         Matrix of partial derivatives.
-    #     """
-    #     deriv = np.zeros((1, 4, len(self.inl[1].fluid.val) + 3))
-    #     for i in [1, 3]:
-    #         deriv[0, i, 1] = self.numeric_deriv(self.ttd_l_func, 'p', i)
-    #         deriv[0, i, 2] = self.numeric_deriv(self.ttd_l_func, 'h', i)
-    #     return deriv.tolist()
-    #
-    # def ttd_l_func(self):
-    #     r"""
-    #     Equation for upper terminal temperature difference.
-    #
-    #     Returns
-    #     -------
-    #     res : float
-    #         Residual value of equation.
-    #
-    #         .. math::
-    #
-    #             res = ttd_{l} - T_{1,out} + T_{2,in}
-    #     """
-    #     i2 = self.inl[1].to_flow()
-    #     o2 = self.outl[1].to_flow()
-    #     return self.ttd_l.val - T_mix_ph(o2) + T_mix_ph(i2)

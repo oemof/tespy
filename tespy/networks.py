@@ -2378,6 +2378,8 @@ class network:
             df['ref'] = b.comps['P_ref'].values
             df['component'] = df['cp'].apply(lambda x: x.label)
             df['value'] = df['cp'].apply(lambda x: x.bus_func(b.comps.loc[x]))
+            df.loc['total'] = df.sum()
+            df.loc['total', 'component'] = 'total'
             df.set_index('component', inplace=True)
             df.drop('cp', axis=1, inplace=True)
             print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))

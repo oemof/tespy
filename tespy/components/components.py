@@ -9781,9 +9781,11 @@ class district_heating_pipe(heat_exchanger):
 
         if self.DN_type.is_set:
             if self.DN_type.val not in known_types:
+                if not isinstance(self.DN_type.val, int):
+                    raise TESPyComponentError('Pipe type description must be an integer value!')
                 self.DN_type.val = min(known_types, key=lambda x: abs(x - self.DN_type.val))
-                logging.info('Could not find pipe data for given pipe diameter. Changed to nearest knwon value ' +
-                             self.DN_type.val)
+                logging.warning('Could not find pipe data for given pipe diameter! Changed to nearest known value ' +
+                             str(self.DN_type.val) + '.')
             self.D.val = known_types.get(self.DN_type.val)[0]
             self.D.is_set = True
             self.thickness.val = known_types.get(self.DN_type.val)[1]

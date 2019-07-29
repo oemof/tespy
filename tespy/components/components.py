@@ -8571,7 +8571,7 @@ class solar_collector(heat_exchanger_simple):
         Absorption on the inclined surface, :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
     lkf_lin : str/float/tespy.helpers.dc_cp
-        Linear loss key figure, :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}}`.
+        Linear loss key figure, :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
     lkf_quad : str/float/tespy.helpers.dc_cp
         Quadratic loss key figure, :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
@@ -8584,6 +8584,12 @@ class solar_collector(heat_exchanger_simple):
 
     energy_group : tespy.helpers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
+
+    Note
+    ----
+    The solar collector does not take optical losses into accout. The incoming
+    radiation E represents the actual absorption of the solar collector. Optical
+    losses should be handeled in preprocessing.
 
     Example
     -------
@@ -8608,13 +8614,13 @@ class solar_collector(heat_exchanger_simple):
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> round(sc.A.val, 1)
-    15.8
+    13.3
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(sc.Q.val, 1)
-    5848.8
+    6097.3
     >>> round(outg.T.val, 1)
-    69.3
+    70.5
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -8752,10 +8758,11 @@ class solar_collector(heat_exchanger_simple):
 
                 T_m = \frac{T_{out} + T_{in}}{2}\\
 
-                0 = \dot{m} \cdot \left( h_{out} - h_{in} \right) -
-                A \cdot \left\{E - \left(T_m - T_{amb} \right) \cdot
-                \left[ \alpha_1 + \alpha_2 \cdot A \cdot \left(\
-                T_m - T_{amb}\right) \right] \right\}
+                \begin{split}
+                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+                & - A \cdot \left[E - \alpha_1 \cdot \left(T_m - T_{amb} \right)
+                - \alpha_2 \cdot \left(T_m - T_{amb}\right)^2 \right]
+                \end{split}
         """
 
         i = self.inl[0].to_flow()
@@ -8764,7 +8771,7 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i) + T_mix_ph(o)) / 2
 
         return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val - (T_m - self.Tamb.val_SI) *
-                (self.lkf_lin.val + self.lkf_quad.val * self.A.val * (T_m - self.Tamb.val_SI))))
+                self.lkf_lin.val - self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self, mode):
         r"""

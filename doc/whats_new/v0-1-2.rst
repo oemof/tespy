@@ -13,6 +13,7 @@ Documentation
 #############
 - Fix some typos in the docstrings and improvements of default values (`PR #69 <https://github.com/oemof/tespy/pull/69>`_ and `PR #71 <https://github.com/oemof/tespy/pull/71>`_).
 - Update combustion chamber tutorial (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
+- Improve API documentation of the solar collector: Handling of optical losses (`PR #83 <https://github.com/oemof/tespy/pull/83>`_).
 
 Parameter renaming
 ##################
@@ -25,6 +26,7 @@ Bug fixes
 - Fix convergence check for negative minimum enthalpy values (`PR #71 <https://github.com/oemof/tespy/pull/71>`_).
 - Add an error message if the user did not add any connections to the network (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
 - Fix loading bus information from design-case .csv-file. Components can be attached to multiple busses now (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
+- Fix solar collector energy balance equation and adjust documentation (`PR #83 <https://github.com/oemof/tespy/pull/83>`_).
 
 Other changes
 #############

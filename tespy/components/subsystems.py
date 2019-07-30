@@ -13,6 +13,7 @@ import logging
 from tespy import networks as nwk
 from tespy.connections import connection, ref
 from tespy.components import components as cmp
+from tespy.tools.helpers import TESPyComponentError
 
 
 class subsystem:
@@ -540,3 +541,134 @@ class ph_desup_cond_subc(subsystem):
                                   self.condenser, 'in2')]
         self.conns += [connection(self.condenser, 'out2', self.desup, 'in2')]
         self.conns += [connection(self.desup, 'out2', self.outlet, 'in2')]
+
+
+class dh_consumer_block(subsystem):
+    def __init__(self, label, num_consumer, **kwargs):
+        self.num_consumer = num_consumer
+        super().__init__(label, **kwargs)
+
+
+    def attr(self):
+
+        values = ([n for n in subsystem.attr(self) if
+                   n != 'num_i' and n != 'num_o'])
+
+        for i in range(self.num_consumer):
+            j = str(i)
+            values += ['pr' + j, 'Q' + j, 'DN_type' + j, 'L' + j, 'ks' + j, 'T' + j, 'root_dist' + j]  # 'pr' + i -> pr0,
+            # root_dist is the distance from the splitter for the consumer connection to the main pipe
+
+        values += ['Tamb']
+        values += ['DN_main']
+        values += ['ks_main']
+        values += ['lambda_ins']
+        values += ['lambda_soil']
+        values += ['depth']
+        values += ['dist']
+
+
+        return values
+
+    def create_comps(self):
+
+        self.num_i = 1
+        self.num_o = 1
+        self.inlet = cmp.subsys_interface(label=self.label + '_inlet',
+                                          num_inter=self.num_i)
+        self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
+                                           num_inter=self.num_o)
+
+        self.splitter = []
+        self.merge = []
+        self.heat_ex = []
+        self.valve = []
+        self.main_pipe = []
+        self.consumer_pipe = []
+        for i in range(self.num_consumer):
+            j = str(i)
+            if self.num_consumer != 1:
+                self.splitter += [cmp.splitter(label=self.label + '_splitter_' + j, num_out=2)]
+                if i != self.num_consumer:
+                    self.merge += [cmp.merge(label=self.label + '_merge_' + j)]
+            self.heat_ex += [cmp.heat_exchanger_simple(label=self.label + '_heat exchanger_' + j, mode='man')]
+            self.valve += [cmp.valve(label=self.label + '_valve_' + j, mode='man')]
+            self.main_pipe += [cmp.district_heating_pipe(label=self.label + '_main pipe part_' + j)]
+            self.consumer_pipe += [cmp.district_heating_pipe(label=self.label + '_consumer connection pipe_' + j)]
+
+    def set_comps(self):
+        installed_main_pipe_length = 0
+        for i in range(self.num_consumer):
+            j = str(i)
+            self.heat_ex[i].set_attr(pr=self.get_attr('pr' + j))
+            self.heat_ex[i].set_attr(Q=self.get_attr('Q' + j))
+
+            this_main_pipe_length = self.get_attr('root_dist' + j) - installed_main_pipe_length
+            installed_main_pipe_length += this_main_pipe_length
+
+            self.main_pipe[i].set_attr(L=this_main_pipe_length)
+            self.main_pipe[i].set_attr(ks=self.get_attr('ks' + j))
+            self.main_pipe[i].set_attr(Tamb=self.get_attr('Tamb'))
+            self.main_pipe[i].set_attr(DN_type=self.get_attr('DN_main'))
+            self.main_pipe[i].set_attr(lambda_ins=self.get_attr('lambda_ins'))
+            self.main_pipe[i].set_attr(lambda_soil=self.get_attr('lambda_soil'))
+            self.main_pipe[i].set_attr(depth=self.get_attr('depth'))
+            self.main_pipe[i].set_attr(dist=self.get_attr('dist'))
+
+            self.consumer_pipe[i].set_attr(ks=self.get_attr('ks' + j))
+            self.consumer_pipe[i].set_attr(Tamb=self.get_attr('Tamb'))
+            self.consumer_pipe[i].set_attr(L=self.get_attr('L' + j))
+            self.consumer_pipe[i].set_attr(DN_type=self.get_attr('DN_type' + j))
+            self.consumer_pipe[i].set_attr(lambda_ins=self.get_attr('lambda_ins'))
+            self.consumer_pipe[i].set_attr(lambda_soil=self.get_attr('lambda_soil'))
+            self.consumer_pipe[i].set_attr(depth=self.get_attr('depth'))
+            self.consumer_pipe[i].set_attr(dist=self.get_attr('dist'))
+
+            self.valve[i].set_attr(pr=self.get_attr('pr0'))
+
+    def create_conns(self):
+
+        self.conns = []
+
+        if self.num_consumer == 1:
+            self.conns += [connection(self.inlet, 'out1',
+                                      self.valve[0], 'in1')]
+            self.conns += [connection(self.valve[0], 'out1',
+                                      self.consumer_pipe[0], 'in1')]
+            self.conns += [connection(self.consumer_pipe[0], 'out1',
+                                      self.heat_ex[0], 'in1')]
+            self.conns += [connection(self.heat_ex[0], 'out1',
+                                      self.consumer_pipe[0], 'in2',
+                                      T=self.get_attr('T0'))]
+            self.conns += [connection(self.consumer_pipe[0], 'out2',
+                                      self.outlet, 'in1')]
+        else:
+            for i in range(self.num_consumer):
+                if i == 0:
+                    self.conns += [connection(self.inlet, 'out1',
+                                              self.main_pipe[i], 'in1')]
+                    self.conns += [connection(self.main_pipe[i], 'out2',
+                                              self.outlet, 'in1')]
+                else:
+                    self.conns += [connection(self.splitter[i - 1], 'out1',
+                                              self.main_pipe[i], 'in1')]
+                    self.conns += [connection(self.main_pipe[i], 'out2',
+                                              self.merge[i - 1], 'in1')]
+                self.conns += [connection(self.main_pipe[i], 'out1',
+                                          self.splitter[i], 'in1')]
+                self.conns += [connection(self.splitter[i], 'out2',
+                                          self.consumer_pipe[i], 'in1')]
+                self.conns += [connection(self.consumer_pipe[i], 'out1',
+                                          self.heat_ex[i], 'in1')]
+                self.conns += [connection(self.heat_ex[i], 'out1',
+                                          self.consumer_pipe[i], 'in2', T=self.get_attr('T' + str(i)))]
+                if i == self.num_consumer:
+                    self.conns += [connection(self.consumer_pipe[i], 'out2',
+                                              self.main_pipe[i], 'in2')]
+                else:
+                    self.conns += [connection(self.consumer_pipe[i], 'out2',
+                                              self.merge[i], 'in2')]
+                    self.conns += [connection(self.merge[i], 'out1',
+                                              self.main_pipe[i], 'in2')]
+
+

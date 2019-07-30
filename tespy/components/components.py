@@ -10827,10 +10827,29 @@ class district_heating_pipe(heat_exchanger):
                 'zero_flag': dc_cp(printout=False)}
 
     def comp_init(self, nw):
-        known_types = {20: [.0216, .0027, .110],
-                       25: [.0285, .0026, .110],
-                       32: [.0372, .0026, .125],
-                       40: [.0431, .0026, .125]}
+        # KMR pipes with medium insulation strength
+        known_types = {20:	[0.0216, 0.00265,	0.11],
+                       25:	[0.0285, 0.0026,	0.11],
+                       32:	[0.0372, 0.0026,	0.125],
+                       40:	[0.0431, 0.0026,	0.125],
+                       50:	[0.0545, 0.0029,	0.14],
+                       65:	[0.0703, 0.0029,	0.16],
+                       80:	[0.0825, 0.0032,	0.18],
+                       100:	[0.1071, 0.0036,	0.225],
+                       125:	[0.1325, 0.0036,	0.25],
+                       150:	[0.1603, 0.004,		0.28],
+                       200:	[0.2101, 0.0045,	0.355],
+                       250:	[0.263,	 0.005,		0.45],
+                       300:	[0.3127, 0.0056,	0.5],
+                       350:	[0.3444, 0.0056,	0.56],
+                       400:	[0.3938, 0.0063,	0.63],
+                       450:	[0.4446, 0.0063,	0.67],
+                       500:	[0.4954, 0.0063,	0.8],
+                       600:	[0.5958, 0.0071,	0.9],
+                       700:	[0.695,	 0.008,		1],
+                       800:	[0.7954, 0.0088,	1.1],
+                       900:	[0.894,	 0.01,		1.2],
+                       1000: [0.994, 0.011,		1.3]}
 
         if self.DN_type.is_set:
             if self.DN_type.val not in known_types:
@@ -10956,7 +10975,6 @@ class district_heating_pipe(heat_exchanger):
                    r_r / self.lambda_soil.val * math.log(4 * (self.depth.val + r_m) / r_m) +
                    r_r / self.lambda_soil.val * math.log(
                     (((2 * (self.depth.val + r_m) / (self.dist.val + 2 * r_m)) ** 2) + 1) ** .5))
-        # print("U_R Vorlauf: " + str(u_r))
         return T_mix_ph(o) - (self.Tamb.val_SI + (T_mix_ph(i) - self.Tamb.val_SI) * math.exp(
             0 - ((u_r * 2 * math.pi * r_r * self.L.val) / (cp_w * self.inl[0].m.val_SI))))
 
@@ -10969,7 +10987,6 @@ class district_heating_pipe(heat_exchanger):
                    r_r / self.lambda_soil.val * math.log(4 * (self.depth.val + r_m) / r_m) +
                    r_r / self.lambda_soil.val * math.log(
                     (((2 * (self.depth.val + r_m) / (self.dist.val + 2 * r_m)) ** 2) + 1) ** .5))
-        # print("U_R Ruecklauf: " + str(u_r))
         return T_mix_ph(o) - (self.Tamb.val_SI + (T_mix_ph(i) - self.Tamb.val_SI) * math.exp(
             0 - ((u_r * 2 * math.pi * r_r * self.L.val) / (cp_w * self.inl[1].m.val_SI))))
 

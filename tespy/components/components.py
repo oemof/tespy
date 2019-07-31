@@ -2131,7 +2131,7 @@ class turbine(turbomachine):
 
     def eta_s_func(self):
         r"""
-        Equation for given isentropic efficiency of a compressor.
+        Equation for given isentropic efficiency of a turbine.
 
         Returns
         -------
@@ -4052,7 +4052,10 @@ class combustion_chamber(component):
             if n_h2o > 0:
                 p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = h_pT(p, T_ref, self.h2o)
-                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                try:
+                    h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                except ValueError:
+                    h_steam = CP.PropsSI('H', 'P', 615, 'Q', 1, self.h2o)
                 if h < h_steam:
                     dh = (h_steam - h) * o.fluid.val[self.h2o]
 
@@ -4289,19 +4292,19 @@ class combustion_chamber(component):
                 elif f == self.o2:
                     if o.fluid.val[f] > 0.25:
                         o.fluid.val[f] = 0.2
-                    if o.fluid.val[f] < 0.05:
+                    if o.fluid.val[f] < 0.001:
                         o.fluid.val[f] = 0.05
 
                 elif f == self.co2:
-                    if o.fluid.val[f] > 0.075:
+                    if o.fluid.val[f] > 0.1:
                         o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.02:
+                    if o.fluid.val[f] < 0.001:
                         o.fluid.val[f] = 0.02
 
                 elif f == self.h2o:
-                    if o.fluid.val[f] > 0.075:
+                    if o.fluid.val[f] > 0.1:
                         o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.02:
+                    if o.fluid.val[f] < 0.001:
                         o.fluid.val[f] = 0.02
 
                 elif f in self.fuel_list:

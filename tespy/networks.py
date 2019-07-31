@@ -876,6 +876,12 @@ class network:
             logging.debug(msg)
             return
 
+        # fluid propagation from set values
+        for c in self.conns.index:
+            if any(c.fluid.val_set.values()):
+                self.init_target(c, c.t)
+                self.init_source(c, c.s)
+
         # fluid propagation for combustion chambers
         for cp in self.comps.index:
             if isinstance(cp, cmp.combustion_chamber):

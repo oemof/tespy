@@ -1849,15 +1849,18 @@ class compressor(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-            o[0].p.val_SI = o[0].p.val_SI * 2
-        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-            i[0].p.val_SI = o[0].p.val_SI * 0.5
+        if o[0].init_csv is False:
+            if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+                o[0].p.val_SI = o[0].p.val_SI * 2
 
-        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-            o[0].h.val_SI = o[0].h.val_SI * 1.1
-        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-            i[0].h.val_SI = o[0].h.val_SI * 0.9
+            if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+                o[0].h.val_SI = o[0].h.val_SI * 1.1
+
+        if i[0].init_csv is False:
+            if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+                i[0].p.val_SI = o[0].p.val_SI * 0.5
+            if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+                i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     def initialise_source(self, c, key):
         r"""
@@ -2264,20 +2267,22 @@ class turbine(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
-            i[0].p.val_SI = 1e5
+        if i[0].init_csv is False:
+            if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
+                i[0].p.val_SI = 1e5
 
-        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
-            o[0].p.val_SI = i[0].p.val_SI / 2
+            if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
+                i[0].h.val_SI = 10e5
 
-        if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
-            i[0].h.val_SI = 10e5
+        if o[0].init_csv is False:
+            if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
+                o[0].h.val_SI = i[0].h.val_SI * 0.75
 
-        if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
-            o[0].h.val_SI = 5e5
+            if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
+                o[0].p.val_SI = i[0].p.val_SI / 2
 
-        if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
-            o[0].h.val_SI = i[0].h.val_SI * 0.75
+            if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
+                o[0].h.val_SI = 5e5
 
     def initialise_source(self, c, key):
         r"""
@@ -4273,54 +4278,57 @@ class combustion_chamber(component):
 
         m = 0
         for i in inl:
-            if i.m.val_SI < 0 and not i.m.val_set:
-                i.m.val_SI = 0.01
-            m += i.m.val_SI
+            if i.init_csv is False:
+                if i.m.val_SI < 0 and not i.m.val_set:
+                    i.m.val_SI = 0.01
+                m += i.m.val_SI
 
         ######################################################################
         # check fluid composition
         for o in outl:
-            fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
-            for f in fluids:
-                if f not in [self.o2, self.co2, self.h2o] + self.fuel_list:
-                    m_f = 0
-                    for i in inl:
-                        m_f += i.fluid.val[f] * i.m.val_SI
+            if o.init_csv is False:
+                fluids = [f for f in o.fluid.val.keys() if not o.fluid.val_set[f]]
+                for f in fluids:
+                    if f not in [self.o2, self.co2, self.h2o] + self.fuel_list:
+                        m_f = 0
+                        for i in inl:
+                            m_f += i.fluid.val[f] * i.m.val_SI
 
-                    if abs(o.fluid.val[f] - m_f / m) > 0.03:
-                        o.fluid.val[f] = m_f / m
+                        if abs(o.fluid.val[f] - m_f / m) > 0.03:
+                            o.fluid.val[f] = m_f / m
 
-                elif f == self.o2:
-                    if o.fluid.val[f] > 0.25:
-                        o.fluid.val[f] = 0.2
-                    if o.fluid.val[f] < 0.001:
-                        o.fluid.val[f] = 0.05
+                    elif f == self.o2:
+                        if o.fluid.val[f] > 0.25:
+                            o.fluid.val[f] = 0.2
+                        if o.fluid.val[f] < 0.001:
+                            o.fluid.val[f] = 0.05
 
-                elif f == self.co2:
-                    if o.fluid.val[f] > 0.1:
-                        o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.001:
-                        o.fluid.val[f] = 0.02
+                    elif f == self.co2:
+                        if o.fluid.val[f] > 0.1:
+                            o.fluid.val[f] = 0.075
+                        if o.fluid.val[f] < 0.001:
+                            o.fluid.val[f] = 0.02
 
-                elif f == self.h2o:
-                    if o.fluid.val[f] > 0.1:
-                        o.fluid.val[f] = 0.075
-                    if o.fluid.val[f] < 0.001:
-                        o.fluid.val[f] = 0.02
+                    elif f == self.h2o:
+                        if o.fluid.val[f] > 0.1:
+                            o.fluid.val[f] = 0.075
+                        if o.fluid.val[f] < 0.001:
+                            o.fluid.val[f] = 0.02
 
-                elif f in self.fuel_list:
-                    if o.fluid.val[f] > 0:
-                        o.fluid.val[f] = 0
+                    elif f in self.fuel_list:
+                        if o.fluid.val[f] > 0:
+                            o.fluid.val[f] = 0
 
         ######################################################################
         # flue gas propagation
         for o in outl:
-            if o.m.val_SI < 0 and not o.m.val_set:
-                o.m.val_SI = 10
-            nw.init_target(o, o.t)
+            if o.init_csv is False:
+                if o.m.val_SI < 0 and not o.m.val_set:
+                    o.m.val_SI = 10
+                nw.init_target(o, o.t)
 
-            if o.h.val_SI < 7.5e5 and not o.h.val_set:
-                o.h.val_SI = 1e6
+                if o.h.val_SI < 7.5e5 and not o.h.val_set:
+                    o.h.val_SI = 1e6
 
         ######################################################################
         # additional checks for performance improvement
@@ -4328,17 +4336,18 @@ class combustion_chamber(component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                fuel = 0
-                for f in self.fuel_list:
-                    fuel += i.fluid.val[f]
-                # found the fuel inlet
-                if fuel > 0.75 and not i.m.val_set:
-                    fuel_found = True
-                    fuel_inlet = i
+                if i.init_csv is False:
+                    fuel = 0
+                    for f in self.fuel_list:
+                        fuel += i.fluid.val[f]
+                    # found the fuel inlet
+                    if fuel > 0.75 and not i.m.val_set:
+                        fuel_found = True
+                        fuel_inlet = i
 
-                # found the air inlet
-                if fuel < 0.75:
-                    air_tmp = i.m.val_SI
+                    # found the air inlet
+                    if fuel < 0.75:
+                        air_tmp = i.m.val_SI
 
             if fuel_found is True:
                 fuel_inlet.m.val_SI = air_tmp / 25

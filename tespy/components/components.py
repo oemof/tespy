@@ -3867,9 +3867,10 @@ class combustion_chamber(component):
         for f in self.fuel_list:
             n_fuel[f] = 0
             for i in inl:
-                n_fuel[f] += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
-                n_h += n_fuel[f] * self.fuels[f]['H']
-                n_c += n_fuel[f] * self.fuels[f]['C']
+                n = i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                n_fuel[f] += n
+                n_h += n * self.fuels[f]['H']
+                n_c += n * self.fuels[f]['C']
 
             # stoichiometric oxygen requirement for each fuel
             n_oxy_stoich[f] = n_fuel[f] * (self.fuels[f]['H'] / 4 + self.fuels[f]['C'])

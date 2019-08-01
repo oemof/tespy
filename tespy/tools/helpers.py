@@ -672,7 +672,7 @@ class tespy_fluid:
         path = self.path + '/' + alias + '/' + name + '.csv'
         df = pd.read_csv(path, index_col=0)
 
-        x1 = df.index.get_values()
+        x1 = df.index.values
         x2 = np.array(list(map(float, list(df))))
         y = df.values
 #

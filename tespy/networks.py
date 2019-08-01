@@ -1044,6 +1044,7 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
+            c.init_csv = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if not c.get_attr(key).unit_set and key != 'x':
                     if key == 'Td_bp':
@@ -1069,6 +1070,7 @@ class network:
 
         # fluid properties with referenced objects
         for c in self.conns.index:
+            c.init_csv = False
             for key in ['m', 'p', 'h', 'T']:
                 if c.get_attr(key).ref_set and not c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = (
@@ -1176,6 +1178,7 @@ class network:
                 c.p.val0 = c.p.val_SI / self.p[c.p.unit]
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
+                c.init_csv = True
             else:
                 msg = 'Could not find connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') in .csv-file.'
                 logging.debug(msg)
@@ -1391,11 +1394,11 @@ class network:
                     msg = ('--------+----------+----------+----------+----------+----------+---------')
                 print(msg)
 
-            msg = ('Total iterations: ' + str(self.iter) + ', '
+            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
                    'Calculation time: ' +
                    str(round(self.end_time - self.start_time, 1)) + ' s, '
                    'Iterations per second: ' +
-                   str(round((self.iter) / (self.end_time - self.start_time), 2)))
+                   str(round((self.iter + 1) / (self.end_time - self.start_time), 2)))
             logging.debug(msg)
             if self.iterinfo:
                 print(msg)
@@ -1489,7 +1492,7 @@ class network:
                 c_vars += cp.num_vars
 
         # second property check for first three iterations without an init_file
-        if self.iter < 3 and self.init_path is None:
+        if self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
@@ -1576,7 +1579,7 @@ class network:
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
 
-        elif self.iter < 4 and self.init_path is None:
+        elif self.iter < 4 and c.init_csv is False:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]

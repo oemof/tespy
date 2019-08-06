@@ -189,6 +189,7 @@ class network:
         self.v_unit = self.SI_units['v']
 
         # standard value range
+        self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
         self.h_range_SI = np.array([1e3, 7e6])
         self.T_range_SI = np.array([273.16, 1773.15])
@@ -216,10 +217,13 @@ class network:
             Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
 
         h_unit : str
-            Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
+            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
 
         T_unit : str
-            Specify the unit for mass flow: 'K', 'C', 'F'.
+            Specify the unit for temperature: 'K', 'C', 'F'.
+
+        m_range : list
+            List with minimum and maximum values for mass flow value range.
 
         p_range : list
             List with minimum and maximum values for pressure value range.
@@ -232,7 +236,7 @@ class network:
 
         Note
         ----
-        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting printouts.
+        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting iterinfo printouts.
         """
         # add attributes from kwargs
         for key in kwargs:
@@ -279,13 +283,27 @@ class network:
         logging.debug(msg)
 
         # value ranges
+        if 'm_range' in kwargs.keys():
+            if not isinstance(kwargs['m_range'], list):
+                msg = ('Specify the value range as list: [m_min, m_max]')
+                logging.error(msg)
+                raise TypeError(msg)
+            else:
+                self.m_range_SI = np.array(kwargs['m_range']) * self.m[self.m_unit]
+        else:
+            self.m_range = self.m_range_SI / self.m[self.m_unit]
+
+        msg = ('Setting pressure range, min: ' + str(self.m_range_SI[0]) + ' ' + self.SI_units['m'] +
+               ', max: ' + str(self.m_range_SI[1]) + ' ' + self.SI_units['m'] + '.')
+        logging.debug(msg)
+
         if 'p_range' in kwargs.keys():
-            if not isinstance(self.p_range, list):
+            if not isinstance(kwargs['p_range'], list):
                 msg = ('Specify the value range as list: [p_min, p_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.p_range_SI = np.array(self.p_range) * self.p[self.p_unit]
+                self.p_range_SI = np.array(kwargs['p_range']) * self.p[self.p_unit]
         else:
             self.p_range = self.p_range_SI / self.p[self.p_unit]
 
@@ -294,12 +312,12 @@ class network:
         logging.debug(msg)
 
         if 'h_range' in kwargs.keys():
-            if not isinstance(self.h_range, list):
+            if not isinstance(kwargs['h_range'], list):
                 msg = ('Specify the value range as list: [h_min, h_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.h_range_SI = np.array(self.h_range) * self.h[self.h_unit]
+                self.h_range_SI = np.array(kwargs['h_range']) * self.h[self.h_unit]
         else:
             self.h_range = self.h_range_SI / self.h[self.h_unit]
 
@@ -308,12 +326,12 @@ class network:
         logging.debug(msg)
 
         if 'T_range' in kwargs.keys():
-            if not isinstance(self.T_range, list):
+            if not isinstance(kwargs['T_range'], list):
                 msg = ('Specify the value range as list: [T_min, T_max]')
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.T_range_SI = (np.array(self.T_range) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
+                self.T_range_SI = (np.array(kwargs['T_range']) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
         else:
             self.T_range = self.T_range_SI / self.T[self.T_unit][1] - self.T[self.T_unit][0]
 
@@ -477,7 +495,7 @@ class network:
                 msg = 'Added bus ' + b.label + ' to network.'
                 logging.debug(msg)
 
-    def del_busses(self, b):
+    def del_busses(self, *args):
         r"""
         Removes one or more busses from the network.
 
@@ -486,10 +504,11 @@ class network:
         b : tespy.connections.bus
             The bus to be removed from the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
         """
-        if b in self.busses:
-            del self.busses[b.label]
-            msg = 'Deleted bus ' + b.label + ' from network.'
-            logging.debug(msg)
+        for b in args:
+            if b in self.busses.values():
+                del self.busses[b.label]
+                msg = 'Deleted bus ' + b.label + ' from network.'
+                logging.debug(msg)
 
     def check_busses(self, b):
         r"""
@@ -610,6 +629,13 @@ class network:
             - Set component and connection design point properties.
             - Switch from design/offdesign parameter specification.
         """
+        if len(self.conns) == 0:
+            msg = ('No connections have been added to the network, please '
+                   'make sure to add your connections with the '
+                   '.add_conns() method.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
         if len(self.fluids) == 0:
             msg = ('Network has no fluids, please specify a list with fluids on network creation.')
             logging.error(msg)
@@ -711,7 +737,9 @@ class network:
                     cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
                     i = 0
                     for b in comps.loc[c].busses:
-                        self.busses[b].P_ref = comps.loc[c].bus_P_ref
+                        bus = self.busses[b].comps
+                        component = cp_sort.loc[c].comp
+                        bus.loc[component].P_ref = comps.loc[c].bus_P_ref[i]
                         i += 1
 
         # connections
@@ -848,9 +876,19 @@ class network:
             logging.debug(msg)
             return
 
+        # fluid propagation from set values
+        for c in self.conns.index:
+            if any(c.fluid.val_set.values()):
+                self.init_target(c, c.t)
+                self.init_source(c, c.s)
+
         # fluid propagation for combustion chambers
         for cp in self.comps.index:
             if isinstance(cp, cmp.combustion_chamber):
+                cp.initialise_fluids(self)
+                for c in self.comps.loc[cp].o:
+                    self.init_target(c, c.t)
+            elif isinstance(cp, cmp.water_electrolyzer):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
@@ -906,6 +944,14 @@ class network:
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
+
+        if isinstance(c.t, cmp.water_electrolyzer):
+            if c == self.comps.loc[c.t].i[0]:
+                outconn = self.comps.loc[c.t].o[0]
+
+                for fluid, x in c.fluid.val.items():
+                    if not outconn.fluid.val_set[fluid]:
+                        outconn.fluid.val[fluid] = x
 
         if isinstance(c.t, cmp.cogeneration_unit):
             for outconn in self.comps.loc[c.t].o[:2]:
@@ -998,6 +1044,7 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
+            c.init_csv = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if not c.get_attr(key).unit_set and key != 'x':
                     if key == 'Td_bp':
@@ -1023,6 +1070,7 @@ class network:
 
         # fluid properties with referenced objects
         for c in self.conns.index:
+            c.init_csv = False
             for key in ['m', 'p', 'h', 'T']:
                 if c.get_attr(key).ref_set and not c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = (
@@ -1130,6 +1178,7 @@ class network:
                 c.p.val0 = c.p.val_SI / self.p[c.p.unit]
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
+                c.init_csv = True
             else:
                 msg = 'Could not find connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') in .csv-file.'
                 logging.debug(msg)
@@ -1162,9 +1211,6 @@ class network:
 
         init_only : boolean
             Perform initialisation only? default: :code:`False`.
-
-        path_abs : boolean
-            Absolute path specified?
 
         Note
         ----
@@ -1348,11 +1394,11 @@ class network:
                     msg = ('--------+----------+----------+----------+----------+----------+---------')
                 print(msg)
 
-            msg = ('Total iterations: ' + str(self.iter) + ', '
+            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
                    'Calculation time: ' +
                    str(round(self.end_time - self.start_time, 1)) + ' s, '
                    'Iterations per second: ' +
-                   str(round((self.iter) / (self.end_time - self.start_time), 2)))
+                   str(round((self.iter + 1) / (self.end_time - self.start_time), 2)))
             logging.debug(msg)
             if self.iterinfo:
                 print(msg)
@@ -1446,7 +1492,7 @@ class network:
                 c_vars += cp.num_vars
 
         # second property check for first three iterations without an init_file
-        if self.iter < 3 and self.init_path is None:
+        if self.iter < 3:
             for cp in self.comps.index:
                 cp.convergence_check(self)
 
@@ -1472,8 +1518,12 @@ class network:
         """
         if prop == 'p':
             msg = 'Pressure '
-        else:
+        elif prop == 'h':
             msg = 'Enthalpy '
+        elif prop == 'm':
+            msg = 'Mass flow '
+        else:
+            msg = 'Unspecified '
         msg += ('out of fluid property range at connection ' +
                c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id +
                ') adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' + self.SI_units[prop] + '.')
@@ -1510,10 +1560,10 @@ class network:
 
             hmax = hlp.h_pT(c.p.val_SI, hlp.memorise.vrange[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
-                if c.h.val_SI < 0:
-                    c.h.val_SI = hmin / 1.1
+                if hmin < 0:
+                    c.h.val_SI = hmin / 1.05
                 else:
-                    c.h.val_SI = hmin * 1.1
+                    c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9
@@ -1529,7 +1579,7 @@ class network:
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
 
-        elif self.iter < 4 and self.init_path is None:
+        elif self.iter < 4 and c.init_csv is False:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -1549,6 +1599,15 @@ class network:
             # temperature
             if c.T.val_set and not c.h.val_set:
                 self.solve_check_temperature(c)
+
+        # mass flow
+        if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
+            c.m.val_SI = self.m_range_SI[0]
+            logging.debug(self.property_range_message(c, 'm'))
+        if c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
+            c.m.val_SI = self.m_range_SI[1]
+            logging.debug(self.property_range_message(c, 'm'))
+
 
     def solve_check_temperature(self, c):
         r"""
@@ -2252,6 +2311,10 @@ class network:
             c.p.val = c.p.val_SI / self.p[c.p.unit]
             c.h.val = c.h.val_SI / self.h[c.h.unit]
             c.v.val = c.v.val_SI / self.v[c.v.unit]
+            fluid = hlp.single_fluid(c.fluid.val)
+            if isinstance(fluid, str) and not c.x.val_set:
+                c.x.val_SI = hlp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+                c.x.val = c.x.val_SI
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val
@@ -2305,6 +2368,7 @@ class network:
                                    'p / (' + self.p_unit + ')',
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
+        print('##### RESULTS (connections) #####')
         for c in self.conns.index:
             row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
             df.loc[row] = (
@@ -2315,6 +2379,19 @@ class network:
                      self.T[self.T_unit][0]]
                     )
         print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
+
+        for b in self.busses.values():
+            print('##### RESULTS (' + b.label + ') #####')
+            df = pd.DataFrame(columns = ['component', 'value'])
+            df['cp'] = b.comps.index
+            df['ref'] = b.comps['P_ref'].values
+            df['component'] = df['cp'].apply(lambda x: x.label)
+            df['value'] = df['cp'].apply(lambda x: x.bus_func(b.comps.loc[x]))
+            df.loc['total'] = df.sum()
+            df.loc['total', 'component'] = 'total'
+            df.set_index('component', inplace=True)
+            df.drop('cp', axis=1, inplace=True)
+            print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
     def print_components(c, *args):
         return c.name.get_attr(args[0]).val

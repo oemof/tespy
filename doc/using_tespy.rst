@@ -71,7 +71,7 @@ Moreover, it is possible to specify parameters for the component, for example po
 The full list of parameters for a specific component (e. g. a valve) is stated in the classes documentation.
 
 .. note::
-	Parameters for components are generally optional. Only the components label and in case you want to use a combustion chamber, the combustion chambers fuel, are mandatory parameters to provide.
+	Parameters for components are generally optional. Only the components label and in case you want to use a stoichiometric combustion chamber, its fuel and air composition, are mandatory parameters to provide.
 	If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify.
 	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
 
@@ -570,6 +570,7 @@ More information on the components can be gathered from the code documentation. 
 	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 	* :py:class:`Solar collector <tespy.components.components.solar_collector>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
 - :py:class:`Drum <tespy.components.components.drum>` (:py:meth:`equations <tespy.components.components.drum.equations>`)
+- :py:class:`Water electrolyzer <tespy.components.components.water_electrolyzer>` (:py:meth:`equations <tespy.components.components.water_electrolyzer.equations>`)
 - :py:class:`Subsystem interface <tespy.components.components.subsys_interface>` (:py:meth:`equations <tespy.components.components.subsys_interface.equations>`)
 
 
@@ -1022,7 +1023,7 @@ Offdesign calculations use the referenced value from your system design point fo
 	The available keywords for the dictionary are
 
 	- 'c' for the component instance,
-	- 'p' for the parameter (the cogeneration unit has different parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
+	- 'p' for the parameter (the cogeneration unit has various parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
 	- 'P_ref' for the reference heat flow/power value of the component and
 	- 'char' for the characteristic line.
 

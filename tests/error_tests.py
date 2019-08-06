@@ -117,6 +117,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.conn, fluid=5)
         self.set_attr_TypeError(self.conn, state=5)
 
+        self.set_attr_TypeError(self.nw, m_range=5)
         self.set_attr_TypeError(self.nw, p_range=5)
         self.set_attr_TypeError(self.nw, h_range=5)
         self.set_attr_TypeError(self.nw, T_range=5)
@@ -382,36 +383,18 @@ def test_tespy_fluid_alias_value():
 
 class combustion_chamber_error_tests:
 
-    def setup(self):
-        self.nw = nwk.network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'H2'])
-        self.comb = cmp.combustion_chamber('combustion chamber')
-        c1 = con.connection(cmp.source('air'), 'out1', self.comb, 'in1')
-        c2 = con.connection(cmp.source('fuel'), 'out1', self.comb, 'in2')
-        c3 = con.connection(self.comb, 'out1', cmp.sink('flue gas'), 'in1')
-        self.nw.add_conns(c1, c2, c3)
-
     @raises(hlp.TESPyComponentError)
     def test_combustion_chamber_missing_fuel(self):
         """
-        Test missing fuel specification error.
+        Test no fuel in network.
         """
-        self.nw.solve('design', init_only=True)
-
-    @raises(hlp.TESPyComponentError)
-    def test_combustion_chamber_missing_fuel(self):
-        """
-        Test fuel not in network.
-        """
-        self.comb.set_attr(fuel='CH4')
-        self.nw.solve('design', init_only=True)
-
-    @raises(hlp.TESPyComponentError)
-    def test_combustion_chamber_missing_fuel(self):
-        """
-        Test non available fuel.
-        """
-        self.comb.set_attr(fuel='NH3')
-        self.nw.solve('design', init_only=True)
+        nw = nwk.network(['H2O', 'N2', 'O2', 'Ar', 'CO2'])
+        comb = cmp.combustion_chamber('combustion chamber')
+        c1 = con.connection(cmp.source('air'), 'out1', comb, 'in1')
+        c2 = con.connection(cmp.source('fuel'), 'out1', comb, 'in2')
+        c3 = con.connection(comb, 'out1', cmp.sink('flue gas'), 'in1')
+        nw.add_conns(c1, c2, c3)
+        nw.solve('design', init_only=True)
 
 
 class combustion_chamber_stoich_error_tests:

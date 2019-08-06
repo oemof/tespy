@@ -119,6 +119,14 @@ class connection:
     <class 'tespy.tools.helpers.dc_prop'>
     >>> so_si2.Td_bp.val
     5
+    >>> so_si2.set_attr(state='l')
+    >>> so_si2.state.val_set
+    True
+    >>> so_si2.set_attr(state=np.nan)
+    >>> so_si2.state.val_set
+    False
+    >>> # this will not work and prompt a warning message in logging
+    >>> so_si2.set_attr(Td_bp=con.ref(so_si1, 1, 0))
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -504,7 +512,7 @@ class bus:
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def __init__(self, label, **kwargs):
+    def __init__(self, label, P=np.nan):
 
         self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
 
@@ -513,12 +521,12 @@ class bus:
         self.char = cmp_char.characteristics(x=np.array([0, 1, 2, 3]),
                                              y=np.array([1, 1, 1, 1]))
 
-        self.set_attr(**kwargs)
+        self.set_attr(P=P)
 
         msg = 'Created bus ' + self.label + '.'
         logging.debug(msg)
 
-    def set_attr(self, **kwargs):
+    def set_attr(self, P=np.nan):
         r"""
         Set, reset or unset attributes of a bus object.
 
@@ -534,8 +542,7 @@ class bus:
         ----
         Specify :math:`P=\text{nan}`, if you want to unset the value.
         """
-        self.label = kwargs.get('label', self.label)
-        self.P.val = kwargs.get('P', self.P.val)
+        self.P.val = P
 
         if np.isnan(self.P.val):
             self.P.val_set = False

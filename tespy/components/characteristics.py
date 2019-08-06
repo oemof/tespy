@@ -247,6 +247,18 @@ class characteristics:
            :alt: alternative text
            :align: center
 
+
+        **default characteristic line for electrolysis**
+
+        .. math::
+
+            \frac{\eta}{\eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}{\dot{m}_{H_2,ref}}\right)
+
+        .. image:: _images/water_electrolyzer_GENERIC.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
         """
 
         if key == 'default':
@@ -358,6 +370,13 @@ class characteristics:
                      0.463, 0.512, 0.559, 0.604, 0.648, 0.691, 0.733, 0.774,
                      0.813, 0.852, 0.890, 0.928, 0.964, 1.000, 1.327, 1.612])
 
+        elif self.comp == 'water electrolyzer':
+
+            x['GENERIC'] = np.array(
+                    [0.000, 0.0833, 0.250, 0.500, 0.750, 1.000, 1.333])
+            y['GENERIC'] = np.array(
+                    [1.100, 1.075, 1.050, 1.025, 1.010, 1.000, 0.990])
+
         else:
             return np.array([0, 1, 2, 3]), np.array([1, 1, 1, 1])
 
@@ -395,7 +414,7 @@ class characteristics:
             y = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
         return y
 
-    def get_bound_errors(self, x):
+    def get_bound_errors(self, x, c):
         r"""
         Returns error messages, if operation is out of bounds of characteristc line.
 
@@ -411,11 +430,13 @@ class characteristics:
         """
         if x > self.x[-1]:
             msg = ('Operating point above characteristic line range: '
-                   'X=' + str(round(x, 3)) + ' with maximum of ' + str(self.x[-1]))
+                   'X=' + str(round(x, 3)) + ' with maximum of ' +
+                   str(self.x[-1]) + ' at component ' + c + '.')
             logging.warning(msg)
         elif x < self.x[0]:
             msg = ('Operating point below characteristic line range: '
-                   'X=' + str(round(x, 3)) + ' with minimum of ' + str(self.x[0]))
+                   'X=' + str(round(x, 3)) + ' with minimum of ' +
+                   str(self.x[0]) + ' at component ' + c + '.')
             logging.warning(msg)
 
     def get_attr(self, key):
@@ -473,7 +494,7 @@ class char_map(characteristics):
 
         for key in kwargs:
             if key not in self.attr():
-                msg = ('Invalid keyword ' + key + '. Available keywords for kwargs are: ' + str(self.attr()) + '.')
+                msg = ('Invalid keyword ' + key +'. Available keywords for kwargs are: ' + str(self.attr()) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -702,9 +723,9 @@ class char_map(characteristics):
             eta = z2[ypos - 1] + zfrac * (z2[ypos] - z2[ypos - 1])
             return pr, eta
 
-    def get_bound_errors(self, x, y, igva):
+    def get_bound_errors(self, x, y, igva, c):
         r"""
-        Returns error messages, if operation is out of bounds of compressor map.
+        Returns error message, if operation is out of bounds of compressor map.
 
         Parameters
         ----------
@@ -726,12 +747,14 @@ class char_map(characteristics):
         if xpos == len(self.x) and x != self.x[-1]:
             yarr = self.y[xpos - 1]
             msg = ('Operating point above compressor map range: '
-                   'X=' + str(round(x, 3)) + ' with maximum of ' + str(self.x[-1]) + '.')
+                   'X=' + str(round(x, 3)) + ' with maximum of ' +
+                   str(self.x[-1]) + ' at component ' + c + '.')
             logging.warning(msg)
         elif xpos == 0 and y != self.x[0]:
             yarr = self.y[0]
             msg = ('Operating point below compressor map range: '
-                   'X=' + str(round(x, 3)) + ' with minimum of ' + str(self.x[0]) + '.')
+                   'X=' + str(round(x, 3)) + ' with minimum of ' +
+                   str(self.x[0]) + ' at component ' + c + '.')
             logging.warning(msg)
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
@@ -742,10 +765,12 @@ class char_map(characteristics):
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr) and y != yarr[-1]:
             msg = ('Operating point above compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with maximum of ' + str(yarr[-1]) + '.')
+                   'Y=' + str(round(y, 3)) + ' with maximum of ' +
+                   str(yarr[-1]) + ' at component ' + c + '.')
             logging.warning(msg)
             return msg
         elif ypos == 0 and y != yarr[0]:
             msg = ('Operating point below compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with minimum of ' + str(yarr[0]) + '.')
+                   'Y=' + str(round(y, 3)) + ' with minimum of ' +
+                   str(yarr[0]) + ' at component ' + c + '.')
             logging.warning(msg)

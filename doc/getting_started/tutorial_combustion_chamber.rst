@@ -52,14 +52,14 @@ As components there are two sources required, one for the fresh air, one for the
 
 	nw.add_conns(sf_comb, amb_comb, comb_fg)
 	
-For the parametrisation specify the combustions chambers fuel (we chose methane for this example, for all available fuels check for the :py:class:`combustion chamber in the API <tespy.components.components.combustion_chamber>`.), the air to stoichmetric air ratio lamb and the thermal input (:math:`LHV \cdot \dot{m}_{f}`).
+For the parametrisation we specify the combustions chambers the air to stoichmetric air ratio lamb and the thermal input (:math:`LHV \cdot \dot{m}_{f}`).
 
 .. code-block:: python
 
 	# %% component parameters
 
-	# set combustion chamber fuel, air to stoichometric air ratio and thermal input
-	comb.set_attr(fuel='CH4', lamb=3, ti=20000)
+	# set combustion chamber air to stoichometric air ratio and thermal input
+	comb.set_attr(lamb=3, ti=2e6)
 	
 The ambient conditions as well as the fuel gas inlet temperature are defined in the next step. The air and the fuel gas composition must fully be stated, the component combustion chamber can not handle "Air" as input fluid!
 
@@ -85,13 +85,60 @@ Finally run the code:
 
 	# %% solving
 
-	mode = 'design'
-	nw.solve(mode=mode)
+	nw.solve('design')
 	nw.print_results()
-	nw.save('combustion')
 	
 Of course, you can change the parametrisation in any desired way. For example instead of stating the thermal input, you could choose any of the mass flows, or instead of the air to stoichometric air ratio you could specify the flue gas temperature.
-It is also possible to make modifications on the fluid composition, for example stating the oxygen content of the flue gas.
+It is also possible to make modifications on the fluid composition, for example stating the oxygen content in the flue gas. It is also possible to change the fuel composition.
+Make sure, all desired fuels of your fuel mixture are also within the fluid_list of the network. For the example below we added some hydrogen to the fuel mixture.
+
+.. code-block:: python
+
+	from tespy import con, cmp, nwk
+
+	# %% network
+
+	fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
+	nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+					 p_range=[0.5, 10], T_range=[10, 1200])
+					 
+	# %% components
+
+	# sinks & sources
+	amb = cmp.source('ambient')
+	sf = cmp.source('fuel')
+	fg = cmp.sink('flue gas outlet')
+
+	# combustion chamber
+	comb=cmp.combustion_chamber(label='combustion chamber')
+
+	# %% connections
+
+	amb_comb = con.connection(amb, 'out1', comb, 'in1')
+	sf_comb = con.connection(sf, 'out1', comb, 'in2')
+	comb_fg = con.connection(comb, 'out1', fg, 'in1')
+
+	nw.add_conns(sf_comb, amb_comb, comb_fg)
+
+	# %% component parameters
+
+	# set combustion chamber air to stoichometric air ratio and thermal input
+	comb.set_attr(lamb=3, ti=2e6)
+
+	# %% connection parameters
+	
+	amb_comb.set_attr(p=1, T=20,
+					  fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+							 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314, 'H2': 0.01})
+
+	sf_comb.set_attr(T=25,
+					 fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+							'O2': 0, 'H2O': 0, 'CH4': 0.95, 'H2': 0.05})
+
+	# %% solving
+
+	nw.solve('design')
+	nw.print_results()
 
 stoichiometric combustion chamber
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -34,6 +34,29 @@ class component_tests:
         self.nw.add_conns(c1, c2, c3)
         return c1, c2, c3
 
+    def setup_network_electrolyzer(self, instance):
+        """
+        Set up network for electrolyzer tests.
+        """
+        fw = cmp.source('feed water')
+        cw_in = cmp.source('cooling water')
+        o2 = cmp.sink('oxygen sink')
+        h2 = cmp.sink('hydrogen sink')
+        cw_out = cmp.sink('cooling water sink')
+
+        instance.set_attr(pr_c=0.99)
+
+        cw_el = con.connection(cw_in, 'out1', instance, 'in1', fluid={'H2O': 1, 'H2': 0, 'O2': 0}, T=20, p=1)
+        el_cw = con.connection(instance, 'out1', cw_out, 'in1', T=45)
+
+        self.nw.add_conns(cw_el, el_cw)
+
+        fw_el = con.connection(fw, 'out1', instance, 'in2', m=0.1, T=20, p=10)
+        el_o2 = con.connection(instance, 'out2', o2, 'in1')
+        el_h2 = con.connection(instance, 'out3', h2, 'in1', T=50)
+
+        self.nw.add_conns(fw_el, el_o2, el_h2)
+
     def test_turbomachine(self):
         """
         Test component properties of turbomachines.
@@ -146,7 +169,7 @@ class component_tests:
         eq_(round(eta_s * instance.char_map.z2[6, 0], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[6, 0], 4)) + ').')
         # going below lowest available speedline, above highest mass flow at that line
         c1.set_attr(T=300)
-        self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
+        self.nw.solve('offdesign', design_path='tmp')
         eq_(round(eta_s * instance.char_map.z2[0, 9], 4), round(instance.eta_s.val, 4), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be at (' + str(round(eta_s * instance.char_map.z2[0, 9], 4)) + ').')
         # back to design properties, test eta_s_char
         c2.set_attr(p=7)
@@ -244,6 +267,20 @@ class component_tests:
         self.nw.solve('design')
         self.nw.print_results()
         eq_(round(b.P.val, 1), round(instance.ti.val, 1), 'Value of thermal input must be ' + str(b.P.val) + ', is ' + str(instance.ti.val) + '.')
+
+        # test unspecified fuel
+        instance.set_attr(fuel=np.nan)
+        try:
+            self.nw.solve('design')
+        except hlp.TESPyComponentError:
+            pass
+
+        # test wrongly specified fuel
+        instance.set_attr(fuel='Ar')
+        try:
+            self.nw.solve('design')
+        except hlp.TESPyComponentError:
+            pass
 
     def test_valve(self):
         """
@@ -463,8 +500,6 @@ class component_tests:
         """
         Test component properties of condenser.
         """
-        from tespy import cmp, con, nwk
-        import shutil
         tesin = cmp.sink('TES in')
         tesout = cmp.source('TES out')
         hsin = cmp.sink('Cond in')
@@ -495,4 +530,106 @@ class component_tests:
         # check kA value
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(p, 1), round(hs_he.p.val_SI, 1), 'Value of condensing pressure be ' + str(p) + ', is ' + str(hs_he.p.val_SI) + '.')
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_water_electrolyzer(self):
+        """
+        Test component properties of water electrolyzer.
+        """
+        self.nw = nwk.network(['H2O', 'O2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        self.nw = nwk.network(['H2O', 'H2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        self.nw = nwk.network(['O2', 'H2'])
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        self.nw = nwk.network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
+        instance = cmp.water_electrolyzer('electrolyzer')
+        self.setup_network_electrolyzer(instance)
+
+        # check bus functions
+        power = con.bus('power')
+        power.add_comps({'c': instance, 'p': 'P'})
+        power.set_attr(P=2.5e6)
+        self.nw.add_busses(power)
+
+        self.nw.solve('design')
+        eq_(round(power.P.val, 1), round(instance.P.val), 'Value of power must be ' + str(power.P.val) + ', is ' + str(instance.P.val) + '.')
+
+        # check bus functions
+        power.set_attr(P=np.nan)
+        heat = con.bus('heat')
+        heat.add_comps({'c': instance, 'p': 'Q'})
+        heat.set_attr(P=-8e5)
+        self.nw.add_busses(heat)
+
+        self.nw.solve('design')
+        eq_(round(heat.P.val, 1), round(instance.Q.val), 'Value of heat flow must be ' + str(heat.P.val) + ', is ' + str(instance.Q.val) + '.')
+
+        self.nw.del_busses(heat, power)
+
+        # check invalid bus parameter error
+        some_bus = con.bus('some_bus')
+        some_bus.add_comps({'c': instance, 'p': 'G'})
+        some_bus.set_attr(P=-8e5)
+        self.nw.add_busses(some_bus)
+        try:
+            self.nw.solve('design')
+        except ValueError:
+            pass
+
+        # check invald bus parameter error in derivatives
+        try:
+            instance.derivatives()
+        except ValueError:
+            pass
+
+        self.nw.del_busses(some_bus)
+
+        instance.set_attr(eta=0.9, e='var')
+        self.nw.solve('design')
+        eq_(round(instance.eta.val, 2), round(instance.e0 / instance.e.val, 2),
+            'Value of efficiency must be ' + str(instance.eta.val) + ', is ' + str(instance.e0 / instance.e.val) + '.')
+
+        # isentropic efficiency value > 1
+        e = 130e6
+        instance.set_attr(e=np.nan, eta=np.nan)
+        instance.set_attr(e=e)
+        self.nw.solve('design')
+
+        e = 150e6
+        instance.set_attr(e=np.nan, eta=np.nan)
+        instance.set_attr(e=e)
+        self.nw.solve('design')
+        eq_(round(e, 1), round(instance.e.val, 1), 'Value of efficiency must be ' + str(e) + ', is ' + str(instance.e.val) + '.')
+
+        pr = 0.95
+        instance.set_attr(pr_c=pr, e=np.nan, zeta='var',  P=2.5e6, design=['pr_c'], offdesign=['zeta'])
+        self.nw.solve('design')
+        self.nw.save('tmp')
+        eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
+
+        instance.set_attr(zeta=np.nan)
+        self.nw.solve('offdesign', design_path='tmp')
+        eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)

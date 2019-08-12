@@ -1327,7 +1327,7 @@ class network:
                 break
 
             if self.iter > 20:
-                if (all(self.res[(self.iter - 3):] >= self.res[-2] * 0.95) and self.res[-1] >= self.res[-2] * 0.95):
+                if (all(self.res[(self.iter - 3):] >= self.res[-2] * 0.999) and self.res[-1] >= self.res[-2] * 0.999):
                     self.progress = False
                     break
 

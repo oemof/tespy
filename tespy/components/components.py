@@ -173,6 +173,12 @@ class component:
                             isinstance(self.get_attr(key), dc_cm)):
                             self.get_attr(key).set_attr(func=None)
 
+                    elif (isinstance(kwargs[key], cmp_char.characteristics) or
+                          isinstance(kwargs[key], cmp_char.char_map)):
+                        self.get_attr(key).func=kwargs[key]
+                        self.get_attr(key).x = self.get_attr(key).func.x
+                        self.get_attr(key).y = self.get_attr(key).func.y
+
                     # invalid datatype for keyword
                     else:
                         msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')

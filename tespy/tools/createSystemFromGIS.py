@@ -30,13 +30,14 @@ class CreateSystemFromGIS:
                                          T=80,
                                          v=7/3600,
                                          fluid={'water': 1})
-        # sink_con = con.connection(self.heat_source, 'out2', self.si, 'in1', h=con.ref(self.source_con, 1, 0))
         self.nw.add_conns(self.source_con)
         self.add_pipe_to_network([], [], 0)
-        self.nw.check_network()
+        self.set_busses()
         self.nw.set_printoptions(print_level='info', iterinfo=True)
         self.nw.solve('design')
         self.nw.print_results()
+        print('Total heat demand consumers: ', -round(self.heat_consumer.P.val), 'W')
+        print('Total pipe heat losses: ', -round(self.heat_losses.P.val), 'W')
 
     def load_file(self):
         self.filename = 'testGrid.csv'
@@ -70,7 +71,7 @@ class CreateSystemFromGIS:
             self.nw.add_conns(feed_in, feed_out)
 
             # Create consumer if pipe is a house connector
-            if pipe['HA'] == 1:
+            if num_children == 0:
                 consumer = cmp.heat_exchanger_simple(label='house ID ' + str(cmp_id),
                                                      Q=pipe['Leistung '] * -1e3,  # has to be overwritten by demand data
                                                      pr=1)      # TODO: get realistic pressure drop value or define zeta
@@ -109,7 +110,15 @@ class CreateSystemFromGIS:
                     self.add_pipe_to_network([valve_out, 'out1'],
                                              [valve_in, 'in1'],
                                              child['FWL_ID'])
-# Uebergang_ID == 0: Durchgang
+
+    def set_busses(self):
+        self.nw.check_network()
+        for comp in self.nw.comps.index:
+            if isinstance(comp, cmp.district_heating_pipe):
+                self.heat_losses.add_comps({'c': comp})
+            if isinstance(comp, cmp.heat_exchanger_simple) and 'source' not in comp.get_attr('label'):
+                self.heat_consumer.add_comps({'c': comp})
+        self.nw.add_busses(self.heat_losses, self.heat_consumer)
 
 
 test = CreateSystemFromGIS()

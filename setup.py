@@ -7,7 +7,7 @@ def read(fname):
 
 
 setup(name='TESPy',
-      version='0.1.2 dev',
+      version='0.1.3 dev',
       description='Thermal Engineering Systems in Python (TESPy)',
       url='http://github.com/oemof/tespy',
       author='Francesco Witte',

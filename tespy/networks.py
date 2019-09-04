@@ -679,10 +679,23 @@ class network:
                 b.comps.loc[cp].P_ref = np.nan
 
         series = pd.Series()
-        # switch components to offdesign mode
+        # switch components to design mode
         for cp in self.comps.index:
             cp.set_parameters(self.mode, series)
             cp.comp_init(self)
+
+            for var in cp.design:
+                cp.get_attr(var).set_attr(is_set=True)
+            for var in cp.offdesign:
+                cp.get_attr(var).set_attr(is_set=False)
+
+        # switch connections to design mode
+        for c in self.conns.index:
+            for var in c.design:
+                c.get_attr(var).set_attr(val_set=True)
+
+            for var in c.offdesign:
+                c.get_attr(var).set_attr(val_set=False)
 
         # generic fluid initialisation
         self.init_fluids()
@@ -718,51 +731,102 @@ class network:
         will be unset and all parameters stated in the connections's attribute
         :code:`cp.offdesign` will be set instead.
         """
-        not_required = ['source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum', 'subsys_interface']
+        not_required = ['source', 'sink', 'node', 'merge', 'splitter',
+                        'separator', 'drum', 'subsys_interface']
         cp_sort = self.comps.copy()
         # component type
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1, args=('label',))
+        cp_sort['label'] = cp_sort.apply(
+                network.get_props, axis=1, args=('label',)
+                )
         cp_sort['comp'] = cp_sort.index
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = hlp.modify_path_os(self.design_path + '/comps/' + c + '.csv')
+                path = hlp.modify_path_os(
+                        self.design_path + '/comps/' + c + '.csv'
+                        )
 
-                msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
+                msg = ('Reading design point information for components of '
+                       'type ' + c + ' from path ' + path + '.')
                 logging.debug(msg)
-                comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
-                comps.set_index('label', inplace=True)
-                for c in comps.index:
-                    cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
+                df = pd.read_csv(
+                        path, sep=';', decimal='.', converters={
+                                'busses': ast.literal_eval,
+                                'bus_P_ref': ast.literal_eval
+                                }
+                        )
+                df.set_index('label', inplace=True)
+                for c_label in df.index:
+                    comp = cp_sort.loc[c_label].comp
+                    if comp.design_path is None:
+                        d = df
+                    else:
+                        path_c = hlp.modify_path_os(
+                                comp.design_path + '/comps/' + c + '.csv'
+                                )
+                        d = pd.read_csv(
+                                path_c, sep=';', decimal='.', converters={
+                                        'busses': ast.literal_eval,
+                                        'bus_P_ref': ast.literal_eval
+                                        }
+                                )
+                        d.set_index('label', inplace=True)
+
+                    comp.set_parameters(self.mode, d.loc[c_label])
+
                     i = 0
-                    for b in comps.loc[c].busses:
+                    for b in d.loc[c_label].busses:
                         bus = self.busses[b].comps
-                        component = cp_sort.loc[c].comp
-                        bus.loc[component].P_ref = comps.loc[c].bus_P_ref[i]
+                        component = cp_sort.loc[c_label].comp
+                        bus.loc[component].P_ref = d.loc[c_label].bus_P_ref[i]
                         i += 1
 
         # connections
         path = hlp.modify_path_os(self.design_path + '/conn.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
-        msg = 'Reading design point information for connections from path ' + path + '.'
+        msg = ('Reading design point information for connections from path ' +
+               path + '.')
         logging.debug(msg)
         for c in self.conns.index:
-            # match connection (source, source_id, target, target_id) on
-            # connection objects of design file
-            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            if c.design_path is None:
+                # match connection (source, source_id, target, target_id) on
+                # connection objects of design file
+                conn = (df.loc[df['s'].isin([c.s.label]) &
+                               df['t'].isin([c.t.label]) &
+                               df['s_id'].isin([c.s_id]) &
+                               df['t_id'].isin([c.t_id])])
+                d = df
+
+            else:
+                path_c = hlp.modify_path_os(c.design_path + '/conn.csv')
+                msg = ('Reading design point information for connection ' +
+                       c.s.label + ':' + c.s_id + ' -> ' +
+                       c.t.label + ':' + c.t_id + ' from path ' + path_c + '.')
+                logging.debug(msg)
+                d = pd.read_csv(
+                        path_c, index_col=0, delimiter=';', decimal='.'
+                        )
+                # match connection (source, source_id, target, target_id) on
+                # connection objects of design file
+                conn = (d.loc[df['s'].isin([c.s.label]) &
+                              d['t'].isin([c.t.label]) &
+                              d['s_id'].isin([c.s_id]) &
+                              d['t_id'].isin([c.t_id])])
+
             if len(conn.index) > 0:
                 conn_id = conn.index[0]
-                c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
-                c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
-                c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                c.m.design = d.loc[conn_id].m * self.m[d.loc[conn_id].m_unit]
+                c.p.design = d.loc[conn_id].p * self.p[d.loc[conn_id].p_unit]
+                c.h.design = d.loc[conn_id].h * self.h[d.loc[conn_id].h_unit]
                 for fluid in self.fluids:
-                    c.fluid.design[fluid] = df.loc[conn_id][fluid]
+                    c.fluid.design[fluid] = d.loc[conn_id][fluid]
 
             else:
                 msg = ('Could not find all connections in design case. '
-                       'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
+                       'Please, make sure no connections have been '
+                       'modified or components have been relabeled for '
+                       'your offdesign calculation.')
                 logging.error(msg)
                 hlp.TESPyNetworkError(msg)
 
@@ -1563,7 +1627,7 @@ class network:
                 if hmin < 0:
                     c.h.val_SI = hmin / 1.05
                 else:
-                    c.h.val_SI = hmin * 1.05
+                    c.h.val_SI = hmin * 1.15
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9

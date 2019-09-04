@@ -62,7 +62,8 @@ class connection:
         Volumetric flow specification.
 
     state : str
-        State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
+        State of the pure fluid on this connection: liquid ('l') or gaseous
+        ('g').
 
     design : list
         List containing design parameters (stated as string).
@@ -80,10 +81,10 @@ class connection:
       (0 = 1 - a - b - c - d) will be applied.
 
     - The specification of values for design and/or offdesign is used for
-      automatic switch from design to offdesign calculation: All parameters given
-      in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
-      calculation, parameters given in 'offdesign' are set for offdesign
-      calculation.
+      automatic switch from design to offdesign calculation: All parameters
+      given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+      offdesign calculation, parameters given in 'offdesign' are set for
+      offdesign calculation.
 
     Example
     -------
@@ -97,7 +98,8 @@ class connection:
     >>> so_si2 = con.connection(so2, 'out1', si2, 'in1')
     >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
     >>> p = hlp.dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
-    >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200, fluid={'N2': 1}, fluid_balance=True)
+    >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200,
+    ... fluid={'N2': 1}, fluid_balance=True)
     >>> type(so_si1.p)
     <class 'tespy.tools.helpers.dc_prop'>
     >>> type(so_si1.fluid)
@@ -134,24 +136,30 @@ class connection:
         # check input parameters
         if not (isinstance(comp1, cmp.component) and
                 isinstance(comp2, cmp.component)):
-            msg = ('Error creating connection. Check if comp1, comp2 are of type component.')
+            msg = ('Error creating connection. Check if comp1, comp2 are of '
+                   'type component.')
             logging.error(msg)
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. Can\'t connect component ' + comp1.label + ' to itself.')
+            msg = ('Error creating connection. Can\'t connect component ' +
+                   comp1.label + ' to itself.')
             logging.error(msg)
             raise TESPyConnectionError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. Specified oulet_id (' + outlet_id + ') is not valid for component ' +
-                   comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
+            msg = ('Error creating connection. Specified oulet_id (' +
+                   outlet_id + ') is not valid for component ' +
+                   comp1.component() + '. Valid ids are: ' +
+                   str(comp1.outlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. Specified inlet_id (' + inlet_id + ') is not valid for component ' +
-                   comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
+            msg = ('Error creating connection. Specified inlet_id (' +
+                   inlet_id + ') is not valid for component ' +
+                   comp2.component() + '. Valid ids are: ' +
+                   str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -161,6 +169,7 @@ class connection:
         self.t = comp2
         self.t_id = inlet_id
 
+        self.design_path = None
         self.design = []
         self.offdesign = []
 
@@ -172,12 +181,14 @@ class connection:
 
         self.set_attr(**kwargs)
 
-        msg = 'Created connection ' + self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').'
+        msg = ('Created connection ' + self.s.label + ' (' + self.s_id +
+               ') -> ' + self.t.label + ' (' + self.t_id + ').')
         logging.debug(msg)
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword arguments.
+        Sets, resets or unsets attributes of a component for provided keyword
+        arguments.
 
         Parameters
         ----------
@@ -222,7 +233,8 @@ class connection:
             Volumetric flow specification.
 
         state : str
-            State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
+            State of the pure fluid on this connection: liquid ('l') or gaseous
+            ('g').
 
         design : list
             List containing design parameters (stated as String).
@@ -232,23 +244,23 @@ class connection:
 
         Note
         ----
-        - The fluid balance parameter applies a balancing of the fluid vector on
-          the specified conntion to 100 %. For example, you have four fluid
+        - The fluid balance parameter applies a balancing of the fluid vector
+          on the specified conntion to 100 %. For example, you have four fluid
           components (a, b, c and d) in your vector, you set two of them
-          (a and b) and want the other two (components c and d) to be a result of
-          your calculation. If you set this parameter to True, the equation
+          (a and b) and want the other two (components c and d) to be a result
+          of your calculation. If you set this parameter to True, the equation
           (0 = 1 - a - b - c - d) will be applied.
 
         - The specification of values for design and/or offdesign is used for
-          automatic switch from design to offdesign calculation: All parameters given
-          in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
-          calculation, parameters given in 'offdesign' are set for offdesign
-          calculation.
+          automatic switch from design to offdesign calculation: All parameters
+          given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+          offdesign calculation, parameters given in 'offdesign' are set for
+          offdesign calculation.
 
         - The property state is applied on pure fluids only. If you specify the
           desired state of the fluid at a connection the convergence check will
-          adjust the enthalpy values of that connection for the first iterations
-          in order to meet the state requirement.
+          adjust the enthalpy values of that connection for the first
+          iterations in order to meet the state requirement.
         """
         var = self.attr()
         var0 = [x + '0' for x in var.keys()]
@@ -261,7 +273,9 @@ class connection:
                     if isinstance(kwargs[key], dict):
                         # starting values
                         if key in var0:
-                            self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                            self.get_attr(key.replace('0', '')).set_attr(
+                                    val0=kwargs[key]
+                                    )
                         # specified parameters
                         else:
                             self.get_attr(key).set_attr(val=kwargs[key].copy())
@@ -275,7 +289,8 @@ class connection:
 
                     else:
                         # bad datatype
-                        msg = 'Bad datatype for connection keyword ' + key + '.'
+                        msg = ('Bad datatype for connection keyword ' + key +
+                               '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -290,16 +305,19 @@ class connection:
                                 isinstance(kwargs[key], np.int64) or
                                 isinstance(kwargs[key], int)):
                             if np.isnan(kwargs[key]):
-                                self.state.set_attr(val=kwargs[key], val_set=False)
+                                self.state.set_attr(
+                                        val=kwargs[key], val_set=False
+                                        )
                             else:
-                                msg = 'Datatype for keyword argument ' + str(key) + ' must be str.'
+                                msg = ('Datatype for keyword argument ' +
+                                       str(key) + ' must be str.')
                                 logging.error(msg)
                                 raise TypeError(msg)
                         else:
-                            msg = 'Keyword argument ' + str(key) + ' must be \'l\' or \'g\'.'
+                            msg = ('Keyword argument ' + str(key) +
+                                   ' must be \'l\' or \'g\'.')
                             logging.error(msg)
                             raise ValueError(msg)
-
 
                 elif (isinstance(kwargs[key], float) or
                         isinstance(kwargs[key], np.float64) or
@@ -307,18 +325,26 @@ class connection:
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
-                        self.get_attr(key).set_attr(val_set=False, ref_set=False)
+                        self.get_attr(key).set_attr(
+                                val_set=False, ref_set=False
+                                )
                     # starting value
                     elif key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key]
+                                )
                     # set/reset
                     else:
-                        self.get_attr(key).set_attr(val_set=True, val=kwargs[key], val0=kwargs[key])
+                        self.get_attr(key).set_attr(
+                                val_set=True, val=kwargs[key], val0=kwargs[key]
+                                )
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
                     if key == 'x' or key == 'v' or key == 'Td_bp':
-                        msg = 'References for volumetric flow, vapour mass fraction and subcooling/superheating not implemented.'
+                        msg = ('References for volumetric flow, vapour mass '
+                               'fraction and subcooling/superheating not '
+                               'implemented.')
                         logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
@@ -339,7 +365,8 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) + ' must be boolean.')
+                    msg = ('Datatype for keyword argument ' + str(key) +
+                           ' must be boolean.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -351,9 +378,18 @@ class connection:
                 if set(kwargs[key]).issubset(var.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design specification are: ' + str(var.keys()) + '.')
+                    msg = ('Available parameters for (off-)design '
+                           'specification are: ' + str(var.keys()) + '.')
                     logging.error(msg)
                     raise ValueError(msg)
+
+            elif key == 'design_path':
+                if isinstance(kwargs[key], str) or kwargs[key] is None:
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = 'Please provide the ' + key + ' parameter as string!'
+                    logging.error(msg)
+                    raise TypeError(msg)
 
             # invalid keyword
             else:

@@ -46,6 +46,9 @@ class component:
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
     **kwargs :
         See the class documentation of desired component for available keywords.
 
@@ -86,6 +89,7 @@ class component:
             self.label = label
 
         self.mode = 'auto'
+        self.design_path = None
 
         # set default design and offdesign parameters
         self.design = []
@@ -114,6 +118,9 @@ class component:
 
         offdesign : list
             List containing offdesign parameters (stated as String).
+
+        design_path: str
+            Path to the components design case.
 
         **kwargs :
             See the class documentation of desired component for available keywords.
@@ -225,6 +232,14 @@ class component:
                     msg = ('Mode must be \'man\' or \'auto\' at ' + self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
+
+            elif key == 'design_path':
+                if isinstance(kwargs[key], str) or kwargs[key] is None:
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = 'Please provide the ' + key + ' parameter as string!'
+                    logging.error(msg)
+                    raise TypeError(msg)
 
             # invalid keyword
             else:
@@ -416,7 +431,6 @@ class component:
                 if isinstance(dc, dc_cp) and key in self.offdesign:
                     switched = True
                     self.get_attr(key).val = self.get_attr(key).design
-
                     msg += key + ', '
 
             msg = msg[:-2] + ' to design value at component ' + self.label + '.'

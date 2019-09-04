@@ -128,14 +128,16 @@ class component:
         # set specified values
         for key in kwargs:
             if key in var:
-
                 # data container specification
                 if isinstance(kwargs[key], data_container):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
                     else:
-                        msg = ('The keyword ' + key + ' expects a data_container of type ' + str(type(self.get_attr(key))) +
-                               ', a data_container of type ' + str(type(kwargs[key])) + ' was supplied.')
+                        msg = ('The keyword ' + key + ' expects a '
+                               'data_container of type ' +
+                               str(type(self.get_attr(key))) +
+                               ', a data_container of type ' +
+                               str(type(kwargs[key])) + ' was supplied.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -159,7 +161,8 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
+                        msg = ('Bad datatype for keyword argument ' + key +
+                               ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -170,12 +173,13 @@ class component:
                     if isinstance(kwargs[key], str):
                         self.get_attr(key).set_attr(method=kwargs[key])
                         if (isinstance(self.get_attr(key), dc_cc) or
-                            isinstance(self.get_attr(key), dc_cm)):
+                                isinstance(self.get_attr(key), dc_cm)):
                             self.get_attr(key).set_attr(func=None)
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key + ' at ' + self.label + '.')
+                        msg = ('Bad datatype for keyword argument ' + key +
+                               ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -187,9 +191,11 @@ class component:
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(val_set=False)
                         else:
-                            self.get_attr(key).set_attr(val=kwargs[key], val_set=True)
+                            self.get_attr(key).set_attr(
+                                    val=kwargs[key], val_set=True)
                     else:
-                        self.get_attr(key).set_attr(val=kwargs[key], val_set=True)
+                        self.get_attr(key).set_attr(
+                                val=kwargs[key], val_set=True)
 
             # export sources or sinks as subsystem interface
             elif key == 'interface':
@@ -197,24 +203,28 @@ class component:
                     if isinstance(kwargs[key], bool):
                         self.interface = kwargs[key]
                     else:
-                        msg = ('Datatype for keyword argument ' + str(key) + ' must be bool at ' + self.label + '.')
+                        msg = ('Datatype for keyword argument ' + str(key) +
+                               ' must be bool at ' + self.label + '.')
                         logging.error(msg)
                         raise ValueError(msg)
                 else:
-                    msg = ('Only sinks and sources can be attributed with the interface parameter (error at ' + self.label + ').')
+                    msg = ('Only sinks and sources can be attributed with the '
+                           'interface parameter at ' + self.label + ').')
                     logging.error(msg)
                     raise TESPyComponentError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the ' + key + ' parameters as list at ' + self.label + '.')
+                    msg = ('Please provide the ' + key + ' parameters as list '
+                           'at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design specification are: ' +
-                           str(list(var)) + ' at ' + self.label + '.')
+                    msg = ('Available parameters for (off-)design '
+                           'specification are: ' + str(list(var)) + ' at '
+                           + self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -222,13 +232,15 @@ class component:
                 if kwargs[key] in ['man', 'auto']:
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Mode must be \'man\' or \'auto\' at ' + self.label + '.')
+                    msg = ('Mode must be \'man\' or \'auto\' at ' +
+                           self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
             # invalid keyword
             else:
-                msg = ('Component ' + self.label + ' has no attribute ' + str(key) + '.')
+                msg = ('Component ' + self.label + ' has no attribute ' +
+                       str(key) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 

@@ -43,7 +43,8 @@ class network:
         Specify the unit for mass flow: 'kg / s', 't / h'.
 
     v_unit : str
-        Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
+        Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
+        'l / h'.
 
     p_unit : str
         Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
@@ -65,12 +66,15 @@ class network:
 
     Note
     ----
-    Unit specification is optional: If not specified the SI unit (first element in above lists) will be applied!
+    Unit specification is optional: If not specified the SI unit (first
+    element in above lists) will be applied!
 
-    Range specification is optional, too. The value range is used to stabilise the newton algorith.
-    For more information see the "getting started" section in the online-documentation.
+    Range specification is optional, too. The value range is used to stabilise
+    the newton algorith. For more information see the "getting started" section
+    in the online-documentation.
 
-    Printoptions can be specified with the :func:`tespy.networks.network.set_printoptions`-method, see example.
+    Printoptions can be specified with the
+    :func:`tespy.networks.network.set_printoptions`-method, see example.
 
     Example
     -------
@@ -78,8 +82,9 @@ class network:
     the fluids is mandatory! Unit systems, fluid property range and printlevel
     are optional.
 
-    Standard value for printoptions print_level is info. You can modify this with the
-    :func:`tespy.networks.network.set_printoptions`-method by specifying a print_level, or specifying the printout manually.
+    Standard value for printoptions print_level is info. You can modify this
+    with the :func:`tespy.networks.network.set_printoptions`-method by
+    specifying a print_level, or specifying the printout manually.
 
     >>> from tespy import nwk
     >>> fluid_list = ['water', 'air', 'R134a']
@@ -112,7 +117,8 @@ class network:
         if isinstance(fluids, list):
                 self.fluids = sorted(fluids)
         else:
-            msg = 'Please provide a list containing the network\'s fluids on creation.'
+            msg = ('Please provide a list containing the network\'s fluids on
+                   creation.')
             logging.error(msg)
             raise TypeError(msg)
 
@@ -125,8 +131,8 @@ class network:
                 hlp.gas_constants[f] = 1
 
             elif 'TESPy::' not in f:
-                # calculating molar masses and gas constants for network's fluids
-                # tespy_fluid molar mass and gas constant are added on lut creation
+                # calculating molar masses/gas constants for network's fluids
+                # tespy_fluid molar mass/gas constant are added on lut creation
                 hlp.molar_masses[f] = CPPSI('M', f)
                 hlp.gas_constants[f] = CPPSI('GAS_CONSTANT', f)
 
@@ -188,7 +194,7 @@ class network:
         self.T_unit = self.SI_units['T']
         self.v_unit = self.SI_units['v']
 
-        # standard value range
+        # generic value range
         self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
         self.h_range_SI = np.array([1e3, 7e6])
@@ -203,7 +209,8 @@ class network:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a network for provided keyword arguments.
+        Sets, resets or unsets attributes of a network for provided keyword
+        arguments.
 
         Parameters
         ----------
@@ -211,7 +218,8 @@ class network:
             Specify the unit for mass flow: 'kg / s', 't / h'.
 
         v_unit : str
-            Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s', 'l / h'.
+            Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
+            'l / h'.
 
         p_unit : str
             Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
@@ -236,7 +244,8 @@ class network:
 
         Note
         ----
-        Use the :func:`tespy.networks.network.set_printoptions` method for adjusting iterinfo printouts.
+        Use the :func:`tespy.networks.network.set_printoptions` method for
+        adjusting iterinfo printouts.
         """
         # add attributes from kwargs
         for key in kwargs:
@@ -269,7 +278,8 @@ class network:
             raise ValueError(msg)
 
         if self.v_unit not in self.v.keys():
-            msg = ('Allowed units for volumetric flow are: ' + str(self.v.keys()))
+            msg = ('Allowed units for volumetric flow are: ' +
+                   str(self.v.keys()))
             self.v_unit = self.SI_units['v']
             logging.error(msg)
             raise ValueError(msg)
@@ -289,12 +299,14 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.m_range_SI = np.array(kwargs['m_range']) * self.m[self.m_unit]
+                self.m_range_SI = (np.array(kwargs['m_range']) *
+                                   self.m[self.m_unit])
         else:
             self.m_range = self.m_range_SI / self.m[self.m_unit]
 
-        msg = ('Setting pressure range, min: ' + str(self.m_range_SI[0]) + ' ' + self.SI_units['m'] +
-               ', max: ' + str(self.m_range_SI[1]) + ' ' + self.SI_units['m'] + '.')
+        msg = ('Setting pressure range, min: ' + str(self.m_range_SI[0]) +
+               ' ' + self.SI_units['m'] + ', max: ' + str(self.m_range_SI[1]) +
+               ' ' + self.SI_units['m'] + '.')
         logging.debug(msg)
 
         if 'p_range' in kwargs.keys():
@@ -303,12 +315,14 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.p_range_SI = np.array(kwargs['p_range']) * self.p[self.p_unit]
+                self.p_range_SI = (np.array(kwargs['p_range']) *
+                                   self.p[self.p_unit])
         else:
             self.p_range = self.p_range_SI / self.p[self.p_unit]
 
-        msg = ('Setting pressure range, min: ' + str(self.p_range_SI[0]) + ' ' + self.SI_units['p'] +
-               ', max: ' + str(self.p_range_SI[1]) + ' ' + self.SI_units['p'] + '.')
+        msg = ('Setting pressure range, min: ' + str(self.p_range_SI[0]) +
+               ' ' + self.SI_units['p'] + ', max: ' + str(self.p_range_SI[1]) +
+               ' ' + self.SI_units['p'] + '.')
         logging.debug(msg)
 
         if 'h_range' in kwargs.keys():
@@ -317,12 +331,14 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.h_range_SI = np.array(kwargs['h_range']) * self.h[self.h_unit]
+                self.h_range_SI = (np.array(kwargs['h_range']) *
+                                   self.h[self.h_unit])
         else:
             self.h_range = self.h_range_SI / self.h[self.h_unit]
 
-        msg = ('Setting enthalpy range, min: ' + str(self.h_range_SI[0]) + ' ' + self.SI_units['h'] +
-               ', max: ' + str(self.h_range_SI[1]) + ' ' + self.SI_units['h'] + '.')
+        msg = ('Setting enthalpy range, min: ' + str(self.h_range_SI[0]) +
+               ' ' + self.SI_units['h'] + ', max: ' + str(self.h_range_SI[1]) +
+               ' ' + self.SI_units['h'] + '.')
         logging.debug(msg)
 
         if 'T_range' in kwargs.keys():
@@ -331,12 +347,16 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
             else:
-                self.T_range_SI = (np.array(kwargs['T_range']) + self.T[self.T_unit][0]) * self.T[self.T_unit][1]
+                self.T_range_SI = ((np.array(kwargs['T_range']) +
+                                    self.T[self.T_unit][0]) *
+                                   self.T[self.T_unit][1])
         else:
-            self.T_range = self.T_range_SI / self.T[self.T_unit][1] - self.T[self.T_unit][0]
+            self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
+                            self.T[self.T_unit][0])
 
-        msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
-               ', max: ' + str(self.T_range_SI[1]) + ' ' + self.SI_units['T'] + '.')
+        msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) +
+               ' ' + self.SI_units['T'] + ', max: ' + str(self.T_range_SI[1]) +
+               ' ' + self.SI_units['T'] + '.')
         logging.debug(msg)
 
         for f in self.fluids:
@@ -407,7 +427,8 @@ class network:
         Parameters
         ----------
         c : tespy.components.subsystems.subsystem
-            The subsystem to be added to the network, subsystem objects si :code:`network.add_subsys(s1, s2, s3, ...)`.
+            The subsystem to be added to the network, subsystem objects si
+            :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
             for c in subsys.conns:
@@ -432,16 +453,19 @@ class network:
         Parameters
         ----------
         c : tespy.connections.connection
-            The connection to be added to the network, connections objects ci :code:`add_conns(c1, c2, c3, ...)`.
+            The connection to be added to the network, connections objects ci
+            :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
             if not isinstance(c, con.connection):
-                msg = 'Must provide tespy.connections.connection objects as parameters.'
+                msg = ('Must provide tespy.connections.connection objects as '
+                       'parameters.')
                 logging.error(msg)
                 raise TypeError(msg)
 
             self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
-            msg = 'Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') to network.'
+            msg = ('Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' +
+                   c.t.label + ' (' + c.t_id + ') to network.')
             logging.debug(msg)
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
@@ -453,30 +477,37 @@ class network:
         Parameters
         ----------
         c : tespy.connections.connection
-            The connection to be removed from the network, connections objects ci :code:`del_conns(c1, c2, c3, ...)`.
+            The connection to be removed from the network, connections objects
+            ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
             self.conns = self.conns.drop(c)
-            msg = 'Deleted connection ' + c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' + c.t_id + ') from network.'
+            msg = ('Deleted connection ' + c.s.label + ' (' + c.s_id +
+                   ') -> ' + c.t.label + ' (' + c.t_id + ') from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
     def check_conns(self):
         r"""
-        Checks the networks connections for multiple usage of inlets or outlets of components.
+        Checks the networks connections for multiple usage of inlets or outlets
+        of components.
         """
-        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True].index
+        dub = self.conns.loc[
+                self.conns.duplicated(['s', 's_id']) == True].index
         for c in dub:
-            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) + ') is '
-                   'attached to more than one connection. Please check your network.')
+            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) +
+                   ') is attached to more than one connection. Please check '
+                   'your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True].index
+        dub = self.conns.loc[
+                self.conns.duplicated(['t', 't_id']) == True].index
         for c in dub:
-            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) + ') is '
-                   'attached to more than one connection. Please check your network.')
+            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) +
+                   ') is attached to more than one connection. Please check '
+                   'your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -487,7 +518,8 @@ class network:
         Parameters
         ----------
         b : tespy.connections.bus
-            The bus to be added to the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
+            The bus to be added to the network, bus objects bi
+            :code:`add_busses(b1, b2, b3, ...)`.
         """
         for b in args:
             if self.check_busses(b):
@@ -502,7 +534,8 @@ class network:
         Parameters
         ----------
         b : tespy.connections.bus
-            The bus to be removed from the network, bus objects bi :code:`add_busses(b1, b2, b3, ...)`.
+            The bus to be removed from the network, bus objects bi
+            :code:`add_busses(b1, b2, b3, ...)`.
         """
         for b in args:
             if b in self.busses.values():
@@ -512,7 +545,8 @@ class network:
 
     def check_busses(self, b):
         r"""
-        Checks the busses to be added for type, duplicates and identical labels.
+        Checks the busses to be added for type, duplicates and identical
+        labels.
 
         Parameters
         ----------
@@ -522,11 +556,13 @@ class network:
         if isinstance(b, con.bus):
             if len(self.busses) > 0:
                 if b in self.busses.values():
-                    msg = 'Network contains the bus ' + b.label + ' (' + str(b) + ') already.'
+                    msg = ('Network contains the bus ' + b.label + ' (' +
+                           str(b) + ') already.')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses.keys():
-                    msg = ('Network already has a bus with the name ' + b.label + '.')
+                    msg = ('Network already has a bus with the name ' +
+                           b.label + '.')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 else:
@@ -540,13 +576,15 @@ class network:
 
     def check_network(self):
         r"""
-        Checks the network for consistency, have all components the correct amount of incoming and outgoing connections?
+        Checks if all components are connected properly within the network.
         """
         self.check_conns()
         # get unique components in connections dataframe
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
-        self.init_components(comps)  # build the dataframe for components
-        # count number of incoming and outgoing connections and compare to expected values
+        # build the dataframe for components
+        self.init_components(comps)
+        # count number of incoming and outgoing connections and compare to
+        # expected values
         for comp in self.comps.index:
             num_o = (self.conns[['s', 't']] == comp).sum().s
             num_i = (self.conns[['s', 't']] == comp).sum().t
@@ -574,21 +612,14 @@ class network:
 
     def init_components(self, comps):
         r"""
-        Sets up a dataframe for the network's components and checks, if all components have unique labels.
+        Sets up a dataframe for the network's components and checks, if all
+        components have unique labels.
 
         Note
         ----
-        The dataframe for the components is derived from the network's connections.
-        Thus it holds no additional information, the dataframe is used to simplify the code.
-
-        dataframe :code:`network.comps`:
-
-        ======================== ============================ =======
-         index                    i                            o
-        ======================== ============================ =======
-         type: component object   type: list                   see i
-         value: object id         values: connection objects
-        ======================== ============================ =======
+        The dataframe for the components is derived from the network's
+        connections. Thus it does not hold any additional information, the
+        dataframe is used to simplify the code, only.
         """
         self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
 
@@ -600,7 +631,8 @@ class network:
             t = self.conns[self.conns.t == comp]
             t = t.t_id.sort_values().index
             self.comps.loc[comp] = [t, s]
-            # save the incoming and outgoing as well as the number of connections as component attribute
+            # save the incoming and outgoing as well as the number of
+            # connections as component attribute
             comp.inl = t.tolist()
             comp.outl = s.tolist()
             comp.num_i = len(comp.inlets())
@@ -609,8 +641,10 @@ class network:
 
         # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
-            duplicates = [item for item, count in collections.Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: ' + str(duplicates))
+            duplicates = [item for item, count in
+                          collections.Counter(labels).items() if count > 1]
+            msg = ('All Components must have unique labels, duplicates are: '
+                   + str(duplicates) + '.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -620,8 +654,8 @@ class network:
 
         Design
 
-            - Start generic fluid composition and fluid property initialisation.
-            - Gather starting values from initialisation path if provided.
+            - Generic fluid composition and fluid property initialisation.
+            - Starting values from initialisation path if provided.
 
         Offdesign
 
@@ -637,14 +671,16 @@ class network:
             raise hlp.TESPyNetworkError(msg)
 
         if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids on network creation.')
+            msg = ('Network has no fluids, please specify a list with fluids '
+                   'on network creation.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if self.mode == 'offdesign':
             if self.design_path is None:
                 # must provide design_path
-                msg = ('Please provide \'design_path\' for every offdesign calculation.')
+                msg = ('Please provide \'design_path\' for every offdesign '
+                       'calculation.')
                 logging.error(msg)
                 raise hlp.TESPyNetworkError(msg)
             else:
@@ -718,20 +754,26 @@ class network:
         will be unset and all parameters stated in the connections's attribute
         :code:`cp.offdesign` will be set instead.
         """
-        not_required = ['source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum', 'subsys_interface']
+        not_required = ['source', 'sink', 'node', 'merge', 'splitter',
+                        'separator', 'drum', 'subsys_interface']
         cp_sort = self.comps.copy()
         # component type
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1, args=('label',))
+        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
+                                         args=('label',))
         cp_sort['comp'] = cp_sort.index
         cp_sort.set_index('label', inplace=True)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = hlp.modify_path_os(self.design_path + '/comps/' + c + '.csv')
+                path = hlp.modify_path_os(self.design_path +
+                                          '/comps/' + c + '.csv')
 
-                msg = 'Reading design point information for components of type ' +  c + ' from path ' + path + '.'
+                msg = ('Reading design point information for components of '
+                       'type ' +  c + ' from path ' + path + '.')
                 logging.debug(msg)
-                comps = pd.read_csv(path, sep=';', decimal='.', converters={'busses': ast.literal_eval, 'bus_P_ref': ast.literal_eval})
+                comps = pd.read_csv(path, sep=';', decimal='.',
+                                    converters={'busses': ast.literal_eval,
+                                                'bus_P_ref': ast.literal_eval})
                 comps.set_index('label', inplace=True)
                 for c in comps.index:
                     cp_sort.loc[c].comp.set_parameters(self.mode, comps.loc[c])
@@ -745,13 +787,16 @@ class network:
         # connections
         path = hlp.modify_path_os(self.design_path + '/conn.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
-        msg = 'Reading design point information for connections from path ' + path + '.'
+        msg = ('Reading design point information for connections from path ' +
+               path + '.')
         logging.debug(msg)
         for c in self.conns.index:
             # match connection (source, source_id, target, target_id) on
             # connection objects of design file
-            conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+            conn = (df.loc[df['s'].isin([c.s.label]) &
+                           df['t'].isin([c.t.label]) &
+                           df['s_id'].isin([c.s_id]) &
+                           df['t_id'].isin([c.t_id])])
             if len(conn.index) > 0:
                 conn_id = conn.index[0]
                 c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
@@ -762,7 +807,9 @@ class network:
 
             else:
                 msg = ('Could not find all connections in design case. '
-                       'Please, make sure no connections have been modified or components have been relabeled for your offdesign calculation.')
+                       'Please, make sure no connections have been modified '
+                       'or components have been relabeled for your offdesign '
+                       'calculation.')
                 logging.error(msg)
                 hlp.TESPyNetworkError(msg)
 
@@ -818,7 +865,8 @@ class network:
         - Create fluid_set vector with same logic,
           index: nw.fluids,
           values: False if not set by user.
-        - If there are any combustion chambers in the network, calculate fluid vector starting from there.
+        - If there are any combustion chambers in the network, calculate fluid
+          vector starting from there.
         - Propagate fluid vector in direction of sources and targets.
         """
         # iterate over connectons, create ordered dicts
@@ -909,8 +957,9 @@ class network:
 
     def init_target(self, c, start):
         r"""
-        Propagates the fluids towards connection's target with recursive function calls.
-        If the target is a sink, a merge or a combustion chamber, the propagation stops.
+        Propagates the fluids towards connection's target with recursive
+        function calls. If the target is a sink, a merge or a combustion
+        chamber, the propagation stops.
 
         Parameters
         ----------

@@ -420,7 +420,8 @@ class connection:
 
 class bus:
     r"""
-    A bus is used to connect different energy flows (power, heat flow, thermal input).
+    A bus is used to connect different energy flows (power, heat flow,
+    thermal input).
 
     Parameters
     ----------
@@ -436,7 +437,8 @@ class bus:
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[10, 1200])
     >>> nw.set_printoptions(print_level='none')
 
     >>> amb = cmp.source('ambient')
@@ -460,10 +462,14 @@ class bus:
     >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
     >>> nw.add_conns(chp1_cw, chp2_cw)
     >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=1e6, lamb=1.2)
-    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 0, 'CH4': 1})
+    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
 
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
@@ -474,8 +480,10 @@ class bus:
     >>> outg = con.connection(c, 'out1', si, 'in1')
     >>> nw.add_conns(inc, ws, outg)
     >>> c.set_attr(pr=1)
-    >>> t.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0}, T=600, p=50, design=['p'])
+    >>> t.set_attr(eta_s=0.8, design=['eta_s'],
+    ... offdesign=['eta_s_char', 'cone'])
+    >>> inc.set_attr(fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1,
+    ... 'CH4': 0}, T=600, p=50, design=['p'])
     >>> outg.set_attr(p=0.5, x=0)
 
     >>> power_bus = con.bus('power')
@@ -485,7 +493,8 @@ class bus:
     >>> efficiency = np.array([0.8, 0.9, 0.93, 0.95, 0.955, 0.94])
     >>> t_gen = cmp_char.characteristics(x=load, y=efficiency)
     >>> cog_gen = cmp_char.characteristics(x=load, y=-efficiency)
-    >>> power_bus.add_comps({'c': t, 'char': t_gen}, {'c': chp, 'char': cog_gen, 'p': 'P'})
+    >>> power_bus.add_comps({'c': t, 'char': t_gen},
+    ... {'c': chp, 'char': cog_gen, 'p': 'P'})
     >>> heat_bus.add_comps({'c': c, 'char': -1}, {'c': chp, 'p': 'Q'})
     >>> nw.add_busses(power_bus, heat_bus)
     >>> type(heat_bus)
@@ -577,8 +586,8 @@ class bus:
         Parameters
         ----------
         c : dict
-            Dictionary containing the component information to be added to the bus.
-            These information are described in the notes!
+            Dictionary containing the component information to be added to the
+            bus. These information are described in the notes!
 
         Note
         ----

@@ -10,12 +10,8 @@
 import CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-
 import math
 import numpy as np
-import sys
 from scipy import interpolate
 import pandas as pd
 import os
@@ -39,30 +35,35 @@ gas_constants['uni'] = 8.3144598
 
 class data_container:
     r"""
-    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop, dc_simple.
+    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop,
+    dc_simple.
 
     Parameters
     ----------
     **kwargs :
-        See the class documentation of desired data_container for available keywords.
+        See the class documentation of desired data_container for available
+        keywords.
 
     Note
     ----
-    The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
-    are used for instances of class data_container and its children.
+    The initialisation method (__init__), setter method (set_attr) and getter
+    method (get_attr) are used for instances of class data_container and its
+    children. TESPy uses different data_containers for specific tasks:
+    Component characteristics (dc_cc), component maps (dc_cm), component
+    properties (dc_cp), grouped component properites (dc_gcp), fluid
+    composition (dc_flu), fluid properties (dc_prop).
+
+    Grouped component properties are used, if more than one component property
+    has to be specified in order to apply one equation, e. g. pressure drop in
+    pipes by specified length, diameter and roughness. If you specify all three
+    of these properties, the data_container for the group will be created
+    automatically!
+
+    For the full list of available parameters for each data container, see its
+    documentation.
 
     Example
     -------
-    TESPy uses different data_containers for specific tasks:
-    Component characteristics (dc_cc), component maps (dc_cm), component properties (dc_cp),
-    grouped component properites (dc_gcp), fluid composition (dc_flu),
-    fluid properties (dc_prop). Grouped component properties are used, if more than one
-    component propertie has to be specified in order to apply one equation, e. g. pressure drop in pipes by
-    specified length, diameter and roughness. If you specify all three of these properties,
-    the data_container for the group will be created automatically!
-
-    For the full list of available parameters for each data container, see its documentation.
-
     >>> from tespy import hlp, cmp
     >>> type(hlp.dc_cm(is_set=True))
     <class 'tespy.tools.helpers.dc_cm'>
@@ -103,7 +104,8 @@ class data_container:
         Parameters
         ----------
         **kwargs :
-            See the class documentation of desired data_container for available keywords.
+            See the class documentation of desired data_container for available
+            keywords.
         """
         var = self.attr()
         # specify values
@@ -128,7 +130,8 @@ class data_container:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Datacontainer of type ' + self.__class__.__name__ + ' has no attribute \"' + str(key) + '\".'
+            msg = ('Datacontainer of type ' + self.__class__.__name__ +
+                   ' has no attribute \"' + str(key) + '\".')
             logging.error(msg)
             raise KeyError(msg)
 
@@ -139,7 +142,8 @@ class data_container:
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
         return {}
 
@@ -153,26 +157,28 @@ class dc_prop(data_container):
         default: val=np.nan.
 
     val0 : float
-        Starting value in user specified unit (or network unit) if unit is unspecified,
-        default: val0=np.nan.
+        Starting value in user specified unit (or network unit) if unit is
+        unspecified, default: val0=np.nan.
 
     val_SI : float
         Value in SI_unit, default: val_SI=0.
 
     val_set : boolean
-        Has the value for this property been set?, default: val_set=False.
+        Has the value for this property been set? default: val_set=False.
 
     ref : tespy.connections.ref
         Reference object, default: ref=None.
 
     ref_set : boolean
-        Has a value for this property been referenced to another connection?, default: ref_set=False.
+        Has a value for this property been referenced to another connection?
+        default: ref_set=False.
 
     unit : str
         Unit for this property, default: ref=None.
 
     unit : boolean
-        Has the unit for this property been specified manually by the user?, default: unit_set=False.
+        Has the unit for this property been specified manually by the user?
+        default: unit_set=False.
     """
     def attr(self):
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
@@ -207,15 +213,17 @@ class dc_flu(data_container):
         Pattern for dictionary: keys are fluid name, values are mass fractions.
 
     val0 : dict
-        Starting values for mass fractions of the fluids in a mixture, default: val0={}.
-        Pattern for dictionary: keys are fluid name, values are mass fractions.
+        Starting values for mass fractions of the fluids in a mixture,
+        default: val0={}. Pattern for dictionary: keys are fluid name, values
+        are mass fractions.
 
     val_set : dict
         Which fluid mass fractions have been set, default val_set={}.
         Pattern for dictionary: keys are fluid name, values are True or False.
 
     balance : boolean
-        Should the fluid balance equation be applied for this mixture? default: False.
+        Should the fluid balance equation be applied for this mixture?
+        default: False.
     """
     def attr(self):
         r"""
@@ -224,9 +232,11 @@ class dc_flu(data_container):
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
-        return {'val': {}, 'val0': {}, 'val_set': {}, 'design': collections.OrderedDict(), 'balance': False}
+        return {'val': {}, 'val0': {}, 'val_set': {},
+                'design': collections.OrderedDict(), 'balance': False}
 
 
 class dc_cp(data_container):
@@ -238,8 +248,8 @@ class dc_cp(data_container):
         Value for this component attribute, default: val=1.
 
     val_SI : float
-        Value in SI_unit (available for temperatures only, unit transformation according to network's temperature unit),
-        default: val_SI=0.
+        Value in SI_unit (available for temperatures only, unit transformation
+        according to network's temperature unit), default: val_SI=0.
 
     is_set : boolean
         Has the value for this attribute been set?, default: is_set=False.
@@ -248,16 +258,16 @@ class dc_cp(data_container):
         Is this attribute part of the system variables?, default: is_var=False.
 
     d : float
-        Interval width for numerical calculation of partial derivative towards this attribute,
-        it is part of the system variables, default d=1e-4.
+        Interval width for numerical calculation of partial derivative towards
+        this attribute, it is part of the system variables, default d=1e-4.
 
     min_val : float
-        Minimum value for this attribute, used if attribute is part of the system variables,
-        default: min_val=1.1e-4.
+        Minimum value for this attribute, used if attribute is part of the
+        system variables, default: min_val=1.1e-4.
 
     max_val : float
-        Maximum value for this attribute, used if attribute is part of the system variables,
-        default: max_val=1e12.
+        Maximum value for this attribute, used if attribute is part of the
+        system variables, default: max_val=1e12.
 
     printout : boolean
         Should the value of this attribute be printed in the results overview?
@@ -269,7 +279,8 @@ class dc_cp(data_container):
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
         return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
                 'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False,
@@ -288,10 +299,12 @@ class dc_cc(data_container):
         Should this equation be applied?, default: is_set=False.
 
     method : str
-        Which default method for this characteristic function should be used?, default: method='default'.
+        Which default method for this characteristic function should be used?
+        default: method='default'.
 
     param : str
-        Which parameter should be applied as the x value?, default: method='default'.
+        Which parameter should be applied as the x value?
+        default: method='default'.
 
     x : numpy.array
         Array for the x-values of the characteristic line, default x=None.
@@ -302,8 +315,9 @@ class dc_cc(data_container):
     Note
     ----
     If you do not specify x-values or y-values, default values according to the
-    specified method will be used. If you specify a method as well as x-values and/or
-    y-values, these will override the defaults values of the chosen method.
+    specified method will be used. If you specify a method as well as x-values
+    and/or y-values, these will override the defaults values of the chosen
+    method.
     """
     def attr(self):
         r"""
@@ -312,7 +326,8 @@ class dc_cc(data_container):
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
         return {'func': None, 'is_set': False,
                 'method': 'default', 'param': None,
@@ -331,10 +346,12 @@ class dc_cm(data_container):
         Should this equation be applied?, default: is_set=False.
 
     method : str
-        Which default method for this characteristic function should be used?, default: method='default'.
+        Which default method for this characteristic function should be used?
+        default: method='default'.
 
     param : str
-        Which parameter should be applied as the x value?, default: method='default'.
+        Which parameter should be applied as the x value?
+        default: method='default'.
 
     x : numpy.array
         Array for the x-values of the characteristic line, default x=None.
@@ -350,9 +367,10 @@ class dc_cm(data_container):
 
     Note
     ----
-    If you do not specify any interpolation points (x, y, z1, z2), default values according to the
-    specified method will be used. If you specify a method as well as interpolation points,
-    these will override the defaults values of the chosen method.
+    If you do not specify any interpolation points (x, y, z1, z2), default
+    values according to the specified method will be used. If you specify a
+    method as well as interpolation points, these will override the defaults
+    values of the chosen method.
     """
     def attr(self):
         r"""
@@ -361,7 +379,8 @@ class dc_cm(data_container):
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
         return {'func': None, 'is_set': False,
                 'method': 'default', 'param': None,
@@ -373,13 +392,16 @@ class dc_gcp(data_container):
     Parameters
     ----------
     is_set : boolean
-        Should the equation for this parameter group be applied? default: is_set=False.
+        Should the equation for this parameter group be applied?
+        default: is_set=False.
 
     method : str
-        Which calculation method for this parameter group should be used?, default: method='default'.
+        Which calculation method for this parameter group should be used?
+        default: method='default'.
 
     elements : list
-        Which component properties are part of this component group? default elements=[].
+        Which component properties are part of this component group?
+        default elements=[].
     """
     def attr(self):
         r"""
@@ -388,7 +410,8 @@ class dc_gcp(data_container):
         Returns
         -------
         out : dict
-            Dictionary of available attributes (dictionary keys) with default values.
+            Dictionary of available attributes (dictionary keys) with default
+            values.
         """
         return {'is_set': False, 'method': 'default', 'elements': []}
 

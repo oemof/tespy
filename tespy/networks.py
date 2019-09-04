@@ -690,6 +690,15 @@ class network:
             # load design case
             self.init_design()
 
+        # generic fluid initialisation
+        self.init_fluids()
+        # generic fluid property initialisation
+        self.init_properties()
+
+        # starting values from init file
+        if self.init_path is not None:
+            self.init_csv()
+
         msg = 'Network initialised.'
         logging.info(msg)
 
@@ -732,14 +741,6 @@ class network:
 
             for var in c.offdesign:
                 c.get_attr(var).set_attr(val_set=False)
-
-        # generic fluid initialisation
-        self.init_fluids()
-        # generic fluid property initialisation
-        self.init_properties()
-
-        if self.init_path is not None:
-            self.init_csv()
 
     def init_offdesign(self):
         r"""
@@ -891,15 +892,6 @@ class network:
 
         msg = 'Switched connections from design to offdesign.'
         logging.debug(msg)
-
-        # generic fluid initialisation
-        self.init_fluids()
-        # generic fluid property initialisation
-        self.init_properties()
-
-        # starting values from design file if not init path is specified
-        if self.init_path is not None:
-            self.init_csv()
 
     def init_fluids(self):
         r"""
@@ -1067,8 +1059,9 @@ class network:
 
     def init_source(self, c, start):
         r"""
-        Propagates the fluids towards connection's source with recursive function calls.
-        If the source is a source or a combustion chamber, the propagation stops.
+        Propagates the fluids towards connection's source with recursive
+        function calls. If the source is a source or a combustion chamber,
+        the propagation stops.
 
         Parameters
         ----------
@@ -1133,34 +1126,43 @@ class network:
         Initialises the fluid properties on every connection of the network.
 
         - Sets standard values for :code:`m0, p0, h0` if not user specified
-        - Sets :code:`var = var0` if var_set is False
-        - Initialises reference objects
-        - Sets initial values for enthalpy at given vapour mass fraction or temperature
+        - Sets :code:`var = var0` if var_set is False.
+        - Initialises reference objects.
+        - Sets initial values for enthalpy at given vapour mass fraction or
+          temperature.
         """
         # fluid properties
         for c in self.conns.index:
             c.init_csv = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
-                if not c.get_attr(key).unit_set and key != 'x':
+                if c.get_attr(key).unit_set is False and key != 'x':
                     if key == 'Td_bp':
                         c.get_attr(key).unit = self.get_attr('T_unit')
                     else:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if key not in ['T', 'x', 'v', 'Td_bp'] and not c.get_attr(key).val_set:
+                if (key not in ['T', 'x', 'v', 'Td_bp'] and
+                        c.get_attr(key).val_set is False):
                     self.init_val0(c, key)
-                    c.get_attr(key).val_SI = c.get_attr(key).val0 * self.get_attr(key)[c.get_attr(key).unit]
-                elif key not in ['T', 'x', 'v', 'Td_bp'] and c.get_attr(key).val_set:
-                    c.get_attr(key).val_SI = c.get_attr(key).val * self.get_attr(key)[c.get_attr(key).unit]
-                elif key == 'T' and c.T.val_set:
-                    c.T.val_SI = (c.T.val + self.T[c.T.unit][0]) * self.T[c.T.unit][1]
-                elif key == 'Td_bp' and c.Td_bp.val_set:
+                    c.get_attr(key).val_SI = (
+                            c.get_attr(key).val0 * self.get_attr(key)[
+                                    c.get_attr(key).unit])
+                elif (key not in ['T', 'x', 'v', 'Td_bp'] and
+                      c.get_attr(key).val_set is True):
+                    c.get_attr(key).val_SI = (
+                            c.get_attr(key).val * self.get_attr(key)[
+                                    c.get_attr(key).unit])
+                elif key == 'T' and c.T.val_set is True:
+                    c.T.val_SI = ((c.T.val + self.T[c.T.unit][0]) *
+                                  self.T[c.T.unit][1])
+                elif key == 'Td_bp' and c.Td_bp.val_set is True:
                     c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
-                elif key == 'x' and c.x.val_set:
+                elif key == 'x' and c.x.val_set is True:
                     c.x.val_SI = c.x.val
-                elif key == 'v' and c.v.val_set:
+                elif key == 'v' and c.v.val_set is True:
                     c.v.val_SI = c.v.val * self.v[c.v.unit]
 
-        msg = 'Retrieved generic starting values and specified SI-values of connection parameters.'
+        msg = ('Retrieved generic starting values and specified SI-values of '
+               'connection parameters.')
         logging.debug(msg)
 
         # fluid properties with referenced objects
@@ -1186,17 +1188,21 @@ class network:
                     pass
 
             # check if fluid enthalpy is below/above wet steam area
-            if (c.Td_bp.val_set or c.state.val_set) and not c.h.val_set:
-                if (c.Td_bp.val_SI > 0 or (c.state.val=='g' and c.state.val_set)):
+            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+                    c.h.val_set is False):
+                if (c.Td_bp.val_SI > 0 or
+                        (c.state.val == 'g' and c.state.val_set is True)):
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.2
-                elif (c.Td_bp.val_SI < 0 or (c.state.val=='l' and c.state.val_set)):
+                elif (c.Td_bp.val_SI < 0 or
+                      (c.state.val == 'l' and c.state.val_set)):
                     h = hlp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.8
 
-        msg = 'Generated starting values for specified temperature and vapour mass fraction.'
+        msg = ('Generated starting values for specified temperature and '
+               'vapour mass fraction.')
         logging.debug(msg)
 
         msg = 'Generic fluid property specification successful.'
@@ -1204,8 +1210,8 @@ class network:
 
     def init_val0(self, c, key):
         r"""
-        Set starting values for fluid properties. The components classes provide generic starting
-        values for its inlets and outlets.
+        Set starting values for fluid properties. The components classes
+        provide generic starting values for its inlets and outlets.
 
         Parameters
         ----------
@@ -1236,7 +1242,9 @@ class network:
                 c.get_attr(key).val0 = (val_s + val_t) / 2
 
             # change value to specified unit system
-            c.get_attr(key).val0 = c.get_attr(key).val0 / self.get_attr(key)[self.get_attr(key + '_unit')]
+            c.get_attr(key).val0 = (
+                    c.get_attr(key).val0 / self.get_attr(key)[
+                            self.get_attr(key + '_unit')])
 
     def init_csv(self):
         r"""
@@ -1244,7 +1252,8 @@ class network:
 
         Note
         ----
-        This method loads fluid property and fluid components starting values using the :code:`init_file` as input file.
+        This method loads fluid property and fluid components starting values
+        using the :code:`init_file` as input file.
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
@@ -1658,7 +1667,7 @@ class network:
                 if hmin < 0:
                     c.h.val_SI = hmin / 1.05
                 else:
-                    c.h.val_SI = hmin * 1.15
+                    c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9

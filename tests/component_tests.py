@@ -511,7 +511,7 @@ class component_tests:
         he_hs = con.connection(he, 'out1', hsin, 'in1')
         self.nw.add_conns(tes_he, he_tes, hs_he, he_hs)
         # design specification
-        he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr2', 'ttd_u', 'ttd_l'], offdesign=['zeta2', 'kA'])
+        he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr2', 'ttd_u'], offdesign=['zeta2', 'kA'])
         hs_he.set_attr(T=100, p0=0.5, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         tes_he.set_attr(T=30, p=5, fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0})
         he_tes.set_attr(T=40)
@@ -524,7 +524,7 @@ class component_tests:
         p = hs_he.p.val_SI
         eq_(round(ttd_u, 1), round(he.ttd_u.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_u.val) + ', is ' + str(ttd_u) + '.')
         # check lower terminal temperature difference
-        he.set_attr(ttd_l=20, ttd_u=np.nan)
+        he.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
         self.nw.solve('design')
         eq_(round(he_hs.T.val - tes_he.T.val, 1), round(he.ttd_l.val, 1), 'Value of terminal temperature difference must be ' + str(he.ttd_l.val) + ', is ' + str(he_hs.T.val - tes_he.T.val) + '.')
         # check kA value
@@ -624,12 +624,12 @@ class component_tests:
         eq_(round(e, 1), round(instance.e.val, 1), 'Value of efficiency must be ' + str(e) + ', is ' + str(instance.e.val) + '.')
 
         pr = 0.95
-        instance.set_attr(pr_c=pr, e=np.nan, zeta='var',  P=2.5e6, design=['pr_c'], offdesign=['zeta'])
+        instance.set_attr(pr_c=pr, e=np.nan, zeta='var',  P=2.5e6, design=['pr_c'])
         self.nw.solve('design')
         self.nw.save('tmp')
         eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
 
-        instance.set_attr(zeta=np.nan)
+        instance.set_attr(zeta=np.nan, offdesign=['zeta'])
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(pr, 2), round(instance.pr_c.val, 2), 'Value of pressure ratio must be ' + str(pr) + ', is ' + str(instance.pr_c.val) + '.')
         shutil.rmtree('./tmp', ignore_errors=True)

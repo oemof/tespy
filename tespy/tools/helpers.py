@@ -1700,11 +1700,11 @@ def Q_ph(p, h, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-    if 'IDGAS::' in fluid:
-        msg = 'Ideal gas calculation not available by now.'
-        logging.warning(msg)
-        return np.nan
-    elif 'TESPy::' in fluid:
+#    if 'IDGAS::' in fluid:
+#        msg = 'Ideal gas calculation not available by now.'
+#        logging.warning(msg)
+#        return np.nan
+    if 'TESPy::' in fluid:
         msg = 'TESPy fluid calculation not available by now.'
         logging.warning(msg)
         return np.nan

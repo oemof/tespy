@@ -994,7 +994,7 @@ def newton(func, deriv, params, y, **kwargs):
 # %%
 
 
-def T_mix_ph(flow):
+def T_mix_ph(flow, T0=300):
     r"""
     Calculates the temperature from pressure and enthalpy.
 
@@ -1040,7 +1040,9 @@ def T_mix_ph(flow):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=300, valmin=70, valmax=3000, imax=10)
+            if T0 < 70:
+                T0 = 300
+            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
@@ -1089,7 +1091,7 @@ def T_ph(p, h, fluid):
         return memorise.heos[fluid].T()
 
 
-def dT_mix_dph(flow):
+def dT_mix_dph(flow, T0=300):
     r"""
     Calculate partial derivate of temperature to pressure at constant enthalpy and fluid composition.
 
@@ -1113,10 +1115,10 @@ def dT_mix_dph(flow):
     l = flow.copy()
     u[1] += d
     l[1] -= d
-    return (T_mix_ph(u) - T_mix_ph(l)) / (2 * d)
+    return (T_mix_ph(u, T0=T0) - T_mix_ph(l, T0=T0)) / (2 * d)
 
 
-def dT_mix_pdh(flow):
+def dT_mix_pdh(flow, T0=300):
     r"""
     Calculate partial derivate of temperature to enthalpy at constant pressure and fluid composition.
 
@@ -1140,10 +1142,10 @@ def dT_mix_pdh(flow):
     l = flow.copy()
     u[2] += d
     l[2] -= d
-    return (T_mix_ph(u) - T_mix_ph(l)) / (2 * d)
+    return (T_mix_ph(u, T0=T0) - T_mix_ph(l, T0=T0)) / (2 * d)
 
 
-def dT_mix_ph_dfluid(flow):
+def dT_mix_ph_dfluid(flow, T0=300):
     r"""
     Calculate partial derivate of temperature to fluid composition at constant pressure and enthalpy.
 
@@ -1171,7 +1173,7 @@ def dT_mix_ph_dfluid(flow):
         if x > err:
             u[3][fluid] += d
             l[3][fluid] -= d
-            vec_deriv += [(T_mix_ph(u) - T_mix_ph(l)) / (2 * d)]
+            vec_deriv += [(T_mix_ph(u, T0=T0) - T_mix_ph(l, T0=T0)) / (2 * d)]
             u[3][fluid] -= d
             l[3][fluid] += d
         else:
@@ -1182,7 +1184,7 @@ def dT_mix_ph_dfluid(flow):
 # %%
 
 
-def T_mix_ps(flow, s):
+def T_mix_ps(flow, s, T0=300):
     r"""
     Calculates the temperature from pressure and entropy.
 
@@ -1230,7 +1232,9 @@ def T_mix_ps(flow, s):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=300, valmin=70, valmax=3000, imax=10)
+            if T0 < 70:
+                T0 = 300
+            val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0, valmin=70, valmax=3000, imax=10)
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
             # memorise the newly calculated value
             memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
@@ -1243,6 +1247,8 @@ def T_mix_ps(flow, s):
                    'from these properties, please inform us: https://github.com/oemof/tespy.')
             logging.error(msg)
             raise ValueError(msg)
+
+# %% deprecated
 #            for fluid, x in flow[3].items():
 #                if x > err:
 #                    val = T_ps(flow[1], s, fluid)
@@ -1385,7 +1391,7 @@ def dh_mix_pdT(flow, T):
 # %%
 
 
-def h_mix_ps(flow, s):
+def h_mix_ps(flow, s, T0=300):
     r"""
     Calculates the enthalpy from pressure and temperature.
 
@@ -1410,7 +1416,7 @@ def h_mix_ps(flow, s):
 
         h_{mix}\left(p,s\right)=h\left(p, T_{mix}\left(p,s\right)\right)
     """
-    return h_mix_pT(flow, T_mix_ps(flow, s))
+    return h_mix_pT(flow, T_mix_ps(flow, s, T0=T0))
 
 
 def h_ps(p, s, fluid):
@@ -1475,12 +1481,11 @@ def h_mix_pQ(flow, Q):
     h = 0
     for fluid, x in flow[3].items():
         if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
             pcrit = CPPSI('Pcrit', fluid)
-            if pp > pcrit:
-                pp = pcrit * 0.95
-
-            memorise.heos[fluid].update(CP.PQ_INPUTS, pp, Q)
+            if flow[1] > pcrit:
+                memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
+            else:
+                memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], Q)
             h += memorise.heos[fluid].hmass() * x
 
     return h
@@ -1541,13 +1546,13 @@ def T_bp_p(flow):
     ----
     This function works for pure fluids only!
     """
-    n = molar_mass_flow(flow[3])
-
     for fluid, x in flow[3].items():
         if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-
-            memorise.heos[fluid].update(CP.PQ_INPUTS, pp, 1)
+            pcrit = CPPSI('Pcrit', fluid)
+            if flow[1] > pcrit:
+                memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, 1)
+            else:
+                memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], 1)
             return memorise.heos[fluid].T()
 
 
@@ -1585,7 +1590,7 @@ def dT_bp_dp(flow):
 # %%
 
 
-def v_mix_ph(flow):
+def v_mix_ph(flow, T0=300):
     r"""
     Calculates the specific volume from pressure and enthalpy.
 
@@ -1625,7 +1630,7 @@ def v_mix_ph(flow):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = v_mix_pT(flow, T_mix_ph(flow))
+            val = v_mix_pT(flow, T_mix_ph(flow, T0=T0))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
@@ -1712,7 +1717,7 @@ def Q_ph(p, h, fluid):
         return memorise.heos[fluid].Q()
 
 
-def dv_mix_dph(flow):
+def dv_mix_dph(flow, T0=300):
     r"""
     Calculate partial derivate of specific volume to pressure at constant enthalpy and fluid composition.
 
@@ -1736,10 +1741,10 @@ def dv_mix_dph(flow):
     l = flow.copy()
     u[1] += d
     l[1] -= d
-    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+    return (v_mix_ph(u, T0=T0) - v_mix_ph(l, T0=T0)) / (2 * d)
 
 
-def dv_mix_pdh(flow):
+def dv_mix_pdh(flow, T0=300):
     r"""
     Calculate partial derivate of specific volume to enthalpy at constant pressure and fluid composition.
 
@@ -1763,7 +1768,7 @@ def dv_mix_pdh(flow):
     l = flow.copy()
     u[2] += d
     l[2] -= d
-    return (v_mix_ph(u) - v_mix_ph(l)) / (2 * d)
+    return (v_mix_ph(u, T0=T0) - v_mix_ph(l, T0=T0)) / (2 * d)
 
 # %%
 
@@ -1863,7 +1868,7 @@ def d_pT(p, T, fluid):
 # %%
 
 
-def visc_mix_ph(flow):
+def visc_mix_ph(flow, T0=300):
     r"""
     Calculates the dynamic viscorsity from pressure and enthalpy.
 
@@ -1903,7 +1908,7 @@ def visc_mix_ph(flow):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = visc_mix_pT(flow, T_mix_ph(flow))
+            val = visc_mix_pT(flow, T_mix_ph(flow, T0=T0))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
@@ -2032,7 +2037,7 @@ def visc_pT(p, T, fluid):
 # %%
 
 
-def s_mix_ph(flow):
+def s_mix_ph(flow, T0=300):
     r"""
     Calculates the entropy from pressure and enthalpy.
 
@@ -2072,7 +2077,7 @@ def s_mix_ph(flow):
         # unknown fluid properties
         if num_fluids(flow[3]) > 1:
             # calculate the fluid properties for fluid mixtures
-            val = s_mix_pT(flow, T_mix_ph(flow))
+            val = s_mix_pT(flow, T_mix_ph(flow, T0=T0))
             new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
             # memorise the newly calculated value
             memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)

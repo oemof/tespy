@@ -2480,7 +2480,7 @@ class network:
         Calculate bus, component parameters and connection parameters.
         """
         # components
-        self.comps.apply(network.process_components, axis=1, args=('post',))
+        self.comps.apply(network.process_components, axis=1)
 
         # busses
         for b in self.busses.values():
@@ -2516,8 +2516,8 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    def process_components(cols, mode):
-        cols.name.calc_parameters(mode)
+    def process_components(cols):
+        cols.name.calc_parameters()
 
 # %% printing and plotting
 

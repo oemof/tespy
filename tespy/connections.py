@@ -384,10 +384,13 @@ class connection:
                     raise ValueError(msg)
 
             elif key == 'design_path':
-                if isinstance(kwargs[key], str) or kwargs[key] is None:
+                if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
+                elif np.isnan(kwargs[key]):
+                    self.design_path = None
                 else:
-                    msg = 'Please provide the ' + key + ' parameter as string!'
+                    msg = ('Please provide the ' + key + ' parameter as '
+                           'string or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
 

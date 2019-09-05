@@ -2715,6 +2715,7 @@ class network:
         # design and offdesign parameters
         df['design'] = self.conns.apply(f, axis=1, args=('design',))
         df['offdesign'] = self.conns.apply(f, axis=1, args=('offdesign',))
+        df['design_path'] = self.conns.apply(f, axis=1, args=('design_path',))
 
         cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
@@ -2797,7 +2798,7 @@ class network:
             df = cp_sort[cp_sort['cp'] == c]
 
             # basic information
-            cols = ['label', 'design', 'offdesign', 'interface']
+            cols = ['label', 'design', 'offdesign', 'interface', 'design_path']
             for col in cols:
                 df[col] = df.apply(f, axis=1, args=(col,))
 

@@ -277,8 +277,9 @@ def construct_comps(c, *args):
     kwargs = {}
 
     # basic properties
-    for key in ['design', 'offdesign']:
-        kwargs[key] = c[key]
+    for key in ['design', 'offdesign', 'design_path']:
+        if key in c:
+            kwargs[key] = c[key]
 
     for key, value in instance.attr().items():
         if key in c:
@@ -440,7 +441,7 @@ def construct_conns(c, *args):
 
     kwargs = {}
     # read basic properties
-    for key in ['design', 'offdesign']:
+    for key in ['design', 'offdesign', 'design_path']:
         if key in c:
             kwargs[key] = c[key]
 

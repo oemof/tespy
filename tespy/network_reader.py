@@ -33,8 +33,10 @@ def load_nwk(path):
 
     Note
     ----
-    If you save the network structure of an existing TESPy network, it will be saved to the path you specified.
-    The structure of the saved data in that path is the structure you need to provide in the path for loading the network.
+    If you save the network structure of an existing TESPy network, it will be
+    saved to the path you specified. The structure of the saved data in that
+    path is the structure you need to provide in the path for loading the
+    network.
 
     The structure of the path must be as follows:
 
@@ -49,9 +51,13 @@ def load_nwk(path):
 
     The imported network has the following additional features:
 
-    - Connections are accessible by their target's label and id, e. g. for a connection going to 'condenser' at inlet 'in2' use :code:`myimportednetwork.imp_conns['condenser:in2']`.
-    - Components are accessible by label, e. g. for a component 'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
-    - Busses are accessible by label, e. g. for a bus 'power input' :code:`myimportednetwork.imp_busses['power input']`.
+    - Connections are accessible by their target's label and id, e. g. for a
+      connection going to 'condenser' at inlet 'in2' use
+      :code:`myimportednetwork.imp_conns['condenser:in2']`.
+    - Components are accessible by label, e. g. for a component
+      'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
+    - Busses are accessible by label, e. g. for a bus 'power input'
+      :code:`myimportednetwork.imp_busses['power input']`.
 
     Example
     -------
@@ -163,13 +169,15 @@ def load_nwk(path):
                                          'bus_char': ast.literal_eval})
 
             # create components
-            df['instance'] = df.apply(construct_comps, axis=1, args=(chars, char_maps, ))
+            df['instance'] = df.apply(construct_comps, axis=1,
+                                      args=(chars, char_maps, ))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
                                           'bus_param', 'bus_P_ref',
                                           'bus_char']]), axis=0)
 
             df['inter'] = df.apply(get_interface, axis=1)
-            inter = pd.concat((inter, df[['instance', 'label', 'inter']]), axis=0)
+            inter = pd.concat((inter, df[['instance', 'label', 'inter']]),
+                              axis=0)
 
             msg = 'Reading component data (' + f[:-4] + ') from ' + fn + '.'
             logging.debug(msg)
@@ -204,7 +212,8 @@ def load_nwk(path):
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.s.label + ':' + c.s_id + '_' + c.t.label + ':' + c.t_id] = c
+        nw.imp_conns[c.s.label + ':' + c.s_id + '_'
+                     + c.t.label + ':' + c.t_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)
@@ -241,7 +250,8 @@ def load_nwk(path):
 
 def construct_comps(c, *args):
     r"""
-    Creates TESPy component from class name provided in the .csv-file and specifies its parameters.
+    Creates TESPy component from class name provided in the .csv-file and
+    specifies its parameters.
 
     Parameters
     ----------
@@ -267,7 +277,7 @@ def construct_comps(c, *args):
     kwargs = {}
 
     # basic properties
-    for key in ['mode', 'design', 'offdesign']:
+    for key in ['design', 'offdesign']:
         kwargs[key] = c[key]
 
     for key, value in instance.attr().items():
@@ -293,10 +303,14 @@ def construct_comps(c, *args):
                     # if characteristics are missing (for compressor map atm)
                     x = cmp_char.characteristics().x
                     y = cmp_char.characteristics().y
-                    msg = 'Could not find x and y values for characteristic line, using defaults instead for function ' + key + ' at component ' + c.label + '.'
+                    msg = ('Could not find x and y values for characteristic '
+                           'line, using defaults instead for function ' + key +
+                           ' at component ' + c.label + '.')
                     logging.warning(msg)
 
-                char = cmp_char.characteristics(x=x, y=y, method=c[key + '_method'], comp=instance.component())
+                char = cmp_char.characteristics(
+                        x=x, y=y, method=c[key + '_method'],
+                        comp=instance.component())
 
                 dc = hlp.dc_cc(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -321,10 +335,13 @@ def construct_comps(c, *args):
                     z1 = cmp_char.char_map().z1
                     z2 = cmp_char.char_map().z2
 
-                    msg = 'Could not find x, y, z1 and z2 values for characteristic map, using defaults instead.'
+                    msg = ('Could not find x, y, z1 and z2 values for '
+                           'characteristic map, using defaults instead.')
                     logging.warning(msg)
 
-                char_map = cmp_char.char_map(x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'], comp=instance.component())
+                char_map = cmp_char.char_map(
+                        x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'],
+                        comp=instance.component())
 
                 dc = hlp.dc_cm(is_set=c[key + '_set'],
                                method=c[key + '_method'],
@@ -401,7 +418,8 @@ def construct_network(path):
 
 def construct_conns(c, *args):
     r"""
-    Creates TESPy connection from data in the .csv-file and specifies its parameters.
+    Creates TESPy connection from data in the .csv-file and specifies its
+    parameters.
 
     Parameters
     ----------
@@ -417,7 +435,8 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = con.connection(args[0].instance[c.s], c.s_id, args[0].instance[c.t], c.t_id)
+    conn = con.connection(args[0].instance[c.s], c.s_id,
+                          args[0].instance[c.t], c.t_id)
 
     kwargs = {}
     # read basic properties
@@ -429,8 +448,10 @@ def construct_conns(c, *args):
     for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
         if key in c:
             if key in c:
-                dc = hlp.dc_prop(val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
-                                 unit=c[key + '_unit'], unit_set=c[key + '_unit_set'],
+                dc = hlp.dc_prop(val=c[key], val0=c[key + '0'],
+                                 val_set=c[key + '_set'],
+                                 unit=c[key + '_unit'],
+                                 unit_set=c[key + '_unit_set'],
                                  ref=None, ref_set=c[key + '_ref_set'])
                 kwargs[key] = dc
 
@@ -449,7 +470,8 @@ def construct_conns(c, *args):
             val0[key] = c[key + '0']
             val_set[key] = c[key + '_set']
 
-    kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set, balance=c['balance'])
+    kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set,
+                                 balance=c['balance'])
 
     # write properties to connection and return connection object
     conn.set_attr(**kwargs)
@@ -531,8 +553,10 @@ def busses_add_comps(c, *args):
         p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
 
         values = char == args[1]['id']
-        char = cmp_char.characteristics(x=args[1][values].x.values[0], y=args[1][values].y.values[0])
+        char = cmp_char.characteristics(x=args[1][values].x.values[0],
+                                        y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['label']].values[0].add_comps({'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
+        args[0].instance[b == args[0]['label']].values[0].add_comps(
+                {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
         i += 1

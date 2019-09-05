@@ -336,12 +336,6 @@ class component:
     def derivatives(self):
         return []
 
-    def bus_func(self, bus):
-        return 0
-
-    def bus_deriv(self, bus):
-        return
-
     def initialise_source(self, c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
@@ -9375,26 +9369,26 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-        if self.zero_flag.val_set:
-            c = self.zero_flag.val
-            if c[0] > 0 and c[1] < 3:
-                return self.inl[0].m.val_SI
-
-            elif ((c[0] == 0 and c[1] < 3) or
-                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
-                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
-
-            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
-                  (c[0] == 3 and c[1] == 5)):
-                return self.inl[1].m.val_SI
-            else:
-                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
-
-        else:
-            return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                            self.inl[0].h.val_SI) +
-                    self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
-                                            self.inl[1].h.val_SI))
+#        if self.zero_flag.val_set:
+#            c = self.zero_flag.val
+#            if c[0] > 0 and c[1] < 3:
+#                return self.inl[0].m.val_SI
+#
+#            elif ((c[0] == 0 and c[1] < 3) or
+#                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
+#                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
+#
+#            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
+#                  (c[0] == 3 and c[1] == 5)):
+#                return self.inl[1].m.val_SI
+#            else:
+#                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
+#
+#        else:
+        return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
+                                        self.inl[0].h.val_SI) +
+                self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
+                                        self.inl[1].h.val_SI))
 
     def energy_deriv(self):
         r"""
@@ -9408,30 +9402,30 @@ class heat_exchanger(component):
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-        if self.zero_flag.val_set:
-            c = self.zero_flag.val
-            if c[0] > 0 and c[1] < 3:
-                deriv[0, 0, 0] = 1
+#        if self.zero_flag.val_set:
+#            c = self.zero_flag.val
+#            if c[0] > 0 and c[1] < 3:
+#                deriv[0, 0, 0] = 1
+#
+#            elif ((c[0] == 0 and c[1] < 3) or
+#                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
+#                deriv[0, 0, 2] = -1
+#                deriv[0, 2, 2] = 1
+#
+#            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
+#                  (c[0] == 3 and c[1] == 5)):
+#                deriv[0, 1, 0] = 1
+#            else:
+#                deriv[0, 1, 2] = -1
+#                deriv[0, 3, 2] = 1
+#
+#        else:
+        for k in range(2):
+            deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
+            deriv[0, k, 2] = -self.inl[k].m.val_SI
 
-            elif ((c[0] == 0 and c[1] < 3) or
-                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
-                deriv[0, 0, 2] = -1
-                deriv[0, 2, 2] = 1
-
-            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
-                  (c[0] == 3 and c[1] == 5)):
-                deriv[0, 1, 0] = 1
-            else:
-                deriv[0, 1, 2] = -1
-                deriv[0, 3, 2] = 1
-
-        else:
-            for k in range(2):
-                deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-                deriv[0, k, 2] = -self.inl[k].m.val_SI
-
-            deriv[0, 2, 2] = self.inl[0].m.val_SI
-            deriv[0, 3, 2] = self.inl[1].m.val_SI
+        deriv[0, 2, 2] = self.inl[0].m.val_SI
+        deriv[0, 3, 2] = self.inl[1].m.val_SI
         return deriv.tolist()
 
     def kA_func(self):
@@ -9464,26 +9458,26 @@ class heat_exchanger(component):
           feasible.
         """
 
-        if self.zero_flag.val_set:
-            c = self.zero_flag.val
-            if c[1] == 2 or c[1] == 4 or c[1] == 5:
-                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-                T_i2 = T_mix_ph(self.inl[1].to_flow(), T0=self.inl[1].T.val_SI)
-                T_o1 = T_mix_ph(self.outl[0].to_flow(),
-                                T0=self.outl[0].T.val_SI)
-                T_o2 = T_mix_ph(self.outl[1].to_flow(),
-                                T0=self.outl[1].T.val_SI)
-                return T_o1 - T_i2 - T_i1 + T_o2
-
-            elif c[0] < 3 and (c[1] == 1 or c[1] == 3):
-                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
-
-            elif ((c[0] < 2 and c[1] == 0) or
-                  (c[0] == 3 and (c[1] == 1 or c[1] == 3))):
-                return self.inl[1].m.val_SI
-
-            else:
-                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
+#        if self.zero_flag.val_set:
+#            c = self.zero_flag.val
+#            if c[1] == 2 or c[1] == 4 or c[1] == 5:
+#                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
+#                T_i2 = T_mix_ph(self.inl[1].to_flow(), T0=self.inl[1].T.val_SI)
+#                T_o1 = T_mix_ph(self.outl[0].to_flow(),
+#                                T0=self.outl[0].T.val_SI)
+#                T_o2 = T_mix_ph(self.outl[1].to_flow(),
+#                                T0=self.outl[1].T.val_SI)
+#                return T_o1 - T_i2 - T_i1 + T_o2
+#
+#            elif c[0] < 3 and (c[1] == 1 or c[1] == 3):
+#                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
+#
+#            elif ((c[0] < 2 and c[1] == 0) or
+#                  (c[0] == 3 and (c[1] == 1 or c[1] == 3))):
+#                return self.inl[1].m.val_SI
+#
+#            else:
+#                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
 
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()

@@ -1525,6 +1525,79 @@ class network:
                    '{:.2e}'.format(norm(self.vec_res)))
             logging.warning(msg)
 
+    def solve_determination(self):
+        r"""
+        Checks, if the number of supplied parameters is sufficient for network
+        determination.
+        """
+        vec_res = []
+        self.num_comp_vars = 0
+        for cp in self.comps.index:
+            self.num_comp_vars += cp.num_vars
+            vec_res += cp.equations()
+
+        n = len(vec_res)
+        msg = 'Number of component equations: ' + str(n)
+        logging.debug(msg)
+
+        # number of equations from components
+        self.num_comp_eq = n
+
+        n = 0
+        for c in self.conns.index:
+            n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
+                  c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
+            n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
+                  c.T.ref_set].count(True)
+            n += list(c.fluid.val_set.values()).count(True)
+            n += [c.fluid.balance].count(True)
+
+        msg = 'Number of connection equations: ' + str(n)
+        logging.debug(msg)
+
+        # number of equations from connections
+        self.num_conn_eq = n
+
+        n = 0
+        for b in self.busses.values():
+            n += [b.P.val_set].count(True)
+
+        msg = 'Number of bus equations: ' + str(n)
+        logging.debug(msg)
+
+        # number of equations from busses
+        self.num_bus_eq = n
+
+        self.num_vars = (self.num_conn_vars * len(self.conns.index) +
+                         self.num_comp_vars)
+
+        self.vec_res = np.zeros([self.num_vars])
+        self.vec_res[0:self.num_comp_eq] = vec_res
+
+        msg = 'Total number of variables: ' + str(self.num_vars)
+        logging.debug(msg)
+
+        msg = 'Number of component variables: ' + str(self.num_comp_vars)
+        logging.debug(msg)
+
+        msg = ('Number of connection variables: ' +
+               str(self.num_conn_vars * len(self.conns.index)))
+        logging.debug(msg)
+
+        n = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
+        if n > self.num_vars:
+            msg = ('You have provided too many parameters: ' +
+                   str(self.num_vars) + ' required, ' + str(n) +
+                   ' supplied. Aborting calculation!')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        elif n < self.num_vars:
+            msg = ('You have not provided enough parameters: '
+                   + str(self.num_vars) + ' required, ' + str(n) +
+                   ' supplied. Aborting calculation!')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
     def print_iterinfo(self, position):
 
         if position == 'start':
@@ -1621,7 +1694,6 @@ class network:
         - Restrict fluid properties to value ranges
         - Check component parameters for consistency
         """
-        self.vec_res = np.zeros([self.num_vars])
         self.mat_deriv = np.zeros((self.num_vars, self.num_vars))
 
         self.solve_connections()
@@ -1844,13 +1916,14 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
-        data = network.solve_comp(args=([self.comps], ))
+        if self.iter > 0:
+            eq = self.comps.apply(network.solve_comp_eq, axis=1)
+            vec_res = []
+            vec_res += [it for ls in eq.tolist() for it in ls]
+
+        deriv = self.comps.apply(network.solve_comp_deriv, axis=1)
 
         sum_eq = 0
-        vec_res = []
-
-        # append residual values to residual value vector
-        vec_res += [it for ls in data[0].tolist() for it in ls]
         k = 0
         c_var = 0
         for cp in self.comps.index:
@@ -1859,7 +1932,7 @@ class network:
                     not isinstance(cp, cmp.sink)):
 
                 i = 0
-                num_eq = len(data[1].iloc[k][0])
+                num_eq = len(deriv.iloc[k][0])
                 inlets = self.comps.loc[cp].i.tolist()
                 outlets = self.comps.loc[cp].o.tolist()
 
@@ -1869,20 +1942,21 @@ class network:
                     coll_s = loc * self.num_conn_vars
                     coll_e = (loc + 1) * self.num_conn_vars
                     self.mat_deriv[sum_eq:sum_eq + num_eq, coll_s:coll_e] = (
-                            data[1].iloc[k][0][:, i])
+                            deriv.iloc[k][0][:, i])
                     i += 1
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
                     coll = self.num_vars - self.num_comp_vars + c_var
                     self.mat_deriv[sum_eq:sum_eq + num_eq, coll] = (
-                            data[1].iloc[k][0][:, i + j, :1].transpose()[0])
+                            deriv.iloc[k][0][:, i + j, :1].transpose()[0])
                     c_var += 1
 
                 sum_eq += num_eq
             k += 1
 
-        self.vec_res[0:self.num_comp_eq] = vec_res
+        if self.iter > 0:
+            self.vec_res[0:self.num_comp_eq] = vec_res
 
     def solve_comp(args):
         data = args[0]
@@ -2102,21 +2176,23 @@ class network:
         elif var == 'T':
             if c.T.val_set is True:
                 flow = c.to_flow()
-                return c.T.val_SI - hlp.T_mix_ph(flow)
+                return c.T.val_SI - hlp.T_mix_ph(flow, T0=c.T.val_SI)
             else:
                 return None
 
         elif var == 'v':
             if c.v.val_set is True:
                 flow = c.to_flow()
-                return c.v.val_SI - hlp.v_mix_ph(flow) * c.m.val_SI
+                return (c.v.val_SI - hlp.v_mix_ph(flow, T0=c.T.val_SI) *
+                        c.m.val_SI)
             else:
                 return None
 
         elif var == 'Td_bp':
             if c.Td_bp.val_set is True:
                 flow = c.to_flow()
-                return hlp.T_mix_ph(flow) - c.Td_bp.val_SI - hlp.T_bp_p(flow)
+                return (hlp.T_mix_ph(flow, T0=c.T.val_SI) -
+                        c.Td_bp.val_SI - hlp.T_bp_p(flow))
             else:
                 return None
 
@@ -2174,8 +2250,9 @@ class network:
             if c.T.ref_set is True:
                 flow = c.to_flow()
                 flow_ref = c.T.ref.obj.to_flow()
-                return hlp.T_mix_ph(flow) - (hlp.T_mix_ph(flow_ref) *
-                                             c.T.ref.f + c.T.ref.d)
+                return (hlp.T_mix_ph(flow, T0=c.T.val_SI) -
+                        (hlp.T_mix_ph(flow_ref, T0=c.T.ref.obj.T.val_SI) *
+                         c.T.ref.f + c.T.ref.d))
 
             else:
                 return None
@@ -2277,12 +2354,14 @@ class network:
                 flow = c.to_flow()
                 deriv = np.zeros((1, 1, self.num_conn_vars))
                 # dT / dp
-                deriv[0, 0, 1] = -hlp.dT_mix_dph(flow)
+                deriv[0, 0, 1] = -hlp.dT_mix_dph(flow, T0=c.T.val_SI)
                 # dT / dh
-                deriv[0, 0, 2] = -hlp.dT_mix_pdh(flow)
+                deriv[0, 0, 2] = -hlp.dT_mix_pdh(flow, T0=c.T.val_SI)
                 # dT / dFluid
                 if len(self.fluids) != 1:
-                    deriv[0, 0, 3:] = -hlp.dT_mix_ph_dfluid(flow)
+                    deriv[0, 0, 3:] = (
+                            -hlp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI)
+                            )
                 return deriv
             else:
                 return None
@@ -2292,11 +2371,13 @@ class network:
                 flow = c.to_flow()
                 deriv = np.zeros((1, 1, self.num_conn_vars))
                 # dv / dm
-                deriv[0, 0, 0] = -hlp.v_mix_ph(flow)
+                deriv[0, 0, 0] = -hlp.v_mix_ph(flow, T0=c.T.val_SI)
                 # dv / dp
-                deriv[0, 0, 1] = -hlp.dv_mix_dph(flow) * c.m.val_SI
+                deriv[0, 0, 1] = -(hlp.dv_mix_dph(flow, T0=c.T.val_SI) *
+                                   c.m.val_SI)
                 # dv / dh
-                deriv[0, 0, 2] = -hlp.dv_mix_pdh(flow) * c.m.val_SI
+                deriv[0, 0, 2] = -(hlp.dv_mix_pdh(flow, T0=c.T.val_SI) *
+                                   c.m.val_SI)
                 return deriv
             else:
                 return None
@@ -2306,9 +2387,10 @@ class network:
                 flow = c.to_flow()
                 deriv = np.zeros((1, 1, self.num_conn_vars))
                 # dtd / dp
-                deriv[0, 0, 1] = hlp.dT_mix_dph(flow) - hlp.dT_bp_dp(flow)
+                deriv[0, 0, 1] = (hlp.dT_mix_dph(flow, T0=c.T.val_SI) -
+                                  hlp.dT_bp_dp(flow))
                 # dtd / dh
-                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow)
+                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow, T0=c.T.val_SI)
                 return deriv
             else:
                 return None
@@ -2392,88 +2474,28 @@ class network:
                 flow_ref = c.T.ref.obj.to_flow()
                 deriv = np.zeros((1, 2, self.num_conn_vars))
                 # dT / dp
-                deriv[0, 0, 1] = hlp.dT_mix_dph(flow)
-                deriv[0, 1, 1] = -hlp.dT_mix_dph(flow_ref) * c.T.ref.f
+                deriv[0, 0, 1] = hlp.dT_mix_dph(flow, T0=c.T.val_SI)
+                deriv[0, 1, 1] = -(
+                        hlp.dT_mix_dph(flow_ref, T0=c.T.ref.obj.T.val_SI) *
+                        c.T.ref.f
+                        )
                 # dT / dh
-                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow)
-                deriv[0, 1, 2] = -hlp.dT_mix_pdh(flow_ref) * c.T.ref.f
+                deriv[0, 0, 2] = hlp.dT_mix_pdh(flow, T0=c.T.val_SI)
+                deriv[0, 1, 2] = -(
+                        hlp.dT_mix_pdh(flow_ref, T0=c.T.ref.obj.T.val_SI) *
+                        c.T.ref.f
+                        )
                 # dT / dFluid
                 if len(self.fluids) != 1:
-                    deriv[0, 0, 3:] = hlp.dT_mix_ph_dfluid(flow)
-                    deriv[0, 1, 3:] = -hlp.dT_mix_ph_dfluid(flow_ref)
+                    deriv[0, 0, 3:] = hlp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI)
+                    deriv[0, 1, 3:] = -(
+                            hlp.dT_mix_ph_dfluid(flow_ref,
+                                                 T0=c.T.ref.obj.T.val_SI)
+                            )
                 return deriv
 
             else:
                 return None
-
-    def solve_determination(self):
-        r"""
-        Checks, if the number of supplied parameters is sufficient for network
-        determination.
-        """
-        self.num_comp_vars = 0
-        n = 0
-        for cp in self.comps.index:
-            self.num_comp_vars += cp.num_vars
-            n += len(cp.equations())
-
-        msg = 'Number of component equations: ' + str(n)
-        logging.debug(msg)
-
-        # number of equations from components
-        self.num_comp_eq = n
-
-        n = 0
-        for c in self.conns.index:
-            n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
-                  c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
-            n += [c.m.ref_set, c.p.ref_set, c.h.ref_set,
-                  c.T.ref_set].count(True)
-            n += list(c.fluid.val_set.values()).count(True)
-            n += [c.fluid.balance].count(True)
-
-        msg = 'Number of connection equations: ' + str(n)
-        logging.debug(msg)
-
-        # number of equations from connections
-        self.num_conn_eq = n
-
-        n = 0
-        for b in self.busses.values():
-            n += [b.P.val_set].count(True)
-
-        msg = 'Number of bus equations: ' + str(n)
-        logging.debug(msg)
-
-        # number of equations from busses
-        self.num_bus_eq = n
-
-        self.num_vars = (self.num_conn_vars * len(self.conns.index) +
-                         self.num_comp_vars)
-
-        msg = 'Total number of variables: ' + str(self.num_vars)
-        logging.debug(msg)
-
-        msg = 'Number of component variables: ' + str(self.num_comp_vars)
-        logging.debug(msg)
-
-        msg = ('Number of connection variables: ' +
-               str(self.num_conn_vars * len(self.conns.index)))
-        logging.debug(msg)
-
-        n = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
-        if n > self.num_vars:
-            msg = ('You have provided too many parameters: ' +
-                   str(self.num_vars) + ' required, ' + str(n) +
-                   ' supplied. Aborting calculation!')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-        elif n < self.num_vars:
-            msg = ('You have not provided enough parameters: '
-                   + str(self.num_vars) + ' required, ' + str(n) +
-                   ' supplied. Aborting calculation!')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
 
     def post_processing(self):
         r"""
@@ -2496,8 +2518,8 @@ class network:
 
         # connections
         for c in self.conns.index:
-            c.T.val_SI = hlp.T_mix_ph(c.to_flow())
-            c.v.val_SI = hlp.v_mix_ph(c.to_flow()) * c.m.val_SI
+            c.T.val_SI = hlp.T_mix_ph(c.to_flow(), T0=c.T.val_SI)
+            c.v.val_SI = hlp.v_mix_ph(c.to_flow(), T0=c.T.val_SI) * c.m.val_SI
             c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])
             c.m.val = c.m.val_SI / self.m[c.m.unit]
             c.p.val = c.p.val_SI / self.p[c.p.unit]
@@ -2775,7 +2797,7 @@ class network:
             df = cp_sort[cp_sort['cp'] == c]
 
             # basic information
-            cols = ['label', 'mode', 'design', 'offdesign', 'interface']
+            cols = ['label', 'design', 'offdesign', 'interface']
             for col in cols:
                 df[col] = df.apply(f, axis=1, args=(col,))
 

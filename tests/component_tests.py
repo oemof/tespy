@@ -203,8 +203,8 @@ class component_tests:
         instance = cmp.turbine('turbine')
         c1, c2 = self.setup_network_11(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0, 'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
-        c1.set_attr(fluid=fl, m=15, p=10, T=120)
-        c2.set_attr(p=1)
+        c1.set_attr(fluid=fl, m=15, p=10)
+        c2.set_attr(p=1, T=20)
         instance.set_attr(eta_s=0.8)
         self.nw.solve('design')
         self.nw.save('tmp')
@@ -224,9 +224,9 @@ class component_tests:
         self.nw.solve('offdesign', design_path='tmp')
         eq_(round(eta_s_d, 2), round(instance.eta_s.val, 2), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be identical to design case (' + str(eta_s_d) + ').')
         # lowering mass flow, inlet pressure must sink according to cone law
-        c1.set_attr(m=c1.m.val*0.8)
+        c1.set_attr(m=c1.m.val * 0.8)
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.125, round(instance.pr.val, 3), 'Value of pressure ratio (' + str(instance.pr.val) + ') must be at (' + str(0.125) + ').')
+        eq_(0.128, round(instance.pr.val, 3), 'Value of pressure ratio (' + str(instance.pr.val) + ') must be at (' + str(0.128) + ').')
         self.nw.print_results()
         # testing more parameters for eta_s_char
         c1.set_attr(m=10)
@@ -237,11 +237,11 @@ class component_tests:
         # test param specification pr
         instance.eta_s_char.param='pr'
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.769, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.769) + ').')
+        eq_(0.768, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.768) + ').')
         # test param specification dh_s
         instance.eta_s_char.param='dh_s'
         self.nw.solve('offdesign', design_path='tmp')
-        eq_(0.799, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.799) + ').')
+        eq_(0.798, round(instance.eta_s.val, 3), 'Value of isentropic efficiency (' + str(instance.eta_s.val) + ') must be (' + str(0.798) + ').')
         instance.eta_s_char.param=None
         # test for missing parameter declaration
         try:

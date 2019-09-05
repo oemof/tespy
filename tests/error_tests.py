@@ -90,7 +90,6 @@ class specification_error_tests:
             self.cmp_instanciation_ValueError(l)
 
         # ValueErrors
-        self.set_attr_ValueError(self.comp, mode=5)
         self.set_attr_ValueError(self.comp, offdesign=['Q'])
 
         self.set_attr_ValueError(self.conn, offdesign=['f'])

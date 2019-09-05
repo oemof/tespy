@@ -1958,13 +1958,6 @@ class network:
         if self.iter > 0:
             self.vec_res[0:self.num_comp_eq] = vec_res
 
-    def solve_comp(args):
-        data = args[0]
-        return [
-                data[0].apply(network.solve_comp_eq, axis=1),
-                data[0].apply(network.solve_comp_deriv, axis=1)
-        ]
-
     def solve_comp_eq(cp):
         return cp.name.equations()
 

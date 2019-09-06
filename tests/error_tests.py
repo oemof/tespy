@@ -90,7 +90,6 @@ class specification_error_tests:
             self.cmp_instanciation_ValueError(l)
 
         # ValueErrors
-        self.set_attr_ValueError(self.comp, mode=5)
         self.set_attr_ValueError(self.comp, offdesign=['Q'])
 
         self.set_attr_ValueError(self.conn, offdesign=['f'])
@@ -110,12 +109,14 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
         self.set_attr_TypeError(self.comp, fuel=hlp.dc_cp(val='CH4'))
+        self.set_attr_TypeError(self.comp, design_path=7)
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)
         self.set_attr_TypeError(self.conn, h0=[4])
         self.set_attr_TypeError(self.conn, fluid=5)
         self.set_attr_TypeError(self.conn, state=5)
+        self.set_attr_TypeError(self.conn, design_path=5)
 
         self.set_attr_TypeError(self.nw, m_range=5)
         self.set_attr_TypeError(self.nw, p_range=5)
@@ -146,8 +147,8 @@ class specification_error_tests:
         self.get_attr_KeyError(cmp_char.characteristics(), 'test')
         self.get_attr_KeyError(hlp.data_container(), 'somekey')
 
-# %% Single tests
 
+# %% Single tests
 
 @raises(ValueError)
 def test_interface_ValueError():
@@ -158,14 +159,19 @@ def test_interface_ValueError():
 # networks
 
 
+@raises(hlp.TESPyNetworkError)
+def test_network_instanciation_no_fluids():
+    nw = nwk.network([])
+    so = cmp.source('source')
+    si = cmp.sink('sink')
+    conn = con.connection(so, 'out1', si, 'in1')
+    nw.add_conns(conn)
+    nw.solve('design', init_only=True)
+
+
 @raises(ValueError)
 def test_network_print_level():
     nwk.network(['INCOMP::DowQ']).set_printoptions(print_level='error')
-
-
-@raises(hlp.TESPyNetworkError)
-def test_network_instanciation_no_fluids():
-    nwk.network([]).initialise()
 
 
 @raises(TypeError)
@@ -240,18 +246,6 @@ def test_network_offdesign_path():
     a = con.connection(source, 'out1', sink, 'in1')
     nw.add_conns(a)
     nw.solve('offdesign')
-
-
-@raises(KeyError)
-def test_network_init_file():
-    nw = nwk.network(['water'])
-    nw.solve('design', init_file='tmp')
-
-
-@raises(KeyError)
-def test_network_design_file():
-    nw = nwk.network(['water'])
-    nw.solve('offdesign', design_file='tmp')
 
 
 @raises(ValueError)

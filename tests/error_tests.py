@@ -109,14 +109,14 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
         self.set_attr_TypeError(self.comp, fuel=hlp.dc_cp(val='CH4'))
-        self.set_attr_ValueError(self.comp, design_path=7)
+        self.set_attr_TypeError(self.comp, design_path=7)
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)
         self.set_attr_TypeError(self.conn, h0=[4])
         self.set_attr_TypeError(self.conn, fluid=5)
         self.set_attr_TypeError(self.conn, state=5)
-        self.set_attr_ValueError(self.conn, design_path=5)
+        self.set_attr_TypeError(self.conn, design_path=5)
 
         self.set_attr_TypeError(self.nw, m_range=5)
         self.set_attr_TypeError(self.nw, p_range=5)

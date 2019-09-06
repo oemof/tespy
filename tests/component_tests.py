@@ -920,6 +920,12 @@ class component_tests:
         self.sc2.set_attr(E=950)
 
         self.nw.solve('offdesign', design_path='design1')
+        self.sc2_v2.set_attr(design_path=np.nan)
+
+        # volumetric flow comparison
+        msg = ('Design path was set to None, is ' +
+               str(self.sc2_v2.design_path) + '.')
+        eq_(None, self.sc2_v2.design_path, msg)
 
         # volumetric flow comparison
         msg = ('Value of volumetric flow must be ' + str(v1_design) + ', is ' +

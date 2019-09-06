@@ -145,8 +145,8 @@ class specification_error_tests:
         self.get_attr_KeyError(cmp_char.characteristics(), 'test')
         self.get_attr_KeyError(hlp.data_container(), 'somekey')
 
-# %% Single tests
 
+# %% Single tests
 
 @raises(ValueError)
 def test_interface_ValueError():
@@ -157,14 +157,19 @@ def test_interface_ValueError():
 # networks
 
 
+@raises(hlp.TESPyNetworkError)
+def test_network_instanciation_no_fluids():
+    nw = nwk.network([])
+    so = cmp.source('source')
+    si = cmp.sink('sink')
+    conn = con.connection(so, 'out1', si, 'in1')
+    nw.add_conns(conn)
+    nw.solve('design', init_only=True)
+
+
 @raises(ValueError)
 def test_network_print_level():
     nwk.network(['INCOMP::DowQ']).set_printoptions(print_level='error')
-
-
-@raises(hlp.TESPyNetworkError)
-def test_network_instanciation_no_fluids():
-    nwk.network([]).initialise()
 
 
 @raises(TypeError)

@@ -1,0 +1,32 @@
+v0.1.3 (to be dated)
+++++++++++++++++++++
+
+New Features
+############
+- Individual design path specification is available: Specify the design_path individually for single connections or a components in your network, if 
+  you want the individual design parameters be loaded from a different design case than the network's design case given in the network's
+  design path (`PR #84 <https://github.com/oemof/tespy/pull/84>`_).
+
+Documentation
+#############
+
+Parameter renaming
+##################
+
+Testing
+#######
+- Added tests for the new design path feature (`PR #84 <https://github.com/oemof/tespy/pull/84>`_).
+
+Bug fixes
+#########
+- Offdesign values for connections are specified from the design case files (`PR #84 <https://github.com/oemof/tespy/pull/84>`_). Before, the offdesign values
+  were the actual values of the fluid property in the last calculation (which is not necessarily the design case).
+
+Other changes
+#############
+- Improved calculation speed for fluid mixture properties with the parameter T0 as starting value for root finding (`PR #84 <https://github.com/oemof/tespy/pull/84>`_).
+  
+Contributors
+############
+
+- Francesco Witte

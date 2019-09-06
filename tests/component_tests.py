@@ -640,21 +640,24 @@ class component_tests:
         except ValueError:
             pass
 
-        # trigger negative upper terminal temperature difference as result
+        # trigger negative lower terminal temperature difference as result
         he_tes.set_attr(T=np.nan)
         he_hs.set_attr(T=30)
         self.nw.solve('design')
         msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(he.ttd_u.val, 1)) + '.')
-        eq_(True, he.ttd_u.val < 0, msg)
-
-        # trigger negative lower terminal temperature difference as result
-        he_tes.set_attr(T=130)
-        he_hs.set_attr(T=np.nan)
-        self.nw.solve('design')
-        msg = ('Value of upper terminal temperature differences must be '
                'smaller than zero, is ' + str(round(he.ttd_l.val, 1)) + '.')
         eq_(True, he.ttd_l.val < 0, msg)
+
+        # trigger negative upper terminal temperature difference as result
+        he_tes.set_attr(T=100)
+        hs_he.set_attr(h=200e3, T=np.nan)
+        he.set_attr(design=['pr1', 'pr2'], ttd_u=np.nan)
+        he_hs.set_attr(h=150e3, T=np.nan)
+        tes_he.set_attr(T=40)
+        self.nw.solve('design')
+        msg = ('Value of upper terminal temperature differences must be '
+               'smaller than zero, is ' + str(round(he.ttd_u.val, 1)) + '.')
+        eq_(True, he.ttd_u.val < 0, msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
@@ -841,3 +844,7 @@ class component_tests:
                str(instance.Q.val) + '.')
         eq_(round(Q, 0), round(instance.Q.val, 0), msg)
         shutil.rmtree('./tmp', ignore_errors=True)
+
+a = component_tests()
+a.setup()
+a.test_heat_ex()

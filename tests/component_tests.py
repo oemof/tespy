@@ -547,6 +547,14 @@ class component_tests:
                ', is ' + str(instance.kA.val) + '.')
         eq_(677, round(instance.kA.val, 0), msg)
 
+        instance.set_attr(Q='var', kA=np.nan)
+        Q = -5e4
+        b.set_attr(P=Q)
+        self.nw.solve('design')
+        msg = ('Value of heat transfer must be ' + str(Q) +
+               ', is ' + str(instance.Q.val) + '.')
+        eq_(Q, round(instance.Q.val, 0), msg)
+
     def test_solar_collector(self):
         """
         Test component properties of solar collector.

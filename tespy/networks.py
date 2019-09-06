@@ -824,9 +824,15 @@ class network:
                 c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
                 c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
                 c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+                c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
+                c.x.design = df.loc[conn_id].x
+                c.T.design = ((df.loc[conn_id]['T'] +
+                               self.T[df.loc[conn_id].T_unit][0]) *
+                              self.T[df.loc[conn_id].T_unit][1])
+                c.Td_bp.design = (df.loc[conn_id].Td_bp *
+                                  self.T[df.loc[conn_id].T_unit][1])
                 for fluid in self.fluids:
                     c.fluid.design[fluid] = df.loc[conn_id][fluid]
-
             else:
                 msg = ('Could not find all connections in design case. '
                        'Please, make sure no connections have been modified '
@@ -905,6 +911,14 @@ class network:
                                   self.p[df.loc[conn_id].p_unit])
                     c.h.design = (df.loc[conn_id].h *
                                   self.h[df.loc[conn_id].h_unit])
+                    c.v.design = (df.loc[conn_id].v *
+                                  self.v[df.loc[conn_id].v_unit])
+                    c.x.design = df.loc[conn_id].x
+                    c.T.design = ((df.loc[conn_id]['T'] +
+                                   self.T[df.loc[conn_id].T_unit][0]) *
+                                  self.T[df.loc[conn_id].T_unit][1])
+                    c.Td_bp.design = (df.loc[conn_id].Td_bp *
+                                      self.T[df.loc[conn_id].T_unit][1])
                     for fluid in self.fluids:
                         c.fluid.design[fluid] = df.loc[conn_id][fluid]
 
@@ -956,6 +970,7 @@ class network:
 
             for var in c.offdesign:
                 c.get_attr(var).set_attr(val_set=True)
+                c.get_attr(var).val_SI = c.get_attr(var).design
 
         msg = 'Switched connections from design to offdesign.'
         logging.debug(msg)
@@ -1213,20 +1228,21 @@ class network:
                     c.get_attr(key).val_SI = (
                             c.get_attr(key).val0 * self.get_attr(key)[
                                     c.get_attr(key).unit])
-                elif (key not in ['T', 'x', 'v', 'Td_bp'] and
-                      c.get_attr(key).val_set is True):
-                    c.get_attr(key).val_SI = (
-                            c.get_attr(key).val * self.get_attr(key)[
-                                    c.get_attr(key).unit])
-                elif key == 'T' and c.T.val_set is True:
-                    c.T.val_SI = ((c.T.val + self.T[c.T.unit][0]) *
-                                  self.T[c.T.unit][1])
-                elif key == 'Td_bp' and c.Td_bp.val_set is True:
-                    c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
-                elif key == 'x' and c.x.val_set is True:
-                    c.x.val_SI = c.x.val
-                elif key == 'v' and c.v.val_set is True:
-                    c.v.val_SI = c.v.val * self.v[c.v.unit]
+                elif key not in c.offdesign:
+                    if (key not in ['T', 'x', 'v', 'Td_bp'] and
+                            c.get_attr(key).val_set is True):
+                        c.get_attr(key).val_SI = (
+                                c.get_attr(key).val * self.get_attr(key)[
+                                        c.get_attr(key).unit])
+                    elif (key == 'T' and c.T.val_set is True):
+                        c.T.val_SI = ((c.T.val + self.T[c.T.unit][0]) *
+                                      self.T[c.T.unit][1])
+                    elif key == 'Td_bp' and c.Td_bp.val_set is True:
+                        c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
+                    elif key == 'x' and c.x.val_set is True:
+                        c.x.val_SI = c.x.val
+                    elif key == 'v' and c.v.val_set is True:
+                        c.v.val_SI = c.v.val * self.v[c.v.unit]
 
         msg = ('Retrieved generic starting values and specified SI-values of '
                'connection parameters.')

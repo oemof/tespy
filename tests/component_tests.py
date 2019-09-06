@@ -59,6 +59,49 @@ class component_tests:
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
+    def setup_network_individual_offdesign(self):
+        """
+        Set up network for individual offdesign tests.
+        """
+        so = cmp.source('source')
+        sp = cmp.splitter('splitter', num_out=2)
+        self.pump1 = cmp.pump('pump 1')
+        self.sc1 = cmp.solar_collector('collector field 1')
+        v1 = cmp.valve('valve1')
+        self.pump2 = cmp.pump('pump 2')
+        self.sc2 = cmp.solar_collector('collector field 2')
+        v2 = cmp.valve('valve2')
+        me = cmp.merge('merge', num_in=2)
+        si = cmp.sink('sink')
+
+        self.pump1.set_attr(eta_s=0.8, design=['eta_s'],
+                            offdesign=['eta_s_char'])
+        self.pump2.set_attr(eta_s=0.8, design=['eta_s'],
+                            offdesign=['eta_s_char'])
+        self.sc1.set_attr(pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
+                          Tamb=20, design=['pr'], offdesign=['zeta'])
+        self.sc2.set_attr(pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
+                          Tamb=20, design=['pr'], offdesign=['zeta'])
+
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0,
+              'H2O': 1, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+
+        inlet = con.connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
+        outlet = con.connection(me, 'out1', si, 'in1', p=3)
+
+        sp_p1 = con.connection(sp, 'out1', self.pump1, 'in1')
+        p1_sc1 = con.connection(self.pump1, 'out1', self.sc1, 'in1')
+        self.sc1_v1 = con.connection(self.sc1, 'out1', v1, 'in1', p=3.1, T=90)
+        v1_me = con.connection(v1, 'out1', me, 'in1')
+
+        self.sp_p2 = con.connection(sp, 'out2', self.pump2, 'in1')
+        self.p2_sc2 = con.connection(self.pump2, 'out1', self.sc2, 'in1')
+        self.sc2_v2 = con.connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
+        v2_me = con.connection(v2, 'out1', me, 'in2')
+
+        self.nw.add_conns(inlet, outlet, sp_p1, p1_sc1, self.sc1_v1, v1_me,
+                          self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
+
     def test_turbomachine(self):
         """
         Test component properties of turbomachines.
@@ -845,6 +888,56 @@ class component_tests:
         eq_(round(Q, 0), round(instance.Q.val, 0), msg)
         shutil.rmtree('./tmp', ignore_errors=True)
 
-a = component_tests()
-a.setup()
-a.test_heat_ex()
+    def test_individual_design_path_on_connections_and_components(self):
+
+        self.setup_network_individual_offdesign()
+        self.nw.solve('design')
+        self.sc2_v2.set_attr(m=0)
+        self.nw.solve('design')
+        self.nw.save('design1')
+        v1_design = self.sc1_v1.v.val_SI
+        zeta_sc1_design = self.sc1.zeta.val
+
+        self.sc2_v2.set_attr(T=95, m=np.nan)
+        self.sc1_v1.set_attr(T=np.nan, m=0.001)
+        self.nw.solve('design')
+        self.nw.save('design2')
+        v2_design = self.sc2_v2.v.val_SI
+        zeta_sc2_design = self.sc2.zeta.val
+
+        self.sc1_v1.set_attr(m=np.nan)
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+
+        self.sc2.set_attr(design_path='design2')
+        self.pump2.set_attr(design_path='design2')
+        self.sp_p2.set_attr(design_path='design2')
+        self.p2_sc2.set_attr(design_path='design2')
+        self.sc2_v2.set_attr(design_path='design2')
+        self.nw.solve('offdesign', design_path='design1')
+
+        self.sc1.set_attr(E=500)
+        self.sc2.set_attr(E=950)
+
+        self.nw.solve('offdesign', design_path='design1')
+
+        # volumetric flow comparison
+        msg = ('Value of volumetric flow must be ' + str(v1_design) + ', is ' +
+               str(self.sc1_v1.v.val_SI) + '.')
+        eq_(round(v1_design, 5), round(self.sc1_v1.v.val_SI, 5), msg)
+
+        msg = ('Value of volumetric flow must be ' + str(v2_design) + ', is ' +
+               str(self.sc2_v2.v.val_SI) + '.')
+        eq_(round(v2_design, 5), round(self.sc2_v2.v.val_SI, 5), msg)
+
+        # zeta value of solar collector comparison
+        msg = ('Value of zeta must be ' + str(zeta_sc1_design) + ', is ' +
+               str(self.sc1.zeta.val) + '.')
+        eq_(round(zeta_sc1_design, 0), round(self.sc1.zeta.val, 0), msg)
+
+        msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
+               str(self.sc2.zeta.val) + '.')
+        eq_(round(zeta_sc2_design, 0), round(self.sc2.zeta.val, 0), msg)
+
+        shutil.rmtree('./design1', ignore_errors=True)
+        shutil.rmtree('./design2', ignore_errors=True)

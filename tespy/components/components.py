@@ -9836,13 +9836,13 @@ class heat_exchanger(component):
                                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
             self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
 
-        if self.ttd_u.val < 0:
+        if self.ttd_u.val <= 0:
             msg = ('Invalid value for terminal temperature difference (upper) '
                    'at component ' + self.label + ': ttd_u = ' +
                    str(self.ttd_u.val) + ' K.')
             logging.error(msg)
 
-        if self.ttd_l.val < 0:
+        if self.ttd_l.val <= 0:
             msg = ('Invalid value for terminal temperature difference (lower) '
                    'at component ' + self.label + ': ttd_l = ' +
                    str(self.ttd_l.val) + ' K.')

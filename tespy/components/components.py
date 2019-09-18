@@ -9492,27 +9492,31 @@ class heat_exchanger(component):
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
 
-        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+#        if T_i1 <= T_o2 and self.inl[0].T.val_set is False:
+        if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
-        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+#        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
+        if T_i1 <= T_o2:
             T_o2 = T_i1 - 0.01
-        if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Value for upper '
-                   'temperature difference is ' + str(round(T_i1 - T_o2)) +
-                   '.')
-            logging.error(msg)
-            raise ValueError(msg)
+#        if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Value for upper '
+#                   'temperature difference is ' + str(round(T_i1 - T_o2)) +
+#                   '.')
+#            logging.error(msg)
+#            raise ValueError(msg)
 
-        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+#        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
+        if T_i1 <= T_o2:
             T_o1 = T_i2 + 0.02
-        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+#        if T_o1 <= T_i2 and self.inl[1].T.val_set is False:
+        if T_o1 <= T_i2:
             T_i2 = T_o1 - 0.02
-        if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
-            msg = ('Infeasibility at ' + str(self.label) + ': Value for lower '
-                   'temperature difference is ' + str(round(T_o1 - T_i2)) +
-                   '.')
-            logging.error(msg)
-            raise ValueError(msg)
+#        if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
+#            msg = ('Infeasibility at ' + str(self.label) + ': Value for lower '
+#                   'temperature difference is ' + str(round(T_o1 - T_i2)) +
+#                   '.')
+#            logging.error(msg)
+#            raise ValueError(msg)
 
         fkA1 = 1
         if self.kA_char1.param == 'm':

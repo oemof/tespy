@@ -111,11 +111,6 @@ class test_heat_pump_ebsilon:
 
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
-        # helping connection to reference boiling temperature
-
-        ref_Ts_su = con.connection(cmp.source('so'), 'out1', cmp.sink('si'), 'in1')
-        ref_Ts_cd = con.connection(cmp.source('socd'), 'out1', cmp.sink('sicd'), 'in1')
-        self.nw.add_conns(ref_Ts_su, ref_Ts_cd)
         # %% component parametrization
 
         # condenser system
@@ -159,22 +154,19 @@ class test_heat_pump_ebsilon:
         cb_rp.set_attr(T=60, p=10, fluid={'water': 1, 'NH3': 0})
         self.cd_cons.set_attr(T=105)
         cons_cf.set_attr(h=con.ref(cb_rp, 1, 0), p=con.ref(cb_rp, 1, 0))
-        cd_va.set_attr(p=con.ref(c_in_cd, 1, -1000), T=con.ref(ref_Ts_cd, 1, -5), h0=500, design=['T'])
+        cd_va.set_attr(p=con.ref(c_in_cd, 1, -1000), Td_bp=-5, h0=500, design=['Td_bp'])
 
         # evaporator system cold side
 
         pu_ev.set_attr(m=con.ref(va_dr, 10, 0), p0=5)
         dr_su.set_attr(p0=5, T=5)
-        su_cp1.set_attr(p=con.ref(dr_su, 1, -5000), T=con.ref(ref_Ts_su , 1, 5), h0=1700, design=['T', 'p'])
+        su_cp1.set_attr(p=con.ref(dr_su, 1, -5000), Td_bp=5, h0=1700, design=['Td_bp', 'p'])
 
         # evaporator system hot side
 
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1, 'NH3': 0})
         su_ev.set_attr(p=con.ref(self.amb_in_su, 1, -100), design=['p'])
         ev_amb_out.set_attr()
-
-        ref_Ts_su.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(su_cp1, 1, 0), x=1)
-        ref_Ts_cd.set_attr(m=5, fluid={'water': 0, 'NH3': 1}, p=con.ref(cd_va, 1, 0), x=0)
 
         # compressor-system
 

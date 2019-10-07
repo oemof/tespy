@@ -62,7 +62,8 @@ class connection:
         Volumetric flow specification.
 
     state : str
-        State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
+        State of the pure fluid on this connection: liquid ('l') or gaseous
+        ('g').
 
     design : list
         List containing design parameters (stated as string).
@@ -80,10 +81,10 @@ class connection:
       (0 = 1 - a - b - c - d) will be applied.
 
     - The specification of values for design and/or offdesign is used for
-      automatic switch from design to offdesign calculation: All parameters given
-      in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
-      calculation, parameters given in 'offdesign' are set for offdesign
-      calculation.
+      automatic switch from design to offdesign calculation: All parameters
+      given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+      offdesign calculation, parameters given in 'offdesign' are set for
+      offdesign calculation.
 
     Example
     -------
@@ -97,7 +98,8 @@ class connection:
     >>> so_si2 = con.connection(so2, 'out1', si2, 'in1')
     >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
     >>> p = hlp.dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
-    >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200, fluid={'N2': 1}, fluid_balance=True)
+    >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200,
+    ... fluid={'N2': 1}, fluid_balance=True)
     >>> type(so_si1.p)
     <class 'tespy.tools.helpers.dc_prop'>
     >>> type(so_si1.fluid)
@@ -134,24 +136,30 @@ class connection:
         # check input parameters
         if not (isinstance(comp1, cmp.component) and
                 isinstance(comp2, cmp.component)):
-            msg = ('Error creating connection. Check if comp1, comp2 are of type component.')
+            msg = ('Error creating connection. Check if comp1, comp2 are of '
+                   'type component.')
             logging.error(msg)
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. Can\'t connect component ' + comp1.label + ' to itself.')
+            msg = ('Error creating connection. Can\'t connect component ' +
+                   comp1.label + ' to itself.')
             logging.error(msg)
             raise TESPyConnectionError(msg)
 
         if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. Specified oulet_id (' + outlet_id + ') is not valid for component ' +
-                   comp1.component() + '. Valid ids are: ' + str(comp1.outlets()) + '.')
+            msg = ('Error creating connection. Specified oulet_id (' +
+                   outlet_id + ') is not valid for component ' +
+                   comp1.component() + '. Valid ids are: ' +
+                   str(comp1.outlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. Specified inlet_id (' + inlet_id + ') is not valid for component ' +
-                   comp2.component() + '. Valid ids are: ' + str(comp2.inlets()) + '.')
+            msg = ('Error creating connection. Specified inlet_id (' +
+                   inlet_id + ') is not valid for component ' +
+                   comp2.component() + '. Valid ids are: ' +
+                   str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -161,6 +169,7 @@ class connection:
         self.t = comp2
         self.t_id = inlet_id
 
+        self.design_path = None
         self.design = []
         self.offdesign = []
 
@@ -172,12 +181,14 @@ class connection:
 
         self.set_attr(**kwargs)
 
-        msg = 'Created connection ' + self.s.label + ' (' + self.s_id + ') -> ' + self.t.label + ' (' + self.t_id + ').'
+        msg = ('Created connection ' + self.s.label + ' (' + self.s_id +
+               ') -> ' + self.t.label + ' (' + self.t_id + ').')
         logging.debug(msg)
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword arguments.
+        Sets, resets or unsets attributes of a component for provided keyword
+        arguments.
 
         Parameters
         ----------
@@ -222,7 +233,8 @@ class connection:
             Volumetric flow specification.
 
         state : str
-            State of the pure fluid on this connection: liquid ('l') or gaseous ('g').
+            State of the pure fluid on this connection: liquid ('l') or gaseous
+            ('g').
 
         design : list
             List containing design parameters (stated as String).
@@ -232,23 +244,23 @@ class connection:
 
         Note
         ----
-        - The fluid balance parameter applies a balancing of the fluid vector on
-          the specified conntion to 100 %. For example, you have four fluid
+        - The fluid balance parameter applies a balancing of the fluid vector
+          on the specified conntion to 100 %. For example, you have four fluid
           components (a, b, c and d) in your vector, you set two of them
-          (a and b) and want the other two (components c and d) to be a result of
-          your calculation. If you set this parameter to True, the equation
+          (a and b) and want the other two (components c and d) to be a result
+          of your calculation. If you set this parameter to True, the equation
           (0 = 1 - a - b - c - d) will be applied.
 
         - The specification of values for design and/or offdesign is used for
-          automatic switch from design to offdesign calculation: All parameters given
-          in 'design', e. g. :code:`design=['T', 'p']`, are unset in any offdesign
-          calculation, parameters given in 'offdesign' are set for offdesign
-          calculation.
+          automatic switch from design to offdesign calculation: All parameters
+          given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+          offdesign calculation, parameters given in 'offdesign' are set for
+          offdesign calculation.
 
         - The property state is applied on pure fluids only. If you specify the
           desired state of the fluid at a connection the convergence check will
-          adjust the enthalpy values of that connection for the first iterations
-          in order to meet the state requirement.
+          adjust the enthalpy values of that connection for the first
+          iterations in order to meet the state requirement.
         """
         var = self.attr()
         var0 = [x + '0' for x in var.keys()]
@@ -261,7 +273,9 @@ class connection:
                     if isinstance(kwargs[key], dict):
                         # starting values
                         if key in var0:
-                            self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                            self.get_attr(key.replace('0', '')).set_attr(
+                                    val0=kwargs[key]
+                                    )
                         # specified parameters
                         else:
                             self.get_attr(key).set_attr(val=kwargs[key].copy())
@@ -275,7 +289,8 @@ class connection:
 
                     else:
                         # bad datatype
-                        msg = 'Bad datatype for connection keyword ' + key + '.'
+                        msg = ('Bad datatype for connection keyword ' + key +
+                               '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -290,16 +305,19 @@ class connection:
                                 isinstance(kwargs[key], np.int64) or
                                 isinstance(kwargs[key], int)):
                             if np.isnan(kwargs[key]):
-                                self.state.set_attr(val=kwargs[key], val_set=False)
+                                self.state.set_attr(
+                                        val=kwargs[key], val_set=False
+                                        )
                             else:
-                                msg = 'Datatype for keyword argument ' + str(key) + ' must be str.'
+                                msg = ('Datatype for keyword argument ' +
+                                       str(key) + ' must be str.')
                                 logging.error(msg)
                                 raise TypeError(msg)
                         else:
-                            msg = 'Keyword argument ' + str(key) + ' must be \'l\' or \'g\'.'
+                            msg = ('Keyword argument ' + str(key) +
+                                   ' must be \'l\' or \'g\'.')
                             logging.error(msg)
                             raise ValueError(msg)
-
 
                 elif (isinstance(kwargs[key], float) or
                         isinstance(kwargs[key], np.float64) or
@@ -307,18 +325,26 @@ class connection:
                         isinstance(kwargs[key], int)):
                     # unset
                     if np.isnan(kwargs[key]) and key not in var0:
-                        self.get_attr(key).set_attr(val_set=False, ref_set=False)
+                        self.get_attr(key).set_attr(
+                                val_set=False, ref_set=False
+                                )
                     # starting value
                     elif key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(val0=kwargs[key])
+                        self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key]
+                                )
                     # set/reset
                     else:
-                        self.get_attr(key).set_attr(val_set=True, val=kwargs[key], val0=kwargs[key])
+                        self.get_attr(key).set_attr(
+                                val_set=True, val=kwargs[key], val0=kwargs[key]
+                                )
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
                     if key == 'x' or key == 'v' or key == 'Td_bp':
-                        msg = 'References for volumetric flow, vapour mass fraction and subcooling/superheating not implemented.'
+                        msg = ('References for volumetric flow, vapour mass '
+                               'fraction and subcooling/superheating not '
+                               'implemented.')
                         logging.warning(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
@@ -339,7 +365,8 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) + ' must be boolean.')
+                    msg = ('Datatype for keyword argument ' + str(key) +
+                           ' must be boolean.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -351,9 +378,21 @@ class connection:
                 if set(kwargs[key]).issubset(var.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design specification are: ' + str(var.keys()) + '.')
+                    msg = ('Available parameters for (off-)design '
+                           'specification are: ' + str(var.keys()) + '.')
                     logging.error(msg)
                     raise ValueError(msg)
+
+            elif key == 'design_path':
+                if isinstance(kwargs[key], str):
+                    self.__dict__.update({key: kwargs[key]})
+                elif np.isnan(kwargs[key]):
+                    self.design_path = None
+                else:
+                    msg = ('Please provide the ' + key + ' parameter as '
+                           'string or as nan.')
+                    logging.error(msg)
+                    raise TypeError(msg)
 
             # invalid keyword
             else:
@@ -420,7 +459,8 @@ class connection:
 
 class bus:
     r"""
-    A bus is used to connect different energy flows (power, heat flow, thermal input).
+    A bus is used to connect different energy flows (power, heat flow,
+    thermal input).
 
     Parameters
     ----------
@@ -436,7 +476,8 @@ class bus:
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[10, 1200])
     >>> nw.set_printoptions(print_level='none')
 
     >>> amb = cmp.source('ambient')
@@ -460,10 +501,14 @@ class bus:
     >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
     >>> nw.add_conns(chp1_cw, chp2_cw)
     >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=1e6, lamb=1.2)
-    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 0, 'CH4': 1})
+    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
 
     >>> si = cmp.sink('sink')
     >>> so = cmp.source('source')
@@ -474,8 +519,10 @@ class bus:
     >>> outg = con.connection(c, 'out1', si, 'in1')
     >>> nw.add_conns(inc, ws, outg)
     >>> c.set_attr(pr=1)
-    >>> t.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0}, T=600, p=50, design=['p'])
+    >>> t.set_attr(eta_s=0.8, design=['eta_s'],
+    ... offdesign=['eta_s_char', 'cone'])
+    >>> inc.set_attr(fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1,
+    ... 'CH4': 0}, T=600, p=50, design=['p'])
     >>> outg.set_attr(p=0.5, x=0)
 
     >>> power_bus = con.bus('power')
@@ -485,7 +532,8 @@ class bus:
     >>> efficiency = np.array([0.8, 0.9, 0.93, 0.95, 0.955, 0.94])
     >>> t_gen = cmp_char.characteristics(x=load, y=efficiency)
     >>> cog_gen = cmp_char.characteristics(x=load, y=-efficiency)
-    >>> power_bus.add_comps({'c': t, 'char': t_gen}, {'c': chp, 'char': cog_gen, 'p': 'P'})
+    >>> power_bus.add_comps({'c': t, 'char': t_gen},
+    ... {'c': chp, 'char': cog_gen, 'p': 'P'})
     >>> heat_bus.add_comps({'c': c, 'char': -1}, {'c': chp, 'p': 'Q'})
     >>> nw.add_busses(power_bus, heat_bus)
     >>> type(heat_bus)
@@ -577,8 +625,8 @@ class bus:
         Parameters
         ----------
         c : dict
-            Dictionary containing the component information to be added to the bus.
-            These information are described in the notes!
+            Dictionary containing the component information to be added to the
+            bus. These information are described in the notes!
 
         Note
         ----

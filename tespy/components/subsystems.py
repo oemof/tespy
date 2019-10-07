@@ -26,19 +26,24 @@ class subsystem:
         The label of the subsystem.
 
     **kwargs :
-        See the class documentation of desired subsystem for available keywords.
-        If you want to define your own subsystem, provide the keywords in the :func:`tespy.components.subsystems.subystem.attr` method.
+        See the class documentation of desired subsystem for available
+        keywords. If you want to define your own subsystem, provide the
+        keywords in the :func:`tespy.components.subsystems.subystem.attr`
+        method.
 
     Note
     ----
-    The initialisation method (__init__), setter method (set_attr) and getter method (get_attr)
-    are used for instances of class subsystem and its children.
+    The initialisation method (__init__), setter method (set_attr) and getter
+    method (get_attr) are used for instances of class subsystem and its
+    children.
 
-    Keywords for keyword arguments depend on the type of subsystem you want to create/use.
+    Keywords for keyword arguments depend on the type of subsystem you want to
+    create/use.
 
     Example
     -------
-    Basic example for a setting up a tespy.components.subsystems.subsystem object.
+    Basic example for a setting up a tespy.components.subsystems.subsystem
+    object.
     This example does not run a tespy calculation!
 
     >>> from tespy import subsys
@@ -74,7 +79,8 @@ class subsystem:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword arguments.
+        Sets, resets or unsets attributes of a component for provided keyword
+        arguments.
 
         Parameters
         ----------
@@ -82,13 +88,16 @@ class subsystem:
             The label of the subsystem.
 
         **kwargs :
-            See the class documentation of desired subsystem for available keywords.
-            If you want to define your own subsystem, provide the keywords in the :func:`tespy.components.subsystems.subystem.attr` method.
+            See the class documentation of desired subsystem for available
+            keywords. If you want to define your own subsystem, provide the
+            keywords in the :func:`tespy.components.subsystems.subystem.attr`
+            method.
 
         Note
         ----
         Allowed keywords in kwargs are obtained from class documentation as all
-        subsystems share the :func:`tespy.components.subsystems.subsystem.set_attr` method.
+        subsystems share the
+        :func:`tespy.components.subsystems.subsystem.set_attr` method.
         """
         # set provided values,  check for invalid keys
         for key in kwargs:
@@ -106,7 +115,8 @@ class subsystem:
                 elif isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
             else:
-                msg = ('Component ' + self.label + ' has no attribute ' + str(key))
+                msg = ('Component ' + self.label + ' has no attribute ' +
+                       str(key) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -334,8 +344,7 @@ class dr_eva_natural(subsystem):
         self.outlet = cmp.subsys_interface(label=self.label + '_outlet',
                                            num_inter=self.num_o)
         self.drum = cmp.drum(label=self.label + '_drum')
-        self.evaporator = cmp.heat_exchanger(label=self.label + '_evaporator',
-                                             mode='man')
+        self.evaporator = cmp.heat_exchanger(label=self.label + '_evaporator')
 
     def set_comps(self):
 
@@ -420,7 +429,7 @@ class ph_desup_cond(subsystem):
                                            num_inter=self.num_o)
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
-        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve')
 
     def set_comps(self):
 
@@ -447,7 +456,8 @@ class ph_desup_cond(subsystem):
 
 class ph_desup_cond_subc(subsystem):
     r"""
-    Preheater with desuperheater and subcooler, subcooled liquid at hot side outlet.
+    Preheater with desuperheater and subcooler, subcooled liquid at hot side
+    outlet.
 
     Inlets/Outlets
 
@@ -513,7 +523,7 @@ class ph_desup_cond_subc(subsystem):
         self.desup = cmp.desuperheater(label=self.label + '_desup')
         self.condenser = cmp.condenser(label=self.label + '_condenser')
         self.subcooler = cmp.heat_exchanger(label=self.label + '_subcooler')
-        self.valve = cmp.valve(label=self.label + '_valve', mode='man')
+        self.valve = cmp.valve(label=self.label + '_valve')
 
     def set_comps(self):
 

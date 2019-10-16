@@ -724,6 +724,15 @@ class source(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    Example
+    -------
+    >>> from tespy import cmp
+    >>> so = cmp.source('some source')
+    >>> so.component()
+    'source'
+    >>> so.label
+    'some source'
     """
 
     def component(self):
@@ -752,6 +761,15 @@ class sink(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    Example
+    -------
+    >>> from tespy import cmp
+    >>> si = cmp.sink('some sink')
+    >>> si.component()
+    'sink'
+    >>> si.label
+    'some sink'
     """
 
     def component(self):

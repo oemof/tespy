@@ -3,6 +3,8 @@
 from nose.tools import eq_, raises
 
 from tespy import nwk, cmp, con, hlp, subsys, cmp_char
+import shutil
+import csv
 
 
 # %% bulk tests
@@ -182,6 +184,12 @@ def test_network_instanciation_single_fluid():
 @raises(TypeError)
 def test_network_add_conns():
     nwk.network(['water']).add_conns(cmp.component('test'))
+
+
+@raises(hlp.TESPyNetworkError)
+def test_network_no_connections_error():
+    nw = nwk.network(['water'])
+    nw.solve('design')
 
 
 @raises(hlp.TESPyNetworkError)

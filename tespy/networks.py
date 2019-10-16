@@ -839,7 +839,7 @@ class network:
                        'or components have been relabeled for your offdesign '
                        'calculation.')
                 logging.error(msg)
-                hlp.TESPyNetworkError(msg)
+                raise hlp.TESPyNetworkError(msg)
 
         msg = 'Gathered global design point information.'
         logging.debug(msg)
@@ -928,7 +928,7 @@ class network:
                            'modified or components have been relabeled for '
                            'your offdesign calculation.')
                     logging.error(msg)
-                    hlp.TESPyNetworkError(msg)
+                    raise hlp.TESPyNetworkError(msg)
 
         msg = 'Gathered individual design point information.'
         logging.debug(msg)

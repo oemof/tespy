@@ -416,6 +416,24 @@ class component:
         """
         return
 
+    def check_parameter_bounds(self):
+        for p, data in self.attr().items():
+            if isinstance(data, dc_cp):
+                val = self.get_attr(p).val
+                if val > data.max_val:
+                    msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
+                           str(val) + ' above maximum value (' +
+                           str(data.max_val) + ') at component ' +
+                           self.label + '.')
+                    logging.warning(msg)
+
+                elif val < data.min_val:
+                    msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
+                           str(val) + ' below minimum value (' +
+                           str(data.min_val) + ') at component ' +
+                           self.label + '.')
+                    logging.warning(msg)
+
     def initialise_fluids(self, nw):
         return
 
@@ -1166,10 +1184,12 @@ class pump(turbomachine):
         return 'pump'
 
     def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'Sirr': dc_simple(),
+        return {'P': dc_cp(min_val=0),
+                'eta_s': dc_cp(min_val=0, max_val=1),
+                'pr': dc_cp(min_val=1),
                 'eta_s_char': dc_cc(method='GENERIC'),
-                'flow_char': dc_cc()}
+                'flow_char': dc_cc(),
+                'Sirr': dc_simple()}
 
     def additional_equations(self):
         r"""
@@ -1458,10 +1478,6 @@ class pump(turbomachine):
 
         self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                           (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-        if (self.eta_s.val > 1 or self.eta_s.val <= 0):
-            msg = ('Invalid value for isentropic efficiency: '
-                   'eta_s =' + str(self.eta_s.val) + ' at ' + self.label + '.')
-            logging.error(msg)
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
@@ -1476,6 +1492,8 @@ class pump(turbomachine):
             i = self.inl[0].to_flow()
             expr = i[0] * v_mix_ph(i, T0=self.inl[0].T.val_SI)
             self.flow_char.func.get_bound_errors(expr, self.label)
+
+        self.check_parameter_bounds()
 
 # %%
 
@@ -1578,11 +1596,13 @@ class compressor(turbomachine):
         return 'compressor'
 
     def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
+        return {'P': dc_cp(min_val=0),
+                'eta_s': dc_cp(min_val=0, max_val=1),
+                'pr': dc_cp(min_val=1),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
-                'Sirr': dc_simple(),
                 'char_map': dc_cm(method='GENERIC'),
-                'eta_s_char': dc_cc(param='m', method='GENERIC')}
+                'eta_s_char': dc_cc(param='m', method='GENERIC'),
+                'Sirr': dc_simple()}
 
     def comp_init(self, nw):
 
@@ -1945,10 +1965,6 @@ class compressor(turbomachine):
 
         self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
                           (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-        if (self.eta_s.val > 1 or self.eta_s.val <= 0):
-            msg = ('Invalid value for isentropic efficiency: '
-                   'eta_s =' + str(self.eta_s.val) + ' at ' + self.label + '.')
-            logging.error(msg)
 
         if self.char_map.is_set:
             # get bound errors for characteristic map
@@ -1976,6 +1992,8 @@ class compressor(turbomachine):
                     expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
+
+        self.check_parameter_bounds()
 
 # %%
 
@@ -2074,10 +2092,12 @@ class turbine(turbomachine):
         return 'turbine'
 
     def attr(self):
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'Sirr': dc_simple(),
+        return {'P': dc_cp(max_val=0),
+                'eta_s': dc_cp(min_val=0, max_val=1),
+                'pr': dc_cp(max_val=1),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
-                'cone': dc_cc(method='default')}
+                'cone': dc_cc(method='default'),
+                'Sirr': dc_simple()}
 
     def additional_equations(self):
         r"""
@@ -2368,10 +2388,6 @@ class turbine(turbomachine):
 
         self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /
                           (self.h_os('post') - self.inl[0].h.val_SI))
-        if (self.eta_s.val > 1 or self.eta_s.val <= 0):
-            msg = ('Invalid value for isentropic efficiency: '
-                   'eta_s =' + str(self.eta_s.val) + ' at ' + self.label + '.')
-            logging.error(msg)
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
@@ -2391,6 +2407,8 @@ class turbine(turbomachine):
                 expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
+
+        self.check_parameter_bounds()
 
 # %%
 
@@ -3539,7 +3557,9 @@ class combustion_chamber(component):
         return 'combustion chamber'
 
     def attr(self):
-        return {'fuel': dc_simple(), 'lamb': dc_cp(), 'ti': dc_cp(),
+        return {'fuel': dc_simple(),
+                'lamb': dc_cp(min_val=1),
+                'ti': dc_cp(min_val=0),
                 'S': dc_cp()}
 
     def inlets(self):
@@ -4481,6 +4501,8 @@ class combustion_chamber(component):
 
         self.lamb.val = n_oxygen / n_oxygen_stoich
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -4628,12 +4650,12 @@ class combustion_chamber_stoich(combustion_chamber):
         return 'combustion chamber stoichiometric flue gas'
 
     def attr(self):
-        return {'fuel': dc_simple(),
-                'fuel_alias': dc_simple(),
-                'air': dc_simple(),
-                'air_alias': dc_simple(),
+        return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
+                'air': dc_simple(), 'air_alias': dc_simple(),
                 'path': dc_simple(),
-                'lamb': dc_cp(), 'ti': dc_cp(), 'S': dc_simple()}
+                'lamb': dc_cp(min_val=1),
+                'ti': dc_cp(min_val=0),
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -5283,6 +5305,8 @@ class combustion_chamber_stoich(combustion_chamber):
 
         self.ti.val = ti
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -5467,12 +5491,16 @@ class cogeneration_unit(combustion_chamber):
         return 'cogeneration unit'
 
     def attr(self):
-        return {'fuel': dc_simple(), 'lamb': dc_cp(), 'ti': dc_cp(),
-                'P': dc_cp(val=1e6, d=1, val_min=1),
-                'Q1': dc_cp(), 'Q2': dc_cp(),
-                'Qloss': dc_cp(val=1e5, d=1, val_min=1),
-                'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp(),
+        return {'fuel': dc_simple(),
+                'lamb': dc_cp(min_val=1),
+                'ti': dc_cp(min_val=0),
+                'P': dc_cp(val=1e6, d=1, min_val=1),
+                'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),
+                'Qloss': dc_cp(val=1e5, d=1, min_val=1),
+                'pr1': dc_cp(max_val=1),
+                'pr2': dc_cp(max_val=1),
+                'zeta1': dc_cp(min_val=0),
+                'zeta2': dc_cp(min_val=0),
                 'tiP_char': dc_cc(method='TI'),
                 'Q1_char': dc_cc(method='Q1'),
                 'Q2_char': dc_cc(method='Q2'),
@@ -6563,6 +6591,8 @@ class cogeneration_unit(combustion_chamber):
         self.Q1_char.func.get_bound_errors(expr, self.label)
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -6727,10 +6757,14 @@ class water_electrolyzer(component):
         return 'water electrolyzer'
 
     def attr(self):
-        return {'P': dc_cp(), 'Q': dc_cp(), 'eta': dc_cp(),
-                'eta_char': dc_cc(method='GENERIC'), 'S': dc_simple(),
-                'pr_c': dc_cp(), 'e': dc_cp(),
-                'zeta': dc_cp()}
+        return {'P': dc_cp(min_val=0),
+                'Q': dc_cp(max_val=0),
+                'eta': dc_cp(min_val=0, max_val=1),
+                'e': dc_cp(),
+                'pr_c': dc_cp(max_val=1),
+                'zeta': dc_cp(min_val=0),
+                'eta_char': dc_cc(method='GENERIC'),
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -7431,15 +7465,6 @@ class water_electrolyzer(component):
         self.e.val = self.P.val / self.outl[2].m.val_SI
         self.eta.val = self.e0 / self.e.val
 
-        if self.eta.val > 1:
-            msg = ('The electrolyzer efficiency is above 1 '
-                   '(specific energy consumption is: ' +
-                   str(round(self.e.val / 1e6, 0)) + ' MJ / kg, '
-                   'miniumum energy required is: ' +
-                   str(round(self.e0 / 1e6, 0)) + ' MJ / kg) '
-                   'at component ' + self.label)
-            logging.warning(msg)
-
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 /
@@ -7449,6 +7474,8 @@ class water_electrolyzer(component):
             # get bound errors for kA hot side characteristics
             expr = self.outl[2].m.val_SI / self.outl[2].m.design
             self.eta_char.func.get_bound_errors(expr, self.label)
+
+        self.check_parameter_bounds()
 
 # %%
 
@@ -7544,7 +7571,7 @@ class valve(component):
         return 'valve'
 
     def attr(self):
-        return {'pr': dc_cp(min_val=1e-4),
+        return {'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=1e-4),
                 'Sirr': dc_simple()}
 
@@ -7732,6 +7759,8 @@ class valve(component):
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
         self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -7873,12 +7902,12 @@ class heat_exchanger_simple(component):
 
     def attr(self):
         return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4),
+                'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=1e-4),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
-                'kA': dc_cp(min_val=1, d=1),
+                'kA': dc_cp(min_val=0, d=1),
                 'Tamb': dc_cp(),
                 'kA_char': dc_cc(method='HE_HOT', param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
@@ -8468,6 +8497,8 @@ class heat_exchanger_simple(component):
                 self.kA_char.func.get_bound_errors(i[0] / self.inl[0].m.design,
                                                    self.label)
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -8743,13 +8774,16 @@ class solar_collector(heat_exchanger_simple):
 
     def attr(self):
         return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4),
+                'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=1e-4),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(min_val=1e-7, max_val=1e-4, d=1e-8),
-                'E': dc_cp(min_val=0), 'lkf_lin': dc_cp(), 'lkf_quad': dc_cp(),
-                'A': dc_cp(min_val=0), 'Tamb': dc_cp(),
+                'E': dc_cp(min_val=0),
+                'lkf_lin': dc_cp(min_val=0),
+                'lkf_quad': dc_cp(min_val=0),
+                'A': dc_cp(min_val=0),
+                'Tamb': dc_cp(),
                 'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 
@@ -8910,6 +8944,8 @@ class solar_collector(heat_exchanger_simple):
         self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -9056,13 +9092,14 @@ class heat_exchanger(component):
         return 'heat exchanger'
 
     def attr(self):
-        # derivatives for logarithmic temperature difference not implemented
-        return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
+        return {'Q': dc_cp(max_val=0),
+                'kA': dc_cp(min_val=0),
+                'td_log': dc_cp(min_val=0),
+                'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
+                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
                 'kA_char1': dc_cc(method='HE_HOT', param='m'),
                 'kA_char2': dc_cc(method='HE_COLD', param='m'),
-                'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
-                'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp(),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
@@ -9840,18 +9877,6 @@ class heat_exchanger(component):
                                math.log((T_o1 - T_i2) / (T_i1 - T_o2)))
             self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
 
-        if self.ttd_u.val <= 0:
-            msg = ('Invalid value for terminal temperature difference (upper) '
-                   'at component ' + self.label + ': ttd_u = ' +
-                   str(self.ttd_u.val) + ' K.')
-            logging.error(msg)
-
-        if self.ttd_l.val <= 0:
-            msg = ('Invalid value for terminal temperature difference (lower) '
-                   'at component ' + self.label + ': ttd_l = ' +
-                   str(self.ttd_l.val) + ' K.')
-            logging.error(msg)
-
         if self.kA.is_set:
             # get bound errors for kA hot side characteristics
             if self.kA_char1.param == 'm':
@@ -9868,6 +9893,8 @@ class heat_exchanger(component):
                     if not i1[0] == 0:
                         self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
                                                             self.label)
+
+        self.check_parameter_bounds()
 
 # %%
 
@@ -10014,13 +10041,15 @@ class condenser(heat_exchanger):
         return 'condenser'
 
     def attr(self):
-        return {'Q': dc_cp(), 'kA': dc_cp(), 'td_log': dc_cp(),
+        return {'Q': dc_cp(max_val=0),
+                'kA': dc_cp(min_val=0),
+                'td_log': dc_cp(min_val=0),
+                'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
+                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+                'subcooling': dc_simple(val=False),
                 'kA_char1': dc_cc(method='COND_HOT', param='m'),
                 'kA_char2': dc_cc(method='COND_COLD', param='m'),
-                'ttd_u': dc_cp(), 'ttd_l': dc_cp(),
-                'pr1': dc_cp(), 'pr2': dc_cp(),
-                'zeta1': dc_cp(), 'zeta2': dc_cp(),
-                'subcooling': dc_simple(val=False),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 

@@ -1861,11 +1861,13 @@ class network:
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.02
+                        logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
                       (c.state.val == 'l' and c.state.val_set is True)):
                     h = hlp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
+                        logging.debug(self.property_range_message(c, 'h'))
 
         elif self.iter < 4 and c.init_csv is False:
             # pressure

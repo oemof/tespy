@@ -283,7 +283,7 @@ class dc_cp(data_container):
             values.
         """
         return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
-                'd': 1e-4, 'min_val': 0, 'max_val': 1e12, 'is_var': False,
+                'd': 1e-4, 'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
                 'val_ref': 1, 'design': np.nan}
 
 

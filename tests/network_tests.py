@@ -38,6 +38,7 @@ class network_tests:
         a = con.connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
+        self.nw.save('tmp')
         msg = ('After the network check, the .checked-property must be True.')
         eq_(self.nw.checked, True, msg)
 
@@ -45,9 +46,11 @@ class network_tests:
         a = con.connection(self.source, 'out1', IF, 'in1')
         b = con.connection(IF, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
-        self.nw.solve('design', init_only=True)
+        self.nw.solve('design', init_path='tmp', init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
         eq_(self.nw.checked, True, msg)
+
+        shutil.rmtree('./tmp', ignore_errors=True)
 
 
 def test_network_missing_data_in_design_case_files():

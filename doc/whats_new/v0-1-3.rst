@@ -18,6 +18,7 @@ Parameter renaming
 Testing
 #######
 - Added tests for the new design path feature (`PR #84 <https://github.com/oemof/tespy/pull/84>`_).
+- Implemented additional network and component tests, (`PR #86 <https://github.com/oemof/tespy/pull/86>`_).
 
 Bug fixes
 #########

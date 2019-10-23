@@ -169,9 +169,13 @@ class connection:
         self.t = comp2
         self.t_id = inlet_id
 
+        # defaults
+        self.new_design = True
         self.design_path = None
         self.design = []
         self.offdesign = []
+        self.local_design = False
+        self.local_offdesign = False
 
         # set default values for kwargs
         var = self.attr()
@@ -383,11 +387,21 @@ class connection:
                     logging.error(msg)
                     raise ValueError(msg)
 
+            elif key == 'local_design' or key == 'local_offdesign':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
+
             elif key == 'design_path':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
+                    self.new_design = True
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
+                    self.new_design = True
                 else:
                     msg = ('Please provide the ' + key + ' parameter as '
                            'string or as nan.')

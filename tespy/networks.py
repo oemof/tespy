@@ -691,9 +691,9 @@ class network:
             else:
                 # load design case
                 if self.new_design is True:
-                    self.init_offdesign()
+                    self.init_offdesign_params()
 
-                self.individual_init_offdesign()
+                self.init_offdesign()
         else:
             # load design case
             self.init_design()
@@ -712,19 +712,60 @@ class network:
 
     def init_design(self):
         r"""
-        Design initialisation.
-
-        - Unset component attributes design values.
-        - Unset connection design values.
-        - Unset bus design values.
+        Initialise a design calculation. Offdesign parameters are unset, design
+        parameters are set. If local_offdesign is True for connections or
+        components, the design point information are read from the .csv-files
+        in the respective design_path. In this case, the design values are
+        unset, the offdesign values set.
         """
         # connections
         for c in self.conns.index:
-            # unset all design values
-            c.m.design = np.nan
-            c.p.design = np.nan
-            c.h.design = np.nan
-            c.fluid.design = collections.OrderedDict()
+            # read design point information of connections with
+            # local_offdesign activated from their respective design path
+            if c.local_offdesign is True:
+                if c.design_path is None:
+                    msg = ('The parameter local_offdesign is True for the '
+                           'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
+                           c.t.label + '(' + c.t_id + '), an individual '
+                           'design_path must be specified in this case!')
+                    logging.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                # unset design parameters
+                for var in c.design:
+                    c.get_attr(var).set_attr(val_set=False)
+                # set offdesign parameters
+                for var in c.offdesign:
+                    c.get_attr(var).set_attr(val_set=True)
+
+                # read design point information
+                path = hlp.modify_path_os(c.design_path + '/conn.csv')
+                msg = ('Reading individual design point information for '
+                       'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
+                       c.t.label + '(' + c.t_id + ') from path ' +
+                       path + '.')
+                logging.debug(msg)
+                df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
+
+                # write data to connections
+                self.init_conn_design_params(c, df)
+
+            else:
+                # unset all design values
+                c.m.design = np.nan
+                c.p.design = np.nan
+                c.h.design = np.nan
+                c.fluid.design = collections.OrderedDict()
+
+                c.new_design = True
+
+                # switch connections to design mode
+                if self.redesign is True:
+                    for var in c.design:
+                        c.get_attr(var).set_attr(val_set=True)
+
+                    for var in c.offdesign:
+                        c.get_attr(var).set_attr(val_set=False)
 
         # unset design values for busses
         for b in self.busses.values():
@@ -732,128 +773,226 @@ class network:
                 b.comps.loc[cp].P_ref = np.nan
 
         series = pd.Series()
-        # switch components to design mode
         for cp in self.comps.index:
-            cp.set_parameters(self.mode, series)
-            cp.comp_init(self)
+            # read design point information of components with
+            # local_offdesign activated from their respective design path
+            if cp.local_offdesign is True:
+                if cp.design_path is not None:
+                    # get type of component (class name)
+                    c = cp.__class__.__name__
+                    # read design point information
+                    path = hlp.modify_path_os(cp.design_path + '/comps/' + c +
+                                              '.csv')
+                    df = pd.read_csv(path, sep=';', decimal='.',
+                                     converters={
+                                             'busses': ast.literal_eval,
+                                             'bus_P_ref': ast.literal_eval
+                                             })
+                    df.set_index('label', inplace=True)
+                    # write data
+                    self.init_comp_design_params(cp, df.loc[cp.label])
 
-            if self.redesign is True:
+                # unset design parameters
                 for var in cp.design:
-                    cp.get_attr(var).set_attr(is_set=True)
-                for var in cp.offdesign:
                     cp.get_attr(var).set_attr(is_set=False)
 
-        # switch connections to design mode
-        for c in self.conns.index:
-            if self.redesign is True:
-                for var in c.design:
-                        c.get_attr(var).set_attr(val_set=True)
+                # set offdesign parameters
+                switched = False
+                msg = 'Set component attributes '
 
-                for var in c.offdesign:
-                    c.get_attr(var).set_attr(val_set=False)
+                for var in cp.offdesign:
+                    # set variables provided in .offdesign attribute
+                    dc = cp.get_attr(var)
+                    dc.set_attr(is_set=True)
 
-    def init_offdesign(self):
+                    # take nominal values from design point
+                    if isinstance(dc, hlp.dc_cp):
+                        cp.get_attr(var).val = cp.get_attr(var).design
+                        switched = True
+                        msg += var + ', '
+
+                if switched:
+                    msg = (msg[:-2] + ' to design value at component ' +
+                           cp.label + '.')
+                    logging.debug(msg)
+
+                cp.new_design = False
+
+            else:
+                # switch connections to design mode
+                if self.redesign is True:
+                    for var in cp.design:
+                        cp.get_attr(var).set_attr(is_set=True)
+
+                    for var in cp.offdesign:
+                        cp.get_attr(var).set_attr(is_set=False)
+
+                cp.set_parameters(self.mode, series)
+
+            # component initialisation
+            cp.comp_init(self)
+
+    def init_offdesign_params(self):
         r"""
-        Offdesign initialisation from results files in :code:`design_path`.
-
-        - Set component attributes design values.
-        - Set connection design values.
-        - Set bus design values.
-        - Switch components and connections from design to offdesign mode.
+        Read design point information from specified :code:`design_path`. If
+        a :code:`design_path` has been specified individually for components
+        or connections, the data will be read from the specified individual
+        path instead.
 
         Note
         ----
-        **components**
-
-        All parameters stated in the component's attribute :code:`cp.design`
-        will be unset and all parameters stated in the component's attribute
-        :code:`cp.offdesign` will be set instead.
-
-        **connections**
-
-        All parameters given in the connection's attribute :code:`c.design`
-        will be unset and all parameters stated in the connections's attribute
-        :code:`cp.offdesign` will be set instead.
+        The methods
+        :func:`tespy.networks.network.init_comp_design_params` (components) and
+        the :func:`tespy.networks.network.init_conn_design_params`
+        (connections) handle the parameter specification.
         """
+        # components without any parameters
         not_required = ['source', 'sink', 'node', 'merge', 'splitter',
                         'separator', 'drum', 'subsys_interface']
+        # fetch all components, reindex with label
         cp_sort = self.comps.copy()
-        # component type
+        # get class name
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
                                          args=('label',))
         cp_sort['comp'] = cp_sort.index
         cp_sort.set_index('label', inplace=True)
+
+        # iter through unique types of components (class names)
         for c in cp_sort.cp.unique():
             if c not in not_required:
                 path = hlp.modify_path_os(self.design_path +
                                           '/comps/' + c + '.csv')
-
                 msg = ('Reading design point information for components of '
                        'type ' + c + ' from path ' + path + '.')
                 logging.debug(msg)
+
+                # read data
                 df = pd.read_csv(path, sep=';', decimal='.',
                                  converters={'busses': ast.literal_eval,
                                              'bus_P_ref': ast.literal_eval})
                 df.set_index('label', inplace=True)
+                # iter through all components of this type and set data
                 for c_label in df.index:
                     comp = cp_sort.loc[c_label].comp
-                    comp.set_parameters(self.mode, df.loc[c_label])
-                    i = 0
-                    for b in df.loc[c_label].busses:
-                        bus = self.busses[b].comps
-                        bus.loc[comp].P_ref = df.loc[c_label].bus_P_ref[i]
-                        i += 1
+                    # read data of components with individual design_path
+                    if comp.design_path is not None:
+                        path_c = hlp.modify_path_os(comp.design_path +
+                                                    '/comps/' + c + '.csv')
+                        df_c = pd.read_csv(path_c, sep=';', decimal='.',
+                                           converters={
+                                                 'busses': ast.literal_eval,
+                                                 'bus_P_ref': ast.literal_eval
+                                                 })
+                        df_c.set_index('label', inplace=True)
+                        data = df_c.loc[comp.label]
 
-        # connections
+                    else:
+                        data = df.loc[comp.label]
+
+                    # write data to components
+                    self.init_comp_design_params(comp, data)
+
+        msg = 'Read design point information for components.'
+        logging.debug(msg)
+
+        # read connection design point information
         path = hlp.modify_path_os(self.design_path + '/conn.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = ('Reading design point information for connections from path ' +
                path + '.')
         logging.debug(msg)
+
+        # iter through connections
         for c in self.conns.index:
-            # match connection (source, source_id, target, target_id) on
-            # connection objects of design file
-            conn = (df.loc[df['s'].isin([c.s.label]) &
-                           df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) &
-                           df['t_id'].isin([c.t_id])])
 
-            if len(conn.index) > 0:
-                conn_id = conn.index[0]
-                c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
-                c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
-                c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
-                c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
-                c.x.design = df.loc[conn_id].x
-                c.T.design = ((df.loc[conn_id]['T'] +
-                               self.T[df.loc[conn_id].T_unit][0]) *
-                              self.T[df.loc[conn_id].T_unit][1])
-                c.Td_bp.design = (df.loc[conn_id].Td_bp *
-                                  self.T[df.loc[conn_id].T_unit][1])
-                for fluid in self.fluids:
-                    c.fluid.design[fluid] = df.loc[conn_id][fluid]
+            # read data of connections with individual design_path
+            if c.design_path is not None:
+                path_c = hlp.modify_path_os(c.design_path + '/conn.csv')
+                msg = ('Reading individual design point information for '
+                       'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
+                       c.t.label + '(' + c.t_id + ') from path ' +
+                       path_c + '.')
+                logging.debug(msg)
+                df_c = pd.read_csv(path_c, index_col=0,
+                                   delimiter=';', decimal='.')
+
+                # write data
+                self.init_conn_design_params(c, df_c)
+
             else:
-                msg = ('Could not find all connections in design case. '
-                       'Please, make sure no connections have been modified '
-                       'or components have been relabeled for your offdesign '
-                       'calculation.')
-                logging.error(msg)
-                raise hlp.TESPyNetworkError(msg)
+                # write data
+                self.init_conn_design_params(c, df)
 
-        msg = 'Gathered global design point information.'
+        msg = 'Read design point information for connections.'
         logging.debug(msg)
 
-    def individual_init_offdesign(self):
+    def init_comp_design_params(self, component, data):
         r"""
-        Offdesign initialisation from results files in :code:`design_path` of
-        components and connections.
+        Write design point information to components.
 
-        - Look for components and connections with individual design path
-        - Set component attributes design values.
-        - Set connection design values.
-        - Set bus design values.
-        - Switch components and connections from design to offdesign mode.
+        Parameters
+        ----------
+        component : tespy.components.components.component
+            Write design point information to this component.
+
+        data : pandas.core.series.Series or pandas.core.frame.DataFrame
+            Design point information.
+        """
+        # write component design data
+        component.set_parameters(self.mode, data)
+        # write design values to busses
+        i = 0
+        for b in data.busses:
+            bus = self.busses[b].comps
+            bus.loc[component].P_ref = data.bus_P_ref[i]
+            i += 1
+
+    def init_conn_design_params(self, c, df):
+        r"""
+        Write design point information to connections.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection
+            Write design point information to this connection.
+
+        df : pandas.core.frame.DataFrame
+            Dataframe containing design point information.
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
+                       df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+
+        if len(conn.index) > 0:
+            # read connection information
+            conn_id = conn.index[0]
+            c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
+            c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
+            c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
+            c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
+            c.x.design = df.loc[conn_id].x
+            c.T.design = ((df.loc[conn_id]['T'] +
+                           self.T[df.loc[conn_id].T_unit][0]) *
+                          self.T[df.loc[conn_id].T_unit][1])
+            c.Td_bp.design = (df.loc[conn_id].Td_bp *
+                              self.T[df.loc[conn_id].T_unit][1])
+            for fluid in self.fluids:
+                c.fluid.design[fluid] = df.loc[conn_id][fluid]
+        else:
+            # no matches in the connections of the network and the design files
+            msg = ('Could not find connection ' + c.s.label + '(' + c.s_id +
+                   ') -> ' + c.t.label + '(' + c.t_id + ') in design case. '
+                   'Please, make sure no connections have been modified '
+                   'or components have been relabeled for your offdesign '
+                   'calculation.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+    def init_offdesign(self):
+        r"""
+        Switch components and connections from design to offdesign mode.
 
         Note
         ----
@@ -863,114 +1002,60 @@ class network:
         will be unset and all parameters stated in the component's attribute
         :code:`cp.offdesign` will be set instead.
 
+        Additionally, all component parameters specified as variables are
+        unset and the values from design point are set.
+
         **connections**
 
         All parameters given in the connection's attribute :code:`c.design`
         will be unset and all parameters stated in the connections's attribute
-        :code:`cp.offdesign` will be set instead.
+        :code:`cp.offdesign` will be set instead. This does also affect
+        referenced values!
         """
-        for comp in self.comps.index:
-            if comp.design_path is not None:
-                component = comp.__class__.__name__
-                path_c = hlp.modify_path_os(comp.design_path +
-                                            '/comps/' + component + '.csv')
-                df = pd.read_csv(path_c, sep=';', decimal='.',
-                                 converters={
-                                         'busses': ast.literal_eval,
-                                         'bus_P_ref': ast.literal_eval
-                                         })
-                df.set_index('label', inplace=True)
-                comp.set_parameters(self.mode, df.loc[comp.label])
-                i = 0
-                for b in df.loc[comp.label].busses:
-                    bus = self.busses[b].comps
-                    bus.loc[comp].P_ref = df.loc[comp.label].bus_P_ref[i]
-                    i += 1
-
-        for c in self.conns.index:
-            if c.design_path is not None:
-                path_c = hlp.modify_path_os(c.design_path + '/conn.csv')
-                msg = ('Reading design point information for connection ' +
-                       c.s.label + ':' + c.s_id + ' -> ' +
-                       c.t.label + ':' + c.t_id + ' from path ' + path_c + '.')
-                logging.debug(msg)
-                df = pd.read_csv(path_c, index_col=0,
-                                 delimiter=';', decimal='.')
-                # match connection (source, source_id, target, target_id) on
-                # connection objects of design file
-                conn = (df.loc[df['s'].isin([c.s.label]) &
-                               df['t'].isin([c.t.label]) &
-                               df['s_id'].isin([c.s_id]) &
-                               df['t_id'].isin([c.t_id])])
-
-                if len(conn.index) > 0:
-                    conn_id = conn.index[0]
-                    c.m.design = (df.loc[conn_id].m *
-                                  self.m[df.loc[conn_id].m_unit])
-                    c.p.design = (df.loc[conn_id].p *
-                                  self.p[df.loc[conn_id].p_unit])
-                    c.h.design = (df.loc[conn_id].h *
-                                  self.h[df.loc[conn_id].h_unit])
-                    c.v.design = (df.loc[conn_id].v *
-                                  self.v[df.loc[conn_id].v_unit])
-                    c.x.design = df.loc[conn_id].x
-                    c.T.design = ((df.loc[conn_id]['T'] +
-                                   self.T[df.loc[conn_id].T_unit][0]) *
-                                  self.T[df.loc[conn_id].T_unit][1])
-                    c.Td_bp.design = (df.loc[conn_id].Td_bp *
-                                      self.T[df.loc[conn_id].T_unit][1])
-                    for fluid in self.fluids:
-                        c.fluid.design[fluid] = df.loc[conn_id][fluid]
-
-                else:
-                    msg = ('Could not find all connections in design case. '
-                           'Please, make sure no connections have been '
-                           'modified or components have been relabeled for '
-                           'your offdesign calculation.')
-                    logging.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-
-        msg = 'Gathered individual design point information.'
-        logging.debug(msg)
-
-        # switch components to offdesign mode
         for cp in self.comps.index:
+            if cp.local_design is False:
+                # unset variables provided in .design attribute
+                for var in cp.design:
+                    cp.get_attr(var).set_attr(is_set=False)
 
-            # unset variables provided in .design attribute
-            for var in cp.design:
-                cp.get_attr(var).set_attr(is_set=False)
+                switched = False
+                msg = 'Set component attributes '
 
-            switched = False
-            msg = 'Set component attributes '
-            # set variables provided in .offdesign attribute
-            for var in cp.offdesign:
-                dc = cp.get_attr(var)
-                dc.set_attr(is_set=True)
-                # set values to design value
-                if isinstance(dc, hlp.dc_cp):
-                    cp.get_attr(var).val = cp.get_attr(var).design
-                    switched = True
-                    msg += var + ', '
+                for var in cp.offdesign:
+                    # set variables provided in .offdesign attribute
+                    dc = cp.get_attr(var)
+                    dc.set_attr(is_set=True)
 
-            if switched:
-                msg = (msg[:-2] + ' to design value at component ' +
-                       cp.label + '.')
-                logging.debug(msg)
+                    # take nominal values from design point
+                    if isinstance(dc, hlp.dc_cp):
+                        cp.get_attr(var).val = cp.get_attr(var).design
+                        switched = True
+                        msg += var + ', '
 
+                if switched:
+                    msg = (msg[:-2] + ' to design value at component ' +
+                           cp.label + '.')
+                    logging.debug(msg)
+
+            # start component initialisation
             cp.comp_init(self)
+            cp.new_design = False
 
         msg = 'Switched components from design to offdesign.'
         logging.debug(msg)
 
-        # switch connections to offdesign mode
         for c in self.conns.index:
-            for var in c.design:
-                c.get_attr(var).set_attr(val_set=False)
-                c.get_attr(var).set_attr(ref_set=False)
+            if c.local_design is False:
+                # switch connections to offdesign mode
+                for var in c.design:
+                    c.get_attr(var).set_attr(val_set=False)
+                    c.get_attr(var).set_attr(ref_set=False)
 
-            for var in c.offdesign:
-                c.get_attr(var).set_attr(val_set=True)
-                c.get_attr(var).val_SI = c.get_attr(var).design
+                for var in c.offdesign:
+                    c.get_attr(var).set_attr(val_set=True)
+                    c.get_attr(var).val_SI = c.get_attr(var).design
+
+                c.new_design = False
 
         msg = 'Switched connections from design to offdesign.'
         logging.debug(msg)
@@ -1248,9 +1333,11 @@ class network:
                'connection parameters.')
         logging.debug(msg)
 
-        # fluid properties with referenced objects
+        # improved starting values for referenced connections,
+        # specified vapour content values, temperature values as well as
+        # subccooling/overheating and state specification
         for c in self.conns.index:
-            c.init_csv = False
+            # starting values for fluid properties with referenced objects
             for key in ['m', 'p', 'h', 'T']:
                 if (c.get_attr(key).ref_set and
                         c.get_attr(key).val_set is False):
@@ -1258,10 +1345,7 @@ class network:
                             c.get_attr(key).ref.obj.get_attr(key).val_SI *
                             c.get_attr(key).ref.f + c.get_attr(key).ref.d)
 
-        msg = 'Generated starting values for referenced connection parameters.'
-        logging.debug(msg)
-
-        for c in self.conns.index:
+            # starting values for specified vapour content or temperature
             if c.x.val_set and not c.h.val_set:
                 c.h.val_SI = hlp.h_mix_pQ(c.to_flow(), c.x.val_SI)
 
@@ -1271,25 +1355,22 @@ class network:
                 except ValueError:
                     pass
 
-            # check if fluid enthalpy is below/above wet steam area
+            # starting values for specified subcooling/overheating
+            # and state specification
             if ((c.Td_bp.val_set is True or c.state.val_set is True) and
                     c.h.val_set is False):
-                if (c.Td_bp.val_SI > 0 or
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
                         (c.state.val == 'g' and c.state.val_set is True)):
                     h = hlp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.2
-                elif (c.Td_bp.val_SI < 0 or
+                        c.h.val_SI = h * 1.001
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
                       (c.state.val == 'l' and c.state.val_set is True)):
                     h = hlp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.8
+                        c.h.val_SI = h * 0.999
 
-        msg = ('Generated starting values for specified temperature and '
-               'vapour mass fraction.')
-        logging.debug(msg)
-
-        msg = 'Generic fluid property specification successful.'
+        msg = 'Generic fluid property specification complete.'
         logging.debug(msg)
 
     def init_val0(self, c, key):
@@ -1302,33 +1383,34 @@ class network:
         c : tespy.connections.connection
             Connection to initialise.
         """
-        # starting value for mass flow
-        if math.isnan(c.get_attr(key).val0) and key == 'm':
-            c.get_attr(key).val0 = 1
-            return
-
-        # generic starting values for pressure and enthalpy
         if math.isnan(c.get_attr(key).val0):
-            val_s = c.s.initialise_source(c, key)
-            val_t = c.t.initialise_target(c, key)
+            # starting value for mass flow is 1 kg/s
+            if key == 'm':
+                c.get_attr(key).val0 = 1
 
-            if val_s == 0 and val_t == 0:
-                if key == 'p':
-                    c.get_attr(key).val0 = 1e5
-                elif key == 'h':
-                    c.get_attr(key).val0 = 1e6
-
-            elif val_s == 0:
-                c.get_attr(key).val0 = val_t
-            elif val_t == 0:
-                c.get_attr(key).val0 = val_s
+            # generic starting values for pressure and enthalpy
             else:
-                c.get_attr(key).val0 = (val_s + val_t) / 2
+                # retrieve starting values from component information
+                val_s = c.s.initialise_source(c, key)
+                val_t = c.t.initialise_target(c, key)
 
-            # change value to specified unit system
-            c.get_attr(key).val0 = (
-                    c.get_attr(key).val0 / self.get_attr(key)[
-                            self.get_attr(key + '_unit')])
+                if val_s == 0 and val_t == 0:
+                    if key == 'p':
+                        c.get_attr(key).val0 = 1e5
+                    elif key == 'h':
+                        c.get_attr(key).val0 = 1e6
+
+                elif val_s == 0:
+                    c.get_attr(key).val0 = val_t
+                elif val_t == 0:
+                    c.get_attr(key).val0 = val_s
+                else:
+                    c.get_attr(key).val0 = (val_s + val_t) / 2
+
+                # change value according to specified unit system
+                c.get_attr(key).val0 = (
+                        c.get_attr(key).val0 / self.get_attr(key)[
+                                self.get_attr(key + '_unit')])
 
     def init_csv(self):
         r"""
@@ -1419,6 +1501,16 @@ class network:
         documentation at tespy.readthedocs.io in the section "using TESPy".
         """
         if self.design_path == design_path and design_path is not None:
+            for c in self.conns.index:
+                if c.new_design is True:
+                    self.new_design = True
+                    break
+
+            for cp in self.comps.index:
+                if cp.new_design is True:
+                    self.new_design = True
+                    break
+
             self.new_design = False
         else:
             self.new_design = True

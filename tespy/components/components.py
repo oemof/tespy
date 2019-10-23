@@ -86,12 +86,15 @@ class component:
         else:
             self.label = label
 
-        self.design_path = None
+        # defaults
+        self.interface = False
 
-        # set default design and offdesign parameters
+        self.new_design = True
+        self.design_path = None
         self.design = []
         self.offdesign = []
-        self.interface = False
+        self.local_design = False
+        self.local_offdesign = False
 
         # add container for components attributes
         var = self.attr()
@@ -232,11 +235,22 @@ class component:
                     logging.error(msg)
                     raise ValueError(msg)
 
+            elif key == 'local_design' or key == 'local_offdesign':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean '
+                           'at ' + self.label + '.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
+
             elif key == 'design_path':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
+                    self.new_design = True
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
+                    self.new_design = True
                 else:
                     msg = ('Please provide the ' + key + ' parameter as '
                            'string or as nan.')
@@ -403,10 +417,15 @@ class component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
+        if mode == 'design' or self.local_design is True:
+            self.new_design = True
+
         for key, dc in self.attr().items():
             if isinstance(dc, dc_cp):
-                if mode == 'offdesign':
+                if ((mode == 'offdesign' and self.local_design is False) or
+                        (mode == 'design' and self.local_offdesign is True)):
                     self.get_attr(key).design = data[key]
+
                 else:
                     self.get_attr(key).design = np.nan
 
@@ -859,7 +878,8 @@ class turbomachine(component):
 
         component.comp_init(self, nw)
 
-        if nw.mode == 'offdesign':
+        if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
+                self.local_design is False):
             self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
 
         self.fl_deriv = self.fluid_deriv()

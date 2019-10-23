@@ -821,11 +821,11 @@ class network:
             else:
                 # switch connections to design mode
                 if self.redesign is True:
-                    for var in c.design:
-                        c.get_attr(var).set_attr(val_set=True)
+                    for var in cp.design:
+                        cp.get_attr(var).set_attr(is_set=True)
 
-                    for var in c.offdesign:
-                        c.get_attr(var).set_attr(val_set=False)
+                    for var in cp.offdesign:
+                        cp.get_attr(var).set_attr(is_set=False)
 
                 cp.set_parameters(self.mode, series)
 

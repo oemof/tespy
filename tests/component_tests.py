@@ -694,7 +694,7 @@ class component_tests:
         # trigger negative upper terminal temperature difference as result
         he_tes.set_attr(T=100)
         hs_he.set_attr(h=200e3, T=np.nan)
-        he.set_attr(design=['pr1', 'pr2'], ttd_u=np.nan)
+        he.set_attr(pr1=0.98, pr2=0.98, design=['pr1', 'pr2'], ttd_u=np.nan)
         he_hs.set_attr(h=150e3, T=np.nan)
         tes_he.set_attr(T=40)
         self.nw.solve('design')

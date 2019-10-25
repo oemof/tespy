@@ -695,22 +695,22 @@ class component:
 
                 val = \begin{cases}
                 p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \zeta_2 - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}{8 \cdot
-                \dot{m}_{2,in} \cdot |\dot{m}_{2,in}| \cdot \frac{v_{2,in} +
-                v_{2,out}}{2}} &
+                \frac{\zeta_2}{D^4} - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}
+                {8 \cdot \dot{m}_{2,in} \cdot |\dot{m}_{2,in}| \cdot
+                \frac{v_{2,in} + v_{2,out}}{2}} &
                 |\dot{m}| > \epsilon
                 \end{cases}
 
         Note
         ----
-        The zeta value is caluclated on the basis of a given pressure loss at a
-        given flow rate. As the cross sectional area A will not change, it is
-        possible to handle the equation in this way.
+        The zeta value is caluclated on the basis of a given pressure loss at
+        a given flow rate in the design case. As the cross sectional area A
+        will not change, it is possible to handle the equation in this way:
 
         .. math::
 
-            \zeta_2 = \frac{\Delta p_2 \cdot v_2 \cdot 2}{c_2^2}\\
-            c_2 = \frac{\dot{m}_2 \cdot v_2}{A_2}
+            \frac{\zeta_2}{D^4} =  \frac{\Delta p_2 \cdot \pi^2}
+            {8 \cdot \dot{m}_2^2 \cdot v}
         """
         i = self.inl[1].to_flow()
         o = self.outl[1].to_flow()

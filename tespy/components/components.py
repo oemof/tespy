@@ -648,7 +648,7 @@ class component:
 
                 val = \begin{cases}
                 p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \zeta - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
+                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
                 \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
                 v_{out}}{2}} &
                 |\dot{m}| > \epsilon
@@ -657,13 +657,13 @@ class component:
         Note
         ----
         The zeta value is caluclated on the basis of a given pressure loss at
-        a given flow rate. As the cross sectional area A will not change, it is
-        possible to handle the equation in this way.
+        a given flow rate in the design case. As the cross sectional area A
+        will not change, it is possible to handle the equation in this way:
 
         .. math::
 
-            \zeta = \frac{\Delta p \cdot v \cdot 2}{c^2}\\
-            c = \frac{\dot{m} \cdot v}{A}
+            \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
+            {8 \cdot \dot{m}^2 \cdot v}
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -5443,11 +5443,11 @@ class cogeneration_unit(combustion_chamber):
 
     zeta1 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 2,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\zeta/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
         Pressure ratio heat outlet 2,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\zeta/\frac{1}{\text{m}^4}`.
 
     tiP_char : str/tespy.helpers.dc_cc
         Characteristic line linking fuel input to power output.
@@ -6743,7 +6743,7 @@ class water_electrolyzer(component):
 
     zeta : float/tespy.helpers.dc_cp
         Geometry independent friction coefficient for cooling loop pressure
-        drop, :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     Note
     ----
@@ -6922,11 +6922,11 @@ class water_electrolyzer(component):
                                       2 * molar_masses[self.h2])
 
         # equation for mass flow balance cooling water
-        vec_res += [self.inl[0].m.val_SI -  self.outl[0].m.val_SI]
+        vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
 
         # equations for mass flow balance electrolyzer
-        vec_res += [o2 * self.inl[1].m.val_SI -  self.outl[1].m.val_SI]
-        vec_res += [(1 - o2) * self.inl[1].m.val_SI -  self.outl[2].m.val_SI]
+        vec_res += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
+        vec_res += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
 
         ######################################################################
         # equations for pressure to set o2 and h2 output equal
@@ -7217,7 +7217,7 @@ class water_electrolyzer(component):
 
             .. math::
 
-                0 = P -  \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta_0 \cdot
+                0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta_0 \cdot
                 f\left(\frac{\dot{m}_{H_2,out3}}{\dot{m}_{H_2,out3,0}} \right)}
         """
         expr = self.outl[2].m.val_SI / self.outl[2].m.design
@@ -7567,7 +7567,7 @@ class valve(component):
 
     zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     Example
     -------
@@ -7862,7 +7862,7 @@ class heat_exchanger_simple(component):
 
     zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
@@ -8597,7 +8597,7 @@ class pipe(heat_exchanger_simple):
 
     zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
@@ -8730,7 +8730,7 @@ class solar_collector(heat_exchanger_simple):
 
     zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     D : str/float/tespy.helpers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
@@ -9059,11 +9059,11 @@ class heat_exchanger(component):
 
     zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient,
@@ -10002,11 +10002,11 @@ class condenser(heat_exchanger):
 
     zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient,
@@ -10342,11 +10342,11 @@ class desuperheater(heat_exchanger):
 
     zeta1 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at hot side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side,
-        :math:`\zeta/\frac{\text{Pa}}{\text{m}^4}`.
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     kA : str/float/tespy.helpers.dc_cp
         Area independent heat transition coefficient,
@@ -10648,7 +10648,6 @@ class drum(component):
             Matrix of partial derivatives.
         """
         mat_deriv = []
-
 
         ######################################################################
         # derivatives for fluid balance equations

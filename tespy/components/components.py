@@ -11008,7 +11008,7 @@ class district_heating_pipe(heat_exchanger):
                     raise TESPyComponentError('Pipe type description must be an integer value!')
                 self.DN_type.val = min(known_types, key=lambda x: abs(x - self.DN_type.val))
                 logging.warning('Could not find pipe data for given pipe diameter! Changed to nearest known value ' +
-                             str(self.DN_type.val) + '.')
+                                str(self.DN_type.val) + '.')
             self.D.val = known_types.get(self.DN_type.val)[0]
             self.D.is_set = True
             self.thickness.val = known_types.get(self.DN_type.val)[1]
@@ -11141,7 +11141,7 @@ class district_heating_pipe(heat_exchanger):
         return T_mix_ph(o) - (self.Tamb.val_SI + (T_mix_ph(i) - self.Tamb.val_SI) * math.exp(
             0 - ((u_r * 2 * math.pi * r_r * self.L.val) / (cp_w * self.inl[1].m.val_SI))))
 
-    def calc_parameters(self, mode):
+    def calc_parameters(self):
         r"""
         Post and preprocessing parameter calculation/specification.
 
@@ -11155,50 +11155,51 @@ class district_heating_pipe(heat_exchanger):
         ----
         Generic preprocessing is handled by the base class. This method handles class specific pre- and postprocessing.
         """
-        component.calc_parameters(self, mode)
+        component.calc_parameters(self)
 
-        if mode == 'post':
-            # connection information
-            i1 = self.inl[0].to_flow()
-            i2 = self.inl[1].to_flow()
-            o1 = self.outl[0].to_flow()
-            o2 = self.outl[1].to_flow()
+        # connection information
+        i1 = self.inl[0].to_flow()
+        i2 = self.inl[1].to_flow()
+        o1 = self.outl[0].to_flow()
+        o2 = self.outl[1].to_flow()
 
-            # temperatures
-            T_i2 = T_mix_ph(i2)
-            T_o1 = T_mix_ph(o1)
-            T_o2 = T_mix_ph(o2)
-            #
-            if isinstance(self, condenser):
-                T_i1 = T_mix_ph([i1[0], i1[1], h_mix_pQ(i1, 1), i1[3]])
-            else:
-                T_i1 = T_mix_ph(i1)
+        # temperatures
+        T_i2 = T_mix_ph(i2)
+        T_o1 = T_mix_ph(o1)
+        T_o2 = T_mix_ph(o2)
+        T_i1 = T_mix_ph(i1)
 
-            # component parameters
-            self.ttd_u.val = T_i1 - T_o1
-            self.ttd_l.val = T_i2 - T_o2
-            self.Q_u.val = i1[0] * (o1[2] - i1[2])
-            self.Q_l.val = i2[0] * (o2[2] - i2[2])
-            self.Q.val = self.Q_u.val + self.Q_l.val
+        # component parameters
+        self.ttd_u.val = T_i1 - T_o1
+        self.ttd_l.val = T_i2 - T_o2
+        self.Q_u.val = i1[0] * (o1[2] - i1[2])
+        self.Q_l.val = i2[0] * (o2[2] - i2[2])
+        self.Q.val = self.Q_u.val + self.Q_l.val
 
-            self.pr1.val = o1[1] / i1[1]
-            self.pr2.val = o2[1] / i2[1]
-            self.zeta1.val = (i1[1] - o1[1]) * math.pi ** 2 / (8 * i1[0] ** 2 * (v_mix_ph(i1) + v_mix_ph(o1)) / 2)
-            self.zeta2.val = (i2[1] - o2[1]) * math.pi ** 2 / (8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2)
+        self.pr1.val = o1[1] / i1[1]
+        self.pr2.val = o2[1] / i2[1]
+        self.zeta1.val = (i1[1] - o1[1]) * math.pi ** 2 / (8 * i1[0] ** 2 * (v_mix_ph(i1) + v_mix_ph(o1)) / 2)
+        self.zeta2.val = (i2[1] - o2[1]) * math.pi ** 2 / (8 * i2[0] ** 2 * (v_mix_ph(i2) + v_mix_ph(o2)) / 2)
 
-            self.SQ1.val = self.inl[0].m.val_SI * (s_mix_ph(o1) - s_mix_ph(i1))
-            self.SQ2.val = self.inl[1].m.val_SI * (s_mix_ph(o2) - s_mix_ph(i2))
-            self.Sirr.val = self.SQ1.val + self.SQ2.val
+        self.SQ1.val = self.inl[0].m.val_SI * (s_mix_ph(o1) - s_mix_ph(i1))
+        self.SQ2.val = self.inl[1].m.val_SI * (s_mix_ph(o2) - s_mix_ph(i2))
+        self.Sirr.val = self.SQ1.val + self.SQ2.val
 
-            if self.ttd_u.val < 0:
-                msg = ('Invalid value for terminal temperature difference (upper) '
-                       'at component ' + self.label + ': ttd_u = ' + str(self.ttd_u.val) + ' K.')
-                logging.error(msg)
+        in_velocity = (v_mix_ph(i1, T_i1))/((self.D.val/2)**2*math.pi)
+        out_velocity = (v_mix_ph(i2, T_i2))/((self.D.val/2)**2*math.pi)
 
-            if self.ttd_l.val < 0:
-                msg = ('Invalid value for terminal temperature difference (lower) '
-                       'at component ' + self.label + ': ttd_l = ' + str(self.ttd_l.val) + ' K.')
-                logging.error(msg)
+        logging.info(self.label + ' feed velocity: ' + '{:.2f}'.format(in_velocity) + 'm/s.')
+        logging.info(self.label + ' back velocity: ' + '{:.2f}'.format(out_velocity) + 'm/s.')
+
+        if self.ttd_u.val < 0:
+            msg = ('Invalid value for terminal temperature difference (upper) '
+                   'at component ' + self.label + ': ttd_u = ' + str(self.ttd_u.val) + ' K.')
+            logging.error(msg)
+
+        if self.ttd_l.val < 0:
+            msg = ('Invalid value for terminal temperature difference (lower) '
+                   'at component ' + self.label + ': ttd_l = ' + str(self.ttd_l.val) + ' K.')
+            logging.error(msg)
 
     def derivatives(self):
         r"""

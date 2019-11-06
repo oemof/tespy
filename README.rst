@@ -2,7 +2,7 @@
     :target: https://coveralls.io/github/oemof/tespy?branch=dev
 .. image:: https://travis-ci.org/oemof/tespy.svg?branch=dev
     :target: https://travis-ci.org/oemof/tespy
-.. image:: https://readthedocs.org/projects/tespy/badge/?version=de
+.. image:: https://readthedocs.org/projects/tespy/badge/?version=dev
     :target: https://tespy.readthedocs.io/en/dev/?badge=dev
 .. image:: https://badge.fury.io/py/TESPy.svg
     :target: https://badge.fury.io/py/TESPy

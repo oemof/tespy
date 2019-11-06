@@ -262,7 +262,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'tespy', u'tespy Documentation',
-   u'Author', 'tespy', 'One line description of project.',
+   u'Author', 'tespy', 'Thermal Engineering Systems in Python',
    'Miscellaneous'),
 ]
 

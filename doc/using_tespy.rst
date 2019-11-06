@@ -573,6 +573,7 @@ More information on the components can be gathered from the code documentation. 
 - :py:class:`Water electrolyzer <tespy.components.components.water_electrolyzer>` (:py:meth:`equations <tespy.components.components.water_electrolyzer.equations>`)
 - :py:class:`Subsystem interface <tespy.components.components.subsys_interface>` (:py:meth:`equations <tespy.components.components.subsys_interface.equations>`)
 
+.. _using_tespy_components_parametrisation_label:
 
 Component parametrisation
 -------------------------
@@ -609,6 +610,10 @@ Parameters
 	# data container specification with identical result,
 	# benefit: val is the starting value in this case
 	pipe.set_attr(D=hlp.dc_cp(val=0.2, is_set=True, is_var=True))
+
+	# data container specification with identical result,
+	# benefit: specification of bounds will increase stability
+	pipe.set_attr(D=hlp.dc_cp(val=0.2, is_set=True, is_var=True, min_val=0.1, max_val=0.3))
 
 
 Characteristics

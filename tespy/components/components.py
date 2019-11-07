@@ -2138,7 +2138,7 @@ class turbine(turbomachine):
     def attr(self):
         return {'P': dc_cp(max_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
-                'pr': dc_cp(max_val=1),
+                'pr': dc_cp(min_val=0, max_val=1),
                 'eta_s_char': dc_cc(method='GENERIC', param='m'),
                 'cone': dc_cc(method='default'),
                 'Sirr': dc_simple()}

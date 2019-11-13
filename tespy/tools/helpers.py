@@ -313,7 +313,7 @@ def lamb(re, ks, d):
 
     Example
     -------
-    >>> from tespy import hlp
+    >>> from tespy.tools import helpers as hlp
     >>> ks = 5e-5
     >>> d = 0.05
     >>> re_laminar = 2000

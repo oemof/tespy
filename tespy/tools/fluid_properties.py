@@ -11,7 +11,7 @@ available from its original location tespy/tools/fluid_properties.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.tools import (
+from tespy.tools.helpers import (
         num_fluids, molar_mass_flow, single_fluid,
         newton, reverse_2d, reverse_2d_deriv
         )

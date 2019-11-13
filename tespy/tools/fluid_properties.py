@@ -1,11 +1,24 @@
 # -*- coding: utf-8
 
-"""
-.. module:: helpers
-    :synopsis: helpers for frequently used functionalities
+"""This module contains all fluid property functions integrating the CoolProp
+python interface as well as the tespy_fluid class.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/tools/fluid_properties.py
+
+SPDX-License-Identifier: MIT
 """
+
+from tespy.tools import (
+        num_fluids, molar_mass_flow, single_fluid,
+        newton, reverse_2d, reverse_2d_deriv
+        )
+
+from tespy.tools.global_vars import (
+        err, molar_masses, gas_constants
+        )
 
 import CoolProp as CP
 from CoolProp.CoolProp import PropsSI as CPPSI
@@ -15,20 +28,8 @@ import numpy as np
 from scipy import interpolate
 import pandas as pd
 import os
-import collections
 
 import logging
-
-import warnings
-warnings.simplefilter("ignore", RuntimeWarning)
-
-global err
-err = 1e-6
-global molar_masses
-molar_masses = {}
-global gas_constants
-gas_constants = {}
-gas_constants['uni'] = 8.3144598
 
 # %%
 
@@ -265,50 +266,6 @@ tespy_fluid.fluids = {}
 # %%
 
 
-def reverse_2d(params, y):
-    r"""
-    Calculates the residual value of the inverse generic function with two
-    dimensions x1 and x2.
-
-    Parameters
-    ----------
-    params : list
-        Variable function parameters.
-
-    y : float
-        Function value of function :math:`y = f \left( x_1, x_2 \right)`.
-
-    Returns
-    ------
-    deriv : float
-        Residual value of inverse function :math:`x_2 - f\left(x_1, y \right)`.
-    """
-    func, x1, x2 = params[0], params[1], params[2]
-    return x2 - func.ev(x1, y)
-
-
-def reverse_2d_deriv(params, y):
-    r"""
-    Derivative of the reverse function for a lookup table.
-
-    params : list
-        Variable function parameters.
-
-    y : float
-        Function value of function :math:`y = f \left( x_1, x_2 \right)`,
-        so that :math:`x_2 - f\left(x_1, y \right) = 0`
-
-    Returns
-    ------
-    deriv : float
-        Partial derivative :math:`\frac{\partial f}{\partial y}`.
-    """
-    func, x1 = params[0], params[1]
-    return - func.ev(x1, y, dy=1)
-
-# %%
-
-
 class memorise:
     r"""
     Memorization of fluid properties.
@@ -469,87 +426,6 @@ memorise.visc_ph_f = {}
 memorise.s_ph = {}
 memorise.s_ph_f = {}
 memorise.vrange = {}
-
-# %%
-
-
-def newton(func, deriv, params, y, **kwargs):
-    r"""
-    1-D newton algorithm to find zero crossings of function func with its
-    derivative deriv.
-
-    Parameters
-    ----------
-    func : function
-        Function to find zero crossing in,
-        :math:`0=y-func\left(x,\text{params}\right)`.
-
-    deriv : function
-        First derivative of the function.
-
-    params : list
-        Additional parameters for function, optional.
-
-    y : float
-        Target function value.
-
-    val0 : float
-        Starting value, default: val0=300.
-
-    valmin : float
-        Lower value boundary, default: valmin=70.
-
-    valmax : float
-        Upper value boundary, default: valmax=3000.
-
-    max_iter : int
-        Maximum number of iterations, default: max_iter=10.
-
-    Returns
-    -------
-    val : float
-        x-value of zero crossing.
-
-    Note
-    ----
-    Algorithm
-
-    .. math::
-
-        x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
-        f(x_{i}) \leq \epsilon
-    """
-    # default valaues
-    x = kwargs.get('val0', 300)
-    valmin = kwargs.get('valmin', 70)
-    valmax = kwargs.get('valmax', 3000)
-    max_iter = kwargs.get('max_iter', 10)
-
-    # start newton loop
-    res = 1
-    i = 0
-    while abs(res) >= err:
-        # calculate function residual and new value
-        res = y - func(params, x)
-        x += res / deriv(params, x)
-
-        # check for value ranges
-        if x < valmin:
-            x = valmin
-        if x > valmax:
-            x = valmax
-        i += 1
-
-        if i > max_iter:
-            msg = ('Newton algorithm was not able to find a feasible value '
-                   'for function ' + str(func) + '. Current value with x=' +
-                   str(x) + ' is ' + str(func(params, x)) +
-                   ', target value is ' + str(y) + '.')
-            logging.debug(msg)
-
-            break
-
-    return x
 
 # %%
 

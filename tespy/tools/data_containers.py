@@ -1,11 +1,14 @@
 # -*- coding: utf-8
 
-"""
-.. module:: data_containers
-    :synopsis: data containers for different types of component
-               or connection properties
+"""This module contains the data_container class and its children. The
+different ata_containers are used to store component or connection properties.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/tools/helpers.py
+
+SPDX-License-Identifier: MIT
 """
 
 import collections

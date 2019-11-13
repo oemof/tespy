@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 import collections
 import logging
+import numpy as np
 
 # %%
 
@@ -48,27 +49,28 @@ class data_container:
 
     Example
     -------
-    >>> from tespy import hlp, cmp
-    >>> type(hlp.dc_cm(is_set=True))
-    <class 'tespy.tools.helpers.dc_cm'>
-    >>> type(hlp.dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
-    <class 'tespy.tools.helpers.dc_cc'>
-    >>> type(hlp.dc_cp(val=100, is_set=True, is_var=True, printout=True,
+    >>> from tespy.tools import data_containers as dc
+    >>> from tespy.components import components as cmp
+    >>> type(dc.dc_cm(is_set=True))
+    <class 'tespy.tools.data_containers.dc_cm'>
+    >>> type(dc.dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
+    <class 'tespy.tools.data_containers.dc_cc'>
+    >>> type(dc.dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...     max_val=1000, min_val=1))
-    <class 'tespy.tools.helpers.dc_cp'>
+    <class 'tespy.tools.data_containers.dc_cp'>
     >>> pipe = cmp.pipe('testpipe', L=100, D=0.5, ks=5e-5)
-    >>> type(hlp.dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
+    >>> type(dc.dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
     ...     method='default'))
-    <class 'tespy.tools.helpers.dc_gcp'>
-    >>> type(hlp.dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
+    <class 'tespy.tools.helpdata_containersers.dc_gcp'>
+    >>> type(dc.dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
     ...     val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
     ...     balance=False))
-    <class 'tespy.tools.helpers.dc_flu'>
-    >>> type(hlp.dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
+    <class 'tespy.tools.data_containers.dc_flu'>
+    >>> type(dc.dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
     ...     unit_set=False, ref=None, ref_set=False))
-    <class 'tespy.tools.helpers.dc_prop'>
-    >>> type(hlp.dc_simple(val=5, val_set=False))
-    <class 'tespy.tools.helpers.dc_simple'>
+    <class 'tespy.tools.data_containers.dc_prop'>
+    >>> type(dc.dc_simple(val=5, val_set=False))
+    <class 'tespy.tools.data_containers.dc_simple'>
     """
 
     def __init__(self, **kwargs):

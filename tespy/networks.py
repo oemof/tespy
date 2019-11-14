@@ -308,7 +308,7 @@ class network:
         else:
             self.m_range = self.m_range_SI / self.m[self.m_unit]
 
-        msg = ('Setting pressure range, min: ' + str(self.m_range_SI[0]) +
+        msg = ('Setting mass flow limits, min: ' + str(self.m_range_SI[0]) +
                ' ' + self.SI_units['m'] + ', max: ' + str(self.m_range_SI[1]) +
                ' ' + self.SI_units['m'] + '.')
         logging.debug(msg)
@@ -324,7 +324,7 @@ class network:
         else:
             self.p_range = self.p_range_SI / self.p[self.p_unit]
 
-        msg = ('Setting pressure range, min: ' + str(self.p_range_SI[0]) +
+        msg = ('Setting pressure limits, min: ' + str(self.p_range_SI[0]) +
                ' ' + self.SI_units['p'] + ', max: ' + str(self.p_range_SI[1]) +
                ' ' + self.SI_units['p'] + '.')
         logging.debug(msg)
@@ -340,7 +340,7 @@ class network:
         else:
             self.h_range = self.h_range_SI / self.h[self.h_unit]
 
-        msg = ('Setting enthalpy range, min: ' + str(self.h_range_SI[0]) +
+        msg = ('Setting enthalpy limits, min: ' + str(self.h_range_SI[0]) +
                ' ' + self.SI_units['h'] + ', max: ' + str(self.h_range_SI[1]) +
                ' ' + self.SI_units['h'] + '.')
         logging.debug(msg)
@@ -358,7 +358,7 @@ class network:
             self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
                             self.T[self.T_unit][0])
 
-        msg = ('Setting temperature range, min: ' + str(self.T_range_SI[0]) +
+        msg = ('Setting temperature limits, min: ' + str(self.T_range_SI[0]) +
                ' ' + self.SI_units['T'] + ', max: ' + str(self.T_range_SI[1]) +
                ' ' + self.SI_units['T'] + '.')
         logging.debug(msg)

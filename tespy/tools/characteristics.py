@@ -26,31 +26,42 @@ class characteristics:
     Parameters
     ----------
     x : ndarray
-        An array for the x-values of the lookup table. Number of x and y values must be identical.
+        An array for the x-values of the lookup table. Number of x and y
+        values must be identical.
 
     y : ndarray
-        The corresponding y-values for the lookup table. Number of x and y values must be identical.
+        The corresponding y-values for the lookup table. Number of x and y
+        values must be identical.
 
     method : str
-        Specify a method to choose from the default characteristic lines. If you specify custom x and y values, this parameter will be ignored.
+        Specify a method to choose from the default characteristic lines. If
+        you specify custom x and y values, this parameter will be ignored.
 
     comp : str
-        Component base name, see :func:`tespy.components.components.component.comp` method.
+        Component base name, see
+        :func:`tespy.components.components.component.comp` method.
 
     Note
     ----
-    This class generates a lookup table from the given input data x and y, then performs linear interpolation.
-    The x and y values may be specified by the user. There are some default characteristic lines for different
-    components, see the :func:`tespy.components.characteristics.characteristics.default` method.
-    If you neither specify the method to use from the defaults nor specify x and y values,
-    the characteristic line generated will be :code:`x: [1, 2, 3, 4], y: [1, 1, 1, 1]`.
+    This class generates a lookup table from the given input data x and y,
+    then performs linear interpolation. The x and y values may be specified by
+    the user. There are some default characteristic lines for different
+    components, see the
+    :func:`tespy.components.characteristics.characteristics.default` method.
+    If you neither specify the method to use from the defaults nor specify x
+    and y values, the characteristic line generated will be
+    :code:`x = [1, 2, 3, 4], y = [1, 1, 1, 1]`.
+
+    TODO: The part on default characteristics will be adjusted for version
+    0.2.0. Some parts of the docstrings will have to be reworked.
     """
 
     def __init__(self, **kwargs):
 
         for key in kwargs:
             if key not in self.attr():
-                msg = ('Invalid keyword ' + key + '. Available keywords for kwargs are: ' + str(self.attr()) + '.')
+                msg = ('Invalid keyword ' + key +
+                       '. Available keywords are: ' + str(self.attr()) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -72,12 +83,14 @@ class characteristics:
             self.y = np.array(self.y)
 
         if len(self.x) != len(self.y):
-            msg = ('Please provide the same amount of x-values and y-values. Number of x-values: ' +
-                   str(len(self.x)) + ', number of y-values: ' + str(len(self.y)) + '.')
+            msg = ('Please provide the same amount of x-values and y-values. '
+                   'Number of x-values: ' + str(len(self.x)) +
+                   ', number of y-values: ' + str(len(self.y)) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
-        msg = 'Created characteristic function for component of type ' + str(self.comp) + ' with default method ' + method +'.'
+        msg = ('Created characteristic function for component of type ' +
+               str(self.comp) + ' with default method ' + method + '.')
         logging.debug(msg)
 
     def default(self, key):
@@ -257,7 +270,8 @@ class characteristics:
 
         .. math::
 
-            \frac{\eta}{\eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}{\dot{m}_{H_2,ref}}\right)
+            \frac{\eta}{\eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}
+            {\dot{m}_{H_2,ref}}\right)
 
         .. image:: _images/water_electrolyzer_GENERIC.svg
            :scale: 100 %
@@ -406,8 +420,9 @@ class characteristics:
 
         Note
         ----
-        This methods checks for the value range first. If the x-value is outside of the specified range,
-        the function will return the values at the corresponding boundary.
+        This methods checks for the value range first. If the x-value is
+        outside of the specified range, the function will return the values at
+        the corresponding boundary.
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
@@ -421,7 +436,8 @@ class characteristics:
 
     def get_bound_errors(self, x, c):
         r"""
-        Returns error messages, if operation is out of bounds of characteristc line.
+        Returns error messages, if operation is out of bounds of characteristc
+        line.
 
         Parameters
         ----------
@@ -484,22 +500,32 @@ class char_map(characteristics):
         An array of the z2-values of the map.
 
     method : str
-        Specify a method to choose from the default characteristic maps. If you specify custom x, y, z1 and z2 values, this parameter will be ignored.
+        Specify a method to choose from the default characteristic maps. If you
+        specify custom x, y, z1 and z2 values, this parameter will be ignored.
 
     Note
     ----
-    This class generates a lookup table from the given input data x, y, z1 and z2, then performs linear interpolation.
-    The output parameters are z1 and z2 to be calculated as functions from x and y. The x, y, z1 and z2 values may be specified by the user.
-    There is a default characteristic map for axial compressors (GENERIC), see :func:`tespy.components.characteristics.char_map.default` method.
+    This class generates a lookup table from the given input data x, y, z1 and
+    z2, then performs linear interpolation. The output parameters are z1 and z2
+    to be calculated as functions from x and y. The x, y, z1 and z2 values may
+    be specified by the user. There is a default characteristic map for axial
+    compressors (GENERIC),
+    see :func:`tespy.components.characteristics.char_map.default` method.
 
-    If you want to use your own map, see the :func:`tespy.components.characteristics.char_map.default` method for more information.
+    If you want to use your own map, see the
+    :func:`tespy.components.characteristics.char_map.default` method for more
+    information.
+
+    TODO: The part on default characteristics will be adjusted for version
+    0.2.0. Some parts of the docstrings will have to be reworked.
     """
 
     def __init__(self, **kwargs):
 
         for key in kwargs:
             if key not in self.attr():
-                msg = ('Invalid keyword ' + key +'. Available keywords for kwargs are: ' + str(self.attr()) + '.')
+                msg = ('Invalid keyword ' + key +
+                       '. Available keywords are: ' + str(self.attr()) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -532,16 +558,21 @@ class char_map(characteristics):
             self.z2 = np.array(self.z2)
 
         if self.x.shape[0] != self.y.shape[0]:
-            msg = ('The number of x-values determines the number of dimension for the characteristic map. You have provided ' +
-                   str(len(self.x)) + 'x-values. Thus, the y-, z1- and z2-arrays must have ' + str(len(self.x)) +' number of dimensions.')
+            msg = ('The number of x-values determines the number of dimension '
+                   'for the characteristic map. You have provided ' +
+                   str(len(self.x)) + 'x-values. Thus, the y-, z1- and '
+                   'z2-arrays must have ' + str(len(self.x)) +
+                   ' number of dimensions.')
             logging.error(msg)
             raise ValueError(msg)
         elif self.y.shape != self.z1.shape or self.y.shape != self.z2.shape:
-            msg = 'Make sure that the number of dimensions and the number of values in the y-, z1- and z2-arrays are identical!'
+            msg = ('Make sure that the number of dimensions and the number of '
+                   'values in the y-, z1- and z2-arrays are identical!')
             logging.error(msg)
             raise ValueError(msg)
 
-        msg = 'Created characteristic map for component of type ' + str(self.comp) + ' with default method ' + method + '.'
+        msg = ('Created characteristic map for component of type ' +
+               str(self.comp) + ' with default method ' + method + '.')
         logging.debug(msg)
 
     def attr(self):
@@ -576,13 +607,18 @@ class char_map(characteristics):
 
         .. note::
 
-            The x-values represent the speedlines, y-values represent the corrected mass flow for each speedline.
-            The z1-values are the pressure ratio to nominal pressure ratio and z2-values are the isentropic efficiency to nominal isentropic efficiency.
-            Thus, the number of points in the x-array equals the number of dimensions of the y, z1 and z2-array.
-            E. g., if you specify 5 speedlines in the x-array, you will need to have an y-array with 5 dimensions,
-            where the points of each dimension represent one of the speedlines. The same logic applies for the z1 and z2 arrays!
+            The x-values represent the speedlines, y-values represent the
+            corrected mass flow for each speedline. The z1-values are the
+            pressure ratio to nominal pressure ratio and z2-values are the
+            isentropic efficiency to nominal isentropic efficiency. Thus, the
+            number of points in the x-array equals the number of dimensions of
+            the y, z1 and z2-array. E. g., if you specify 5 speedlines in the
+            x-array, you will need to have an y-array with 5 dimensions, where
+            the points of each dimension represent one of the speedlines.
+            The same logic applies for the z1 and z2 arrays!
 
-            For calculation/equations see :func:`tespy.components.characteristics.char_map.get_pr_eta`.
+            For calculation/equations see
+            :func:`tespy.components.characteristics.char_map.get_pr_eta`.
         """
 
         if key == 'default':
@@ -599,7 +635,9 @@ class char_map(characteristics):
 
         if self.comp == 'compressor':
 
-            x['GENERIC'] = np.array([0.810, 0.870, 0.946, 0.971, 1, 1.029, 1.062])
+            x['GENERIC'] = np.array([0.810, 0.870, 0.946, 0.971, 1, 1.029,
+                                     1.062])
+
             y['GENERIC'] = np.array([[0.460, 0.481, 0.502, 0.523, 0.543,
                                       0.562, 0.583, 0.598, 0.606, 0.612],
                                      [0.590, 0.605, 0.620, 0.640, 0.660,
@@ -676,8 +714,8 @@ class char_map(characteristics):
 
             .. math::
 
-                Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot p_\mathrm{2,ref}}=
-                f\left(X, Y \right)
+                Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}{p_1 \cdot
+                p_\mathrm{2,ref}}= f\left(X, Y \right)
 
         eta : float
             Isentropic efficiency to nominal isentropic efficiency ratio (Z2).

@@ -2605,10 +2605,8 @@ class network:
                 # dT / dFluid
                 if len(self.fluids) != 1:
                     deriv[0, 0, 3:] = fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI)
-                    deriv[0, 1, 3:] = -(
-                            fp.dT_mix_ph_dfluid(flow_ref,
-                                                 T0=c.T.ref.obj.T.val_SI)
-                            )
+                    deriv[0, 1, 3:] = -(fp.dT_mix_ph_dfluid(
+                            flow_ref, T0=c.T.ref.obj.T.val_SI))
                 return deriv
 
             else:

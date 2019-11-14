@@ -1,10 +1,15 @@
 # -*- coding: utf-8
 
-"""
-.. module:: networks
-    :synopsis: contains logic of the network
+"""This module contains the network class. It is the container for every
+TESPy simulation. The network class creates the system of equations describing
+topology and parametrisation of a specific model and solves it.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/networks/networks.py
+
+SPDX-License-Identifier: MIT
 """
 
 # reading .csv

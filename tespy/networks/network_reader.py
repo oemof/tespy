@@ -1,10 +1,14 @@
 # -*- coding: utf-8
 
-"""
-.. module:: network_reader
-    :synopsis:
+"""This module contains the network reader functionality. The network reader
+imports a network from the save-files.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/networks/network_reader.py
+
+SPDX-License-Identifier: MIT
 """
 
 import pandas as pd

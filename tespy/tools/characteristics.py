@@ -1,10 +1,15 @@
 # -*- coding: utf-8
 
-"""
-.. module:: components.characteristics
-    :synopsis:
+"""This module contains the classes for characteristic lines and characteristic
+maps. The user can create custom characteristic lines or maps with individual
+data. The classes handle the integration in the component and bus equations.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/tools/characteristics.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np

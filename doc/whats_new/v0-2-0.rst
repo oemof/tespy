@@ -6,6 +6,7 @@ New Features
 
 Documentation
 #############
+- Fix typos in docstrings in components module (`PR #102 <https://github.com/oemof/tespy/pull/102>`_).
 
 Parameter renaming
 ##################

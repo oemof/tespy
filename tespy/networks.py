@@ -232,9 +232,6 @@ class network:
                ', max: ' + str(self.T_range_SI[1]) + ' ' + self.T_unit + ', ')
         logging.debug(msg)
 
-        msg = ('Default volumetric flow has not a limit.')
-        logging.debug(msg)
-
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):

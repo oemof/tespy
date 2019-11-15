@@ -277,7 +277,8 @@ class network:
         # unit sets
         if 'm_unit' in kwargs.keys():
             if kwargs['m_unit'] not in self.m.keys():
-                msg = ('Allowed units for mass flow are: ' + str(self.m.keys()))
+                msg = ('Allowed units for mass flow are: ' +
+                       str(self.m.keys()))
                 logging.error(msg)
                 raise ValueError(msg)
             else:
@@ -335,9 +336,10 @@ class network:
                 self.m_range_SI = (np.array(kwargs['m_range']) *
                                    self.m[self.m_unit])
 
-            msg = ('Setting mass flow limits, min: ' + str(self.m_range_SI[0]) +
-                   ' ' + self.SI_units['m'] + ', max: ' + str(self.m_range_SI[1]) +
-                   ' ' + self.SI_units['m'] + '.')
+            msg = ('Setting mass flow limits, min: ' +
+                   str(self.m_range_SI[0]) + ' ' + self.SI_units['m'] +
+                   ', max: ' + str(self.m_range_SI[1]) + ' ' +
+                   self.SI_units['m'] + '.')
             logging.debug(msg)
 
         if 'p_range' in kwargs.keys():
@@ -348,9 +350,10 @@ class network:
             else:
                 self.p_range_SI = (np.array(kwargs['p_range']) *
                                    self.p[self.p_unit])
-            msg = ('Setting pressure limits, min: ' + str(self.p_range_SI[0]) +
-                   ' ' + self.SI_units['p'] + ', max: ' + str(self.p_range_SI[1]) +
-                   ' ' + self.SI_units['p'] + '.')
+            msg = ('Setting pressure limits, min: ' +
+                   str(self.p_range_SI[0]) + ' ' + self.SI_units['p'] +
+                   ', max: ' + str(self.p_range_SI[1]) + ' ' +
+                   self.SI_units['p'] + '.')
             logging.debug(msg)
 
         if 'h_range' in kwargs.keys():
@@ -361,9 +364,10 @@ class network:
             else:
                 self.h_range_SI = (np.array(kwargs['h_range']) *
                                    self.h[self.h_unit])
-            msg = ('Setting enthalpy limits, min: ' + str(self.h_range_SI[0]) +
-                   ' ' + self.SI_units['h'] + ', max: ' + str(self.h_range_SI[1]) +
-                   ' ' + self.SI_units['h'] + '.')
+            msg = ('Setting enthalpy limits, min: ' +
+                   str(self.h_range_SI[0]) + ' ' + self.SI_units['h'] +
+                   ', max: ' + str(self.h_range_SI[1]) + ' ' +
+                   self.SI_units['h'] + '.')
             logging.debug(msg)
 
         if 'T_range' in kwargs.keys():
@@ -375,10 +379,18 @@ class network:
                 self.T_range_SI = ((np.array(kwargs['T_range']) +
                                     self.T[self.T_unit][0]) *
                                    self.T[self.T_unit][1])
-            msg = ('Setting temperature limits, min: ' + str(self.T_range_SI[0]) +
-                   ' ' + self.SI_units['T'] + ', max: ' + str(self.T_range_SI[1]) +
-                   ' ' + self.SI_units['T'] + '.')
+            msg = ('Setting temperature limits, min: ' +
+                   str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
+                   ', max: ' + str(self.T_range_SI[1]) + ' ' +
+                   self.SI_units['T'] + '.')
             logging.debug(msg)
+
+        # update non SI value ranges
+        self.m_range = self.m_range_SI / self.m[self.m_unit]
+        self.p_range = self.p_range_SI / self.p[self.p_unit]
+        self.h_range = self.h_range_SI / self.h[self.h_unit]
+        self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
+                        self.T[self.T_unit][0])
 
         for f in self.fluids:
             if 'TESPy::' in f:

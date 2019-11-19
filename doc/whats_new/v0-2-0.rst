@@ -3,6 +3,8 @@ v0.2.0 (to be dated)
 
 New Features
 ############
+- Implemented a new component "cycle_closer". This component may serve as substitute for a 
+  sink/source or splitter/merge combination in closed cycle simulations (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
 
 Documentation
 #############
@@ -10,8 +12,7 @@ Documentation
 
 Parameter renaming
 ##################
-
-- New name for *cogeneration unit*: **combustion engine** (`PR #102 <https://github.com/oemof/tespy/pull/102>`_)
+- New name for *cogeneration unit*: **combustion engine** (`PR #105 <https://github.com/oemof/tespy/pull/105>`_)
 
 Testing
 #######
@@ -27,3 +28,6 @@ Contributors
 ############
 
 - Francesco Witte
+
+Example
+#######

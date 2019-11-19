@@ -11,6 +11,8 @@ Documentation
 Parameter renaming
 ##################
 
+- New name for *cogeneration unit*: **combustion engine** (`PR #102 <https://github.com/oemof/tespy/pull/102>`_)
+
 Testing
 #######
 

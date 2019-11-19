@@ -1,11 +1,28 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains components of type turbomachinery: pump, turbine and
+compressor.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/turbomachinery.py
+
+SPDX-License-Identifier: MIT
 """
+
+import logging
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
+from tespy.tools.fluid_properties import s_mix_ph, s_mix_pT, v_mix_ph
+from tespy.tools.helpers import TESPyComponentError
+
+# %%
+
 
 class turbomachine(component):
     r"""

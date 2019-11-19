@@ -12,9 +12,11 @@ import pandas as pd
 
 import logging
 
-from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp, dc_simple)
-from tespy.components import components as cmp
-from tespy.components import characteristics as cmp_char
+from tespy.tools.characteristics import characteristics
+from tespy.tools.data_containers import dc_cp, dc_flu, dc_prop, dc_simple
+from tespy.tools.helpers import TESPyConnectionError
+
+from tespy.components.components import component
 
 
 class connection:
@@ -134,8 +136,8 @@ class connection:
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
 
         # check input parameters
-        if not (isinstance(comp1, cmp.component) and
-                isinstance(comp2, cmp.component)):
+        if not (isinstance(comp1, component) and
+                isinstance(comp2, component)):
             msg = ('Error creating connection. Check if comp1, comp2 are of '
                    'type component.')
             logging.error(msg)
@@ -450,7 +452,8 @@ class connection:
 
     def to_flow(self):
         r"""
-        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection.
+        Returns a list with the SI-values for the network variables (m, p, h,
+        fluid vector) of a connection.
 
         Returns
         -------
@@ -461,7 +464,8 @@ class connection:
 
     def to_flow_design(self):
         r"""
-        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection at design point.
+        Returns a list with the SI-values for the network variables (m, p, h,
+        fluid vector) of a connection at design point.
 
         Returns
         -------
@@ -580,8 +584,8 @@ class bus:
 
         self.label = label
         self.P = dc_cp(val=np.nan, val_set=False)
-        self.char = cmp_char.characteristics(x=np.array([0, 1, 2, 3]),
-                                             y=np.array([1, 1, 1, 1]))
+        self.char = characteristics(x=np.array([0, 1, 2, 3]),
+                                    y=np.array([1, 1, 1, 1]))
 
         self.set_attr(P=P)
 
@@ -646,31 +650,34 @@ class bus:
         ----
         Keys for the dictionary c:
 
-        - c (tespy.components.components.component): Component you want to add to the bus.
+        - c (tespy.components.components.component): Component you want to add
+          to the bus.
         - p (str): Bus parameter, optional.
 
-            - You do not need to provide a parameter, if the component only has one
-              option for the bus (turbomachines, heat exchangers, combustion
-              chamber).
-            - For instance, you do neet do provide a parameter, if you want to add
-              a cogeneration unit ('Q', 'Q1', 'Q2', 'TI', 'P', 'Qloss').
+            - You do not need to provide a parameter, if the component only has
+              one option for the bus (turbomachines, heat exchangers,
+              combustion chamber).
+            - For instance, you do neet do provide a parameter, if you want to
+              add a combustion engine ('Q', 'Q1', 'Q2', 'TI', 'P', 'Qloss').
 
         - char (float/tespy.components.characteristics.characteristics):
-          Characteristic function for this components share to the bus value, optional.
+          Characteristic function for this components share to the bus value,
+          optional.
 
-            - If you do not provide a characteristic line at all, TESPy assumes a
-              constant factor of 1.
+            - If you do not provide a characteristic line at all, TESPy assumes
+              a constant factor of 1.
             - If you provide a numeric value instead of a characteristic line,
               TESPy takes this numeric value as a constant factor.
             - Provide a TESPy.characteristic (cmp_char), if you want the factor
               to follow a characteristic line.
 
-        - P_ref (float): Energy flow specification for reference case, :math:`P \text{/W}`, optional.
+        - P_ref (float): Energy flow specification for reference case,
+          :math:`P \text{/W}`, optional.
         """
         for c in args:
             if isinstance(c, dict):
                 if 'c' in c.keys():
-                    if isinstance(c['c'], cmp.component):
+                    if isinstance(c['c'], component):
                         self.comps.loc[c['c']] = [None, np.nan, self.char]
                     else:
                         msg = ('Keyword c must hold a TESPy component.')
@@ -691,7 +698,7 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'char':
-                        if isinstance(v, cmp_char.characteristics):
+                        if isinstance(v, characteristics):
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
@@ -699,9 +706,11 @@ class bus:
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
-                            self.comps.loc[c['c']]['char'] = (cmp_char.characteristics(x=x, y=y))
+                            self.comps.loc[c['c']]['char'] = (
+                                    characteristics(x=x, y=y))
                         else:
-                            msg = ('Char must be a number or a TESPy characteristics.')
+                            msg = ('Char must be a number or a TESPy '
+                                   'characteristics.')
                             logging.error(msg)
                             raise TypeError(msg)
 
@@ -716,7 +725,8 @@ class bus:
                             logging.error(msg)
                             raise TypeError(msg)
             else:
-                msg = ('Provide arguments as dicts. See the documentation of bus.add_comps() for more information.')
+                msg = ('Provide arguments as dicts. See the documentation of '
+                       'bus.add_comps() for more information.')
                 logging.error(msg)
                 raise TESPyConnectionError(msg)
 
@@ -726,7 +736,8 @@ class bus:
 
 class ref:
     r"""
-    Reference class to reference fluid properties from one connection to another connection.
+    Reference class to reference fluid properties from one connection to
+    another connection.
 
     Parameters
     ----------
@@ -742,8 +753,8 @@ class ref:
 
     Note
     ----
-    Reference the mass flow of one connection :math:`\dot{m}` to another mass flow
-    :math:`\dot{m}_{ref}`
+    Reference the mass flow of one connection :math:`\dot{m}` to another mass
+    flow :math:`\dot{m}_{ref}`
 
     .. math::
 
@@ -770,8 +781,10 @@ class ref:
         self.f = factor
         self.d = delta
 
-        msg = ('Created reference object with factor ' + str(self.f) + ' and delta ' + str(self.d) + ' referring to connection ' +
-               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' + ref_obj.t.label + ' (' + ref_obj.t_id + ').')
+        msg = ('Created reference object with factor ' + str(self.f) +
+               ' and delta ' + str(self.d) + ' referring to connection ' +
+               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' +
+               ref_obj.t.label + ' (' + ref_obj.t_id + ').')
         logging.debug(msg)
 
     def get_attr(self, key):

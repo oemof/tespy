@@ -1,11 +1,21 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains basic components: source, sink, subsystem_interface and
+cycle_closer.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/basics.py
+
+SPDX-License-Identifier: MIT
 """
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import dc_simple
 
 # %%
 
@@ -84,7 +94,7 @@ class sink(component):
 # %%
 
 
-class subsys_interface(component):
+class subsystem_interface(component):
     r"""
     Equations
 
@@ -277,3 +287,106 @@ class subsys_interface(component):
         for j in range(self.num_i):
             deriv[j, j + self.num_i, pos] = -1
         return deriv.tolist()
+
+
+# %%
+
+
+class cycle_closer(component):
+    r"""
+    Equations
+
+        **mandatory equations**
+
+        .. math:: 0 = p_{in_{j}} - p_{out_{j}} \;
+            \forall j \in inlets/outlets
+
+        .. math:: 0 = h_{in_{j}} - h_{out_{j}} \;
+            \forall j \in inlets/outlets
+
+    Image not available
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    num_inter : float/tespy.helpers.dc_simple
+        Number of interfaces for subsystem.
+
+    Note
+    ----
+    This component can be used to close a cycle process. The system of
+    equations describing your plant will overdetermined, if you close a cycle
+    without this component or a cut the cycle with a sink and a source at
+    some point of the cycle.
+
+    Example
+    -------
+    To follow.
+    """
+
+    def component(self):
+        return 'cycle closer'
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        # all derivatives are constants
+        self.mat_deriv = np.zeros((1, 2, 3 + self.num_fl))
+        # derivatives at inlet
+        self.mat_deriv[0, 0, 1] = 1
+        self.mat_deriv[0, 0, 2] = 1
+        # derivatives at outlet
+        self.mat_deriv[0, 1, 1] = -1
+        self.mat_deriv[0, 1, 2] = -1
+
+    def equations(self):
+        r"""
+        Calculates vector vec_res with results of equations for this component.
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equation for pressure
+        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+
+        ######################################################################
+        # equation for enthalpy
+        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+
+        ######################################################################
+
+        return vec_res
+
+    def derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given equations.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        ######################################################################
+        # derivatives with constant value (all for this component)
+
+        return self.mat_deriv

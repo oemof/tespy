@@ -14,17 +14,25 @@ import logging
 
 import CoolProp.CoolProp as CP
 
+from tespy.tools.characteristics import char_map, characteristics
+
+from tespy.tools.data_containers import (
+        data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
+        )
+from tespy.tools.fluid_properties import (
+        h_mix_pQ, h_mix_pT, dh_mix_dpQ,
+        memorise,
+        s_mix_ph,
+        T_bp_p,
+        T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
+        v_mix_ph,
+        visc_mix_ph
+        )
+from tespy.tools.global_vars import molar_masses
+
 from tespy.tools.helpers import (
-    num_fluids, fluid_structure, TESPyComponentError, tespy_fluid,
-    v_mix_ph, h_mix_pT, h_mix_ps, s_mix_pT, s_mix_ph, T_mix_ph, visc_mix_ph,
-    dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid, h_mix_pQ, dh_mix_dpQ, T_bp_p,
-    h_ps, h_pT, s_ph,
-    molar_mass_flow, lamb,
-    molar_masses, err,
-    dc_cp, dc_cc, dc_cm, dc_gcp, memorise, single_fluid, dc_simple,
-    data_container
-)
-from tespy.components import characteristics as cmp_char
+        lamb, num_fluids, single_fluid, TESPyComponentError
+        )
 
 # %%
 
@@ -183,8 +191,8 @@ class component:
                                 isinstance(self.get_attr(key), dc_cm)):
                             self.get_attr(key).set_attr(func=None)
 
-                    elif (isinstance(kwargs[key], cmp_char.characteristics) or
-                          isinstance(kwargs[key], cmp_char.char_map)):
+                    elif (isinstance(kwargs[key], characteristics) or
+                          isinstance(kwargs[key], char_map)):
                         self.get_attr(key).func=kwargs[key]
                         self.get_attr(key).x = self.get_attr(key).func.x
                         self.get_attr(key).y = self.get_attr(key).func.y
@@ -327,7 +335,7 @@ class component:
                     generate_char = True
 
                 if generate_char:
-                    self.get_attr(key).func = cmp_char.characteristics(
+                    self.get_attr(key).func = characteristics(
                             method=self.get_attr(key).method,
                             x=self.get_attr(key).x,
                             y=self.get_attr(key).y, comp=self.component())

@@ -1,11 +1,30 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains components with combustion: combustion chamber,
+stochiometric combustion chamber and (internal) combustion engine.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/combustion.py
+
+SPDX-License-Identifier: MIT
 """
+
+import CoolProp.CoolProp as CP
+
+import logging
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import (dc_cc, dc_cp, dc_simple)
+from tespy.tools.fluid_properties import (
+        h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid, v_mix_ph)
+from tespy.tools.global_vars import molar_masses
+from tespy.tools.helpers import (
+        fluid_structure, molar_mass_flow, TESPyComponentError)
 
 # %%
 
@@ -377,7 +396,7 @@ class combustion_chamber(component):
             .. math::
 
                 \text{combustion chamber: } i \in [1,2], o \in [1]\\
-                \text{cogeneration unit: } i \in [3,4], o \in [3]\\
+                \text{combustion engine: } i \in [3,4], o \in [3]\\
 
                 res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
                 \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
@@ -459,7 +478,7 @@ class combustion_chamber(component):
             Residual value of equation.
         """
 
-        if isinstance(self, cogeneration_unit):
+        if isinstance(self, combustion_engine):
             inl = self.inl[2:]
             outl = self.outl[2:]
         else:
@@ -702,7 +721,7 @@ class combustion_chamber(component):
                 val = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
                 \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)} - \lambda
         """
-        if isinstance(self, cogeneration_unit):
+        if isinstance(self, combustion_engine):
             inl = self.inl[2:]
         else:
             inl = self.inl
@@ -850,8 +869,8 @@ class combustion_chamber(component):
         for f in self.fuel_list:
             m_co2 += (n_fuel * self.fuels[f]['C'] * molar_masses[self.co2] *
                       fact_fuel[f])
-            m_h2o += (n_fuel * self.fuels[f]['H'] / 2 *molar_masses[self.h2o] *
-                      fact_fuel[f])
+            m_h2o += (n_fuel * self.fuels[f]['H'] / 2 *
+                      molar_masses[self.h2o] * fact_fuel[f])
             m_fuel += n_fuel * molar_masses[f] * fact_fuel[f]
 
         n_o2 = (m_co2 / molar_masses[self.co2] +
@@ -891,7 +910,7 @@ class combustion_chamber(component):
         composition within feasible range and then propagates it towards the
         outlet.
         """
-        if isinstance(self, cogeneration_unit):
+        if isinstance(self, combustion_engine):
             inl = self.inl[2:]
             outl = self.outl[2:]
         else:
@@ -1260,8 +1279,8 @@ class combustion_chamber_stoich(combustion_chamber):
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        # adjust the names for required fluids according to naming in the network
-        # air
+        # adjust the names for required fluids according to naming in the
+        # network air
         for f in self.air.val.keys():
             alias = [x for x in nw.fluids if x in [a.replace(' ', '')
                      for a in CP.get_aliases(f)]]
@@ -1868,30 +1887,30 @@ class combustion_chamber_stoich(combustion_chamber):
 # %%
 
 
-class cogeneration_unit(combustion_chamber):
+class combustion_engine(combustion_chamber):
     r"""
     Equations
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.cogeneration_unit.reaction_balance`
-        - :func:`tespy.components.components.cogeneration_unit.fluid_func`
+        - :func:`tespy.components.components.combustion_engine.reaction_balance`
+        - :func:`tespy.components.components.combustion_engine.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.cogeneration_unit.mass_flow_func`
+        - :func:`tespy.components.components.combustion_engine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :func:`tespy.components.components.cogeneration_unit.energy_balance`
+        - :func:`tespy.components.components.combustion_engine.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.cogeneration_unit.lambda_func`
-        - :func:`tespy.components.components.cogeneration_unit.ti_func`
-        - :func:`tespy.components.components.cogeneration_unit.Q1_func`
-        - :func:`tespy.components.components.cogeneration_unit.Q2_func`
+        - :func:`tespy.components.components.combustion_engine.lambda_func`
+        - :func:`tespy.components.components.combustion_engine.ti_func`
+        - :func:`tespy.components.components.combustion_engine.Q1_func`
+        - :func:`tespy.components.components.combustion_engine.Q2_func`
 
         .. math::
 
@@ -1912,7 +1931,7 @@ class cogeneration_unit(combustion_chamber):
 
     Image
 
-        .. image:: _images/cogeneration_unit.svg
+        .. image:: _images/combustion_engine.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -1983,7 +2002,7 @@ class cogeneration_unit(combustion_chamber):
 
     Note
     ----
-    For more information on the usage of the cogeneration unit see the
+    For more information on the usage of the combustion engine see the
     examples in the tespy_examples repository.
 
     Example
@@ -2004,9 +2023,9 @@ class cogeneration_unit(combustion_chamber):
     >>> cw_out2 = cmp.sink('cooling water outlet2')
     >>> split = cmp.splitter('splitter')
     >>> merge = cmp.merge('merge')
-    >>> chp = cmp.cogeneration_unit(label='cogeneration unit')
+    >>> chp = cmp.combustion_engine(label='internal combustion engine')
     >>> chp.component()
-    'cogeneration unit'
+    'combustion engine'
     >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
     >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
     >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
@@ -2046,7 +2065,7 @@ class cogeneration_unit(combustion_chamber):
     """
 
     def component(self):
-        return 'cogeneration unit'
+        return 'combustion engine'
 
     def attr(self):
         return {'fuel': dc_simple(),
@@ -2075,14 +2094,14 @@ class cogeneration_unit(combustion_chamber):
 
         if not self.P.is_set:
             self.set_attr(P='var')
-            msg = ('The power output of cogeneration units must be set! '
+            msg = ('The power output of combustion engines must be set! '
                    'We are adding the power output of component ' +
                    self.label + ' as custom variable of the system.')
             logging.info(msg)
 
         if not self.Qloss.is_set:
             self.set_attr(Qloss='var')
-            msg = ('The heat loss of cogeneration units must be set! '
+            msg = ('The heat loss of combustion engines must be set! '
                    'We are adding the heat loss of component ' +
                    self.label + ' as custom variable of the system.')
             logging.info(msg)
@@ -2123,7 +2142,7 @@ class cogeneration_unit(combustion_chamber):
         vec_res += [self.inl[2].p.val_SI - self.inl[3].p.val_SI]
 
         ######################################################################
-        # equation for cogeneration unit energy balance
+        # equation for combustion engine energy balance
         vec_res += [self.energy_balance()]
 
         ######################################################################
@@ -2489,7 +2508,7 @@ class cogeneration_unit(combustion_chamber):
 
     def energy_balance(self):
         r"""
-        Calculates the energy balance of the cogeneration unit.
+        Calculates the energy balance of the combustion engine.
 
         Returns
         -------
@@ -2921,7 +2940,7 @@ class cogeneration_unit(combustion_chamber):
 
     def calc_ti(self):
         r"""
-        Calculates the thermal input of the cogeneration unit.
+        Calculates the thermal input of the combustion engine.
 
         Returns
         -------
@@ -2951,7 +2970,7 @@ class cogeneration_unit(combustion_chamber):
 
     def calc_P(self):
         r"""
-        Calculates the power output of the cogeneration unit.
+        Calculates the power output of the combustion engine.
 
         Returns
         -------
@@ -2973,7 +2992,7 @@ class cogeneration_unit(combustion_chamber):
 
     def calc_Qloss(self):
         r"""
-        Calculates the heat loss of the cogeneration unit.
+        Calculates the heat loss of the combustion engine.
 
         Returns
         -------
@@ -3130,9 +3149,9 @@ class cogeneration_unit(combustion_chamber):
 
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * math.pi ** 2 /
+        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
                           (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * math.pi ** 2 /
+        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
                           (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
         self.Q1.val = i1[0] * (o1[2] - i1[2])
         self.Q2.val = i2[0] * (o2[2] - i2[2])

@@ -34,8 +34,7 @@ from tabulate import tabulate
 from tespy import connections as con
 
 from tespy.components.basics import sink, source, subsystem_interface
-from tespy.components.combustion import combustion_chamber
-from tespy.components.combustion import cogeneration_unit
+from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
 from tespy.components.reactors import water_electrolyzer
@@ -1255,7 +1254,7 @@ class network:
                     if not outconn.fluid.val_set[fluid]:
                         outconn.fluid.val[fluid] = x
 
-        if isinstance(c.t, cogeneration_unit):
+        if isinstance(c.t, combustion_engine):
             for outconn in self.comps.loc[c.t].o[:2]:
                 for fluid, x in c.fluid.val.items():
                     if not outconn.fluid.val_set[fluid]:
@@ -1319,7 +1318,7 @@ class network:
 
                 self.init_source(inconn, start)
 
-        if isinstance(c.s, cogeneration_unit):
+        if isinstance(c.s, combustion_engine):
             for inconn in self.comps.loc[c.s].i[:2]:
                 for fluid, x in c.fluid.val.items():
                     if not inconn.fluid.val_set[fluid]:

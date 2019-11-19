@@ -20,6 +20,21 @@ import math
 import os
 import logging
 
+
+# %%
+
+
+class TESPyNetworkError(Exception):
+    pass
+
+
+class TESPyConnectionError(Exception):
+    pass
+
+
+class TESPyComponentError(Exception):
+    pass
+
 # %%
 
 

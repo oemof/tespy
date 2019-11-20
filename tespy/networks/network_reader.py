@@ -20,7 +20,7 @@ from tespy.tools.helpers import modify_path_os
 from tespy.networks import networks as nwk
 #from tespy.components import stuff (approproiate components!)
 
-from tespy import con
+from tespy import connections as con
 import os
 import ast
 import logging

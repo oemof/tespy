@@ -17,7 +17,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.characteristics import cmp_char
+from tespy.tools.characteristics import char_map
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_cm, dc_simple
 from tespy.tools.fluid_properties import (
         h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
@@ -886,7 +886,7 @@ class compressor(turbomachine):
             generate_char = True
 
         if generate_char:
-            self.char_map.func = cmp_char.char_map(
+            self.char_map.func = char_map(
                     x=self.char_map.x, y=self.char_map.y, z1=self.char_map.z1,
                     z2=self.char_map.z2, method=self.char_map.method,
                     comp=self.component())

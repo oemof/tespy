@@ -99,7 +99,8 @@ class tespy_fluid:
     properties to the CoolProp air implementation. We have to add the CoolProp
     air implementation to the memorise class first. The relative deviation
     should be very small (< 0.01), we check for enthalpy, volume, entropy and
-    viscosity.
+    viscosity. Specific volume and viscosity are absolute values, thus no
+    difference is calculated.
 
     >>> molar_masses['air'] = CP('M', 'air')
     >>> gas_constants['air'] = CP('GAS_CONSTANT', 'air')
@@ -117,9 +118,9 @@ class tespy_fluid:
     >>> round(abs(delta_h_tespy - delta_h) / delta_h, 2)
     0.0
 
-    >>> v_tespy = v_mix_pT(fluid_props, T2) - v_mix_pT(fluid_props, T1)
+    >>> v_tespy = v_mix_pT(fluid_props, T2)
     >>> fluid_props_CP = [0, p, 0, {'air': 1}]
-    >>> v = v_mix_pT(fluid_props_CP, T2) - v_mix_pT(fluid_props_CP, T1)
+    >>> v = v_mix_pT(fluid_props_CP, T2)
     >>> round(abs(v_tespy - v) / v, 2)
     0.0
 
@@ -129,11 +130,9 @@ class tespy_fluid:
     >>> round(abs(s_tespy - s) / s, 2)
     0.0
 
-    >>> visc_tespy = (visc_mix_pT(fluid_props, T2) -
-    ... visc_mix_pT(fluid_props, T1))
+    >>> visc_tespy = visc_mix_pT(fluid_props, T2)
     >>> fluid_props_CP = [0, p, 0, {'air': 1}]
-    >>> visc = (visc_mix_pT(fluid_props_CP, T2) -
-    ... visc_mix_pT(fluid_props_CP, T1))
+    >>> visc = visc_mix_pT(fluid_props_CP, T2)
     >>> round(abs(visc_tespy - visc) / visc, 2)
     0.0
 

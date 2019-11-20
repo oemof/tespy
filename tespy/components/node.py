@@ -1,11 +1,24 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains nodes: node, splitter, separator, merge, drum
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/node.py
+
+SPDX-License-Identifier: MIT
 """
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import dc_simple
+from tespy.tools.fluid_properties import (
+        num_fluids, T_mix_ph, h_mix_pQ
+        dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid
+        )
 
 # %%
 

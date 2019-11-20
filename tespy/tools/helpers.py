@@ -261,6 +261,15 @@ def fluid_structure(fluid):
     parts : dict
         Dictionary of the chemical base elements as keys and the number of
         atoms in a molecule as values.
+
+    Example
+    -------
+    Get the chemical formula of methane.
+
+    >>> from tespy.tools.helpers import fluid_structure
+    >>> elements = fluid_structure('methane')
+    >>> elements['C'], elements['H']
+    (1, 4)
     """
     parts = {}
     for element in CP.CoolProp.get_fluid_param_string(
@@ -328,7 +337,10 @@ def lamb(re, ks, d):
 
     Example
     -------
-    >>> from tespy.tools import helpers as hlp
+    Calculate the friction coefficient used in the Darcy-Weisbach-equation at
+    different hydraulic states.
+
+    >>> from tespy.tools.helpers import lamb
     >>> ks = 5e-5
     >>> d = 0.05
     >>> re_laminar = 2000
@@ -340,17 +352,17 @@ def lamb(re, ks, d):
     >>> d_very_high = 1
     >>> ks_low = 1e-5
     >>> ks_rough = 1e-3
-    >>> hlp.lamb(re_laminar, ks, d)
+    >>> lamb(re_laminar, ks, d)
     0.032
-    >>> round(hlp.lamb(re_turb_smooth, ks, d), 3)
+    >>> round(lamb(re_turb_smooth, ks, d), 3)
     0.027
-    >>> round(hlp.lamb(re_turb_trans, ks, d), 3)
+    >>> round(lamb(re_turb_trans, ks, d), 3)
     0.023
-    >>> round(hlp.lamb(re_turb_trans, ks_rough, d), 3)
+    >>> round(lamb(re_turb_trans, ks_rough, d), 3)
     0.049
-    >>> round(hlp.lamb(re_high, ks, d_high), 3)
+    >>> round(lamb(re_high, ks, d_high), 3)
     0.012
-    >>> round(hlp.lamb(re_very_high, ks_low, d_very_high), 3)
+    >>> round(lamb(re_very_high, ks_low, d_very_high), 3)
     0.009
     """
     if re <= 2320:

@@ -1,38 +1,24 @@
 # -*- coding: utf-8
 
-"""
-.. module:: components
-    :synopsis:
+"""This module contains the component class
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/components.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-import math
 
 import logging
 
-import CoolProp.CoolProp as CP
-
 from tespy.tools.characteristics import char_map, characteristics
-
 from tespy.tools.data_containers import (
         data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
         )
-from tespy.tools.fluid_properties import (
-        h_mix_pQ, h_mix_pT, dh_mix_dpQ,
-        memorise,
-        s_mix_ph,
-        T_bp_p,
-        T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        v_mix_ph,
-        visc_mix_ph
-        )
-from tespy.tools.global_vars import molar_masses
-
-from tespy.tools.helpers import (
-        lamb, num_fluids, single_fluid, TESPyComponentError
-        )
+from tespy.tools.fluid_properties import v_mix_ph
 
 # %%
 
@@ -193,7 +179,7 @@ class component:
 
                     elif (isinstance(kwargs[key], characteristics) or
                           isinstance(kwargs[key], char_map)):
-                        self.get_attr(key).func=kwargs[key]
+                        self.get_attr(key).func = kwargs[key]
                         self.get_attr(key).x = self.get_attr(key).func.x
                         self.get_attr(key).y = self.get_attr(key).func.y
 
@@ -217,22 +203,6 @@ class component:
                     else:
                         self.get_attr(key).set_attr(
                                 val=kwargs[key], val_set=True)
-
-            # export sources or sinks as subsystem interface
-            elif key == 'interface':
-                if isinstance(self, source) or isinstance(self, sink):
-                    if isinstance(kwargs[key], bool):
-                        self.interface = kwargs[key]
-                    else:
-                        msg = ('Datatype for keyword argument ' + str(key) +
-                               ' must be bool at ' + self.label + '.')
-                        logging.error(msg)
-                        raise ValueError(msg)
-                else:
-                    msg = ('Only sinks and sources can be attributed with the '
-                           'interface parameter at ' + self.label + ').')
-                    logging.error(msg)
-                    raise TESPyComponentError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
@@ -692,7 +662,7 @@ class component:
         else:
             v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
             v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
-            return (val - (i[1] - o[1]) * math.pi ** 2 /
+            return (val - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
 
     def zeta2_func(self):
@@ -734,5 +704,5 @@ class component:
         else:
             v_i = v_mix_ph(i, T0=self.inl[1].T.val_SI)
             v_o = v_mix_ph(o, T0=self.outl[1].T.val_SI)
-            return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
+            return (self.zeta2.val - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

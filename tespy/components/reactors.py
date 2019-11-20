@@ -1,11 +1,27 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains reactors: water_electrolyzer
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/reactors.py
+
+SPDX-License-Identifier: MIT
 """
+
+import CoolProp.CoolProp as CP
+
+import logging
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
+from tespy.tools.fluid_properties import (
+        h_mix_pT, T_mix_ph, dT_mix_dph, dT_mix_pdh, v_mix_ph)
+from tespy.tools.global_vars import molar_masses
 
 # %%
 
@@ -881,7 +897,7 @@ class water_electrolyzer(component):
 
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 /
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
         if self.eta_char.is_set:

@@ -1,10 +1,13 @@
 # -*- coding: utf-8
 
-"""
-.. module:: subsystems
-    :synopsis:
+"""This module contains the component: subsystem
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/subsystems.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np

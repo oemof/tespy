@@ -2,7 +2,7 @@ __version__ = '0.2.0 dev'
 
 # tespy components imports
 from tespy.components import (
-        basics, combustion, components, heat_exchangers, node, piping,
+        basics, combustion, components, heat_exchangers, nodes, piping,
         reactors, subsystems, turbomachinery
         )
 

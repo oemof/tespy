@@ -12,14 +12,15 @@ Documentation
 
 Parameter renaming
 ##################
-- New name for *cogeneration_unit*: **combustion_engine** (`PR #105 <https://github.com/oemof/tespy/pull/105>`_)
-- New name for *subsys_interface*: **subsystem_interface** (`PR #107 <https://github.com/oemof/tespy/pull/107>`_)
+- New name for *cogeneration_unit*: **combustion_engine** (`PR #105 <https://github.com/oemof/tespy/pull/105>`_).
+- New name for *subsys_interface*: **subsystem_interface** (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
 - The module import shortcuts (:code:`from tespy import ...`) for components (cmp), connections (con), helpers (hlp), logger (logger),
   networks (nwk), network_reader (nwkr) are **no longer supported**! Please read the :ref:`example section below <tespy_v020_examples_label>` for more information
   (`PR #108 <https://github.com/oemof/tespy/pull/108>`_).
 
 Testing
 #######
+- Adjusted doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Bug fixes
 #########

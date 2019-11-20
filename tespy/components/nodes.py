@@ -5,7 +5,7 @@
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/components/node.py
+available from its original location tespy/components/nodes.py
 
 SPDX-License-Identifier: MIT
 """
@@ -15,9 +15,10 @@ import numpy as np
 from tespy.components.components import component
 
 from tespy.tools.data_containers import dc_simple
+from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
-        num_fluids, T_mix_ph, h_mix_pQ,
-        dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid
+        T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
+        h_mix_pQ
         )
 
 # %%

@@ -11,7 +11,6 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-import math
 
 import logging
 
@@ -682,7 +681,7 @@ class component:
         else:
             v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
             v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
-            return (val - (i[1] - o[1]) * math.pi ** 2 /
+            return (val - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
 
     def zeta2_func(self):
@@ -724,5 +723,5 @@ class component:
         else:
             v_i = v_mix_ph(i, T0=self.inl[1].T.val_SI)
             v_o = v_mix_ph(o, T0=self.outl[1].T.val_SI)
-            return (self.zeta2.val - (i[1] - o[1]) * math.pi ** 2 /
+            return (self.zeta2.val - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

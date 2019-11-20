@@ -17,8 +17,11 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
-from tespy.tools.fluid_properties import s_mix_ph, s_mix_pT, v_mix_ph
+from tespy.tools.characteristics import cmp_char
+from tespy.tools.data_containers import dc_cc, dc_cp, dc_cm, dc_simple
+from tespy.tools.fluid_properties import (
+        h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
+        num_fluids, err)
 from tespy.tools.helpers import TESPyComponentError
 
 # %%
@@ -1083,7 +1086,7 @@ class compressor(turbomachine):
 
         T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
 
-        x = math.sqrt(T_mix_ph(i_d) / T_i)
+        x = np.sqrt(T_mix_ph(i_d) / T_i)
         y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
 
         pr, eta = self.char_map.func.get_pr_eta(x, y, self.igva.val)
@@ -1233,7 +1236,7 @@ class compressor(turbomachine):
             i = self.inl[0].to_flow()
             i_d = self.inl[0].to_flow_design()
             T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-            x = math.sqrt(T_mix_ph(i_d)) / math.sqrt(T_i)
+            x = np.sqrt(T_mix_ph(i_d)) / np.sqrt(T_i)
             y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
             self.char_map.func.get_bound_errors(x, y, self.igva.val,
                                                 self.label)
@@ -1486,8 +1489,8 @@ class turbine(turbomachine):
 
         n = 1
         return (- i[0] + i_d[0] * i[1] / i_d[1] *
-                math.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
-                math.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
+                np.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
+                np.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
                               (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
 
     def eta_s_char_func(self):
@@ -1512,7 +1515,7 @@ class turbine(turbomachine):
         o_d = self.outl[0].to_flow_design()
 
         if self.eta_s_char.param == 'dh_s':
-            expr = math.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+            expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
         elif self.eta_s_char.param == 'm':
             expr = i[0] / i_d[0]
         elif self.eta_s_char.param == 'v':
@@ -1659,7 +1662,7 @@ class turbine(turbomachine):
             o_d = self.outl[0].to_flow_design()
 
             if self.eta_s_char.param == 'dh_s':
-                expr = math.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+                expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
             elif self.eta_s_char.param == 'm':
                 expr = i[0] / i_d[0]
             elif self.eta_s_char.param == 'v':

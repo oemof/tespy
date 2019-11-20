@@ -1,11 +1,23 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains components of type piping: pipe and valve
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/piping.py
+
+SPDX-License-Identifier: MIT
 """
+
+import numpy as np
+
+from tespy.components.components import component
+from tespy.components.heat_exchangers import heat_exchanger_simple
+
+from tespy.tools.data_containers import dc_cp, dc_simple
+from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
+
 
 # %%
 
@@ -418,7 +430,7 @@ class valve(component):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * math.pi ** 2 /
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
         self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 

@@ -1,10 +1,13 @@
 # -*- coding: utf-8
 
-"""
-.. module:: components
-    :synopsis:
+"""This module contains the component class
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/components.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np
@@ -12,27 +15,14 @@ import math
 
 import logging
 
-import CoolProp.CoolProp as CP
+from tespy.components.basics import source, sink
 
 from tespy.tools.characteristics import char_map, characteristics
-
 from tespy.tools.data_containers import (
         data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
         )
-from tespy.tools.fluid_properties import (
-        h_mix_pQ, h_mix_pT, dh_mix_dpQ,
-        memorise,
-        s_mix_ph,
-        T_bp_p,
-        T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        v_mix_ph,
-        visc_mix_ph
-        )
-from tespy.tools.global_vars import molar_masses
-
-from tespy.tools.helpers import (
-        lamb, num_fluids, single_fluid, TESPyComponentError
-        )
+from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.helpers import TESPyComponentError
 
 # %%
 
@@ -193,7 +183,7 @@ class component:
 
                     elif (isinstance(kwargs[key], characteristics) or
                           isinstance(kwargs[key], char_map)):
-                        self.get_attr(key).func=kwargs[key]
+                        self.get_attr(key).func = kwargs[key]
                         self.get_attr(key).x = self.get_attr(key).func.x
                         self.get_attr(key).y = self.get_attr(key).func.y
 

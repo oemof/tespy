@@ -14,14 +14,11 @@ import numpy as np
 
 import logging
 
-from tespy.components.basics import source, sink
-
 from tespy.tools.characteristics import char_map, characteristics
 from tespy.tools.data_containers import (
         data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
         )
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.helpers import TESPyComponentError
 
 # %%
 
@@ -206,22 +203,6 @@ class component:
                     else:
                         self.get_attr(key).set_attr(
                                 val=kwargs[key], val_set=True)
-
-            # export sources or sinks as subsystem interface
-            elif key == 'interface':
-                if isinstance(self, source) or isinstance(self, sink):
-                    if isinstance(kwargs[key], bool):
-                        self.interface = kwargs[key]
-                    else:
-                        msg = ('Datatype for keyword argument ' + str(key) +
-                               ' must be bool at ' + self.label + '.')
-                        logging.error(msg)
-                        raise ValueError(msg)
-                else:
-                    msg = ('Only sinks and sources can be attributed with the '
-                           'interface parameter at ' + self.label + ').')
-                    logging.error(msg)
-                    raise TESPyComponentError(msg)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):

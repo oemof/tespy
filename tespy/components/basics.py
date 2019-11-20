@@ -1,11 +1,20 @@
 # -*- coding: utf-8
 
-"""
-.. module:: turbomachine
-    :synopsis:
+"""This module contains basic components: source, sink and subsys_interface.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/basics.py
+
+SPDX-License-Identifier: MIT
 """
+
+import numpy as np
+
+from tespy.components.components import component
+
+from tespy.tools.data_containers import dc_simple
 
 # %%
 

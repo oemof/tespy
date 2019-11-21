@@ -3,6 +3,7 @@ v0.2.0 (to be dated)
 
 New Features
 ############
+- Implemented difference pressure vs mass flow characteristic line for valve (`c4eec6d <https://github.com/oemof/tespy/commit/c4eec6d17ce7c8ce260a44757d37aa26214ae2b0>`_).
 
 Documentation
 #############

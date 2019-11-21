@@ -40,12 +40,14 @@ class source(component):
 
     Example
     -------
-    >>> from tespy import cmp
-    >>> so = cmp.source('some source')
+    Create a source and specify a label.
+
+    >>> from tespy.components.basics import source
+    >>> so = source('a labeled source')
     >>> so.component()
     'source'
     >>> so.label
-    'some source'
+    'a labeled source'
     """
 
     def component(self):
@@ -77,12 +79,14 @@ class sink(component):
 
     Example
     -------
-    >>> from tespy import cmp
-    >>> si = cmp.sink('some sink')
+    Create a sink and specify a label.
+
+    >>> from tespy.components.basics import sink
+    >>> si = sink('a labeled sink')
     >>> si.component()
     'sink'
     >>> si.label
-    'some sink'
+    'a labeled sink'
     """
 
     def component(self):
@@ -145,28 +149,41 @@ class subsystem_interface(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    As connections can only connect a component with a different
+    component, the subsystem interface is used to connect subsystems with the
+    rest of your network. It is necessary to specify the number of interfaces
+    of the subsystem interface, if you want any number other than 1. We will
+    not go in depth of subsystem usage in this example. Please refer to
+    TODO: PLACELINKHERE for more information on building your own subsystems.
+
+    >>> from tespy.components.basics import sink, source, subsystem_interface
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> fluids = ['H2O', 'N2']
-    >>> nw = nwk.network(fluids=fluids)
+    >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> si = cmp.subsys_interface('test', num_inter=1)
-    >>> si2 = cmp.subsys_interface('test2', num_inter=np.nan)
-    >>> si.component()
+    >>> so = source('source 1')
+    >>> si = sink('sink 1')
+    >>> IF = subsystem_interface('subsystem interface')
+    >>> IF.component()
     'subsystem interface'
-    >>> len(si.inlets()) == len(si2.inlets())
-    True
-    >>> inc = con.connection(so1, 'out1', si, 'in1')
-    >>> outg = con.connection(si, 'out1', si1, 'in1')
+    >>> len(IF.inlets())
+    1
+
+    Add the subsystem the interface to a minimal network containing only a
+    source and a sink. The interface does not change the fluid properties
+    in any way.
+
+    >>> inc = connection(so, 'out1', IF, 'in1')
+    >>> outg = connection(IF, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
     >>> inc.set_attr(fluid={'H2O': 1, 'N2': 0}, T=40, p=3, m=100)
     >>> nw.solve('design')
-    >>> nw.iter
-    2
-    >>> nw.lin_dep
-    False
+    >>> inc.m.val_SI == outg.m.val_SI
+    True
+    >>> inc.h.val_SI == outg.h.val_SI
+    True
     """
 
     def component(self):
@@ -298,11 +315,11 @@ class cycle_closer(component):
 
         **mandatory equations**
 
-        .. math:: 0 = p_{in_{j}} - p_{out_{j}} \;
-            \forall j \in inlets/outlets
+        .. math::
 
-        .. math:: 0 = h_{in_{j}} - h_{out_{j}} \;
-            \forall j \in inlets/outlets
+            0 = p_{in} - p_{out}
+
+            0 = h_{in} - h_{out}
 
     Image not available
 
@@ -317,19 +334,42 @@ class cycle_closer(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    num_inter : float/tespy.helpers.dc_simple
-        Number of interfaces for subsystem.
-
     Note
     ----
     This component can be used to close a cycle process. The system of
     equations describing your plant will overdetermined, if you close a cycle
     without this component or a cut the cycle with a sink and a source at
-    some point of the cycle.
+    some point of the cycle. This component can be used instead of cutting
+    the cycle.
 
     Example
     -------
-    To follow.
+    Create a cycle containing a pump and a pipe. The pump increases pressure
+    the pipe cools the liquid and destroys the pressure rise. The heat
+    extracted at the pipe must be the same value of the power input at the
+    pump (but negative), as there is no other in- or outputs of energy in the
+    system.
+
+    >>> from tespy.components.basics import cycle_closer
+    >>> from tespy.components.piping import pipe
+    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> nw = network(['water'], p_unit='bar', T_unit='C')
+    >>> pi = pipe('pipe')
+    >>> pu = pump('pump')
+    >>> cc = cycle_closer('cycle closing component')
+    >>> pu_pi = connection(pu, 'out1', pi, 'in1')
+    >>> pi_cc = connection(pi, 'out1', cc, 'in1')
+    >>> cc_pu = connection(cc, 'out1', pu, 'in1')
+    >>> nw.add_conns(pu_pi, pi_cc, cc_pu)
+    >>> pi_cc.set_attr(p=1, T=20, fluid={'water': 1})
+    >>> pu_pi.set_attr(p=10)
+    >>> pu.set_attr(eta_s=0.8, P=1000)
+    >>> nw.set_printoptions(print_level='none')
+    >>> nw.solve('design')
+    >>> round(pi.Q.val, 1) == -round(pu.P.val, 1)
+    True
     """
 
     def component(self):
@@ -346,13 +386,13 @@ class cycle_closer(component):
         component.comp_init(self, nw)
 
         # all derivatives are constants
-        self.mat_deriv = np.zeros((1, 2, 3 + self.num_fl))
-        # derivatives at inlet
+        self.mat_deriv = np.zeros((2, 2, 3 + self.num_fl))
+        # derivatives for pressure
         self.mat_deriv[0, 0, 1] = 1
-        self.mat_deriv[0, 0, 2] = 1
-        # derivatives at outlet
         self.mat_deriv[0, 1, 1] = -1
-        self.mat_deriv[0, 1, 2] = -1
+        # derivatives for enthalpy
+        self.mat_deriv[1, 0, 2] = 1
+        self.mat_deriv[1, 1, 2] = -1
 
     def equations(self):
         r"""

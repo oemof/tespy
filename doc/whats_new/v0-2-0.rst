@@ -20,8 +20,9 @@ Parameter renaming
 
 Testing
 #######
-- Adjusted doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Improved doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Add doc-test for fluid_structure function of tespy.tools.helpers (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Reworked a lot of examples in the API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Bug fixes
 #########

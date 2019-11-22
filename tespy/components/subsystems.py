@@ -45,11 +45,10 @@ class subsystem:
     Example
     -------
     Basic example for a setting up a tespy.components.subsystems.subsystem
-    object.
-    This example does not run a tespy calculation!
+    object. This example does not run a tespy calculation!
 
-    >>> from tespy import subsys
-    >>> mysub = subsys.subsystem('mySubsystem')
+    >>> from tespy.components.subsystems import subsystem
+    >>> mysub = subsystem('mySubsystem')
     >>> type(mysub)
     <class 'tespy.components.subsystems.subsystem'>
     >>> mysub.get_attr('label')
@@ -171,7 +170,6 @@ class subsystem:
     def set_conns(self):
         if not hasattr(self, 'nw'):
             self.create_network()
-        return
 
     def create_network(self):
         self.nw = networks.network(fluids=[])

@@ -940,34 +940,56 @@ class pump(turbomachine):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    A pump with a known pump curve (difference pressure as function of
+    volumetric flow) pumps 1,5 l/s of water in design conditions. E. g. for a
+    given isentropic efficiency it is possible to calculate power consumption
+    and pressure at the pump.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['water']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ...     h_unit='kJ / kg', v_unit='l / s')
     >>> nw.set_printoptions(print_level='none')
-    >>> si = cmp.sink('sink')
-    >>> so = cmp.source('source')
-    >>> p = cmp.pump('pump')
+    >>> si = sink('sink')
+    >>> so = source('source')
+    >>> p = pump('pump')
     >>> p.component()
     'pump'
-    >>> inc = con.connection(so, 'out1', p, 'in1')
-    >>> outg = con.connection(p, 'out1', si, 'in1')
+    >>> inc = connection(so, 'out1', p, 'in1')
+    >>> outg = connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
+
+    After that we calculate offdesign performance using
+    the pump curve and a characteristic function for the pump efficiency. We
+    can calulate the offdesign efficiency and the volumetric flow, if the
+    difference pressure changed.
+    TODO: Link to deufalt characteristic lines?
+
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
-    >>> char = hlp.dc_cc(x=v, y=dp, is_set=True)
-    >>> p.set_attr(pr=10, eta_s=0.8, flow_char=char, design=['eta_s'],
+    >>> char = dc_cc(x=v, y=dp, is_set=True)
+    >>> p.set_attr(eta_s=0.8, flow_char=char, design=['eta_s'],
     ...     offdesign=['eta_s_char'])
-    >>> inc.set_attr(fluid={'water': 1}, p=1, T=20)
+    >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> p.set_attr(pr=14)
-    >>> round(inc.m.val_SI, 3)
-    1.198
+    >>> round(p.pr.val, 0)
+    7.0
+    >>> round(outg.p.val - inc.p.val, 0)
+    6.0
+    >>> round(p.P.val, 0)
+    1125.0
+    >>> outg.set_attr(p=12)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(inc.m.val_SI, 3)
-    0.599
+    >>> round(p.eta_s.val, 2)
+    0.71
+    >>> round(inc.v.val, 1)
+    0.9
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1352,30 +1374,49 @@ class turbine(turbomachine):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
+    to 0,5 bar at the outlet. For example, it is possible to calulate the power
+    output and vapour content at the outlet for a given isentropic efficiency.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.turbomachinery import turbine
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['water']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> si = cmp.sink('sink')
-    >>> so = cmp.source('source')
-    >>> t = cmp.turbine('turbine')
+    >>> si = sink('sink')
+    >>> so = source('source')
+    >>> t = turbine('turbine')
     >>> t.component()
     'turbine'
-    >>> inc = con.connection(so, 'out1', t, 'in1')
-    >>> outg = con.connection(t, 'out1', si, 'in1')
+    >>> inc = connection(so, 'out1', t, 'in1')
+    >>> outg = connection(t, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> t.set_attr(pr=0.02, eta_s=0.8, P=-1e5, design=['eta_s', 'pr'],
-    ...     offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'water': 1}, T=600)
+
+    In design conditions the isentropic efficiency is specified. For offdesign
+    a characteristic function will be applied, together with Stodola's cone
+    law coupling the turbine mass flow to inlet pressure.
+
+    >>> t.set_attr(eta_s=0.9, design=['eta_s'],
+    ... offdesign=['eta_s_char', 'cone'])
+    >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> t.set_attr(P=-9e4)
+    >>> round(t.P.val, 0)
+    -10452574.0
+    >>> round(outg.x.val, 3)
+    0.914
+    >>> inc.set_attr(m=8)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(t.eta_s.val, 3)
-    0.8
+    0.898
+    >>> round(inc.p.val, 1)
+    88.6
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

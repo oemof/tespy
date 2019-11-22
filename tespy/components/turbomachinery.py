@@ -86,6 +86,14 @@ class turbomachine(component):
     eta_s_char : str/tespy.helpers.dc_cc
         Characteristic curve for isentropic efficiency, provide x and y values
         or use generic values (e. g. calculated from design case).
+
+    Example
+    -------
+    For an example please refer to:
+
+    - :class:`tespy.components.turbomachinery.compressor`
+    - :class:`tespy.components.turbomachinery.pump`
+    - :class:`tespy.components.turbomachinery.turbine`
     """
 
     def component(self):

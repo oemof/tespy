@@ -1,15 +1,26 @@
 # -*- coding: utf-8
 
-"""
-.. module:: network_reader
-    :synopsis:
+"""This module contains the network reader functionality. The network reader
+imports a network from the save-files.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/networks/network_reader.py
+
+SPDX-License-Identifier: MIT
 """
 
 import pandas as pd
-import numpy as np
-from tespy import cmp, con, nwk, hlp, cmp_char
+
+from tespy.tools import data_containers as dc
+from tespy.tools import characteristics as cmp_char
+from tespy.tools.helpers import modify_path_os
+
+from tespy.networks import networks as nwk
+#from tespy.components import stuff (approproiate components!)
+
+from tespy import connections as con
 import os
 import ast
 import logging
@@ -128,8 +139,8 @@ def load_nwk(path):
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
-    path_comps = hlp.modify_path_os(path + 'comps/')
-    path = hlp.modify_path_os(path)
+    path_comps = modify_path_os(path + 'comps/')
+    path = modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
     logging.info(msg)
@@ -284,16 +295,16 @@ def construct_comps(c, *args):
     for key, value in instance.attr().items():
         if key in c:
             # component parameters
-            if isinstance(value, hlp.dc_cp):
-                dc = hlp.dc_cp(val=c[key],
-                               is_set=c[key + '_set'], is_var=c[key + '_var'])
-                kwargs[key] = dc
+            if isinstance(value, dc.dc_cp):
+                kwargs[key] = dc.dc_cp(val=c[key], is_set=c[key + '_set'],
+                                       is_var=c[key + '_var'])
+
             # component parameters
-            if isinstance(value, hlp.dc_simple):
-                dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
-                kwargs[key] = dc
+            if isinstance(value, dc.dc_simple):
+                kwargs[key] = dc.dc_simple(val=c[key], val_set=c[key + '_set'])
+
             # component characteristics
-            elif isinstance(value, hlp.dc_cc):
+            elif isinstance(value, dc.dc_cc):
                 # finding x and y values of the characteristic function
                 values = args[0]['id'] == c[key]
 
@@ -313,14 +324,14 @@ def construct_comps(c, *args):
                         x=x, y=y, method=c[key + '_method'],
                         comp=instance.component())
 
-                dc = hlp.dc_cc(is_set=c[key + '_set'],
-                               method=c[key + '_method'],
-                               param=c[key + '_param'],
-                               func=char,
-                               x=x, y=y)
-                kwargs[key] = dc
+                kwargs[key] = dc.dc_cc(is_set=c[key + '_set'],
+                                       method=c[key + '_method'],
+                                       param=c[key + '_param'],
+                                       func=char,
+                                       x=x, y=y)
+
             # component characteristics
-            elif isinstance(value, hlp.dc_cm):
+            elif isinstance(value, dc.dc_cm):
                 # finding x and y values of the characteristic function
                 values = args[1]['id'] == c[key]
 
@@ -344,16 +355,15 @@ def construct_comps(c, *args):
                         x=x, y=y, z1=z1, z2=z2, method=c[key + '_method'],
                         comp=instance.component())
 
-                dc = hlp.dc_cm(is_set=c[key + '_set'],
-                               method=c[key + '_method'],
-                               param=c[key + '_param'],
-                               func=char_map,
-                               x=x, y=y, z1=z1, z2=z2)
-                kwargs[key] = dc
+                kwargs[key] = dc.dc_cm(is_set=c[key + '_set'],
+                                       method=c[key + '_method'],
+                                       param=c[key + '_param'],
+                                       func=char_map,
+                                       x=x, y=y, z1=z1, z2=z2)
+
             # grouped component parameters
-            elif isinstance(value, hlp.dc_gcp):
-                dc = hlp.dc_gcp(method=c[key])
-                kwargs[key] = dc
+            elif isinstance(value, dc.dc_gcp):
+                kwargs[key] = dc.dc_gcp(method=c[key])
 
     instance.set_attr(**kwargs)
     return instance
@@ -449,17 +459,15 @@ def construct_conns(c, *args):
     for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
         if key in c:
             if key in c:
-                dc = hlp.dc_prop(val=c[key], val0=c[key + '0'],
-                                 val_set=c[key + '_set'],
-                                 unit=c[key + '_unit'],
-                                 unit_set=c[key + '_unit_set'],
-                                 ref=None, ref_set=c[key + '_ref_set'])
-                kwargs[key] = dc
+                kwargs[key] = dc.dc_prop(val=c[key], val0=c[key + '0'],
+                                         val_set=c[key + '_set'],
+                                         unit=c[key + '_unit'],
+                                         unit_set=c[key + '_unit_set'],
+                                         ref=None, ref_set=c[key + '_ref_set'])
 
     key = 'state'
     if key in c:
-        dc = hlp.dc_simple(val=c[key], val_set=c[key + '_set'])
-        kwargs[key] = dc
+        kwargs[key] = dc.dc_simple(val=c[key], val_set=c[key + '_set'])
 
     # read fluid vector
     val = {}
@@ -471,8 +479,8 @@ def construct_conns(c, *args):
             val0[key] = c[key + '0']
             val_set[key] = c[key + '_set']
 
-    kwargs['fluid'] = hlp.dc_flu(val=val, val0=val0, val_set=val_set,
-                                 balance=c['balance'])
+    kwargs['fluid'] = dc.dc_flu(val=val, val0=val0, val_set=val_set,
+                                balance=c['balance'])
 
     # write properties to connection and return connection object
     conn.set_attr(**kwargs)

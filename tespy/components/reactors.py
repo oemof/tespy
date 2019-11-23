@@ -63,9 +63,8 @@ class water_electrolyzer(component):
             0 = p_{H_{2}O,in2} - p_{O_2,out2}\\
             0 = p_{H_{2}O,in2} - p_{H_2,out3}
 
-            0 = P - f_{eb}\left( \right)
+        Energy balance equation
 
-        For energy balance (f_eb) calculation see
         :func:`tespy.components.components.water_electrolyzer.energy_balance`.
 
         .. math::
@@ -139,47 +138,75 @@ class water_electrolyzer(component):
 
     Note
     ----
+    Other than usual components, the water electrolyzer has the fluid
+    composition built into its equations for the feed water inlet and the
+    hydrogen and oxygen outlet. Thus, the user must not specify the fluid
+    composition at these connections!
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    Create a water electrolyzer and compress the hydrogen, e. g. for a hydrogen
+    storage.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.turbomachinery import compressor
+    >>> from tespy.components.reactors import water_electrolyzer
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
-    >>> fluid_list = ['O2', 'water', 'H2']
-    >>> nw = nwk.network(fluids=fluid_list, T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg')
+    >>> fluid_list = ['O2', 'H2O', 'H2']
+    >>> nw = network(fluids=fluid_list, T_unit='C', p_unit='bar',
+    ... v_unit='l / s')
     >>> nw.set_printoptions(print_level='none')
-
-    >>> fw = cmp.source('feed water')
-    >>> oxy = cmp.sink('oxygen sink')
-    >>> hydro = cmp.sink('hydrogen sink')
-    >>> cw = cmp.source('cooling water')
-    >>> cw_hot = cmp.sink('cooling water out')
-
-    >>> el = cmp.water_electrolyzer('electrolyzer 1', eta=0.8, design=['eta'],
-    ... offdesign=['eta_char'])
+    >>> fw = source('feed water')
+    >>> oxy = sink('oxygen sink')
+    >>> hydro = sink('hydrogen sink')
+    >>> cw_cold = source('cooling water source')
+    >>> cw_hot = sink('cooling water sink')
+    >>> comp = compressor('compressor', eta_s=0.9)
+    >>> el = water_electrolyzer('electrolyzer')
     >>> el.component()
     'water electrolyzer'
-    >>> comp = cmp.compressor('compressor', eta_s=0.9)
 
-    >>> fw_el = con.connection(fw, 'out1', el, 'in2', m=0.1, p=10, T=15)
-    >>> el_o = con.connection(el, 'out2', oxy, 'in1')
-    >>> el_cmp = con.connection(el, 'out3', comp, 'in1', T=50)
-    >>> cmp_h = con.connection(comp, 'out1', hydro, 'in1', p=50)
-    >>> cw_el = con.connection(cw, 'out1', el, 'in1', p=5, T=15,
-    ... fluid={'water': 1, 'H2': 0, 'O2': 0})
-    >>> el_cw = con.connection(el, 'out1', cw_hot, 'in1', T=45, p=4.9)
+    The electrolyzer should produce 100 l/s of hydrogen at an operating
+    pressure of 10 bars and an outlet temperature of 50 °C. The fluid
+    composition needs to be specified for the cooling liquid only. The storage
+    pressure is 25 bars. The electrolysis efficiency is at 80 % and the
+    compressor isentropic efficiency at 85 %. After designing the plant the
+    offdesign electrolysis efficiency is predicted by the characteristic line.
+    TODO: LINKTODEFAULTCHAR?
+
+    >>> fw_el = connection(fw, 'out1', el, 'in2')
+    >>> el_o = connection(el, 'out2', oxy, 'in1')
+    >>> el_cmp = connection(el, 'out3', comp, 'in1')
+    >>> cmp_h = connection(comp, 'out1', hydro, 'in1')
+    >>> cw_el = connection(cw_cold, 'out1', el, 'in1')
+    >>> el_cw = connection(el, 'out1', cw_hot, 'in1')
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
+    >>> fw_el.set_attr(p=10, T=15)
+    >>> cw_el.set_attr(p=5, T=15, fluid={'H2O': 1, 'H2': 0, 'O2': 0})
+    >>> el_cw.set_attr(T=45)
+    >>> cmp_h.set_attr(p=25)
+    >>> el_cmp.set_attr(v=100, T=50)
+    >>> el.set_attr(eta=0.8, pr_c=0.99, design=['eta', 'pr_c'],
+    ... offdesign=['eta_char', 'zeta'])
+    >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> round(el.eta.val, 1)
-    0.8
     >>> nw.save('tmp')
+    >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
+    0.8
+    >>> P_design = el.P.val / 1e6
+    >>> round(P_design, 1)
+    13.2
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 1)
     0.8
-    >>> fw_el.set_attr(m=0.05)
+    >>> el_cmp.set_attr(v=np.nan)
+    >>> el.set_attr(P=P_design * 0.66)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 2)
-    0.82
+    0.88
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

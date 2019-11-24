@@ -1,7 +1,10 @@
-# -*- coding: utf-8
+"""Module for components using combustion.
 
-"""This module contains components with combustion: combustion chamber,
-stochiometric combustion chamber and (internal) combustion engine.
+Components in this module:
+
+    - :func:`tespy.components.combustion.combustion_chamber`
+    - :func:`tespy.components.combustion.combustion_chamber_stoich`
+    - :func:`tespy.components.combustion.combustion_engine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -31,7 +34,7 @@ from tespy.tools.helpers import (
 
 class combustion_chamber(component):
     r"""
-    Equations
+    Equations.
 
         **mandatory equations**
 

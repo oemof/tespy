@@ -1,7 +1,11 @@
-# -*- coding: utf-8
+"""Module for components of type turbomachinery.
 
-"""This module contains components of type turbomachinery: pump, turbine and
-compressor.
+Components in this module:
+
+    - :func:`tespy.components.turbomachinery.turbomachine` (parent class)
+    - :func:`tespy.components.turbomachinery.compressor`
+    - :func:`tespy.components.turbomachinery.pump`
+    - :func:`tespy.components.turbomachinery.turbine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

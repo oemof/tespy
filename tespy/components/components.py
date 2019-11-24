@@ -1,6 +1,6 @@
-# -*- coding: utf-8
+"""Module class component.
 
-"""This module contains the component class
+All tespy components inherit from this class.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

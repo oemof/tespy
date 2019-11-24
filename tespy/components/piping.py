@@ -1,6 +1,9 @@
-# -*- coding: utf-8
+"""Module for piping components.
 
-"""This module contains components of type piping: pipe and valve
+Components in this module:
+
+    - :func:`tespy.components.piping.pipe`
+    - :func:`tespy.components.piping.valve`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

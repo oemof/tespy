@@ -1,7 +1,11 @@
-# -*- coding: utf-8
+"""Module for basic components.
 
-"""This module contains basic components: source, sink, subsystem_interface and
-cycle_closer.
+Components in this module:
+
+    - :func:`tespy.components.basics.source`
+    - :func:`tespy.components.basics.sink`
+    - :func:`tespy.components.basics.subsystem_interface`
+    - :func:`tespy.components.basics.cycle_closer`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

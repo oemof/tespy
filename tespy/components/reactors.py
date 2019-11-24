@@ -1,6 +1,8 @@
-# -*- coding: utf-8
+"""Module for components of type reactor.
 
-"""This module contains reactors: water_electrolyzer
+Components in this module:
+
+    - :func:`tespy.components.reactors.water_electrolyzer`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

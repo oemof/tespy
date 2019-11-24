@@ -1,6 +1,11 @@
-# -*- coding: utf-8
+"""Module for components of type node.
 
-"""This module contains nodes: node, splitter, separator, merge, drum
+Components in this module:
+
+    - :func:`tespy.components.nodes.node`
+    - :func:`tespy.components.nodes.merge`
+    - :func:`tespy.components.nodes.splitter`
+    - :func:`tespy.components.nodes.separator`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

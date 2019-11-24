@@ -1,6 +1,7 @@
-# -*- coding: utf-8
+"""Module for component groups.
 
-"""This module contains the component: subsystem
+It is possible to create subsystems of component groups in tespy. The subsystem
+class is the base class for custom subsystems.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

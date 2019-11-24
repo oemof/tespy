@@ -1,5 +1,5 @@
-tespy.components module
-=======================
+tespy.networks module
+=====================
 
 tespy.networks.networks module
 ------------------------------
@@ -10,7 +10,7 @@ tespy.networks.networks module
     :show-inheritance:
 
 tespy.networks.network_reader module
-------------------------------
+------------------------------------
 
 .. automodule:: tespy.networks.network_reader
     :members:
@@ -20,7 +20,7 @@ tespy.networks.network_reader module
 Module contents
 ---------------
 
-.. automodule:: tespy.components
+.. automodule:: tespy.networks
     :members:
     :undoc-members:
     :show-inheritance:

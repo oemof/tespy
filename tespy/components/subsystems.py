@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 import logging
 
-from tespy.networks import networks
+from tespy.networks.networks import network
 
 # %%
 
@@ -54,7 +54,7 @@ class subsystem:
     >>> mysub.get_attr('label')
     'mySubsystem'
     >>> type(mysub.get_network())
-    <class 'tespy.networks.network'>
+    <class 'tespy.networks.networks.network'>
     """
     def __init__(self, label, **kwargs):
 
@@ -172,7 +172,7 @@ class subsystem:
             self.create_network()
 
     def create_network(self):
-        self.nw = networks.network(fluids=[])
+        self.nw = network(fluids=[])
         for c in self.conns:
             self.nw.add_conns(c)
 

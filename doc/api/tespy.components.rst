@@ -33,7 +33,6 @@ tespy.components.heat_exchangers module
     :undoc-members:
     :show-inheritance:
 
-
 tespy.components.nodes module
 -----------------------------
 
@@ -41,7 +40,6 @@ tespy.components.nodes module
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 tespy.components.piping module
 ------------------------------
@@ -60,7 +58,6 @@ tespy.components.reactors module
     :undoc-members:
     :show-inheritance:
 
-
 tespy.components.subsystems module
 ----------------------------------
 
@@ -69,7 +66,6 @@ tespy.components.subsystems module
     :undoc-members:
     :show-inheritance:
 
-
 tespy.components.turbomachinery module
 --------------------------------------
 
@@ -77,7 +73,6 @@ tespy.components.turbomachinery module
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 Module contents
 ---------------

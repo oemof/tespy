@@ -65,7 +65,7 @@ class water_electrolyzer(component):
 
         Energy balance equation
 
-        :func:`tespy.components.components.water_electrolyzer.energy_balance`.
+        :func:`tespy.components.reactors.water_electrolyzer.energy_balance`.
 
         .. math::
 
@@ -88,7 +88,7 @@ class water_electrolyzer(component):
 
             0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
-        - :func:`tespy.components.components.water_electrolyzer.eta_char_func`
+        - :func:`tespy.components.reactors.water_electrolyzer.eta_char_func`
 
     Inlets/Outlets
 

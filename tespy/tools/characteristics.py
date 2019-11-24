@@ -1,8 +1,8 @@
-# -*- coding: utf-8
+"""Module for characteristic functions.
 
-"""This module contains the classes for characteristic lines and characteristic
-maps. The user can create custom characteristic lines or maps with individual
-data. The classes handle the integration in the component and bus equations.
+The characteristics module provides the integration of characteristic lines
+and characteristic maps. The user can create custom characteristic lines or
+maps with individual data.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

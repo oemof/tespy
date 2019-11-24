@@ -1,7 +1,9 @@
 # -*- coding: utf-8
 
-"""This module contains the data_container class and its children. The
-different data_containers are used to store component or connection properties.
+"""Module for data container classes.
+
+The data_container class and its subclasses are used to store component or
+connection properties.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

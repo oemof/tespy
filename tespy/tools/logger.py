@@ -1,7 +1,4 @@
-# -*- coding: utf-8
-
-"""This module is used for logging specification.
-
+"""Module for logging specification.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -92,7 +89,6 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     'tespy.log'
     >>> logging.debug('Hi')
     """
-
     if logpath is None:
         logpath = extend_basic_path('log_files')
 

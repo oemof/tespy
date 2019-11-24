@@ -1,7 +1,8 @@
-# -*- coding: utf-8
+"""Module for fluid property integration.
 
-"""This module contains all fluid property functions integrating the CoolProp
-python interface as well as the tespy_fluid class.
+TESPy uses the CoolProp python interface for all fluid property functions. The
+tespy_fluid class allows the creation of lookup table for custom fluid
+mixtures.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

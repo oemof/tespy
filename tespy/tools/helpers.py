@@ -1,7 +1,4 @@
-# -*- coding: utf-8
-
-"""This module contains helper functions used by several other modules.
-
+"""Module for helper functions used by several other modules.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,

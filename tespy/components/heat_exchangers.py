@@ -42,7 +42,7 @@ class heat_exchanger_simple(component):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -50,12 +50,12 @@ class heat_exchanger_simple(component):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.additional_equations`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
 
     Inlets/Outlets
 
@@ -304,7 +304,7 @@ class heat_exchanger_simple(component):
 
             **optional equations**
 
-            - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
+            - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func`
 
         Returns
         -------
@@ -775,10 +775,10 @@ class heat_exchanger(component):
         **mandatory equations**
 
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
         **heat exchanger**
-        - :func:`tespy.components.components.heat_exchanger.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
 
@@ -788,21 +788,21 @@ class heat_exchanger(component):
 
         **heat exchanger**
 
-        - :func:`tespy.components.components.heat_exchanger.kA_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_u_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_l_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_l_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.heat_exchanger.additional_equations`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.additional_equations`
 
     Inlets/Outlets
 
@@ -1722,9 +1722,9 @@ class condenser(heat_exchanger):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
-        - :func:`tespy.components.components.condenser.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.condenser.energy_func`
 
         **optional equations**
 
@@ -1732,20 +1732,20 @@ class condenser(heat_exchanger):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :func:`tespy.components.components.condenser.kA_func`
-        - :func:`tespy.components.components.condenser.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.condenser.kA_func`
+        - :func:`tespy.components.heat_exchangers.condenser.ttd_u_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.condenser.additional_equations`
+        - :func:`tespy.components.heat_exchangers.condenser.additional_equations`
 
     Inlets/Outlets
 
@@ -2062,9 +2062,9 @@ class desuperheater(heat_exchanger):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
-        - :func:`tespy.components.components.heat_exchanger.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
 
@@ -2072,20 +2072,20 @@ class desuperheater(heat_exchanger):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :func:`tespy.components.components.heat_exchanger.kA_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.desuperheater.additional_equations`
+        - :func:`tespy.components.heat_exchangers.desuperheater.additional_equations`
 
     Inlets/Outlets
 
@@ -2257,7 +2257,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -2265,8 +2265,8 @@ class solar_collector(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
@@ -2464,7 +2464,7 @@ class solar_collector(heat_exchanger_simple):
 
             **optional equations**
 
-            - :func:`tespy.components.components.solar_collector.energy_func`
+            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
 
         Returns
         -------

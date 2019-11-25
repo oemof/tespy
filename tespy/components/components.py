@@ -61,8 +61,8 @@ class component:
     Basic example for a setting up a tespy.components.components.component
     object. This example does not run a tespy calculation.
 
-    >>> from tespy import cmp
-    >>> comp = cmp.component('myComponent')
+    >>> from tespy.components.components import component
+    >>> comp = component('myComponent')
     >>> type(comp)
     <class 'tespy.components.components.component'>
     """

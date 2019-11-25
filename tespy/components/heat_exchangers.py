@@ -1220,7 +1220,7 @@ class heat_exchanger(component):
     predict water and air outlet temperature in offdesign operation.
 
     >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+    >>> from tespy.components.heat_exchangers import heat_exchanger
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -2082,6 +2082,11 @@ class heat_exchanger(component):
 
 class condenser(heat_exchanger):
     r"""
+    A condenser cools a fluid until it is in liquid state.
+
+    The condensing fluid is cooled by the cold side fluid. The fluid on the hot
+    side of the condenser must be pure. Subcooling is available.
+
     Equations
 
         **mandatory equations**
@@ -2170,51 +2175,78 @@ class condenser(heat_exchanger):
 
     Note
     ----
+    The condenser has an additional equation for enthalpy at hot side outlet:
+    The fluid leaves the component in saturated liquid state. If subcooling
+    is activated, it possible to specify the enthalpy at the outgoing
+    connection manually.
 
-    - The condenser has an additional equation for enthalpy at hot side outlet.
-    - The pressure drop via zeta1 at hot side is not an offdesign parameter.
-    - It has different calculation method for given heat transfer coefficient
-      and upper terminal temperature difference.
+    It has different calculation method for given heat transfer coefficient and
+    upper terminal temperature dierence: These parameters refer to the
+    **condensing** temperature, even if the fluid on the hot side enters the
+    component in superheated state.
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    Air steam is used to condensate water in a condenser. 1 kg/s waste steam
+    is chilled with a terminal temperature difference of 15 K.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import condenser
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg', m_range=[0.01, 10])
+    >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', m_range=[0.01, 1000])
     >>> nw.set_printoptions(print_level='none')
-    >>> amb_in = cmp.sink('ambient in')
-    >>> amb_out = cmp.source('ambient out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.condenser('condenser')
-    >>> he.component()
+    >>> amb_in = sink('ambient air inlet')
+    >>> amb_out = source('air outlet')
+    >>> waste_steam = source('waste steam')
+    >>> c = sink('condensate sink')
+    >>> cond = condenser('condenser')
+    >>> cond.component()
     'condenser'
-    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
-    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'],
-    ...     offdesign=['zeta2', 'kA'])
-    >>> hs_he.set_attr(Td_bp=20, p=1, fluid={'water': 1, 'air': 0})
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
+    >>> amb_he = connection(amb_out, 'out1', cond, 'in2')
+    >>> he_amb = connection(cond, 'out2', amb_in, 'in1')
+    >>> ws_he = connection(waste_steam, 'out1', cond, 'in1')
+    >>> he_c = connection(cond, 'out1', c, 'in1')
+    >>> nw.add_conns(amb_he, he_amb, ws_he, he_c)
+
+    The air flow can not be controlled, thus is constant in offdesign
+    operation. If the waste steam mass flow or the ambient air temperature
+    change, the outlet temperature of the air will change, too.
+
+    >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
+    ... offdesign=['zeta2', 'kA'])
+    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
+    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
-    >>> he.set_attr(Q=-80e3)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(hs_he.m.val, 2)
-    0.03
-    >>> round(amb_he.m.val, 2)
-    3.97
-    >>> round(he_amb.T.val, 1)
-    40.0
-    >>> he.set_attr(Q=-60e3)
+    >>> round(amb_he.v.val, 2)
+    103.17
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    66.9
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    15.0
+    >>> ws_he.set_attr(m=0.7)
+    >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(amb_he.m.val, 2)
-    2.78
-    >>> round(he_amb.T.val, 1)
-    41.5
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    62.5
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    11.1
+
+    It is possible to activate subcooling. The difference to boiling point
+    temperature is specified to 5 K.
+
+    >>> cond.set_attr(subcooling=True)
+    >>> he_c.set_attr(Td_bp=-5)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    62.5
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    13.1
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2508,50 +2540,7 @@ class desuperheater(heat_exchanger):
     Note
     ----
     The desuperheater has an additional equation for enthalpy at hot side
-    outlet.
-
-    Example
-    -------
-    >>> from tespy import cmp, con, nwk
-    >>> import shutil
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb_in = cmp.sink('ambient in')
-    >>> amb_out = cmp.source('ambient out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.desuperheater('desuperheater')
-    >>> he.component()
-    'desuperheater'
-    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
-    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA'])
-    >>> hs_he.set_attr(T=200, p=1, fluid={'water': 1, 'air': 0})
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
-    >>> he_amb.set_attr(p=1, T=40, design=['T'])
-    >>> he.set_attr(Q=-80e3)
-    >>> nw.solve('design')
-    >>> nw.save('tmp')
-    >>> round(hs_he.m.val, 1)
-    0.4
-    >>> round(amb_he.m.val, 2)
-    3.97
-    >>> round(he_amb.T.val, 1)
-    40.0
-    >>> he.set_attr(Q=-60e3)
-    >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(hs_he.m.val, 1)
-    0.3
-    >>> round(amb_he.m.val, 2)
-    2.56
-    >>> round(he_amb.T.val, 1)
-    43.3
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    outlet: The fluid leaves the component in saturated gas state.
     """
 
     def component(self):

@@ -796,6 +796,8 @@ class heat_exchanger_simple(component):
 
 class solar_collector(heat_exchanger_simple):
     r"""
+    The solar collector calculates heat output from radiation.
+
     Equations
 
         **mandatory equations**

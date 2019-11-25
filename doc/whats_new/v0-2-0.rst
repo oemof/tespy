@@ -6,7 +6,7 @@ New Features
 - Implemented a new component "cycle_closer". This component may serve as substitute for a 
   sink/source or splitter/merge combination in closed cycle simulations (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
 - Added optical efficiency to the "solar_collector". The incoming radiation E no longer represents 
-  the actual absorption but the direct radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
+  the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
 
 Documentation
 #############

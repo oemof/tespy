@@ -2321,8 +2321,12 @@ class solar_collector(heat_exchanger_simple):
         used.
 
     E : str/float/tespy.helpers.dc_cp
-        Absorption on the inclined surface,
+        Radiation at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
+
+    eta_opt : str/float/tespy.helpers.dc_cp
+        optical loss at surface cover,
+        :math:`\eta_{opt}`.
 
     lkf_lin : str/float/tespy.helpers.dc_cp
         Linear loss key figure,
@@ -2341,27 +2345,24 @@ class solar_collector(heat_exchanger_simple):
     energy_group : tespy.helpers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
 
-    Note
-    ----
-    The solar collector does not take optical losses into accout. The incoming
-    radiation E represents the actual absorption of the solar collector.
-    Optical losses should be handeled in preprocessing.
-
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    >>> from tespy import connections as con
+    >>> from tespy import networks as nwk
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import solar_collector
     >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = nwk.network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> sc = cmp.solar_collector('test')
+    >>> so1 = source('source 1')
+    >>> si1 = sink('sink 1')
+    >>> sc = solar_collector('test')
     >>> sc.component()
     'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
-    ...     Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
+    ...     Tamb=25, A='var', eta_opt=1, lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = con.connection(so1, 'out1', sc, 'in1')
     >>> outg = con.connection(sc, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -2391,6 +2392,7 @@ class solar_collector(heat_exchanger_simple):
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
                 'E': dc_cp(min_val=0),
+                'eta_opt': dc_cp(min_val=0, max_val=1),
                 'lkf_lin': dc_cp(min_val=0),
                 'lkf_quad': dc_cp(min_val=0),
                 'A': dc_cp(min_val=0),
@@ -2434,8 +2436,8 @@ class solar_collector(heat_exchanger_simple):
         else:
             self.hydro_group.set_attr(is_set=False)
 
-        # parameters for kA group
-        self.energy_group.set_attr(elements=[self.E, self.lkf_lin,
+        # parameters for energy group
+        self.energy_group.set_attr(elements=[self.E, self.eta_opt, self.lkf_lin,
                                              self.lkf_quad, self.A, self.Tamb])
 
         is_set = True
@@ -2448,7 +2450,7 @@ class solar_collector(heat_exchanger_simple):
         elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' +
+                   'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
                    self.label + '. Group will be set to False.')
             logging.info(msg)
             self.energy_group.set_attr(is_set=False)
@@ -2526,7 +2528,7 @@ class solar_collector(heat_exchanger_simple):
 
                 \begin{split}
                 0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-                & - A \cdot \left[E - \alpha_1 \cdot
+                & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
                 \left(T_m - T_{amb} \right) - \alpha_2 \cdot
                 \left(T_m - T_{amb}\right)^2 \right]
                 \end{split}
@@ -2538,8 +2540,8 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        return (i[0] * (o[2] - i[2]) - self.A.val * (
-                self.E.val - (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
+                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
                 self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):

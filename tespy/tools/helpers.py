@@ -24,14 +24,20 @@ import logging
 
 
 class TESPyNetworkError(Exception):
+    """Custom message for network related errors."""
+
     pass
 
 
 class TESPyConnectionError(Exception):
+    """Custom message for connection related errors."""
+
     pass
 
 
 class TESPyComponentError(Exception):
+    """Custom message for component related errors."""
+
     pass
 
 # %%

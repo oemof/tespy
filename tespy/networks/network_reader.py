@@ -1,7 +1,9 @@
 # -*- coding: utf-8
 
-"""This module contains the network reader functionality. The network reader
-imports a network from the save-files.
+"""Module for loading a tespy network from saved state.
+
+Use the method :func:`tespy.networks.network_reader.load_nwk` for importing
+a network from a saved state.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

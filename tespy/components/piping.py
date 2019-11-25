@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for piping components.
 
 Components in this module:

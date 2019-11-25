@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for data container classes.
 
 The data_container class and its subclasses are used to store component or

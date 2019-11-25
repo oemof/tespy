@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for components of type reactor.
 
 Components in this module:

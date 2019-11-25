@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for component groups.
 
 It is possible to create subsystems of component groups in tespy. The subsystem

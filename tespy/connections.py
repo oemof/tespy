@@ -1,10 +1,19 @@
 # -*- coding: utf-8
 
-"""
-.. module:: connections
-    :synopsis:
+"""Module for connections between components.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+Components in this module:
+
+    - :func:`tespy.connections.connection` (mass flow)
+    - :func:`tespy.connections.bus` (energy flow)
+    - :func:`tespy.connections.ref` (referenced fluid states container)
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/connections.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np

@@ -1,8 +1,10 @@
 # -*- coding: utf-8
 
-"""This module contains the network class. It is the container for every
-TESPy simulation. The network class creates the system of equations describing
-topology and parametrisation of a specific model and solves it.
+"""Module for tespy network class.
+
+The network is the container for every TESPy simulation. The network class
+automatically creates the system of equations describing topology and
+parametrisation of a specific model and solves it.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

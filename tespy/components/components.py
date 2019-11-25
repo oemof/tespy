@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module class component.
 
 All tespy components inherit from this class.

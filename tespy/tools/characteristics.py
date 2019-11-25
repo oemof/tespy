@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for characteristic functions.
 
 The characteristics module provides the integration of characteristic lines

@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for global variables used by other modules of the tespy package.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

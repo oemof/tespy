@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for fluid property integration.
 
 TESPy uses the CoolProp python interface for all fluid property functions. The

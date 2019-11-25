@@ -1,3 +1,5 @@
+# -*- coding: utf-8
+
 """Module for logging specification.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

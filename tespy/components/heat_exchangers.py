@@ -1115,6 +1115,9 @@ class heat_exchanger(component):
     r"""
     Class heat_exchanger is the parent class for condenser and desuperheater.
 
+    The heat exchanger represents counter current heat exchangers. Both, hot
+    and cold side of the heat exchanger, are simulated.
+
     Equations
 
         **mandatory equations**
@@ -1211,42 +1214,58 @@ class heat_exchanger(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    A water cooling is installed to transfer heat from hot exhaust air. The
+    heat exchanger is designed for a terminal temperature difference of 5 K.
+    From this, it is possible to calculate the heat transfer coefficient and
+    predict water and air outlet temperature in offdesign operation.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
+    >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> tesin = cmp.sink('TES in')
-    >>> tesout = cmp.source('TES out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.heat_exchanger('heat exchanger')
+    >>> exhaust_hot = source('Exhaust air outlet')
+    >>> exhaust_cold = sink('Exhaust air inlet')
+    >>> cw_cold = source('cooling water inlet')
+    >>> cw_hot = sink('cooling water outlet')
+    >>> he = heat_exchanger('waste heat exchanger')
     >>> he.component()
     'heat exchanger'
-    >>> tes_he = con.connection(tesout, 'out1', he, 'in2')
-    >>> he_tes = con.connection(he, 'out2', tesin, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+    >>> ex_he = connection(exhaust_hot, 'out1', he, 'in1')
+    >>> he_ex = connection(he, 'out1', exhaust_cold, 'in1')
+    >>> cw_he = connection(cw_cold, 'out1', he, 'in2')
+    >>> he_cw = connection(he, 'out2', cw_hot, 'in1')
+    >>> nw.add_conns(ex_he, he_ex, cw_he, he_cw)
+
+    The volumetric flow of the air is at 100 l/s. After designing the component
+    it is possible to predict the temperature at different flow rates or
+    different inlet temperatures of the exhaust air.
+
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ...     design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
-    >>> hs_he.set_attr(Td_bp=-10, p=3, fluid={'water': 1})
-    >>> he_hs.set_attr(T=70)
-    >>> tes_he.set_attr(p=5, fluid={'water': 1})
-    >>> tes_he.set_attr(T=40)
-    >>> he.set_attr(Q=-80e3)
+    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> cw_he.set_attr(fluid={'air': 0, 'water': 1}, T=10, p=3,
+    ... offdesign=['m'])
+    >>> ex_he.set_attr(fluid={'air': 1, 'water': 0}, v=0.1, T=35)
+    >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(tes_he.m.val, 2)
-    0.24
-    >>> round(he_tes.T.val, 1)
-    118.5
-    >>> he.set_attr(Q=-60e3)
+    >>> round(ex_he.T.val - he_cw.T.val, 0)
+    5.0
+    >>> ex_he.set_attr(v=0.075)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(tes_he.m.val, 2)
-    0.18
-    >>> round(he_tes.T.val, 1)
-    119.4
+    >>> round(he_cw.T.val, 1)
+    27.4
+    >>> round(he_ex.T.val, 1)
+    14.5
+    >>> ex_he.set_attr(v=0.1, T=40)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(he_cw.T.val, 1)
+    33.9
+    >>> round(he_ex.T.val, 1)
+    18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

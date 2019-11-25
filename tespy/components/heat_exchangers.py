@@ -2347,35 +2347,49 @@ class solar_collector(heat_exchanger_simple):
 
     Example
     -------
-    >>> from tespy import connections as con
-    >>> from tespy import networks as nwk
+    The solar collector is used to calculate heat transferred to the heating
+    system from radiation on a tilted plane. For instance, it is possible to
+    calculate the collector surface area required to transfer a specific amount
+    of heat at a given radiation. The collector parameters are the linear and
+    the quadratic loss keyfigure as well as the optical effifiency.
+
     >>> from tespy.components.basics import sink, source
     >>> from tespy.components.heat_exchangers import solar_collector
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
     >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
+    >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = source('source 1')
-    >>> si1 = sink('sink 1')
-    >>> sc = solar_collector('test')
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> sc = solar_collector('solar collector')
     >>> sc.component()
     'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
-    ...     Tamb=25, A='var', eta_opt=1, lkf_lin=1, lkf_quad=0.005, E=8e2)
-    >>> inc = con.connection(so1, 'out1', sc, 'in1')
-    >>> outg = con.connection(sc, 'out1', si1, 'in1')
+    ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
+    >>> inc = connection(so, 'out1', sc, 'in1')
+    >>> outg = connection(sc, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
+
+    The outlet temperature should be at 90 °C at a constant mass flow, which
+    is determined in the design calculation. In offdesign operation (at a
+    different radiation) using the calculated surface area and mass flow, it
+    is possible to predict the outlet temperature. It would instead be
+    possible to calulate the change in mass flow required to hold the
+    specified outlet temperature, too.
+
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> round(sc.A.val, 1)
-    13.3
+    14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(sc.Q.val, 1)
-    6097.3
+    6083.8
     >>> round(outg.T.val, 1)
     70.5
     >>> shutil.rmtree('./tmp', ignore_errors=True)

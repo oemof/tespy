@@ -137,36 +137,60 @@ class heat_exchanger_simple(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The heat_exchanger_simple can be used as a sink or source of heat. This
+    component does not simulate the secondary side of the heat exchanger. It
+    is possible to calculate the pressure ratio with the Darcy-Weisbach
+    equation or in case of liquid water use the Hazen-Williams equation.
+    Also, given ambient temperature and the heat transfer coeffiecient, it is
+    possible to predict heat transfer.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
+    >>> fluids = ['N2']
+    >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> pi = cmp.pipe('pipe')
-    >>> pi.component()
-    'pipe'
-    >>> pi.set_attr(Tamb=10, pr=0.95, design=['pr'], offdesign=['zeta', 'kA'])
-    >>> inc = con.connection(so1, 'out1', pi, 'in1')
-    >>> outg = con.connection(pi, 'out1', si1, 'in1')
+    >>> so1 = source('source 1')
+    >>> si1 = sink('sink 1')
+    >>> heat_sink = heat_exchanger_simple('heat sink')
+    >>> heat_sink.component()
+    'heat exchanger simple'
+    >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
+    ... offdesign=['zeta', 'kA'], kA_char='HE_HOT')
+    >>> inc = connection(so1, 'out1', heat_sink, 'in1')
+    >>> outg = connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'H2O': 1}, m=1, T=200, p=12)
-    >>> outg.set_attr(T=190, design=['T'])
+
+    It is possible to determine the amount of heat transferred when the fluid
+    enters the heat sink at a temperature of 200 °C and is cooled down to
+    150 °C. Given an ambient temperature of 10 °C this also determines the heat
+    transfer coefficient to the ambient. Assuming a characteristic function
+    for the heat transfer coefficient (HE_HOT) we can predict the heat
+    transferred at variable flow rates.
+
+    >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
+    >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(pi.Q.val, 1)
-    -22252.3
-    >>> inc.set_attr(m=1.2)
-    >>> pi.set_attr(Tamb=-10)
+    >>> round(heat_sink.Q.val, 1)
+    -52580.9
+    >>> round(heat_sink.kA.val, 1)
+    321.1
+    >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(pi.kA.val, 1)
-    126.5
-    >>> round(pi.Q.val, 1)
-    -25890.6
+    >>> round(heat_sink.Q.val, 1)
+    -57170.6
     >>> round(outg.T.val, 1)
-    189.5
+    156.5
+    >>> inc.set_attr(m=0.75)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(heat_sink.Q.val, 1)
+    -46356.5
+    >>> round(outg.T.val, 1)
+    141.2
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

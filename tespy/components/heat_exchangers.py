@@ -807,7 +807,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -815,8 +815,8 @@ class solar_collector(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
@@ -871,8 +871,12 @@ class solar_collector(heat_exchanger_simple):
         used.
 
     E : str/float/tespy.helpers.dc_cp
-        Absorption on the inclined surface,
+        Radiation at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
+
+    eta_opt : str/float/tespy.helpers.dc_cp
+        optical loss at surface cover,
+        :math:`\eta_{opt}`.
 
     lkf_lin : str/float/tespy.helpers.dc_cp
         Linear loss key figure,
@@ -891,40 +895,51 @@ class solar_collector(heat_exchanger_simple):
     energy_group : tespy.helpers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
 
-    Note
-    ----
-    The solar collector does not take optical losses into accout. The incoming
-    radiation E represents the actual absorption of the solar collector.
-    Optical losses should be handeled in preprocessing.
-
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The solar collector is used to calculate heat transferred to the heating
+    system from radiation on a tilted plane. For instance, it is possible to
+    calculate the collector surface area required to transfer a specific amount
+    of heat at a given radiation. The collector parameters are the linear and
+    the quadratic loss keyfigure as well as the optical effifiency.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import solar_collector
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
     >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
+    >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> sc = cmp.solar_collector('test')
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> sc = solar_collector('solar collector')
     >>> sc.component()
     'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
-    ...     Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
-    >>> inc = con.connection(so1, 'out1', sc, 'in1')
-    >>> outg = con.connection(sc, 'out1', si1, 'in1')
+    ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
+    >>> inc = connection(so, 'out1', sc, 'in1')
+    >>> outg = connection(sc, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
+
+    The outlet temperature should be at 90 °C at a constant mass flow, which
+    is determined in the design calculation. In offdesign operation (at a
+    different radiation) using the calculated surface area and mass flow, it
+    is possible to predict the outlet temperature. It would instead be
+    possible to calulate the change in mass flow required to hold the
+    specified outlet temperature, too.
+
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> round(sc.A.val, 1)
-    13.3
+    14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(sc.Q.val, 1)
-    6097.3
+    6083.8
     >>> round(outg.T.val, 1)
     70.5
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -941,6 +956,7 @@ class solar_collector(heat_exchanger_simple):
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
                 'E': dc_cp(min_val=0),
+                'eta_opt': dc_cp(min_val=0, max_val=1),
                 'lkf_lin': dc_cp(min_val=0),
                 'lkf_quad': dc_cp(min_val=0),
                 'A': dc_cp(min_val=0),
@@ -984,8 +1000,8 @@ class solar_collector(heat_exchanger_simple):
         else:
             self.hydro_group.set_attr(is_set=False)
 
-        # parameters for kA group
-        self.energy_group.set_attr(elements=[self.E, self.lkf_lin,
+        # parameters for energy group
+        self.energy_group.set_attr(elements=[self.E, self.eta_opt, self.lkf_lin,
                                              self.lkf_quad, self.A, self.Tamb])
 
         is_set = True
@@ -998,7 +1014,7 @@ class solar_collector(heat_exchanger_simple):
         elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
-                   'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' +
+                   'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
                    self.label + '. Group will be set to False.')
             logging.info(msg)
             self.energy_group.set_attr(is_set=False)
@@ -1014,7 +1030,7 @@ class solar_collector(heat_exchanger_simple):
 
             **optional equations**
 
-            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
+            - :func:`tespy.components.components.solar_collector.energy_func`
 
         Returns
         -------
@@ -1076,7 +1092,7 @@ class solar_collector(heat_exchanger_simple):
 
                 \begin{split}
                 0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-                & - A \cdot \left[E - \alpha_1 \cdot
+                & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
                 \left(T_m - T_{amb} \right) - \alpha_2 \cdot
                 \left(T_m - T_{amb}\right)^2 \right]
                 \end{split}
@@ -1088,8 +1104,8 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        return (i[0] * (o[2] - i[2]) - self.A.val * (
-                self.E.val - (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
+                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
                 self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):
@@ -1106,7 +1122,6 @@ class solar_collector(heat_exchanger_simple):
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
         self.check_parameter_bounds()
-
 
 # %%
 

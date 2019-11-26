@@ -2187,8 +2187,8 @@ class condenser(heat_exchanger):
 
     Example
     -------
-    Air steam is used to condensate water in a condenser. 1 kg/s waste steam
-    is chilled with a terminal temperature difference of 15 K.
+    Air is used to condensate water in a condenser. 1 kg/s waste steam is
+    chilled with a terminal temperature difference of 15 K.
 
     >>> from tespy.components.basics import sink, source
     >>> from tespy.components.heat_exchangers import condenser
@@ -2541,6 +2541,63 @@ class desuperheater(heat_exchanger):
     ----
     The desuperheater has an additional equation for enthalpy at hot side
     outlet: The fluid leaves the component in saturated gas state.
+
+    Example
+    -------
+    Overheated enthanol is cooled with water in a heat exchanger until it
+    reaches the state of saturated gas.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import desuperheater
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> import shutil
+    >>> nw = network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10])
+    >>> nw.set_printoptions(print_level='none')
+    >>> et_in = source('ethanol inlet')
+    >>> et_out = sink('ethanol outlet')
+    >>> cw_in = source('cooling water inlet')
+    >>> cw_out = sink('cooling water outlet')
+    >>> desu = desuperheater('desuperheater')
+    >>> desu.component()
+    'desuperheater'
+    >>> et_de = connection(et_in, 'out1', desu, 'in1')
+    >>> de_et = connection(desu, 'out1', et_out, 'in1')
+    >>> cw_de = connection(cw_in, 'out1', desu, 'in2')
+    >>> de_cw = connection(desu, 'out2', cw_out, 'in1')
+    >>> nw.add_conns(et_de, de_et, cw_de, de_cw)
+
+    The cooling water enters the component at 15 °C. 10 l/s of ethanol is
+    cooled from 100 K above boiling point. The water flow rate is at 1 l/s.
+    Knowing the component's design parameters it is possible to predict
+    behavior at different inlet temperatures or different volumetric flow of
+    ethanol. Controlling the ethanol's state at the outlet is only possible,
+    if the cooling water flow rate is adjusted accordingly.
+
+    >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
+    ... offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> cw_de.set_attr(fluid={'water': 1, 'ethanol': 0}, T=15, v=1,
+    ... design=['v'])
+    >>> de_cw.set_attr(p=1)
+    >>> et_de.set_attr(fluid={'water': 0, 'ethanol': 1}, Td_bp=100, v=10)
+    >>> de_et.set_attr(p=1)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(de_cw.T.val, 1)
+    15.5
+    >>> round(de_et.x.val, 1)
+    1.0
+    >>> et_de.set_attr(v=12)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(cw_de.v.val, 1)
+    1.5
+    >>> et_de.set_attr(v=7)
+    >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
+    >>> round(cw_de.v.val, 1)
+    0.6
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def component(self):

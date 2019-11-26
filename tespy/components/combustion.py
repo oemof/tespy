@@ -1210,41 +1210,58 @@ class combustion_chamber_stoich(combustion_chamber):
 
     Example
     -------
-    >>> from tespy import con, cmp, nwk, hlp
+    The stoichiometric combustion chamber follows identical physical properties
+    as the combustion chamber. The main difference is, that the fuel and the
+    air are not stated component wise but are fixed mixtures.
+    The main advantage of using the stoichimetric combustion chamber
+    comes from a strong improvement in terms of calculation speed.
+    This example will show the same calculation as presented in the combustion
+    chamber example
+    (see :func:`tespy.components.combustion.combustion_chamber`).
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.combustion import combustion_chamber_stoich
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     p_range=[0.001, 10], T_range=[10, 2000])
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> comb = cmp.combustion_chamber_stoich(
-    ... 'stoichiometric combustion chamber')
-    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
-    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
-    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
-    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-    ...     air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-    ...     'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-    ...     fuel_alias='myFuel', air_alias='myAir',
-    ...     lamb=3, ti=20000)
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.001, 10], T_range=[10, 2000])
+    >>> nw.set_printoptions(print_level='none')
+    >>> amb = source('ambient air')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> comb = combustion_chamber_stoich('stoichiometric combustion chamber')
     >>> comb.component()
     'combustion chamber stoichiometric flue gas'
-    >>> amb_comb.set_attr(T=20, p=1,
-    ...     fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
-    ...     'TESPy::myFuel_fg': 0})
-    >>> sf_comb.set_attr(T=25,
-    ...     fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
-    ...     'TESPy::myFuel_fg': 0})
-    >>> nw.set_printoptions(iterinfo=False)
+    >>> amb_comb = connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = connection(comb, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+
+    Specify the thermal input of the combustion chamber. At the given fluid
+    compositions this determines the mass flow of the fuel. The outlet
+    temperature of the flue gas determines the ratio of oxygen to fuel mass
+    flow. The fluid composition of the fuel and the air are defined, too. The
+    results show very small deviation from the actual combustion chamber.
+
+    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.03, 'H2': 0.01},
+    ... air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004,
+    ... 'O2': 0.2314}, fuel_alias='myFuel', air_alias='myAir', ti=500000)
+    >>> amb_comb.set_attr(T=20, p=1, fluid={'TESPy::myAir': 1,
+    ... 'TESPy::myFuel': 0,'TESPy::myFuel_fg': 0})
+    >>> sf_comb.set_attr(T=25, fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
+    ... 'TESPy::myFuel_fg': 0})
+    >>> comb_fg.set_attr(T=1200)
+    >>> nw.solve('design')
+    >>> round(comb.lamb.val, 3)
+    2.01
+    >>> comb.set_attr(lamb=2)
+    >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    860.2
-    >>> comb.set_attr(path='./LUT')
-    >>> nw.solve('design')
-    >>> round(comb_fg.T.val, 1)
-    860.2
+    1204.7
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 

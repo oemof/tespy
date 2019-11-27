@@ -498,6 +498,8 @@ class node(component):
 
 class drum(component):
     r"""
+    A drum separates saturated gas from saturated liquid.
+
     Equations
 
         **mandatory equations**
@@ -554,42 +556,58 @@ class drum(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The drum separates saturated gas from saturated liquid. The liquid phase is
+    transported to an evaporator, the staturated gas phase is extracted from
+    the drum. In this example ammonia is evaporated using ambient air.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import drum
+    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.components.heat_exchangers import heat_exchanger
+    >>> from tespy.connections import connection, ref
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
+    >>> import numpy as np
+    >>> nw = network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
     ...     h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> f = cmp.source('feed')
-    >>> ha = cmp.source('hot air')
-    >>> ch = cmp.sink('chimney')
-    >>> s = cmp.sink('steam')
-    >>> dr = cmp.drum('drum')
+    >>> fa = source('feed ammonia')
+    >>> amb_in = source('air inlet')
+    >>> amb_out = sink('air outlet')
+    >>> s = sink('steam')
+    >>> dr = drum('drum')
     >>> dr.component()
     'drum'
-    >>> ev = cmp.heat_exchanger('evaporator')
-    >>> erp = cmp.pump('evaporator reciculation pump')
-    >>> f_dr = con.connection(f, 'out1', dr, 'in1')
-    >>> dr_erp = con.connection(dr, 'out1', erp, 'in1')
-    >>> erp_ev = con.connection(erp, 'out1', ev, 'in2')
-    >>> ev_dr = con.connection(ev, 'out2', dr, 'in2')
-    >>> dr_s = con.connection(dr, 'out2', s, 'in1')
+    >>> ev = heat_exchanger('evaporator')
+    >>> erp = pump('evaporator reciculation pump')
+    >>> f_dr = connection(fa, 'out1', dr, 'in1')
+    >>> dr_erp = connection(dr, 'out1', erp, 'in1')
+    >>> erp_ev = connection(erp, 'out1', ev, 'in2')
+    >>> ev_dr = connection(ev, 'out2', dr, 'in2')
+    >>> dr_s = connection(dr, 'out2', s, 'in1')
     >>> nw.add_conns(f_dr, dr_erp, erp_ev, ev_dr, dr_s)
-    >>> ha_ev = con.connection(ha, 'out1', ev, 'in1')
-    >>> ev_ch = con.connection(ev, 'out1', ch, 'in1')
-    >>> nw.add_conns(ha_ev, ev_ch)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=20, kA_char1='EVA_HOT',
+    >>> amb_ev = connection(amb_in, 'out1', ev, 'in1')
+    >>> ev_amb = connection(ev, 'out1', amb_out, 'in1')
+    >>> nw.add_conns(amb_ev, ev_amb)
+
+    The ambient air enters the evaporator at 30 °C. The pinch point temperature
+    difference (ttd_l) of the evaporator is at 5 K, and 1 MW of heat should be
+    transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
+    design it is possible to calculate offdesign performance at 75 % part load.
+
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1='EVA_HOT',
     ...     kA_char2='EVA_COLD', design=['pr1', 'ttd_l'],
     ...     offdesign=['zeta1', 'kA'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)
-    >>> erp_ev.set_attr(m=con.ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
-    >>> ha_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=100)
-    >>> ev_ch.set_attr(p=1)
+    >>> erp_ev.set_attr(m=ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
+    >>> amb_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=30)
+    >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(ev.ttd_l.val, 1)
-    20.0
+    >>> round(ev_amb.T.val - erp_ev.T.val ,1)
+    5.0
     >>> round(f_dr.h.val, 1)
     320.2
     >>> round(dr_erp.h.val, 1)
@@ -599,11 +617,11 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', init_path='tmp', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(f_dr.m.val, 2)
     0.58
-    >>> round(ev.ttd_l.val, 1)
-    16.1
+    >>> round(ev_amb.T.val - erp_ev.T.val ,1)
+    4.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

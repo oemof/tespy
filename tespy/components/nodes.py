@@ -1082,30 +1082,56 @@ class separator(node):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    The separator is used to split up a single mass flow into a specified
+    number of different parts at identical pressure and temperature but
+    different fluid composition. Fluids can be separated from each other.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import separator
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> s = cmp.separator('separator', num_out=2)
+    >>> so = source('source')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> s = separator('separator', num_out=2)
     >>> s.component()
     'separator'
-    >>> inc1 = con.connection(so1, 'out1', s, 'in1')
-    >>> outg1 = con.connection(s, 'out1', si1, 'in1')
-    >>> outg2 = con.connection(s, 'out2', si2, 'in1')
-    >>> nw.add_conns(inc1, outg1, outg2)
-    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> inc = connection(so, 'out1', s, 'in1')
+    >>> outg1 = connection(s, 'out1', si1, 'in1')
+    >>> outg2 = connection(s, 'out2', si2, 'in1')
+    >>> nw.add_conns(inc, outg1, outg2)
+
+    An Air (simplified) mass flow of 5 kg/s is split up into two mass flows.
+    One mass flow of 1 kg/s containing 10 % oxygen and 90 % nitrogen leaves the
+    separator. It is possible to calculate the fluid composition of the second
+    mass flow. Specify starting values for the second mass flow fluid
+    composition for calculation stability.
+
+    >>> inc.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
     >>> outg1.set_attr(fluid={'O2': 0.1, 'N2': 0.9}, m=1)
-    >>> outg2.set_attr(fluid0={'O2': 0.5, 'N2': 0.5}, m0=4)
+    >>> outg2.set_attr(fluid0={'O2': 0.5, 'N2': 0.5})
     >>> nw.solve('design')
-    >>> nw.lin_dep
-    False
-    >>> nw.res[-1] < 1e-3
-    True
+    >>> outg2.fluid.val['O2']
+    0.2625
+
+    In the same way, it is possible to specify one of the fluid components in
+    the second mass flow instead of the first mass flow. The solver will find
+    the mass flows matching the desired composition. 65 % of the mass flow
+    will leave the separator at the second outlet the case of 30 % oxygen
+    mass fraction for this outlet.
+
+    >>> outg1.set_attr(m=np.nan)
+    >>> outg2.set_attr(fluid={'O2': 0.3})
+    >>> nw.solve('design')
+    >>> outg2.fluid.val['O2']
+    0.3
+    >>> round(outg2.m.val_SI / inc.m.val_SI, 2)
+    0.65
     """
 
     def component(self):

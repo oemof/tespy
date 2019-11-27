@@ -1110,6 +1110,8 @@ class combustion_chamber(component):
 
 class combustion_chamber_stoich(combustion_chamber):
     r"""
+    The class combustion_chamber_stoich is a simplified combustion chamber.
+
     Equations
 
         **mandatory equations**
@@ -1122,12 +1124,12 @@ class combustion_chamber_stoich(combustion_chamber):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_chamber_stoich.lambda_func`
-        - :func:`tespy.components.components.combustion_chamber_stoich.ti_func`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.lambda_func`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.ti_func`
 
     Available fuels
 
@@ -1379,7 +1381,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def calc_lhv(self):
         r"""
-        calculates the lower heating value of the combustion chambers fuel.
+        Calculate the lower heating value of the combustion chambers fuel.
 
         Returns
         -------
@@ -1931,6 +1933,13 @@ class combustion_chamber_stoich(combustion_chamber):
 
 class combustion_engine(combustion_chamber):
     r"""
+    An internal combustion engine supplies power and heat cogeneration.
+
+    The combustion engine produces power and heat in cogeneration from fuel
+    combustion. The combustion properties are identical to the combustion
+    chamber. Thermal input and power output, heat output and heat losses are
+    linked with an individual characteristic line for each property.
+
     Equations
 
         **mandatory equations**
@@ -2049,46 +2058,54 @@ class combustion_engine(combustion_chamber):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The combustion chamber calculates energy input due to combustion as well as
+    the flue gas composition based on the type of fuel and the amount of
+    oxygen supplied. Using the parameters p_range and T_range is recommended
+    when using combustion, as these stabilize the calculation. In this example
+    a mixture of methane, hydrogen and carbondioxide is used as fuel.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.combustion import combustion_engine
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
-    >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> cw_in1 = cmp.source('cooling water inlet1')
-    >>> cw_in2 = cmp.source('cooling water inlet2')
-    >>> cw_out1 = cmp.sink('cooling water outlet1')
-    >>> cw_out2 = cmp.sink('cooling water outlet2')
-    >>> split = cmp.splitter('splitter')
-    >>> merge = cmp.merge('merge')
-    >>> chp = cmp.combustion_engine(label='internal combustion engine')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[10, 1200])
+    >>> amb = source('ambient')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> cw_in1 = source('cooling water inlet1')
+    >>> cw_in2 = source('cooling water inlet2')
+    >>> cw_out1 = sink('cooling water outlet1')
+    >>> cw_out2 = sink('cooling water outlet2')
+    >>> chp = combustion_engine(label='internal combustion engine')
     >>> chp.component()
     'combustion engine'
-    >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
-    >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
-    >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
+    >>> amb_comb = connection(amb, 'out1', chp, 'in3')
+    >>> sf_comb = connection(sf, 'out1', chp, 'in4')
+    >>> comb_fg = connection(chp, 'out3', fg, 'in1')
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> cw1_chp1 = con.connection(cw_in1, 'out1', chp, 'in1')
-    >>> cw2_chp2 = con.connection(cw_in2, 'out1', chp, 'in2')
+    >>> cw1_chp1 = connection(cw_in1, 'out1', chp, 'in1')
+    >>> cw2_chp2 = connection(cw_in2, 'out1', chp, 'in2')
     >>> nw.add_conns(cw1_chp1, cw2_chp2)
-    >>> chp1_cw = con.connection(chp, 'out1', cw_out1, 'in1')
-    >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
+    >>> chp1_cw = connection(chp, 'out1', cw_out1, 'in1')
+    >>> chp2_cw = connection(chp, 'out2', cw_out2, 'in1')
     >>> nw.add_conns(chp1_cw, chp2_cw)
-    >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=10e6, lamb=1.2,
+
+    The combustion engine produces a power output of 10 MW at a lamb of 1.0.
+
+    >>> chp.set_attr(pr1=0.99, pr2=0.99, P=10e6, lamb=2,
     ... design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
-    >>> amb_comb.set_attr(p=5, T=30,
-    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
-    ...         'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0,
+    ... 'H2O': 0, 'CH4': 1})
+    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')

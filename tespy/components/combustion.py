@@ -2143,7 +2143,7 @@ class combustion_engine(combustion_chamber):
                 'Q1_char': dc_cc(method='Q1'),
                 'Q2_char': dc_cc(method='Q2'),
                 'Qloss_char': dc_cc(method='QLOSS'),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2', 'in3', 'in4']

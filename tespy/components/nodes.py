@@ -25,7 +25,7 @@ from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
         T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        h_mix_pQ
+        h_mix_pQ, dh_mix_dpQ
         )
 
 # %%
@@ -33,7 +33,7 @@ from tespy.tools.fluid_properties import (
 
 class node(component):
     r"""
-    The component node is the parent class for splitter, separator and merge.
+    Class node is the parent class for splitter, separator and merge.
 
     Equations
 
@@ -97,35 +97,57 @@ class node(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    The node can serve as merge or as splitter at the same time: The sum of
+    all mass flow going into the node is identical to the mass flow leaving it.
+    All incoming fluids are mixed in the node (mass flow weighted fluid mass
+    fractions and enthalpy). All outgoing fluids have the composition of the
+    mixture at the mixtures enthalpy/temperature.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import node
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... h_unit='kJ / kg')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> so2 = cmp.source('source2')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> n = cmp.node('node', num_in=2, num_out=2)
+    >>> so1 = source('source1')
+    >>> so2 = source('source2')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> n = node('node', num_in=2, num_out=2)
     >>> n.component()
     'node'
-    >>> inc1 = con.connection(so1, 'out1', n, 'in1')
-    >>> inc2 = con.connection(so2, 'out1', n, 'in2')
-    >>> outg1 = con.connection(n, 'out1', si1, 'in1')
-    >>> outg2 = con.connection(n, 'out2', si2, 'in1')
+    >>> inc1 = connection(so1, 'out1', n, 'in1')
+    >>> inc2 = connection(so2, 'out1', n, 'in2')
+    >>> outg1 = connection(n, 'out1', si1, 'in1')
+    >>> outg2 = connection(n, 'out2', si2, 'in1')
     >>> nw.add_conns(inc1, inc2, outg1, outg2)
+
+    2 kg/s of pure oxygen is mixed with 5 kg/s mixture (50 % nitrogen and
+    50 % oxygen). One of the outgoing connections should be at 3 kg/s.
+
     >>> inc1.set_attr(fluid={'O2': 1, 'N2': 0}, p=1, T=20, m=2)
     >>> inc2.set_attr(fluid={'O2': 0.5, 'N2': 0.5}, T=50, m=5)
     >>> outg1.set_attr(m=3)
     >>> nw.solve('design')
     >>> (round(outg1.fluid.val['O2'], 3), round(outg1.fluid.val['N2'], 3))
     (0.643, 0.357)
+    >>> round(outg1.T.val, 1)
+    41.8
+
+    Now calculate at what mass flow of the 50/50 mixture the total
+    oxygen fraction of the nodes outlets will be at 80 %.
+
     >>> inc2.set_attr(m=np.nan)
     >>> outg1.set_attr(fluid={'O2': 0.8})
     >>> nw.solve('design')
     >>> round(inc2.m.val_SI, 3)
     1.333
+    >>> round(outg1)
     """
 
     def component(self):

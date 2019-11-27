@@ -888,32 +888,57 @@ class merge(node):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    The merge mixes a specified number of mass flows and has a single outlet.
+    At the outlet, fluid composition and enthalpy are calculated by mass
+    weighted fluid composition and enthalpy of the inlets.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import merge
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
+    >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
+    >>> nw = network(fluids=fluid_list, p_unit='bar')
     >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> so2 = cmp.source('source2')
-    >>> so3 = cmp.source('source3')
-    >>> si1 = cmp.sink('sink1')
-    >>> m = cmp.merge('merge', num_in=3)
+    >>> so1 = source('source1')
+    >>> so2 = source('source2')
+    >>> so3 = source('source3')
+    >>> si1 = sink('sink')
+    >>> m = merge('merge', num_in=3)
     >>> m.component()
     'merge'
-    >>> inc1 = con.connection(so1, 'out1', m, 'in1')
-    >>> inc2 = con.connection(so2, 'out1', m, 'in2')
-    >>> inc3 = con.connection(so3, 'out1', m, 'in3')
-    >>> outg1 = con.connection(m, 'out1', si1, 'in1')
-    >>> nw.add_conns(inc1, inc2, inc3, outg1)
-    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
-    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=20, m=5)
-    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=20)
-    >>> outg1.set_attr(fluid={'N2': 0.4})
+    >>> inc1 = connection(so1, 'out1', m, 'in1')
+    >>> inc2 = connection(so2, 'out1', m, 'in2')
+    >>> inc3 = connection(so3, 'out1', m, 'in3')
+    >>> outg = connection(m, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc1, inc2, inc3, outg)
+
+    A merge with three inlets mixes air (simplified) with pure nitrogen and
+    pure oxygen. All gases enter the component at the same temperature. As
+    mixing effects are not considered, the outlet temperature should thus be
+    similar to the three inlet temperatures (difference might occur due to
+    rounding in fluid property functions, let's check it for two different
+    temperatures). It is e. g. possible to find the required mass flow of pure
+    nitrogen given the nitrogen mass fraction in the outlet.
+
+    >>> T = 293.15
+    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=T, m=5)
+    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=T, m=5)
+    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=T)
+    >>> outg.set_attr(fluid={'N2': 0.4})
     >>> nw.solve('design')
     >>> round(inc3.m.val_SI, 2)
     0.25
-    >>> round(outg1.fluid.val['O2'], 1)
-    0.6
+    >>> abs(round((outg.T.val_SI - T) / T, 5)) < 0.01
+    True
+    >>> T = 173.15
+    >>> inc1.set_attr(T=T)
+    >>> inc2.set_attr(T=T)
+    >>> inc3.set_attr(T=T)
+    >>> nw.solve('design')
+    >>> abs(round((outg.T.val_SI - T) / T, 5)) < 0.01
+    True
     """
 
     def component(self):
@@ -1034,6 +1059,8 @@ class merge(node):
 
 class separator(node):
     r"""
+    A separator separates fluid components from a mass flow.
+
     Equations
 
         **mandatory equations**

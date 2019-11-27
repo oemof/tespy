@@ -2073,6 +2073,7 @@ class combustion_engine(combustion_chamber):
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ... p_range=[0.5, 10], T_range=[10, 1200])
+    >>> nw.set_printoptions(print_level='none')
     >>> amb = source('ambient')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
@@ -2094,14 +2095,15 @@ class combustion_engine(combustion_chamber):
     >>> chp2_cw = connection(chp, 'out2', cw_out2, 'in1')
     >>> nw.add_conns(chp1_cw, chp2_cw)
 
-    The combustion engine produces a power output of 10 MW at a lamb of 1.0.
+    The combustion engine produces a power output of 10 MW the oxygen to
+    stoichiometric oxygen ratio is set to 1.
 
-    >>> chp.set_attr(pr1=0.99, pr2=0.99, P=10e6, lamb=2,
+    >>> chp.set_attr(pr1=0.99, pr2=0.99, P=10e6, lamb=1.0,
     ... design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0,
-    ... 'H2O': 0, 'CH4': 1})
+    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 0, 'CH4': 1})
     >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 1, 'CH4': 0})
     >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,

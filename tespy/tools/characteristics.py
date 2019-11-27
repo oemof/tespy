@@ -175,7 +175,7 @@ class characteristics:
            :align: center
 
 
-        **default characteristic lines for cogeneration units**
+        **default characteristic lines for combustion engines**
 
         .. math::
 
@@ -320,7 +320,7 @@ class characteristics:
                     [0.250, 0.547, 0.900, 0.965, 0.995, 1.000, 0.990, 0.959,
                      0.911, 0.737, 0.519, 0.250])
 
-        elif self.comp == 'cogeneration unit':
+        elif self.comp == 'combustion engine':
 
             x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])
             y['TI'] = np.array([2.50, 2.33, 2.27, 2.25])

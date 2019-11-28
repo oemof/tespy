@@ -21,6 +21,8 @@ Parameter renaming
   (`PR #108 <https://github.com/oemof/tespy/pull/108>`_).
 - The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore. Use :code:`yournetwork.set_attr(iterinfo=True/False)`
   in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Parameter :code:`interface` for sinks and sources has been removed (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Testing
 #######

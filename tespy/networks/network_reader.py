@@ -19,7 +19,7 @@ import pandas as pd
 from tespy.connections import connection, bus, ref
 
 from tespy.components import (basics, combustion, heat_exchangers, nodes,
-                                piping, reactors, turbomachinery)
+                              piping, reactors, turbomachinery)
 
 from tespy.networks.networks import network
 
@@ -64,7 +64,7 @@ target_classes = {
 
 def load_nwk(path):
     r"""
-    Loads a network from a base path.
+    Load a network from a base path.
 
     Parameters
     ----------
@@ -202,9 +202,6 @@ def load_nwk(path):
     True
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     """
-
-
-
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
@@ -234,7 +231,6 @@ def load_nwk(path):
 
     # load components
     comps = pd.DataFrame()
-    inter = pd.DataFrame()
 
     files = os.listdir(path_comps)
     for f in files:

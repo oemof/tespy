@@ -2826,6 +2826,8 @@ class network:
         df = pd.DataFrame()
         # connection id
         df['id'] = self.conns.apply(network.get_id, axis=1)
+
+        # general connection parameters
         # source
         df['s'] = self.conns.apply(f, axis=1, args=('s', 'label'))
         df['s_id'] = self.conns.apply(f, axis=1, args=('s_id',))
@@ -2833,11 +2835,13 @@ class network:
         df['t'] = self.conns.apply(f, axis=1, args=('t', 'label'))
         df['t_id'] = self.conns.apply(f, axis=1, args=('t_id',))
 
-        # design and offdesign parameters
-        df['design'] = self.conns.apply(f, axis=1, args=('design',))
-        df['offdesign'] = self.conns.apply(f, axis=1, args=('offdesign',))
-        df['design_path'] = self.conns.apply(f, axis=1, args=('design_path',))
+        # design and offdesign properties
+        cols = ['design', 'offdesign', 'design_path', 'local_design',
+                'local_offdesign']
+        for key in cols:
+            df[key] = self.conns.apply(f, axis=1, args=(key,))
 
+        # fluid properties
         cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
             # values and units
@@ -2862,10 +2866,12 @@ class network:
             df[key + '_ref_set'] = self.conns.apply(f, axis=1,
                                                     args=(key, 'ref_set',))
 
+        # state property
         key = 'state'
         df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
         df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'val_set'))
 
+        # fluid composition
         for val in self.fluids:
             # fluid mass fraction
             df[val] = self.conns.apply(f, axis=1, args=('fluid', 'val', val))
@@ -2876,7 +2882,7 @@ class network:
             df[val + '_set'] = self.conns.apply(f, axis=1,
                                                 args=('fluid', 'val_set', val))
 
-        # fluid balance parametrisation
+        # fluid balance
         df['balance'] = self.conns.apply(f, axis=1, args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
@@ -2896,8 +2902,6 @@ class network:
         ----------
         path : str
             Path/filename for the file.
-
-        TODO: local_offdesign, local_design
         """
         busses = self.busses.values()
         # create / overwrite csv file
@@ -2919,7 +2923,8 @@ class network:
             df = cp_sort[cp_sort['cp'] == c]
 
             # basic information
-            cols = ['label', 'design', 'offdesign', 'interface', 'design_path']
+            cols = ['label', 'design', 'offdesign', 'design_path',
+                    'local_design', 'local_offdesign']
             for col in cols:
                 df[col] = df.apply(f, axis=1, args=(col,))
 

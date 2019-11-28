@@ -1184,27 +1184,25 @@ class network:
                 self.init_target(c, c.t)
                 self.init_source(c, c.s)
 
-        # fluid propagation for combustion chambers
+        # fluid propagation for components
         for cp in self.comps.index:
+            # combustion chamber
             if isinstance(cp, combustion_chamber):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
+
+            # combustion chamber
             elif isinstance(cp, water_electrolyzer):
                 cp.initialise_fluids(self)
                 for c in self.comps.loc[cp].o:
                     self.init_target(c, c.t)
 
-        # fluid propagation from set values
-        for c in self.conns.index:
-            if any(c.fluid.val_set.values()):
-                self.init_target(c, c.t)
-                self.init_source(c, c.s)
-
-        # fluid propagation starting from all connections
-        for c in self.conns.index:
-            c.s.initialise_fluids(self)
-            c.t.initialise_fluids(self)
+            # other components (node, merge)
+            else:
+                cp.initialise_fluids(self)
+                for c in self.comps.loc[cp].o:
+                    self.init_target(c, c.t)
 
         msg = 'Fluid initialisation done.'
         logging.debug(msg)

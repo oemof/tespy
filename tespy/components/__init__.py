@@ -1,4 +1,1 @@
-"""
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
-
-"""
+# -*- coding: utf-8

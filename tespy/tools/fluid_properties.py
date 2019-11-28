@@ -1,7 +1,10 @@
 # -*- coding: utf-8
 
-"""This module contains all fluid property functions integrating the CoolProp
-python interface as well as the tespy_fluid class.
+"""Module for fluid property integration.
+
+TESPy uses the CoolProp python interface for all fluid property functions. The
+tespy_fluid class allows the creation of lookup table for custom fluid
+mixtures.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -77,29 +80,71 @@ class tespy_fluid:
 
     Example
     -------
-    >>> from tespy import con, cmp, hlp, nwk
+    Create a custom fluid from specified composition within defined pressure
+    and temperature limits. We define dry air component wise as our custom
+    fluid.
+
+    >>> from tespy.connections import connection
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.tools.fluid_properties import (tespy_fluid, h_mix_pT,
+    ... s_mix_pT, v_mix_pT, visc_mix_pT)
+    >>> from tespy.tools.global_vars import molar_masses
+    >>> from tespy.networks.networks import network
+    >>> from CoolProp.CoolProp import PropsSI as CP
     >>> import shutil
-    >>> fluidvec = {'CO2': 0.05, 'H2O': 0.06, 'O2': 0.10,
-    ... 'N2': 0.76, 'Ar': 0.01}
-    >>> p = np.array([0.1, 10]) * 1e5
-    >>> T = np.array([280, 1280])
-    >>> myfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec,
-    ... p_range=p, T_range=T)
+    >>> fluidvec = {'N2': 0.7552, 'O2': 0.2314, 'CO2': 0.0005, 'Ar': 0.0129}
+    >>> p_arr = np.array([0.1, 10]) * 1e5
+    >>> T_arr = np.array([250, 1280])
+    >>> myfluid = tespy_fluid('dry air', fluid=fluidvec, p_range=p_arr,
+    ... T_range=T_arr)
+
+    Check if the fluid creation was successful and compare some fluid
+    properties to the CoolProp air implementation. We have to add the CoolProp
+    air implementation to the memorise class first. The relative deviation
+    should be very small (< 0.01), we check for enthalpy, volume, entropy and
+    viscosity. Specific volume and viscosity are absolute values, thus no
+    difference is calculated.
+
+    >>> molar_masses['air'] = CP('M', 'air')
+    >>> gas_constants['air'] = CP('GAS_CONSTANT', 'air')
+    >>> memorise.add_fluids(['air'])
+
     >>> type(myfluid)
-    <class 'tespy.tools.helpers.tespy_fluid'>
-    >>> nw = nwk.network(fluids=[myfluid.alias], h_unit='kJ / kg', T_unit='C',
-    ... p_unit='bar')
-    >>> nw.set_printoptions(print_level='none')
-    >>> source = cmp.source('source')
-    >>> sink = cmp.sink('sink')
-    >>> c = con.connection(source, 'out1', sink, 'in1')
-    >>> nw.add_conns(c)
-    >>> c.set_attr(m=1, T=500, p=5, fluid={'TESPy::flue gas': 1})
-    >>> nw.solve('design')
-    >>> round(hlp.h_mix_pT(c.to_flow(), c.T.val_SI), 0)
-    957564.0
-    >>> loadfluid = hlp.tespy_fluid('flue gas', fluid=fluidvec, p_range=p,
-    ... T_range=T, path='./LUT')
+    <class 'tespy.tools.fluid_properties.tespy_fluid'>
+    >>> p = 3e5
+    >>> fluid_props = [0, p, 0, {myfluid.alias: 1}]
+    >>> T1 = 400
+    >>> T2 = 1000
+    >>> delta_h_tespy = h_mix_pT(fluid_props, T2) - h_mix_pT(fluid_props, T1)
+    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
+    >>> delta_h = h_mix_pT(fluid_props_CP, T2) - h_mix_pT(fluid_props_CP, T1)
+    >>> round(abs(delta_h_tespy - delta_h) / delta_h, 2)
+    0.0
+
+    >>> v_tespy = v_mix_pT(fluid_props, T2)
+    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
+    >>> v = v_mix_pT(fluid_props_CP, T2)
+    >>> round(abs(v_tespy - v) / v, 2)
+    0.0
+
+    >>> s_tespy = s_mix_pT(fluid_props, T2) - s_mix_pT(fluid_props, T1)
+    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
+    >>> s = s_mix_pT(fluid_props_CP, T2) - s_mix_pT(fluid_props_CP, T1)
+    >>> round(abs(s_tespy - s) / s, 2)
+    0.0
+
+    >>> visc_tespy = visc_mix_pT(fluid_props, T2)
+    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
+    >>> visc = visc_mix_pT(fluid_props_CP, T2)
+    >>> round(abs(visc_tespy - visc) / visc, 2)
+    0.0
+
+    The fluid had been saved automatically, load it now.
+
+    >>> loadfluid = tespy_fluid('dry air', fluid=fluidvec, p_range=p_arr,
+    ... T_range=T_arr, path='./LUT')
+    >>> type(loadfluid)
+    <class 'tespy.tools.fluid_properties.tespy_fluid'>
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 

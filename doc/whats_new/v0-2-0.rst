@@ -19,12 +19,14 @@ Parameter renaming
 - The module import shortcuts (:code:`from tespy import ...`) for components (cmp), connections (con), helpers (hlp), logger (logger),
   networks (nwk), network_reader (nwkr) are **no longer supported**! Please read the :ref:`example section below <tespy_v020_examples_label>` for more information
   (`PR #108 <https://github.com/oemof/tespy/pull/108>`_).
+- The method :code:`set_printoptions` for the :pyclass:`tespy.networks.networks.network` class is not available anymore. Use :code:`yournetwork.set_attr(iterinfo=True/False)`
+  in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Testing
 #######
 - Improved doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Add doc-test for fluid_structure function of tespy.tools.helpers (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
-- Reworked a lot of examples in the API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Reworked a lot of examples in the components API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Bug fixes
 #########

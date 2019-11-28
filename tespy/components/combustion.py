@@ -2062,13 +2062,14 @@ class combustion_engine(combustion_chamber):
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. Using the parameters p_range and T_range is recommended
     when using combustion, as these stabilize the calculation. In this example
-    a mixture of methane, hydrogen and carbondioxide is used as fuel.
+    a mixture of methane, hydrogen and carbondioxide is used as fuel. There are
+    two cooling ports, the cooling water will flow through them in parallel.
 
     >>> from tespy.components.basics import sink, source
     >>> from tespy.components.combustion import combustion_engine
-    >>> from tespy.connections import connection
+    >>> from tespy.components.nodes import merge, splitter
+    >>> from tespy.connections import connection, ref
     >>> from tespy.networks.networks import network
-    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -2077,10 +2078,10 @@ class combustion_engine(combustion_chamber):
     >>> amb = source('ambient')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
-    >>> cw_in1 = source('cooling water inlet1')
-    >>> cw_in2 = source('cooling water inlet2')
-    >>> cw_out1 = sink('cooling water outlet1')
-    >>> cw_out2 = sink('cooling water outlet2')
+    >>> cw_in = source('cooling water inlet')
+    >>> sp = splitter('cooling water splitter', num_out=2)
+    >>> me = merge('cooling water merge', num_in=2)
+    >>> cw_out = sink('cooling water outlet')
     >>> chp = combustion_engine(label='internal combustion engine')
     >>> chp.component()
     'combustion engine'
@@ -2088,26 +2089,29 @@ class combustion_engine(combustion_chamber):
     >>> sf_comb = connection(sf, 'out1', chp, 'in4')
     >>> comb_fg = connection(chp, 'out3', fg, 'in1')
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> cw1_chp1 = connection(cw_in1, 'out1', chp, 'in1')
-    >>> cw2_chp2 = connection(cw_in2, 'out1', chp, 'in2')
-    >>> nw.add_conns(cw1_chp1, cw2_chp2)
-    >>> chp1_cw = connection(chp, 'out1', cw_out1, 'in1')
-    >>> chp2_cw = connection(chp, 'out2', cw_out2, 'in1')
-    >>> nw.add_conns(chp1_cw, chp2_cw)
+    >>> cw_sp = connection(cw_in, 'out1', sp, 'in1')
+    >>> sp_chp1 = connection(sp, 'out1', chp, 'in1')
+    >>> sp_chp2 = connection(sp, 'out2', chp, 'in2')
+    >>> chp1_me = connection(chp, 'out1', me, 'in1')
+    >>> chp2_me = connection(chp, 'out2', me, 'in2')
+    >>> me_cw = connection(me, 'out1', cw_out, 'in1')
+    >>> nw.add_conns(cw_sp, sp_chp1, sp_chp2, chp1_me, chp2_me, me_cw)
 
     The combustion engine produces a power output of 10 MW the oxygen to
-    stoichiometric oxygen ratio is set to 1.
+    stoichiometric oxygen ratio is set to 1. Only pressure ratio 1 is set as
+    we reconnect both cooling water streams. At the merge all pressure values
+    will be identical automatically. Reference the mass flow at the splitter
+    to be split in half.
 
-    >>> chp.set_attr(pr1=0.99, pr2=0.99, P=10e6, lamb=1.0,
-    ... design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
+    >>> chp.set_attr(pr1=0.99, P=10e6, lamb=1.0,
+    ... design=['pr1'], offdesign=['zeta1'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
     >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    >>> cw_sp.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
-    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> sp_chp2.set_attr(m=ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')

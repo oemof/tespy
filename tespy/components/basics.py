@@ -26,12 +26,19 @@ from tespy.tools.data_containers import dc_simple
 # %%
 
 
-class source(component):
+class cycle_closer(component):
     r"""
-    A flow originates from a source.
-
     Equations
-        This component is unconstrained.
+
+        **mandatory equations**
+
+        .. math::
+
+            0 = p_{in} - p_{out}
+
+            0 = h_{in} - h_{out}
+
+    Image not available
 
     Parameters
     ----------
@@ -44,23 +51,101 @@ class source(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    Note
+    ----
+    This component can be used to close a cycle process. The system of
+    equations describing your plant will overdetermined, if you close a cycle
+    without this component or a cut the cycle with a sink and a source at
+    some point of the cycle. This component can be used instead of cutting
+    the cycle.
+
     Example
     -------
-    Create a source and specify a label.
+    Create a cycle containing a pump and a pipe. The pump increases pressure
+    the pipe cools the liquid and destroys the pressure rise. The heat
+    extracted at the pipe must be the same value of the power input at the
+    pump (but negative), as there is no other in- or outputs of energy in the
+    system.
 
-    >>> from tespy.components.basics import source
-    >>> so = source('a labeled source')
-    >>> so.component()
-    'source'
-    >>> so.label
-    'a labeled source'
+    >>> from tespy.components.basics import cycle_closer
+    >>> from tespy.components.piping import pipe
+    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> nw = network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
+    >>> pi = pipe('pipe')
+    >>> pu = pump('pump')
+    >>> cc = cycle_closer('cycle closing component')
+    >>> pu_pi = connection(pu, 'out1', pi, 'in1')
+    >>> pi_cc = connection(pi, 'out1', cc, 'in1')
+    >>> cc_pu = connection(cc, 'out1', pu, 'in1')
+    >>> nw.add_conns(pu_pi, pi_cc, cc_pu)
+    >>> pi_cc.set_attr(p=1, T=20, fluid={'water': 1})
+    >>> pu_pi.set_attr(p=10)
+    >>> pu.set_attr(eta_s=0.8, P=1000)
+    >>> nw.solve('design')
+    >>> round(pi.Q.val, 1) == -round(pu.P.val, 1)
+    True
     """
 
     def component(self):
-        return 'source'
+        return 'cycle closer'
+
+    def inlets(self):
+        return ['in1']
 
     def outlets(self):
         return ['out1']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        # all derivatives are constants
+        self.mat_deriv = np.zeros((2, 2, 3 + self.num_fl))
+        # derivatives for pressure
+        self.mat_deriv[0, 0, 1] = 1
+        self.mat_deriv[0, 1, 1] = -1
+        # derivatives for enthalpy
+        self.mat_deriv[1, 0, 2] = 1
+        self.mat_deriv[1, 1, 2] = -1
+
+    def equations(self):
+        r"""
+        Calculates vector vec_res with results of equations for this component.
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equation for pressure
+        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+
+        ######################################################################
+        # equation for enthalpy
+        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+
+        ######################################################################
+
+        return vec_res
+
+    def derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given equations.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        ######################################################################
+        # derivatives with constant value (all for this component)
+
+        return self.mat_deriv
 
 # %%
 
@@ -100,6 +185,45 @@ class sink(component):
 
     def inlets(self):
         return ['in1']
+
+# %%
+
+
+class source(component):
+    r"""
+    A flow originates from a source.
+
+    Equations
+        This component is unconstrained.
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    Example
+    -------
+    Create a source and specify a label.
+
+    >>> from tespy.components.basics import source
+    >>> so = source('a labeled source')
+    >>> so.component()
+    'source'
+    >>> so.label
+    'a labeled source'
+    """
+
+    def component(self):
+        return 'source'
+
+    def outlets(self):
+        return ['out1']
 
 # %%
 
@@ -309,128 +433,3 @@ class subsystem_interface(component):
         for j in range(self.num_i):
             deriv[j, j + self.num_i, pos] = -1
         return deriv.tolist()
-
-
-# %%
-
-
-class cycle_closer(component):
-    r"""
-    Equations
-
-        **mandatory equations**
-
-        .. math::
-
-            0 = p_{in} - p_{out}
-
-            0 = h_{in} - h_{out}
-
-    Image not available
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    Note
-    ----
-    This component can be used to close a cycle process. The system of
-    equations describing your plant will overdetermined, if you close a cycle
-    without this component or a cut the cycle with a sink and a source at
-    some point of the cycle. This component can be used instead of cutting
-    the cycle.
-
-    Example
-    -------
-    Create a cycle containing a pump and a pipe. The pump increases pressure
-    the pipe cools the liquid and destroys the pressure rise. The heat
-    extracted at the pipe must be the same value of the power input at the
-    pump (but negative), as there is no other in- or outputs of energy in the
-    system.
-
-    >>> from tespy.components.basics import cycle_closer
-    >>> from tespy.components.piping import pipe
-    >>> from tespy.components.turbomachinery import pump
-    >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
-    >>> nw = network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
-    >>> pi = pipe('pipe')
-    >>> pu = pump('pump')
-    >>> cc = cycle_closer('cycle closing component')
-    >>> pu_pi = connection(pu, 'out1', pi, 'in1')
-    >>> pi_cc = connection(pi, 'out1', cc, 'in1')
-    >>> cc_pu = connection(cc, 'out1', pu, 'in1')
-    >>> nw.add_conns(pu_pi, pi_cc, cc_pu)
-    >>> pi_cc.set_attr(p=1, T=20, fluid={'water': 1})
-    >>> pu_pi.set_attr(p=10)
-    >>> pu.set_attr(eta_s=0.8, P=1000)
-    >>> nw.solve('design')
-    >>> round(pi.Q.val, 1) == -round(pu.P.val, 1)
-    True
-    """
-
-    def component(self):
-        return 'cycle closer'
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def comp_init(self, nw):
-
-        component.comp_init(self, nw)
-
-        # all derivatives are constants
-        self.mat_deriv = np.zeros((2, 2, 3 + self.num_fl))
-        # derivatives for pressure
-        self.mat_deriv[0, 0, 1] = 1
-        self.mat_deriv[0, 1, 1] = -1
-        # derivatives for enthalpy
-        self.mat_deriv[1, 0, 2] = 1
-        self.mat_deriv[1, 1, 2] = -1
-
-    def equations(self):
-        r"""
-        Calculates vector vec_res with results of equations for this component.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
-        ######################################################################
-        # equation for pressure
-        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
-
-        ######################################################################
-        # equation for enthalpy
-        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
-
-        ######################################################################
-
-        return vec_res
-
-    def derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        ######################################################################
-        # derivatives with constant value (all for this component)
-
-        return self.mat_deriv

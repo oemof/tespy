@@ -46,7 +46,7 @@ from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 
 from tespy.tools.global_vars import molar_masses, gas_constants, err
-# calculation times
+# calculation time
 from time import time
 
 
@@ -84,6 +84,9 @@ class network:
     T_range : list
         List with minimum and maximum values for temperature value range.
 
+    iterinfo : boolean
+        Print convergence progress to console.
+
     Note
     ----
     Unit specification is optional: If not specified the SI unit (first
@@ -93,33 +96,26 @@ class network:
     the newton algorith. For more information see the "getting started" section
     in the online-documentation.
 
-    Printoptions can be specified with the
-    :func:`tespy.networks.network.set_printoptions`-method, see example.
-
     Example
     -------
     Basic example for a setting up a tespy.networks.network object. Specifying
-    the fluids is mandatory! Unit systems, fluid property range and printlevel
+    the fluids is mandatory! Unit systems, fluid property range and iterinfo
     are optional.
 
-    Standard value for printoptions print_level is info. You can modify this
-    with the :func:`tespy.networks.network.set_printoptions`-method by
-    specifying a print_level, or specifying the printout manually.
+    Standard value for iterinfo is True. This will print out convergence
+    progress to the console. You can suop the printouts by setting this
+    property to false.
 
-    >>> from tespy import nwk
+    >>> from tespy.networks.networks import network
     >>> fluid_list = ['water', 'air', 'R134a']
-    >>> mynetwork = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    >>> mynetwork = network(fluids=fluid_list, p_unit='bar', T_unit='C')
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
-    <class 'tespy.networks.network'>
-    >>> mynetwork.set_printoptions(print_level='none')
+    <class 'tespy.networks.networks.network'>
+    >>> mynetwork.set_attr(iterinfo=False)
     >>> mynetwork.iterinfo
     False
-    >>> mynetwork.set_printoptions(print_level='info')
-    >>> mynetwork.iterinfo
-    True
-    >>> mynetwork.set_printoptions(print_level='none')
-    >>> mynetwork.set_printoptions(iterinfo=True)
+    >>> mynetwork.set_attr(iterinfo=True)
     >>> mynetwork.iterinfo
     True
     """
@@ -207,9 +203,8 @@ class network:
               'v': 'm3 / s'
               }
 
-        # processing printoptions
-        self.print_level = 'info'
-        self.set_printoptions()
+        # iterinfo
+        self.iterinfo = True
 
         # standard unit set
         self.m_unit = self.SI_units['m']
@@ -289,10 +284,8 @@ class network:
         T_range : list
             List with minimum and maximum values for temperature value range.
 
-        Note
-        ----
-        Use the :func:`tespy.networks.network.set_printoptions` method for
-        adjusting iterinfo printouts.
+        iterinfo : boolean
+            Print convergence progress to console.
         """
         # unit sets
         if 'm_unit' in kwargs.keys():
@@ -419,6 +412,13 @@ class network:
                 fp.memorise.vrange[f][2] = self.T_range_SI[0]
                 fp.memorise.vrange[f][3] = self.T_range_SI[1]
 
+        self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+
+        if not isinstance(self.iterinfo, bool):
+            msg = ('Network parameter iterinfo must be True or False!')
+            logging.error(msg)
+            TypeError(msg)
+
     def get_attr(self, key):
         r"""
         Get the value of a networks attribute.
@@ -442,36 +442,7 @@ class network:
 
     def attr(self):
         return ['m_unit', 'p_unit', 'h_unit', 'T_unit', 'v_unit',
-                'p_range', 'h_range', 'T_range']
-
-    def set_printoptions(self, **kwargs):
-        r"""
-        Specification of printouts for tespy.networks.network object.
-
-        Parameters
-        ----------
-        print_level : str
-            Select the print level:
-
-            - 'info': all printouts.
-            - 'none': no printouts
-
-        iterinfo : boolean
-            Printouts of iteration information in solving process.
-        """
-        self.print_level = kwargs.get('print_level', self.print_level)
-
-        if self.print_level == 'info':
-            self.iterinfo = True
-
-        elif self.print_level == 'none':
-            self.iterinfo = False
-        else:
-            msg = ('Available print leves are: \'info\' and \'none\'.')
-            logging.error(msg)
-            raise ValueError(msg)
-
-        self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+                'p_range', 'h_range', 'T_range', 'iterinfo']
 
     def add_subsys(self, *args):
         r"""

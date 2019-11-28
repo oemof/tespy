@@ -167,8 +167,7 @@ class subsystem_interface(component):
     >>> from tespy.networks.networks import network
     >>> fluids = ['H2O', 'N2']
     >>> nw = network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = source('source 1')
     >>> si = sink('sink 1')
     >>> IF = subsystem_interface('subsystem interface')
@@ -361,7 +360,7 @@ class cycle_closer(component):
     >>> from tespy.components.turbomachinery import pump
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
-    >>> nw = network(['water'], p_unit='bar', T_unit='C')
+    >>> nw = network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
     >>> pi = pipe('pipe')
     >>> pu = pump('pump')
     >>> cc = cycle_closer('cycle closing component')
@@ -372,7 +371,6 @@ class cycle_closer(component):
     >>> pi_cc.set_attr(p=1, T=20, fluid={'water': 1})
     >>> pu_pi.set_attr(p=10)
     >>> pu.set_attr(eta_s=0.8, P=1000)
-    >>> nw.set_printoptions(print_level='none')
     >>> nw.solve('design')
     >>> round(pi.Q.val, 1) == -round(pu.P.val, 1)
     True

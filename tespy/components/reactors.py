@@ -161,8 +161,7 @@ class water_electrolyzer(component):
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']
     >>> nw = network(fluids=fluid_list, T_unit='C', p_unit='bar',
-    ... v_unit='l / s')
-    >>> nw.set_printoptions(print_level='none')
+    ... v_unit='l / s', iterinfo=False)
     >>> fw = source('feed water')
     >>> oxy = sink('oxygen sink')
     >>> hydro = sink('hydrogen sink')

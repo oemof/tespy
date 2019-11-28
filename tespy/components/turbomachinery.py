@@ -443,8 +443,7 @@ class compressor(turbomachine):
     >>> import shutil
     >>> fluid_list = ['air']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg', v_unit='l / s')
-    >>> nw.set_printoptions(print_level='none')
+    ... h_unit='kJ / kg', v_unit='l / s', iterinfo=False)
     >>> si = sink('sink')
     >>> so = source('source')
     >>> comp = compressor('compressor')
@@ -959,8 +958,7 @@ class pump(turbomachine):
     >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg', v_unit='l / s')
-    >>> nw.set_printoptions(print_level='none')
+    ...     h_unit='kJ / kg', v_unit='l / s', iterinfo=False)
     >>> si = sink('sink')
     >>> so = source('source')
     >>> p = pump('pump')
@@ -1392,8 +1390,7 @@ class turbine(turbomachine):
     >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    ...     h_unit='kJ / kg', iterinfo=False)
     >>> si = sink('sink')
     >>> so = source('source')
     >>> t = turbine('turbine')

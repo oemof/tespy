@@ -121,8 +121,7 @@ class combustion_chamber(component):
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
+    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
     >>> amb = source('ambient air')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
@@ -1229,8 +1228,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.001, 10], T_range=[10, 2000])
-    >>> nw.set_printoptions(print_level='none')
+    ... p_range=[0.001, 10], T_range=[10, 2000], iterinfo=False)
     >>> amb = source('ambient air')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
@@ -2073,8 +2071,7 @@ class combustion_engine(combustion_chamber):
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
+    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
     >>> amb = source('ambient')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')

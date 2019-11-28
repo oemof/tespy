@@ -137,8 +137,7 @@ class pipe(heat_exchanger_simple):
     >>> import shutil
     >>> fluid_list = ['ethanol']
     >>> nw = network(fluids=fluid_list)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = source('source 1')
     >>> si = sink('sink 1')
     >>> pi = pipe('pipeline')
@@ -232,8 +231,8 @@ class valve(component):
     >>> from tespy.networks.networks import network
     >>> import shutil
     >>> fluid_list = ['CH4']
-    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
     >>> so = source('source')
     >>> si = sink('sink')
     >>> v = valve('valve')

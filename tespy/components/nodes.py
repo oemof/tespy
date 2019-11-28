@@ -111,8 +111,7 @@ class node(component):
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    ... h_unit='kJ / kg', iterinfo=False)
     >>> so1 = source('source1')
     >>> so2 = source('source2')
     >>> si1 = sink('sink1')
@@ -569,8 +568,7 @@ class drum(component):
     >>> import shutil
     >>> import numpy as np
     >>> nw = network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    ...     h_unit='kJ / kg', iterinfo=False)
     >>> fa = source('feed ammonia')
     >>> amb_in = source('air inlet')
     >>> amb_out = sink('air outlet')
@@ -917,8 +915,7 @@ class merge(node):
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = network(fluids=fluid_list, p_unit='bar')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', iterinfo=False)
     >>> so1 = source('source1')
     >>> so2 = source('source2')
     >>> so3 = source('source3')
@@ -1138,8 +1135,8 @@ class separator(node):
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
     >>> so = source('source')
     >>> si1 = sink('sink1')
     >>> si2 = sink('sink2')
@@ -1363,8 +1360,8 @@ class splitter(node):
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
     >>> so = source('source')
     >>> si1 = sink('sink1')
     >>> si2 = sink('sink2')

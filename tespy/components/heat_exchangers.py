@@ -151,8 +151,7 @@ class heat_exchanger_simple(component):
     >>> import shutil
     >>> fluids = ['N2']
     >>> nw = network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so1 = source('source 1')
     >>> si1 = sink('sink 1')
     >>> heat_sink = heat_exchanger_simple('heat sink')
@@ -910,8 +909,7 @@ class solar_collector(heat_exchanger_simple):
     >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = source('source')
     >>> si = sink('sink')
     >>> sc = solar_collector('solar collector')
@@ -1240,8 +1238,7 @@ class heat_exchanger(component):
     >>> from tespy.networks.networks import network
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
+    ... h_unit='kJ / kg', iterinfo=False)
     >>> exhaust_hot = source('Exhaust air outlet')
     >>> exhaust_cold = sink('Exhaust air inlet')
     >>> cw_cold = source('cooling water inlet')
@@ -2212,8 +2209,7 @@ class condenser(heat_exchanger):
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', m_range=[0.01, 1000])
-    >>> nw.set_printoptions(print_level='none')
+    ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
     >>> amb_in = sink('ambient air inlet')
     >>> amb_out = source('air outlet')
     >>> waste_steam = source('waste steam')
@@ -2569,8 +2565,7 @@ class desuperheater(heat_exchanger):
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10])
-    >>> nw.set_printoptions(print_level='none')
+    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10], iterinfo=False)
     >>> et_in = source('ethanol inlet')
     >>> et_out = sink('ethanol outlet')
     >>> cw_in = source('cooling water inlet')

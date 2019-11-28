@@ -579,8 +579,7 @@ class bus:
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[150, 1200])
-    >>> nw.set_printoptions(print_level='none')
+    ... p_range=[0.5, 10], T_range=[150, 1200], iterinfo=False)
     >>> amb = source('ambient')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')

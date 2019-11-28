@@ -11,7 +11,7 @@ List of components
 More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
 
 - Basics
-	* :py:class:`Subsystem interface <tespy.components.basics.cycle_closer>` (:py:meth:`equations <tespy.components.basics.cycle_closer.equations>`)
+	* :py:class:`Cycle closer<tespy.components.basics.cycle_closer>` (:py:meth:`equations <tespy.components.basics.cycle_closer.equations>`)
 	* :py:class:`Sink <tespy.components.basics.sink>` (no equations)
 	* :py:class:`Source <tespy.components.basics.source>` (no equations)
 	* :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>` (:py:meth:`equations <tespy.components.basics.subsystem_interface.equations>`)

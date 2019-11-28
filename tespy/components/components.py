@@ -82,9 +82,6 @@ class component:
         else:
             self.label = label
 
-        # defaults
-        self.interface = False
-
         self.new_design = True
         self.design_path = None
         self.design = []

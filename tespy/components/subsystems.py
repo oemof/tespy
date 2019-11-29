@@ -59,6 +59,7 @@ class subsystem:
     >>> type(mysub.get_network())
     <class 'tespy.networks.networks.network'>
     """
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):

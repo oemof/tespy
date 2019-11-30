@@ -581,3 +581,21 @@ class water_electrolyzer_error_tests:
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})
         self.instance.bus_deriv(some_bus.comps.loc[self.instance])
+
+
+@raises(TESPyComponentError)
+def test_turbomachine_eta_s_func():
+    """
+    Turbomachine has no isentropic efficency function.
+    """
+    instance = turbomachinery.turbomachine('turbomachine')
+    instance.eta_s_func()
+
+
+@raises(TESPyComponentError)
+def test_turbomachine_eta_s_deriv():
+    """
+    Turbomachine has no isentropic efficency derivative.
+    """
+    instance = turbomachinery.turbomachine('turbomachine')
+    instance.eta_s_deriv()

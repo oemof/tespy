@@ -14,7 +14,7 @@ c_in = cmp.source('coolant in')
 cb = cmp.source('consumer back flow')
 cf = cmp.sink('consumer feed flow')
 
-ves = cmp.sink('vessel')
+va = cmp.sink('valve')
 
 # consumer system
 
@@ -37,9 +37,9 @@ nw.add_conns(c_in_cd, cb_rp, rp_cd, cd_cons, cons_cf)
 
 # connection condenser - evaporator system
 
-cd_ves = con.connection(cd, 'out1', ves, 'in1')
+cd_va = con.connection(cd, 'out1', va, 'in1')
 
-nw.add_conns(cd_ves)
+nw.add_conns(cd_va)
 
 # %% component parametrization
 

@@ -7,6 +7,7 @@ New Features
   sink/source or splitter/merge combination in closed cycle simulations (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
 - Added optical efficiency to the "solar_collector". The incoming radiation E no longer represents 
   the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
+- Implemented difference pressure vs mass flow characteristic line for valve (`c4eec6d <https://github.com/oemof/tespy/commit/c4eec6d17ce7c8ce260a44757d37aa26214ae2b0>`_).
 
 Documentation
 #############
@@ -42,7 +43,7 @@ Contributors
 ############
 
 - Francesco Witte (@fwitte)
-- Markus Brandt (@mMarBrandt)
+- Markus Brandt (@MarBrandt)
 
 .. _tespy_v020_examples_label:
 

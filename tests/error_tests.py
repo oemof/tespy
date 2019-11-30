@@ -10,7 +10,7 @@ from tespy.networks.network_reader import load_nwk
 from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError)
-from tespy.tools.data_containers import data_container, dc_cp, dc_flu
+from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
 from tespy.tools.characteristics import char_map, characteristics
 import shutil
@@ -599,3 +599,20 @@ def test_turbomachine_eta_s_deriv():
     """
     instance = turbomachinery.turbomachine('turbomachine')
     instance.eta_s_deriv()
+
+@raises(ValueError)
+def test_compressor_missing_char_parameter():
+    """
+    Compressor with invalid parameter for eta_s_char function.
+    """
+    nw = network(['CH4'])
+    so = basics.source('source')
+    si = basics.sink('sink')
+    instance = turbomachinery.compressor('compressor')
+    c1 = connection(so, 'out1', instance, 'in1')
+    c2 = connection(instance, 'out1', si, 'in1')
+    nw.add_conns(c1, c2)
+    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+                                       is_set=True, param=None))
+    nw.solve('design', init_only=True)
+    instance.eta_s_char_func()

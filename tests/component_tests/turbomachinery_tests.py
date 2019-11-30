@@ -212,75 +212,94 @@ class turbomachinery_tests:
         eq_(self.c2.p.val_SI - self.c1.p.val_SI, 0, msg)
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    # def test_turbine(self):
-    #     """
-    #     Test component properties of turbines.
-    #     """
-    #     instance = turbine('turbine')
-    #     c1, c2 = self.setup_network_11(instance)
-    #     fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
-    #           'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
-    #     self.c1.set_attr(fluid=fl, m=15, p=10)
-    #     self.c2.set_attr(p=1, T=20)
-    #     instance.set_attr(eta_s=0.8)
-    #     self.nw.solve('design')
-    #     self.nw.save('tmp')
-    #     # calculate isentropic efficiency the old fashioned way
-    #     eta_s_d = ((self.c2.h.val_SI - self.c1.h.val_SI) /
-    #                 (instance.h_os('') - self.c1.h.val_SI))
-    #     msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
-    #             ', is ' + str(instance.eta_s.val) + '.')
-    #     eq_(round(eta_s_d, 3), round(instance.eta_s.val, 3), msg)
-    #     # trigger invalid isentropic efficiency
-    #     instance.set_attr(eta_s=1.1)
-    #     self.nw.solve('design')
-    #     # calculate isentropic efficiency the old fashioned way
-    #     eta_s = (self.c2.h.val_SI - self.c1.h.val_SI) / (instance.h_os('') - self.c1.h.val_SI)
-    #     msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
-    #             ', is ' + str(instance.eta_s.val) + '.')
-    #     eq_(round(eta_s, 3), round(instance.eta_s.val, 3), msg)
-    #     self.c1.set_attr(p=np.nan)
-    #     instance.cone.is_set = True
-    #     instance.eta_s_char.is_set = True
-    #     instance.eta_s.is_set = False
-    #     self.nw.solve('offdesign', design_path='tmp')
-    #     msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
-    #             ') must be identical to design case (' + str(eta_s_d) + ').')
-    #     eq_(round(eta_s_d, 2), round(instance.eta_s.val, 2), msg)
-    #     # lowering mass flow, inlet pressure must sink according to cone law
-    #     self.c1.set_attr(m=self.c1.m.val * 0.8)
-    #     self.nw.solve('offdesign', design_path='tmp')
-    #     msg = ('Value of pressure ratio (' + str(instance.pr.val) +
-    #             ') must be at (' + str(0.128) + ').')
-    #     eq_(0.128, round(instance.pr.val, 3), msg)
-    #     self.nw.print_results()
-    #     # testing more parameters for eta_s_char
-    #     self.c1.set_attr(m=10)
-    #     # test param specification v
-    #     instance.eta_s_char.param = 'v'
-    #     self.nw.solve('offdesign', design_path='tmp')
-    #     msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
-    #             ') must be (' + str(0.8) + ').')
-    #     eq_(0.8, round(instance.eta_s.val, 3), msg)
-    #     # test param specification pr
-    #     instance.eta_s_char.param = 'pr'
-    #     self.nw.solve('offdesign', design_path='tmp')
-    #     msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
-    #             ') must be (' + str(0.768) + ').')
-    #     eq_(0.768, round(instance.eta_s.val, 3), msg)
-    #     # test param specification dh_s
-    #     instance.eta_s_char.param = 'dh_s'
-    #     self.nw.solve('offdesign', design_path='tmp')
-    #     msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
-    #             ') must be (' + str(0.798) + ').')
-    #     eq_(0.798, round(instance.eta_s.val, 3), msg)
-    #     instance.eta_s_char.param = None
-    #     # test for missing parameter declaration
-    #     try:
-    #         self.nw.solve('offdesign', design_path='tmp')
-    #     except ValueError:
-    #         pass
-    #     shutil.rmtree('./tmp', ignore_errors=True)
+    def test_turbine(self):
+        """
+        Test component properties of turbines.
+        """
+        instance = turbine('turbine')
+        self.setup_network(instance)
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
+              'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        self.c1.set_attr(fluid=fl, m=15, p=10)
+        self.c2.set_attr(p=1, T=20)
+        instance.set_attr(eta_s=0.85)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+
+        # design value of isentropic efficiency
+        eta_s_d = ((self.c2.h.val_SI - self.c1.h.val_SI) /
+                   (instance.h_os('') - self.c1.h.val_SI))
+        msg = ('Value of isentropic efficiency must be ' +
+               str(round(eta_s_d, 3)) + ', is ' + str(instance.eta_s.val) +
+               '.')
+        eq_(round(eta_s_d, 3), round(instance.eta_s.val, 3), msg)
+
+        # trigger invalid value for isentropic efficiency
+        instance.set_attr(eta_s=1.1)
+        self.nw.solve('design')
+        eta_s = round((self.c2.h.val_SI - self.c1.h.val_SI) /
+                 (instance.h_os('') - self.c1.h.val_SI), 3)
+        msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
+                ', is ' + str(instance.eta_s.val) + '.')
+        eq_(eta_s, round(instance.eta_s.val, 3), msg)
+
+        # unset isentropic efficiency and inlet pressure,
+        # use characteristcs and cone law instead, parameters have to be in
+        # design state
+        self.c1.set_attr(p=np.nan)
+        instance.cone.is_set = True
+        instance.eta_s_char.is_set = True
+        instance.eta_s.is_set = False
+        self.nw.solve('offdesign', design_path='tmp')
+        # check efficiency
+        msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
+                ') must be identical to design case (' + str(eta_s_d) + ').')
+        eq_(round(eta_s_d, 2), round(instance.eta_s.val, 2), msg)
+        # check pressure
+        msg = ('Value of inlet pressure (' + str(round(self.c1.p.val_SI)) +
+                ') must be identical to design case (' +
+                str(round(self.c1.p.design)) + ').')
+        eq_(round(self.c1.p.design), round(self.c1.p.val_SI), msg)
+
+        # lowering mass flow, inlet pressure must sink according to cone law
+        self.c1.set_attr(m=self.c1.m.val * 0.8)
+        self.nw.solve('offdesign', design_path='tmp')
+        msg = ('Value of pressure ratio (' + str(instance.pr.val) +
+                ') must be at (' + str(0.128) + ').')
+        eq_(0.128, round(instance.pr.val, 3), msg)
+
+        # testing more parameters for eta_s_char
+        # test parameter specification v
+        self.c1.set_attr(m=10)
+        instance.eta_s_char.param = 'v'
+        self.nw.solve('offdesign', design_path='tmp')
+        expr = self.c1.v.val_SI / self.c1.v.design
+        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        msg = ('Value of isentropic efficiency (' +
+               str(round(instance.eta_s.val, 3)) +
+                ') must be (' + str(eta_s) + ').')
+        eq_(eta_s, round(instance.eta_s.val, 3), msg)
+
+        # test parameter specification pr
+        instance.eta_s_char.param = 'pr'
+        self.nw.solve('offdesign', design_path='tmp')
+        expr = (self.c2.p.val_SI * self.c1.p.design /
+                (self.c2.p.design * self.c1.p.val_SI))
+        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        msg = ('Value of isentropic efficiency (' +
+               str(round(instance.eta_s.val, 3)) +
+                ') must be (' + str(eta_s) + ').')
+        eq_(eta_s, round(instance.eta_s.val, 3), msg)
+
+        # test parameter specification dh_s
+        instance.eta_s_char.param = 'dh_s'
+        self.nw.solve('offdesign', design_path='tmp')
+        expr = (instance.h_os('') - self.c1.h.val_SI) / instance.dh_s_ref
+        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        msg = ('Value of isentropic efficiency (' +
+               str(round(instance.eta_s.val, 3)) +
+                ') must be (' + str(eta_s) + ').')
+        eq_(eta_s, round(instance.eta_s.val, 3), msg)
 
     # def test_turbomachine(self):
     #     """

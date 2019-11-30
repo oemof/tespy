@@ -505,7 +505,7 @@ class water_electrolyzer_error_tests:
         """
         Set up network for electrolyzer tests.
         """
-        instance = reactors.water_electrolyzer('electrolyzer')
+        self.instance = reactors.water_electrolyzer('electrolyzer')
 
         fw = basics.source('feed water')
         cw_in = basics.source('cooling water')
@@ -513,14 +513,14 @@ class water_electrolyzer_error_tests:
         h2 = basics.sink('hydrogen sink')
         cw_out = basics.sink('cooling water sink')
 
-        cw_el = connection(cw_in, 'out1', instance, 'in1')
-        el_cw = connection(instance, 'out1', cw_out, 'in1')
+        cw_el = connection(cw_in, 'out1', self.instance, 'in1')
+        el_cw = connection(self.instance, 'out1', cw_out, 'in1')
 
         self.nw.add_conns(cw_el, el_cw)
 
-        fw_el = connection(fw, 'out1', instance, 'in2')
-        el_o2 = connection(instance, 'out2', o2, 'in1')
-        el_h2 = connection(instance, 'out3', h2, 'in1')
+        fw_el = connection(fw, 'out1', self.instance, 'in2')
+        el_o2 = connection(self.instance, 'out2', o2, 'in1')
+        el_h2 = connection(self.instance, 'out3', h2, 'in1')
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
@@ -550,3 +550,34 @@ class water_electrolyzer_error_tests:
         self.nw = network(['O2', 'H2'])
         self.setup_network_electrolyzer()
         self.nw.solve('design')
+
+    @raises(ValueError)
+    def test_wrong_bus_param_func(self):
+        """
+        Test missing/wrong bus parameter specification for water electrolyzer.
+        """
+        # this test does not need setup, since the function is called without
+        # network initialisation
+        self.nw = network(['H2O', 'O2', 'H2'])
+        self.instance = reactors.water_electrolyzer('electrolyzer')
+        some_bus = bus('some_bus')
+        param = 'G'
+        some_bus.add_comps({'c': self.instance, 'p': param})
+        self.instance.bus_func(some_bus.comps.loc[self.instance])
+
+    @raises(ValueError)
+    def test_wrong_bus_param_func(self):
+        """
+        Test wrong bus parameter specification for water electrolyzer.
+        """
+        # this test does not need setup, since the function is called without
+        # network initialisation
+        self.nw = network(['H2O', 'O2', 'H2'])
+        self.instance = reactors.water_electrolyzer('electrolyzer')
+        # required for calling bus_deriv method without network initialisation
+        self.instance.num_vars = 2
+        self.instance.num_fl = 3
+        some_bus = bus('some_bus')
+        param = 'G'
+        some_bus.add_comps({'c': self.instance, 'p': param})
+        self.instance.bus_deriv(some_bus.comps.loc[self.instance])

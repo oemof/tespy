@@ -392,10 +392,10 @@ class combustion_chamber_error_tests:
         Test no fuel in network.
         """
         nw = network(['H2O', 'N2', 'O2', 'Ar', 'CO2'])
-        comb = combustion.combustion_chamber('combustion chamber')
-        c1 = connection(basics.source('air'), 'out1', comb, 'in1')
-        c2 = connection(basics.source('fuel'), 'out1', comb, 'in2')
-        c3 = connection(comb, 'out1', basics.sink('flue gas'), 'in1')
+        instance = combustion.combustion_chamber('combustion chamber')
+        c1 = connection(basics.source('air'), 'out1', instance, 'in1')
+        c2 = connection(basics.source('fuel'), 'out1', instance, 'in2')
+        c3 = connection(instance, 'out1', basics.sink('flue gas'), 'in1')
         nw.add_conns(c1, c2, c3)
         nw.solve('design', init_only=True)
 
@@ -404,10 +404,11 @@ class combustion_chamber_stoich_error_tests:
 
     def setup(self):
         self.nw = network(['TESPy::fuel', 'TESPy::fuel_fg', 'Air'])
-        self.comb = combustion.combustion_chamber_stoich('combustion chamber')
-        c1 = connection(basics.source('air'), 'out1', self.comb, 'in1')
-        c2 = connection(basics.source('fuel'), 'out1', self.comb, 'in2')
-        c3 = connection(self.comb, 'out1', basics.sink('flue gas'), 'in1')
+        label = 'combustion chamber'
+        self.instance = combustion.combustion_chamber_stoich(label)
+        c1 = connection(basics.source('air'), 'out1', self.instance, 'in1')
+        c2 = connection(basics.source('fuel'), 'out1', self.instance, 'in2')
+        c3 = connection(self.instance, 'out1', basics.sink('flue gas'), 'in1')
         self.nw.add_conns(c1, c2, c3)
 
     @raises(TESPyComponentError)
@@ -422,7 +423,7 @@ class combustion_chamber_stoich_error_tests:
         """
         Test missing fuel alias.
         """
-        self.comb.set_attr(fuel={'CH4': 1})
+        self.instance.set_attr(fuel={'CH4': 1})
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
@@ -430,7 +431,7 @@ class combustion_chamber_stoich_error_tests:
         """
         Test bad name for fuel alias.
         """
-        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
+        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
@@ -438,7 +439,7 @@ class combustion_chamber_stoich_error_tests:
         """
         Test missing air composition.
         """
-        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel')
+        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel')
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
@@ -446,8 +447,8 @@ class combustion_chamber_stoich_error_tests:
         """
         Test missing air alias.
         """
-        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
-                           air={'N2': 0.76, 'O2': 0.24})
+        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
+                               air={'N2': 0.76, 'O2': 0.24})
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
@@ -455,8 +456,8 @@ class combustion_chamber_stoich_error_tests:
         """
         Test bad name for air alias.
         """
-        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
-                           air={'N2': 0.76, 'O2': 0.24},
+        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
+                               air={'N2': 0.76, 'O2': 0.24},
                            air_alias='TESPy::air')
         self.nw.solve('design', init_only=True)
 
@@ -466,8 +467,8 @@ class combustion_chamber_stoich_error_tests:
         """
         Test bad name for air alias.
         """
-        self.comb.set_attr(fuel={'CH4': 1}, fuel_alias='fuel', air={'N2': 1},
-                           air_alias='myair')
+        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
+                               air={'N2': 1}, air_alias='myair')
         self.nw.solve('design', init_only=True)
 
 
@@ -475,24 +476,77 @@ class combustion_engine_bus_error_tests:
 
     def setup(self):
         self.nw = network(['water', 'air'])
-        self.comp = combustion.combustion_engine('cogeneration unit')
+        self.instance = combustion.combustion_engine('combustion engine')
         self.bus = bus('power')
-        self.bus.add_comps({'c': self.comp, 'p': 'Param'})
+        self.bus.add_comps({'c': self.instance, 'p': 'Param'})
 
     @raises(ValueError)
     def test_missing_bus_param_func(self):
         """
         Test missing bus parameter in bus function for cogeneration unit.
         """
-        self.comp.bus_func(self.bus.comps.loc[self.comp])
+        self.instance.bus_func(self.bus.comps.loc[self.instance])
 
     @raises(ValueError)
     def test_missing_bus_param_deriv(self):
         """
         Test missing bus parameter in bus derivatives for cogeneration unit.
         """
-        self.comp.num_vars = 2
-        self.comp.inl = [connection(self.comp, 'out1',
-                                    basics.sink('sink'), 'in1')]
-        self.comp.inl[0].fluid = dc_flu(val={'water': 1})
-        self.comp.bus_deriv(self.bus.comps.loc[self.comp])
+        self.instance.num_vars = 2
+        self.instance.inl = [connection(self.instance, 'out1',
+                                        basics.sink('sink'), 'in1')]
+        self.instance.inl[0].fluid = dc_flu(val={'water': 1})
+        self.instance.bus_deriv(self.bus.comps.loc[self.instance])
+
+
+class water_electrolyzer_error_tests:
+
+    def setup_network_electrolyzer(self):
+        """
+        Set up network for electrolyzer tests.
+        """
+        instance = reactors.water_electrolyzer('electrolyzer')
+
+        fw = basics.source('feed water')
+        cw_in = basics.source('cooling water')
+        o2 = basics.sink('oxygen sink')
+        h2 = basics.sink('hydrogen sink')
+        cw_out = basics.sink('cooling water sink')
+
+        cw_el = connection(cw_in, 'out1', instance, 'in1')
+        el_cw = connection(instance, 'out1', cw_out, 'in1')
+
+        self.nw.add_conns(cw_el, el_cw)
+
+        fw_el = connection(fw, 'out1', instance, 'in2')
+        el_o2 = connection(instance, 'out2', o2, 'in1')
+        el_h2 = connection(instance, 'out3', h2, 'in1')
+
+        self.nw.add_conns(fw_el, el_o2, el_h2)
+
+    @raises(ValueError)
+    def test_missing_hydrogen_in_network(self):
+        """
+        Test missing hydrogen in network fluids with water electrolyzer.
+        """
+        self.nw = network(['H2O', 'O2'])
+        self.setup_network_electrolyzer()
+        self.nw.solve('design')
+
+    @raises(ValueError)
+    def test_missing_oxygen_in_network(self):
+        """
+        Test missing hydrogen in network fluids with water electrolyzer.
+        """
+        self.nw = network(['H2O', 'H2'])
+        self.setup_network_electrolyzer()
+        self.nw.solve('design')
+
+    @raises(ValueError)
+    def test_missing_water_in_network(self):
+        """
+        Test missing hydrogen in network fluids with water electrolyzer.
+        """
+        self.nw = network(['O2', 'H2'])
+        self.setup_network_electrolyzer()
+        self.nw.solve('design')

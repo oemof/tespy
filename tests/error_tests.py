@@ -616,3 +616,20 @@ def test_compressor_missing_char_parameter():
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
+
+@raises(ValueError)
+def test_turbine_missing_char_parameter():
+    """
+    Turbine with invalid parameter for eta_s_char function.
+    """
+    nw = network(['CH4'])
+    so = basics.source('source')
+    si = basics.sink('sink')
+    instance = turbomachinery.turbine('turbine')
+    c1 = connection(so, 'out1', instance, 'in1')
+    c2 = connection(instance, 'out1', si, 'in1')
+    nw.add_conns(c1, c2)
+    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+                                       is_set=True, param=None))
+    nw.solve('design', init_only=True)
+    instance.eta_s_char_func()

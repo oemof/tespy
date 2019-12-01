@@ -27,14 +27,14 @@ class component_tests:
         self.c1 = connection(self.air, 'out1', instance, 'in1')
         self.c2 = connection(self.fuel, 'out1', instance, 'in2')
         self.c3 = connection(instance, 'out1', self.fg, 'in1')
-        self.nw.add_conns(c1, c2, c3)
+        self.nw.add_conns(self.c1, self.c2, self.c3)
 
     def setup_combustion_engine_network(self, instance):
 
         self.cw1_in = source('cooling water 1 source')
         self.cw2_in = source('cooling water 2 source')
-        self.cw1_out = source('cooling water 1 sink')
-        self.cw2_out = source('cooling water 2 sink')
+        self.cw1_out = sink('cooling water 1 sink')
+        self.cw2_out = sink('cooling water 2 sink')
 
         self.c1 = connection(self.air, 'out1', instance, 'in3')
         self.c2 = connection(self.fuel, 'out1', instance, 'in4')
@@ -43,11 +43,12 @@ class component_tests:
         self.c5 = connection(self.cw2_in, 'out1', instance, 'in2')
         self.c6 = connection(instance, 'out1', self.cw1_out, 'in1')
         self.c7 = connection(instance, 'out2', self.cw2_out, 'in1')
-        self.nw.add_conns(c1, c2, c3, c4, c5, c6, c7)
+        self.nw.add_conns(self.c1, self.c2, self.c3, self.c4, self.c5, self.c6,
+                          self.c7)
 
     def test_combustion_chamber(self):
         """
-        Test component properties of combustion chambers.
+        Test component properties of combustion chamber.
         """
         instance = combustion_chamber('combustion chamber')
         self.setup_combustion_chamber_network(instance)
@@ -68,6 +69,7 @@ class component_tests:
         msg = ('Value of thermal input must be ' + str(b.P.val) + ', is ' +
                str(instance.ti.val) + '.')
         eq_(round(b.P.val, 1), round(instance.ti.val, 1), msg)
+        b.set_attr(P=np.nan)
 
         # test specified thermal input for combustion_chamber
         instance.set_attr(ti=1e6)
@@ -78,119 +80,121 @@ class component_tests:
                ', is ' + str(ti) + '.')
         eq_(round(ti, 1), round(instance.ti.val, 1), msg)
 
-        # test specified lamd for combustion_chamber
+        # test specified lamb for combustion_chamber
+        self.c3.set_attr(T=np.nan)
+        instance.set_attr(lamb=1)
+        self.nw.solve('design')
+        msg = ('Value of oxygen in flue gas must be 0.0, is ' +
+               str(round(self.c3.fluid.val['O2'], 4)) + '.')
+        eq_(0.0, round(self.c3.fluid.val['O2'], 4), msg)
 
-    def test_cogeneration_unit(self):
+    def test_combustion_engine(self):
         """
-        Test component properties of cogeneration unit.
+        Test component properties of combustion engine.
         """
-        amb = cmp.source('ambient')
-        sf = cmp.source('fuel')
-        fg = cmp.sink('flue gas outlet')
-        cw_in1 = cmp.source('cooling water inlet1')
-        cw_in2 = cmp.source('cooling water inlet2')
-        cw_out1 = cmp.sink('cooling water outlet1')
-        cw_out2 = cmp.sink('cooling water outlet2')
-        chp = cmp.cogeneration_unit('cogeneration unit', fuel='CH4')
-        amb_comb = connection(amb, 'out1', chp, 'in3')
-        sf_comb = connection(sf, 'out1', chp, 'in4')
-        comb_fg = connection(chp, 'out3', fg, 'in1')
-        self.nw.add_conns(sf_comb, amb_comb, comb_fg)
-        cw1_chp1 = connection(cw_in1, 'out1', chp, 'in1')
-        cw2_chp2 = connection(cw_in2, 'out1', chp, 'in2')
-        self.nw.add_conns(cw1_chp1, cw2_chp2)
-        chp1_cw = connection(chp, 'out1', cw_out1, 'in1')
-        chp2_cw = connection(chp, 'out2', cw_out2, 'in1')
-        self.nw.add_conns(chp1_cw, chp2_cw)
+        instance = combustion_engine('combustion engine')
+        self.setup_combustion_engine_network(instance)
 
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
-               'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 0,
-                'NH3': 0, 'CO2': 0.04, 'CH4': 0.96}
-        water1 = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1,
-                  'NH3': 0, 'CO2': 0, 'CH4': 0}
-        water2 = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'H2O': 1,
-                  'NH3': 0, 'CO2': 0, 'CH4': 0}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
+               'CH4': 0}
+        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
+        water1 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
+        water2 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
 
-        chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, lamb=1.2,
-                     design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
-        amb_comb.set_attr(p=5, T=30, fluid=air)
-        sf_comb.set_attr(T=30, fluid=fuel)
-        cw1_chp1.set_attr(p=3, T=60, m=50, fluid=water1)
-        cw2_chp2.set_attr(p=3, T=80, m=50, fluid=water2)
+        # connection parametrisation
+        instance.set_attr(pr1=0.99, pr2=0.99, lamb=1.0,
+                          design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
+        self.c1.set_attr(p=5, T=30, fluid=air)
+        self.c2.set_attr(T=30, fluid=fuel)
+        self.c4.set_attr(p=3, T=60, m=50, fluid=water1)
+        self.c5.set_attr(p=3, T=80, m=50, fluid=water2)
 
+        # create busses
         TI = bus('thermal input')
         Q1 = bus('heat output 1')
         Q2 = bus('heat output 2')
         Q = bus('heat output')
         Qloss = bus('thermal heat loss')
 
-        TI.add_comps({'c': chp, 'p': 'TI'})
-        Q1.add_comps({'c': chp, 'p': 'Q1'})
-        Q2.add_comps({'c': chp, 'p': 'Q2'})
-        Q.add_comps({'c': chp, 'p': 'Q'})
-        Qloss.add_comps({'c': chp, 'p': 'Qloss'})
+        TI.add_comps({'c': instance, 'p': 'TI'})
+        Q1.add_comps({'c': instance, 'p': 'Q1'})
+        Q2.add_comps({'c': instance, 'p': 'Q2'})
+        Q.add_comps({'c': instance, 'p': 'Q'})
+        Qloss.add_comps({'c': instance, 'p': 'Qloss'})
 
         self.nw.add_busses(TI, Q1, Q2, Q, Qloss)
+
+        # test specified thermal input bus value
         ti = 1e6
         TI.set_attr(P=ti)
-
-        # design point
         self.nw.solve('design')
         self.nw.save('tmp')
+        # calculate in offdesign mode
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         msg = ('Value of thermal input must be ' + str(TI.P.val) + ', is ' +
-               str(chp.ti.val) + '.')
-        eq_(round(TI.P.val, 1), round(chp.ti.val, 1), msg)
-        # ti via component
+               str(instance.ti.val) + '.')
+        eq_(round(TI.P.val, 1), round(instance.ti.val, 1), msg)
+
+        # test specified thermal input in component
         TI.set_attr(P=np.nan)
-        chp.set_attr(ti=ti)
+        instance.set_attr(ti=ti)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
-               str(chp.ti.val) + '.')
-        eq_(round(ti, 1), round(chp.ti.val, 1), msg)
-        chp.set_attr(ti=np.nan)
-        # Q1 via bus
-        Q1.set_attr(P=chp.Q1.val)
+               str(instance.ti.val) + '.')
+        eq_(round(ti, 1), round(instance.ti.val, 1), msg)
+        instance.set_attr(ti=np.nan)
+
+        # test specified heat output 1 bus value
+        Q1.set_attr(P=instance.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        # heat output is at design point value, thermal input must therefore
+        # not have changed
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
-               str(chp.ti.val) + '.')
-        eq_(round(ti, 1), round(chp.ti.val, 1), msg)
-        heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
+               str(instance.ti.val) + '.')
+        eq_(round(ti, 1), round(instance.ti.val, 1), msg)
+
+        # calculate heat output over cooling loop
+        heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
         msg = ('Value of thermal input must be ' + str(heat1) + ', is ' +
-               str(chp.Q1.val) + '.')
-        eq_(round(heat1, 1), round(chp.Q1.val, 1), msg)
+               str(instance.Q1.val) + '.')
+        eq_(round(heat1, 1), round(instance.Q1.val, 1), msg)
         Q1.set_attr(P=np.nan)
-        # Q2 via bus
-        Q2.set_attr(P=1.2 * chp.Q2.val)
+
+        # test specified heat output 2 bus value
+        Q2.set_attr(P=1.2 * instance.Q2.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
-        # due to characteristic function Q1 is equal to Q2 for this
-        # cogeneration unit
-        heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
+
+        # calculate heat output over cooling loop, due to characteristic
+        # function Q1 is equal to Q2 for this combustion engine
+        heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
         msg = ('Value of heat output 2 must be ' + str(heat1) + ', is ' +
-               str(chp.Q2.val) + '.')
-        eq_(round(heat1, 1), round(chp.Q2.val, 1), msg)
-        # Q2 via component
+               str(instance.Q2.val) + '.')
+        eq_(round(heat1, 1), round(instance.Q2.val, 1), msg)
+
+        # test specified heat output 2 in component
         Q2.set_attr(P=np.nan)
-        chp.set_attr(Q2=heat1)
+        instance.set_attr(Q2=heat1)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
-        heat1 = chp1_cw.m.val_SI * (chp1_cw.h.val_SI - cw1_chp1.h.val_SI)
+        heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
         msg = ('Value of heat output 2 must be ' + str(heat1) + ', is ' +
-               str(chp.Q2.val) + '.')
-        eq_(round(heat1, 1), round(chp.Q2.val, 1), msg)
-        # Q via bus
-        chp.set_attr(Q2=np.nan)
-        Q.set_attr(P=1.5 * chp.Q1.val)
+               str(instance.Q2.val) + '.')
+        eq_(round(heat1, 1), round(instance.Q2.val, 1), msg)
+
+        # test total heat output bus value
+        instance.set_attr(Q2=np.nan)
+        Q.set_attr(P=1.5 * instance.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
-        msg = ('Value of total heat output (' + str(Q.P.val) +
-               ') must be twice as much as value of heat output 2 (' +
-               str(chp.Q2.val) + ').')
-        eq_(round(Q.P.val, 1), round(2 * chp.Q2.val, 1), msg)
-        # Qloss via bus
+        heat = (self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
+                self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
+        msg = ('Value of total heat output must be ' + str(Q.P.val) +
+               ', is ' + str(heat) + '.')
+        eq_(round(Q.P.val, 1), round(heat, 1), msg)
+
+        # test specified heat loss bus value
         Q.set_attr(P=np.nan)
         Qloss.set_attr(P=1e5)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         msg = ('Value of heat loss must be ' + str(Qloss.P.val) + ', is ' +
-               str(chp.Qloss.val) + '.')
-        eq_(round(Qloss.P.val, 1), round(chp.Qloss.val, 1), msg)
+               str(instance.Qloss.val) + '.')
+        eq_(round(Qloss.P.val, 1), round(instance.Qloss.val, 1), msg)
         shutil.rmtree('./tmp', ignore_errors=True)

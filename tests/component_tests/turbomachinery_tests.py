@@ -16,8 +16,7 @@ import shutil
 class turbomachinery_tests:
 
     def setup_network(self, instance):
-        self.nw = network(['INCOMP::DowQ', 'H2O', 'NH3', 'N2',
-                           'O2', 'Ar', 'CO2', 'CH4'],
+        self.nw = network(['INCOMP::DowQ', 'NH3', 'N2', 'O2', 'Ar'],
                           T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.source = source('source')
         self.sink = sink('sink')
@@ -33,8 +32,7 @@ class turbomachinery_tests:
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0,
-              'H2O': 0, 'NH3': 1, 'CO2': 0, 'CH4': 0}
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'NH3': 1}
         self.c1.set_attr(fluid=fl, v=1, p=5, T=100)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=0.8)
@@ -133,8 +131,7 @@ class turbomachinery_tests:
         """
         instance = pump('pump')
         self.setup_network(instance)
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'H2O': 0,
-              'NH3': 0, 'CO2': 0, 'CH4': 0}
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'NH3': 0}
         self.c1.set_attr(fluid=fl, v=1, p=5, T=50)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
@@ -219,7 +216,7 @@ class turbomachinery_tests:
         instance = turbine('turbine')
         self.setup_network(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
-              'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+              'NH3': 0}
         self.c1.set_attr(fluid=fl, m=15, p=10)
         self.c2.set_attr(p=1, T=20)
         instance.set_attr(eta_s=0.85)
@@ -300,41 +297,47 @@ class turbomachinery_tests:
                str(round(instance.eta_s.val, 3)) +
                 ') must be (' + str(eta_s) + ').')
         eq_(eta_s, round(instance.eta_s.val, 3), msg)
+        shutil.rmtree('./tmp', ignore_errors=True)
 
-    # def test_turbomachine(self):
-    #     """
-    #     Test component properties of turbomachines.
-    #     """
-    #     instance = turbomachine('turbomachine')
-    #     c1, c2 = self.setup_network_11(instance)
-    #     fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
-    #           'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
-    #     self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
-    #     self.c2.set_attr(p=1, h=2e5)
-    #     self.nw.solve('design')
-    #     power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-    #     pr = self.c2.p.val_SI / self.c1.p.val_SI
-    #     # pressure ratio and power are the basic functions for turbomachines,
-    #     # these are inherited by all children, thus only tested here
-    #     msg = ()
-    #     eq_(power, instance.P.val, 'Value of power must be ' + str(power) +
-    #         ', is ' + str(instance.P.val) + '.')
-    #     msg = ()
-    #     eq_(pr, instance.pr.val, 'Value of power must be ' + str(pr) +
-    #         ', is ' + str(instance.pr.val) + '.')
-    #     self.c2.set_attr(p=np.nan)
-    #     instance.set_attr(pr=5)
-    #     self.nw.solve('design')
-    #     pr = self.c2.p.val_SI / self.c1.p.val_SI
-    #     msg = ('Value of power must be ' + str(pr) + ', is ' +
-    #             str(instance.pr.val) + '.')
-    #     eq_(pr, instance.pr.val, msg)
-    #     self.c2.set_attr(h=np.nan)
-    #     instance.set_attr(P=1e5)
-    #     self.nw.solve('design')
-    #     power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-    #     msg = ('Value of power must be ' + str(pr) + ', is ' +
-    #             str(instance.pr.val) + '.')
-    #     eq_(pr, instance.pr.val, msg)
-    #     instance.set_attr(eta_s=0.8)
-    #     self.c2.set_attr(h=np.nan)
+    def test_turbomachine(self):
+        """
+        Test component properties of turbomachines.
+        """
+        instance = turbomachine('turbomachine')
+        self.setup_network(instance)
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
+              'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
+        self.c2.set_attr(p=3, h=2e5)
+
+        # pressure ratio and power are the basic functions for turbomachines,
+        # these are inherited by all children, thus only tested here
+        self.nw.solve('design')
+        power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        pr = self.c2.p.val_SI / self.c1.p.val_SI
+        msg = ('Value of power must be ' + str(power) + ', is ' +
+               str(instance.P.val) + '.')
+        eq_(power, instance.P.val, msg)
+        msg = ('Value of power must be ' + str(pr) + ', is ' +
+               str(instance.pr.val) + '.')
+        eq_(pr, instance.pr.val, )
+
+        # test pressure ratio specification
+        self.c2.set_attr(p=np.nan)
+        instance.set_attr(pr=5)
+        self.nw.solve('design')
+        pr = self.c2.p.val_SI / self.c1.p.val_SI
+        msg = ('Value of power must be ' + str(pr) + ', is ' +
+               str(instance.pr.val) + '.')
+        eq_(pr, instance.pr.val, msg)
+
+        # test power specification
+        self.c2.set_attr(h=np.nan)
+        instance.set_attr(P=1e5)
+        self.nw.solve('design')
+        power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        msg = ('Value of power must be ' + str(pr) + ', is ' +
+               str(instance.pr.val) + '.')
+        eq_(pr, instance.pr.val, msg)
+        instance.set_attr(eta_s=0.8)
+        self.c2.set_attr(h=np.nan)

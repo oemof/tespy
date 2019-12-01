@@ -4,10 +4,9 @@ from nose.tools import eq_
 
 from tespy.components.basics import sink, source
 from tespy.components.combustion import (combustion_chamber, combustion_engine)
-from tespy.connections import connection, bus, ref
+from tespy.connections import connection, bus
 from tespy.networks.networks import network
-from tespy.tools.data_containers import dc_cc, dc_cm
-from tespy.tools.fluid_properties import s_mix_ph
+
 import numpy as np
 import shutil
 

@@ -417,7 +417,7 @@ class network:
         if not isinstance(self.iterinfo, bool):
             msg = ('Network parameter iterinfo must be True or False!')
             logging.error(msg)
-            TypeError(msg)
+            raise TypeError(msg)
 
     def get_attr(self, key):
         r"""

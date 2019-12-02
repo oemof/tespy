@@ -177,82 +177,82 @@ class heat_exchanger_tests:
         """
         Test component properties of heat exchanger.
         """
-        tesin = sink('TES in')
-        tesout = source('TES out')
-        hsin = sink('HS in')
-        hsout = source('HS out')
-        he = heat_exchanger('heat exchanger')
-        tes_he = connection(tesout, 'out1', he, 'in2')
-        he_tes = connection(he, 'out2', tesin, 'in1')
-        hs_he = connection(hsout, 'out1', he, 'in1')
-        he_hs = connection(he, 'out1', hsin, 'in1')
-        self.nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+        instance = heat_exchanger('heat exchanger')
+        self.setup_heat_exchanger_network(instance)
+
         # design specification
-        he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-                    design=['pr1', 'pr2', 'ttd_u'],
-                    offdesign=['zeta1', 'zeta2', 'kA'])
-        hs_he.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1})
-        he_hs.set_attr(T=70)
-        tes_he.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0})
+        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
+                          design=['pr1', 'pr2', 'ttd_u'],
+                          offdesign=['zeta1', 'zeta2', 'kA'])
+        self.c1.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1})
+        self.c2.set_attr(T=70)
+        self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0})
         b = bus('heat transfer', P=-80e3)
-        b.add_comps({'c': he})
+        b.add_comps({'c': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
-        # check heat flow
-        Q = hs_he.m.val_SI * (he_hs.h.val_SI - hs_he.h.val_SI)
         self.nw.save('tmp')
+
+        # check heat transfer
+        Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        td_log = ((self.c2.T.val - self.c3.T.val -
+                   self.c1.T.val + self.c4.T.val) /
+                  np.log((self.c2.T.val - self.c3.T.val) /
+                         (self.c1.T.val - self.c4.T.val)))
+        kA = round(-Q / td_log ,0)
+        msg = ('Value of heat transfer must be ' + str(round(Q, 0)) + ', is ' +
+               str(round(instance.Q.val, 0)) + '.')
+        eq_(round(Q, 0), round(instance.Q.val, 0), msg)
+
+        # check upper terminal temperature difference
         msg = ('Value of terminal temperature difference must be ' +
-               str(he.ttd_u.val) + ', is ' + str(hs_he.T.val - he_tes.T.val) +
-               '.')
-        eq_(round(hs_he.T.val - he_tes.T.val, 1), round(he.ttd_u.val, 1), msg)
+               str(round(instance.ttd_u.val, 1)) + ', is ' +
+               str(round(self.c1.T.val - self.c4.T.val, 1)) + '.')
+        eq_(round(instance.ttd_u.val, 1),
+            round(self.c1.T.val - self.c4.T.val, 1), msg)
+
         # check lower terminal temperature difference
-        he_hs.set_attr(T=np.nan)
-        he.set_attr(ttd_l=20)
+        self.c2.set_attr(T=np.nan)
+        instance.set_attr(ttd_l=20)
         self.nw.solve('design')
         msg = ('Value of terminal temperature difference must be ' +
-               str(he.ttd_l.val) + ', is ' + str(he_hs.T.val - tes_he.T.val) +
-               '.')
-        eq_(round(he_hs.T.val - tes_he.T.val, 1), round(he.ttd_l.val, 1), msg)
-        # check kA value
+               str(instance.ttd_l.val) + ', is ' +
+               str(self.c2.T.val - self.c3.T.val) + '.')
+        eq_(round(self.c2.T.val - self.c3.T.val, 1),
+            round(instance.ttd_l.val, 1), msg)
+
+        # check specified kA value (by offdesign parameter), reset temperatures
+        # to design state
+        self.c2.set_attr(T=70)
+        instance.set_attr(ttd_l=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
-        msg = ('Value of heat flow must be ' + str(he.Q.val) +
-               ', is ' + str(Q) + '.')
-        eq_(round(Q, 1), round(he.Q.val, 1), msg)
-        # trigger errors for negative terminal temperature differences at given
-        # kA-value
-        he.set_attr(ttd_l=np.nan)
-        # ttd_l
-        he_hs.set_attr(T=30)
-        try:
-            self.nw.solve('offdesign', design_path='tmp')
-        except ValueError:
-            pass
-        # ttd_u
-        he_hs.set_attr(T=np.nan)
-        he_tes.set_attr(T=130)
-        try:
-            self.nw.solve('offdesign', design_path='tmp')
-        except ValueError:
-            pass
+        msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
+               str(round(Q, 0)) + '.')
+        eq_(round(Q, 0), round(instance.Q.val, 0), msg)
+        msg = ('Value of heat transfer coefficient must be ' + str(kA) +
+               ', is ' + str(round(instance.kA.val, 0)) + '.')
+        eq_(kA, round(instance.kA.val, 0), msg)
 
         # trigger negative lower terminal temperature difference as result
-        he_tes.set_attr(T=np.nan)
-        he_hs.set_attr(T=30)
+        self.c4.set_attr(T=np.nan)
+        self.c2.set_attr(T=30)
         self.nw.solve('design')
         msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(he.ttd_l.val, 1)) + '.')
-        eq_(True, he.ttd_l.val < 0, msg)
+               'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) + '.')
+        eq_(True, instance.ttd_l.val < 0, msg)
 
         # trigger negative upper terminal temperature difference as result
-        he_tes.set_attr(T=100)
-        hs_he.set_attr(h=200e3, T=np.nan)
-        he.set_attr(pr1=0.98, pr2=0.98, design=['pr1', 'pr2'], ttd_u=np.nan)
-        he_hs.set_attr(h=150e3, T=np.nan)
-        tes_he.set_attr(T=40)
+        self.c4.set_attr(T=100)
+        self.c2.set_attr(h=200e3, T=np.nan)
+        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=np.nan,
+                          design=['pr1', 'pr2'])
+        self.c1.set_attr(h=150e3, T=np.nan)
+        self.c3.set_attr(T=40)
         self.nw.solve('design')
         msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(he.ttd_u.val, 1)) + '.')
-        eq_(True, he.ttd_u.val < 0, msg)
+               'smaller than zero, is ' + str(round(instance.ttd_u.val, 1)) +
+               '.')
+        eq_(True, instance.ttd_u.val < 0, msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)
 

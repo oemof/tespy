@@ -58,8 +58,8 @@ class subsystem:
     'mySubsystem'
     >>> type(mysub.get_network())
     <class 'tespy.networks.networks.network'>
-    mysub.set_attr(num_i=3)
-    mysub.set_attr(num_o='some value')
+    >>> mysub.set_attr(num_i=3)
+    >>> mysub.set_attr(num_o='some value')
     """
 
     def __init__(self, label, **kwargs):

@@ -42,7 +42,7 @@ Bug fixes
 Other changes
 #############
 
-- Adjust logging levels for grouped component messages (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
+- Adjust logging levels for grouped component parameter initialisation (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
 
 Contributors
 ############

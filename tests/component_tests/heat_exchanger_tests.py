@@ -8,6 +8,7 @@ from tespy.components.heat_exchangers import (heat_exchanger_simple,
                                               heat_exchanger, condenser)
 from tespy.connections import connection, bus
 from tespy.networks.networks import network
+from tespy.tools.fluid_properties import T_bp_p
 
 import numpy as np
 import shutil
@@ -260,45 +261,47 @@ class heat_exchanger_tests:
         """
         Test component properties of condenser.
         """
-        tesin = sink('TES in')
-        tesout = source('TES out')
-        hsin = sink('Cond in')
-        hsout = source('Cond out')
-        he = condenser('condenser')
-        tes_he = connection(tesout, 'out1', he, 'in2')
-        he_tes = connection(he, 'out2', tesin, 'in1')
-        hs_he = connection(hsout, 'out1', he, 'in1')
-        he_hs = connection(he, 'out1', hsin, 'in1')
-        self.nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+        instance = condenser('condenser')
+        self.setup_heat_exchanger_network(instance)
+
         # design specification
-        he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5, design=['pr2', 'ttd_u'],
-                    offdesign=['zeta2', 'kA'])
-        hs_he.set_attr(T=100, p0=0.5, fluid={'Ar': 0, 'H2O': 1})
-        tes_he.set_attr(T=30, p=5, fluid={'Ar': 0, 'H2O': 1})
-        he_tes.set_attr(T=40)
-        he.set_attr(Q=-80e3)
+        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
+                          offdesign=['zeta2', 'kA'])
+        self.c1.set_attr(T=100, p0=0.5, fluid={'Ar': 0, 'H2O': 1})
+        self.c3.set_attr(T=30, p=5, fluid={'Ar': 0, 'H2O': 1})
+        self.c4.set_attr(T=40)
+        instance.set_attr(Q=-80e3)
         self.nw.solve('design')
-        # check heat flow
-        Q = hs_he.m.val_SI * (he_hs.h.val_SI - hs_he.h.val_SI)
-        msg = ('Value ofheat flow be ' +
-               str(he.Q.val) + ', is ' + str(Q) + '.')
-        eq_(round(Q, 1), round(he.Q.val, 1), msg)
         self.nw.save('tmp')
-        ttd_u = hlp.T_bp_p(hs_he.to_flow()) - he_tes.T.val_SI
-        p = hs_he.p.val_SI
+
+        # test heat transfer
+        Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        msg = ('Value ofheat flow be ' + str(round(instance.Q.val, 0)) +
+               ', is ' + str(round(Q, 0)) + '.')
+        eq_(round(Q, 1), round(instance.Q.val, 1), msg)
+
+        # test upper terminal temperature difference. For the component
+        # condenser the temperature of the condensing fluid is relevant.
+        ttd_u = round(T_bp_p(self.c1.to_flow()) - self.c4.T.val_SI, 1)
+        p = round(self.c1.p.val_SI, 0)
         msg = ('Value of terminal temperature difference must be ' +
-               str(he.ttd_u.val) + ', is ' + str(ttd_u) + '.')
-        eq_(round(ttd_u, 1), round(he.ttd_u.val, 1), msg)
-        # check lower terminal temperature difference
-        he.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
+               str(round(instance.ttd_u.val, 1)) + ', is ' +
+               str(ttd_u) + '.')
+        eq_(ttd_u, round(instance.ttd_u.val, 1), msg)
+
+        # test lower terminal temperature difference
+        instance.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
         self.nw.solve('design')
         msg = ('Value of terminal temperature difference must be ' +
-               str(he.ttd_l.val) + ', is ' + str(he_hs.T.val - tes_he.T.val) +
-               '.')
-        eq_(round(he_hs.T.val - tes_he.T.val, 1), round(he.ttd_l.val, 1), msg)
-        # check kA value
+               str(instance.ttd_l.val) + ', is ' +
+               str(self.c2.T.val - self.c3.T.val) + '.')
+        eq_(round(self.c2.T.val - self.c3.T.val, 1),
+            round(instance.ttd_l.val, 1), msg)
+
+        # check kA value with condensing pressure in offdesign mode:
+        # no changes to design point means: identical pressure
         self.nw.solve('offdesign', design_path='tmp')
-        msg = ('Value of condensing pressure be ' + str(p) +
-               ', is ' + str(hs_he.p.val_SI) + '.')
-        eq_(round(p, 1), round(hs_he.p.val_SI, 1), msg)
+        msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
+               str(round(self.c1.p.val_SI)) + '.')
+        eq_(p, round(self.c1.p.val_SI, 0), msg)
         shutil.rmtree('./tmp', ignore_errors=True)

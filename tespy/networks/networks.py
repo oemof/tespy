@@ -440,10 +440,6 @@ class network:
             logging.error(msg)
             raise KeyError(msg)
 
-    def attr(self):
-        return ['m_unit', 'p_unit', 'h_unit', 'T_unit', 'v_unit',
-                'p_range', 'h_range', 'T_range', 'iterinfo']
-
     def add_subsys(self, *args):
         r"""
         Adds one or more subsystem to the network.

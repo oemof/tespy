@@ -160,8 +160,8 @@ class test_network_individual_offdesign:
         inlet = connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
         outlet = connection(me, 'out1', si, 'in1', p=3)
 
-        sp_p1 = connection(sp, 'out1', self.pump1, 'in1')
-        p1_sc1 = connection(self.pump1, 'out1', self.sc1, 'in1')
+        self.sp_p1 = connection(sp, 'out1', self.pump1, 'in1')
+        self.p1_sc1 = connection(self.pump1, 'out1', self.sc1, 'in1')
         self.sc1_v1 = connection(self.sc1, 'out1', v1, 'in1', p=3.1, T=90)
         v1_me = connection(v1, 'out1', me, 'in1')
 
@@ -170,8 +170,8 @@ class test_network_individual_offdesign:
         self.sc2_v2 = connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
         v2_me = connection(v2, 'out1', me, 'in2')
 
-        self.nw.add_conns(inlet, outlet, sp_p1, p1_sc1, self.sc1_v1, v1_me,
-                          self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
+        self.nw.add_conns(inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
+                          v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
 
     def test_individual_design_path_on_connections_and_components(self):
         """
@@ -231,6 +231,50 @@ class test_network_individual_offdesign:
         msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
                str(self.sc2.zeta.val) + '.')
         eq_(round(zeta_sc2_design, 0), round(self.sc2.zeta.val, 0), msg)
+
+        shutil.rmtree('./design1', ignore_errors=True)
+        shutil.rmtree('./design2', ignore_errors=True)
+
+    def test_local_offdesign_on_connections_and_components(self):
+        """
+        Test local offdesign feature.
+        """
+        self.setup_network_individual_offdesign()
+        self.nw.solve('design')
+        self.sc2_v2.set_attr(m=0)
+        self.nw.solve('design')
+        self.nw.save('design1')
+        v1_design = self.sc1_v1.v.val_SI
+        zeta_sc1_design = self.sc1.zeta.val
+
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+
+        self.sc1.set_attr(local_offdesign=True, design_path='design1')
+        self.pump1.set_attr(local_offdesign=True, design_path='design1')
+        self.sp_p1.set_attr(local_offdesign=True, design_path='design1')
+        self.p1_sc1.set_attr(local_offdesign=True, design_path='design1')
+        self.sc1_v1.set_attr(local_offdesign=True, design_path='design1')
+        self.sc1.set_attr(E=500)
+
+        self.sc2_v2.set_attr(T=95, m=np.nan)
+        self.nw.solve('design')
+        self.nw.save('design2')
+
+        # connections and components on side 1 must have switched to offdesign
+
+        msg = ('Solar collector outlet temperature must be different from ' +
+               'design value ' + str(round(self.sc1_v1.T.design - 273.15, 1)) +
+               ', is ' + str(round(self.sc1_v1.T.val, 1)) + '.')
+        eq_(round(self.sc1_v1.T.design, 1) > round(self.sc1_v1.T.val, 1),
+            True, msg)
+
+        msg = ('Parameter eta_s_char must be set for pump one.')
+        eq_(self.pump1.eta_s_char.is_set, True, msg)
+
+        msg = ('Parameter v must be set for connection from solar collector1 '
+               'to pump1.')
+        eq_(self.sc1_v1.v.val_set, True, msg)
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)

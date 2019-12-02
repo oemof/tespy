@@ -1,6 +1,11 @@
 # -*- coding: utf-8
 
-"""This module contains components of type piping: pipe and valve
+"""Module for piping components.
+
+Components in this module:
+
+    - :func:`tespy.components.piping.pipe`
+    - :func:`tespy.components.piping.valve`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -41,12 +46,12 @@ class pipe(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.additional_equations`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
 
     Inlets/Outlets
 
@@ -119,33 +124,41 @@ class pipe(heat_exchanger_simple):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    A mass flow of 10 kg/s ethanol is transported in a pipeline. The pipe is
+    considered adiabatic and has a length of 500 meters. We can calculate the
+    diameter required at a given pressure loss of 2.5 %. After we determined
+    the required diameter, we can predict pressure loss at a different mass
+    flow through the pipeline.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.piping import pipe
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> pi = cmp.pipe('pipe')
+    >>> fluid_list = ['ethanol']
+    >>> nw = network(fluids=fluid_list)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> so = source('source 1')
+    >>> si = sink('sink 1')
+    >>> pi = pipe('pipeline')
     >>> pi.component()
     'pipe'
-    >>> pi.set_attr(pr=0.95, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
-    >>> inc = con.connection(so1, 'out1', pi, 'in1')
-    >>> outg = con.connection(pi, 'out1', si1, 'in1')
+    >>> pi.set_attr(pr=0.975, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
+    >>> inc = connection(so, 'out1', pi, 'in1')
+    >>> outg = connection(pi, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'H2O': 1}, m=1, T=100, p=12)
+    >>> inc.set_attr(fluid={'ethanol': 1}, m=10, T=30, p=3)
     >>> nw.solve('design')
     >>> nw.save('tmp')
     >>> round(pi.D.val, 3)
-    0.032
-    >>> round(outg.p.val, 1)
-    11.4
-    >>> inc.set_attr(m=1.2)
+    0.119
+    >>> outg.p.val / inc.p.val == pi.pr.val
+    True
+    >>> inc.set_attr(m=15)
     >>> pi.set_attr(D=pi.D.val)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(outg.p.val, 2)
-    11.14
+    >>> round(pi.pr.val, 2)
+    0.94
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -208,37 +221,47 @@ class valve(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    A mass flow of 1 kg/s methane is throttled from 80 bar to 15 bar in a
+    valve. The inlet temperature is at 50 °C. It is possible to determine the
+    outlet temperature as the throttling does not change enthalpy.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.piping import valve
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> import numpy as np
     >>> fluid_list = ['CH4']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so = cmp.source('source')
-    >>> si = cmp.sink('sink')
-    >>> v = cmp.valve('valve')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> v = valve('valve')
     >>> v.component()
     'valve'
-    >>> so_v = con.connection(so, 'out1', v, 'in1')
-    >>> v_si = con.connection(v, 'out1', si, 'in1')
+    >>> so_v = connection(so, 'out1', v, 'in1')
+    >>> v_si = connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
-    >>> v.set_attr(pr=0.05, design=['pr'], offdesign=['zeta'])
-    >>> so_v.set_attr(fluid={'CH4': 1}, m=10)
-    >>> v_si.set_attr(p=2, T=10)
+    >>> v.set_attr(offdesign=['zeta'])
+    >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
+    >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(v.zeta.val, 1)
-    122239.1
-    >>> so_v.set_attr(m=12)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(v_si.T.val, 1)
+    26.3
     >>> round(v.pr.val, 3)
-    0.036
-    >>> round(so_v.T.val, 1)
-    33.1
-    >>> so_v.set_attr(m=8)
+    0.188
+
+    The simulation determined the area independant zeta value
+    :math:`\frac{\zeta}{D^4}`. This zeta remains constant if the cross
+    sectional area of the valve opening does not change. Using the zeta value
+    we can determine the pressure ratio at a different feed pressure.
+
+    >>> so_v.set_attr(p=70)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(v.pr.val, 3)
-    0.074
+    >>> round(so_v.m.val, 1)
+    0.9
+    >>> round(v_si.T.val, 1)
+    30.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

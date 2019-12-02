@@ -54,7 +54,7 @@ We will start with the consumer as the plant will be designed to deliver a speci
 	cb = cmp.source('consumer back flow')
 	cf = cmp.sink('consumer feed flow')
 
-	ves = cmp.sink('valve')
+	va = cmp.sink('valve')
 
 	# consumer system
 
@@ -82,9 +82,9 @@ In the next steps we will connect the components in order to form a network. Eve
 
 	# connection condenser - evaporator system
 
-	cd_ves = con.connection(cd, 'out1', ves, 'in1')
+	cd_va = con.connection(cd, 'out1', va, 'in1')
 
-	nw.add_conns(cd_ves)
+	nw.add_conns(cd_va)
 
 
 Parametrization
@@ -160,7 +160,7 @@ This part contains of a valve followed by a drum with evaporator in forced flow 
 
 	# evaporator system
 
-	ves = cmp.valve('valve')
+	va = cmp.valve('valve')
 	dr = cmp.drum('drum')
 	ev = cmp.heat_exchanger('evaporator')
 	su = cmp.heat_exchanger('superheater')
@@ -169,19 +169,19 @@ This part contains of a valve followed by a drum with evaporator in forced flow 
 Connections
 +++++++++++
 
-As we already redefined our variable "ves" to be a valve instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_ves". The valve connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drum's outlet 'out1', the evaporator's cold side connects to the drum's inlet 'in2' and the superheater's cold side connects to the drum's outlet 'out2'. This will add the following connections to the model:
+As we already redefined our variable "va" to be a valve instead of a sink (see above), we do not need any adjustments to the connection between the condenser and the former sink "cd_va". The valve connects to the drum at the inlet 'in1'. The pump of the forced flow evaporation system connects to the drum's outlet 'out1', the evaporator's cold side connects to the drum's inlet 'in2' and the superheater's cold side connects to the drum's outlet 'out2'. This will add the following connections to the model:
 
 .. code-block:: python
 
 	# evaporator system
 
-	ves_dr = con.connection(ves, 'out1', dr, 'in1')
+	va_dr = con.connection(va, 'out1', dr, 'in1')
 	dr_pu = con.connection(dr, 'out1', pu, 'in1')
 	pu_ev = con.connection(pu, 'out1', ev, 'in2')
 	ev_dr = con.connection(ev, 'out2', dr, 'in2')
 	dr_su = con.connection(dr, 'out2', su, 'in2')
 
-	nw.add_conns(ves_dr, dr_pu, pu_ev, ev_dr, dr_su)
+	nw.add_conns(va_dr, dr_pu, pu_ev, ev_dr, dr_su)
 
 	amb_in_su = con.connection(amb_in, 'out1', su, 'in1')
 	su_ev = con.connection(su, 'out1', ev, 'in1')
@@ -215,7 +215,7 @@ Next step is the connetion parametrization: The pressure in the drum and the ent
 
 	# evaporator system cold side
 
-	pu_ev.set_attr(m=con.ref(ves_dr, 4, 0), p0=5)
+	pu_ev.set_attr(m=con.ref(va_dr, 4, 0), p0=5)
 	su_cp1.set_attr(p0=5, h0=1700)
 
 	# evaporator system hot side

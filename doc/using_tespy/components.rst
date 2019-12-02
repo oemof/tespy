@@ -10,33 +10,36 @@ List of components
 
 More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
 
-- :py:class:`Source <tespy.components.components.source>` (no equations)
-- :py:class:`Sink <tespy.components.components.sink>` (no equations)
-- Nodes (base class is node)
-	- :py:class:`Node <tespy.components.components.node>` (:py:meth:`equations <tespy.components.components.node.equations>`)
-	- :py:class:`Merge <tespy.components.components.merge>` (:py:meth:`equations <tespy.components.components.node.equations>`)
-	- :py:class:`Splitter <tespy.components.components.splitter>` (:py:meth:`equations <tespy.components.components.node.equations>`)
-	- :py:class:`Separator <tespy.components.components.separator>` (:py:meth:`equations <tespy.components.components.node.equations>`)
-- :py:class:`Valve <tespy.components.components.valve>` (:py:meth:`equations <tespy.components.components.valve.equations>`)
-- Turbomachines (base class is turbomachine)
-	* :py:class:`Pump <tespy.components.components.pump>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
-	* :py:class:`Compressor <tespy.components.components.compressor>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
-	* :py:class:`Turbine <tespy.components.components.turbine>` (:py:meth:`equations <tespy.components.components.turbomachine.equations>`)
-- Components with combustion (base class is combustion_chamber)
-	* :py:class:`Combustion chamber <tespy.components.components.combustion_chamber>` (:py:meth:`equations <tespy.components.components.combustion_chamber.equations>`)
-	* :py:class:`Combustion chamber stoichiometric <tespy.components.components.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.components.combustion_chamber_stoich.equations>`)
-	* :py:class:`Cogeneration unit <tespy.components.components.cogeneration_unit>` (:py:meth:`equations <tespy.components.components.cogeneration_unit.equations>`)
-- Heat exchangers (base class is heat_exchanger)
-	* :py:class:`Heat exchanger <tespy.components.components.heat_exchanger>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
-	* :py:class:`Condenser <tespy.components.components.condenser>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
-	* :py:class:`Desuperheater <tespy.components.components.desuperheater>` (:py:meth:`equations <tespy.components.components.heat_exchanger.equations>`)
-- Simplified heat exchangers (base class is heat_exchanger_simple)
-	* :py:class:`Heat exchanger simple <tespy.components.components.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
-	* :py:class:`Pipe <tespy.components.components.pipe>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
-	* :py:class:`Solar collector <tespy.components.components.solar_collector>` (:py:meth:`equations <tespy.components.components.heat_exchanger_simple.equations>`)
-- :py:class:`Drum <tespy.components.components.drum>` (:py:meth:`equations <tespy.components.components.drum.equations>`)
-- :py:class:`Water electrolyzer <tespy.components.components.water_electrolyzer>` (:py:meth:`equations <tespy.components.components.water_electrolyzer.equations>`)
-- :py:class:`Subsystem interface <tespy.components.components.subsys_interface>` (:py:meth:`equations <tespy.components.components.subsys_interface.equations>`)
+- Basics
+	* :py:class:`Cycle closer<tespy.components.basics.cycle_closer>` (:py:meth:`equations <tespy.components.basics.cycle_closer.equations>`)
+	* :py:class:`Sink <tespy.components.basics.sink>` (no equations)
+	* :py:class:`Source <tespy.components.basics.source>` (no equations)
+	* :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>` (:py:meth:`equations <tespy.components.basics.subsystem_interface.equations>`)
+- Combustion
+	* :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber>` (:py:meth:`equations <tespy.components.combustion.combustion_chamber.equations>`)
+	* :py:class:`Combustion chamber stoichiometric <tespy.components.combustion.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.combustion.combustion_chamber_stoich.equations>`)
+	* :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>` (:py:meth:`equations <tespy.components.combustion.combustion_engine.equations>`)
+- Heat exchangers
+	* :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger_simple.equations>`)
+	* :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger_simple.equations>`)
+	* :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
+	* :py:class:`Condenser <tespy.components.heat_exchangers.condenser>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
+	* :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
+- Nodes
+	* :py:class:`Node <tespy.components.nodes.node>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
+	- :py:class:`Drum <tespy.components.nodes.drum>` (:py:meth:`equations <tespy.components.nodes.drum.equations>`)
+	* :py:class:`Merge <tespy.components.nodes.merge>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
+	* :py:class:`Separator <tespy.components.nodes.separator>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
+	* :py:class:`Splitter <tespy.components.nodes.splitter>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
+- Piping
+	* :py:class:`Pipe <tespy.components.piping.pipe>` (:py:meth:`equations <tespy.components.piping.heat_exchanger_simple.equations>`)
+	* :py:class:`Valve <tespy.components.piping.valve>` (:py:meth:`equations <tespy.components.piping.valve.equations>`)
+- Reactors
+	* :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer>` (:py:meth:`equations <tespy.components.reactors.water_electrolyzer.equations>`)
+- Turbomachinery
+	* :py:class:`Compressor <tespy.components.turbomachinery.compressor>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
+	* :py:class:`Pump <tespy.components.turbomachinery.pump>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
+	* :py:class:`Turbine <tespy.components.turbomachinery.turbine>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
 
 .. _using_tespy_components_parametrisation_label:
 

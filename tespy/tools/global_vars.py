@@ -1,7 +1,6 @@
 # -*- coding: utf-8
 
-"""This module contains variables used by other modules of the tespy package.
-
+"""Module for global variables used by other modules of the tespy package.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,

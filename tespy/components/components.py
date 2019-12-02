@@ -1,6 +1,8 @@
 # -*- coding: utf-8
 
-"""This module contains the component class
+"""Module class component.
+
+All tespy components inherit from this class.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -59,8 +61,8 @@ class component:
     Basic example for a setting up a tespy.components.components.component
     object. This example does not run a tespy calculation.
 
-    >>> from tespy import cmp
-    >>> comp = cmp.component('myComponent')
+    >>> from tespy.components.components import component
+    >>> comp = component('myComponent')
     >>> type(comp)
     <class 'tespy.components.components.component'>
     """
@@ -79,9 +81,6 @@ class component:
             raise ValueError(msg)
         else:
             self.label = label
-
-        # defaults
-        self.interface = False
 
         self.new_design = True
         self.design_path = None

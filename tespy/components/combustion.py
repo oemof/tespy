@@ -1,7 +1,12 @@
 # -*- coding: utf-8
 
-"""This module contains components with combustion: combustion chamber,
-stochiometric combustion chamber and (internal) combustion engine.
+"""Module for components using combustion.
+
+Components in this module:
+
+    - :func:`tespy.components.combustion.combustion_chamber`
+    - :func:`tespy.components.combustion.combustion_chamber_stoich`
+    - :func:`tespy.components.combustion.combustion_engine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -31,11 +36,13 @@ from tespy.tools.helpers import (
 
 class combustion_chamber(component):
     r"""
+    The class combustion_chamber is parent class of all combustion components.
+
     Equations
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_chamber.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_chamber.reaction_balance`
         - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
@@ -43,12 +50,12 @@ class combustion_chamber(component):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`tespy.components.components.combustion_chamber.energy_balance`
+        - :func:`tespy.components.combustion.combustion_chamber.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_chamber.lambda_func`
-        - :func:`tespy.components.components.combustion_chamber.ti_func`
+        - :func:`tespy.components.combustion.combustion_chamber.lambda_func`
+        - :func:`tespy.components.combustion.combustion_chamber.ti_func`
 
     Available fuels
 
@@ -86,7 +93,7 @@ class combustion_chamber(component):
         Fuel for the combustion chamber, see list of available fluids above.
 
     lamb : float/tespy.helpers.dc_cp
-        Air to stoichiometric air ratio, :math:`\lambda/1`.
+        Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
     ti : float/tespy.helpers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
@@ -96,38 +103,55 @@ class combustion_chamber(component):
     ----
     For more information on the usage of the combustion chamber see the
     examples section on github or look for the combustion chamber tutorials
-    at tespy.readthedocs.io
+    at tespy.readthedocs.io.
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
-    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> comb = cmp.combustion_chamber('combustion chamber')
+    The combustion chamber calculates energy input due to combustion as well as
+    the flue gas composition based on the type of fuel and the amount of
+    oxygen supplied. Using the parameters p_range and T_range is recommended
+    when using combustion, as these stabilize the calculation. In this example
+    a mixture of methane, hydrogen and carbondioxide is used as fuel.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.combustion import combustion_chamber
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> import shutil
+    >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
+    >>> amb = source('ambient air')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> comb = combustion_chamber('combustion chamber')
     >>> comb.component()
     'combustion chamber'
-    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
-    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
-    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
+    >>> amb_comb = connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = connection(comb, 'out1', fg, 'in1')
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> comb.set_attr(fuel='CH4', ti=50000)
-    >>> amb_comb.set_attr(p=1, T=20,
-    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-    ...         'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25,
-    ...     fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0,
-    ...         'O2': 0, 'H2O': 0, 'CH4': 0.96})
+
+    Specify the thermal input of the combustion chamber. At the given fluid
+    compositions this determines the mass flow of the fuel. The outlet
+    temperature of the flue gas determines the ratio of oxygen to fuel mass
+    flow.
+
+    >>> comb.set_attr(ti=500000)
+    >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
+    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'Ar': 0,
+    ... 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96})
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.009
-    >>> round(comb.ti.val)
-    50000.0
+    2.017
+    >>> comb.set_attr(lamb=2)
+    >>> comb_fg.set_attr(T=np.nan)
+    >>> nw.solve('design')
+    >>> round(comb_fg.T.val, 1)
+    1208.4
     """
 
     def component(self):
@@ -1085,11 +1109,13 @@ class combustion_chamber(component):
 
 class combustion_chamber_stoich(combustion_chamber):
     r"""
+    The class combustion_chamber_stoich is a simplified combustion chamber.
+
     Equations
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_chamber_stoich.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.reaction_balance`
         - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
@@ -1097,12 +1123,12 @@ class combustion_chamber_stoich(combustion_chamber):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_chamber_stoich.lambda_func`
-        - :func:`tespy.components.components.combustion_chamber_stoich.ti_func`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.lambda_func`
+        - :func:`tespy.components.combustion.combustion_chamber_stoich.ti_func`
 
     Available fuels
 
@@ -1185,41 +1211,57 @@ class combustion_chamber_stoich(combustion_chamber):
 
     Example
     -------
-    >>> from tespy import con, cmp, nwk, hlp
+    The stoichiometric combustion chamber follows identical physical properties
+    as the combustion chamber. The main difference is, that the fuel and the
+    air are not stated component wise but are fixed mixtures.
+    The main advantage of using the stoichimetric combustion chamber
+    comes from a strong improvement in terms of calculation speed.
+    This example will show the same calculation as presented in the combustion
+    chamber example
+    (see :func:`tespy.components.combustion.combustion_chamber`).
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.combustion import combustion_chamber_stoich
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     p_range=[0.001, 10], T_range=[10, 2000])
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> comb = cmp.combustion_chamber_stoich(
-    ... 'stoichiometric combustion chamber')
-    >>> amb_comb = con.connection(amb, 'out1', comb, 'in1')
-    >>> sf_comb = con.connection(sf, 'out1', comb, 'in2')
-    >>> comb_fg = con.connection(comb, 'out1', fg, 'in1')
-    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-    ...     air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-    ...     'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-    ...     fuel_alias='myFuel', air_alias='myAir',
-    ...     lamb=3, ti=20000)
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.001, 10], T_range=[10, 2000], iterinfo=False)
+    >>> amb = source('ambient air')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> comb = combustion_chamber_stoich('stoichiometric combustion chamber')
     >>> comb.component()
     'combustion chamber stoichiometric flue gas'
-    >>> amb_comb.set_attr(T=20, p=1,
-    ...     fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
-    ...     'TESPy::myFuel_fg': 0})
-    >>> sf_comb.set_attr(T=25,
-    ...     fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
-    ...     'TESPy::myFuel_fg': 0})
-    >>> nw.set_printoptions(iterinfo=False)
+    >>> amb_comb = connection(amb, 'out1', comb, 'in1')
+    >>> sf_comb = connection(sf, 'out1', comb, 'in2')
+    >>> comb_fg = connection(comb, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
+
+    Specify the thermal input of the combustion chamber. At the given fluid
+    compositions this determines the mass flow of the fuel. The outlet
+    temperature of the flue gas determines the ratio of oxygen to fuel mass
+    flow. The fluid composition of the fuel and the air are defined, too. The
+    results show very small deviation from the actual combustion chamber.
+
+    >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.03, 'H2': 0.01},
+    ... air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004,
+    ... 'O2': 0.2314}, fuel_alias='myFuel', air_alias='myAir', ti=500000)
+    >>> amb_comb.set_attr(T=20, p=1, fluid={'TESPy::myAir': 1,
+    ... 'TESPy::myFuel': 0,'TESPy::myFuel_fg': 0})
+    >>> sf_comb.set_attr(T=25, fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
+    ... 'TESPy::myFuel_fg': 0})
+    >>> comb_fg.set_attr(T=1200)
+    >>> nw.solve('design')
+    >>> round(comb.lamb.val, 3)
+    2.01
+    >>> comb.set_attr(lamb=2)
+    >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    860.2
-    >>> comb.set_attr(path='./LUT')
-    >>> nw.solve('design')
-    >>> round(comb_fg.T.val, 1)
-    860.2
+    1204.7
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
@@ -1337,7 +1379,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def calc_lhv(self):
         r"""
-        calculates the lower heating value of the combustion chambers fuel.
+        Calculate the lower heating value of the combustion chambers fuel.
 
         Returns
         -------
@@ -1889,6 +1931,13 @@ class combustion_chamber_stoich(combustion_chamber):
 
 class combustion_engine(combustion_chamber):
     r"""
+    An internal combustion engine supplies power and heat cogeneration.
+
+    The combustion engine produces power and heat in cogeneration from fuel
+    combustion. The combustion properties are identical to the combustion
+    chamber. Thermal input and power output, heat output and heat losses are
+    linked with an individual characteristic line for each property.
+
     Equations
 
         **mandatory equations**
@@ -2007,46 +2056,59 @@ class combustion_engine(combustion_chamber):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The combustion chamber calculates energy input due to combustion as well as
+    the flue gas composition based on the type of fuel and the amount of
+    oxygen supplied. Using the parameters p_range and T_range is recommended
+    when using combustion, as these stabilize the calculation. In this example
+    a mixture of methane, hydrogen and carbondioxide is used as fuel. There are
+    two cooling ports, the cooling water will flow through them in parallel.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.combustion import combustion_engine
+    >>> from tespy.components.nodes import merge, splitter
+    >>> from tespy.connections import connection, ref
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> import numpy as np
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> cw_in1 = cmp.source('cooling water inlet1')
-    >>> cw_in2 = cmp.source('cooling water inlet2')
-    >>> cw_out1 = cmp.sink('cooling water outlet1')
-    >>> cw_out2 = cmp.sink('cooling water outlet2')
-    >>> split = cmp.splitter('splitter')
-    >>> merge = cmp.merge('merge')
-    >>> chp = cmp.combustion_engine(label='internal combustion engine')
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
+    >>> amb = source('ambient')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> cw_in = source('cooling water inlet')
+    >>> sp = splitter('cooling water splitter', num_out=2)
+    >>> me = merge('cooling water merge', num_in=2)
+    >>> cw_out = sink('cooling water outlet')
+    >>> chp = combustion_engine(label='internal combustion engine')
     >>> chp.component()
     'combustion engine'
-    >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
-    >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
-    >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
+    >>> amb_comb = connection(amb, 'out1', chp, 'in3')
+    >>> sf_comb = connection(sf, 'out1', chp, 'in4')
+    >>> comb_fg = connection(chp, 'out3', fg, 'in1')
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> cw1_chp1 = con.connection(cw_in1, 'out1', chp, 'in1')
-    >>> cw2_chp2 = con.connection(cw_in2, 'out1', chp, 'in2')
-    >>> nw.add_conns(cw1_chp1, cw2_chp2)
-    >>> chp1_cw = con.connection(chp, 'out1', cw_out1, 'in1')
-    >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
-    >>> nw.add_conns(chp1_cw, chp2_cw)
-    >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=10e6, lamb=1.2,
-    ... design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
-    >>> amb_comb.set_attr(p=5, T=30,
-    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
-    ...         'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50,
-    ...     fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> cw_sp = connection(cw_in, 'out1', sp, 'in1')
+    >>> sp_chp1 = connection(sp, 'out1', chp, 'in1')
+    >>> sp_chp2 = connection(sp, 'out2', chp, 'in2')
+    >>> chp1_me = connection(chp, 'out1', me, 'in1')
+    >>> chp2_me = connection(chp, 'out2', me, 'in2')
+    >>> me_cw = connection(me, 'out1', cw_out, 'in1')
+    >>> nw.add_conns(cw_sp, sp_chp1, sp_chp2, chp1_me, chp2_me, me_cw)
+
+    The combustion engine produces a power output of 10 MW the oxygen to
+    stoichiometric oxygen ratio is set to 1. Only pressure ratio 1 is set as
+    we reconnect both cooling water streams. At the merge all pressure values
+    will be identical automatically. Reference the mass flow at the splitter
+    to be split in half.
+
+    >>> chp.set_attr(pr1=0.99, P=10e6, lamb=1.0,
+    ... design=['pr1'], offdesign=['zeta1'])
+    >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 0, 'CH4': 1})
+    >>> cw_sp.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> sp_chp2.set_attr(m=ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
@@ -2082,7 +2144,7 @@ class combustion_engine(combustion_chamber):
                 'Q1_char': dc_cc(method='Q1'),
                 'Q2_char': dc_cc(method='Q2'),
                 'Qloss_char': dc_cc(method='QLOSS'),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2', 'in3', 'in4']

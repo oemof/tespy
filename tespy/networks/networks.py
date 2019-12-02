@@ -417,7 +417,7 @@ class network:
         if not isinstance(self.iterinfo, bool):
             msg = ('Network parameter iterinfo must be True or False!')
             logging.error(msg)
-            TypeError(msg)
+            raise TypeError(msg)
 
     def get_attr(self, key):
         r"""
@@ -439,10 +439,6 @@ class network:
             msg = 'Network has no attribute \"' + str(key) + '\".'
             logging.error(msg)
             raise KeyError(msg)
-
-    def attr(self):
-        return ['m_unit', 'p_unit', 'h_unit', 'T_unit', 'v_unit',
-                'p_range', 'h_range', 'T_range', 'iterinfo']
 
     def add_subsys(self, *args):
         r"""

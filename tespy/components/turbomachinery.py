@@ -1561,7 +1561,7 @@ class turbine(turbomachine):
         return (- i[0] + i_d[0] * i[1] / i_d[1] *
                 np.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
                 np.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
-                              (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
+                        (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
 
     def eta_s_char_func(self):
         r"""

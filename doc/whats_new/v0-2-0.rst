@@ -1,6 +1,10 @@
 v0.2.0 (to be dated)
 ++++++++++++++++++++
 
+**Version 0.2.0 will not be compatible with older versions!**
+
+The examples below quickly show, how to modify your scripts in order to work with the new version.
+
 New Features
 ############
 - Implemented a new component "cycle_closer". This component may serve as substitute for a 
@@ -30,14 +34,16 @@ Testing
 - Improved doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Add doc-test for fluid_structure function of tespy.tools.helpers (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Reworked a lot of examples in the components API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Update software tests (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
 
 Bug fixes
 #########
 
+
 Other changes
 #############
 
-**Version 0.2.0 will not be compatible with older versions**!
+- Adjust logging levels for grouped component parameter initialisation (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
 
 Contributors
 ############

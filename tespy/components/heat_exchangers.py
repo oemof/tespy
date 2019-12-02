@@ -250,7 +250,7 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
@@ -270,7 +270,7 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: kA, Tamb at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
@@ -959,6 +959,7 @@ class solar_collector(heat_exchanger_simple):
                 'lkf_quad': dc_cp(min_val=0),
                 'A': dc_cp(min_val=0),
                 'Tamb': dc_cp(),
+                'Q_loss': dc_cp(min_val=0),
                 'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 
@@ -993,7 +994,7 @@ class solar_collector(heat_exchanger_simple):
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
@@ -1014,7 +1015,7 @@ class solar_collector(heat_exchanger_simple):
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
                    self.label + '. Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.energy_group.set_attr(is_set=False)
         else:
             self.energy_group.set_attr(is_set=False)
@@ -1118,6 +1119,7 @@ class solar_collector(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+        self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
 

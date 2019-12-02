@@ -250,7 +250,7 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
@@ -270,7 +270,7 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: kA, Tamb at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
@@ -994,7 +994,7 @@ class solar_collector(heat_exchanger_simple):
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
@@ -1015,7 +1015,7 @@ class solar_collector(heat_exchanger_simple):
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
                    self.label + '. Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.energy_group.set_attr(is_set=False)
         else:
             self.energy_group.set_attr(is_set=False)

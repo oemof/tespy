@@ -13,6 +13,7 @@ from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
 from tespy.tools.characteristics import char_map, characteristics
+
 import shutil
 import csv
 
@@ -501,7 +502,7 @@ class combustion_engine_bus_error_tests:
 
 class water_electrolyzer_error_tests:
 
-    def setup_network_electrolyzer(self):
+    def setup_electrolyzer_network(self):
         """
         Set up network for electrolyzer tests.
         """
@@ -530,7 +531,7 @@ class water_electrolyzer_error_tests:
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['H2O', 'O2'])
-        self.setup_network_electrolyzer()
+        self.setup_electrolyzer_network()
         self.nw.solve('design')
 
     @raises(ValueError)
@@ -539,7 +540,7 @@ class water_electrolyzer_error_tests:
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['H2O', 'H2'])
-        self.setup_network_electrolyzer()
+        self.setup_electrolyzer_network()
         self.nw.solve('design')
 
     @raises(ValueError)
@@ -548,7 +549,7 @@ class water_electrolyzer_error_tests:
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['O2', 'H2'])
-        self.setup_network_electrolyzer()
+        self.setup_electrolyzer_network()
         self.nw.solve('design')
 
     @raises(ValueError)

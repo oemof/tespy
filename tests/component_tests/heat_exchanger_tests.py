@@ -120,11 +120,9 @@ class heat_exchanger_tests:
         instance = solar_collector('solar collector')
         self.setup_heat_exchanger_simple_network(instance)
         fl = {'Ar': 0, 'H2O': 1}
-        self.c1.set_attr(fluid=fl, m=1, p=10, T=100)
+        self.c1.set_attr(fluid=fl, p=10, T=30)
+        self.c2.set_attr(T=70)
 
-        # trigger solar collector parameter groups
-        instance.set_attr(hydro_group='default', L=100, ks=100, pr=0.99,
-                          Tamb=20)
         # test grouped parameter settings with missing parameters
         instance.hydro_group.is_set = True
         instance.energy_group.is_set = True
@@ -135,9 +133,45 @@ class heat_exchanger_tests:
         eq_(instance.energy_group.is_set, False, msg)
 
         # test solar collector params as system variables
+        instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
+                          eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
+        self.nw.solve('design')
+        # heat loss must be identical to Q - E * A (internal heat loss
+        # calculation)
+        T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
+        Q_loss = round(instance.A.val * (
+            instance.E.val * (1 - instance.eta_opt.val) +
+            T_diff * instance.lkf_lin.val +
+            T_diff ** 2 * instance.lkf_quad.val), 0)
+        msg = ('Value for heat loss of solar collector must be '
+               + str(Q_loss) + ', is ' + str(round(instance.Q_loss.val, 0)) +
+               '.')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
+        # test all parameters of the energy group: E
+        instance.set_attr(A=instance.A.val, E='var')
+        self.nw.solve('design')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
+        # test all parameters of the energy group: eta_opt
+        instance.set_attr(E=instance.E.val, eta_opt='var')
+        self.nw.solve('design')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
+        # test all parameters of the energy group: lkf_lin
+        instance.set_attr(eta_opt=instance.eta_opt.val, lkf_lin='var')
+        self.nw.solve('design')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+
+        # test all parameters of the energy group: lkf_quad
+        instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        self.nw.solve('design')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+
+        # test all parameters of the energy group: Tamb
+        instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        self.nw.solve('design')
+        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
     def test_heat_ex(self):
         """

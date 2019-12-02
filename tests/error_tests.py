@@ -131,6 +131,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.nw, p_range=5)
         self.set_attr_TypeError(self.nw, h_range=5)
         self.set_attr_TypeError(self.nw, T_range=5)
+        self.set_attr_TypeError(self.nw, iterinfo=5)
 
         self.bus_add_comps_TypeError({'c': self.conn})
         self.bus_add_comps_TypeError({'f': self.comp})
@@ -151,7 +152,6 @@ class specification_error_tests:
         self.get_attr_KeyError(self.conn, 'key')
         self.get_attr_KeyError(self.bus, 'components')
         self.get_attr_KeyError(ref(self.conn, 1, 0), 'comp')
-        self.get_attr_KeyError(self.nw, 'test')
         self.get_attr_KeyError(self.sub, 'test')
         self.get_attr_KeyError(characteristics(), 'test')
         self.get_attr_KeyError(data_container(), 'somekey')

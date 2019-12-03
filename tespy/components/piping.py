@@ -1,4 +1,4 @@
-# -*- coding: utf-8
+F# -*- coding: utf-8
 
 """Module for piping components.
 
@@ -270,7 +270,7 @@ class valve(component):
 
     def attr(self):
         return {'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=0),
                 'Sirr': dc_simple()}
 
     def inlets(self):

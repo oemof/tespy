@@ -199,7 +199,7 @@ class heat_exchanger_simple(component):
     def attr(self):
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=0),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
@@ -949,7 +949,7 @@ class solar_collector(heat_exchanger_simple):
     def attr(self):
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=0),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),

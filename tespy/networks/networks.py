@@ -1682,7 +1682,7 @@ class network:
 
         n = 0
         for b in self.busses.values():
-            n += [b.P.val_set].count(True)
+            n += [b.P.is_set].count(True)
 
         msg = 'Number of bus equations: ' + str(n)
         logging.debug(msg)
@@ -2212,7 +2212,7 @@ class network:
         """
         row = self.num_comp_eq + self.num_conn_eq
         for b in self.busses.values():
-            if b.P.val_set is True:
+            if b.P.is_set is True:
                 P_res = 0
                 for cp in b.comps.index:
                     i = self.comps.loc[cp].i.tolist()
@@ -2992,7 +2992,7 @@ class network:
             df['label'] = df.apply(network.get_props, axis=1, args=('label',))
             df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
             df['P_set'] = df.apply(network.get_props, axis=1,
-                                   args=('P', 'val_set'))
+                                   args=('P', 'is_set'))
             df.drop('id', axis=1, inplace=True)
 
         else:

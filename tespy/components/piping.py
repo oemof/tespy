@@ -1,4 +1,4 @@
-F# -*- coding: utf-8
+# -*- coding: utf-8
 
 """Module for piping components.
 

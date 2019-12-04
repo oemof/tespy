@@ -1,6 +1,30 @@
 tespy.tools module
 ==================
 
+tespy.tools.characteristics module
+----------------------------------
+
+.. automodule:: tespy.tools.characteristics
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.tools.data_containers module
+----------------------------------
+
+.. automodule:: tespy.tools.data_containers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.tools.fluid_properties module
+-----------------------------------
+
+.. automodule:: tespy.tools.fluid_properties
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.tools.helpers module
 --------------------------
 

@@ -1,6 +1,13 @@
 # -*- coding: utf-8
 
-"""This module contains nodes: node, splitter, separator, merge, drum
+"""Module for components of type node.
+
+Components in this module:
+
+    - :func:`tespy.components.nodes.node`
+    - :func:`tespy.components.nodes.merge`
+    - :func:`tespy.components.nodes.splitter`
+    - :func:`tespy.components.nodes.separator`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -18,7 +25,7 @@ from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
         T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        h_mix_pQ
+        h_mix_pQ, dh_mix_dpQ, h_mix_pT
         )
 
 # %%
@@ -26,7 +33,7 @@ from tespy.tools.fluid_properties import (
 
 class node(component):
     r"""
-    The component node is the parent class for splitter, separator and merge.
+    Class node is the parent class for splitter, separator and merge.
 
     Equations
 
@@ -90,30 +97,49 @@ class node(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, hlp
+    The node can serve as merge or as splitter at the same time: The sum of
+    all mass flow going into the node is identical to the mass flow leaving it.
+    All incoming fluids are mixed in the node (mass flow weighted fluid mass
+    fractions and enthalpy). All outgoing fluids have the composition of the
+    mixture at the mixtures enthalpy/temperature.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import node
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> so2 = cmp.source('source2')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> n = cmp.node('node', num_in=2, num_out=2)
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... h_unit='kJ / kg', iterinfo=False)
+    >>> so1 = source('source1')
+    >>> so2 = source('source2')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> n = node('node', num_in=2, num_out=2)
     >>> n.component()
     'node'
-    >>> inc1 = con.connection(so1, 'out1', n, 'in1')
-    >>> inc2 = con.connection(so2, 'out1', n, 'in2')
-    >>> outg1 = con.connection(n, 'out1', si1, 'in1')
-    >>> outg2 = con.connection(n, 'out2', si2, 'in1')
+    >>> inc1 = connection(so1, 'out1', n, 'in1')
+    >>> inc2 = connection(so2, 'out1', n, 'in2')
+    >>> outg1 = connection(n, 'out1', si1, 'in1')
+    >>> outg2 = connection(n, 'out2', si2, 'in1')
     >>> nw.add_conns(inc1, inc2, outg1, outg2)
+
+    2 kg/s of pure oxygen is mixed with 5 kg/s mixture (50 % nitrogen and
+    50 % oxygen). One of the outgoing connections should be at 3 kg/s.
+
     >>> inc1.set_attr(fluid={'O2': 1, 'N2': 0}, p=1, T=20, m=2)
     >>> inc2.set_attr(fluid={'O2': 0.5, 'N2': 0.5}, T=50, m=5)
     >>> outg1.set_attr(m=3)
     >>> nw.solve('design')
     >>> (round(outg1.fluid.val['O2'], 3), round(outg1.fluid.val['N2'], 3))
     (0.643, 0.357)
+    >>> round(outg1.T.val, 1)
+    41.8
+
+    Now calculate at what mass flow of the 50/50 mixture the total
+    oxygen fraction of the nodes outlets will be at 80 %.
+
     >>> inc2.set_attr(m=np.nan)
     >>> outg1.set_attr(fluid={'O2': 0.8})
     >>> nw.solve('design')
@@ -205,8 +231,7 @@ class node(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate the residual vector of the additional equations.
 
         Equations
 
@@ -216,8 +241,8 @@ class node(component):
 
             .. math::
 
-                0 = \sum_i \left(\dot{m}_{i} \cdot h_{i}\right) - h_{o} \cdot
-                \sum_i \dot{m}_{i}\\
+                0 = \sum_i \dot{m}_{i} \cdot h_{i}
+                - \sum_o \dot{m}_{o} \cdot h_{o}
                 \forall o \in \text{outgoing mass flows}\\
                 \text{i: incoming mass flows}
 
@@ -470,601 +495,10 @@ class node(component):
 # %%
 
 
-class splitter(node):
-    r"""
-    Equations
-
-        **mandatory equations**
-
-        - :func:`tespy.components.components.component.mass_flow_func`
-
-        .. math::
-
-            0 = p_{in} - p_{out,i} \;
-            \forall i \in \mathrm{outlets}
-
-        **additional equations**
-
-        - :func:`tespy.components.components.splitter.additional_equations`
-
-    Inlets/Outlets
-
-        - in1
-        - specify number of outlets with :code:`num_out` (default value: 2)
-
-    Image
-
-        .. image:: _images/split.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component, default value: 2.
-
-    Example
-    -------
-    >>> from tespy import cmp, con, nwk, hlp
-    >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> si3 = cmp.sink('sink3')
-    >>> s = cmp.splitter('splitter', num_out=3)
-    >>> s.component()
-    'splitter'
-    >>> inc1 = con.connection(so1, 'out1', s, 'in1')
-    >>> outg1 = con.connection(s, 'out1', si1, 'in1')
-    >>> outg2 = con.connection(s, 'out2', si2, 'in1')
-    >>> outg3 = con.connection(s, 'out3', si3, 'in1')
-    >>> nw.add_conns(inc1, outg1, outg2, outg3)
-    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
-    >>> outg1.set_attr(m=3)
-    >>> outg2.set_attr(m=1)
-    >>> nw.solve('design')
-    >>> nw.lin_dep
-    False
-    >>> nw.res[-1] < 1e-3
-    True
-    """
-
-    def component(self):
-        return 'splitter'
-
-    def attr(self):
-        return {'num_out': dc_simple()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        if self.num_out.val_set:
-            return ['out' + str(i + 1) for i in range(self.num_out.val)]
-        else:
-            self.set_attr(num_out=2)
-            return self.outlets()
-
-    def comp_init(self, nw):
-
-        node.comp_init(self, nw)
-
-        self.fl_deriv = self.fluid_deriv()
-        self.h_deriv = self.enthalpy_deriv()
-
-    def additional_equations(self):
-        r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
-
-        Equations
-
-            **mandatroy equations**
-
-            .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in outlets
-
-            .. math::
-                0 = h_{in} - h_{out,i} \;
-                \forall i \in \mathrm{outlets}\\
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
-        ######################################################################
-        # equations for fluid balance
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                vec_res += [x - o.fluid.val[fluid]]
-
-        ######################################################################
-        # equations for energy balance
-        for o in self.outl:
-            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
-
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        ######################################################################
-        # derivatives for fluid and energy balance equations are constant
-        return self.fl_deriv + self.h_deriv
-
-    def fluid_deriv(self):
-        r"""
-        Calculates the partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_fl * self.num_o, 1 + self.num_o,
-                          3 + self.num_fl))
-        k = 0
-        for o in self.outl:
-            i = 0
-            for fluid in self.fluids:
-                deriv[i + k * self.num_fl, 0, i + 3] = 1
-                deriv[i + k * self.num_fl, k + 1, i + 3] = -1
-                i += 1
-            k += 1
-        return deriv.tolist()
-
-    def enthalpy_deriv(self):
-        r"""
-        Calculates matrix of partial derivatives for enthalpy balance equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
-        k = 0
-        for o in self.outl:
-            deriv[k, 0, 2] = 1
-            deriv[k, k + 1, 2] = -1
-            k += 1
-
-        return deriv.tolist()
-
-    def initialise_fluids(self, nw):
-        r"""
-        Fluid initialisation for fluid mixture at outlet of the node.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            Network using this component object.
-        """
-        return
-
-# %%
-
-
-class separator(node):
-    r"""
-    Equations
-
-        **mandatory equations**
-
-        - :func:`tespy.components.components.component.mass_flow_func`
-
-        .. math::
-
-            0 = p_{in} - p_{out,i} \;
-            \forall i \in \mathrm{outlets}
-
-        **additional equations**
-
-        - :func:`tespy.components.components.separator.additional_equations`
-
-    Inlets/Outlets
-
-        - in1
-        - specify number of outlets with :code:`num_out` (default value: 2)
-
-    Image
-
-        .. image:: _images/split.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-    TODO
-
-        - fluid separation requires power and cooling, equations have not
-          been implemented!
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    num_out : float/tespy.helpers.dc_simple
-        Number of outlets for this component, default value: 2.
-
-    Example
-    -------
-    >>> from tespy import cmp, con, nwk, hlp
-    >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> s = cmp.separator('separator', num_out=2)
-    >>> s.component()
-    'separator'
-    >>> inc1 = con.connection(so1, 'out1', s, 'in1')
-    >>> outg1 = con.connection(s, 'out1', si1, 'in1')
-    >>> outg2 = con.connection(s, 'out2', si2, 'in1')
-    >>> nw.add_conns(inc1, outg1, outg2)
-    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
-    >>> outg1.set_attr(fluid={'O2': 0.1, 'N2': 0.9}, m=1)
-    >>> outg2.set_attr(fluid0={'O2': 0.5, 'N2': 0.5}, m0=4)
-    >>> nw.solve('design')
-    >>> nw.lin_dep
-    False
-    >>> nw.res[-1] < 1e-3
-    True
-    """
-
-    def component(self):
-        return 'separator'
-
-    def attr(self):
-        return {'num_out': dc_simple()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        if self.num_out.val_set:
-            return ['out' + str(i + 1) for i in range(self.num_out.val)]
-        else:
-            self.set_attr(num_out=2)
-            return self.outlets()
-
-    def additional_equations(self):
-        r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
-
-        Equations
-
-            **mandatroy equations**
-
-            .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in outlets
-
-            .. math::
-
-                0 = T_{in} - T_{out,i} \;
-                \forall i \in \mathrm{outlets}
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
-        ######################################################################
-        # equations for fluid balance
-        for fluid, x in self.inl[0].fluid.val.items():
-            res = x * self.inl[0].m.val_SI
-            for o in self.outl:
-                res -= o.fluid.val[fluid] * o.m.val_SI
-            vec_res += [res]
-
-        ######################################################################
-        # equations for energy balance
-        for o in self.outl:
-            vec_res += [
-                    T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI) -
-                    T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
-
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
-        ######################################################################
-        # derivatives for fluid balance equations
-        mat_deriv += self.fluid_deriv()
-
-        ######################################################################
-        # derivatives for energy balance equations
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
-        i = self.inl[0].to_flow()
-        k = 0
-        for o in self.outl:
-            o = o.to_flow()
-            deriv[k, 0, 1] = dT_mix_dph(i)
-            deriv[k, 0, 2] = dT_mix_pdh(i)
-            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
-            deriv[k, k + 1, 1] = -dT_mix_dph(o)
-            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
-            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
-            k += 1
-        mat_deriv += deriv.tolist()
-
-        return mat_deriv
-
-    def fluid_deriv(self):
-        r"""
-        Calculates the partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
-        j = 0
-        for fluid in self.fluids:
-            k = 0
-            for o in self.outl:
-                deriv[j, k + 1, 0] = -o.fluid.val[fluid]
-                deriv[j, k + 1, j + 3] = -o.m.val_SI
-                k += 1
-            deriv[j, 0, 0] = self.inl[0].fluid.val[fluid]
-            deriv[j, 0, j + 3] = self.inl[0].m.val_SI
-            j += 1
-        return deriv.tolist()
-
-    def initialise_fluids(self, nw):
-        r"""
-        Fluid initialisation for fluid mixture at outlet of the node.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            Network using this component object.
-        """
-        return
-
-# %%
-
-
-class merge(node):
-    r"""
-    The component node is the parent class for splitter, separator and merge.
-
-    Equations
-
-        **mandatory equations**
-
-        - :func:`tespy.components.components.component.mass_flow_func`
-
-        .. math::
-
-            0 = p_{in} - p_{out,i} \;
-            \forall i \in \mathrm{outlets}
-
-        **additional equations**
-
-        - :func:`tespy.components.components.merge.additional_equations`
-
-    Inlets/Outlets
-
-        - specify number of outlets with :code:`num_in` (default value: 2)
-        - out1
-
-    Image
-
-        .. image:: _images/merge.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    num_in : float/tespy.helpers.dc_simple
-        Number of inlets for this component, default value: 2.
-
-    Example
-    -------
-    >>> from tespy import cmp, con, nwk, hlp
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source1')
-    >>> so2 = cmp.source('source2')
-    >>> so3 = cmp.source('source3')
-    >>> si1 = cmp.sink('sink1')
-    >>> m = cmp.merge('merge', num_in=3)
-    >>> m.component()
-    'merge'
-    >>> inc1 = con.connection(so1, 'out1', m, 'in1')
-    >>> inc2 = con.connection(so2, 'out1', m, 'in2')
-    >>> inc3 = con.connection(so3, 'out1', m, 'in3')
-    >>> outg1 = con.connection(m, 'out1', si1, 'in1')
-    >>> nw.add_conns(inc1, inc2, inc3, outg1)
-    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
-    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=20, m=5)
-    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=20)
-    >>> outg1.set_attr(fluid={'N2': 0.4})
-    >>> nw.solve('design')
-    >>> round(inc3.m.val_SI, 2)
-    0.25
-    >>> round(outg1.fluid.val['O2'], 1)
-    0.6
-    """
-
-    def component(self):
-        return 'merge'
-
-    def attr(self):
-        return {'num_in': dc_simple(),
-                'zero_flag': dc_simple()}
-
-    def inlets(self):
-        if self.num_in.val_set:
-            return ['in' + str(i + 1) for i in range(self.num_in.val)]
-        else:
-            self.set_attr(num_in=2)
-            return self.inlets()
-
-    def outlets(self):
-        return ['out1']
-
-    def additional_equations(self):
-        r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
-
-        Equations
-
-            **mandatroy equations**
-
-            .. math::
-
-                0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
-                    \dot {m}_{out} \cdot fluid_{i,out} \\
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets
-
-            .. math::
-
-                0 = h_{in} - h_{out,i} \;
-                \forall i \in \mathrm{outlets}\\
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
-        ######################################################################
-        # equations for fluid balance
-        for fluid, x in self.outl[0].fluid.val.items():
-            res = -x * self.outl[0].m.val_SI
-            for i in self.inl:
-                res += i.fluid.val[fluid] * i.m.val_SI
-            vec_res += [res]
-
-        ######################################################################
-        # equation for energy balance
-        h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
-        for i in self.inl:
-            h_res += i.m.val_SI * i.h.val_SI
-        vec_res += [h_res]
-
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
-        ######################################################################
-        # derivatives for fluid balance equations
-        mat_deriv += self.fluid_deriv()
-
-        ######################################################################
-        # derivatives for energy balance equations
-        deriv = np.zeros((1, self.num_i + 1, self.num_fl + 3))
-        deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
-        deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
-        k = 0
-        for i in self.inl:
-            deriv[0, k, 0] = i.h.val_SI
-            deriv[0, k, 2] = i.m.val_SI
-            k += 1
-        mat_deriv += deriv.tolist()
-
-        return mat_deriv
-
-    def fluid_deriv(self):
-        r"""
-        Calculates the partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_fl, self.num_i + 1, 3 + self.num_fl))
-        j = 0
-        for fluid, x in self.outl[0].fluid.val.items():
-            k = 0
-            for i in self.inl:
-                deriv[j, k, 0] = i.fluid.val[fluid]
-                deriv[j, k, j + 3] = i.m.val_SI
-                k += 1
-            deriv[j, k, 0] = -x
-            deriv[j, k, j + 3] = -self.outl[0].m.val_SI
-            j += 1
-        return deriv.tolist()
-
-# %%
-
-
 class drum(component):
     r"""
+    A drum separates saturated gas from saturated liquid.
+
     Equations
 
         **mandatory equations**
@@ -1121,42 +555,57 @@ class drum(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The drum separates saturated gas from saturated liquid. The liquid phase is
+    transported to an evaporator, the staturated gas phase is extracted from
+    the drum. In this example ammonia is evaporated using ambient air.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import drum
+    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.components.heat_exchangers import heat_exchanger
+    >>> from tespy.connections import connection, ref
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> nw = nwk.network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> f = cmp.source('feed')
-    >>> ha = cmp.source('hot air')
-    >>> ch = cmp.sink('chimney')
-    >>> s = cmp.sink('steam')
-    >>> dr = cmp.drum('drum')
+    >>> import numpy as np
+    >>> nw = network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
+    ...     h_unit='kJ / kg', iterinfo=False)
+    >>> fa = source('feed ammonia')
+    >>> amb_in = source('air inlet')
+    >>> amb_out = sink('air outlet')
+    >>> s = sink('steam')
+    >>> dr = drum('drum')
     >>> dr.component()
     'drum'
-    >>> ev = cmp.heat_exchanger('evaporator')
-    >>> erp = cmp.pump('evaporator reciculation pump')
-    >>> f_dr = con.connection(f, 'out1', dr, 'in1')
-    >>> dr_erp = con.connection(dr, 'out1', erp, 'in1')
-    >>> erp_ev = con.connection(erp, 'out1', ev, 'in2')
-    >>> ev_dr = con.connection(ev, 'out2', dr, 'in2')
-    >>> dr_s = con.connection(dr, 'out2', s, 'in1')
+    >>> ev = heat_exchanger('evaporator')
+    >>> erp = pump('evaporator reciculation pump')
+    >>> f_dr = connection(fa, 'out1', dr, 'in1')
+    >>> dr_erp = connection(dr, 'out1', erp, 'in1')
+    >>> erp_ev = connection(erp, 'out1', ev, 'in2')
+    >>> ev_dr = connection(ev, 'out2', dr, 'in2')
+    >>> dr_s = connection(dr, 'out2', s, 'in1')
     >>> nw.add_conns(f_dr, dr_erp, erp_ev, ev_dr, dr_s)
-    >>> ha_ev = con.connection(ha, 'out1', ev, 'in1')
-    >>> ev_ch = con.connection(ev, 'out1', ch, 'in1')
-    >>> nw.add_conns(ha_ev, ev_ch)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=20, kA_char1='EVA_HOT',
+    >>> amb_ev = connection(amb_in, 'out1', ev, 'in1')
+    >>> ev_amb = connection(ev, 'out1', amb_out, 'in1')
+    >>> nw.add_conns(amb_ev, ev_amb)
+
+    The ambient air enters the evaporator at 30 °C. The pinch point temperature
+    difference (ttd_l) of the evaporator is at 5 K, and 1 MW of heat should be
+    transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
+    design it is possible to calculate offdesign performance at 75 % part load.
+
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1='EVA_HOT',
     ...     kA_char2='EVA_COLD', design=['pr1', 'ttd_l'],
     ...     offdesign=['zeta1', 'kA'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)
-    >>> erp_ev.set_attr(m=con.ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
-    >>> ha_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=100)
-    >>> ev_ch.set_attr(p=1)
+    >>> erp_ev.set_attr(m=ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
+    >>> amb_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=30)
+    >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(ev.ttd_l.val, 1)
-    20.0
+    >>> round(ev_amb.T.val - erp_ev.T.val ,1)
+    5.0
     >>> round(f_dr.h.val, 1)
     320.2
     >>> round(dr_erp.h.val, 1)
@@ -1166,11 +615,11 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', init_path='tmp', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(f_dr.m.val, 2)
     0.58
-    >>> round(ev.ttd_l.val, 1)
-    16.1
+    >>> round(ev_amb.T.val - erp_ev.T.val ,1)
+    4.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1404,3 +853,665 @@ class drum(component):
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 0.7)
+
+# %%
+
+
+class merge(node):
+    r"""
+    The component node is the parent class for splitter, separator and merge.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.mass_flow_func`
+
+        .. math::
+
+            0 = p_{in} - p_{out,i} \;
+            \forall i \in \mathrm{outlets}
+
+        **additional equations**
+
+        - :func:`tespy.components.components.merge.additional_equations`
+
+    Inlets/Outlets
+
+        - specify number of outlets with :code:`num_in` (default value: 2)
+        - out1
+
+    Image
+
+        .. image:: _images/merge.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    num_in : float/tespy.helpers.dc_simple
+        Number of inlets for this component, default value: 2.
+
+    Example
+    -------
+    The merge mixes a specified number of mass flows and has a single outlet.
+    At the outlet, fluid composition and enthalpy are calculated by mass
+    weighted fluid composition and enthalpy of the inlets.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import merge
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = network(fluids=fluid_list, p_unit='bar', iterinfo=False)
+    >>> so1 = source('source1')
+    >>> so2 = source('source2')
+    >>> so3 = source('source3')
+    >>> si1 = sink('sink')
+    >>> m = merge('merge', num_in=3)
+    >>> m.component()
+    'merge'
+    >>> inc1 = connection(so1, 'out1', m, 'in1')
+    >>> inc2 = connection(so2, 'out1', m, 'in2')
+    >>> inc3 = connection(so3, 'out1', m, 'in3')
+    >>> outg = connection(m, 'out1', si1, 'in1')
+    >>> nw.add_conns(inc1, inc2, inc3, outg)
+
+    A merge with three inlets mixes air (simplified) with pure nitrogen and
+    pure oxygen. All gases enter the component at the same temperature. As
+    mixing effects are not considered, the outlet temperature should thus be
+    similar to the three inlet temperatures (difference might occur due to
+    rounding in fluid property functions, let's check it for two different
+    temperatures). It is e. g. possible to find the required mass flow of pure
+    nitrogen given the nitrogen mass fraction in the outlet.
+
+    >>> T = 293.15
+    >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=T, m=5)
+    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=T, m=5)
+    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=T)
+    >>> outg.set_attr(fluid={'N2': 0.4})
+    >>> nw.solve('design')
+    >>> round(inc3.m.val_SI, 2)
+    0.25
+    >>> abs(round((outg.T.val_SI - T) / T, 5)) < 0.01
+    True
+    >>> T = 173.15
+    >>> inc1.set_attr(T=T)
+    >>> inc2.set_attr(T=T)
+    >>> inc3.set_attr(T=T)
+    >>> nw.solve('design')
+    >>> abs(round((outg.T.val_SI - T) / T, 5)) < 0.01
+    True
+    """
+
+    def component(self):
+        return 'merge'
+
+    def attr(self):
+        return {'num_in': dc_simple(),
+                'zero_flag': dc_simple()}
+
+    def inlets(self):
+        if self.num_in.val_set:
+            return ['in' + str(i + 1) for i in range(self.num_in.val)]
+        else:
+            self.set_attr(num_in=2)
+            return self.inlets()
+
+    def outlets(self):
+        return ['out1']
+
+    def additional_equations(self):
+        r"""
+        Calculates vector vec_res with results of additional equations for
+        this component.
+
+        Equations
+
+            **mandatroy equations**
+
+            .. math::
+
+                0 = \dot{m}_{in_{j}} \cdot fluid_{i,in_{j}} -
+                    \dot {m}_{out} \cdot fluid_{i,out} \\
+                \forall i \in \mathrm{fluid}, \; \forall j \in inlets
+
+            .. math::
+
+                0 = h_{in} - h_{out,i} \;
+                \forall i \in \mathrm{outlets}\\
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equations for fluid balance
+        for fluid, x in self.outl[0].fluid.val.items():
+            res = -x * self.outl[0].m.val_SI
+            for i in self.inl:
+                res += i.fluid.val[fluid] * i.m.val_SI
+            vec_res += [res]
+
+        ######################################################################
+        # equation for energy balance
+        h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
+        for i in self.inl:
+            h_res += i.m.val_SI * i.h.val_SI
+        vec_res += [h_res]
+
+        return vec_res
+
+    def additional_derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given additional
+        equations.
+
+        Returns
+        -------
+        mat_deriv : list
+            Matrix of partial derivatives.
+        """
+        mat_deriv = []
+
+        ######################################################################
+        # derivatives for fluid balance equations
+        mat_deriv += self.fluid_deriv()
+
+        ######################################################################
+        # derivatives for energy balance equations
+        deriv = np.zeros((1, self.num_i + 1, self.num_fl + 3))
+        deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
+        deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
+        k = 0
+        for i in self.inl:
+            deriv[0, k, 0] = i.h.val_SI
+            deriv[0, k, 2] = i.m.val_SI
+            k += 1
+        mat_deriv += deriv.tolist()
+
+        return mat_deriv
+
+    def fluid_deriv(self):
+        r"""
+        Calculates the partial derivatives for all fluid balance equations.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the fluid equations.
+        """
+        deriv = np.zeros((self.num_fl, self.num_i + 1, 3 + self.num_fl))
+        j = 0
+        for fluid, x in self.outl[0].fluid.val.items():
+            k = 0
+            for i in self.inl:
+                deriv[j, k, 0] = i.fluid.val[fluid]
+                deriv[j, k, j + 3] = i.m.val_SI
+                k += 1
+            deriv[j, k, 0] = -x
+            deriv[j, k, j + 3] = -self.outl[0].m.val_SI
+            j += 1
+        return deriv.tolist()
+
+# %%
+
+
+class separator(node):
+    r"""
+    A separator separates fluid components from a mass flow.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.mass_flow_func`
+
+        .. math::
+
+            0 = p_{in} - p_{out,i} \;
+            \forall i \in \mathrm{outlets}
+
+        **additional equations**
+
+        - :func:`tespy.components.components.separator.additional_equations`
+
+    Inlets/Outlets
+
+        - in1
+        - specify number of outlets with :code:`num_out` (default value: 2)
+
+    Image
+
+        .. image:: _images/split.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    TODO
+
+        - fluid separation requires power and cooling, equations have not
+          been implemented!
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    num_out : float/tespy.helpers.dc_simple
+        Number of outlets for this component, default value: 2.
+
+    Example
+    -------
+    The separator is used to split up a single mass flow into a specified
+    number of different parts at identical pressure and temperature but
+    different fluid composition. Fluids can be separated from each other.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import separator
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
+    >>> so = source('source')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> s = separator('separator', num_out=2)
+    >>> s.component()
+    'separator'
+    >>> inc = connection(so, 'out1', s, 'in1')
+    >>> outg1 = connection(s, 'out1', si1, 'in1')
+    >>> outg2 = connection(s, 'out2', si2, 'in1')
+    >>> nw.add_conns(inc, outg1, outg2)
+
+    An Air (simplified) mass flow of 5 kg/s is split up into two mass flows.
+    One mass flow of 1 kg/s containing 10 % oxygen and 90 % nitrogen leaves the
+    separator. It is possible to calculate the fluid composition of the second
+    mass flow. Specify starting values for the second mass flow fluid
+    composition for calculation stability.
+
+    >>> inc.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> outg1.set_attr(fluid={'O2': 0.1, 'N2': 0.9}, m=1)
+    >>> outg2.set_attr(fluid0={'O2': 0.5, 'N2': 0.5})
+    >>> nw.solve('design')
+    >>> outg2.fluid.val['O2']
+    0.2625
+
+    In the same way, it is possible to specify one of the fluid components in
+    the second mass flow instead of the first mass flow. The solver will find
+    the mass flows matching the desired composition. 65 % of the mass flow
+    will leave the separator at the second outlet the case of 30 % oxygen
+    mass fraction for this outlet.
+
+    >>> outg1.set_attr(m=np.nan)
+    >>> outg2.set_attr(fluid={'O2': 0.3})
+    >>> nw.solve('design')
+    >>> outg2.fluid.val['O2']
+    0.3
+    >>> round(outg2.m.val_SI / inc.m.val_SI, 2)
+    0.65
+    """
+
+    def component(self):
+        return 'separator'
+
+    def attr(self):
+        return {'num_out': dc_simple()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        if self.num_out.val_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=2)
+            return self.outlets()
+
+    def additional_equations(self):
+        r"""
+        Calculates vector vec_res with results of additional equations for
+        this component.
+
+        Equations
+
+            **mandatroy equations**
+
+            .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
+                \forall i \in \mathrm{fluid}, \; \forall j \in outlets
+
+            .. math::
+
+                0 = T_{in} - T_{out,i} \;
+                \forall i \in \mathrm{outlets}
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equations for fluid balance
+        for fluid, x in self.inl[0].fluid.val.items():
+            res = x * self.inl[0].m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            vec_res += [res]
+
+        ######################################################################
+        # equations for energy balance
+        for o in self.outl:
+            vec_res += [
+                    T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI) -
+                    T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
+
+        return vec_res
+
+    def additional_derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given additional
+        equations.
+
+        Returns
+        -------
+        mat_deriv : list
+            Matrix of partial derivatives.
+        """
+        mat_deriv = []
+
+        ######################################################################
+        # derivatives for fluid balance equations
+        mat_deriv += self.fluid_deriv()
+
+        ######################################################################
+        # derivatives for energy balance equations
+        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
+        i = self.inl[0].to_flow()
+        k = 0
+        for o in self.outl:
+            o = o.to_flow()
+            deriv[k, 0, 1] = dT_mix_dph(i)
+            deriv[k, 0, 2] = dT_mix_pdh(i)
+            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            deriv[k, k + 1, 1] = -dT_mix_dph(o)
+            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
+            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            k += 1
+        mat_deriv += deriv.tolist()
+
+        return mat_deriv
+
+    def fluid_deriv(self):
+        r"""
+        Calculates the partial derivatives for all fluid balance equations.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the fluid equations.
+        """
+        deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
+        j = 0
+        for fluid in self.fluids:
+            k = 0
+            for o in self.outl:
+                deriv[j, k + 1, 0] = -o.fluid.val[fluid]
+                deriv[j, k + 1, j + 3] = -o.m.val_SI
+                k += 1
+            deriv[j, 0, 0] = self.inl[0].fluid.val[fluid]
+            deriv[j, 0, j + 3] = self.inl[0].m.val_SI
+            j += 1
+        return deriv.tolist()
+
+    def initialise_fluids(self, nw):
+        r"""
+        Fluid initialisation for fluid mixture at outlet of the node.
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component object.
+        """
+        return
+
+# %%
+
+
+class splitter(node):
+    r"""
+    Split up a mass flow in parts of identical enthalpy and fluid composition.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.mass_flow_func`
+
+        .. math::
+
+            0 = p_{in} - p_{out,i} \;
+            \forall i \in \mathrm{outlets}
+
+        **additional equations**
+
+        - :func:`tespy.components.components.splitter.additional_equations`
+
+    Inlets/Outlets
+
+        - in1
+        - specify number of outlets with :code:`num_out` (default value: 2)
+
+    Image
+
+        .. image:: _images/split.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    num_out : float/tespy.helpers.dc_simple
+        Number of outlets for this component, default value: 2.
+
+    Example
+    -------
+    A splitter is used to split up a single mass flow into a specified number
+    of different parts at identical pressure, enthalpy and fluid composition.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.nodes import splitter
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
+    >>> import numpy as np
+    >>> fluid_list = ['O2', 'N2']
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... iterinfo=False)
+    >>> so = source('source')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> si3 = sink('sink3')
+    >>> s = splitter('splitter', num_out=3)
+    >>> s.component()
+    'splitter'
+    >>> inc = connection(so, 'out1', s, 'in1')
+    >>> outg1 = connection(s, 'out1', si1, 'in1')
+    >>> outg2 = connection(s, 'out2', si2, 'in1')
+    >>> outg3 = connection(s, 'out3', si3, 'in1')
+    >>> nw.add_conns(inc, outg1, outg2, outg3)
+
+    An Air (simplified) mass flow is split up into three mass flows. The total
+    incoming mass flow is 5 kg/s, 3 kg/s and 1 kg/s respectively are leaving
+    the splitter into the first two outlets. The residual mass flow will
+    drain in the last outlet. Temperature and fluid composition will not
+    change.
+
+    >>> inc.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=20, m=5)
+    >>> outg1.set_attr(m=3)
+    >>> outg2.set_attr(m=1)
+    >>> nw.solve('design')
+    >>> round(outg3.m.val_SI, 1)
+    1.0
+    >>> round(inc.T.val, 1)
+    20.0
+    >>> round(outg3.T.val, 1)
+    20.0
+    """
+
+    def component(self):
+        return 'splitter'
+
+    def attr(self):
+        return {'num_out': dc_simple()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        if self.num_out.val_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=2)
+            return self.outlets()
+
+    def comp_init(self, nw):
+
+        node.comp_init(self, nw)
+
+        self.fl_deriv = self.fluid_deriv()
+        self.h_deriv = self.enthalpy_deriv()
+
+    def additional_equations(self):
+        r"""
+        Calculates vector vec_res with results of additional equations for
+        this component.
+
+        Equations
+
+            **mandatroy equations**
+
+            .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
+                \forall i \in \mathrm{fluid}, \; \forall j \in outlets
+
+            .. math::
+                0 = h_{in} - h_{out,i} \;
+                \forall i \in \mathrm{outlets}\\
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equations for fluid balance
+        for o in self.outl:
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - o.fluid.val[fluid]]
+
+        ######################################################################
+        # equations for energy balance
+        for o in self.outl:
+            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+
+        return vec_res
+
+    def additional_derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given additional
+        equations.
+
+        Returns
+        -------
+        mat_deriv : list
+            Matrix of partial derivatives.
+        """
+        ######################################################################
+        # derivatives for fluid and energy balance equations are constant
+        return self.fl_deriv + self.h_deriv
+
+    def fluid_deriv(self):
+        r"""
+        Calculates the partial derivatives for all fluid balance equations.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the fluid equations.
+        """
+        deriv = np.zeros((self.num_fl * self.num_o, 1 + self.num_o,
+                          3 + self.num_fl))
+        k = 0
+        for o in self.outl:
+            i = 0
+            for fluid in self.fluids:
+                deriv[i + k * self.num_fl, 0, i + 3] = 1
+                deriv[i + k * self.num_fl, k + 1, i + 3] = -1
+                i += 1
+            k += 1
+        return deriv.tolist()
+
+    def enthalpy_deriv(self):
+        r"""
+        Calculates matrix of partial derivatives for enthalpy balance equation.
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
+        k = 0
+        for o in self.outl:
+            deriv[k, 0, 2] = 1
+            deriv[k, k + 1, 2] = -1
+            k += 1
+
+        return deriv.tolist()
+
+    def initialise_fluids(self, nw):
+        r"""
+        Fluid initialisation for fluid mixture at outlet of the node.
+
+        Parameters
+        ----------
+        nw : tespy.networks.network
+            Network using this component object.
+        """
+        return

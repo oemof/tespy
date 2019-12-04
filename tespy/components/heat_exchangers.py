@@ -1,8 +1,15 @@
 # -*- coding: utf-8
 
-"""This module contains components of type heat exchanger:
-        heat_exchanger_simple, heat_exchanger, condenser, desuperheater,
-        solar_collector
+"""Module for components of type heat exchanger.
+
+Components in this module:
+
+    - :func:`tespy.components.heat_exchangers.heat_exchanger_simple`
+      (parent class)
+    - :func:`tespy.components.heat_exchangers.heat_exchanger` (parent class)
+    - :func:`tespy.components.heat_exchangers.condenser`
+    - :func:`tespy.components.heat_exchangers.desuperheater`
+    - :func:`tespy.components.heat_exchangers.solar_collector`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -30,8 +37,10 @@ from tespy.tools.helpers import lamb, single_fluid
 
 class heat_exchanger_simple(component):
     r"""
-    The component heat_exchanger_simple is the parent class for pipe and
-    solar_collector.
+    A basic heat exchanger representing a heat source or heat sink.
+
+    The component heat_exchanger_simple is the parent class for the components
+    solar_collector and pipe (of module piping).
 
     Equations
 
@@ -42,7 +51,7 @@ class heat_exchanger_simple(component):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -50,12 +59,12 @@ class heat_exchanger_simple(component):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.additional_equations`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
 
     Inlets/Outlets
 
@@ -128,36 +137,59 @@ class heat_exchanger_simple(component):
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    The heat_exchanger_simple can be used as a sink or source of heat. This
+    component does not simulate the secondary side of the heat exchanger. It
+    is possible to calculate the pressure ratio with the Darcy-Weisbach
+    equation or in case of liquid water use the Hazen-Williams equation.
+    Also, given ambient temperature and the heat transfer coeffiecient, it is
+    possible to predict heat transfer.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> pi = cmp.pipe('pipe')
-    >>> pi.component()
-    'pipe'
-    >>> pi.set_attr(Tamb=10, pr=0.95, design=['pr'], offdesign=['zeta', 'kA'])
-    >>> inc = con.connection(so1, 'out1', pi, 'in1')
-    >>> outg = con.connection(pi, 'out1', si1, 'in1')
+    >>> fluids = ['N2']
+    >>> nw = network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> so1 = source('source 1')
+    >>> si1 = sink('sink 1')
+    >>> heat_sink = heat_exchanger_simple('heat sink')
+    >>> heat_sink.component()
+    'heat exchanger simple'
+    >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
+    ... offdesign=['zeta', 'kA'], kA_char='HE_HOT')
+    >>> inc = connection(so1, 'out1', heat_sink, 'in1')
+    >>> outg = connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'H2O': 1}, m=1, T=200, p=12)
-    >>> outg.set_attr(T=190, design=['T'])
+
+    It is possible to determine the amount of heat transferred when the fluid
+    enters the heat sink at a temperature of 200 °C and is cooled down to
+    150 °C. Given an ambient temperature of 10 °C this also determines the heat
+    transfer coefficient to the ambient. Assuming a characteristic function
+    for the heat transfer coefficient (HE_HOT) we can predict the heat
+    transferred at variable flow rates.
+
+    >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
+    >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(pi.Q.val, 1)
-    -22252.3
-    >>> inc.set_attr(m=1.2)
-    >>> pi.set_attr(Tamb=-10)
+    >>> round(heat_sink.Q.val, 1)
+    -52580.9
+    >>> round(heat_sink.kA.val, 1)
+    321.1
+    >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(pi.kA.val, 1)
-    126.5
-    >>> round(pi.Q.val, 1)
-    -25890.6
+    >>> round(heat_sink.Q.val, 1)
+    -57170.6
     >>> round(outg.T.val, 1)
-    189.5
+    156.5
+    >>> inc.set_attr(m=0.75)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(heat_sink.Q.val, 1)
+    -46356.5
+    >>> round(outg.T.val, 1)
+    141.2
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -167,7 +199,7 @@ class heat_exchanger_simple(component):
     def attr(self):
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=1e-4),
+                'zeta': dc_cp(min_val=0),
                 'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
@@ -218,7 +250,7 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
             self.hydro_group.set_attr(is_set=False)
@@ -238,14 +270,14 @@ class heat_exchanger_simple(component):
                    'specified! This component group uses the following '
                    'parameters: kA, Tamb at ' + self.label + '. '
                    'Group will be set to False.')
-            logging.info(msg)
+            logging.warning(msg)
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations for this component.
 
         Returns
         -------
@@ -297,14 +329,14 @@ class heat_exchanger_simple(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
+        Calculate vector vec_res with results of additional equations for this
         component.
 
         Equations
 
             **optional equations**
 
-            - :func:`tespy.components.components.heat_exchanger_simple.kA_func`
+            - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func`
 
         Returns
         -------
@@ -322,7 +354,7 @@ class heat_exchanger_simple(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -401,7 +433,7 @@ class heat_exchanger_simple(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
+        Calculate matrix of partial derivatives for given additional
         equations.
 
         Returns
@@ -449,7 +481,7 @@ class heat_exchanger_simple(component):
 
     def Q_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for heat transfer equation.
+        Calculate the matrix of partial derivatives for heat transfer equation.
 
         Returns
         -------
@@ -545,8 +577,7 @@ class heat_exchanger_simple(component):
 
     def kA_func(self):
         r"""
-        Equation for heat transfer calculation from ambient conditions and heat
-        transfer coefficient.
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -597,7 +628,7 @@ class heat_exchanger_simple(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -627,7 +658,7 @@ class heat_exchanger_simple(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate the matrix of partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -647,8 +678,7 @@ class heat_exchanger_simple(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy the outlets.
 
         Parameters
         ----------
@@ -687,8 +717,7 @@ class heat_exchanger_simple(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy the inlets.
 
         Parameters
         ----------
@@ -725,9 +754,7 @@ class heat_exchanger_simple(component):
                 return 3e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
@@ -766,19 +793,355 @@ class heat_exchanger_simple(component):
 # %%
 
 
+class solar_collector(heat_exchanger_simple):
+    r"""
+    The solar collector calculates heat output from radiation.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
+
+        **optional equations**
+
+        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+
+        .. math::
+
+            0 = p_{in} \cdot pr - p_{out}
+
+        - :func:`tespy.components.components.component.zeta_func`
+
+        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+
+        **additional equations**
+
+        - :func:`tespy.components.components.solar_collector.additional_equations`
+
+    Inlets/Outlets
+
+        - in1
+        - out1
+
+    Image
+
+        .. image:: _images/solar_collector.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    Q : Sring/float/tespy.helpers.dc_cp
+        Heat transfer, :math:`Q/\text{W}`.
+
+    pr : Sring/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio, :math:`pr/1`.
+
+    zeta : str/float/tespy.helpers.dc_cp
+        Geometry independent friction coefficient,
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    D : str/float/tespy.helpers.dc_cp
+        Diameter of the pipes, :math:`D/\text{m}`.
+
+    L : str/float/tespy.helpers.dc_cp
+        Length of the pipes, :math:`L/\text{m}`.
+
+    ks : str/float/tespy.helpers.dc_cp
+        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        :math:`ks/\text{1}` for hazen-williams equation.
+
+    hydro_group : Sring/tespy.helpers.dc_gcp
+        Parametergroup for pressure drop calculation based on pipes dimensions.
+        Choose 'HW' for hazen-williams equation, else darcy friction factor is
+        used.
+
+    E : str/float/tespy.helpers.dc_cp
+        Radiation at tilted collector surface area,
+        :math:`E/\frac{\text{W}}{\text{m}^2}`.
+
+    eta_opt : str/float/tespy.helpers.dc_cp
+        optical loss at surface cover,
+        :math:`\eta_{opt}`.
+
+    lkf_lin : str/float/tespy.helpers.dc_cp
+        Linear loss key figure,
+        :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
+
+    lkf_quad : str/float/tespy.helpers.dc_cp
+        Quadratic loss key figure,
+        :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
+
+    A : str/float/tespy.helpers.dc_cp
+        Collector surface area :math:`A/\text{m}^2`.
+
+    Tamb : float/tespy.helpers.dc_cp
+        Ambient temperature, provide parameter in network's temperature unit.
+
+    energy_group : tespy.helpers.dc_gcp
+        Parametergroup for energy balance of solarthermal collector.
+
+    Example
+    -------
+    The solar collector is used to calculate heat transferred to the heating
+    system from radiation on a tilted plane. For instance, it is possible to
+    calculate the collector surface area required to transfer a specific amount
+    of heat at a given radiation. The collector parameters are the linear and
+    the quadratic loss keyfigure as well as the optical effifiency.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import solar_collector
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> import shutil
+    >>> fluids = ['H2O']
+    >>> nw = network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> sc = solar_collector('solar collector')
+    >>> sc.component()
+    'solar collector'
+    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
+    ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
+    >>> inc = connection(so, 'out1', sc, 'in1')
+    >>> outg = connection(sc, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+
+    The outlet temperature should be at 90 °C at a constant mass flow, which
+    is determined in the design calculation. In offdesign operation (at a
+    different radiation) using the calculated surface area and mass flow, it
+    is possible to predict the outlet temperature. It would instead be
+    possible to calulate the change in mass flow required to hold the
+    specified outlet temperature, too.
+
+    >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
+    >>> outg.set_attr(T=90, design=['T'])
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> round(sc.A.val, 1)
+    14.5
+    >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(sc.Q.val, 1)
+    6083.8
+    >>> round(outg.T.val, 1)
+    70.5
+    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    """
+
+    def component(self):
+        return 'solar collector'
+
+    def attr(self):
+        return {'Q': dc_cp(),
+                'pr': dc_cp(min_val=1e-4, max_val=1),
+                'zeta': dc_cp(min_val=0),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'L': dc_cp(min_val=1e-1, d=1e-3),
+                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
+                'E': dc_cp(min_val=0),
+                'eta_opt': dc_cp(min_val=0, max_val=1),
+                'lkf_lin': dc_cp(min_val=0),
+                'lkf_quad': dc_cp(min_val=0),
+                'A': dc_cp(min_val=0),
+                'Tamb': dc_cp(),
+                'Q_loss': dc_cp(min_val=0),
+                'SQ': dc_simple(),
+                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
+
+    def inlets(self):
+        return ['in1']
+
+    def outlets(self):
+        return ['out1']
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        self.fl_deriv = self.fluid_deriv()
+        self.m_deriv = self.mass_flow_deriv()
+
+        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
+                            nw.T[nw.T_unit][1])
+
+        # parameters for hydro group
+        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
+
+        is_set = True
+        for e in self.hydro_group.elements:
+            if not e.is_set:
+                is_set = False
+
+        if is_set:
+            self.hydro_group.set_attr(is_set=True)
+        elif self.hydro_group.is_set:
+            msg = ('All parameters of the component group have to be '
+                   'specified! This component group uses the following '
+                   'parameters: L, ks, D at ' + self.label + '. '
+                   'Group will be set to False.')
+            logging.warning(msg)
+            self.hydro_group.set_attr(is_set=False)
+        else:
+            self.hydro_group.set_attr(is_set=False)
+
+        # parameters for energy group
+        self.energy_group.set_attr(elements=[self.E, self.eta_opt, self.lkf_lin,
+                                             self.lkf_quad, self.A, self.Tamb])
+
+        is_set = True
+        for e in self.energy_group.elements:
+            if not e.is_set:
+                is_set = False
+
+        if is_set:
+            self.energy_group.set_attr(is_set=True)
+        elif self.energy_group.is_set:
+            msg = ('All parameters of the component group have to be '
+                   'specified! This component group uses the following '
+                   'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
+                   self.label + '. Group will be set to False.')
+            logging.warning(msg)
+            self.energy_group.set_attr(is_set=False)
+        else:
+            self.energy_group.set_attr(is_set=False)
+
+    def additional_equations(self):
+        r"""
+        Calculates vector vec_res with results of additional equations for this
+        component.
+
+        Equations
+
+            **optional equations**
+
+            - :func:`tespy.components.components.solar_collector.energy_func`
+
+        Returns
+        -------
+        vec_res : list
+            Vector of residual values.
+        """
+        vec_res = []
+
+        ######################################################################
+        # equation for specified energy-group paremeters
+        if self.energy_group.is_set:
+            vec_res += [self.energy_func()]
+
+        return vec_res
+
+    def additional_derivatives(self):
+        r"""
+        Calculates matrix of partial derivatives for given additional
+        equations.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        mat_deriv = []
+
+        ######################################################################
+        # derivatives for specified energy-group paremeters
+        if self.energy_group.is_set:
+            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
+            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            deriv[0, 0, 1] = self.numeric_deriv(self.energy_func, 'p', 0)
+            deriv[0, 0, 2] = self.numeric_deriv(self.energy_func, 'h', 0)
+            deriv[0, 1, 1] = self.numeric_deriv(self.energy_func, 'p', 1)
+            deriv[0, 1, 2] = self.numeric_deriv(self.energy_func, 'h', 1)
+            # custom variables for the energy-group
+            for var in self.energy_group.elements:
+                if var.is_var:
+                    deriv[0, 2 + var.var_pos, 0] = (
+                            self.numeric_deriv(self.energy_func,
+                                               self.vars[var], 2))
+            mat_deriv += deriv.tolist()
+
+        return mat_deriv
+
+    def energy_func(self):
+        r"""
+        Equation for solar collector energy balance.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                T_m = \frac{T_{out} + T_{in}}{2}\\
+
+                \begin{split}
+                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+                & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
+                \left(T_m - T_{amb} \right) - \alpha_2 \cdot
+                \left(T_m - T_{amb}\right)^2 \right]
+                \end{split}
+        """
+
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
+               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+
+        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
+                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+                self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+
+    def calc_parameters(self):
+        r"""
+        Postprocessing parameter calculation.
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
+        self.Q.val = i[0] * (o[2] - i[2])
+        self.pr.val = o[1] / i[1]
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
+                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+        self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+
+        self.check_parameter_bounds()
+
+# %%
+
+
 class heat_exchanger(component):
     r"""
     Class heat_exchanger is the parent class for condenser and desuperheater.
+
+    The heat exchanger represents counter current heat exchangers. Both, hot
+    and cold side of the heat exchanger, are simulated.
 
     Equations
 
         **mandatory equations**
 
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
         **heat exchanger**
-        - :func:`tespy.components.components.heat_exchanger.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
 
@@ -788,21 +1151,21 @@ class heat_exchanger(component):
 
         **heat exchanger**
 
-        - :func:`tespy.components.components.heat_exchanger.kA_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_u_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_l_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_l_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.heat_exchanger.additional_equations`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.additional_equations`
 
     Inlets/Outlets
 
@@ -859,49 +1222,64 @@ class heat_exchanger(component):
         design case). Standard method 'HE_COLD', Parameter 'm'.
 
     Note
-    ---
+    ----
     The heat exchanger and subclasses (desuperheater, condenser) are
     countercurrent heat exchangers. Equations (kA, ttd_u, ttd_l) do not work
     for directcurrent and crosscurrent or combinations of different types.
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    A water cooling is installed to transfer heat from hot exhaust air. The
+    heat exchanger is designed for a terminal temperature difference of 5 K.
+    From this, it is possible to calculate the heat transfer coefficient and
+    predict water and air outlet temperature in offdesign operation.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import heat_exchanger
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
     >>> import shutil
-    >>> nw = nwk.network(fluids=['water'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> tesin = cmp.sink('TES in')
-    >>> tesout = cmp.source('TES out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.heat_exchanger('heat exchanger')
+    >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', iterinfo=False)
+    >>> exhaust_hot = source('Exhaust air outlet')
+    >>> exhaust_cold = sink('Exhaust air inlet')
+    >>> cw_cold = source('cooling water inlet')
+    >>> cw_hot = sink('cooling water outlet')
+    >>> he = heat_exchanger('waste heat exchanger')
     >>> he.component()
     'heat exchanger'
-    >>> tes_he = con.connection(tesout, 'out1', he, 'in2')
-    >>> he_tes = con.connection(he, 'out2', tesin, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(tes_he, he_tes, hs_he, he_hs)
+    >>> ex_he = connection(exhaust_hot, 'out1', he, 'in1')
+    >>> he_ex = connection(he, 'out1', exhaust_cold, 'in1')
+    >>> cw_he = connection(cw_cold, 'out1', he, 'in2')
+    >>> he_cw = connection(he, 'out2', cw_hot, 'in1')
+    >>> nw.add_conns(ex_he, he_ex, cw_he, he_cw)
+
+    The volumetric flow of the air is at 100 l/s. After designing the component
+    it is possible to predict the temperature at different flow rates or
+    different inlet temperatures of the exhaust air.
+
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ...     design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
-    >>> hs_he.set_attr(Td_bp=-10, p=3, fluid={'water': 1})
-    >>> he_hs.set_attr(T=70)
-    >>> tes_he.set_attr(p=5, fluid={'water': 1})
-    >>> tes_he.set_attr(T=40)
-    >>> he.set_attr(Q=-80e3)
+    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> cw_he.set_attr(fluid={'air': 0, 'water': 1}, T=10, p=3,
+    ... offdesign=['m'])
+    >>> ex_he.set_attr(fluid={'air': 1, 'water': 0}, v=0.1, T=35)
+    >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(tes_he.m.val, 2)
-    0.24
-    >>> round(he_tes.T.val, 1)
-    118.5
-    >>> he.set_attr(Q=-60e3)
+    >>> round(ex_he.T.val - he_cw.T.val, 0)
+    5.0
+    >>> ex_he.set_attr(v=0.075)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(tes_he.m.val, 2)
-    0.18
-    >>> round(he_tes.T.val, 1)
-    119.4
+    >>> round(he_cw.T.val, 1)
+    27.4
+    >>> round(he_ex.T.val, 1)
+    14.5
+    >>> ex_he.set_attr(v=0.1, T=40)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(he_cw.T.val, 1)
+    33.9
+    >>> round(he_ex.T.val, 1)
+    18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1718,13 +2096,18 @@ class heat_exchanger(component):
 
 class condenser(heat_exchanger):
     r"""
+    A condenser cools a fluid until it is in liquid state.
+
+    The condensing fluid is cooled by the cold side fluid. The fluid on the hot
+    side of the condenser must be pure. Subcooling is available.
+
     Equations
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
-        - :func:`tespy.components.components.condenser.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.condenser.energy_func`
 
         **optional equations**
 
@@ -1732,20 +2115,20 @@ class condenser(heat_exchanger):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :func:`tespy.components.components.condenser.kA_func`
-        - :func:`tespy.components.components.condenser.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.condenser.kA_func`
+        - :func:`tespy.components.heat_exchangers.condenser.ttd_u_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.condenser.additional_equations`
+        - :func:`tespy.components.heat_exchangers.condenser.additional_equations`
 
     Inlets/Outlets
 
@@ -1806,51 +2189,77 @@ class condenser(heat_exchanger):
 
     Note
     ----
+    The condenser has an additional equation for enthalpy at hot side outlet:
+    The fluid leaves the component in saturated liquid state. If subcooling
+    is activated, it possible to specify the enthalpy at the outgoing
+    connection manually.
 
-    - The condenser has an additional equation for enthalpy at hot side outlet.
-    - The pressure drop via zeta1 at hot side is not an offdesign parameter.
-    - It has different calculation method for given heat transfer coefficient
-      and upper terminal temperature difference.
+    It has different calculation method for given heat transfer coefficient and
+    upper terminal temperature dierence: These parameters refer to the
+    **condensing** temperature, even if the fluid on the hot side enters the
+    component in superheated state.
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    Air is used to condensate water in a condenser. 1 kg/s waste steam is
+    chilled with a terminal temperature difference of 15 K.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import condenser
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg', m_range=[0.01, 10])
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb_in = cmp.sink('ambient in')
-    >>> amb_out = cmp.source('ambient out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.condenser('condenser')
-    >>> he.component()
+    >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
+    >>> amb_in = sink('ambient air inlet')
+    >>> amb_out = source('air outlet')
+    >>> waste_steam = source('waste steam')
+    >>> c = sink('condensate sink')
+    >>> cond = condenser('condenser')
+    >>> cond.component()
     'condenser'
-    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
-    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr2'],
-    ...     offdesign=['zeta2', 'kA'])
-    >>> hs_he.set_attr(Td_bp=20, p=1, fluid={'water': 1, 'air': 0})
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
+    >>> amb_he = connection(amb_out, 'out1', cond, 'in2')
+    >>> he_amb = connection(cond, 'out2', amb_in, 'in1')
+    >>> ws_he = connection(waste_steam, 'out1', cond, 'in1')
+    >>> he_c = connection(cond, 'out1', c, 'in1')
+    >>> nw.add_conns(amb_he, he_amb, ws_he, he_c)
+
+    The air flow can not be controlled, thus is constant in offdesign
+    operation. If the waste steam mass flow or the ambient air temperature
+    change, the outlet temperature of the air will change, too.
+
+    >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
+    ... offdesign=['zeta2', 'kA'])
+    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
+    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
-    >>> he.set_attr(Q=-80e3)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(hs_he.m.val, 2)
-    0.03
-    >>> round(amb_he.m.val, 2)
-    3.97
-    >>> round(he_amb.T.val, 1)
-    40.0
-    >>> he.set_attr(Q=-60e3)
+    >>> round(amb_he.v.val, 2)
+    103.17
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    66.9
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    15.0
+    >>> ws_he.set_attr(m=0.7)
+    >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(amb_he.m.val, 2)
-    2.78
-    >>> round(he_amb.T.val, 1)
-    41.5
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    62.5
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    11.1
+
+    It is possible to activate subcooling. The difference to boiling point
+    temperature is specified to 5 K.
+
+    >>> cond.set_attr(subcooling=True)
+    >>> he_c.set_attr(Td_bp=-5)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(ws_he.T.val - he_amb.T.val, 1)
+    62.5
+    >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
+    13.1
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2062,9 +2471,9 @@ class desuperheater(heat_exchanger):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
-        - :func:`tespy.components.components.heat_exchanger.mass_flow_func`
-        - :func:`tespy.components.components.heat_exchanger.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
 
@@ -2072,20 +2481,20 @@ class desuperheater(heat_exchanger):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :func:`tespy.components.components.heat_exchanger.kA_func`
-        - :func:`tespy.components.components.heat_exchanger.ttd_u_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.heat_exchanger.zeta_func`
-        - :func:`tespy.components.components.heat_exchanger.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.desuperheater.additional_equations`
+        - :func:`tespy.components.heat_exchangers.desuperheater.additional_equations`
 
     Inlets/Outlets
 
@@ -2144,49 +2553,62 @@ class desuperheater(heat_exchanger):
     Note
     ----
     The desuperheater has an additional equation for enthalpy at hot side
-    outlet.
+    outlet: The fluid leaves the component in saturated gas state.
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk
+    Overheated enthanol is cooled with water in a heat exchanger until it
+    reaches the state of saturated gas.
+
+    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components.heat_exchangers import desuperheater
+    >>> from tespy.connections import connection
+    >>> from tespy.networks.networks import network
+    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
-    >>> nw = nwk.network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> amb_in = cmp.sink('ambient in')
-    >>> amb_out = cmp.source('ambient out')
-    >>> hsin = cmp.sink('HS in')
-    >>> hsout = cmp.source('HS out')
-    >>> he = cmp.desuperheater('desuperheater')
-    >>> he.component()
+    >>> nw = network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10], iterinfo=False)
+    >>> et_in = source('ethanol inlet')
+    >>> et_out = sink('ethanol outlet')
+    >>> cw_in = source('cooling water inlet')
+    >>> cw_out = sink('cooling water outlet')
+    >>> desu = desuperheater('desuperheater')
+    >>> desu.component()
     'desuperheater'
-    >>> amb_he = con.connection(amb_out, 'out1', he, 'in2')
-    >>> he_amb = con.connection(he, 'out2', amb_in, 'in1')
-    >>> hs_he = con.connection(hsout, 'out1', he, 'in1')
-    >>> he_hs = con.connection(he, 'out1', hsin, 'in1')
-    >>> nw.add_conns(amb_he, he_amb, hs_he, he_hs)
-    >>> he.set_attr(pr1=0.98, pr2=0.999, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA'])
-    >>> hs_he.set_attr(T=200, p=1, fluid={'water': 1, 'air': 0})
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20)
-    >>> he_amb.set_attr(p=1, T=40, design=['T'])
-    >>> he.set_attr(Q=-80e3)
+    >>> et_de = connection(et_in, 'out1', desu, 'in1')
+    >>> de_et = connection(desu, 'out1', et_out, 'in1')
+    >>> cw_de = connection(cw_in, 'out1', desu, 'in2')
+    >>> de_cw = connection(desu, 'out2', cw_out, 'in1')
+    >>> nw.add_conns(et_de, de_et, cw_de, de_cw)
+
+    The cooling water enters the component at 15 °C. 10 l/s of ethanol is
+    cooled from 100 K above boiling point. The water flow rate is at 1 l/s.
+    Knowing the component's design parameters it is possible to predict
+    behavior at different inlet temperatures or different volumetric flow of
+    ethanol. Controlling the ethanol's state at the outlet is only possible,
+    if the cooling water flow rate is adjusted accordingly.
+
+    >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
+    ... offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> cw_de.set_attr(fluid={'water': 1, 'ethanol': 0}, T=15, v=1,
+    ... design=['v'])
+    >>> de_cw.set_attr(p=1)
+    >>> et_de.set_attr(fluid={'water': 0, 'ethanol': 1}, Td_bp=100, v=10)
+    >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(hs_he.m.val, 1)
-    0.4
-    >>> round(amb_he.m.val, 2)
-    3.97
-    >>> round(he_amb.T.val, 1)
-    40.0
-    >>> he.set_attr(Q=-60e3)
+    >>> round(de_cw.T.val, 1)
+    15.5
+    >>> round(de_et.x.val, 1)
+    1.0
+    >>> et_de.set_attr(v=12)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(hs_he.m.val, 1)
-    0.3
-    >>> round(amb_he.m.val, 2)
-    2.56
-    >>> round(he_amb.T.val, 1)
-    43.3
+    >>> round(cw_de.v.val, 1)
+    1.5
+    >>> et_de.set_attr(v=7)
+    >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
+    >>> round(cw_de.v.val, 1)
+    0.6
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2242,317 +2664,3 @@ class desuperheater(heat_exchanger):
         mat_deriv += deriv.tolist()
 
         return mat_deriv
-
-# %%
-
-
-class solar_collector(heat_exchanger_simple):
-    r"""
-    Equations
-
-        **mandatory equations**
-
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
-
-        **optional equations**
-
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
-
-        .. math::
-
-            0 = p_{in} \cdot pr - p_{out}
-
-        - :func:`tespy.components.components.component.zeta_func`
-
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
-
-        **additional equations**
-
-        - :func:`tespy.components.components.solar_collector.additional_equations`
-
-    Inlets/Outlets
-
-        - in1
-        - out1
-
-    Image
-
-        .. image:: _images/solar_collector.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    Q : Sring/float/tespy.helpers.dc_cp
-        Heat transfer, :math:`Q/\text{W}`.
-
-    pr : Sring/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio, :math:`pr/1`.
-
-    zeta : str/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    D : str/float/tespy.helpers.dc_cp
-        Diameter of the pipes, :math:`D/\text{m}`.
-
-    L : str/float/tespy.helpers.dc_cp
-        Length of the pipes, :math:`L/\text{m}`.
-
-    ks : str/float/tespy.helpers.dc_cp
-        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
-        :math:`ks/\text{1}` for hazen-williams equation.
-
-    hydro_group : Sring/tespy.helpers.dc_gcp
-        Parametergroup for pressure drop calculation based on pipes dimensions.
-        Choose 'HW' for hazen-williams equation, else darcy friction factor is
-        used.
-
-    E : str/float/tespy.helpers.dc_cp
-        Absorption on the inclined surface,
-        :math:`E/\frac{\text{W}}{\text{m}^2}`.
-
-    lkf_lin : str/float/tespy.helpers.dc_cp
-        Linear loss key figure,
-        :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
-
-    lkf_quad : str/float/tespy.helpers.dc_cp
-        Quadratic loss key figure,
-        :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
-
-    A : str/float/tespy.helpers.dc_cp
-        Collector surface area :math:`A/\text{m}^2`.
-
-    Tamb : float/tespy.helpers.dc_cp
-        Ambient temperature, provide parameter in network's temperature unit.
-
-    energy_group : tespy.helpers.dc_gcp
-        Parametergroup for energy balance of solarthermal collector.
-
-    Note
-    ----
-    The solar collector does not take optical losses into accout. The incoming
-    radiation E represents the actual absorption of the solar collector.
-    Optical losses should be handeled in preprocessing.
-
-    Example
-    -------
-    >>> from tespy import cmp, con, nwk
-    >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = nwk.network(fluids=fluids)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> nw.set_printoptions(print_level='none')
-    >>> so1 = cmp.source('source 1')
-    >>> si1 = cmp.sink('sink 1')
-    >>> sc = cmp.solar_collector('test')
-    >>> sc.component()
-    'solar collector'
-    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
-    ...     Tamb=25, A='var', lkf_lin=1, lkf_quad=0.005, E=8e2)
-    >>> inc = con.connection(so1, 'out1', sc, 'in1')
-    >>> outg = con.connection(sc, 'out1', si1, 'in1')
-    >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
-    >>> outg.set_attr(T=90, design=['T'])
-    >>> nw.solve('design')
-    >>> nw.save('tmp')
-    >>> round(sc.A.val, 1)
-    13.3
-    >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
-    >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(sc.Q.val, 1)
-    6097.3
-    >>> round(outg.T.val, 1)
-    70.5
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
-    """
-
-    def component(self):
-        return 'solar collector'
-
-    def attr(self):
-        return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=1e-4),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
-                'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
-                'E': dc_cp(min_val=0),
-                'lkf_lin': dc_cp(min_val=0),
-                'lkf_quad': dc_cp(min_val=0),
-                'A': dc_cp(min_val=0),
-                'Tamb': dc_cp(),
-                'SQ': dc_simple(),
-                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def comp_init(self, nw):
-
-        component.comp_init(self, nw)
-
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
-
-        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
-                            nw.T[nw.T_unit][1])
-
-        # parameters for hydro group
-        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
-
-        is_set = True
-        for e in self.hydro_group.elements:
-            if not e.is_set:
-                is_set = False
-
-        if is_set:
-            self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
-            msg = ('All parameters of the component group have to be '
-                   'specified! This component group uses the following '
-                   'parameters: L, ks, D at ' + self.label + '. '
-                   'Group will be set to False.')
-            logging.info(msg)
-            self.hydro_group.set_attr(is_set=False)
-        else:
-            self.hydro_group.set_attr(is_set=False)
-
-        # parameters for kA group
-        self.energy_group.set_attr(elements=[self.E, self.lkf_lin,
-                                             self.lkf_quad, self.A, self.Tamb])
-
-        is_set = True
-        for e in self.energy_group.elements:
-            if not e.is_set:
-                is_set = False
-
-        if is_set:
-            self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set:
-            msg = ('All parameters of the component group have to be '
-                   'specified! This component group uses the following '
-                   'parameters: E, lkf_lin, lkf_quad, A, Tamb at ' +
-                   self.label + '. Group will be set to False.')
-            logging.info(msg)
-            self.energy_group.set_attr(is_set=False)
-        else:
-            self.energy_group.set_attr(is_set=False)
-
-    def additional_equations(self):
-        r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
-
-        Equations
-
-            **optional equations**
-
-            - :func:`tespy.components.components.solar_collector.energy_func`
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
-        ######################################################################
-        # equation for specified energy-group paremeters
-        if self.energy_group.is_set:
-            vec_res += [self.energy_func()]
-
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
-        ######################################################################
-        # derivatives for specified energy-group paremeters
-        if self.energy_group.is_set:
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            deriv[0, 0, 1] = self.numeric_deriv(self.energy_func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(self.energy_func, 'h', 0)
-            deriv[0, 1, 1] = self.numeric_deriv(self.energy_func, 'p', 1)
-            deriv[0, 1, 2] = self.numeric_deriv(self.energy_func, 'h', 1)
-            # custom variables for the energy-group
-            for var in self.energy_group.elements:
-                if var.is_var:
-                    deriv[0, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(self.energy_func,
-                                               self.vars[var], 2))
-            mat_deriv += deriv.tolist()
-
-        return mat_deriv
-
-    def energy_func(self):
-        r"""
-        Equation for solar collector energy balance.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                T_m = \frac{T_{out} + T_{in}}{2}\\
-
-                \begin{split}
-                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-                & - A \cdot \left[E - \alpha_1 \cdot
-                \left(T_m - T_{amb} \right) - \alpha_2 \cdot
-                \left(T_m - T_{amb}\right)^2 \right]
-                \end{split}
-        """
-
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-
-        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
-               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
-
-        return (i[0] * (o[2] - i[2]) - self.A.val * (
-                self.E.val - (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
-
-    def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-
-        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
-        self.Q.val = i[0] * (o[2] - i[2])
-        self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-
-        self.check_parameter_bounds()

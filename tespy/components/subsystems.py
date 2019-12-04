@@ -1,6 +1,9 @@
 # -*- coding: utf-8
 
-"""This module contains the component: subsystem
+"""Module for component groups.
+
+It is possible to create subsystems of component groups in tespy. The subsystem
+class is the base class for custom subsystems.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -13,7 +16,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 import logging
 
-from tespy.networks import networks
+from tespy.networks.networks import network
 
 # %%
 
@@ -45,18 +48,20 @@ class subsystem:
     Example
     -------
     Basic example for a setting up a tespy.components.subsystems.subsystem
-    object.
-    This example does not run a tespy calculation!
+    object. This example does not run a tespy calculation!
 
-    >>> from tespy import subsys
-    >>> mysub = subsys.subsystem('mySubsystem')
+    >>> from tespy.components.subsystems import subsystem
+    >>> mysub = subsystem('mySubsystem')
     >>> type(mysub)
     <class 'tespy.components.subsystems.subsystem'>
     >>> mysub.get_attr('label')
     'mySubsystem'
     >>> type(mysub.get_network())
-    <class 'tespy.networks.network'>
+    <class 'tespy.networks.networks.network'>
+    >>> mysub.set_attr(num_i=3)
+    >>> mysub.set_attr(num_o='some value')
     """
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
@@ -171,10 +176,9 @@ class subsystem:
     def set_conns(self):
         if not hasattr(self, 'nw'):
             self.create_network()
-        return
 
     def create_network(self):
-        self.nw = networks.network(fluids=[])
+        self.nw = network(fluids=[])
         for c in self.conns:
             self.nw.add_conns(c)
 

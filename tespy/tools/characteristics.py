@@ -1,8 +1,10 @@
 # -*- coding: utf-8
 
-"""This module contains the classes for characteristic lines and characteristic
-maps. The user can create custom characteristic lines or maps with individual
-data. The classes handle the integration in the component and bus equations.
+"""Module for characteristic functions.
+
+The characteristics module provides the integration of characteristic lines
+and characteristic maps. The user can create custom characteristic lines or
+maps with individual data.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -173,7 +175,7 @@ class characteristics:
            :align: center
 
 
-        **default characteristic lines for cogeneration units**
+        **default characteristic lines for combustion engines**
 
         .. math::
 
@@ -318,7 +320,7 @@ class characteristics:
                     [0.250, 0.547, 0.900, 0.965, 0.995, 1.000, 0.990, 0.959,
                      0.911, 0.737, 0.519, 0.250])
 
-        elif self.comp == 'cogeneration unit':
+        elif self.comp == 'combustion engine':
 
             x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])
             y['TI'] = np.array([2.50, 2.33, 2.27, 2.25])

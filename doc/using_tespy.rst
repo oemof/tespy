@@ -5,7 +5,12 @@ Using TESPy
 ~~~~~~~~~~~
 
 TESPy provides a simulation package for component based thermal engineering containing the most important
-components of such plants. In the introduction you will learn the basics of modelling component based
+components of such plants. As reference literature, the following books can be recommended:
+
+ * Leopold Böswirth, Sabine Bschorer, Thomas Buck: Technische Strömungslehre, Wiesbaden, 2012. (german)
+ * Hans Dieter Baehr, Stephan Kabelac: Thermodynamik, Berlin, 2016. (german)
+
+In the introduction you will learn the basics of modelling component based
 plants in TESPy. We then give an overview on the main TESPy modules, which will be demonstrated on a very simple example:
 
  * tespy.networks,

@@ -3,9 +3,9 @@ Combustion engine
 
 We have added a cogeneration unit in version 0.0.5 of TESPy. The cogeneration unit is based on the combustion chamber, and additionally provides a power and two heating outlets,
 heat losses can be taken into account as well. Power output, heat production and losses are all linked to the thermal input of the combustion engine by characteristic lines, which usually are provided by the manufacturer.
-TESPy provides a set of predefined characteristics (documented in the :py:class:`characteristics module <tespy.components.characteristics.characteristics.default>`).
+TESPy provides a set of predefined characteristics (documented in the :py:class:`characteristics module <tespy.tools.characteristics.characteristics>` class).
 
-.. figure:: api/_images/cogeneration_unit.svg
+.. figure:: api/_images/combustion_engine.svg
     :align: center
 	
     Figure: Topology of a cogeneration unit.

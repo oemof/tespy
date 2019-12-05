@@ -40,6 +40,7 @@ Additionally we provide basic examples in the :ref:`examples section <tespy_exam
 .. _using_tespy_introduction_label:
 .. include:: using_tespy/intro.rst
 .. include:: using_tespy/networks.rst
+.. _using_tespy_components_label:
 .. include:: using_tespy/components.rst
 .. include:: using_tespy/subsystems.rst
 .. _using_tespy_connections_label:

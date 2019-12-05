@@ -377,5 +377,6 @@ You can reimport the network using following code with the path to the saved doc
 
 .. note::
 
-	- Imported connections are accessible by the connections' target and target id, e. g.: :code:`nw.imp_conns['condenser:in1']`.
+	- Imported connections are accessible by the connections' source and source id as well as target and target id following this principle:
+	  :code:`nw.imp_conns['source-component-label:source-id_target-component-label:source-id']`, e. g. :code:`nw.imp_conns['condenser:out1_condensate pump:in1']`.
 	- Imported components and busses are accessible by their label, e. g. :code:`nw.imp_comps['condenser']` and :code:`nw.imp_busses['total heat output']` respectively.

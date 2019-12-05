@@ -16,6 +16,7 @@ New Features
 Documentation
 #############
 - Fix typos in docstrings in components module (`PR #102 <https://github.com/oemof/tespy/pull/102>`_).
+- Review of online documentation (`PR #112 <https://github.com/oemof/tespy/pull/112>`_).
 
 Parameter renaming
 ##################
@@ -27,7 +28,6 @@ Parameter renaming
 - The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore. Use :code:`yournetwork.set_attr(iterinfo=True/False)`
   in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Parameter :code:`interface` for sinks and sources has been removed (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
-- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Testing
 #######
@@ -40,6 +40,7 @@ Bug fixes
 #########
 - Bus value specification uses :code:`is_set` instead of :code:`val_set` as the component
   properties data container is used (`39ca830 <https://github.com/oemof/tespy/commit/39ca830c05f6b97a2e4867265ce1de32f6a6f2bc>`_).
+- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 
 Other changes
@@ -51,7 +52,11 @@ Contributors
 ############
 
 - Francesco Witte (@fwitte)
-- Markus Brandt (@MarBrandt)
+- @MarBrandt
+- @stianchris
+- @jfreissmann
+- @maltefritz
+- @FranziPl
 
 .. _tespy_v020_examples_label:
 

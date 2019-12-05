@@ -5,14 +5,24 @@ Set up a plant
 --------------
 
 In order to simulate a plant you will have to create a tespy.network first. The network is the main container for the model.
+The model used in this introduction is shown in figure 2. It consists of a central heating plant and a consumer, represented by a heat exchanger with a valve.
+
+.. figure:: api/_images/dhs_tut_scheme.svg
+
+    :align: center
+
+    Figure 2: Topology of the simplest district heating system
+
+.. _using_tespy_introduction_label:
+
 
 You need to specify a list of the fluids you need for the calculation in your plant. For more information on the fluid properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`.
 
 .. code-block:: python
 
 	from tespy import nwk
-	# create a network object with air and water as fluids
-	fluid_list = ['air', 'water']
+	# create a network object with water as fluid
+	fluid_list = ['water']
 	my_plant = nwk.network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
@@ -24,7 +34,7 @@ The specification of the **value range** is used to **improve convergence stabil
 
 	# set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
 	my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-	my_plant.set_attr(T_range=[10, 700], p_range=[0.05, 150], h_range=[15, 4000])
+	my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150], h_range=[15, 4000])
 
 Now you can start to create the components of the network.
 

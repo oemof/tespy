@@ -34,7 +34,7 @@ The specification of the **value range** is used to **improve convergence stabil
 
 	# set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
 	my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-	my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150], h_range=[15, 4000])
+	my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150])
 
 Now you can start to create the components of the network.
 
@@ -48,28 +48,43 @@ The full list of parameters for a specific component (e. g. a valve) is stated i
 .. note::
 	Parameters for components are generally optional. Only the components label and in case you want to use a stoichiometric combustion chamber, its fuel and air composition, are mandatory parameters to provide.
 	If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify.
-	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
+	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter.
+The definition of the other parameters can be found here: :py:class:`Pipe <tespy.components.piping.pipe>` and :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>`. 
 
 
 .. code-block:: python
 	
     from tespy import cmp
 	import numpy as np
-	# sources & sinks
+    
+	# sources & sinks (central heating plant)
     
     so = cmp.source('heat source output')
     si = cmp.sink('heat source input')
-
-
+    
+    
     # consumer
     
-    cons = cmp.heat_exchanger_simple('consumer')
+    cons = cmp.heat_exchanger_simple(label='consumer')
+    cons.set_attr(Q=-10000, pr=1)  # Q in W
     val = cmp.valve('valve')
+    val.set_attr(pr=1)  # pr - pressure ratio (input/output) in per unit
     
     # pipes
     
-    pif = cmp.pipe('pipe_feed')
-    pib = cmp.pipe('pipe_back')
+    pipe_feed = cmp.pipe('pipe_feed')
+    pipe_back = cmp.pipe('pipe_back')
+    
+    pipe_feed.set_attr(ks=0.0005,  # roughness in meters
+                      L=100,  # length in m
+                      D=0.06,  # diameter in m
+                      kA=10,  # kA value - area and length independent! in W/K
+                      Tamb=10)  # ambient temperature of the pipe environment (ground temperature)
+    pipe_back.set_attr(ks=0.0005,
+                      L=100,
+                      D=0.06,
+                      kA=10,
+                      Tamb=10)
 
 
 After setting up the components the next step is to connect the components in your network.
@@ -96,34 +111,33 @@ All parameters but the fluid vector, state and balance have to be numeric values
 The parameter :code:`fluid_balance` can only be :code:`True` or :code:`False`, the parameter :code:`state` can only be :code:`'l'` (liquid) or :code:`'g'` (gaseous).
 For the properties marked with * it is possible to use references instead of numeric values.
 This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.
+In this case, we just set input and output temperature of the system, as well as the input pressure.
 
 .. code-block:: python
 
 	from tespy import con
+    import numpy as np
+    
+    # connections in the dhs
 
-	ws_cond = con.connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
-	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}, Td_bp=-3) # setting a fluid vector: {'fluid i': mass fraction i}, subcooling to 3 K (15/9 K if temperature unit is Fahrenheit)
-	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1', state='l') # enthalpy values will be manipulated in calculation process in a way, that the fluids state is liquid all the time
-	fwt_fwp = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
-	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
-	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
-	eva_eco = con.connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
-	eco_fgs = con.connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
+	so_pif = con.connection(so, 'out1', pipe_feed, 'in1')
+    so_pif.set_attr(T=90, p=15, fluid={'water': 1})
 
-	# this line is crutial, you have to add all connections to your network!
-	my_plant.add_conns(ws_cond, cond_cp, cp_fwt, fwt_fwp, fwp_eco, eco_drum, eva_eco, eco_fgs)
+	pif_cons = con.connection(pipe_feed, 'out1', cons, 'in1')
+	cons_val = con.connection(cons, 'out1', val, 'in1', T=60, p=5)
 
-.. figure:: api/_images/intro_connections.svg
-    :align: center
+	val_pib = con.connection(val, 'out1', pipe_back, 'in1')
+	pib_si = con.connection(pipe_back, 'out1', si, 'in1')
 
-    Figure 2: Topology after defining the above connections.
+    # this line is crutial: you have to add all connections to your network!
+	my_plant.add_conns(so_pif, pif_cons, cons_val, val_pib, pib_si)
 
-If you want to set, reset or unset a connection parameter the same logic as for the components is applied.
+
+If you want to set, reset or unset a connection parameter the same logic as for the components is applied. In this 
 
 .. code-block:: python
 
-	ws_cond.set_attr(x=0.95, p=0.05) # reset vapour mass fraction, set pressure
-	eco_drum.set_attr(p=np.nan) # unset pressure
+    cons_val.set_attr(p=np.nan)  # unset pressure
 
 Start your calculation
 ----------------------
@@ -133,6 +147,7 @@ After building your network, the components and the connections, add the followi
 .. code-block:: python
 
 	my_plant.solve(mode='design')
+    my_plant.print_results()
 
 Please be aware, that the execution of the lines of code above will not create a solvable TESPy network. For good first examples jump to the :ref:`TESPy examples <tespy_examples_label>`.
 

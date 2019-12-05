@@ -149,6 +149,6 @@ After building your network, the components and the connections, add the followi
 	my_plant.solve(mode='design')
     my_plant.print_results()
 
-Please be aware, that the execution of the lines of code above will not create a solvable TESPy network. For good first examples jump to the :ref:`TESPy examples <tespy_examples_label>`.
+For further examples, that go deeper into TESPy, jump to the :ref:`TESPy examples <tespy_examples_label>`.
 
 In order to get a good overview of the TESPy functionalities, the following sections will walk you through the different TESPy modules in detail.

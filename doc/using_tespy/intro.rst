@@ -32,13 +32,13 @@ Set up components
 -----------------
 
 Available components can be found :ref:`here <using_tespy_components_label>`. If you set up a component you have to specify a (within one network) unique label.
-Moreover, it is possible to specify parameters for the component, for example power P for a turbine or upper terminal temperature difference ttd_u of a heat exchanger.
+Moreover, it is possible to specify parameters for the component, for example power :math:`P` for a turbine or upper terminal temperature difference :math:`ttd_u` of a heat exchanger.
 The full list of parameters for a specific component (e. g. a valve) is stated in the classes documentation.
 
 .. note::
-	Parameters for components are generally optional. Only the components label and in case you want to use a stoichiometric combustion chamber, its fuel and air composition, are mandatory parameters to provide.
+	Parameters for components are generally optional. Only the components label and in case you want to use a stoichiometric combustion chamber, its fuel and air composition are mandatory parameters to provide.
 	If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify.
-	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
+	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, and how to set, reset or unset a parameter:
 
 .. code-block:: python
 
@@ -69,7 +69,7 @@ It is possible to set the properties on each connection in a similar way as para
  * a fluid vector (fluid) and
  * a balance closer for the fluid vector (fluid_balance).
 
-All parameters but the fluid vector, state and balance have to be numeric values. The fluid vector has to be specified as dictonary, see the example below.
+All parameters but the fluid vector, the fluids state and balance have to be numeric values. The fluid vector has to be specified as dictonary, see the example below.
 The parameter :code:`fluid_balance` can only be :code:`True` or :code:`False`, the parameter :code:`state` can only be :code:`'l'` (liquid) or :code:`'g'` (gaseous).
 For the properties marked with * it is possible to use references instead of numeric values.
 This can be used for example if you want to have the pressure in two parts of your network related in a specific way but you do not know the values prior to the plant simulation.

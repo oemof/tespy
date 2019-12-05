@@ -372,8 +372,8 @@ You can reimport the network using following code with the path to the saved doc
 
 .. code:: python
 
-	from tespy.networks.networks import network
-	nw = nwkr.load_nwk('path/to/mynetwork')
+	from tespy.networks.network_reader import load_nwk
+	nw = load_nwk('path/to/mynetwork')
 
 .. note::
 

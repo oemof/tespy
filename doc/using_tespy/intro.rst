@@ -133,7 +133,7 @@ In this case, we just set input and output temperature of the system, as well as
 	my_plant.add_conns(so_pif, pif_cons, cons_val, val_pib, pib_si)
 
 
-If you want to set, reset or unset a connection parameter the same logic as for the components is applied. In this 
+If you want to set, reset or unset a connection parameter the same logic as for the components is applied. In this example, we want to unset the output pressure, because it would overdetermine our system.
 
 .. code-block:: python
 

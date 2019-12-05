@@ -50,14 +50,27 @@ The full list of parameters for a specific component (e. g. a valve) is stated i
 	If an optional parameter is not specified by the user, it will be a result of the plants simulation. In this way, the set of equations a component returns is determined by which parameters you specify.
 	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well. The example below shows how to create a component with specific parameters, set or reset and how to unset a parameter:
 
+
 .. code-block:: python
-
-	from tespy import cmp
+	
+    from tespy import cmp
 	import numpy as np
+	# sources & sinks
+    
+    so = cmp.source('heat source output')
+    si = cmp.sink('heat source input')
 
-	feed_water_pump = cmp.pump(label='hp pump', P=1e3) # create pump labeled 'hp pump'
-	feed_water_pump.set_attr(P=2e3, eta_s=0.9) # set the power to 2000 W, set isentropic efficiency to 90 %
-	feed_water_pump.set_attr(P=np.nan) # unset power
+
+    # consumer
+    
+    cons = cmp.heat_exchanger_simple('consumer')
+    val = cmp.valve('valve')
+    
+    # pipes
+    
+    pif = cmp.pipe('pipe_feed')
+    pib = cmp.pipe('pipe_back')
+
 
 After setting up the components the next step is to connect the components in your network.
 

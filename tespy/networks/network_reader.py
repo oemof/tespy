@@ -573,7 +573,7 @@ def construct_busses(c, *args):
     """
     # set up bus with label and specify value for power
     b = bus(c.label, P=c.P)
-    b.P.val_set = c.P_set
+    b.P.is_set = c.P_set
     return b
 
 # %% add components to busses

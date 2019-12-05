@@ -687,7 +687,7 @@ class bus:
         self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
 
         self.label = label
-        self.P = dc_cp(val=np.nan, val_set=False)
+        self.P = dc_cp(val=np.nan, is_set=False)
         self.char = characteristics(x=np.array([0, 1, 2, 3]),
                                     y=np.array([1, 1, 1, 1]))
 
@@ -715,9 +715,9 @@ class bus:
         self.P.val = P
 
         if np.isnan(self.P.val):
-            self.P.val_set = False
+            self.P.is_set = False
         else:
-            self.P.val_set = True
+            self.P.is_set = True
 
     def get_attr(self, key):
         r"""

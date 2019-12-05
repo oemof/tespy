@@ -76,6 +76,8 @@ class cycle_closer(component):
     >>> pi = pipe('pipe')
     >>> pu = pump('pump')
     >>> cc = cycle_closer('cycle closing component')
+    >>> cc.component()
+    'cycle closer'
     >>> pu_pi = connection(pu, 'out1', pi, 'in1')
     >>> pi_cc = connection(pi, 'out1', cc, 'in1')
     >>> cc_pu = connection(cc, 'out1', pu, 'in1')
@@ -294,7 +296,7 @@ class subsystem_interface(component):
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = source('source 1')
     >>> si = sink('sink 1')
-    >>> IF = subsystem_interface('subsystem interface')
+    >>> IF = subsystem_interface('subsystem interface', num_inter=1)
     >>> IF.component()
     'subsystem interface'
     >>> len(IF.inlets())

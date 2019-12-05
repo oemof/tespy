@@ -767,8 +767,6 @@ class water_electrolyzer(component):
         # derivatives for heat on bus
         elif bus.param == 'Q':
 
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
             deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
             deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)

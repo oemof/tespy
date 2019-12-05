@@ -1140,7 +1140,6 @@ class heat_exchanger(component):
         - :func:`tespy.components.components.heat_exchanger.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
-        **heat exchanger**
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
@@ -1148,8 +1147,6 @@ class heat_exchanger(component):
         .. math::
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        **heat exchanger**
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`

@@ -29,8 +29,6 @@ set up a heat pump(Figure 1) in TESPy. You will learn, how to set up and design 
 
     Figure 1: Topology of a heat pump.
 
-.. _using_tespy_introduction_label:
-
 
 Additionally we provide basic examples in the :ref:`examples section <tespy_examples_label>`. For now we will stay with a very simple example.
 
@@ -39,10 +37,12 @@ Additionally we provide basic examples in the :ref:`examples section <tespy_exam
     :local:
     :backlinks: top
 
+.. _using_tespy_introduction_label:
 .. include:: using_tespy/intro.rst
 .. include:: using_tespy/networks.rst
 .. include:: using_tespy/components.rst
 .. include:: using_tespy/subsystems.rst
+.. _using_tespy_connections_label:
 .. include:: using_tespy/connections.rst
 .. include:: using_tespy/fluid_properties.rst
 .. include:: using_tespy/other.rst

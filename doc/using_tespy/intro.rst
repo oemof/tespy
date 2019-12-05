@@ -133,7 +133,7 @@ In the example case, we just set input and output temperature of the system, as 
     so_pif.set_attr(T=90, p=15, fluid={'water': 1})
 
 	pif_cons = con.connection(pipe_feed, 'out1', cons, 'in1')
-	cons_val = con.connection(cons, 'out1', val, 'in1', T=60, p=5)
+	cons_val = con.connection(cons, 'out1', val, 'in1', T=60)
 
 	val_pib = con.connection(val, 'out1', pipe_back, 'in1')
 	pib_si = con.connection(pipe_back, 'out1', si, 'in1')

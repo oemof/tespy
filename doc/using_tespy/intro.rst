@@ -10,17 +10,15 @@ You need to specify a list of the fluids you need for the calculation in your pl
 
 .. code-block:: python
 
-	from tespy import nwk
+	from tespy.networks.networks import network
 	# create a network object with air and water as fluids
 	fluid_list = ['air', 'water']
-	my_plant = nwk.network(fluids=fluid_list)
+	my_plant = network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables. If you do not specify these, TESPy will use SI-units.
 The specification of the **value range** is used to **improve convergence stability**, in case you are dealing with **fluid mixtures**, e. g. using a combustion chamber.
 
 .. code-block:: python
-
-	from tespy import nwk
 
 	# set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
 	my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
@@ -42,10 +40,10 @@ The full list of parameters for a specific component (e. g. a valve) is stated i
 
 .. code-block:: python
 
-	from tespy import cmp
+	from tespy.components.turbomachinery import pump
 	import numpy as np
 
-	feed_water_pump = cmp.pump(label='hp pump', P=1e3) # create pump labeled 'hp pump'
+	feed_water_pump = pump(label='hp pump', P=1e3) # create pump labeled 'hp pump'
 	feed_water_pump.set_attr(P=2e3, eta_s=0.9) # set the power to 2000 W, set isentropic efficiency to 90 %
 	feed_water_pump.set_attr(P=np.nan) # unset power
 
@@ -76,16 +74,16 @@ This can be used for example if you want to have the pressure in two parts of yo
 
 .. code-block:: python
 
-	from tespy import con
+	from tespy.connections import combustion
 
-	ws_cond = con.connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
-	cond_cp = con.connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}, Td_bp=-3) # setting a fluid vector: {'fluid i': mass fraction i}, subcooling to 3 K (15/9 K if temperature unit is Fahrenheit)
-	cp_fwt = con.connection(condensate_pump, 'out1', feed_water_tank, 'in1', state='l') # enthalpy values will be manipulated in calculation process in a way, that the fluids state is liquid all the time
-	fwt_fwp = con.connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
-	fwp_eco = con.connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
-	eco_drum = con.connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
-	eva_eco = con.connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
-	eco_fgs = con.connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
+	ws_cond = connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
+	cond_cp = connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}, Td_bp=-3) # setting a fluid vector: {'fluid i': mass fraction i}, subcooling to 3 K (15/9 K if temperature unit is Fahrenheit)
+	cp_fwt = connection(condensate_pump, 'out1', feed_water_tank, 'in1', state='l') # enthalpy values will be manipulated in calculation process in a way, that the fluids state is liquid all the time
+	fwt_fwp = connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
+	fwp_eco = connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
+	eco_drum = connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
+	eva_eco = connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
+	eco_fgs = connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
 
 	# this line is crutial, you have to add all connections to your network!
 	my_plant.add_conns(ws_cond, cond_cp, cp_fwt, fwt_fwp, fwp_eco, eco_drum, eva_eco, eco_fgs)

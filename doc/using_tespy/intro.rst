@@ -20,10 +20,10 @@ properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`
 
 .. code-block:: python
 
-	from tespy.networks.networks import network
-	# create a network object with water as fluid
-	fluid_list = ['air', 'water']
-	my_plant = network(fluids=fluid_list)
+    from tespy.networks.networks import network
+    # create a network object with water as fluid
+    fluid_list = ['air', 'water']
+    my_plant = network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables.
 If you do not specify these, TESPy will use SI-units. The specification of the **value range** is
@@ -31,9 +31,9 @@ used to **improve convergence stability**, in case you are dealing with **fluid 
 
 .. code-block:: python
 
-	# set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
-	my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-	my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150])
+    # set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
+    my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+    my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150])
 
 Now you can start to create the components of the network.
 
@@ -59,26 +59,25 @@ a control valve and a heat exchanger. The definition of the parameters available
 	You can find all equations in the :ref:`components documentation <using_tespy_components_label>` as well.
 
 .. code-block:: python
-	
+
     from tespy.components.basics import sink, source
-	from tespy.components.piping import pipe, valve
-	from tespy.components.heat_exchangers import heat_exchanger_simple
-    
-	# sources & sinks (central heating plant)    
-    so = cmp.source('heat source output')
-    si = cmp.sink('heat source input')
-    
-    
-    # consumer    
+    from tespy.components.piping import pipe, valve
+    from tespy.components.heat_exchangers import heat_exchanger_simple
+
+    # sources & sinks (central heating plant)
+    so = source('heat source output')
+    si = sink('heat source input')
+
+    # consumer
     cons = heat_exchanger_simple('consumer')
     cons.set_attr(Q=-10000, pr=1)  # Q in W
     val = valve('valve')
-    val.set_attr(pr=1) # pr - pressure ratio (input/output)
-    
-    # pipes    
+    val.set_attr(pr=1)  # pr - pressure ratio (input/output)
+
+    # pipes
     pipe_feed = pipe('pipe_feed')
     pipe_back = pipe('pipe_back')
-    
+
     pipe_feed.set_attr(ks=0.0005,  # roughness in meters
                        L=100,  # length in m
                        D=0.06,  # diameter in m
@@ -126,20 +125,20 @@ In the example case, we just set input and output temperature of the system, as 
 
 .. code-block:: python
 
-	from tespy.connections import connection
-    
+    from tespy.connections import connection
+
     # connections of the disctrict heating system
-	so_pif = con.connection(so, 'out1', pipe_feed, 'in1')
+    so_pif = connection(so, 'out1', pipe_feed, 'in1')
     so_pif.set_attr(T=90, p=15, fluid={'water': 1})
 
-	pif_cons = con.connection(pipe_feed, 'out1', cons, 'in1')
-	cons_val = con.connection(cons, 'out1', val, 'in1', T=60)
+    pif_cons = connection(pipe_feed, 'out1', cons, 'in1')
+    cons_val = connection(cons, 'out1', val, 'in1', T=60)
 
-	val_pib = con.connection(val, 'out1', pipe_back, 'in1')
-	pib_si = con.connection(pipe_back, 'out1', si, 'in1')
+    val_pib = connection(val, 'out1', pipe_back, 'in1')
+    pib_si = connection(pipe_back, 'out1', si, 'in1')
 
     # this line is crutial: you have to add all connections to your network!
-	my_plant.add_conns(so_pif, pif_cons, cons_val, val_pib, pib_si)
+    my_plant.add_conns(so_pif, pif_cons, cons_val, val_pib, pib_si)
 
 Start your calculation
 ----------------------
@@ -149,7 +148,7 @@ add the following line at the end of your script and off you go:
 
 .. code-block:: python
 
-	my_plant.solve(mode='design')
+    my_plant.solve(mode='design')
     my_plant.print_results()
 
 For further examples, that go deeper into TESPy, jump to the :ref:`TESPy examples <tespy_examples_label>`.

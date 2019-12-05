@@ -13,7 +13,7 @@ Task
 
 This tutorial introduces you in how to model a heat pump in TESPy. You can see the plants topology in figure 1. Also, you will find a fully working model in the last chapter of this tutorial.
 
-.. figure:: api/_images/heat_pump.svg
+.. figure:: api/_images/tutorial_heat_pump.svg
     :align: center
 	
     Figure 1: Topology of the heat pump.

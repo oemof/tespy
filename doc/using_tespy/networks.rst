@@ -28,13 +28,13 @@ for instance, if you kwow that the maximum pressure in the system will be at 10 
 
 .. code-block:: python
 
-    from tespy import nwk
+    from tespy.networks.networks import network
 
 	fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
-	my_plant = nwk.network(fluids=fluid_list)
+	my_plant = network(fluids=fluid_list)
 	my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
 	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
-	
+
 .. _printout_logging_label:
 
 Printouts and logging
@@ -50,7 +50,7 @@ TESPy comes with an inbuilt logger. If you want to keep track of debugging-messa
 		log_path=True, log_version=True,
 		screen_level=logging.INFO, file_level=logging.DEBUG
 	)
-	
+
 The log-file will be saved to :code:`~/.tespy/log_files/` by default. All available options are documented in the :py:func:`API <tespy.tools.logger.define_logging>`.
 
 Prior to solving the network there are options regarding the **console printouts for the calculation progress** using the :py:meth:`set_printoptions method <tespy.networks.network.set_printoptions>`.
@@ -85,7 +85,7 @@ Another type of connection is the bus: Busses are power connections for e. g. tu
 .. code-block:: python
 
 	myplant.add_busses()
-	
+
 You will learn more about busses and how they work in :ref:`this part<tespy_busses_label>`.
 
 Start calculation
@@ -142,7 +142,7 @@ Also, the pressure drop is a result of the geometry for the offdesign case, thus
 .. code-block:: python
 
 	heat_ex.set_attr(design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2'])
-	
+
 .. note::
 
 	Some parameters come with characteristic functions based on the design case properties. This means, that e. g. the isentropic efficiency of a turbine is calculated as function of the actual mass flow to design mass flow ratio.
@@ -372,10 +372,11 @@ You can reimport the network using following code with the path to the saved doc
 
 .. code:: python
 
-	from tespy import nwkr
-	nw = nwkr.load_nwk('path/to/mynetwork')
-	
+	from tespy.networks.network_reader import load_nwk
+	nw = load_nwk('path/to/mynetwork')
+
 .. note::
 
-	- Imported connections are accessible by the connections' target and target id, e. g.: :code:`nw.imp_conns['condenser:in1']`. 
+	- Imported connections are accessible by the connections' source and source id as well as target and target id following this principle:
+	  :code:`nw.imp_conns['source-component-label:source-id_target-component-label:source-id']`, e. g. :code:`nw.imp_conns['condenser:out1_condensate pump:in1']`.
 	- Imported components and busses are accessible by their label, e. g. :code:`nw.imp_comps['condenser']` and :code:`nw.imp_busses['total heat output']` respectively.

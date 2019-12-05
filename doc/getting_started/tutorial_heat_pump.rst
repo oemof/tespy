@@ -1,5 +1,3 @@
-.. _heat_pump_tutorial_label:
-
 Heat pump tutorial
 ------------------
 

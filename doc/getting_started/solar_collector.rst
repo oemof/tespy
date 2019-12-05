@@ -1,5 +1,3 @@
-.. _solar_collector_example_label:
-
 Solar collector
 ---------------
 

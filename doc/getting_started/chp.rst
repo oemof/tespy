@@ -1,5 +1,3 @@
-.. _chp_example_label:
-
 CHP with backpressure turbine
 -----------------------------
 

@@ -1,6 +1,4 @@
-.. _cogeneration_unit_label:
-
-cogeneration unit
+combustion engine
 -----------------
 
 We have added a cogeneration unit in version 0.0.5 of TESPy. The cogeneration unit is based on the combustion chamber, and additionally provides a power and two heating outlets,

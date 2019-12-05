@@ -1,5 +1,3 @@
-.. _heat_pump_cop_label:
-
 COP of a heat pump
 ------------------
 

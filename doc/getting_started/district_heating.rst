@@ -1,5 +1,3 @@
-.. _dh_example_label:
-
 Distric heating system
 ----------------------
 

@@ -1,5 +1,3 @@
-.. _basic_example_label:
-
 Clausius rankine cycle
 ----------------------
 

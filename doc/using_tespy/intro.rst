@@ -74,14 +74,14 @@ This can be used for example if you want to have the pressure in two parts of yo
 
 .. code-block:: python
 
-	from tespy.connections import combustion
+	from tespy.connections import connection, ref
 
 	ws_cond = connection(waste_steam_source, 'out1', condenser, 'in1', x=0.97) # waste steam source to condenser hot side inlet and setting vapour mass fraction
 	cond_cp = connection(condenser, 'out1', condensate_pump, 'in1', fluid={'water': 1, 'air': 0}, Td_bp=-3) # setting a fluid vector: {'fluid i': mass fraction i}, subcooling to 3 K (15/9 K if temperature unit is Fahrenheit)
 	cp_fwt = connection(condensate_pump, 'out1', feed_water_tank, 'in1', state='l') # enthalpy values will be manipulated in calculation process in a way, that the fluids state is liquid all the time
 	fwt_fwp = connection(feed_water_tank, 'out1', feed_water_pump, 'in1') # connection without parameter specification
 	fwp_eco = connection(feed_water_pump, 'out1', economiser, 'in2', v=10) #  setting volumetric flow
-	eco_drum = connection(economiser, 'out2', drum, 'in1', T=320, p=con.ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
+	eco_drum = connection(economiser, 'out2', drum, 'in1', T=320, p=ref(fwp_eco, 0.98, 0)) # setting temperature and pressure via reference object (pressure at this point is 0.98 times of pressure at connection fwp_eco)
 	eva_eco = connection(evaporator, 'out1', economiser, 'in1', T=350, m=100) # setting temperature and mass flow
 	eco_fgs = connection(economiser, 'out1', flue_gas_sink, 'in1', fluid_balance=True, fluid={'air': 1}, p=1) # setting fluid vector partially as well as the fluid balance parameter and pressure
 

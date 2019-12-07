@@ -436,8 +436,7 @@ class compressor(turbomachine):
     map how does the efficiency change in different operation mode (e. g. 90 %
     of nominal volumetric flow)?
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.turbomachinery import compressor
+    >>> from tespy.components import sink, source, compressor
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -950,8 +949,7 @@ class pump(turbomachine):
     given isentropic efficiency it is possible to calculate power consumption
     and pressure at the pump.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.components import sink, source, pump
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> from tespy.tools.data_containers import dc_cc
@@ -1382,8 +1380,7 @@ class turbine(turbomachine):
     to 0,5 bar at the outlet. For example, it is possible to calulate the power
     output and vapour content at the outlet for a given isentropic efficiency.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.turbomachinery import turbine
+    >>> from tespy.components import sink, source, turbine
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> from tespy.tools.data_containers import dc_cc

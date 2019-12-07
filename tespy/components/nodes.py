@@ -103,8 +103,7 @@ class node(component):
     fractions and enthalpy). All outgoing fluids have the composition of the
     mixture at the mixtures enthalpy/temperature.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.nodes import node
+    >>> from tespy.components import sink, source, node
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -559,10 +558,7 @@ class drum(component):
     transported to an evaporator, the staturated gas phase is extracted from
     the drum. In this example ammonia is evaporated using ambient air.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.nodes import drum
-    >>> from tespy.components.turbomachinery import pump
-    >>> from tespy.components.heat_exchangers import heat_exchanger
+    >>> from tespy.components import sink, source, drum, pump, heat_exchanger
     >>> from tespy.connections import connection, ref
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -908,8 +904,7 @@ class merge(node):
     At the outlet, fluid composition and enthalpy are calculated by mass
     weighted fluid composition and enthalpy of the inlets.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.nodes import merge
+    >>> from tespy.components import sink, source, merge
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -1128,8 +1123,7 @@ class separator(node):
     number of different parts at identical pressure and temperature but
     different fluid composition. Fluids can be separated from each other.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.nodes import separator
+    >>> from tespy.components import sink, source, separator
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -1353,8 +1347,7 @@ class splitter(node):
     A splitter is used to split up a single mass flow into a specified number
     of different parts at identical pressure, enthalpy and fluid composition.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.nodes import splitter
+    >>> from tespy.components import sink, source, splitter
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil

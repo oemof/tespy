@@ -113,8 +113,7 @@ class combustion_chamber(component):
     when using combustion, as these stabilize the calculation. In this example
     a mixture of methane, hydrogen and carbondioxide is used as fuel.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.combustion import combustion_chamber
+    >>> from tespy.components import sink, source, combustion_chamber
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
@@ -1220,8 +1219,7 @@ class combustion_chamber_stoich(combustion_chamber):
     chamber example
     (see :func:`tespy.components.combustion.combustion_chamber`).
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.combustion import combustion_chamber_stoich
+    >>> from tespy.components import sink, source, combustion_chamber_stoich
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
@@ -2063,9 +2061,8 @@ class combustion_engine(combustion_chamber):
     a mixture of methane, hydrogen and carbondioxide is used as fuel. There are
     two cooling ports, the cooling water will flow through them in parallel.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.combustion import combustion_engine
-    >>> from tespy.components.nodes import merge, splitter
+    >>> from tespy.components import (sink, source, combustion_engine, merge,
+    ... splitter)
     >>> from tespy.connections import connection, ref
     >>> from tespy.networks.networks import network
     >>> import shutil

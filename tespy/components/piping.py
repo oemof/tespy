@@ -130,8 +130,7 @@ class pipe(heat_exchanger_simple):
     the required diameter, we can predict pressure loss at a different mass
     flow through the pipeline.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.piping import pipe
+    >>> from tespy.components import sink, source, pipe
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil
@@ -225,8 +224,7 @@ class valve(component):
     valve. The inlet temperature is at 50 °C. It is possible to determine the
     outlet temperature as the throttling does not change enthalpy.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.piping import valve
+    >>> from tespy.components import sink, source, valve
     >>> from tespy.connections import connection
     >>> from tespy.networks.networks import network
     >>> import shutil

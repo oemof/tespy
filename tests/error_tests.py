@@ -6,7 +6,7 @@ from tespy.connections import connection, bus, ref
 from tespy.components import (basics, combustion, components, heat_exchangers,
                               nodes, piping, reactors, subsystems,
                               turbomachinery)
-from tespy.networks.network_reader import load_nwk
+from tespy.networks.network_reader import load_network
 from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError)

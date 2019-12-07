@@ -50,7 +50,7 @@ class subsystem:
     Basic example for a setting up a tespy.components.subsystems.subsystem
     object. This example does not run a tespy calculation!
 
-    >>> from tespy.components.subsystems import subsystem
+    >>> from tespy.components import subsystem
     >>> mysub = subsystem('mySubsystem')
     >>> type(mysub)
     <class 'tespy.components.subsystems.subsystem'>

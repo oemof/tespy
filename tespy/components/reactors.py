@@ -152,11 +152,10 @@ class water_electrolyzer(component):
     Create a water electrolyzer and compress the hydrogen, e. g. for a hydrogen
     storage.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.turbomachinery import compressor
-    >>> from tespy.components.reactors import water_electrolyzer
+    >>> from tespy.components import (sink, source, compressor,
+    ... water_electrolyzer)
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']

@@ -12,6 +12,7 @@ New Features
 - Added optical efficiency to the "solar_collector". The incoming radiation E no longer represents 
   the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
 - Implemented difference pressure vs mass flow characteristic line for valve (`c4eec6d <https://github.com/oemof/tespy/commit/c4eec6d17ce7c8ce260a44757d37aa26214ae2b0>`_).
+- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 
 Documentation
 #############
@@ -21,13 +22,17 @@ Parameter renaming
 ##################
 - New name for *cogeneration_unit*: **combustion_engine** (`PR #105 <https://github.com/oemof/tespy/pull/105>`_).
 - New name for *subsys_interface*: **subsystem_interface** (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
-- The module import shortcuts (:code:`from tespy import ...`) for components (cmp), connections (con), helpers (hlp), logger (logger),
-  networks (nwk), network_reader (nwkr) are **no longer supported**! Please read the :ref:`example section below <tespy_v020_examples_label>` for more information
-  (`PR #108 <https://github.com/oemof/tespy/pull/108>`_).
-- The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore. Use :code:`yournetwork.set_attr(iterinfo=True/False)`
-  in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- The module import shortcuts (:code:`from tespy import ...`) for components (cmp), connections (con),
+  helpers (hlp), logger (logger), networks (nwk), network_reader (nwkr) are **no longer supported**
+  (`PR #108 <https://github.com/oemof/tespy/pull/108>`_)!
+  We implemented new shortcuts instead for tespy.networks and tespy.components modules
+  (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
+  Please refer the :ref:`example section below <tespy_v020_examples_label>` for more information
+- The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore.
+  Use :code:`yournetwork.set_attr(iterinfo=True/False)` in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Parameter :code:`interface` for sinks and sources has been removed (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
-- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- The method for loading networks from the network_reader module has been renamed from :code:`load_nwk` to
+  :code:`load_network` (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
 
 Testing
 #######

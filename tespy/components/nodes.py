@@ -105,7 +105,7 @@ class node(component):
 
     >>> from tespy.components import sink, source, node
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
@@ -560,7 +560,7 @@ class drum(component):
 
     >>> from tespy.components import sink, source, drum, pump, heat_exchanger
     >>> from tespy.connections import connection, ref
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> import numpy as np
     >>> nw = network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
@@ -906,7 +906,7 @@ class merge(node):
 
     >>> from tespy.components import sink, source, merge
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
@@ -1125,7 +1125,7 @@ class separator(node):
 
     >>> from tespy.components import sink, source, separator
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']
@@ -1349,7 +1349,7 @@ class splitter(node):
 
     >>> from tespy.components import sink, source, splitter
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> import numpy as np
     >>> fluid_list = ['O2', 'N2']

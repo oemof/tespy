@@ -69,7 +69,7 @@ class cycle_closer(component):
 
     >>> from tespy.components import cycle_closer, pipe, pump
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> nw = network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
     >>> pi = pipe('pipe')
     >>> pu = pump('pump')
@@ -288,7 +288,7 @@ class subsystem_interface(component):
 
     >>> from tespy.components import sink, source, subsystem_interface
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> fluids = ['H2O', 'N2']
     >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)

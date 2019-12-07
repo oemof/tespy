@@ -155,7 +155,7 @@ class water_electrolyzer(component):
     >>> from tespy.components import (sink, source, compressor,
     ... water_electrolyzer)
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']

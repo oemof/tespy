@@ -146,7 +146,7 @@ class heat_exchanger_simple(component):
 
     >>> from tespy.components import sink, source, heat_exchanger_simple
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluids = ['N2']
     >>> nw = network(fluids=fluids)
@@ -903,7 +903,7 @@ class solar_collector(heat_exchanger_simple):
 
     >>> from tespy.components import sink, source, solar_collector
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = network(fluids=fluids)
@@ -1234,7 +1234,7 @@ class heat_exchanger(component):
 
     >>> from tespy.components import sink, source, heat_exchanger
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', iterinfo=False)
@@ -2203,7 +2203,7 @@ class condenser(heat_exchanger):
 
     >>> from tespy.components import sink, source, condenser
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
@@ -2558,7 +2558,7 @@ class desuperheater(heat_exchanger):
 
     >>> from tespy.components import sink, source, desuperheater
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',

@@ -438,7 +438,7 @@ class compressor(turbomachine):
 
     >>> from tespy.components import sink, source, compressor
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluid_list = ['air']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -951,7 +951,7 @@ class pump(turbomachine):
 
     >>> from tespy.components import sink, source, pump
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['water']
@@ -1382,7 +1382,7 @@ class turbine(turbomachine):
 
     >>> from tespy.components import sink, source, turbine
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['water']

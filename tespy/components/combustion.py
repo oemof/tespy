@@ -115,7 +115,7 @@ class combustion_chamber(component):
 
     >>> from tespy.components import sink, source, combustion_chamber
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
@@ -1221,7 +1221,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     >>> from tespy.components import sink, source, combustion_chamber_stoich
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
@@ -2064,7 +2064,7 @@ class combustion_engine(combustion_chamber):
     >>> from tespy.components import (sink, source, combustion_engine, merge,
     ... splitter)
     >>> from tespy.connections import connection, ref
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',

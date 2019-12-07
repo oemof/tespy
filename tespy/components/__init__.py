@@ -3,7 +3,7 @@
 from tespy.components.basics import (
     cycle_closer, sink, source, subsystem_interface
     )
-from tespy.components.commbustion import (
+from tespy.components.combustion import (
     combustion_chamber, combustion_chamber_stoich, combustion_engine
     )
 from tespy.components.heat_exchangers import (

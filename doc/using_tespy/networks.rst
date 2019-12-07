@@ -3,7 +3,8 @@
 TESPy networks
 ==============
 
-The tespy.networks.network class handles preprocessing, solving and postprocessing. We will walk you through all the important steps.
+The network class handles preprocessing, solving and postprocessing.
+We will walk you through all the important steps.
 
 Setup
 -----
@@ -11,7 +12,8 @@ Setup
 Network container
 ^^^^^^^^^^^^^^^^^
 
-The TESPy network contains all data of your plant, which in terms of the calculation is represented by a nonlinear system of equations. The system variables of your TESPy network are:
+The TESPy network contains all data of your plant, which in terms of the
+calculation is represented by a nonlinear system of equations. The system variables of your TESPy network are:
 
  * mass flow,
  * pressure,
@@ -19,7 +21,8 @@ The TESPy network contains all data of your plant, which in terms of the calcula
  * the mass fractions of the network's fluids.
 
 The solver will solve for these variables. As stated in the introduction the list of fluids is passed to your network on creation.
-If your **system includes fluid mixtures**, you should **always make use of the value ranges** for the system variables. This improves the stability of the algorithm. Try to fit the boundaries as tight as possible,
+If your **system includes fluid mixtures**, you should **always make use of the value ranges** for the system variables.
+This improves the stability of the algorithm. Try to fit the boundaries as tight as possible,
 for instance, if you kwow that the maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
 .. note::
@@ -28,37 +31,40 @@ for instance, if you kwow that the maximum pressure in the system will be at 10 
 
 .. code-block:: python
 
-    from tespy.networks.networks import network
+    from tespy.networks import network
 
-	fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
-	my_plant = network(fluids=fluid_list)
-	my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
-	my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+    fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
+    my_plant = network(fluids=fluid_list)
+    my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
+    my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
 
 .. _printout_logging_label:
 
 Printouts and logging
 +++++++++++++++++++++
 
-TESPy comes with an inbuilt logger. If you want to keep track of debugging-messages, general information, warnings or errors you should enable the logger. At the beginning of your python script e. g. add the following lines:
+TESPy comes with an inbuilt logger. If you want to keep track of debugging-messages, general information,
+warnings or errors you should enable the logger. At the beginning of your python script e. g. add the following lines:
 
 .. code-block:: python
 
-	from tespy.tools import logger
-	import logging
-	logger.define_logging(
-		log_path=True, log_version=True,
-		screen_level=logging.INFO, file_level=logging.DEBUG
-	)
+    from tespy.tools import logger
+    import logging
+    logger.define_logging(
+        log_path=True, log_version=True,
+        screen_level=logging.INFO, file_level=logging.DEBUG
+    )
 
-The log-file will be saved to :code:`~/.tespy/log_files/` by default. All available options are documented in the :py:func:`API <tespy.tools.logger.define_logging>`.
+The log-file will be saved to :code:`~/.tespy/log_files/` by default.
+All available options are documented in the :py:func:`API <tespy.tools.logger.define_logging>`.
 
-Prior to solving the network there are options regarding the **console printouts for the calculation progress** using the :py:meth:`set_printoptions method <tespy.networks.network.set_printoptions>`.
-You can choose the print_level (info or none). Check out the :py:meth:`API-documentation <tespy.networks.network.set_printoptions>` for more information.
+Prior to solving the network there are options regarding the **console printouts for the calculation progress**.
+Specify, if you want to enable or disable convergence progress printouts:
 
 .. code-block:: python
 
-	myplant.set_printoptions(print_level='none') # disabling iteration information printout
+    myplant.set_attr(iterinfo=False) # disable iteration information printout
+    myplant.set_attr(iterinfo=True) # enable iteration information printout
 
 Adding connections
 ++++++++++++++++++
@@ -68,9 +74,9 @@ You can add connections directly or via subsystems and networks holding them by 
 
 .. code-block:: python
 
-	myplant.add_conns()
-	myplant.add_subsys()
-	myplant.add_nwks()
+    myplant.add_conns()
+    myplant.add_subsys()
+    myplant.add_nwks()
 
 .. note::
 
@@ -80,11 +86,12 @@ You can add connections directly or via subsystems and networks holding them by 
 Busses: power connections
 +++++++++++++++++++++++++
 
-Another type of connection is the bus: Busses are power connections for e. g. turbomachines or heat exchangers. They can be used to model motors or generators, too. Add them to your network with the following method:
+Another type of connection is the bus: Busses are power connections for e. g. turbomachines or heat exchangers.
+They can be used to model motors or generators, too. Add them to your network with the following method:
 
 .. code-block:: python
 
-	myplant.add_busses()
+    myplant.add_busses()
 
 You will learn more about busses and how they work in :ref:`this part<tespy_busses_label>`.
 
@@ -95,68 +102,80 @@ You can start the solution process with the following line:
 
 .. code-block:: python
 
-	myplant.solve(mode='design')
+    myplant.solve(mode='design')
 
-This starts the initialisation of your network and proceeds to its calculation. The specification of the calculation mode is mandatory, see the list of available keywords:
+This starts the initialisation of your network and proceeds to its calculation.
+The specification of the **calculation mode is mandatory**, This is the list of available keywords:
 
- * :code:`mode` is the calculation mode (design-calculation or offdesign-calculation),
+ * :code:`mode` is the calculation mode (:code:`"design"`-calculation or :code:`"offdesign"`-calculation),
  * :code:`init_path` is the path to the network folder you want to use for initialisation,
- * :code:`design_path` is the path to the network folder which holds the information of your plants design point,
+ * :code:`design_path` is the path to the network folder which holds the information of your plant's design point,
  * :code:`max_iter` is the maximum amount of iterations performed by the solver,
  * :code:`init_only` stop after initialisation (True/False).
 
 There are two calculation modes available (:code:`'design'` and :code:`'offdesign'`), which are explained in the subsections below.
 If you choose :code:`offdesign` as calculation mode the specification of a :code:`design_path` is mandatory.
 
-The usage of an initialisation path is always optional but highly recommended, as the convergence of the solution process will be improved, if you provide good starting values.
+The usage of an initialisation path is always optional but highly recommended,
+as the convergence of the solution process will be improved, if you provide good starting values.
 If do not specify an :code:`init_path`, the initialisation from priorly saved results will be skipped.
-:code:`init_only=True` usually is used for debugging. Or, you could use this feature to export a not solved network, if you want to do the parametrisation in .csv-files rather than your python script.
+:code:`init_only=True` usually is used for debugging. Or, you could use this feature to export a not solved network,
+if you want to do the parametrisation in .csv-files rather than your python script.
 
 Design mode
 +++++++++++
 
-The design mode is used to design your system and is always the first calculation of your plant. **The offdesign calculation is always based on a design calculation!**.
+The design mode is used to design your system and is always the first calculation of your plant.
+**The offdesign calculation is always based on a design calculation!**.
 Obviously as you are designing the plant the way you want, you are flexible to choose the parameters to specify.
-However, you can't specify parameters that are based on a design case, as for example the isentropic efficiency characteristic function of a turbine or a pump. Specifying a value for the efficiency is of course possible.
+However, you can't specify parameters that are based on a design case, as for example the isentropic efficiency
+characteristic function of a turbine or a pump. Specifying a value for the efficiency is of course possible.
 
 Offdesign mode
 ++++++++++++++
 
-The offdesign mode is used to **calulate the performance of your plant, if parameters deviate from the plant's design point**. This can be partload operation, operation at different temperature or pressure levels etc..
-Thus, before starting an offdesing calculation you have to design your plant first. By stating :code:`'offdesign'` as calculation mode, **components and connections will auto-switch to the offdesign mode.**
-For components, this means that all parameters provided in :code:`component.design` will be unset and instead all parameters provided in :code:`component.offdesign` will be set.
-This applies to connections analogously. **The value of the newly set parameter is always equal to the value from the design case (or based on it for characteristics).**
+The offdesign mode is used to **calulate the performance of your plant, if parameters deviate from the plant's design point**.
+This can be partload operation, operation at different temperature or pressure levels etc..
+Thus, before starting an offdesing calculation you have to design your plant first.
+By stating :code:`'offdesign'` as calculation mode, **components and connections will switch to the offdesign mode.**
+This means that all parameters provided as design parameters
+will be unset and all parameters provided as offdesign parameters will be set instead.
+You can specify a connection's or component's (off-)design parameters using the set_attr method.
 
-.. code-block:: python
-
-	myplant.solve(mode='offdesign', design_path='mynetwork')
-
-.. note::
-
-	Since version 0.1.0 there are no default design and offdesign parameters! All design and offdesign have to be specified manually as in the example below.
-
-You can specify design and offdesign parameters for components and connections. For example, for a condenser you would usually design it to a maximum terminal temperature difference, in offdesign the heat transfer coefficient
-is selected. The heat transfer coefficient is calculated in the preprocessing of the offdesign case based on the results of the design-case. Of course, this applies to all other parameters in the same way.
+You can specify design and offdesign parameters for components and connections.
+For example, for a condenser you would usually design it to a maximum terminal temperature difference,
+in offdesign the heat transfer coefficient is selected.
+The heat transfer coefficient is calculated in the preprocessing of the offdesign case based on the results from the design-case.
+Of course, this applies to all other parameters in the same way.
 Also, the pressure drop is a result of the geometry for the offdesign case, thus we swap the pressure ratios with zeta values.
 
 .. code-block:: python
 
-	heat_ex.set_attr(design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2'])
+    mycomponent.set_attr(design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2'])
 
 .. note::
 
-	Some parameters come with characteristic functions based on the design case properties. This means, that e. g. the isentropic efficiency of a turbine is calculated as function of the actual mass flow to design mass flow ratio.
-	You can provide your own (measured) data or use the already existing data from TESPy. All standard characteristic functions are available at :py:class:`tespy.components.characteristics.characteristics`. How to specify own data and all available characteristic functions are provided in :ref:`this section <component_characteristics_label>`.
-
-If you want to **prevent the autoswitch from design to offdesign mode** for specific components, use :code:`heat_ex.set_attr(mode='man')`.
+	Some parameters come with characteristic functions based on the design case properties.
+	This means, that e. g. the isentropic efficiency of a turbine is calculated as function of the actual mass flow to design mass flow ratio.
+	You can provide your own (measured) data or use the already existing data from TESPy.
+	All standard characteristic functions are available at :py:class:`tespy.tools.characteristics.characteristics`.
+	How to specify own data and all available characteristic functions are provided in :ref:`this section <component_characteristics_label>`.
 
 For connections it works in the same way, e. g. write
 
 .. code-block:: python
 
-	connection.set_attr(design=['h'], offdesign=['T'])
+    myconnection.set_attr(design=['h'], offdesign=['T'])
 
-if you want to replace the enthalpy with the temperature for your offdesign. **The temperature is a result of the design calculation and that value is then used for the offdesign calculation in this example.**
+if you want to replace the enthalpy with the temperature for your offdesign.
+The temperature is a result of the design calculation and that value is then
+used for the offdesign calculation in this example.
+
+To solve your offdesign calculation, use:
+
+.. code-block:: python
+
+    myplant.solve(mode='offdesign', design_path='path/to/mynetwork_designpoint')
 
 Solving
 -------

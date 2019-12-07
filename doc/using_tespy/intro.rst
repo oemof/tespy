@@ -13,34 +13,34 @@ heating plant and a consumer, represented by a heat exchanger with a valve.
 Set up a plant
 --------------
 
-In order to simulate a plant you will have to create a tespy.network first.
+In order to simulate a plant you will have to create a network first.
 The network is the main container for the model. You need to specify a list of the fluids
 you require for the calculation in your plant. For more information on the fluid
 properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`.
 
 .. code-block:: python
 
-    from tespy.networks.networks import network
+    from tespy.networks import network
     # create a network object with water as fluid
-    fluid_list = ['air', 'water']
+    fluid_list = ['air']
     my_plant = network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for the networks variables.
 If you do not specify these, TESPy will use SI-units. The specification of the **value range** is
 used to **improve convergence stability**, in case you are dealing with **fluid mixtures**, e. g. using a combustion chamber.
+We will only need to specify the unit systems for property specification, in this case.
 
 .. code-block:: python
 
     # set the unitsystem for temperatures to °C, for pressure to bar and enthalpy to kJ / kg
     my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-    my_plant.set_attr(T_range=[0, 100], p_range=[0.05, 150])
 
 Now you can start to create the components of the network.
 
 Set up components
 -----------------
 
-Available components can be found :ref:`here <using_tespy_components_label>`. If you set up a
+A list of available components can be found :ref:`here <using_tespy_components_label>`. If you set up a
 component you have to specify a (within one network) unique label. Moreover, it is possible to
 specify parameters for the component, for example power :math:`P` for a turbine or upper terminal
 temperature difference :math:`ttd_u` of a heat exchanger. The full list of parameters for a
@@ -60,9 +60,7 @@ a control valve and a heat exchanger. The definition of the parameters available
 
 .. code-block:: python
 
-    from tespy.components.basics import sink, source
-    from tespy.components.piping import pipe, valve
-    from tespy.components.heat_exchangers import heat_exchanger_simple
+    from tespy.components import sink, source,pipe, valve, heat_excanger_simple
 
     # sources & sinks (central heating plant)
     so = source('heat source output')
@@ -72,13 +70,13 @@ a control valve and a heat exchanger. The definition of the parameters available
     cons = heat_exchanger_simple('consumer')
     cons.set_attr(Q=-10000, pr=1)  # Q in W
     val = valve('valve')
-    val.set_attr(pr=1)  # pr - pressure ratio (input/output)
+    val.set_attr(pr=1)  # pr - pressure ratio (output/input pressure)
 
     # pipes
     pipe_feed = pipe('pipe_feed')
     pipe_back = pipe('pipe_back')
 
-    pipe_feed.set_attr(ks=0.0005,  # roughness in meters
+    pipe_feed.set_attr(ks=0.0005,  # pipe's roughness in meters
                        L=100,  # length in m
                        D=0.06,  # diameter in m
                        kA=10,  # area independent heat transfer coefficient kA in W/K
@@ -121,7 +119,7 @@ It is possible to set the properties on each connection in a similar way as para
 	For more information of how to work with the connections please refer to the
 	:ref:`connections section <using_tespy_connections_label>`.
 
-In the example case, we just set input and output temperature of the system, as well as the input pressure.
+In the example case, we just set inlet and outlet temperature of the system, as well as the inlet pressure.
 
 .. code-block:: python
 

@@ -114,7 +114,7 @@ class connection:
     create the required components and connect them in the next step. After
     that, it is possible specify parameters with the :code:`set_attr` method.
 
-    >>> from tespy.components.basics import sink, source
+    >>> from tespy.components import sink, source
     >>> from tespy.connections import connection, ref
     >>> from tespy.tools.data_containers import dc_flu, dc_prop
     >>> import numpy as np
@@ -567,13 +567,10 @@ class bus:
     busses for heat output, thermal input and electricity output are
     implementd.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.combustion import combustion_engine
-    >>> from tespy.components.heat_exchangers import heat_exchanger
-    >>> from tespy.components.nodes import merge, splitter
-    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.components import (sink, source, combustion_engine,
+    ... heat_exchanger, merge, splitter, pump)
     >>> from tespy.connections import connection, ref, bus
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.characteristics import characteristics
     >>> import numpy as np
     >>> import shutil

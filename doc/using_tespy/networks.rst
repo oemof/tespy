@@ -180,12 +180,16 @@ To solve your offdesign calculation, use:
 Solving
 -------
 
-A TESPy network can be represented as a linear system of nonlinear equations, consequently the solution is obtained with numerical methods.
-TESPy uses the n-dimensional Newton–Raphson method to find the systems solution, which may only be found, if the network is parameterized correctly.
+A TESPy network can be represented as a linear system of nonlinear equations,
+consequently the solution is obtained with numerical methods.
+TESPy uses the n-dimensional Newton–Raphson method to find the systems solution,
+which may only be found, if the network is parameterized correctly.
 **The number of variables n** is :math:`n = num_{conn} \cdot (3 + num_{fluids})`.
 
-The algorithm requires starting values for all variables of the system, thus an initialisation of the system is runned prior to calculating the solution.
-**High quality initial values are crutial for convergence speed and stability**, bad starting values might lead to instabilty and diverging calculation can be the result.
+The algorithm requires starting values for all variables of the system,
+thus an initialisation of the system is run prior to calculating the solution.
+**High quality initial values are crutial for convergence speed and stability**,
+bad starting values might lead to instabilty and diverging calculation can be the result.
 Thus there are different levels for the initialisation.
 
 Initialisation
@@ -195,37 +199,63 @@ The initialisation is performed in the following steps.
 
 **General preprocessing:**
 
- * check network consistency and initialise components (if network topology is changed to a prior calculation only),
- * perform design/offdesign switch (for offdesign calculations only)
+ * check network consistency and initialise components (if network topology is changed to a prior calculation only).
+ * perform design/offdesign switch (for offdesign calculations only).
+ * preprocessing of offdesign case using the information from the :code:`design_path` argument.
 
 **Finding starting values:**
 
- * fluid propagation,
- * fluid property initialisation,
- * initialisation from .csv (preprocessing with :code:`design_path` for offdesign case and setting starting values with :code:`init_path`).
+ * fluid propagation.
+ * fluid property initialisation.
+ * initialisation from .csv (setting starting values from :code:`init_path` argument).
 
-The network check is used to find errors in the network topology, the calulation can not start without a successful check. The component initialisation is important for components using characteristics and the combustion chamber,
-a preprocessing of some parameters is required. The preprocessing for the components is performed in the :code:`comp_init` method of the components.
-You will find the methods in the :py:mod:`components module <tespy.components.components>`. The design/offdesign switch is described in the network setup section.
+The network check is used to find errors in the network topology,
+the calulation can not start without a successful check.
+For components, a preprocessing of some parameters is necessary.
+It is performed by the :code:`comp_init` method of the components.
+You will find the methods in the :py:mod:`components module <tespy.components>`.
+The design/offdesign switch is described in the network setup section.
+For offdesign calculation the :code:`design_path` argument is required.
+The design point information is extracted from that path in preprocessing.
+For this, you will need to export your network's design point information using:
 
-**The fluid propagation is a very important step in the initialisation:** Often, you will specify the fluid at one point of the network only, thus all other connections are missing an initial information on the fluid vector,
-if you are not using an :code:`init_path`. Also, you do not need to state a starting value for the fluid vector at every point of the network. The fluid propagation will push/pull the specified fluid through the network.
-If you are using combustion chambers these will be starting points and a generic flue gas composition will be calculated prior to the propagation.
+.. code-block:: python
+
+    myplant.save('path/for/export')
+	
+The finding of starting values for you calculations starts with the fluid propagation.
+**The fluid propagation is a very important step in the initialisation.**
+Often, you will specify the fluid at one point of the network only,
+thus all other connections are missing an initial information on the fluid,
+if you are not using an :code:`init_path`.
+The fluid propagation will push/pull the specified fluid through the network.
+If you are using combustion chambers these will be starting points and a generic
+flue gas composition will be calculated prior to the propagation.
+Thus, you do not necessarily need to state a starting value for the fluid vector at every point of the network.
 
 .. note::
-	If the fluid propagation fails, you often experience an error, where the fluid property database can not find a value, because the fluid is 'nan'. Providing starting values manually can fix this problem.
+	If the fluid propagation fails, you often experience an error,
+	where the fluid property database can not find a value, because the fluid is 'nan'.
+	Providing starting values manually can fix this problem.
 
-The fluid property initialisation takes the user specified starting values if available and otherwise uses generic starting values on the bases of to which components the connection is linked to.
+The fluid property initialisation takes the user specified starting values,
+if available, and otherwise uses generic starting values on the bases of which components the connection is linked to.
 
-Last step is the initialisation from :code:`init_path`: For offdesign cases a preprocessing based on the :code:`design_path` in order to recreate the design case and set parameters based on the design case is performed.
-If you specified an :code:`init_path` TESPy searches through the connections file for the network topology and if the corresponding connection is found, the starting values for the system variables are extracted from the connections file.
-**The files do not need to contain all connections of your network, thus you can build up your network bit by bit and initialise the existing parts of your network from the path.**
-**Be aware that a change within the fluid vector does not allow this practice.** Thus, if you plan to use additional fluids in parts of the network you have not touched until now, you will need to state all fluids from the beginning.
+Last step in starting value generation is the initialisation from a saved network structure.
+In order to initialise your calculation from the :code:`init_path`,
+you need to provide the path to the saved/exported network.	
+If you specify an :code:`init_path` TESPy searches through the connections
+file for the network topology and if the corresponding connection is found,
+the starting values for the system variables are extracted from the connections file.
 
 .. note::
 
-	Initialisation from a converged calculation usually yields the best performance and is highly receommended.
-	In order to initialise your calculation from a path, you need to provide the path to the saved/exported network. If you saved your calculation restults you will find the results in the specified base path './savename/'.
+    The files do not need to contain all connections of your network.
+	You can build your network step by step and initialise the existing parts of your network from the :code:`init_path`.
+    Be aware that a change within the fluid vectolr does not alow this practice!
+	If you plan to use additional fluids in parts of the network you have not touched until now,
+	you will need to state all fluids from the beginning.
+	Generally, initialisation from a converged calculation yields the best performance and is highly receommended.
 
 
 Algorithm

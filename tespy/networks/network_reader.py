@@ -62,7 +62,7 @@ target_classes = {
 # %% network loading
 
 
-def load_nwk(path):
+def load_network(path):
     r"""
     Load a network from a base path.
 
@@ -114,12 +114,10 @@ def load_nwk(path):
     example setup is simple gas turbine setup with compressor, combustion
     chamber and turbine.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.combustion import combustion_chamber
-    >>> from tespy.components.turbomachinery import compressor, turbine
+    >>> from tespy.components import (sink, source, combustion_chamber,
+    ... compressor, turbine)
     >>> from tespy.connections import connection, ref
-    >>> from tespy.networks.network_reader import load_nwk
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import load_network, network
     >>> import shutil
     >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -183,7 +181,7 @@ def load_nwk(path):
     network and recalculate. Check if the results match with the previous
     calculation in design and offdesign case.
 
-    >>> imported_nwk = load_nwk('exported_nwk')
+    >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
     >>> imported_nwk.solve('design')
     >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)

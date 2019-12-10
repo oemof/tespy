@@ -1,12 +1,14 @@
 TESPy connections
 =================
 
-This section provides an overview of the parametrisation of connections, the usage of references and busses (connections for energy flow).
+This section provides an overview of the parametrisation of connections, the
+usage of references and busses (connections for energy flow).
 
 Parametrisation
 ---------------
 
-As mentioned in the introduction, for each connection you can specify the following parameters:
+As mentioned in the introduction, for each connection you can specify the
+following parameters:
 
  * mass flow* (m),
  * volumetric flow (v),
@@ -17,18 +19,30 @@ As mentioned in the introduction, for each connection you can specify the follow
  * a fluid vector (fluid) and
  * a balance closer for the fluid vector (fluid_balance).
 
-It is possible to specify values, starting values, references and data containers. The data containers for connections are dc_prop for fluid properties (mass flow, pressure, enthalpy, temperature and vapour mass fraction)
-and dc_flu for fluid composition. If you want to specify data_containers, you need to import them from the :code:`tespy.tools` module.
+It is possible to specify values, starting values, references and data
+containers. The data containers for connections are dc_prop for fluid
+properties (mass flow, pressure, enthalpy, temperature and vapour mass
+fraction) and dc_flu for fluid composition. If you want to specify
+data_containers, you need to import them from the :code:`tespy.tools` module.
+
+In order to create the connections we create the components to connect first.
 
 .. code-block:: python
 
     from tespy.tools import dc_prop
     from tespy.connections import connection, ref
+    from tespy.components import sink, source
+    
+    # create components
+    source1 = source('source 1')
+    source2 = source('source 2')
+    sink1 = sink('sink 1')
+    sink2 = sink('sink 2')
 
     # creat connections
-    myconn = connection(example_comp1, 'out1', example_comp2, 'in1')
-    myotherconn = connection(example_comp3, 'out', example_comp4, 'in1')
-	
+    myconn = connection(source1, 'out1', sink1, 'in1')
+    myotherconn = connection(source2, 'out1', sink2, 'in1')
+    
     # set pressure and vapour mass fraction by value, temperature and enthalpy analogously
     myconn.set_attr(p=7, x=0.5)
 
@@ -86,18 +100,18 @@ For instance, you can provide a characteristic line of an electrical generator o
 Offdesign calculations use the referenced value from your system design point for the characteristic line. In design case, the heat flow/power ratio thus will be equal to 1.
 
 .. note::
-	The available keywords for the dictionary are
+    The available keywords for the dictionary are
 
-	- 'c' for the component instance,
-	- 'p' for the parameter (the cogeneration unit has various parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
-	- 'P_ref' for the reference heat flow/power value of the component and
-	- 'char' for the characteristic line.
+    - 'c' for the component instance,
+    - 'p' for the parameter (the cogeneration unit has various parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
+    - 'P_ref' for the reference heat flow/power value of the component and
+    - 'char' for the characteristic line.
 
-	There are different specification possibilites:
+    There are different specification possibilites:
 
-	- If you specify the component only, the parameter will be default (not working with cogeneration unit) and the conversion factor of the characteristic line will be 1 for every load.
-	- If you specify a numeric value for char, the conversion factor will be that value for every load.
-	- If you want to specify a characteristic line, you need to provide a :py:class:`TESPy characteristics <tespy.components.characteristics.characteristics>` object.
+    - If you specify the component only, the parameter will be default (not working with cogeneration unit) and the conversion factor of the characteristic line will be 1 for every load.
+    - If you specify a numeric value for char, the conversion factor will be that value for every load.
+    - If you want to specify a characteristic line, you need to provide a :py:class:`TESPy characteristics <tespy.components.characteristics.characteristics>` object.
 
 This can be used for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network.
 If you want to use the busses for postprocessing only, you must not specify the sum of the power or heat flow on your bus.
@@ -132,8 +146,8 @@ Do not forget to add the busses to you network.
     chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
 
     my_network.add_busses(fwp_bus, turbine_bus, power)
-	
+    
 .. note::
 
-	The x-values of the characteristic line represent the relative load of the component: actual value of the bus divided by the reference/design point value.
-	In design-calculations the x-value used in the function evaluation will always be at 1.
+    The x-values of the characteristic line represent the relative load of the component: actual value of the bus divided by the reference/design point value.
+    In design-calculations the x-value used in the function evaluation will always be at 1.

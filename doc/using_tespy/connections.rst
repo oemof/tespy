@@ -23,8 +23,12 @@ and dc_flu for fluid composition. If you want to specify data_containers, you ne
 .. code-block:: python
 
     from tespy.tools import dc_prop
-    from tespy.connections import ref
+    from tespy.connections import connection, ref
 
+    # creat connections
+    myconn = connection(example_comp1, 'out1', example_comp2, 'in1')
+    myotherconn = connection(example_comp3, 'out', example_comp4, 'in1')
+	
     # set pressure and vapour mass fraction by value, temperature and enthalpy analogously
     myconn.set_attr(p=7, x=0.5)
 

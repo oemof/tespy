@@ -23,7 +23,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.characteristics import char_map
+from tespy.tools.characteristics import compressor_map
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_cm, dc_simple
 from tespy.tools.fluid_properties import (
         h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
@@ -327,7 +327,7 @@ class turbomachine(component):
             expr = 1
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+        return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""
@@ -639,7 +639,7 @@ class compressor(turbomachine):
             logging.error(msg)
             raise ValueError(msg)
 
-        return (self.eta_s.design * self.eta_s_char.func.f_x(expr) *
+        return (self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
                 (o[2] - i[2]) - (self.h_os('post') - i[2]))
 
     def eta_s_char_deriv(self):
@@ -705,7 +705,7 @@ class compressor(turbomachine):
         x = np.sqrt(T_mix_ph(i_d) / T_i)
         y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
 
-        pr, eta = self.char_map.func.get_pr_eta(x, y, self.igva.val)
+        pr, eta = self.char_map.func.evaluate(x, y, self.igva.val)
 
         z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
         z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2]) /
@@ -1125,7 +1125,8 @@ class pump(turbomachine):
         expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
 
         return ((o[2] - i[2]) * self.eta_s.design *
-                self.eta_s_char.func.f_x(expr) - (self.h_os('post') - i[2]))
+                self.eta_s_char.func.evaluate(expr) -
+                (self.h_os('post') - i[2]))
 
     def eta_s_char_deriv(self):
         r"""
@@ -1166,7 +1167,7 @@ class pump(turbomachine):
 
         expr = i[0] * v_mix_ph(i, T0=self.inl[0].T.val_SI)
 
-        return o[1] - i[1] - self.flow_char.func.f_x(expr)
+        return o[1] - i[1] - self.flow_char.func.evaluate(expr)
 
     def flow_char_deriv(self):
         r"""
@@ -1597,7 +1598,8 @@ class turbine(turbomachine):
             raise ValueError(msg)
 
         return (-(o[2] - i[2]) + self.eta_s.design *
-                self.eta_s_char.func.f_x(expr) * (self.h_os('post') - i[2]))
+                self.eta_s_char.func.evaluate(expr) *
+                (self.h_os('post') - i[2]))
 
     def eta_s_char_deriv(self):
         r"""

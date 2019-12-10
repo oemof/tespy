@@ -105,24 +105,26 @@ Do not forget to add the busses to you network.
 
 .. code-block:: python
 
-	from tespy import nwk, con, cmp_char
+	from tespy.networks import network
+	from tespy.connections import bus
+	from tespy.characteristics import characteristics
 
 	...
 
-	fwp_bus = con.bus('feed water pump', P=0) # set a value for the total power on this bus.
+	fwp_bus = bus('feed water pump', P=0) # set a value for the total power on this bus.
 	fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
 
-	turbine_bus = con.bus('turbines', P=0) # set a value for the total power on this bus
+	turbine_bus = bus('turbines', P=0) # set a value for the total power on this bus
 	turbine_bus.add_comps({'c': turbine_hp}, {'c': turbine_hp, 'char': -1})
 	# the values for the busses power can be altered by using .set_attr()
 
 	power = con.bus('power output') # bus for postprocessing, no power (or heat flow) specified but with variable conversion efficiency
 	x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
 	y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-	gen = cmp_char.characteristics(x=x, y=y) # characteristic line for a generator
+	gen = characteristics(x=x, y=y) # characteristic line for a generator
 	power.add_comps({'c': turbine_hp, 'char': gen}, {'c': turbine_lp, 'char': gen})
 
-	chp = con.bus('chp power') # bus for cogeneration unit power
+	chp = bus('chp power') # bus for cogeneration unit power
 	chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
 
 	my_network.add_busses(fwp_bus, turbine_bus, power)

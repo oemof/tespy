@@ -18,9 +18,12 @@ As mentioned in the introduction, for each connection you can specify the follow
  * a balance closer for the fluid vector (fluid_balance).
 
 It is possible to specify values, starting values, references and data containers. The data containers for connections are dc_prop for fluid properties (mass flow, pressure, enthalpy, temperature and vapour mass fraction)
-and dc_flu for fluid composition. You need to import the :code:`hlp` module, if you want to specify data_containers.
+and dc_flu for fluid composition. If you want to specify data_containers, you need to import them from the :code:`tespy.tools` module.
 
 .. code-block:: python
+
+	from tespy.tools import dc_prop
+	from tespy.connections import ref
 
 	# set pressure and vapour mass fraction by value, temperature and enthalpy analogously
 	myconn.set_attr(p=7, x=0.5)
@@ -29,17 +32,17 @@ and dc_flu for fluid composition. You need to import the :code:`hlp` module, if 
 	myconn.set_attr(m0=10, p0=15, h0=100)
 
 	# do the same with a data container
-	myconn.set_attr(p=hlp.dc_prop(val=7, val_set=True), x=hlp.dc_prop(val=0.5, val_set=True))
-	myconn.set_attr(m=hlp.dc_prop(val0=10), p=hlp.dc_prop(val0=15), h=hlp.dc_prop(val0=100))
+	myconn.set_attr(p=dc_prop(val=7, val_set=True), x=dc_prop(val=0.5, val_set=True))
+	myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15), h=dc_prop(val0=100))
 
 	# specify a value in a different unit for a specific parameter
-	myconn.set_attr(p=hlp.dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
+	myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
 
 	# specify a referenced value: pressure of myconn is 1.2 times pressure at myotherconn minus 5 Pa (always SI unit here)
-	myconn.set_attr(p=con.ref(myotherconn, 1.2, -5))
+	myconn.set_attr(p=ref(myotherconn, 1.2, -5))
 
 	# specify value and reference at the same time
-	myconn.set_attr(p=hlp.dc_prop(val=7, val_set=True, ref=con.ref(myotherconn, 1.2, -5), ref_set=True))
+	myconn.set_attr(p=dc_prop(val=7, val_set=True, ref=ref(myotherconn, 1.2, -5), ref_set=True))
 
 	# unset value and reference
 	myconn.set_attr(p=np.nan)
@@ -48,6 +51,8 @@ and dc_flu for fluid composition. You need to import the :code:`hlp` module, if 
 If you want to specify the fluid vector you can do it in the following way:
 
 .. code-block:: python
+
+	from tespy.tools import dc_flu
 
 	# set both elements of the fluid vector
 	myconn.set_attr(fluid={'water': 1, 'air': 0})

@@ -22,50 +22,50 @@ and dc_flu for fluid composition. If you want to specify data_containers, you ne
 
 .. code-block:: python
 
-	from tespy.tools import dc_prop
-	from tespy.connections import ref
+    from tespy.tools import dc_prop
+    from tespy.connections import ref
 
-	# set pressure and vapour mass fraction by value, temperature and enthalpy analogously
-	myconn.set_attr(p=7, x=0.5)
+    # set pressure and vapour mass fraction by value, temperature and enthalpy analogously
+    myconn.set_attr(p=7, x=0.5)
 
-	# set starting values for mass flow, pressure and enthalpy (has no effect on temperature and vapour mass fraction!)
-	myconn.set_attr(m0=10, p0=15, h0=100)
+    # set starting values for mass flow, pressure and enthalpy (has no effect on temperature and vapour mass fraction!)
+    myconn.set_attr(m0=10, p0=15, h0=100)
 
-	# do the same with a data container
-	myconn.set_attr(p=dc_prop(val=7, val_set=True), x=dc_prop(val=0.5, val_set=True))
-	myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15), h=dc_prop(val0=100))
+    # do the same with a data container
+    myconn.set_attr(p=dc_prop(val=7, val_set=True), x=dc_prop(val=0.5, val_set=True))
+    myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15), h=dc_prop(val0=100))
 
-	# specify a value in a different unit for a specific parameter
-	myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
+    # specify a value in a different unit for a specific parameter
+    myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
 
-	# specify a referenced value: pressure of myconn is 1.2 times pressure at myotherconn minus 5 Pa (always SI unit here)
-	myconn.set_attr(p=ref(myotherconn, 1.2, -5))
+    # specify a referenced value: pressure of myconn is 1.2 times pressure at myotherconn minus 5 Pa (always SI unit here)
+    myconn.set_attr(p=ref(myotherconn, 1.2, -5))
 
-	# specify value and reference at the same time
-	myconn.set_attr(p=dc_prop(val=7, val_set=True, ref=ref(myotherconn, 1.2, -5), ref_set=True))
+    # specify value and reference at the same time
+    myconn.set_attr(p=dc_prop(val=7, val_set=True, ref=ref(myotherconn, 1.2, -5), ref_set=True))
 
-	# unset value and reference
-	myconn.set_attr(p=np.nan)
-	myconn.p.set_attr(val_set=False, ref_set=False)
+    # unset value and reference
+    myconn.set_attr(p=np.nan)
+    myconn.p.set_attr(val_set=False, ref_set=False)
 
 If you want to specify the fluid vector you can do it in the following way:
 
 .. code-block:: python
 
-	from tespy.tools import dc_flu
+    from tespy.tools import dc_flu
 
-	# set both elements of the fluid vector
-	myconn.set_attr(fluid={'water': 1, 'air': 0})
-	# same thing, but using data container
-	myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0}, val_set:{'water': True, 'air': True}))
+    # set both elements of the fluid vector
+    myconn.set_attr(fluid={'water': 1, 'air': 0})
+    # same thing, but using data container
+    myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0}, val_set:{'water': True, 'air': True}))
 
-	# set starting values
-	myconn.set_attr(fluid0={'water': 1, 'air': 0})
-	# same thing, but using data container
-	myconn.set_attr(fluid=dc_flu(val0={'water': 1, 'air': 0}))
+    # set starting values
+    myconn.set_attr(fluid0={'water': 1, 'air': 0})
+    # same thing, but using data container
+    myconn.set_attr(fluid=dc_flu(val0={'water': 1, 'air': 0}))
 
-	# unset values
-	myconn.fluid.set_attr(val_set={'water': False, 'air': False})
+    # unset values
+    myconn.fluid.set_attr(val_set={'water': False, 'air': False})
 
 References can not be used for fluid composition at the moment!
 
@@ -105,29 +105,29 @@ Do not forget to add the busses to you network.
 
 .. code-block:: python
 
-	from tespy.networks import network
-	from tespy.connections import bus
-	from tespy.characteristics import characteristics
+    from tespy.networks import network
+    from tespy.connections import bus
+    from tespy.characteristics import characteristics
 
-	...
+    ...
 
-	fwp_bus = bus('feed water pump', P=0) # set a value for the total power on this bus.
-	fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
+    fwp_bus = bus('feed water pump', P=0) # set a value for the total power on this bus.
+    fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
 
-	turbine_bus = bus('turbines', P=0) # set a value for the total power on this bus
-	turbine_bus.add_comps({'c': turbine_hp}, {'c': turbine_hp, 'char': -1})
-	# the values for the busses power can be altered by using .set_attr()
+    turbine_bus = bus('turbines', P=0) # set a value for the total power on this bus
+    turbine_bus.add_comps({'c': turbine_hp}, {'c': turbine_hp, 'char': -1})
+    # the values for the busses power can be altered by using .set_attr()
 
-	power = con.bus('power output') # bus for postprocessing, no power (or heat flow) specified but with variable conversion efficiency
-	x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
-	y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-	gen = characteristics(x=x, y=y) # characteristic line for a generator
-	power.add_comps({'c': turbine_hp, 'char': gen}, {'c': turbine_lp, 'char': gen})
+    power = con.bus('power output') # bus for postprocessing, no power (or heat flow) specified but with variable conversion efficiency
+    x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
+    y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+    gen = characteristics(x=x, y=y) # characteristic line for a generator
+    power.add_comps({'c': turbine_hp, 'char': gen}, {'c': turbine_lp, 'char': gen})
 
-	chp = bus('chp power') # bus for cogeneration unit power
-	chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
+    chp = bus('chp power') # bus for cogeneration unit power
+    chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
 
-	my_network.add_busses(fwp_bus, turbine_bus, power)
+    my_network.add_busses(fwp_bus, turbine_bus, power)
 	
 .. note::
 

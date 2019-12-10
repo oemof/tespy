@@ -54,32 +54,33 @@ Parameters
 
 .. code-block:: python
 
-	from tespy import cmp, hlp
+	from tespy.components import heat_exchanger, pipe
+	from tespy.tools.data_containers import dc_cp
 	import numpy as np
 
-	he = cmp.heat_exchanger('evaporator')
+	he = heat_exchanger('evaporator')
 
 	# ways to specify (and set) value
 	he.set_attr(kA=1e5)
 	# specify data container (same result as above)
-	he.set_attr(kA=hlp.dc_cp(val=1e5, is_set=True))
+	he.set_attr(kA=dc_cp(val=1e5, is_set=True))
 
 	# ways to unset value
 	he.set_attr(kA=np.nan)
 	he.kA.set_attr(is_set=False)
 
 	# custom variables
-	pipe = cmp.pipe('my pipe')
+	pipe = pipe('my pipe')
 
 	# make diameter variable of system
 	pipe.set_attr(D='var')
 	# data container specification with identical result,
 	# benefit: val is the starting value in this case
-	pipe.set_attr(D=hlp.dc_cp(val=0.2, is_set=True, is_var=True))
+	pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True))
 
 	# data container specification with identical result,
 	# benefit: specification of bounds will increase stability
-	pipe.set_attr(D=hlp.dc_cp(val=0.2, is_set=True, is_var=True, min_val=0.1, max_val=0.3))
+	pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True, min_val=0.1, max_val=0.3))
 
 
 Characteristics
@@ -87,22 +88,23 @@ Characteristics
 
 .. code-block:: python
 
-	from tespy import cmp, hlp
+	from tespy.components import heat_exchanger
+	from tespy.tools.data_containers import dc_cc
 	import numpy as np
 
-	he = cmp.heat_exchanger('evaporator')
+	he = heat_exchanger('evaporator')
 
 	# specify name of predefined method
 	he.set_attr(kA_char1='EVA_HOT')
 	he.set_attr(kA_char2='EVA_COLD')
 
 	# specify data container (yields same result)
-	he.set_attr(kA_char1=hlp.dc_cc(method='EVA_HOT', param='m'))
+	he.set_attr(kA_char1=dc_cc(method='EVA_HOT', param='m'))
 
 	# specify data container (custom interpolation points x and y)
 	x = np.array([0, 0.5, 1, 2])
 	y = np.array([0, 0.8, 1, 1.2])
-	he.set_attr(kA_char1=hlp.dc_cc(param='m', x=x, y=y))
+	he.set_attr(kA_char1=dc_cc(param='m', x=x, y=y))
 
 .. _component_characteristics_label:
 
@@ -133,21 +135,22 @@ You can specify the name of a default characteristic line or you define the whol
 
 .. code-block:: python
 
-	from tespy import cmp, hlp
+	from tespy.components import turbine, heat_exchanger
+	from tespy.tools.data_containers import dc_cc
 
-	turb = cmp.turbine('turbine')
+	turb = turbine('turbine')
 	# method specification (default characteristic line "TRAUPEL")
 	turb.set_attr(eta_s_char='TRAUPEL')
 	# data container specification
-	turb.set_attr(eta_s_char=hlp.dc_cc(method='TRAUPEL', param='dh_s', x=None, y=None))
+	turb.set_attr(eta_s_char=dc_cc(method='TRAUPEL', param='dh_s', x=None, y=None))
 
 	# defining a custom line (this line overrides the default characteristic line, method does not need to be specified)
 	x = np.array([0, 1, 2])
 	y = np.array([0.95, 1, 0.95])
-	turb.set_attr(eta_s_char=hlp.dc_cc(param='dh_s', x=x, y=y)
+	turb.set_attr(eta_s_char=dc_cc(param='dh_s', x=x, y=y)
 
 	# heat exchanger analogously
-	he = cmp.heat_exchanger('evaporator')
+	he = heat_exchanger('evaporator')
 	he.set_attr(kA_char1='EVA_HOT')
 	he.set_attr(kA_char2='EVA_COLD')
 
@@ -170,10 +173,9 @@ The starting lines of your file would look like this:
 
 .. code:: python
 
-	from tespy import cmp
-
-
-	class my_custom_component(cmp.component):
+	from tespy.components import component
+	
+	class my_custom_component(component):
 
 
 Attributes
@@ -183,6 +185,8 @@ The attr method returns a dictionary with the attributes you are able to specify
 
 .. code:: python
 
+	from tespy.tools.data_containers import dc_cc, dc_cp
+	
 	def attr(self):
 		return {'par1': dc_cp(), 'par2': dc_cc()}
 

@@ -106,7 +106,7 @@ class network:
     progress to the console. You can suop the printouts by setting this
     property to false.
 
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> fluid_list = ['water', 'air', 'R134a']
     >>> mynetwork = network(fluids=fluid_list, p_unit='bar', T_unit='C')
     >>> mynetwork.set_attr(p_range=[1, 10])

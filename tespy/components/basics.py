@@ -67,11 +67,9 @@ class cycle_closer(component):
     pump (but negative), as there is no other in- or outputs of energy in the
     system.
 
-    >>> from tespy.components.basics import cycle_closer
-    >>> from tespy.components.piping import pipe
-    >>> from tespy.components.turbomachinery import pump
+    >>> from tespy.components import cycle_closer, pipe, pump
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> nw = network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
     >>> pi = pipe('pipe')
     >>> pu = pump('pump')
@@ -174,7 +172,7 @@ class sink(component):
     -------
     Create a sink and specify a label.
 
-    >>> from tespy.components.basics import sink
+    >>> from tespy.components import sink
     >>> si = sink('a labeled sink')
     >>> si.component()
     'sink'
@@ -213,7 +211,7 @@ class source(component):
     -------
     Create a source and specify a label.
 
-    >>> from tespy.components.basics import source
+    >>> from tespy.components import source
     >>> so = source('a labeled source')
     >>> so.component()
     'source'
@@ -288,9 +286,9 @@ class subsystem_interface(component):
     not go in depth of subsystem usage in this example. Please refer to
     TODO: PLACELINKHERE for more information on building your own subsystems.
 
-    >>> from tespy.components.basics import sink, source, subsystem_interface
+    >>> from tespy.components import sink, source, subsystem_interface
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> fluids = ['H2O', 'N2']
     >>> nw = network(fluids=fluids)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)

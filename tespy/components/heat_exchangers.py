@@ -144,10 +144,9 @@ class heat_exchanger_simple(component):
     Also, given ambient temperature and the heat transfer coeffiecient, it is
     possible to predict heat transfer.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+    >>> from tespy.components import sink, source, heat_exchanger_simple
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluids = ['N2']
     >>> nw = network(fluids=fluids)
@@ -902,10 +901,9 @@ class solar_collector(heat_exchanger_simple):
     of heat at a given radiation. The collector parameters are the linear and
     the quadratic loss keyfigure as well as the optical effifiency.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import solar_collector
+    >>> from tespy.components import sink, source, solar_collector
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> fluids = ['H2O']
     >>> nw = network(fluids=fluids)
@@ -1231,10 +1229,9 @@ class heat_exchanger(component):
     From this, it is possible to calculate the heat transfer coefficient and
     predict water and air outlet temperature in offdesign operation.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import heat_exchanger
+    >>> from tespy.components import sink, source, heat_exchanger
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', iterinfo=False)
@@ -2201,10 +2198,9 @@ class condenser(heat_exchanger):
     Air is used to condensate water in a condenser. 1 kg/s waste steam is
     chilled with a terminal temperature difference of 15 K.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import condenser
+    >>> from tespy.components import sink, source, condenser
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
@@ -2557,10 +2553,9 @@ class desuperheater(heat_exchanger):
     Overheated enthanol is cooled with water in a heat exchanger until it
     reaches the state of saturated gas.
 
-    >>> from tespy.components.basics import sink, source
-    >>> from tespy.components.heat_exchangers import desuperheater
+    >>> from tespy.components import sink, source, desuperheater
     >>> from tespy.connections import connection
-    >>> from tespy.networks.networks import network
+    >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',

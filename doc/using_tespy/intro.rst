@@ -60,7 +60,7 @@ a control valve and a heat exchanger. The definition of the parameters available
 
 .. code-block:: python
 
-    from tespy.components import sink, source,pipe, valve, heat_excanger_simple
+    from tespy.components import sink, source, pipe, valve, heat_excanger_simple
 
     # sources & sinks (central heating plant)
     so = source('heat source output')

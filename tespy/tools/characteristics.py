@@ -21,7 +21,7 @@ import logging
 # %%
 
 
-class characteristics:
+class char_line:
     r"""
     Class characteristics for components.
 
@@ -483,7 +483,7 @@ class characteristics:
 # %%
 
 
-class char_map(characteristics):
+class char_map:
     r"""
     Class for characteristic maps.
 

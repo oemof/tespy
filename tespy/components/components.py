@@ -16,7 +16,7 @@ import numpy as np
 
 import logging
 
-from tespy.tools.characteristics import char_map, characteristics
+from tespy.tools.characteristics import char_line, char_map
 from tespy.tools.data_containers import (
         data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
         )
@@ -304,7 +304,7 @@ class component:
                     generate_char = True
 
                 if generate_char:
-                    self.get_attr(key).func = characteristics(
+                    self.get_attr(key).func = char_line(
                             method=self.get_attr(key).method,
                             x=self.get_attr(key).x,
                             y=self.get_attr(key).y, comp=self.component())

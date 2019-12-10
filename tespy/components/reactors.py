@@ -928,7 +928,7 @@ class water_electrolyzer(component):
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
 
         if self.eta_char.is_set:
-            # get bound errors for kA hot side characteristics
+            # get bound errors for efficiency characteristics
             expr = self.outl[2].m.val_SI / self.outl[2].m.design
             self.eta_char.func.get_bound_errors(expr, self.label)
 

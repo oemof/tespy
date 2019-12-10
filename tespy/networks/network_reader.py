@@ -25,7 +25,7 @@ from tespy.networks.networks import network
 
 from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp,
                                          dc_prop, dc_simple)
-from tespy.tools.characteristics import characteristics, char_map
+from tespy.tools.characteristics import char_line, char_map
 from tespy.tools.helpers import modify_path_os
 import os
 import ast
@@ -368,14 +368,14 @@ def construct_comps(c, *args):
                     y = args[0][values].y.values[0]
                 except IndexError:
                     # if characteristics are missing (for compressor map atm)
-                    x = characteristics().x
-                    y = characteristics().y
+                    x = char_line().x
+                    y = char_line().y
                     msg = ('Could not find x and y values for characteristic '
                            'line, using defaults instead for function ' + key +
                            ' at component ' + c.label + '.')
                     logging.warning(msg)
 
-                char = characteristics(
+                char = char_line(
                         x=x, y=y, method=c[key + '_method'],
                         comp=instance.component())
 
@@ -597,7 +597,7 @@ def busses_add_comps(c, *args):
         p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
 
         values = char == args[1]['id']
-        char = characteristics(x=args[1][values].x.values[0],
+        char = char_line(x=args[1][values].x.values[0],
                                         y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus

@@ -35,49 +35,21 @@ class char_line:
         The corresponding y-values for the lookup table. Number of x and y
         values must be identical.
 
-    method : str
-        Specify a method to choose from the default characteristic lines. If
-        you specify custom x and y values, this parameter will be ignored.
-
-    comp : str
-        Component base name, see
-        :func:`tespy.components.components.component.comp` method.
-
     Note
     ----
     This class generates a lookup table from the given input data x and y,
     then performs linear interpolation. The x and y values may be specified by
     the user. There are some default characteristic lines for different
-    components, see the
-    :func:`tespy.components.characteristics.characteristics.default` method.
-    If you neither specify the method to use from the defaults nor specify x
-    and y values, the characteristic line generated will be
-    :code:`x = [1, 2, 3, 4], y = [1, 1, 1, 1]`.
-
-    TODO: The part on default characteristics will be adjusted for version
-    0.2.0. Some parts of the docstrings will have to be reworked.
+    components, see the :py:mod:`tespy.data` module. If you neither specify the
+    method to use from the defaults nor specify x and y values, the
+    characteristic line generated will be
+    :code:`x = [0, 1], y = [1, 1]`.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, x=np.array([0, 1]), y=np.array([1, 1])):
 
-        for key in kwargs:
-            if key not in self.attr():
-                msg = ('Invalid keyword ' + key +
-                       '. Available keywords are: ' + str(self.attr()) + '.')
-                logging.error(msg)
-                raise KeyError(msg)
-
-        # method to read from default characteristic lines
-        method = kwargs.get('method', 'default')
-
-        self.x = kwargs.get('x', None)
-        self.y = kwargs.get('y', None)
-        self.comp = kwargs.get('comp', None)
-
-        if self.x is None:
-            self.x = self.default(method)[0]
-        if self.y is None:
-            self.y = self.default(method)[1]
+        self.x = x
+        self.y = y
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -86,325 +58,13 @@ class char_line:
 
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. '
-                   'Number of x-values: ' + str(len(self.x)) +
-                   ', number of y-values: ' + str(len(self.y)) + '.')
+                   'Number of x-values is ' + str(len(self.x)) + ', number of '
+                   'y-values is ' + str(len(self.y)) + ' for char_line.')
             logging.error(msg)
             raise ValueError(msg)
 
-        msg = ('Created characteristic function for component of type ' +
-               str(self.comp) + ' with default method ' + method + '.')
+        msg = ('Created characteristic function.')
         logging.debug(msg)
-
-    def default(self, key):
-        r"""
-
-        **default characteristic lines for turbines**
-
-        .. math::
-
-            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
-
-        .. math::
-
-            \text{choose calculation method for X}
-
-            X = \begin{cases}
-            \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
-            \frac{\dot{V}}{\dot{V}_{ref}} & \text{volumetric flow}\\
-            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
-            \text{pressure ratio}\\
-            \sqrt{\frac{\Delta h_\mathrm{s,ref}}{\Delta h_\mathrm{s}}} &
-            \text{isentropic enthalpy difference}
-            \end{cases}
-
-        **GENERIC**
-
-        .. image:: _images/turbine_GENERIC.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **TRAUPEL**
-
-        .. image:: _images/turbine_TRAUPEL.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **literature**
-
-        - Walter Traupel (2001): Thermische Turbomaschinen Band 2. Berlin:
-          Spinger.
-          -> TRAUPEL
-
-        **default characteristic lines for compressors**
-
-        .. math::
-
-            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=f\left(X \right)
-
-        .. math::
-
-            \text{choose calculation method for X}
-
-            X = \begin{cases}
-            \frac{\dot{m}}{\dot{m}_{ref}} & \text{mass flow}\\
-            \frac{p_1 \cdot p_{2,ref}}{p_{1,ref} \cdot p_2} &
-            \text{pressure ratio}\\
-            \end{cases}
-
-        **GENERIC**
-
-        .. image:: _images/compressor_GENERIC.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **default characteristic lines for pumps**
-
-        .. math::
-
-            \frac{\eta_\mathrm{s,t}}{\eta_\mathrm{s,t,ref}}=
-            f\left(\frac{\dot{V}}{\dot{V}_{ref}} \right)
-
-        **GENERIC**
-
-        .. image:: _images/pump_GENERIC.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-
-        **default characteristic lines for combustion engines**
-
-        .. math::
-
-            \frac{X}{P}=f\left(\frac{P}{P_{ref}} \right)
-
-        **thermal input** (TI)
-
-        .. math::
-            X = TI = \dot{m}_f \cdot LHV
-
-        .. image:: _images/TI.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **heat production** (Q1)
-
-        .. math::
-            X = \dot{Q}_1 = \dot{m}_1 \cdot \left( h_{out,1} - h_{in,1} \right)
-
-        .. image:: _images/Q1.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **heat production** (Q2)
-
-        .. math::
-            X = \dot{Q}_2 = \dot{m}_2 \cdot \left( h_{out,2} - h_{in,2} \right)
-
-        .. image:: _images/Q2.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **heat loss** (QLOSS)
-
-        .. math::
-            X = \dot{Q}_{loss}
-
-        .. image:: _images/QLOSS.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **default characteristic lines for heat exchangers**
-
-        .. math::
-
-            \frac{kA}{kA_\mathrm{ref}}=f_1\left(x_1 \right)
-            \cdot f_2\left(x_2 \right)
-
-        available characteristic lines:
-
-        **condensing fluid** (COND)
-
-        .. image:: _images/COND_HOT.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        .. image:: _images/COND_COLD.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        **economiser, evaporator, superheater** (EVA)
-
-        .. image:: _images/EVA_HOT.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        .. image:: _images/EVA_COLD.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-
-        **heat exchanger without phase change** (HE)
-
-        .. image:: _images/HE_HOT.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        .. image:: _images/HE_COLD.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-
-        **default characteristic line for electrolysis**
-
-        .. math::
-
-            \frac{\eta}{\eta_\mathrm{ref}}=f\left(\frac{\dot{m}_{H_2}}
-            {\dot{m}_{H_2,ref}}\right)
-
-        .. image:: _images/water_electrolyzer_GENERIC.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-        """
-
-        if key == 'default':
-            return np.array([0, 1, 2, 3]), np.array([1, 1, 1, 1])
-
-        x = {}
-        y = {}
-
-        if self.comp == 'turbine':
-
-            x['GENERIC'] = np.array(
-                    [0.000, 0.300, 0.600, 0.700, 0.800, 0.900, 1.000, 1.100,
-                     1.200, 1.300, 1.400, 1.500])
-            y['GENERIC'] = np.array(
-                    [0.950, 0.980, 0.993, 0.996, 0.998, 0.9995, 1.000, 0.999,
-                     0.996, 0.990, 0.980, 0.960])
-
-            x['TRAUPEL'] = np.array(
-                    [0.0000, 0.1905, 0.3810, 0.5714, 0.7619, 0.9524, 1.0000,
-                     1.1429, 1.3333, 1.5238, 1.7143, 1.9048])
-            y['TRAUPEL'] = np.array(
-                    [0.0000, 0.3975, 0.6772, 0.8581, 0.9593, 0.9985, 1.0000,
-                     0.9875, 0.9357, 0.8464, 0.7219, 0.5643])
-
-        elif self.comp == 'compressor':
-
-            x['GENERIC'] = np.array(
-                    [0.000, 0.400, 1.000, 1.200])
-            y['GENERIC'] = np.array(
-                    [0.500, 0.900, 1.000, 1.100])
-
-        elif self.comp == 'pump':
-
-            x['GENERIC'] = np.array(
-                    [0.071, 0.282, 0.635, 0.776, 0.917, 1.000, 1.128, 1.270,
-                     1.410, 1.763, 2.115, 2.500])
-            y['GENERIC'] = np.array(
-                    [0.250, 0.547, 0.900, 0.965, 0.995, 1.000, 0.990, 0.959,
-                     0.911, 0.737, 0.519, 0.250])
-
-        elif self.comp == 'combustion engine':
-
-            x['TI'] = np.array([0.50, 0.75, 0.90, 1.00])
-            y['TI'] = np.array([2.50, 2.33, 2.27, 2.25])
-
-            x['Q1'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
-            y['Q1'] = np.array([0.215, 0.197, 0.185, 0.175, 0.168])
-
-            x['Q2'] = np.array([0.660, 0.770, 0.880, 0.990, 1.100])
-            y['Q2'] = np.array([0.215, 0.197, 0.185, 0.175, 0.168])
-
-            x['QLOSS'] = np.array([0.50, 0.7500, 0.90, 1.000])
-            y['QLOSS'] = np.array([0.32, 0.3067, 0.30, 0.295])
-
-        elif (self.comp == 'heat exchanger' or self.comp == 'desuperheater' or
-              self.comp == 'pipe' or self.comp == 'heat exchanger simple' or
-              self.comp == 'condenser'):
-
-            x['EVA_HOT'] = np.array(
-                    [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
-                     0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1,
-                     1.5, 2])
-            y['EVA_HOT'] = np.array(
-                    [0.030, 0.158, 0.245, 0.313, 0.373, 0.427, 0.477, 0.524,
-                     0.569, 0.611, 0.652, 0.692, 0.730, 0.767, 0.803, 0.838,
-                     0.872, 0.905, 0.937, 0.969, 1.000, 1.281, 1.523])
-
-            x['EVA_COLD'] = np.array(
-                    [0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
-                     0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 1, 2])
-            y['EVA_COLD'] = np.array(
-                    [0.018, 0.075, 0.134, 0.215, 0.300, 0.412, 0.531, 0.658,
-                     0.794, 0.934, 0.988, 0.991, 0.994, 0.995, 0.997, 0.998,
-                     0.999, 1.000, 1.001])
-
-            x['HE_HOT'] = np.array([
-                    0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
-                    0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1,
-                    1.5, 2])
-            y['HE_HOT'] = np.array(
-                    [0.030, 0.158, 0.344, 0.469, 0.535, 0.590, 0.638, 0.680,
-                     0.718, 0.752, 0.783, 0.812, 0.839, 0.864, 0.887, 0.909,
-                     0.929, 0.948, 0.966, 0.984, 1.000, 1.128, 1.216])
-
-            x['HE_COLD'] = np.array([
-                    0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
-                    0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9,
-                    0.95, 1, 1.5, 2])
-            y['HE_COLD'] = np.array(
-                    [0.018, 0.075, 0.134, 0.215, 0.300, 0.412, 0.507, 0.564,
-                     0.614, 0.660, 0.701, 0.739, 0.774, 0.806, 0.836, 0.864,
-                     0.890, 0.915, 0.938, 0.960, 0.981, 1.000, 1.151, 1.253])
-
-            x['COND_HOT'] = np.array(
-                    [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
-                     0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1,
-                     1.5, 2])
-            y['COND_HOT'] = np.array(
-                    [0.030, 0.158, 0.344, 0.567, 0.838, 0.888, 0.906, 0.921,
-                     0.933, 0.943, 0.952, 0.959, 0.966, 0.972, 0.977, 0.982,
-                     0.986, 0.990, 0.994, 0.997, 1.000, 1.021, 1.033])
-
-            x['COND_COLD'] = np.array([
-                    0.01, 0.04, 0.07, 0.11, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
-                    0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9,
-                    0.95, 1, 1.5, 2])
-            y['COND_COLD'] = np.array(
-                    [0.019, 0.075, 0.134, 0.192, 0.243, 0.303, 0.359, 0.412,
-                     0.463, 0.512, 0.559, 0.604, 0.648, 0.691, 0.733, 0.774,
-                     0.813, 0.852, 0.890, 0.928, 0.964, 1.000, 1.327, 1.612])
-
-        elif self.comp == 'water electrolyzer':
-
-            x['GENERIC'] = np.array(
-                    [0.000, 0.0833, 0.250, 0.500, 0.750, 1.000, 1.333])
-            y['GENERIC'] = np.array(
-                    [1.100, 1.075, 1.050, 1.025, 1.010, 1.000, 0.990])
-
-        else:
-            return np.array([0, 1, 2, 3]), np.array([1, 1, 1, 1])
-
-        return x[key], y[key]
-
-    def attr(self):
-        return ['x', 'y', 'method', 'comp']
 
     def f_x(self, x):
         r"""
@@ -461,24 +121,6 @@ class char_line:
                    'X=' + str(round(x, 3)) + ' with minimum of ' +
                    str(self.x[0]) + ' at component ' + c + '.')
             logging.warning(msg)
-
-    def get_attr(self, key):
-        r"""
-        get the value of a characteristics attribute
-
-        :param key: attribute to return its value
-        :type key: str
-        :returns:
-            - :code:`self.__dict__[key]` if object has attribute key
-            - :code:`None` if object has no attribute key
-        """
-        if key in self.__dict__:
-            return self.__dict__[key]
-        else:
-            msg = 'Characteristics has no attribute \"' + key + '\".'
-            logging.error(msg)
-            raise KeyError(msg)
-
 
 # %%
 

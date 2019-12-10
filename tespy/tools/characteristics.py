@@ -18,6 +18,7 @@ import numpy as np
 import json
 import logging
 from pkg_resources import resource_filename
+from time import time
 
 # %%
 
@@ -409,18 +410,47 @@ class compressor_map(char_map):
 
 
 def load_default_char(component, parameter, function_name, char_type):
-    if char_type == 'line':
+        r"""
+        Load a characteristic line of map.
+
+        Parameters
+        ----------
+        component : str
+            Type of component.
+
+        parameter : str
+            Component parameter using the characteristics.
+
+        function_name : str
+            Name of the characteristics.
+
+        char_type : class
+            Class to be generate the object of.
+
+        Returns
+        -------
+        obj : object
+            The characteristics (char_line, char_map, compressor_map) object.
+        """
+
+    if char_type == char_line:
         path = resource_filename('tespy.data', 'char_lines.json')
     else:
         path = resource_filename('tespy.data', 'char_maps.json')
 
     with open(path) as f:
-        data = json.loads(f)
+        data = json.loads(f.read())
 
+    if char_type == char_line:
+        x = data[component][parameter][function_name]['x']
+        y = data[component][parameter][function_name]['y']
+        obj = char_type(x, y)
 
-# def load_custom_char(component, parameter, function_name):
+    else:
+        x = data[component][parameter][function_name]['x']
+        y = data[component][parameter][function_name]['y']
+        z1 = data[component][parameter][function_name]['z1']
+        z2 = data[component][parameter][function_name]['z2']
+        obj = char_type(x, y, z1, z2)
 
-#     TO_BE_FINISHED
-
-# # load_default_char(1, 2, 3, 'line')
-
+    return obj

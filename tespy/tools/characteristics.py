@@ -15,8 +15,9 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-
+import json
 import logging
+from pkg_resources import resource_filename
 
 # %%
 
@@ -227,7 +228,7 @@ class char_map:
 
         return yarr, z1arr, z2arr
 
-    def evaluate_y(self, y, yarr, z1arr, z2arr)
+    def evaluate_y(self, y, yarr, z1arr, z2arr):
 
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr):
@@ -405,3 +406,21 @@ class compressor_map(char_map):
         yarr = self.get_bounds_error_x(x, c)
         yarr *= (1 - igva / 100)
         self.get_bounds_error_y(y, yarr, c)
+
+
+def load_default_char(component, parameter, function_name, char_type):
+    if char_type == 'line':
+        path = resource_filename('tespy.data', 'char_lines.json')
+    else:
+        path = resource_filename('tespy.data', 'char_maps.json')
+
+    with open(path) as f:
+        data = json.loads(f)
+
+
+# def load_custom_char(component, parameter, function_name):
+
+#     TO_BE_FINISHED
+
+# # load_default_char(1, 2, 3, 'line')
+

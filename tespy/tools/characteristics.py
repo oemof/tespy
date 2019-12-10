@@ -152,7 +152,7 @@ class char_map:
     """
 
     def __init__(self, x=np.array([0, 1]), y=np.array([[1, 1], [1, 1]]),
-                 z1=np.array([[1, 1], [1, 1]], z2=np.array([[1, 1], [1, 1]]):
+                 z1=np.array([[1, 1], [1, 1]]), z2=np.array([[1, 1], [1, 1]])):
 
         self.x = x
         self.y = y

@@ -21,7 +21,7 @@ properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`
 .. code-block:: python
 
     from tespy.networks import network
-	
+    
     # create a network object with water as fluid
     fluid_list = ['air']
     my_plant = network(fluids=fluid_list)

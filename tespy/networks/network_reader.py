@@ -25,15 +25,15 @@ from tespy.networks.networks import network
 
 from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp,
                                          dc_prop, dc_simple)
-from tespy.tools.characteristics import characteristics, char_map
+from tespy.tools.characteristics import char_line, char_map, compressor_map
 from tespy.tools.helpers import modify_path_os
 import os
 import ast
 import logging
 
 
-global target_classes
-target_classes = {
+global comp_target_classes
+comp_target_classes = {
     'cycle_closer': basics.cycle_closer,
     'sink': basics.sink,
     'source': basics.source,
@@ -57,6 +57,13 @@ target_classes = {
     'compressor': turbomachinery.compressor,
     'pump': turbomachinery.pump,
     'turbine': turbomachinery.turbine
+}
+
+
+global map_target_classes
+map_target_classes = {
+    'char_map': char_map,
+    'compressor_map': compressor_map
 }
 
 # %% network loading
@@ -210,29 +217,37 @@ def load_network(path):
     logging.info(msg)
 
     # load characteristics
-    fn = path_comps + 'char.csv'
-    chars = pd.read_csv(fn, sep=';', decimal='.',
-                        converters={'x': ast.literal_eval,
-                                    'y': ast.literal_eval})
-    msg = 'Reading characteristic lines data from ' + fn + '.'
-    logging.debug(msg)
+    fn = path_comps + 'char_line.csv'
+    try:
+        char_lines = pd.read_csv(fn, sep=';', decimal='.',
+                            converters={'x': ast.literal_eval,
+                                        'y': ast.literal_eval})
+        msg = 'Reading characteristic lines data from ' + fn + '.'
+        logging.debug(msg)
+
+    except FileNotFoundError:
+        char_lines = pd.DataFrame()
 
     # load characteristic maps
     fn = path_comps + 'char_map.csv'
-    char_maps = pd.read_csv(fn, sep=';', decimal='.',
-                            converters={'x': ast.literal_eval,
-                                        'y': ast.literal_eval,
-                                        'z1': ast.literal_eval,
-                                        'z2': ast.literal_eval})
-    msg = 'Reading characteristic maps data from ' + fn + '.'
-    logging.debug(msg)
+    try:
+        msg = 'Reading characteristic maps data from ' + fn + '.'
+        logging.debug(msg)
+        char_maps = pd.read_csv(fn, sep=';', decimal='.',
+                                converters={'x': ast.literal_eval,
+                                            'y': ast.literal_eval,
+                                            'z1': ast.literal_eval,
+                                            'z2': ast.literal_eval})
+
+    except FileNotFoundError:
+        char_maps = pd.DataFrame()
 
     # load components
     comps = pd.DataFrame()
 
     files = os.listdir(path_comps)
     for f in files:
-        if f != 'bus.csv' and f != 'char.csv' and f != 'char_map.csv':
+        if f != 'bus.csv' and f != 'char_line.csv' and f != 'char_map.csv':
             fn = path_comps + f
             df = pd.read_csv(fn, sep=';', decimal='.',
                              converters={'design': ast.literal_eval,
@@ -244,7 +259,7 @@ def load_network(path):
 
             # create components
             df['instance'] = df.apply(construct_comps, axis=1,
-                                      args=(chars, char_maps, ))
+                                      args=(char_lines, char_maps, ))
             comps = pd.concat((comps, df[['instance', 'label', 'busses',
                                           'bus_param', 'bus_P_ref',
                                           'bus_char']]), axis=0)
@@ -298,7 +313,7 @@ def load_network(path):
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
         # add components to busses
-        comps.apply(busses_add_comps, axis=1, args=(busses, chars,))
+        comps.apply(busses_add_comps, axis=1, args=(busses, char_lines,))
 
         # add busses to network
         for b in busses['instance']:
@@ -318,8 +333,7 @@ def load_network(path):
 
 def construct_comps(c, *args):
     r"""
-    Creates TESPy component from class name provided in the .csv-file and
-    specifies its parameters.
+    Create TESPy component from class name and set parameters.
 
     Parameters
     ----------
@@ -337,7 +351,7 @@ def construct_comps(c, *args):
     instance : tespy.components.components.component
         TESPy component object.
     """
-    target_class = target_classes[c.cp]
+    target_class = comp_target_classes[c.cp]
     instance = target_class(c.label)
     kwargs = {}
 
@@ -366,24 +380,18 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
+                    char = char_line(x=x, y=y)
+
                 except IndexError:
-                    # if characteristics are missing (for compressor map atm)
-                    x = characteristics().x
-                    y = characteristics().y
+
+                    char = None
                     msg = ('Could not find x and y values for characteristic '
                            'line, using defaults instead for function ' + key +
                            ' at component ' + c.label + '.')
                     logging.warning(msg)
 
-                char = characteristics(
-                        x=x, y=y, method=c[key + '_method'],
-                        comp=instance.component())
-
                 kwargs[key] = dc_cc(is_set=c[key + '_set'],
-                                       method=c[key + '_method'],
-                                       param=c[key + '_param'],
-                                       func=char,
-                                       x=x, y=y)
+                                    param=c[key + '_param'], func=char)
 
             # component characteristics
             elif isinstance(value, dc_cm):
@@ -395,25 +403,19 @@ def construct_comps(c, *args):
                     y = list(args[1][values].y.values[0])
                     z1 = list(args[1][values].z1.values[0])
                     z2 = list(args[1][values].z2.values[0])
-                except IndexError:
-                    # if characteristics are missing (for compressor map atm)
-                    x = char_map().x
-                    y = char_map().y
-                    z1 = char_map().z1
-                    z2 = char_map().z2
+                    target_class = map_target_classes[
+                        args[1][values].type.values[0]]
+                    char = target_class(x=x, y=y, z1=z1, z2=z2)
 
+                except IndexError:
+                    char = None
                     msg = ('Could not find x, y, z1 and z2 values for '
-                           'characteristic map, using defaults instead.')
+                           'characteristic map of component ' + c.label + '!')
                     logging.warning(msg)
 
-                char = char_map(x=x, y=y, z1=z1, z2=z2,
-                                method=c[key + '_method'],
-                                comp=instance.component())
-
                 kwargs[key] = dc_cm(is_set=c[key + '_set'],
-                                    method=c[key + '_method'],
                                     param=c[key + '_param'],
-                                    func=char, x=x, y=y, z1=z1, z2=z2)
+                                    func=char)
 
             # grouped component parameters
             elif isinstance(value, dc_gcp):
@@ -597,7 +599,7 @@ def busses_add_comps(c, *args):
         p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
 
         values = char == args[1]['id']
-        char = characteristics(x=args[1][values].x.values[0],
+        char = char_line(x=args[1][values].x.values[0],
                                         y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus

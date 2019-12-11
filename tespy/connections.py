@@ -21,7 +21,7 @@ import pandas as pd
 
 import logging
 
-from tespy.tools.characteristics import characteristics
+from tespy.tools.characteristics import char_line
 from tespy.tools.data_containers import dc_cp, dc_flu, dc_prop, dc_simple
 from tespy.tools.helpers import TESPyConnectionError
 
@@ -571,7 +571,6 @@ class bus:
     ... heat_exchanger, merge, splitter, pump)
     >>> from tespy.connections import connection, ref, bus
     >>> from tespy.networks import network
-    >>> from tespy.tools.characteristics import characteristics
     >>> import numpy as np
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
@@ -636,8 +635,8 @@ class bus:
     >>> load = np.array([0.2, 0.4, 0.6, 0.8, 1, 1.2])
     >>> gen_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
     >>> mot_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) / 0.98
-    >>> gen = characteristics(x=load, y=gen_efficiency)
-    >>> mot = characteristics(x=load, y=mot_efficiency)
+    >>> gen = char_line(x=load, y=gen_efficiency)
+    >>> mot = char_line(x=load, y=mot_efficiency)
     >>> power_bus = bus('total power output', P=10e6)
     >>> heat_bus = bus('total heat input')
     >>> fuel_bus = bus('thermal input')
@@ -685,7 +684,7 @@ class bus:
 
         self.label = label
         self.P = dc_cp(val=np.nan, is_set=False)
-        self.char = characteristics(x=np.array([0, 1, 2, 3]),
+        self.char = char_line(x=np.array([0, 1, 2, 3]),
                                     y=np.array([1, 1, 1, 1]))
 
         self.set_attr(P=P)
@@ -799,7 +798,7 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'char':
-                        if isinstance(v, characteristics):
+                        if isinstance(v, char_line):
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
@@ -808,7 +807,7 @@ class bus:
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
                             self.comps.loc[c['c']]['char'] = (
-                                    characteristics(x=x, y=y))
+                                    char_line(x=x, y=y))
                         else:
                             msg = ('Char must be a number or a TESPy '
                                    'characteristics.')

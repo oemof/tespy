@@ -556,11 +556,17 @@ class drum(component):
     -------
     The drum separates saturated gas from saturated liquid. The liquid phase is
     transported to an evaporator, the staturated gas phase is extracted from
-    the drum. In this example ammonia is evaporated using ambient air.
+    the drum. In this example ammonia is evaporated using ambient air. A
+    characteristic function is applied for the heat transfer coefficient of the
+    evaporator. It is possible to load the char_line with the function
+    :code:`load_default_char` from the default lines. We want to use the
+    'EVAPORATING FLUID' lines of the heat exchanger.
 
     >>> from tespy.components import sink, source, drum, pump, heat_exchanger
     >>> from tespy.connections import connection, ref
     >>> from tespy.networks import network
+    >>> from tespy.tools.characteristics import char_line
+    >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> import shutil
     >>> import numpy as np
     >>> nw = network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
@@ -589,8 +595,12 @@ class drum(component):
     transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
     design it is possible to calculate offdesign performance at 75 % part load.
 
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1='EVA_HOT',
-    ...     kA_char2='EVA_COLD', design=['pr1', 'ttd_l'],
+    >>> char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID',
+    ... char_line)
+    >>> char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID',
+    ... char_line)
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
+    ...     kA_char2=char2, design=['pr1', 'ttd_l'],
     ...     offdesign=['zeta1', 'kA'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)

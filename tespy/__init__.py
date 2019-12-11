@@ -18,3 +18,6 @@ from tespy import connections
 from tespy.tools import (
         data_containers, fluid_properties, global_vars, helpers, logger
         )
+
+# tespy data
+from tespy import data

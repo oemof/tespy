@@ -184,8 +184,7 @@ class dc_cc(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False,
-                'method': 'default', 'param': None,
+        return {'func': None, 'is_set': False, 'param': None,
                 'x': None, 'y': None}
 
 # %%
@@ -239,8 +238,7 @@ class dc_cm(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False,
-                'method': 'default', 'param': None,
+        return {'func': None, 'is_set': False, 'param': None,
                 'x': None, 'y': None, 'z1': None, 'z2': None}
 
 # %%

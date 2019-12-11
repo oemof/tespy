@@ -121,6 +121,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, design_path=7)
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)
+        self.set_attr_TypeError(self.pipe, hydro_group=5)
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)

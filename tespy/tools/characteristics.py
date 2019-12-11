@@ -68,7 +68,7 @@ class char_line:
         msg = ('Created characteristic line function.')
         logging.debug(msg)
 
-    def evaluate_x(self, x):
+    def evaluate(self, x):
         r"""
         Returns characteristic line evaluation at x.
 
@@ -123,6 +123,27 @@ class char_line:
                    'X=' + str(round(x, 3)) + ' with minimum of ' +
                    str(self.x[0]) + ' at component ' + c + '.')
             logging.warning(msg)
+
+    def get_attr(self, key):
+        r"""
+        Get the value of an attribute.
+
+        Parameters
+        ----------
+        key : str
+            Object attribute to get value of.
+
+        Returns
+        -------
+        value : object
+            Value of object attribute key.
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            msg = 'Char_map has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
 # %%
 
@@ -233,13 +254,13 @@ class char_map:
 
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr):
-            return z1[ypos - 1], z2[ypos - 1]
+            return z1arr[ypos - 1], z2arr[ypos - 1]
         elif ypos == 0:
-            return z1[0], z2[0]
+            return z1arr[0], z2arr[0]
         else:
             zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
-            z1 = z1[ypos - 1] + zfrac * (z1[ypos] - z1[ypos - 1])
-            z2 = z2[ypos - 1] + zfrac * (z2[ypos] - z2[ypos - 1])
+            z1 = z1arr[ypos - 1] + zfrac * (z1arr[ypos] - z1arr[ypos - 1])
+            z2 = z2arr[ypos - 1] + zfrac * (z2arr[ypos] - z2arr[ypos - 1])
             return z1, z2
 
     def evaluate(self, x, y):
@@ -338,19 +359,40 @@ class char_map:
 
         Parameters
         ----------
-        y : float
+        x : float
             Input for first dimension of char_map.
 
         y : float
             Input for second dimension of char_map.
         """
-        yarr = self.get_bounds_error_x(x, c)
-        self.get_bounds_error_y(y, yarr, c)
+        yarr = self.get_bound_errors_x(x, c)
+        self.get_bound_errors_y(y, yarr, c)
+
+    def get_attr(self, key):
+        r"""
+        Get the value of an attribute.
+
+        Parameters
+        ----------
+        key : str
+            Object attribute to get value of.
+
+        Returns
+        -------
+        value : object
+            Value of object attribute key.
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            msg = 'Char_map has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)
 
 
 class compressor_map(char_map):
 
-    def evaluate(x, y, igva):
+    def evaluate(self, x, y, igva):
         r"""
         Evaluate compressor_map for x and y inputs.
 
@@ -382,7 +424,7 @@ class compressor_map(char_map):
         z1arr *= (1 - igva / 100)
         z2arr *= (1 - igva ** 2 / 10000)
 
-        z1, z2 = evaluate_y(y, yarr, z1arr, z2arr)
+        z1, z2 = self.evaluate_y(y, yarr, z1arr, z2arr)
 
         return z1, z2
 
@@ -395,44 +437,43 @@ class compressor_map(char_map):
 
         Parameters
         ----------
-        y : float
+        x : float
             Input for first dimension of char_map.
 
-        yarr : float
+        y : float
             Input for second dimension of char_map.
 
         igva : float
             Inlet guide vane angle of the compressor.
         """
-        yarr = self.get_bounds_error_x(x, c)
+        yarr = self.get_bound_errors_x(x, c)
         yarr *= (1 - igva / 100)
-        self.get_bounds_error_y(y, yarr, c)
+        self.get_bound_errors_y(y, yarr, c)
 
 
 def load_default_char(component, parameter, function_name, char_type):
-        r"""
-        Load a characteristic line of map.
+    r"""
+    Load a characteristic line of map.
 
-        Parameters
-        ----------
-        component : str
-            Type of component.
+    Parameters
+    ----------
+    component : str
+        Type of component.
 
-        parameter : str
-            Component parameter using the characteristics.
+    parameter : str
+        Component parameter using the characteristics.
 
-        function_name : str
-            Name of the characteristics.
+    function_name : str
+        Name of the characteristics.
 
-        char_type : class
-            Class to be generate the object of.
+    char_type : class
+        Class to be generate the object of.
 
-        Returns
-        -------
-        obj : object
-            The characteristics (char_line, char_map, compressor_map) object.
-        """
-
+    Returns
+    -------
+    obj : object
+        The characteristics (char_line, char_map, compressor_map) object.
+    """
     if char_type == char_line:
         path = resource_filename('tespy.data', 'char_lines.json')
     else:

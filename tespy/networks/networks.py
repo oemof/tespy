@@ -2992,11 +2992,9 @@ class network:
                                    args=('P', 'is_set'))
             df.drop('id', axis=1, inplace=True)
 
-        else:
-            df = pd.DataFrame({'label': [], 'P': [], 'P_set': []})
-        df.set_index('label', inplace=True)
-        df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-        logging.debug('Bus information saved to ' + fn + '.')
+            df.set_index('label', inplace=True)
+            df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
+            logging.debug('Bus information saved to ' + fn + '.')
 
     def save_characteristics(self, path):
         r"""

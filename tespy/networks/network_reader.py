@@ -226,7 +226,7 @@ def load_network(path):
         logging.debug(msg)
 
     except FileNotFoundError:
-        char_lines = pd.DataFrame()
+        char_lines = pd.DataFrame(columns=['id', 'type', 'x', 'y'])
 
     # load characteristic maps
     fn = path_comps + 'char_map.csv'
@@ -240,7 +240,7 @@ def load_network(path):
                                             'z2': ast.literal_eval})
 
     except FileNotFoundError:
-        char_maps = pd.DataFrame()
+        char_maps = pd.DataFrame(columns=['id', 'type', 'x', 'y', 'z1', 'z2'])
 
     # load components
     comps = pd.DataFrame()
@@ -302,11 +302,17 @@ def load_network(path):
     logging.info(msg)
 
     # load busses
-    fn = path_comps + 'bus.csv'
-    busses = pd.read_csv(fn, sep=';', decimal='.')
+    try:
+        fn = path_comps + 'bus.csv'
+        busses = pd.read_csv(fn, sep=';', decimal='.')
+        msg = 'Reading bus data from ' + fn + '.'
+        logging.debug(msg)
 
-    msg = 'Reading bus data from ' + fn + '.'
-    logging.debug(msg)
+    except FileNotFoundError:
+        busses = pd.DataFrame()
+        msg = 'No bus data found!'
+        logging.debug(msg)
+
     # create busses
     nw.imp_busses = {}
     if len(busses) > 0:

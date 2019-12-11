@@ -7,10 +7,12 @@ from tespy.components import (basics, heat_exchangers, nodes, piping,
                               turbomachinery)
 
 from tespy.networks.networks import network
+from tespy.networks.network_reader import load_network
 from tespy.tools.helpers import TESPyNetworkError
 
 import numpy as np
 import shutil
+import os
 
 
 class network_tests:
@@ -58,6 +60,65 @@ class network_tests:
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
+    def test_network_export_no_chars_busses(self):
+        """
+        Test export of network without characteristics or busses.
+        """
+        a = connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        self.nw.solve('design', init_only=True)
+        self.nw.save('tmp')
+        msg = ('The exported network does not contain any char_line, there '
+               'must be no file char_line.csv!')
+        eq_(os.path.isfile('tmp/comps/char_line.csv'), False, msg)
+
+        msg = ('The exported network does not contain any char_map, there '
+               'must be no file char_map.csv!')
+        eq_(os.path.isfile('tmp/comps/char_map.csv'), False, msg)
+
+        msg = ('The exported network does not contain any busses, there '
+               'must be no file bus.csv!')
+        eq_(os.path.isfile('tmp/comps/bus.csv'), False, msg)
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_network_reader_no_chars_busses(self):
+        """
+        Test import of network without characteristics or busses.
+        """
+        a = connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        self.nw.solve('design', init_only=True)
+        self.nw.save('tmp')
+
+        imported_nwk = load_network('tmp')
+        imported_nwk.solve('design', init_only=True)
+        msg = ('If the network import was successful the network check '
+               'should have been successful, too, but it is not.')
+        eq_(imported_nwk.checked, True, msg)
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_network_reader_deleted_chars(self):
+        """
+        Test import of network with missing characteristics.
+        """
+        comp = turbomachinery.compressor('compressor')
+        a = connection(self.source, 'out1', comp, 'in1')
+        b = connection(comp, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design', init_only=True)
+        self.nw.save('tmp')
+
+        # # remove char_line and char_map folders
+        os.unlink('tmp/comps/char_line.csv')
+        os.unlink('tmp/comps/char_map.csv')
+
+        # import network with missing files
+        imported_nwk = load_network('tmp')
+        imported_nwk.solve('design', init_only=True)
+        msg = ('If the network import was successful the network check '
+                'should have been successful, too, but it is not.')
+        eq_(imported_nwk.checked, True, msg)
+        shutil.rmtree('./tmp', ignore_errors=True)
 
 @raises(TESPyNetworkError)
 def offdesign_TESPyNetworkError(nw, **kwargs):

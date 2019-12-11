@@ -571,7 +571,6 @@ class bus:
     ... heat_exchanger, merge, splitter, pump)
     >>> from tespy.connections import connection, ref, bus
     >>> from tespy.networks import network
-    >>> from tespy.tools.characteristics import characteristics
     >>> import numpy as np
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
@@ -799,7 +798,7 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'char':
-                        if isinstance(v, characteristics):
+                        if isinstance(v, char_line):
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or

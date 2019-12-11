@@ -644,7 +644,7 @@ class water_electrolyzer(component):
         expr = self.outl[2].m.val_SI / self.outl[2].m.design
 
         return (self.P.val - self.outl[2].m.val_SI * self.e0 / (
-                self.eta.design * self.eta_char.func.f_x(expr)))
+                self.eta.design * self.eta_char.func.evaluate(expr)))
 
     def eta_char_deriv(self):
         r"""
@@ -700,7 +700,7 @@ class water_electrolyzer(component):
                 expr = 1
             else:
                 expr = abs(P / bus.P_ref)
-            return P * bus.char.f_x(expr)
+            return P * bus.char.evaluate(expr)
 
         ######################################################################
         # equations for heat on bus
@@ -712,7 +712,7 @@ class water_electrolyzer(component):
                 expr = 1
             else:
                 expr = abs(val / bus.P_ref)
-            return val * bus.char.f_x(expr)
+            return val * bus.char.evaluate(expr)
 
         ######################################################################
         # missing/invalid bus parameter

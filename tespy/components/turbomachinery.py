@@ -22,8 +22,9 @@ import logging
 import numpy as np
 
 from tespy.components.components import component
-
+from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
+
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_cm, dc_simple
 from tespy.tools.fluid_properties import (
         h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
@@ -481,35 +482,29 @@ class compressor(turbomachine):
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=1),
                 'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
-                'char_map': dc_cm(method='GENERIC'),
-                'eta_s_char': dc_cc(param='m', method='GENERIC'),
+                'char_map': dc_cm(),
+                'eta_s_char': dc_cc(param='m'),
                 'Sirr': dc_simple()}
 
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
 
+        if self.char_map.func is None:
+            self.char_map.func = ldc(
+                self.component(), 'char_map', 'DEFAULT', compressor_map)
+
+            if self.char_warnings is True:
+                msg = ('Created characteristic map for parameter char_map '
+                       ' at component ' + self.label + ' from default data.\n'
+                       'You can specify your own data using component.char_map'
+                       '.set_attr(func=custom_char).\n'
+                       'If you want to disable these warnings use '
+                       'component.char_warnings=False.')
+                logging.warning(msg)
+
         self.fl_deriv = self.fluid_deriv()
         self.m_deriv = self.mass_flow_deriv()
-
-        generate_char = False
-        if self.char_map.func is None:
-            generate_char = True
-        elif (not np.array_equal(self.char_map.x, self.char_map.func.x) or
-              not np.array_equal(self.char_map.y, self.char_map.func.y) or
-              not np.array_equal(self.char_map.z1, self.char_map.func.z1) or
-              not np.array_equal(self.char_map.z2, self.char_map.func.z2)):
-            generate_char = True
-
-        if generate_char:
-            self.char_map.func = char_map(
-                    x=self.char_map.x, y=self.char_map.y, z1=self.char_map.z1,
-                    z2=self.char_map.z2, method=self.char_map.method,
-                    comp=self.component())
-            self.char_map.x = self.char_map.func.x
-            self.char_map.y = self.char_map.func.y
-            self.char_map.z1 = self.char_map.func.z1
-            self.char_map.z2 = self.char_map.func.z2
 
     def additional_equations(self):
         r"""
@@ -952,6 +947,7 @@ class pump(turbomachine):
     >>> from tespy.components import sink, source, pump
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
+    >>> from tespy.tools.characteristics import char_line
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['water']
@@ -959,11 +955,11 @@ class pump(turbomachine):
     ...     h_unit='kJ / kg', v_unit='l / s', iterinfo=False)
     >>> si = sink('sink')
     >>> so = source('source')
-    >>> p = pump('pump')
-    >>> p.component()
+    >>> pu = pump('pump')
+    >>> pu.component()
     'pump'
-    >>> inc = connection(so, 'out1', p, 'in1')
-    >>> outg = connection(p, 'out1', si, 'in1')
+    >>> inc = connection(so, 'out1', pu, 'in1')
+    >>> outg = connection(pu, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
 
     After that we calculate offdesign performance using
@@ -974,21 +970,21 @@ class pump(turbomachine):
 
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
-    >>> char = dc_cc(x=v, y=dp, is_set=True)
-    >>> p.set_attr(eta_s=0.8, flow_char=char, design=['eta_s'],
-    ...     offdesign=['eta_s_char'])
+    >>> char = char_line(x=v, y=dp)
+    >>> pu.set_attr(eta_s=0.8, flow_char=dc_cc(func=char, is_set=True),
+    ... design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(p.pr.val, 0)
+    >>> round(pu.pr.val, 0)
     7.0
     >>> round(outg.p.val - inc.p.val, 0)
     6.0
-    >>> round(p.P.val, 0)
+    >>> round(pu.P.val, 0)
     1125.0
     >>> outg.set_attr(p=12)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(p.eta_s.val, 2)
+    >>> round(pu.eta_s.val, 2)
     0.71
     >>> round(inc.v.val, 1)
     0.9
@@ -1002,7 +998,7 @@ class pump(turbomachine):
         return {'P': dc_cp(min_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=1),
-                'eta_s_char': dc_cc(method='GENERIC'),
+                'eta_s_char': dc_cc(),
                 'flow_char': dc_cc(),
                 'Sirr': dc_simple()}
 
@@ -1428,8 +1424,8 @@ class turbine(turbomachine):
         return {'P': dc_cp(max_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=0, max_val=1),
-                'eta_s_char': dc_cc(method='GENERIC', param='m'),
-                'cone': dc_cc(method='default'),
+                'eta_s_char': dc_cc(param='m'),
+                'cone': dc_cc(),
                 'Sirr': dc_simple()}
 
     def additional_equations(self):

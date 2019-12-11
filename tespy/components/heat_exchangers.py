@@ -157,7 +157,7 @@ class heat_exchanger_simple(component):
     >>> heat_sink.component()
     'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
-    ... offdesign=['zeta', 'kA'], kA_char='HE_HOT')
+    ... offdesign=['zeta', 'kA'])
     >>> inc = connection(so1, 'out1', heat_sink, 'in1')
     >>> outg = connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -166,8 +166,8 @@ class heat_exchanger_simple(component):
     enters the heat sink at a temperature of 200 °C and is cooled down to
     150 °C. Given an ambient temperature of 10 °C this also determines the heat
     transfer coefficient to the ambient. Assuming a characteristic function
-    for the heat transfer coefficient (HE_HOT) we can predict the heat
-    transferred at variable flow rates.
+    for the heat transfer coefficient we can predict the heat transferred at
+    variable flow rates.
 
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
@@ -204,7 +204,7 @@ class heat_exchanger_simple(component):
                 'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
                 'kA': dc_cp(min_val=0, d=1),
                 'Tamb': dc_cp(),
-                'kA_char': dc_cc(method='HE_HOT', param='m'),
+                'kA_char': dc_cc(param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
@@ -621,7 +621,7 @@ class heat_exchanger_simple(component):
         fkA = 1
         if not np.isnan(self.inl[0].m.design):
             if self.kA_char.param == 'm':
-                fkA = self.kA_char.func.f_x(i[0] / self.inl[0].m.design)
+                fkA = self.kA_char.func.evaluate(i[0] / self.inl[0].m.design)
 
         return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
@@ -653,7 +653,7 @@ class heat_exchanger_simple(component):
             expr = 1
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+        return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""
@@ -1290,8 +1290,8 @@ class heat_exchanger(component):
                 'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-                'kA_char1': dc_cc(method='HE_HOT', param='m'),
-                'kA_char2': dc_cc(method='HE_COLD', param='m'),
+                'kA_char1': dc_cc(param='m'),
+                'kA_char2': dc_cc(param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
@@ -1751,13 +1751,13 @@ class heat_exchanger(component):
         if self.kA_char1.param == 'm':
             if not np.isnan(i1_d[0]):
                 if not i1[0] == 0:
-                    fkA1 = self.kA_char1.func.f_x(i1[0] / i1_d[0])
+                    fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
             if not np.isnan(i2_d[0]):
                 if not i2[0] == 0:
-                    fkA2 = self.kA_char2.func.f_x(i2[0] / i2_d[0])
+                    fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
@@ -1862,7 +1862,7 @@ class heat_exchanger(component):
             expr = 1
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+        return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""
@@ -2270,8 +2270,8 @@ class condenser(heat_exchanger):
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
                 'subcooling': dc_simple(val=False),
-                'kA_char1': dc_cc(method='COND_HOT', param='m'),
-                'kA_char2': dc_cc(method='COND_COLD', param='m'),
+                'kA_char1': dc_cc(param='m'),
+                'kA_char2': dc_cc(param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
@@ -2424,12 +2424,12 @@ class condenser(heat_exchanger):
         fkA1 = 1
         if self.kA_char1.param == 'm':
             if not np.isnan(i1_d[0]):
-                fkA1 = self.kA_char1.func.f_x(i1[0] / i1_d[0])
+                fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
             if not np.isnan(i2_d[0]):
-                fkA2 = self.kA_char2.func.f_x(i2[0] / i2_d[0])
+                fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))

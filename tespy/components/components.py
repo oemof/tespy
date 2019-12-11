@@ -16,7 +16,8 @@ import numpy as np
 
 import logging
 
-from tespy.tools.characteristics import char_line, char_map
+from tespy.tools.characteristics import char_line, char_map, compressor_map
+from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import (
         data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
         )
@@ -74,11 +75,13 @@ class component:
             msg = 'Component label must be of type str!'
             logging.error(msg)
             raise ValueError(msg)
+
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
             msg = ('Can\'t use ' + str([';', ',', '.']) + ' in label (' +
                    str(self.component()) + ').')
             logging.error(msg)
             raise ValueError(msg)
+
         else:
             self.label = label
 
@@ -88,6 +91,7 @@ class component:
         self.offdesign = []
         self.local_design = False
         self.local_offdesign = False
+        self.char_warnings = True
 
         # add container for components attributes
         var = self.attr()
@@ -132,6 +136,7 @@ class component:
                 if isinstance(kwargs[key], data_container):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
+
                     else:
                         msg = ('The keyword ' + key + ' expects a '
                                'data_container of type ' +
@@ -150,6 +155,7 @@ class component:
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
                             self.get_attr(key).set_attr(is_var=False)
+
                         else:
                             self.get_attr(key).set_attr(val=kwargs[key])
                             self.get_attr(key).set_attr(is_set=True)
@@ -167,20 +173,33 @@ class component:
                         raise TypeError(msg)
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
-                      isinstance(self.get_attr(key), dc_cm) or
-                      isinstance(self.get_attr(key), dc_gcp)):
-                    # value specification for component characteristics
-                    if isinstance(kwargs[key], str):
-                        self.get_attr(key).set_attr(method=kwargs[key])
-                        if (isinstance(self.get_attr(key), dc_cc) or
-                                isinstance(self.get_attr(key), dc_cm)):
-                            self.get_attr(key).set_attr(func=None)
-
-                    elif (isinstance(kwargs[key], characteristics) or
-                          isinstance(kwargs[key], char_map)):
+                      isinstance(self.get_attr(key), dc_cm)):
+                    # value specification for characteristic lines
+                    if isinstance(kwargs[key], char_line):
                         self.get_attr(key).func = kwargs[key]
                         self.get_attr(key).x = self.get_attr(key).func.x
                         self.get_attr(key).y = self.get_attr(key).func.y
+
+                    # value specification for characteristic maps
+                    elif (isinstance(kwargs[key], char_map) or
+                          isinstance(kwargs[key], compressor_map)):
+                        self.get_attr(key).func = kwargs[key]
+                        self.get_attr(key).x = self.get_attr(key).func.x
+                        self.get_attr(key).y = self.get_attr(key).func.y
+                        self.get_attr(key).z1 = self.get_attr(key).func.z1
+                        self.get_attr(key).z2 = self.get_attr(key).func.z2
+
+                    # invalid datatype for keyword
+                    else:
+                        msg = ('Bad datatype for keyword argument ' + key +
+                               ' at ' + self.label + '.')
+                        logging.error(msg)
+                        raise TypeError(msg)
+
+                elif isinstance(self.get_attr(key), dc_gcp):
+                    # value specification of grouped component parameter method
+                    if isinstance(kwargs[key], str):
+                        self.get_attr(key).method = kwargs[key]
 
                     # invalid datatype for keyword
                     else:
@@ -196,9 +215,11 @@ class component:
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(val_set=False)
+
                         else:
                             self.get_attr(key).set_attr(
                                     val=kwargs[key], val_set=True)
+
                     else:
                         self.get_attr(key).set_attr(
                                 val=kwargs[key], val_set=True)
@@ -211,6 +232,7 @@ class component:
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
+
                 else:
                     msg = ('Available parameters for (off-)design '
                            'specification are: ' + str(list(var)) + ' at '
@@ -224,6 +246,7 @@ class component:
                            'at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
+
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
@@ -231,9 +254,11 @@ class component:
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
                     self.new_design = True
+
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
                     self.new_design = True
+
                 else:
                     msg = ('Please provide the ' + key + ' parameter as '
                            'string or as nan.')
@@ -280,40 +305,38 @@ class component:
         """
         self.vars = {}
         self.num_vars = 0
-        for var in self.attr().keys():
-            if isinstance(self.attr()[var], dc_cp):
-                if self.get_attr(var).is_var:
-                    self.get_attr(var).var_pos = self.num_vars
+        var = self.attr()
+        for val in var.keys():
+            if isinstance(self.attr()[val], dc_cp):
+                if self.get_attr(val).is_var:
+                    self.get_attr(val).var_pos = self.num_vars
                     self.num_vars += 1
-                    self.vars[self.get_attr(var)] = var
+                    self.vars[self.get_attr(val)] = val
 
         msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
                ' custom variables.')
         logging.debug(msg)
 
         # characteristics creation
-        for key, val in self.attr().items():
+        for key, val in var.items():
             if isinstance(val, dc_cc):
-                generate_char = False
                 if self.get_attr(key).func is None:
-                    generate_char = True
-                elif (not np.array_equal(self.get_attr(key).func.x,
-                                         self.get_attr(key).x) or
-                      not np.array_equal(self.get_attr(key).func.y,
-                                         self.get_attr(key).y)):
-                    generate_char = True
+                    try:
+                        self.get_attr(key).func = ldc(
+                            self.component(), key, 'DEFAULT', char_line)
+                    except KeyError:
+                        self.get_attr(key).func = char_line(x=[0, 1], y=[1, 1])
 
-                if generate_char:
-                    self.get_attr(key).func = char_line(
-                            method=self.get_attr(key).method,
-                            x=self.get_attr(key).x,
-                            y=self.get_attr(key).y, comp=self.component())
-                    self.get_attr(key).x = self.get_attr(key).func.x
-                    self.get_attr(key).y = self.get_attr(key).func.y
-
-                    msg = ('Generated characteristic line for attribute ' +
-                           key + ' at component ' + self.label + '.')
-                    logging.debug(msg)
+                    if self.char_warnings is True:
+                        msg = ('Created characteristic line for parameter ' +
+                               key + ' at component ' + self.label + ' from '
+                               'default data.\n'
+                               'You can specify your own data using '
+                               'component.' + key +
+                               '.set_attr(func=custom_char).\n'
+                               'If you want to disable these warnings use '
+                               'component.char_warnings=False.')
+                        logging.warning(msg)
 
         self.num_fl = len(nw.fluids)
         self.fluids = nw.fluids

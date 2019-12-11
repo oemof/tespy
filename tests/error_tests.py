@@ -156,6 +156,7 @@ class specification_error_tests:
         self.get_attr_KeyError(self.comp, 'wow')
         self.get_attr_KeyError(self.conn, 'key')
         self.get_attr_KeyError(self.bus, 'components')
+        self.get_attr_KeyError(self.nw, 'missing')
         self.get_attr_KeyError(ref(self.conn, 1, 0), 'comp')
         self.get_attr_KeyError(self.sub, 'test')
         self.get_attr_KeyError(char_line(), 'test')

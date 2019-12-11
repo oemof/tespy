@@ -11,7 +11,8 @@ from tespy.components.turbomachinery import compressor, pump
 from tespy.connections import connection, bus, ref
 from tespy.networks.networks import network
 from tespy.tools.data_containers import dc_cc
-from tespy.tools.characteristics import characteristics
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import load_default_char as ldc
 
 import numpy as np
 import shutil
@@ -63,8 +64,8 @@ class test_heat_pump_ebsilon:
 
         x = np.array([0, 0.7, 1, 1.3])
         y = 1 / np.array([0.8, 0.95, 1, 0.98]) / 0.9583794
-        mot1 = characteristics(x=x, y=y)
-        mot2 = characteristics(x=x, y=y)
+        mot1 = char_line(x=x, y=y)
+        mot2 = char_line(x=x, y=y)
 
         self.power = bus('total compressor power')
         self.power.add_comps({'c': cp1, 'char': mot1}, {'c': cp2, 'char': mot2})
@@ -133,14 +134,16 @@ class test_heat_pump_ebsilon:
 
         # evaporator system
 
+        char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
+        char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
         ev.set_attr(pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA'],
-                    kA_char1='EVA_HOT', kA_char2='EVA_COLD')
+                    kA_char1=char1, kA_char2=char2)
 
         # characteristic line for superheater kA
         x = np.array([0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2])
         y = np.array([0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07])
-        su_char = dc_cc(x=x, y=y, param='m')
-        su.set_attr(kA_char1='default', kA_char2=su_char, offdesign=['zeta1', 'zeta2', 'kA'])
+        su_char = dc_cc(func=char_line(x, y), param='m')
+        su.set_attr(kA_char2=su_char, offdesign=['zeta1', 'zeta2', 'kA'])
         pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
         # compressor system
@@ -154,9 +157,9 @@ class test_heat_pump_ebsilon:
                 0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840, 0.921,
                 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516, 1.585, 1.654,
                 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
-        he_char_cold = dc_cc(x=x, y=y, param='m')
+        he_char_cold = dc_cc(func=char_line(x, y), param='m')
 
-        he.set_attr(kA_char1='default', kA_char2=he_char_cold, offdesign=['zeta1', 'zeta2', 'kA'])
+        he.set_attr(kA_char2=he_char_cold, offdesign=['zeta1', 'zeta2', 'kA'])
         cd.set_attr(pr2=0.998, design=['pr2'], offdesign=['zeta2', 'kA'])
 
         # %% connection parametrization

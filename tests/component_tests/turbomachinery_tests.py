@@ -9,6 +9,7 @@ from tespy.connections import connection, bus, ref
 from tespy.networks.networks import network
 from tespy.tools.data_containers import dc_cc, dc_cm
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.characteristics import char_line
 import numpy as np
 import shutil
 
@@ -74,7 +75,7 @@ class turbomachinery_tests:
         self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=30)
         self.nw.solve('offdesign', design_path='tmp')
         # should be value
-        eta_s = eta_s_d * instance.char_map.z2[6, 0]
+        eta_s = eta_s_d * instance.char_map.func.z2[6, 0]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                 ') must be at (' + str(round(eta_s, 4)) + ').')
         eq_(round(eta_s, 4), round(instance.eta_s.val, 4), msg)
@@ -84,7 +85,7 @@ class turbomachinery_tests:
         self.c1.set_attr(T=300)
         self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
         # should be value
-        eta_s = eta_s_d * instance.char_map.z2[0, 9]
+        eta_s = eta_s_d * instance.char_map.func.z2[0, 9]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                 ') must be at (' + str(round(eta_s, 4)) + ').')
         eq_(round(eta_s, 4), round(instance.eta_s.val, 4), msg)
@@ -105,7 +106,7 @@ class turbomachinery_tests:
         # move up in volumetric flow
         self.c1.set_attr(v=1.5)
         self.nw.solve('offdesign', design_path='tmp')
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(
             self.c1.m.val_SI / self.c1.m.design), 3)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                 ', is ' + str(round(instance.eta_s.val, 3)) + '.')
@@ -118,7 +119,7 @@ class turbomachinery_tests:
         self.nw.solve('offdesign', design_path='tmp')
         expr = (self.c2.p.val_SI * self.c1.p.design /
                 (self.c2.p.design * self.c1.p.val_SI))
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                 ', is ' + str(round(instance.eta_s.val, 3)) + '.')
         eq_(eta_s, round(instance.eta_s.val, 3), msg)
@@ -164,7 +165,7 @@ class turbomachinery_tests:
         # flow char (pressure rise vs. volumetric flow)
         x = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]
         y = np.array([14, 13.5, 12.5, 11, 9, 6.5, 3.5, 0]) * 1e5
-        char = dc_cc(x=x, y=y, is_set=True)
+        char = dc_cc(func=char_line(x, y), is_set=True)
         # apply flow char and eta_s char
         instance.set_attr(flow_char=char, eta_s=np.nan,
                           eta_s_char=dc_cc(method='GENERIC', is_set=True))
@@ -185,7 +186,7 @@ class turbomachinery_tests:
         eq_(self.c2.p.val_SI - self.c1.p.val_SI, dp, msg)
 
         # test value of isentropic efficiency
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(
             self.c1.v.val_SI / self.c1.v.design), 3)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                 ', is ' + str(instance.eta_s.val) + '.')
@@ -271,7 +272,7 @@ class turbomachinery_tests:
         instance.eta_s_char.param = 'v'
         self.nw.solve('offdesign', design_path='tmp')
         expr = self.c1.v.val_SI / self.c1.v.design
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency (' +
                str(round(instance.eta_s.val, 3)) +
                 ') must be (' + str(eta_s) + ').')
@@ -282,7 +283,7 @@ class turbomachinery_tests:
         self.nw.solve('offdesign', design_path='tmp')
         expr = (self.c2.p.val_SI * self.c1.p.design /
                 (self.c2.p.design * self.c1.p.val_SI))
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency (' +
                str(round(instance.eta_s.val, 3)) +
                 ') must be (' + str(eta_s) + ').')
@@ -292,7 +293,7 @@ class turbomachinery_tests:
         instance.eta_s_char.param = 'dh_s'
         self.nw.solve('offdesign', design_path='tmp')
         expr = (instance.h_os('') - self.c1.h.val_SI) / instance.dh_s_ref
-        eta_s = round(eta_s_d * instance.eta_s_char.func.f_x(expr), 3)
+        eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency (' +
                str(round(instance.eta_s.val, 3)) +
                 ') must be (' + str(eta_s) + ').')

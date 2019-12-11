@@ -177,17 +177,11 @@ class component:
                     # value specification for characteristic lines
                     if isinstance(kwargs[key], char_line):
                         self.get_attr(key).func = kwargs[key]
-                        self.get_attr(key).x = self.get_attr(key).func.x
-                        self.get_attr(key).y = self.get_attr(key).func.y
 
                     # value specification for characteristic maps
                     elif (isinstance(kwargs[key], char_map) or
                           isinstance(kwargs[key], compressor_map)):
                         self.get_attr(key).func = kwargs[key]
-                        self.get_attr(key).x = self.get_attr(key).func.x
-                        self.get_attr(key).y = self.get_attr(key).func.y
-                        self.get_attr(key).z1 = self.get_attr(key).func.z1
-                        self.get_attr(key).z2 = self.get_attr(key).func.z2
 
                     # invalid datatype for keyword
                     else:

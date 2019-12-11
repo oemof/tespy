@@ -21,6 +21,7 @@ properties jump to the :ref:`bottom of this page <tespy_fluid_properties_label>`
 .. code-block:: python
 
     from tespy.networks import network
+    
     # create a network object with water as fluid
     fluid_list = ['air']
     my_plant = network(fluids=fluid_list)
@@ -68,19 +69,19 @@ a control valve and a heat exchanger. The definition of the parameters available
 
     # consumer
     cons = heat_exchanger_simple('consumer')
-    cons.set_attr(Q=-10000, pr=1)  # Q in W
+    cons.set_attr(Q=-10000, pr=1)	# Q in W
     val = valve('valve')
-    val.set_attr(pr=1)  # pr - pressure ratio (output/input pressure)
+    val.set_attr(pr=1) 		 		# pr - pressure ratio (output/input pressure)
 
     # pipes
     pipe_feed = pipe('pipe_feed')
     pipe_back = pipe('pipe_back')
 
-    pipe_feed.set_attr(ks=0.0005,  # pipe's roughness in meters
-                       L=100,  # length in m
-                       D=0.06,  # diameter in m
-                       kA=10,  # area independent heat transfer coefficient kA in W/K
-                       Tamb=10)  # ambient temperature of the pipe environment (ground temperature)
+    pipe_feed.set_attr(ks=0.0005,	# pipe's roughness in meters
+                       L=100,		# length in m
+                       D=0.06,		# diameter in m
+                       kA=10,		# area independent heat transfer coefficient kA in W/K
+                       Tamb=10)		# ambient temperature of the pipe environment (ground temperature)
     pipe_back.set_attr(ks=0.0005,
                        L=100,
                        D=0.06,

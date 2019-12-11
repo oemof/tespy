@@ -71,8 +71,8 @@ disable convergence progress printouts:
 
 .. code-block:: python
 
-    myplant.set_attr(iterinfo=False) # disable iteration information printout
-    myplant.set_attr(iterinfo=True) # enable iteration information printout
+    myplant.set_attr(iterinfo=False)	# disable iteration information printout
+    myplant.set_attr(iterinfo=True)		# enable iteration information printout
 
 Adding connections
 ++++++++++++++++++
@@ -525,16 +525,16 @@ For the components this is the way to go
 
 .. code:: python
 
-    eff = mycomp.eta_s.val # isentropic efficiency of mycomp
+    eff = mycomp.eta_s.val	# isentropic efficiency of mycomp
     P = mycomp.P.val
 
 Use this code for connection parameters:
 
 .. code:: python
 
-    mass_flow = myconn.m.val # value in specified network unit
-    mass_flow_SI = myconn.m.val_SI # value in SI unit
-    mass_fraction_oxy = myconn.fluid.val['O2'] # mass fraction of oxygen
+    mass_flow = myconn.m.val 					# value in specified network unit
+    mass_flow_SI = myconn.m.val_SI				# value in SI unit
+    mass_fraction_oxy = myconn.fluid.val['O2']	# mass fraction of oxygen
 
 TESPy network reader
 ====================

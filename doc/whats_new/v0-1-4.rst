@@ -1,5 +1,5 @@
-v0.2.0 (to be dated)
-++++++++++++++++++++
+v0.1.4 (December, 12, 2019)
++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -20,7 +20,7 @@ Bug fixes
 
 Other changes
 #############
-- Version 0.2.0 will not be compatible with older versions, we will list necessary changes below!
+- This is the last release before version 0.2.0.
 
 Contributors
 ############

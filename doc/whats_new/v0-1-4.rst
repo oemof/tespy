@@ -1,0 +1,28 @@
+v0.1.4 (December, 12, 2019)
++++++++++++++++++++++++++++
+
+New Features
+############
+- Implemented difference pressure vs mass flow characteristic line for valve (`c4eec6d <https://github.com/oemof/tespy/commit/c4eec6d17ce7c8ce260a44757d37aa26214ae2b0>`_).
+
+Documentation
+#############
+- Fix typos in docstrings in components module (`PR #102 <https://github.com/oemof/tespy/pull/102>`_).
+
+Parameter renaming
+##################
+
+Testing
+#######
+
+Bug fixes
+#########
+
+Other changes
+#############
+- This is the last release before version 0.2.0.
+
+Contributors
+############
+
+- Francesco Witte

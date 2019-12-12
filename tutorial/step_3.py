@@ -28,7 +28,7 @@ cons = cmp.heat_exchanger_simple('consumer')
 
 # evaporator system
 
-ves = cmp.vessel('vessel')
+va = cmp.valve('valve')
 dr = cmp.drum('drum')
 ev = cmp.heat_exchanger('evaporator')
 su = cmp.heat_exchanger('superheater')
@@ -55,19 +55,19 @@ nw.add_conns(c_in_cd, cb_rp, rp_cd, cd_cons, cons_cf)
 
 # connection condenser - evaporator system
 
-cd_ves = con.connection(cd, 'out1', ves, 'in1')
+cd_va = con.connection(cd, 'out1', va, 'in1')
 
-nw.add_conns(cd_ves)
+nw.add_conns(cd_va)
 
 # evaporator system
 
-ves_dr = con.connection(ves, 'out1', dr, 'in1')
+va_dr = con.connection(va, 'out1', dr, 'in1')
 dr_pu = con.connection(dr, 'out1', pu, 'in1')
 pu_ev = con.connection(pu, 'out1', ev, 'in2')
 ev_dr = con.connection(ev, 'out2', dr, 'in2')
 dr_su = con.connection(dr, 'out2', su, 'in2')
 
-nw.add_conns(ves_dr, dr_pu, pu_ev, ev_dr, dr_su)
+nw.add_conns(va_dr, dr_pu, pu_ev, ev_dr, dr_su)
 
 amb_in_su = con.connection(amb_in, 'out1', su, 'in1')
 su_ev = con.connection(su, 'out1', ev, 'in1')
@@ -126,7 +126,7 @@ cons_cf.set_attr(h=con.ref(cb_rp, 1, 0), p=con.ref(cb_rp, 1, 0))
 
 # evaporator system cold side
 
-pu_ev.set_attr(m=con.ref(ves_dr, 4, 0), p0=5)
+pu_ev.set_attr(m=con.ref(va_dr, 4, 0), p0=5)
 su_cp1.set_attr(p0=5, h0=1700)
 
 # evaporator system hot side

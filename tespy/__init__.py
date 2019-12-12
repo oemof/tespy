@@ -1,11 +1,23 @@
-"""
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+# -*- coding: utf-8
 
-"""
-__version__ = '0.1.4'
+__version__ = '0.2.0 dev'
 
-from tespy.components import characteristics as cmp_char, components as cmp, subsystems as subsys
-from tespy import connections as con
-from tespy.tools import helpers as hlp, logger as logger
-from tespy import networks as nwk
-from tespy import network_reader as nwkr
+# tespy networks imports
+from tespy.networks import networks, network_reader
+
+# tespy components imports
+from tespy.components import (
+        basics, combustion, components, heat_exchangers, nodes, piping,
+        reactors, subsystems, turbomachinery
+        )
+
+# tespy connection imports
+from tespy import connections
+
+# tespy tools imports
+from tespy.tools import (
+        data_containers, fluid_properties, global_vars, helpers, logger
+        )
+
+# tespy data
+from tespy import data

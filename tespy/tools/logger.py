@@ -1,9 +1,12 @@
 # -*- coding: utf-8
 
-"""
-.. module:: logger
+"""Module for logging specification.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/tools/logger.py
+
+SPDX-License-Identifier: MIT
 """
 
 
@@ -86,9 +89,8 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
     >>> mypath[-9:]
     'tespy.log'
-    >>> logging.debug("Hi")
+    >>> logging.debug('Hi')
     """
-
     if logpath is None:
         logpath = extend_basic_path('log_files')
 

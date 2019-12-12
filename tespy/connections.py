@@ -1,10 +1,19 @@
 # -*- coding: utf-8
 
-"""
-.. module:: connections
-    :synopsis:
+"""Module for connections between components.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+Components in this module:
+
+    - :func:`tespy.connections.connection` (mass flow)
+    - :func:`tespy.connections.bus` (energy flow)
+    - :func:`tespy.connections.ref` (referenced fluid states container)
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/connections.py
+
+SPDX-License-Identifier: MIT
 """
 
 import numpy as np
@@ -12,13 +21,17 @@ import pandas as pd
 
 import logging
 
-from tespy.tools.helpers import (TESPyConnectionError, data_container, dc_prop, dc_flu, dc_cp, dc_simple)
-from tespy.components import components as cmp
-from tespy.components import characteristics as cmp_char
+from tespy.tools.characteristics import char_line
+from tespy.tools.data_containers import dc_cp, dc_flu, dc_prop, dc_simple
+from tespy.tools.helpers import TESPyConnectionError
+
+from tespy.components.components import component
 
 
 class connection:
     r"""
+    Class connection is the container for fluid properties between components.
+
     Parameters
     ----------
     m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
@@ -71,6 +84,15 @@ class connection:
     offdesign : list
         List containing offdesign parameters (stated as string).
 
+    design_path : str
+        Path to individual design case for this connection.
+
+    local_offdesign : boolean
+        Treat this connection in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this connection in design mode in an offdesign calculation.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -88,22 +110,56 @@ class connection:
 
     Example
     -------
-    >>> from tespy import con, cmp, hlp
+    This example shows how to create connections and specify parameters. First
+    create the required components and connect them in the next step. After
+    that, it is possible specify parameters with the :code:`set_attr` method.
+
+    >>> from tespy.components import sink, source
+    >>> from tespy.connections import connection, ref
+    >>> from tespy.tools.data_containers import dc_flu, dc_prop
     >>> import numpy as np
-    >>> so1 = cmp.source('source1')
-    >>> so2 = cmp.source('source2')
-    >>> si1 = cmp.sink('sink1')
-    >>> si2 = cmp.sink('sink2')
-    >>> so_si1 = con.connection(so1, 'out1', si1, 'in1')
-    >>> so_si2 = con.connection(so2, 'out1', si2, 'in1')
+    >>> so1 = source('source1')
+    >>> so2 = source('source2')
+    >>> si1 = sink('sink1')
+    >>> si2 = sink('sink2')
+    >>> so_si1 = connection(so1, 'out1', si1, 'in1')
+    >>> so_si2 = connection(so2, 'out1', si2, 'in1')
+
+    There are different ways of setting parameters on connections: Specify
+        - a numeric value  (for attributes mass flow, pressure and enthalpy)
+        - a numeric starting value (for attributes mass flow, pressure and
+          enthalpy)
+        - a dictionary (for attributes fluid and fluid0)
+        - a boolean value (for attributes fluid_balance, local_design,
+          local_offdesign).
+        - a referenced value (mass flow, pressure, temperature, enthalpy).
+        - a data_container (for attributes fluid and fluid0 dc_flu, for other
+          fluid propertie attributes dc_prop).
+        - numpy.nan (unsetting a value).
+        - a string (for attributes design_paht and state).
+        - a list (for attributes design and offdesign).
+
     >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
-    >>> p = hlp.dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
-    >>> so_si2.set_attr(m=con.ref(so_si1, 2, -5), p=p, h0=700, T=200,
+
+    Individual specification of pressure with a data container. Setting the
+    unit individually will overwrite the network's unit specification for this
+    connection.
+
+    >>> p = dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
+    >>> so_si2.set_attr(m=ref(so_si1, 2, -5), p=p, h0=700, T=200,
     ... fluid={'N2': 1}, fluid_balance=True)
-    >>> type(so_si1.p)
-    <class 'tespy.tools.helpers.dc_prop'>
+
+    The set_attr method automatically converts your input in data_container
+    information.
+
+    >>> type(so_si1.v)
+    <class 'tespy.tools.data_containers.dc_prop'>
     >>> type(so_si1.fluid)
-    <class 'tespy.tools.helpers.dc_flu'>
+    <class 'tespy.tools.data_containers.dc_flu'>
+
+    If you want get a spcific value use the logic: connection.property.*.
+    Aditionally, it is possible to use the :code:`get_attr` method.
+
     >>> so_si1.m.val0
     10
     >>> so_si1.m.get_attr('val_set')
@@ -114,28 +170,38 @@ class connection:
     True
     >>> so_si2.m.ref.get_attr('d')
     -5
+    >>> so_si2.m.ref_set
+    True
     >>> type(so_si2.m.ref.get_attr('obj'))
     <class 'tespy.connections.connection'>
+
+    Unset the specified temperature and specify temperature difference to
+    boiling point instead.
+
+    >>> so_si2.T.val_set
+    True
     >>> so_si2.set_attr(Td_bp=5, T=np.nan)
-    >>> type(so_si2.Td_bp)
-    <class 'tespy.tools.helpers.dc_prop'>
+    >>> so_si2.T.val_set
+    False
     >>> so_si2.Td_bp.val
     5
+
+    Specify the state keyword: The fluid will be forced to liquid or gaseous
+    state in this case.
+
     >>> so_si2.set_attr(state='l')
     >>> so_si2.state.val_set
     True
     >>> so_si2.set_attr(state=np.nan)
     >>> so_si2.state.val_set
     False
-    >>> # this will not work and prompt a warning message in logging
-    >>> so_si2.set_attr(Td_bp=con.ref(so_si1, 1, 0))
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
 
         # check input parameters
-        if not (isinstance(comp1, cmp.component) and
-                isinstance(comp2, cmp.component)):
+        if not (isinstance(comp1, component) and
+                isinstance(comp2, component)):
             msg = ('Error creating connection. Check if comp1, comp2 are of '
                    'type component.')
             logging.error(msg)
@@ -191,8 +257,7 @@ class connection:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword
-        arguments.
+        Set, reset or unset attributes of a connection.
 
         Parameters
         ----------
@@ -223,7 +288,7 @@ class connection:
         fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+        x : float/tespy.tools.helpers.dc_prop
             Gas phase mass fraction specification.
 
         T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
@@ -241,10 +306,19 @@ class connection:
             ('g').
 
         design : list
-            List containing design parameters (stated as String).
+            List containing design parameters (stated as string).
 
         offdesign : list
-            List containing offdesign parameters (stated as String).
+            List containing offdesign parameters (stated as string).
+
+        design_path : str
+            Path to individual design case for this connection.
+
+        local_offdesign : boolean
+            Treat this connection in offdesign mode in a design calculation.
+
+        local_design : boolean
+            Treat this connection in design mode in an offdesign calculation.
 
         Note
         ----
@@ -437,7 +511,7 @@ class connection:
 
     def attr(self):
         r"""
-        Returns the list of available attributes of a connection.
+        Return available attributes of a connection.
 
         Returns
         -------
@@ -450,7 +524,7 @@ class connection:
 
     def to_flow(self):
         r"""
-        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection.
+        Return the SI-values for the network variables.
 
         Returns
         -------
@@ -461,7 +535,7 @@ class connection:
 
     def to_flow_design(self):
         r"""
-        Returns a list with the SI-values for the network variables (m, p, h, fluid vector) of a connection at design point.
+        Return the SI-values for the network variables at design point.
 
         Returns
         -------
@@ -473,8 +547,7 @@ class connection:
 
 class bus:
     r"""
-    A bus is used to connect different energy flows (power, heat flow,
-    thermal input).
+    A bus is used to connect different energy flows.
 
     Parameters
     ----------
@@ -486,91 +559,122 @@ class bus:
 
     Example
     -------
-    >>> from tespy import cmp, con, nwk, cmp_char
-    >>> import shutil
-    >>> import numpy as np
-    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = nwk.network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[10, 1200])
-    >>> nw.set_printoptions(print_level='none')
+    Busses are used to connect energy flow of different components. They can
+    also be used to introduce efficiencies of energy conversion, e. g. in
+    motors, generator or boilers. This example takes the combustion engine
+    example at :func:`tespy.components.combustion.combustion_engine` and adds
+    a flue gas cooler and a circulation pump for the cooling water. Then
+    busses for heat output, thermal input and electricity output are
+    implementd.
 
-    >>> amb = cmp.source('ambient')
-    >>> sf = cmp.source('fuel')
-    >>> fg = cmp.sink('flue gas outlet')
-    >>> cw_in1 = cmp.source('cooling water inlet1')
-    >>> cw_in2 = cmp.source('cooling water inlet2')
-    >>> cw_out1 = cmp.sink('cooling water outlet1')
-    >>> cw_out2 = cmp.sink('cooling water outlet2')
-    >>> split = cmp.splitter('splitter')
-    >>> merge = cmp.merge('merge')
-    >>> chp = cmp.cogeneration_unit(label='cogeneration unit')
-    >>> amb_comb = con.connection(amb, 'out1', chp, 'in3')
-    >>> sf_comb = con.connection(sf, 'out1', chp, 'in4')
-    >>> comb_fg = con.connection(chp, 'out3', fg, 'in1')
-    >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
-    >>> cw1_chp1 = con.connection(cw_in1, 'out1', chp, 'in1')
-    >>> cw2_chp2 = con.connection(cw_in2, 'out1', chp, 'in2')
-    >>> nw.add_conns(cw1_chp1, cw2_chp2)
-    >>> chp1_cw = con.connection(chp, 'out1', cw_out1, 'in1')
-    >>> chp2_cw = con.connection(chp, 'out2', cw_out2, 'in1')
-    >>> nw.add_conns(chp1_cw, chp2_cw)
-    >>> chp.set_attr(fuel='CH4', pr1=0.99, pr2=0.99, P=1e6, lamb=1.2)
+    >>> from tespy.components import (sink, source, combustion_engine,
+    ... heat_exchanger, merge, splitter, pump)
+    >>> from tespy.connections import connection, ref, bus
+    >>> from tespy.networks import network
+    >>> import numpy as np
+    >>> import shutil
+    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
+    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    ... p_range=[0.5, 10], T_range=[150, 1200], iterinfo=False)
+    >>> amb = source('ambient')
+    >>> sf = source('fuel')
+    >>> fg = sink('flue gas outlet')
+    >>> cw_in = source('cooling water inlet')
+    >>> sp = splitter('cooling water splitter', num_out=2)
+    >>> me = merge('cooling water merge', num_in=2)
+    >>> cw_out = sink('cooling water outlet')
+    >>> fgc = heat_exchanger('flue gas cooler')
+    >>> pu = pump('cooling water pump')
+    >>> chp = combustion_engine(label='internal combustion engine')
+    >>> amb_comb = connection(amb, 'out1', chp, 'in3')
+    >>> sf_comb = connection(sf, 'out1', chp, 'in4')
+    >>> comb_fgc = connection(chp, 'out3', fgc, 'in1')
+    >>> fgc_fg = connection(fgc, 'out1', fg, 'in1')
+    >>> nw.add_conns(sf_comb, amb_comb, comb_fgc, fgc_fg)
+    >>> cw_pu = connection(cw_in, 'out1', pu, 'in1')
+    >>> pu_sp = connection(pu, 'out1', sp, 'in1')
+    >>> sp_chp1 = connection(sp, 'out1', chp, 'in1')
+    >>> sp_chp2 = connection(sp, 'out2', chp, 'in2')
+    >>> chp1_me = connection(chp, 'out1', me, 'in1')
+    >>> chp2_me = connection(chp, 'out2', me, 'in2')
+    >>> me_fgc = connection(me, 'out1', fgc, 'in2')
+    >>> fgc_cw = connection(fgc, 'out2', cw_out, 'in1')
+    >>> nw.add_conns(cw_pu, pu_sp, sp_chp1, sp_chp2, chp1_me, chp2_me, me_fgc,
+    ... fgc_cw)
+    >>> chp.set_attr(pr1=0.99, lamb=1.0,
+    ... design=['pr1'], offdesign=['zeta1'])
+    >>> fgc.set_attr(pr1=0.999, pr2=0.98, design=['pr1', 'pr2'],
+    ... offdesign=['zeta1', 'zeta2', 'kA'])
+    >>> pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw1_chp1.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    >>> cw_pu.set_attr(p=3, T=60, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 1, 'CH4': 0})
-    >>> cw2_chp2.set_attr(p=3, T=80, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
-    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    >>> sp_chp2.set_attr(m=ref(sp_chp1, 1, 0))
 
-    >>> si = cmp.sink('sink')
-    >>> so = cmp.source('source')
-    >>> t = cmp.turbine('turbine')
-    >>> c = cmp.heat_exchanger_simple('condenser')
-    >>> inc = con.connection(so, 'out1', t, 'in1')
-    >>> ws = con.connection(t, 'out1', c, 'in1')
-    >>> outg = con.connection(c, 'out1', si, 'in1')
-    >>> nw.add_conns(inc, ws, outg)
-    >>> c.set_attr(pr=1)
-    >>> t.set_attr(eta_s=0.8, design=['eta_s'],
-    ... offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'CO2': 0, 'Ar': 0, 'N2': 0, 'O2': 0, 'H2O': 1,
-    ... 'CH4': 0}, T=600, p=50, design=['p'])
-    >>> outg.set_attr(p=0.5, x=0)
+    Cooling water mass flow is calculated given the feed water temperature
+    (90 °C). The pressure at the cooling water outlet should be identical to
+    pressure before pump. The flue gases of the combustion engine leave the
+    flue gas cooler at 120 °C.
 
-    >>> power_bus = con.bus('power')
-    >>> heat_bus = con.bus('heat')
-    >>> power_bus.set_attr(P=-2e6)
+    >>> fgc_cw.set_attr(p=ref(cw_pu, 1, 0), T=90)
+    >>> fgc_fg.set_attr(T=120, design=['T'])
+
+    Now add the busses, pump and combustion engine generator will get a
+    characteristic function for conversion efficiency. In case of the
+    combustion engine we have to individually choose the bus parameter as there
+    are several available (P, TI, Q1, Q2, Q). For heat exchangers or
+    turbomachinery the bus parameter is unique. The characteristic function for
+    the flue gas cooler is set to -1, as the heat transferred is always
+    negative in class heat_exchanger by definition. Instead of specifying the
+    combustion engine power output we will define the total electrical power
+    output at the bus.
+
     >>> load = np.array([0.2, 0.4, 0.6, 0.8, 1, 1.2])
-    >>> efficiency = np.array([0.8, 0.9, 0.93, 0.95, 0.955, 0.94])
-    >>> t_gen = cmp_char.characteristics(x=load, y=efficiency)
-    >>> cog_gen = cmp_char.characteristics(x=load, y=-efficiency)
-    >>> power_bus.add_comps({'c': t, 'char': t_gen},
-    ... {'c': chp, 'char': cog_gen, 'p': 'P'})
-    >>> heat_bus.add_comps({'c': c, 'char': -1}, {'c': chp, 'p': 'Q'})
-    >>> nw.add_busses(power_bus, heat_bus)
-    >>> type(heat_bus)
-    <class 'tespy.connections.bus'>
-    >>> type(t_gen)
-    <class 'tespy.components.characteristics.characteristics'>
-    >>> all(power_bus.comps.loc[chp]['char'].x == load)
-    True
-    >>> all(power_bus.comps.loc[chp]['char'].y == -efficiency)
-    True
-    >>> heat_bus.comps.loc[c]['char'].y
-    array([-1, -1, -1, -1])
-
-    >>> nw.solve('design')
+    >>> gen_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
+    >>> mot_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) / 0.98
+    >>> gen = char_line(x=load, y=gen_efficiency)
+    >>> mot = char_line(x=load, y=mot_efficiency)
+    >>> power_bus = bus('total power output', P=10e6)
+    >>> heat_bus = bus('total heat input')
+    >>> fuel_bus = bus('thermal input')
+    >>> power_bus.add_comps({'c': chp, 'char': gen, 'p': 'P'},
+    ... {'c': pu, 'char': mot})
+    >>> heat_bus.add_comps({'c': chp, 'p': 'Q'},
+    ... {'c': fgc, 'char': -1})
+    >>> fuel_bus.add_comps({'c': chp, 'p': 'TI'},
+    ... {'c': pu, 'char': mot})
+    >>> nw.add_busses(power_bus, heat_bus, fuel_bus)
+    >>> mode = 'design'
+    >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
-    >>> chp.set_attr(P=np.nan)
-    >>> t.set_attr(P=-2e6)
-    >>> power_bus.set_attr(P=-2.5e6)
-    >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(chp.P.val, 0)
-    662235.0
+
+    The heat bus characteristic for the flue gas cooler has automatically been
+    transformed into an array. The total heat output can be seen in the
+    enthalpy rise of the cooling water in the combustion engine and the flue
+    gas cooler.
+
+    >>> heat_bus.comps.loc[fgc]['char'].x
+    array([0, 1, 2, 3])
+    >>> heat_bus.comps.loc[fgc]['char'].y
+    array([-1, -1, -1, -1])
+    >>> round(chp.ti.val)
+    22957225.0
+    >>> round(chp.Q1.val + chp.Q2.val, 0)
+    3558138.0
+    >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
+    8975912.0
     >>> round(heat_bus.P.val, 0)
-    5366642.0
+    8975912.0
+    >>> power_bus.set_attr(P=7.5e6)
+    >>> mode = 'offdesign'
+    >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
+    >>> round(chp.ti.val)
+    18049591.0
+    >>> round(chp.P.val / chp.P.design, 3)
+    0.761
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -579,9 +683,9 @@ class bus:
         self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
 
         self.label = label
-        self.P = dc_cp(val=np.nan, val_set=False)
-        self.char = cmp_char.characteristics(x=np.array([0, 1, 2, 3]),
-                                             y=np.array([1, 1, 1, 1]))
+        self.P = dc_cp(val=np.nan, is_set=False)
+        self.char = char_line(x=np.array([0, 1, 2, 3]),
+                                    y=np.array([1, 1, 1, 1]))
 
         self.set_attr(P=P)
 
@@ -607,9 +711,9 @@ class bus:
         self.P.val = P
 
         if np.isnan(self.P.val):
-            self.P.val_set = False
+            self.P.is_set = False
         else:
-            self.P.val_set = True
+            self.P.is_set = True
 
     def get_attr(self, key):
         r"""
@@ -646,40 +750,43 @@ class bus:
         ----
         Keys for the dictionary c:
 
-        - c (tespy.components.components.component): Component you want to add to the bus.
+        - c (tespy.components.components.component): Component you want to add
+          to the bus.
         - p (str): Bus parameter, optional.
 
-            - You do not need to provide a parameter, if the component only has one
-              option for the bus (turbomachines, heat exchangers, combustion
-              chamber).
-            - For instance, you do neet do provide a parameter, if you want to add
-              a cogeneration unit ('Q', 'Q1', 'Q2', 'TI', 'P', 'Qloss').
+            - You do not need to provide a parameter, if the component only has
+              one option for the bus (turbomachines, heat exchangers,
+              combustion chamber).
+            - For instance, you do neet do provide a parameter, if you want to
+              add a combustion engine ('Q', 'Q1', 'Q2', 'TI', 'P', 'Qloss').
 
         - char (float/tespy.components.characteristics.characteristics):
-          Characteristic function for this components share to the bus value, optional.
+          Characteristic function for this components share to the bus value,
+          optional.
 
-            - If you do not provide a characteristic line at all, TESPy assumes a
-              constant factor of 1.
+            - If you do not provide a characteristic line at all, TESPy assumes
+              a constant factor of 1.
             - If you provide a numeric value instead of a characteristic line,
               TESPy takes this numeric value as a constant factor.
             - Provide a TESPy.characteristic (cmp_char), if you want the factor
               to follow a characteristic line.
 
-        - P_ref (float): Energy flow specification for reference case, :math:`P \text{/W}`, optional.
+        - P_ref (float): Energy flow specification for reference case,
+          :math:`P \text{/W}`, optional.
         """
         for c in args:
             if isinstance(c, dict):
                 if 'c' in c.keys():
-                    if isinstance(c['c'], cmp.component):
+                    if isinstance(c['c'], component):
                         self.comps.loc[c['c']] = [None, np.nan, self.char]
                     else:
                         msg = ('Keyword c must hold a TESPy component.')
                         logging.error(msg)
                         raise TypeError(msg)
                 else:
-                        msg = ('You must provide the component c.')
-                        logging.error(msg)
-                        raise TypeError(msg)
+                    msg = ('You must provide the component c.')
+                    logging.error(msg)
+                    raise TypeError(msg)
 
                 for k, v in c.items():
                     if k == 'p':
@@ -691,7 +798,7 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'char':
-                        if isinstance(v, cmp_char.characteristics):
+                        if isinstance(v, char_line):
                             self.comps.loc[c['c']]['char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
@@ -699,9 +806,11 @@ class bus:
                               isinstance(v, int)):
                             x = np.array([0, 1, 2, 3])
                             y = np.array([1, 1, 1, 1]) * v
-                            self.comps.loc[c['c']]['char'] = (cmp_char.characteristics(x=x, y=y))
+                            self.comps.loc[c['c']]['char'] = (
+                                    char_line(x=x, y=y))
                         else:
-                            msg = ('Char must be a number or a TESPy characteristics.')
+                            msg = ('Char must be a number or a TESPy '
+                                   'characteristics.')
                             logging.error(msg)
                             raise TypeError(msg)
 
@@ -716,21 +825,22 @@ class bus:
                             logging.error(msg)
                             raise TypeError(msg)
             else:
-                msg = ('Provide arguments as dicts. See the documentation of bus.add_comps() for more information.')
+                msg = ('Provide arguments as dicts. See the documentation of '
+                       'bus.add_comps() for more information.')
                 logging.error(msg)
                 raise TESPyConnectionError(msg)
 
-            msg = 'Added component ' + c['c'].label + ' to bus ' + self.label + '.'
+            msg = ('Added component ' + c['c'].label + ' to bus ' +
+                   self.label + '.')
             logging.debug(msg)
 
 
 class ref:
     r"""
-    Reference class to reference fluid properties from one connection to another connection.
+    Reference fluid properties from one connection to another connection.
 
     Parameters
     ----------
-
     obj : tespy.connections.connection
         Connection to be referenced.
 
@@ -742,15 +852,17 @@ class ref:
 
     Note
     ----
-    Reference the mass flow of one connection :math:`\dot{m}` to another mass flow
-    :math:`\dot{m}_{ref}`
+    Reference the mass flow of one connection :math:`\dot{m}` to another mass
+    flow :math:`\dot{m}_{ref}`
 
     .. math::
 
         \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
 
     """
+
     def __init__(self, ref_obj, factor, delta):
+
         if not isinstance(ref_obj, connection):
             msg = 'First parameter must be object of type connection.'
             logging.error(msg)
@@ -770,8 +882,10 @@ class ref:
         self.f = factor
         self.d = delta
 
-        msg = ('Created reference object with factor ' + str(self.f) + ' and delta ' + str(self.d) + ' referring to connection ' +
-               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' + ref_obj.t.label + ' (' + ref_obj.t_id + ').')
+        msg = ('Created reference object with factor ' + str(self.f) +
+               ' and delta ' + str(self.d) + ' referring to connection ' +
+               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' +
+               ref_obj.t.label + ' (' + ref_obj.t_id + ').')
         logging.debug(msg)
 
     def get_attr(self, key):

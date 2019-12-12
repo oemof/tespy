@@ -10,10 +10,10 @@ matrix:
       python: 3.7
       dist: xenial
       sudo: true
-    - name: "Python 3.7.2 on macOS"
-      os: osx
-      osx_image: xcode10.2
-      language: shell
+#    - name: "Python 3.7.2 on macOS"
+#      os: osx
+#      osx_image: xcode10.2
+#      language: shell
 #    - name: "Python 3.7.3 on Windows"
 #      os: windows
 #      language: shell

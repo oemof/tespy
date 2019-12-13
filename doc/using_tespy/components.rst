@@ -150,7 +150,9 @@ specified range.
     # data container specification with identical result,
     # benefit: specification of bounds will increase stability
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
-	                         min_val=0.1, max_val=0.3))
+                             min_val=0.1, max_val=0.3))
+
+REVIEW THE COMPONENT CHARACTERISTICS PART
       
 Component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -229,44 +231,63 @@ You can specify the name of a default characteristic line or you define the whol
 Custom components
 -----------------
 
-If required, you can add custom components. These components should inherit from :py:class:`tespy.components.components.component class <tespy.components.components.component>` or its children.
-In order to do that, create a python file in your working directory and import the :py:mod:`tespy.components.components module <tespy.components.components>`. The most important methods are
+You can add own components. The class should inherit from
+:py:class:`tespy.components.components.component class <tespy.components.components.component>`
+or its children. In order to do that, create a python file in your working
+directory and import the base class for your custom component, e. g. the
+:py:mod:`tespy.components.components.component <tespy.components.components>`
+class. Now add create a class for your component and at least add the following
+methods.
 
 - :code:`attr(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)`,
 - :code:`equations(self)`,
-- :code:`derivatives(self, nw)` and
-- :code:`calc_parameters(self, nw, mode)`,
-
-where :code:`nw` is a :py:class:`tespy.networks.network object <tespy.networks.network>`.
+- :code:`derivatives(self)` as well as
+- :code:`calc_parameters(self)`.
 
 The starting lines of your file would look like this:
 
 .. code:: python
 
-    from tespy.components import component
+    from tespy.components.components import component
+    from tespy.tools import dc_cc, dc_cp
 
     class my_custom_component(component):
+        """
+        This is a custom component.
+        
+        You can add your documentation here. From this part, it should be clear
+        for the user, which parameters are available, which mandatory equations
+        are applied and which optional equations can be applied using the
+        component parameters.
+        """
 
 
 Attributes
 ^^^^^^^^^^
 
-The attr method returns a dictionary with the attributes you are able to specify when you want to parametrize your component as keys. The values for each key are the type of data_container this parameter should hold.
+The attr method must return a dictionary with the attributes you want to
+specify. The keys represent the attributes and the respective values the type
+of data_container used. Using the data_container attributes it is possible to
+add defaults. Defaults for characteristic lines or characteristic maps are
+loaded automatically by the component initialisation method of class
+:code:`component`.
+
+ADD DEFAULT CHAR DESCRIPTION
 
 .. code:: python
 
-    from tespy.tools import dc_cc, dc_cp
-
     def attr(self):
-        return {'par1': dc_cp(), 'par2': dc_cc()}
+        return {'par1': dc_cp(min_val=0, max_val=1),
+                'par2': dc_cc(param='m')}
 
 
 Inlets and outlets
 ^^^^^^^^^^^^^^^^^^
 
-:code:`inlets(self)` and :code:`outlets(self)` respectively must return a list of strings. The list may look like this:
+:code:`inlets(self)` and :code:`outlets(self)` respectively must return a list
+of strings. The list may look like this:
 
 .. code:: python
 
@@ -276,7 +297,8 @@ Inlets and outlets
     def outlets(self):
         return ['out1', 'out2']
 
-The number of inlets and outlets might even be generic, e. g. if you have added an attribute :code:`'num_in'` in :code:`attr(self)`:
+The number of inlets and outlets might even be generic, e. g. if you have added
+an attribute :code:`'num_in'` in :code:`attr(self)`:
 
 .. code:: python
 

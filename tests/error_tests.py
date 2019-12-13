@@ -12,7 +12,7 @@ from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
-from tespy.tools.characteristics import char_map, characteristics
+from tespy.tools.characteristics import char_map, char_line
 
 import shutil
 import csv
@@ -121,6 +121,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, design_path=7)
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)
+        self.set_attr_TypeError(self.pipe, hydro_group=5)
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)
@@ -155,9 +156,10 @@ class specification_error_tests:
         self.get_attr_KeyError(self.comp, 'wow')
         self.get_attr_KeyError(self.conn, 'key')
         self.get_attr_KeyError(self.bus, 'components')
+        self.get_attr_KeyError(self.nw, 'missing')
         self.get_attr_KeyError(ref(self.conn, 1, 0), 'comp')
         self.get_attr_KeyError(self.sub, 'test')
-        self.get_attr_KeyError(characteristics(), 'test')
+        self.get_attr_KeyError(char_line(), 'test')
         self.get_attr_KeyError(data_container(), 'somekey')
 
 ##############################################################################
@@ -341,25 +343,9 @@ def test_subsys_label_forbidden():
 ##############################################################################
 # characteristics
 
-
-@raises(KeyError)
-def test_char_missing_key():
-    characteristics(a=6)
-
-
-@raises(KeyError)
-def test_char_missing_key():
-    characteristics(a=6)
-
-
 @raises(ValueError)
 def test_char_number_of_points():
-    characteristics(x=[0, 1, 2], y=[1, 2, 3, 4])
-
-
-@raises(KeyError)
-def test_char_map_missing_key():
-    char_map(a=6)
+    char_line(x=[0, 1, 2], y=[1, 2, 3, 4])
 
 
 @raises(ValueError)

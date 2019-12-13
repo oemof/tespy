@@ -2627,8 +2627,9 @@ class network:
                 val = cp.bus_func(b.comps.loc[cp])
                 # save as reference value
                 if self.mode == 'design':
-                    b.comps.loc[cp].P_ref = (cp.bus_func(b.comps.loc[cp]) /
-                                             abs(b.comps.loc[cp].char.f_x(1)))
+                    b.comps.loc[cp].P_ref = (
+                        cp.bus_func(b.comps.loc[cp]) /
+                        abs(b.comps.loc[cp].char.evaluate(1)))
                 b.P.val += val
 
         # connections
@@ -2748,9 +2749,9 @@ class network:
 
         - netw.csv (network information)
         - conn.csv (connection information)
-        - folder comps containing .csv files (bus.csv, char.csv, char_map.csv)
-          as well as .csv files for all types of components within your
-          network.
+        - folder comps containing .csv files (bus.csv, char_line.csv,
+          char_map.csv) as well as .csv files for all types of components
+          within your network.
         """
         if path[-1] != '/' and path[-1] != '\\':
             path += '/'
@@ -2933,8 +2934,6 @@ class network:
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
                     df[col + '_set'] = df.apply(f, axis=1,
                                                 args=(col, 'is_set'))
-                    df[col + '_method'] = df.apply(f, axis=1,
-                                                   args=(col, 'method'))
                     df[col + '_param'] = df.apply(f, axis=1,
                                                   args=(col, 'param'))
 
@@ -2946,8 +2945,6 @@ class network:
                                                   expand=False)
                     df[col + '_set'] = df.apply(f, axis=1,
                                                 args=(col, 'is_set'))
-                    df[col + '_method'] = df.apply(f, axis=1,
-                                                   args=(col, 'method'))
                     df[col + '_param'] = df.apply(f, axis=1,
                                                   args=(col, 'param'))
 
@@ -2995,11 +2992,9 @@ class network:
                                    args=('P', 'is_set'))
             df.drop('id', axis=1, inplace=True)
 
-        else:
-            df = pd.DataFrame({'label': [], 'P': [], 'P_set': []})
-        df.set_index('label', inplace=True)
-        df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-        logging.debug('Bus information saved to ' + fn + '.')
+            df.set_index('label', inplace=True)
+            df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
+            logging.debug('Bus information saved to ' + fn + '.')
 
     def save_characteristics(self, path):
         r"""
@@ -3035,19 +3030,17 @@ class network:
             # get id and data
             df = pd.DataFrame({'id': chars}, index=chars)
             df['id'] = df.apply(network.get_id, axis=1)
+            df['type'] = df.apply(network.get_class_base, axis=1)
 
             cols = ['x', 'y']
             for val in cols:
                 df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
-        else:
-            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
-            df.set_index('id', inplace=True)
-
-        # write to char.csv
-        fn = path + 'char.csv'
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-        logging.debug('Characteristic line information saved to ' + fn + '.')
+            # write to char.csv
+            fn = path + 'char_line.csv'
+            df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+            logging.debug('Characteristic line information saved to ' + fn +
+                          '.')
 
         # characteristic maps in components
         chars = []
@@ -3063,18 +3056,17 @@ class network:
             # get id and data
             df = pd.DataFrame({'id': chars}, index=chars)
             df['id'] = df.apply(network.get_id, axis=1)
+            df['type'] = df.apply(network.get_class_base, axis=1)
 
             cols = ['x', 'y', 'z1', 'z2']
             for val in cols:
                 df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
-        else:
-            df = pd.DataFrame({'id': [], 'x': [], 'y': [], 'z1': [], 'z2': []})
-            df.set_index('id', inplace=True)
-        # write to char_map.csv
-        fn = path + 'char_map.csv'
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-        logging.debug('Characteristic map information saved to ' + fn + '.')
+            # write to char_map.csv
+            fn = path + 'char_map.csv'
+            df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+            logging.debug('Characteristic map information saved to ' + fn +
+                          '.')
 
     def get_id(c):
         """

@@ -834,7 +834,7 @@ class combustion_chamber(component):
             expr = 1
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.f_x(expr)
+        return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""
@@ -2677,7 +2677,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(ti / bus.P_ref)
-            return ti * bus.char.f_x(expr)
+            return ti * bus.char.evaluate(expr)
 
         ######################################################################
         # value for bus parameter of power output (P)
@@ -2687,7 +2687,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(P / bus.P_ref)
-            return P * bus.char.f_x(expr)
+            return P * bus.char.evaluate(expr)
 
         ######################################################################
         # value for bus parameter of total heat production (Q)
@@ -2702,7 +2702,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(val / bus.P_ref)
-            return val * bus.char.f_x(expr)
+            return val * bus.char.evaluate(expr)
 
         ######################################################################
         # value for bus parameter of heat production 1 (Q1)
@@ -2715,7 +2715,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(val / bus.P_ref)
-            return val * bus.char.f_x(expr)
+            return val * bus.char.evaluate(expr)
 
         ######################################################################
         # value for bus parameter of heat production 2 (Q2)
@@ -2728,7 +2728,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(val / bus.P_ref)
-            return val * bus.char.f_x(expr)
+            return val * bus.char.evaluate(expr)
 
         ######################################################################
         # value for bus parameter of heat loss (Qloss)
@@ -2738,7 +2738,7 @@ class combustion_engine(combustion_chamber):
                 expr = 1
             else:
                 expr = abs(Q / bus.P_ref)
-            return Q * bus.char.f_x(expr)
+            return Q * bus.char.evaluate(expr)
 
         ######################################################################
         # missing/invalid bus parameter
@@ -2897,7 +2897,7 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return self.calc_ti() - self.tiP_char.func.f_x(expr) * self.P.val
+        return self.calc_ti() - self.tiP_char.func.evaluate(expr) * self.P.val
 
     def Q1_char_func(self):
         r"""
@@ -2929,8 +2929,8 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Q1_char.func.f_x(expr) -
-                self.tiP_char.func.f_x(expr) * i.m.val_SI *
+        return (self.calc_ti() * self.Q1_char.func.evaluate(expr) -
+                self.tiP_char.func.evaluate(expr) * i.m.val_SI *
                 (o.h.val_SI - i.h.val_SI))
 
     def Q2_char_func(self):
@@ -2963,8 +2963,8 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Q2_char.func.f_x(expr) -
-                self.tiP_char.func.f_x(expr) * i.m.val_SI *
+        return (self.calc_ti() * self.Q2_char.func.evaluate(expr) -
+                self.tiP_char.func.evaluate(expr) * i.m.val_SI *
                 (o.h.val_SI - i.h.val_SI))
 
     def Qloss_char_func(self):
@@ -2994,8 +2994,8 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) -
-                self.tiP_char.func.f_x(expr) * self.Qloss.val)
+        return (self.calc_ti() * self.Qloss_char.func.evaluate(expr) -
+                self.tiP_char.func.evaluate(expr) * self.Qloss.val)
 
     def calc_ti(self):
         r"""
@@ -3047,7 +3047,7 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return self.calc_ti() / self.tiP_char.func.f_x(expr)
+        return self.calc_ti() / self.tiP_char.func.evaluate(expr)
 
     def calc_Qloss(self):
         r"""
@@ -3069,8 +3069,8 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Qloss_char.func.f_x(expr) /
-                self.tiP_char.func.f_x(expr))
+        return (self.calc_ti() * self.Qloss_char.func.evaluate(expr) /
+                self.tiP_char.func.evaluate(expr))
 
     def initialise_fluids(self, nw):
         r"""

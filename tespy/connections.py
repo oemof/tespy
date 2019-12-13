@@ -804,8 +804,8 @@ class bus:
                               isinstance(v, np.float64) or
                               isinstance(v, np.int64) or
                               isinstance(v, int)):
-                            x = np.array([0, 1, 2, 3])
-                            y = np.array([1, 1, 1, 1]) * v
+                            x = np.array([0, 3])
+                            y = np.array([1, 1]) * v
                             self.comps.loc[c['c']]['char'] = (
                                     char_line(x=x, y=y))
                         else:

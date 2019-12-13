@@ -38,6 +38,7 @@ Testing
 - Add doc-test for fluid_structure function of tespy.tools.helpers (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Reworked a lot of examples in the components API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Update software tests (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
+- Add value limit test for newton-algorithm (`PR #129 <https://github.com/oemof/tespy/pull/129>`_).
 
 Bug fixes
 #########

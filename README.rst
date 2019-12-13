@@ -11,14 +11,14 @@
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a powerful simulation toolkit for thermal engineering plants such as power plants, district heating systems or heat pumps. It is an external extension module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and can be used as a standalone package.
 
-With the TESPy package you are able to calculate stationary operation in order to design the process of your plant. From that point it is possible to calculate the offdesign behaviour of your plant using underlying characteristics for each of the plants components. For now, the package inlcudes basic components, such as turbines, pumps, compressors, heat exchangers, pipes, mixers and splitters as well as some advanced components (derivatives of heat exchangers, drum).
+With the TESPy package you are able to calculate stationary operation in order to design the process of thermal energy systems. From that point it is possible to simulate the offdesign behaviour of your plant using underlying characteristics for each of the plants components. The package inlcudes basic components, such as turbines, pumps, compressors, heat exchangers, pipes, mixers and splitters as well as some advanced components (derivatives of heat exchangers, drum).
 
 Everybody is welcome to use and/or develop TESPy. Contribution is already possible on a low level by simply fixing typos in TESPy's documentation or rephrasing sections which are unclear. If you want to support us that way please fork the TESPy repository to your own github account and make changes as described in the github guidelines: https://guides.github.com/activities/hello-world/
 
 Documentation
 =============
 
-You can find the full documentation at `readthedocs <http://tespy.readthedocs.org>`_. Use the `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to choose the version of the documentation. Go to the `download page <http://readthedocs.org/projects/tespy/downloads/>`_ to download different versions and formats (pdf, html, epub) of the documentation. Currently, only the dev branch is available.
+You can find the full documentation at `readthedocs <http://tespy.readthedocs.org>`_. Use the `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to choose the version of the documentation. Go to the `download page <http://readthedocs.org/projects/tespy/downloads/>`_ to download different versions and formats (pdf, html, epub) of the documentation.
 
 To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 

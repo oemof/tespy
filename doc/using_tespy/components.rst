@@ -108,10 +108,10 @@ There are three components using parameter groups:
 
 - heat_exchanger_simple and pipe
     * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
-    * :code:`kA_group`(:code:`kA`, :code:`Tamb`)
+    * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
 - solar_collector
     * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
-    * :code:`energy_group`(:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
+    * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
       :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
 
 Custom variables

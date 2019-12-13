@@ -1,90 +1,162 @@
 TESPy components
 ================
 
-In this section we will introduce you into the details of component parametrisation and component characteristics. At the end of the section we show you, how to create custom components.
+In this section we will introduce you into the details of component
+parametrisation and component characteristics. At the end of the section we
+show you, how to create custom components.
 
 List of components
 ------------------
 
-More information on the components can be gathered from the code documentation. We have linked the base class containing a figure and basic informations as well as the equations.
+More information on the components can be gathered from the code documentation.
+We have linked the base class containing a figure and basic informations as
+well as the equations.
 
 - Basics
-	* :py:class:`Cycle closer<tespy.components.basics.cycle_closer>` (:py:meth:`equations <tespy.components.basics.cycle_closer.equations>`)
-	* :py:class:`Sink <tespy.components.basics.sink>` (no equations)
-	* :py:class:`Source <tespy.components.basics.source>` (no equations)
-	* :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>` (:py:meth:`equations <tespy.components.basics.subsystem_interface.equations>`)
+    * :py:class:`Cycle closer<tespy.components.basics.cycle_closer>`
+    * :py:class:`Sink <tespy.components.basics.sink>`
+    * :py:class:`Source <tespy.components.basics.source>`
+    * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>`
 - Combustion
-	* :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber>` (:py:meth:`equations <tespy.components.combustion.combustion_chamber.equations>`)
-	* :py:class:`Combustion chamber stoichiometric <tespy.components.combustion.combustion_chamber_stoich>` (:py:meth:`equations <tespy.components.combustion.combustion_chamber.equations>`)
-	* :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>` (:py:meth:`equations <tespy.components.combustion.combustion_engine.equations>`)
+    * :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber>`
+    * :py:class:`Combustion chamber stoichiometric <tespy.components.combustion.combustion_chamber_stoich>`
+    * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>`
 - Heat exchangers
-	* :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger_simple.equations>`)
-	* :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger_simple.equations>`)
-	* :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
-	* :py:class:`Condenser <tespy.components.heat_exchangers.condenser>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
-	* :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger.equations>`)
+    * :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>`
+    * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>`
+    * :py:class:`Condenser <tespy.components.heat_exchangers.condenser>`
+    * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
 - Nodes
-	* :py:class:`Node <tespy.components.nodes.node>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
-	* :py:class:`Drum <tespy.components.nodes.drum>` (:py:meth:`equations <tespy.components.nodes.drum.equations>`)
-	* :py:class:`Merge <tespy.components.nodes.merge>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
-	* :py:class:`Separator <tespy.components.nodes.separator>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
-	* :py:class:`Splitter <tespy.components.nodes.splitter>` (:py:meth:`equations <tespy.components.nodes.node.equations>`)
+    * :py:class:`Node <tespy.components.nodes.node>`
+    * :py:class:`Drum <tespy.components.nodes.drum>`
+    * :py:class:`Merge <tespy.components.nodes.merge>`
+    * :py:class:`Separator <tespy.components.nodes.separator>`
+    * :py:class:`Splitter <tespy.components.nodes.splitter>`
 - Piping
-	* :py:class:`Pipe <tespy.components.piping.pipe>` (:py:meth:`equations <tespy.components.heat_exchangers.heat_exchanger_simple.equations>`)
-	* :py:class:`Valve <tespy.components.piping.valve>` (:py:meth:`equations <tespy.components.piping.valve.equations>`)
+    * :py:class:`Pipe <tespy.components.piping.pipe>`
+    * :py:class:`Valve <tespy.components.piping.valve>`
 - Reactors
-	* :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer>` (:py:meth:`equations <tespy.components.reactors.water_electrolyzer.equations>`)
+    * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer>`
 - Turbomachinery
-	* :py:class:`Compressor <tespy.components.turbomachinery.compressor>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
-	* :py:class:`Pump <tespy.components.turbomachinery.pump>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
-	* :py:class:`Turbine <tespy.components.turbomachinery.turbine>` (:py:meth:`equations <tespy.components.turbomachinery.turbomachine.equations>`)
+    * :py:class:`Compressor <tespy.components.turbomachinery.compressor>`
+    * :py:class:`Pump <tespy.components.turbomachinery.pump>`
+    * :py:class:`Turbine <tespy.components.turbomachinery.turbine>`
 
 .. _using_tespy_components_parametrisation_label:
 
 Component parametrisation
 -------------------------
 
-Component parameters can be set and accessed in various ways. All parameters of components are objects of a :code:`data_container` class. The data container for component parameters it is called :code:`dc_cp`, :code:`dc_cc` for component characteristics and :code:`dc_cm` for characteristic maps.
-The main purpose of having a data container for the parameters (instead of pure numbers), is added flexibility for the user.
+Component parameters can be set and accessed in various ways. All parameters of
+components are objects of a :code:`data_container` class. The data container
+for component parameters it is called :code:`dc_cp`, :code:`dc_cc` for
+component characteristics and :code:`dc_cm` for characteristic maps. The main
+purpose of having a data container for the parameters (instead of pure
+numbers), is added flexibility for the user. There are different ways for you
+to specify a component parameter.
 
-There are different ways for you to specify a component parameter, we use a heat exchanger as an example.
+Component parameters
+^^^^^^^^^^^^^^^^^^^^
 
-Parameters
-^^^^^^^^^^
+The example shows different ways to specify the heat transfer coefficient of an
+evaporator and how to unset the parameter again.
 
 .. code-block:: python
 
-    from tespy.components import heat_exchanger, pipe
+    from tespy.components import heat_exchanger
     from tespy.tools import dc_cp
     import numpy as np
 
     he = heat_exchanger('evaporator')
 
-    # ways to specify (and set) value
+    # specify the value
     he.set_attr(kA=1e5)
-    # specify data container (same result as above)
+    # create a data container
     he.set_attr(kA=dc_cp(val=1e5, is_set=True))
+    # set data container parameters
+    he.kA.set_attr(val=1e5, is_set=True)
 
-    # ways to unset value
+    # unset value
     he.set_attr(kA=np.nan)
     he.kA.set_attr(is_set=False)
+
+
+Grouped parameters
+^^^^^^^^^^^^^^^^^^
+
+Grouped parameters are used whenever a component property depends on multiple
+parameters. For instance, the pressure loss calculation via Darcy-Weissbach
+requires information about the length, diameter and roughness of the pipe.
+The solver will prompt a warning, if you do not specify all parameters required
+by a parameter group. If parameters of the group are missing, the equation will
+not be implemented by the solver.
+
+.. code-block:: python
+
+    from tespy.components import pipe
+    import numpy as np
+
+    my_pipe = pipe('pipe')
+
+    # specify grouped parameters
+    my_pipe.set_attr(D=0.1, L=20, ks=0.00005)
+
+    # the solver will not use the Darcy-Weissbach-equation in this case
+    my_pipe.set_attr(D=0.1, ks=0.00005)
+
+There are three components using parameter groups:
+
+- heat_exchanger_simple and pipe
+    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+    * :code:`kA_group`(:code:`kA`, :code:`Tamb`)
+- solar_collector
+    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+    * :code:`energy_group`(:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
+      :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
+
+Custom variables
+^^^^^^^^^^^^^^^^
+
+It is possible to use component parameters as variables of your system of
+equations. For example, give a pressure ratio :code:`pr`, length :code:`L` and
+roughness :code:`ks` of a pipe you want to calculate the pipe's diameter
+:code:`D` required to achieve the specified pressure ratio. In this case you
+need to specify the diameter the following way.
+
+.. code-block:: python
+
+    from tespy.components import pipe
+    import numpy as np
 
     # custom variables
     my_pipe = pipe('my pipe')
 
     # make diameter variable of system
-    my_pipe.set_attr(D='var')
-    # data container specification with identical result,
-    # benefit: val is the starting value in this case
+    my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
+    
+    # a second way of specifying this is similar to the
+    # way used in the component parameters section
+    # the benefit is, that val will be the starting value
+    my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True))
+    
+It is also possible to set value boundaries for you custom variable. You can do
+this, if you expect the result to be within a specific range. But beware: This
+might result in a non converging simulation, if the actual value is out of your
+specified range.
 
+.. code-block:: python
+    
     # data container specification with identical result,
     # benefit: specification of bounds will increase stability
-    my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True, min_val=0.1, max_val=0.3))
+    my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
+	                         min_val=0.1, max_val=0.3))
+      
+Component characteristics
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-Characteristics
-^^^^^^^^^^^^^^^
+Component characteristics are implemented for parameters in 
+:ref:`several components <component_characteristics_label>`.
 
 .. code-block:: python
 
@@ -114,22 +186,22 @@ Component characteristics
 Characteristics are available for the following components and parameters:
 
 - pump
-	* :py:meth:`eta_s_char <tespy.components.components.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
-	* :py:meth:`flow_char <tespy.components.components.pump.flow_char_func>`: pressure rise vs. volumetric flow characteristic.
+    * :py:meth:`eta_s_char <tespy.components.components.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
+    * :py:meth:`flow_char <tespy.components.components.pump.flow_char_func>`: pressure rise vs. volumetric flow characteristic.
 - compressor
-	* :py:meth:`char_map <tespy.components.components.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
-	* :py:meth:`eta_s_char <tespy.components.components.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
+    * :py:meth:`char_map <tespy.components.components.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
+    * :py:meth:`eta_s_char <tespy.components.components.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
 - turbine
-	* :py:meth:`eta_s_char <tespy.components.components.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
+    * :py:meth:`eta_s_char <tespy.components.components.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
 - heat exchangers:
-	* :py:meth:`kA1_char, kA2_char <tespy.components.components.heat_exchanger.kA_func>`: heat transfer coefficient, various predefined types, mass flows as specification parameters.
+    * :py:meth:`kA1_char, kA2_char <tespy.components.components.heat_exchanger.kA_func>`: heat transfer coefficient, various predefined types, mass flows as specification parameters.
 - simple heat exchangers
-	* :py:meth:`kA_char <tespy.components.components.heat_exchanger_simple.kA_func>`: e. g. pipe, see heat exchangers
+    * :py:meth:`kA_char <tespy.components.components.heat_exchanger_simple.kA_func>`: e. g. pipe, see heat exchangers
 - cogeneration unit
-	* :py:meth:`tiP_char <tespy.components.components.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
-	* :py:meth:`Q1_char <tespy.components.components.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
-	* :py:meth:`Q2_char <tespy.components.components.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
-	* :py:meth:`Qloss_char <tespy.components.components.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
+    * :py:meth:`tiP_char <tespy.components.components.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
+    * :py:meth:`Q1_char <tespy.components.components.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
+    * :py:meth:`Q2_char <tespy.components.components.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
+    * :py:meth:`Qloss_char <tespy.components.components.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
 
 You can specify the name of a default characteristic line or you define the whole data container for this parameter. The default characteristic lines can be found in the :py:mod:`documentation <tespy.components.characteristics>`.
 
@@ -174,7 +246,7 @@ The starting lines of your file would look like this:
 .. code:: python
 
     from tespy.components import component
-    
+
     class my_custom_component(component):
 
 
@@ -186,7 +258,7 @@ The attr method returns a dictionary with the attributes you are able to specify
 .. code:: python
 
     from tespy.tools import dc_cc, dc_cp
-    
+
     def attr(self):
         return {'par1': dc_cp(), 'par2': dc_cc()}
 
@@ -222,8 +294,8 @@ The equations contain the information on the changes to the fluid properties wit
 
 .. math::
 
-	0 = \dot{m}_{in} - \dot{m}_{out}\\
-	0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
+    0 = \dot{m}_{in} - \dot{m}_{out}\\
+    0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
 
 The connections connected to your component are available as a list in :code:`self.inl` and :code:`self.outl` respectively.
 

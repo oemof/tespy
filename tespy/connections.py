@@ -657,9 +657,9 @@ class bus:
     gas cooler.
 
     >>> heat_bus.comps.loc[fgc]['char'].x
-    array([0, 1, 2, 3])
+    array([0, 3])
     >>> heat_bus.comps.loc[fgc]['char'].y
-    array([-1, -1, -1, -1])
+    array([-1, -1])
     >>> round(chp.ti.val)
     22957225.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)
@@ -684,8 +684,8 @@ class bus:
 
         self.label = label
         self.P = dc_cp(val=np.nan, is_set=False)
-        self.char = char_line(x=np.array([0, 1, 2, 3]),
-                                    y=np.array([1, 1, 1, 1]))
+        self.char = char_line(x=np.array([0, 3]),
+                                    y=np.array([1, 1]))
 
         self.set_attr(P=P)
 

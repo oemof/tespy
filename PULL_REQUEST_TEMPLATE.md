@@ -10,4 +10,4 @@
 
 * Other comments and questions
 
-* [] For new features: Remember the documentation!
+* [ ] For new features: Remember the documentation!

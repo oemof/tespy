@@ -18,7 +18,9 @@ import numpy as np
 import json
 import logging
 from pkg_resources import resource_filename
-from time import time
+import os
+from tespy.tools.helpers import extend_basic_path
+
 
 # %%
 
@@ -495,3 +497,54 @@ def load_default_char(component, parameter, function_name, char_type):
         obj = char_type(x, y, z1, z2)
 
     return obj
+
+
+def load_custom_char(name, char_type):
+    r"""
+    Load a characteristic line of map.
+
+    Parameters
+    ----------
+    name : str
+        Name of the characteristics.
+
+    char_type : class
+        Class to be generate the object of.
+
+    Returns
+    -------
+    obj : object
+        The characteristics (char_line, char_map, compressor_map) object.
+    """
+    path = extend_basic_path('data')
+
+    if char_type == char_line:
+        path = os.path.join(path, 'char_lines.json')
+    else:
+        path = os.path.join(path, 'char_maps.json')
+
+    if os.path.isfile(path):
+
+        with open(path) as f:
+            data = json.loads(f.read())
+
+        if char_type == char_line:
+            x = data[name]['x']
+            y = data[name]['y']
+            obj = char_type(x, y)
+
+        else:
+            x = data[name]['x']
+            y = data[name]['y']
+            z1 = data[name]['z1']
+            z2 = data[name]['z2']
+            obj = char_type(x, y, z1, z2)
+
+        return obj
+
+    else:
+        msg = ('The file containing your custom charactersitics could not be '
+               'found on your system. The path should be ' + path + '. Please '
+               'make sure the .tespy/data path exists in your home directory.')
+        logging.error(msg)
+        raise FileNotFoundError(msg)

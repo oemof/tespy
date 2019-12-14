@@ -16,8 +16,7 @@ available from its original location tespy/connections.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-import pandas as pd
+import numpy as np, import pandas as pd
 
 import logging
 

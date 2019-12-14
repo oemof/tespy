@@ -683,8 +683,7 @@ class bus:
 
         self.label = label
         self.P = dc_cp(val=np.nan, is_set=False)
-        self.char = char_line(x=np.array([0, 3]),
-                                    y=np.array([1, 1]))
+        self.char = char_line(x=np.array([0, 3]), y=np.array([1, 1]))
 
         self.set_attr(P=P)
 

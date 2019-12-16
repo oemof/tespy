@@ -316,7 +316,8 @@ def test_network_max_iter():
     source = basics.source('source')
     pipe = piping.pipe('pipe', pr=1, Q=100e3)
     sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280, fluid={'water': 1})
+    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
+                   fluid={'water': 1})
     b = connection(pipe, 'out1', sink, 'in1')
     nw.add_conns(a, b)
     nw.solve('design', max_iter=2)
@@ -462,11 +463,10 @@ class combustion_chamber_stoich_error_tests:
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
-                           air_alias='TESPy::air')
+                               air_alias='TESPy::air')
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
-
     def test_cc_stoich_missing_oxygen(self):
         """
         Test bad name for air alias.
@@ -604,6 +604,7 @@ def test_turbomachine_eta_s_deriv():
     instance = turbomachinery.turbomachine('turbomachine')
     instance.eta_s_deriv()
 
+
 @raises(ValueError)
 def test_compressor_missing_char_parameter():
     """
@@ -620,6 +621,7 @@ def test_compressor_missing_char_parameter():
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
+
 
 @raises(ValueError)
 def test_turbine_missing_char_parameter():

@@ -13,7 +13,6 @@ available from its original location tespy/components/subsystems.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import logging
 
 from tespy.networks.networks import network
@@ -41,8 +40,6 @@ class subsystem:
     <class 'tespy.components.subsystems.subsystem'>
     >>> mysub.get_attr('label')
     'mySubsystem'
-    >>> type(mysub.nw)
-    <class 'tespy.networks.networks.network'>
     """
 
     def __init__(self, label):
@@ -85,36 +82,10 @@ class subsystem:
             logging.error(msg)
             raise KeyError(msg)
 
-    def get_component_labels(self):
-        r"""
-        Get a list of the component labels of the subsystems.
-
-        Returns
-        -------
-        keys : list
-            List of available labels of the subsystem's components.
-        """
-        return list(self.comps.keys())
-
-    def get_connection_labels(self):
-        r"""
-        Get a list of the connection labels of the subsystems.
-
-        Returns
-        -------
-        keys : list
-            List of available labels of the subsystem's connections.
-        """
-        return list(self.conns.keys())
-
     def create_comps(self):
+        """Create the subsystem's components."""
         return
 
     def create_conns(self):
+        """Create the subsystem's connections."""
         return
-
-    def create_network(self):
-        self.nw = network(fluids=[])
-
-        for c in self.conns.values():
-            self.nw.add_conns(c)

@@ -150,7 +150,6 @@ class specification_error_tests:
         # KeyErrors
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
-        self.set_attr_KeyError(self.sub, a=7)
 
         self.get_attr_KeyError(self.comp, 'wow')
         self.get_attr_KeyError(self.conn, 'key')

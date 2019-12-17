@@ -346,8 +346,7 @@ calculation see part 3.1.4.
 Compressor system
 ^^^^^^^^^^^^^^^^^
 
-To complete the heat pump, we will add the compressor system to our existing 
-network.
+To complete the heat pump, we will add the compressor system to our existnetwork.
 
 Components
 ++++++++++

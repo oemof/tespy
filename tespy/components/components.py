@@ -101,8 +101,7 @@ class component:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword
-        arguments.
+        Sets reset or unset attributes of a component for provided arguments.
 
         Parameters
         ----------

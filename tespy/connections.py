@@ -242,6 +242,7 @@ class connection:
         self.offdesign = []
         self.local_design = False
         self.local_offdesign = False
+        self.printout = True
 
         # set default values for kwargs
         var = self.attr()
@@ -388,11 +389,11 @@ class connection:
                                         )
                             else:
                                 msg = ('Datatype for keyword argument ' +
-                                       str(key) + ' must be str.')
+                                       key + ' must be str.')
                                 logging.error(msg)
                                 raise TypeError(msg)
                         else:
-                            msg = ('Keyword argument ' + str(key) +
+                            msg = ('Keyword argument ' + key +
                                    ' must be \'l\' or \'g\'.')
                             logging.error(msg)
                             raise ValueError(msg)
@@ -434,7 +435,7 @@ class connection:
 
                 # invalid datatype for keyword
                 else:
-                    msg = 'Bad datatype for keyword argument ' + str(key) + '.'
+                    msg = 'Bad datatype for keyword argument ' + key + '.'
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -443,7 +444,7 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + str(key) +
+                    msg = ('Datatype for keyword argument ' + key +
                            ' must be boolean.')
                     logging.error(msg)
                     raise TypeError(msg)
@@ -482,9 +483,17 @@ class connection:
                     logging.error(msg)
                     raise TypeError(msg)
 
+            elif key == 'printout':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
+
             # invalid keyword
             else:
-                msg = 'Connection has no attribute ' + str(key) + '.'
+                msg = 'Connection has no attribute ' + key + '.'
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -556,6 +565,11 @@ class bus:
 
     P : float
         Total power/heat flow specification for bus, :math:`P \text{/W}`.
+
+    printout : bool
+        Print the results of this bus to prompt with the
+        :func:`tespy.networks.networks.network.print_results` method. Standard
+        value is :code:`True`.
 
     Example
     -------
@@ -679,7 +693,7 @@ class bus:
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def __init__(self, label, P=np.nan):
+    def __init__(self, label, **kwargs):
 
         self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
 
@@ -687,13 +701,14 @@ class bus:
         self.P = dc_cp(val=np.nan, is_set=False)
         self.char = characteristics(x=np.array([0, 1, 2, 3]),
                                     y=np.array([1, 1, 1, 1]))
+        self.printout = True
 
-        self.set_attr(P=P)
+        self.set_attr(**kwargs)
 
         msg = 'Created bus ' + self.label + '.'
         logging.debug(msg)
 
-    def set_attr(self, P=np.nan):
+    def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a bus object.
 
@@ -705,16 +720,43 @@ class bus:
         P : float
             Total power/heat flow specification for bus, :math:`P \text{/W}`.
 
+        printout : bool
+            Print the results of this bus to prompt with the
+            :func:`tespy.networks.networks.network.print_results` method.
+            Standard value is :code:`True`.
+
         Note
         ----
-        Specify :math:`P=\text{nan}`, if you want to unset the value.
+        Specify :math:`P=\text{nan}`, if you want to unset the value of P.
         """
-        self.P.val = P
+        for key in kwargs:
+            if key == 'P':
+                if (isinstance(kwargs[key], float) or
+                        isinstance(kwargs[key], np.float64) or
+                        isinstance(kwargs[key], np.int64) or
+                        isinstance(kwargs[key], int)):
+                    if np.isnan(kwargs[key]):
+                        self.P.set_attr(is_set=False)
+                    else:
+                        self.P.set_attr(val=kwargs[key], is_set=True)
+                else:
+                    msg = ('Keyword argument ' + key + ' must be numeric.')
+                    logging.error(msg)
+                    raise TypeError(msg)
 
-        if np.isnan(self.P.val):
-            self.P.is_set = False
-        else:
-            self.P.is_set = True
+            elif key == 'printout':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
+
+            # invalid keyword
+            else:
+                msg = 'A bus has no attribute ' + key + '.'
+                logging.error(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""

@@ -82,12 +82,14 @@ class component:
         else:
             self.label = label
 
+        # defaults
         self.new_design = True
         self.design_path = None
         self.design = []
         self.offdesign = []
         self.local_design = False
         self.local_offdesign = False
+        self.printout = True
 
         # add container for components attributes
         var = self.attr()
@@ -239,6 +241,14 @@ class component:
                            'string or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
+
+            elif key == 'printout':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
 
             # invalid keyword
             else:

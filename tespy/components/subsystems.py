@@ -13,7 +13,6 @@ available from its original location tespy/components/subsystems.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import logging
 
 from tespy.networks.networks import network
@@ -30,21 +29,6 @@ class subsystem:
     label : str
         The label of the subsystem.
 
-    **kwargs :
-        See the class documentation of desired subsystem for available
-        keywords. If you want to define your own subsystem, provide the
-        keywords in the :func:`tespy.components.subsystems.subystem.attr`
-        method.
-
-    Note
-    ----
-    The initialisation method (__init__), setter method (set_attr) and getter
-    method (get_attr) are used for instances of class subsystem and its
-    children.
-
-    Keywords for keyword arguments depend on the type of subsystem you want to
-    create/use.
-
     Example
     -------
     Basic example for a setting up a tespy.components.subsystems.subsystem
@@ -56,13 +40,9 @@ class subsystem:
     <class 'tespy.components.subsystems.subsystem'>
     >>> mysub.get_attr('label')
     'mySubsystem'
-    >>> type(mysub.get_network())
-    <class 'tespy.networks.networks.network'>
-    >>> mysub.set_attr(num_i=3)
-    >>> mysub.set_attr(num_o='some value')
     """
 
-    def __init__(self, label, **kwargs):
+    def __init__(self, label):
 
         if not isinstance(label, str):
             msg = 'Subsystem label must be of type str!'
@@ -76,62 +56,10 @@ class subsystem:
         else:
             self.label = label
 
-        # set default values
-        for key in self.attr():
-            self.__dict__.update({key: np.nan})
-            self.__dict__.update({key + '_set': False})
-
-        self.subsys_init()
-        self.set_attr(**kwargs)
-
-    def set_attr(self, **kwargs):
-        r"""
-        Sets, resets or unsets attributes of a component for provided keyword
-        arguments.
-
-        Parameters
-        ----------
-        label : str
-            The label of the subsystem.
-
-        **kwargs :
-            See the class documentation of desired subsystem for available
-            keywords. If you want to define your own subsystem, provide the
-            keywords in the :func:`tespy.components.subsystems.subystem.attr`
-            method.
-
-        Note
-        ----
-        Allowed keywords in kwargs are obtained from class documentation as all
-        subsystems share the
-        :func:`tespy.components.subsystems.subsystem.set_attr` method.
-        """
-        # set provided values,  check for invalid keys
-        for key in kwargs:
-            if key in self.attr():
-                if (isinstance(kwargs[key], float) or
-                        isinstance(kwargs[key], np.float64) or
-                        isinstance(kwargs[key], int)):
-                    if np.isnan(kwargs[key]):
-                        self.__dict__.update({key: np.nan})
-                        self.__dict__.update({key + '_set': False})
-                    else:
-                        self.__dict__.update({key: kwargs[key]})
-                        self.__dict__.update({key + '_set': True})
-
-                elif isinstance(kwargs[key], str):
-                    self.__dict__.update({key: kwargs[key]})
-            else:
-                msg = ('Component ' + self.label + ' has no attribute ' +
-                       str(key) + '.')
-                logging.error(msg)
-                raise KeyError(msg)
-
-        self.set_comps()
-        self.set_conns()
-
-        msg = 'Created subsystem ' + self.label + '.'
-        logging.debug(msg)
+        self.comps = {}
+        self.conns = {}
+        self.create_comps()
+        self.create_conns()
 
     def get_attr(self, key):
         r"""
@@ -154,33 +82,10 @@ class subsystem:
             logging.error(msg)
             raise KeyError(msg)
 
-    def attr(self):
-        return ['num_i', 'num_o']
-
-    def subsys_init(self):
-        r"""
-        Creates network of the subsystem on subsystem creation.
-        """
-        self.create_comps()
-        self.create_conns()
-
     def create_comps(self):
+        """Create the subsystem's components."""
         return
 
     def create_conns(self):
-        self.conns = []
-
-    def set_comps(self):
+        """Create the subsystem's connections."""
         return
-
-    def set_conns(self):
-        if not hasattr(self, 'nw'):
-            self.create_network()
-
-    def create_network(self):
-        self.nw = network(fluids=[])
-        for c in self.conns:
-            self.nw.add_conns(c)
-
-    def get_network(self):
-        return self.nw

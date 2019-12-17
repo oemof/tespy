@@ -1101,8 +1101,9 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
-                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+        return (i[0] * (o[2] - i[2]) -
+                self.A.val * (self.E.val * self.eta_opt.val -
+                (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
                 self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):

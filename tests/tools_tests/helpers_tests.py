@@ -8,8 +8,10 @@ from tespy.tools.helpers import newton
 def func(params, x):
     return x ** 2 + x - 20
 
+
 def deriv(params, x):
     return 2 * x + 1
+
 
 def test_newton_bounds():
     """

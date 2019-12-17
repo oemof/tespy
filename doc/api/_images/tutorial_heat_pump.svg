@@ -23,8 +23,8 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1863"
-     inkscape:window-height="1025"
+     inkscape:window-width="2503"
+     inkscape:window-height="1385"
      id="namedview15"
      showgrid="true"
      inkscape:snap-bbox="true"
@@ -32,10 +32,10 @@
      inkscape:bbox-nodes="true"
      inkscape:snap-bbox-edge-midpoints="true"
      inkscape:snap-bbox-midpoints="true"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="412.96525"
-     inkscape:cy="98.424608"
-     inkscape:window-x="57"
+     inkscape:zoom="2.4296876"
+     inkscape:cx="269.13901"
+     inkscape:cy="219.32358"
+     inkscape:window-x="1977"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
@@ -353,9 +353,10 @@
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -731.01425,838.36214 -20,0"
+       d="m -731.01425,838.36214 -45.00002,2e-5 0,50 h 15"
        id="path4646"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m -725.72142,888.36217 -25,0"
@@ -365,11 +366,6 @@
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m -760.72142,878.36217 10,10 -10.00007,10.00001 z"
        id="path4652"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -751.30721,828.36217 -10,10 9.99993,10 z"
-       id="path4654"
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -453,38 +449,6 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-858.90375"
-       y="831.76117"
-       id="text4762-0"><tspan
-         sodipodi:role="line"
-         id="tspan4764-3"
-         x="-858.90375"
-         y="831.76117"
-         style="font-size:18.75000191px;line-height:1.25">consumer</tspan><tspan
-         sodipodi:role="line"
-         x="-858.90375"
-         y="855.19867"
-         id="tspan4257"
-         style="font-size:18.75000191px;line-height:1.25">back flow</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-858.90375"
-       y="881.76117"
-       id="text4762-6"><tspan
-         sodipodi:role="line"
-         id="tspan4764-1"
-         x="-858.90375"
-         y="881.76117"
-         style="font-size:18.75000191px;line-height:1.25">consumer</tspan><tspan
-         sodipodi:role="line"
-         x="-858.90375"
-         y="905.19867"
-         id="tspan4259"
-         style="font-size:18.75000191px;line-height:1.25">feed flow</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="-52.240124"
        y="1055.3523"
        id="text4762-06"><tspan
@@ -506,47 +470,22 @@
          style="font-size:18.75000191px;line-height:1.25">source ambient</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -551.01432,718.36214 -10,10 9.99993,10.00001 z"
-       id="path4654-2"
+       d="m -601.01433,733.36214 10,10 10.00002,-9.99993 z"
+       id="path4654-2-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -601.01433,763.36214 10,10 10.00002,-9.99993 z"
-       id="path4654-2-9"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -491.01434,728.36213 -60,0"
+       d="m -491.01434,728.36213 -99.99993,5e-5 0,4.99998"
        id="path4251"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccc" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.00000024;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m -591.01434,828.36213 0,-55"
+       d="m -591.01434,828.36213 0,-85"
        id="path4253"
-       inkscape:connector-curvature="0" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-701.86853"
-       y="770.35217"
-       id="text4762-7-3"><tspan
-         sodipodi:role="line"
-         x="-701.86853"
-         y="770.35217"
-         id="tspan4844-6"
-         style="font-size:18.75000191px;line-height:1.25">coolant in</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="-604.25684"
-       y="710.35217"
-       id="text4762-7-7"><tspan
-         sodipodi:role="line"
-         x="-604.25684"
-         y="710.35217"
-         id="tspan4844-5"
-         style="font-size:18.75000191px;line-height:1.25">coolant out</tspan></text>
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -607,5 +546,44 @@
          y="613.53485"
          id="tspan4844-6-5-2-9"
          style="font-size:18.75000191px;line-height:1.25">compressor train</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-742.04883"
+       y="718.53491"
+       id="text4762-7-3-3-3"><tspan
+         sodipodi:role="line"
+         x="-742.04883"
+         y="718.53491"
+         style="font-size:18.75000191px;line-height:1.25"
+         id="tspan931">coolant cycle closer</tspan><tspan
+         sodipodi:role="line"
+         x="-742.04883"
+         y="741.97241"
+         style="font-size:18.75000191px;line-height:1.25"
+         id="tspan937">(coolant in)</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -631.01427,723.36216 25,10"
+       id="path939"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-811.2038"
+       y="937.60779"
+       id="text4762-7-3-3-3-7"><tspan
+         sodipodi:role="line"
+         x="-811.2038"
+         y="937.60779"
+         style="font-size:18.75000191px;line-height:1.25"
+         id="tspan937-3">consumer cycle closer</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -756.01427,898.36216 44.99995,25"
+       id="path939-5"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
   </g>
 </svg>

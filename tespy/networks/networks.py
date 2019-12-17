@@ -118,6 +118,31 @@ class network:
     >>> mynetwork.set_attr(iterinfo=True)
     >>> mynetwork.iterinfo
     True
+
+    A simple network consisting of a source, a pipe and a sink. This example
+    shows how the printout parameter can be used. We specify
+    :code:`printout=False` for both connections, the pipe as well as the heat
+    bus. Therefore the :code:`.print_results()` method should not print any
+    results.
+
+    >>> from tespy.networks import network
+    >>> from tespy.components import source, sink, pipe
+    >>> from tespy.connections import connection, bus
+    >>> nw = network(['CH4'], T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> p = pipe('pipe', Q=0, pr=0.95, printout=False)
+    >>> a = connection(so, 'out1', p, 'in1')
+    >>> b = connection(p, 'out1', si, 'in1')
+    >>> nw.add_conns(a, b)
+    >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
+    >>> b.set_attr(printout=False)
+    >>> b = bus('heat bus')
+    >>> b.add_comps({'c': pipe})
+    >>> nw.add_busses(b)
+    >>> b.set_attr(printout=False)
+    >>> nw.solve('design')
+    >>> nw.print_results()
     """
 
     def __init__(self, fluids, **kwargs):

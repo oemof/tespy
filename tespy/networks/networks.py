@@ -2685,9 +2685,7 @@ class network:
 # %% printing and plotting
 
     def print_results(self):
-        r"""
-        Prints the calculations results for components and connections to
-        prompt.
+        r"""Print the calculations results to prompt.
         """
         cp_sort = self.comps.copy()
         # sort components by component type alphabetically
@@ -2751,7 +2749,8 @@ class network:
                 df['cp'] = b.comps.index
                 df['ref'] = b.comps['P_ref'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
-                df['value'] = df['cp'].apply(lambda x: x.bus_func(b.comps.loc[x]))
+                df['value'] = df['cp'].apply(
+                    lambda x: x.bus_func(b.comps.loc[x]))
                 df.loc['total'] = df.sum()
                 df.loc['total', 'component'] = 'total'
                 df.set_index('component', inplace=True)
@@ -2770,8 +2769,7 @@ class network:
 
     def save(self, path, **kwargs):
         r"""
-        Saves the results to results file. If structure is True, the network
-        structure is exported.
+        Save the results to results files.
 
         Parameters
         ----------
@@ -2784,7 +2782,7 @@ class network:
 
         - netw.csv (network information)
         - conn.csv (connection information)
-        - folder comps containing .csv files (bus.csv, char.csv, char_map.csv)
+        - folder comps containing .csv files for busses and characteristics
           as well as .csv files for all types of components within your
           network.
         """
@@ -2811,7 +2809,7 @@ class network:
 
     def save_network(self, fn):
         r"""
-        Saves basic network configuration.
+        Save basic network configuration.
 
         Parameters
         ----------
@@ -2838,8 +2836,7 @@ class network:
 
     def save_connections(self, fn):
         r"""
-        Saves connections to fn, saves network structure data if structure is
-        True.
+        Save the connection properties.
 
         - Uses connections object id as row identifier and saves
             * connections source and target as well as
@@ -2851,8 +2848,6 @@ class network:
         ----------
         fn : str
             Path/filename for the file.
-
-        TODO: local_offdesign, local_design
         """
         f = network.get_props
         df = pd.DataFrame()
@@ -2922,7 +2917,7 @@ class network:
 
     def save_components(self, path):
         r"""
-        Saves the components to filename/comps/name_of_component_type.csv
+        Save the component properties.
 
         - Uses components labels as row identifier.
         - Writes:
@@ -3015,7 +3010,7 @@ class network:
 
     def save_busses(self, fn):
         r"""
-        Saves the busses parametrisation to filename/comps/bus.csv
+        Save the bus properties.
 
         Parameters
         ----------
@@ -3039,7 +3034,7 @@ class network:
 
     def save_characteristics(self, path):
         r"""
-        Saves the busses parametrisation to filename/comps/char.csv
+        Save the characteristics.
 
         Parameters
         ----------

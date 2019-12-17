@@ -13,6 +13,9 @@ New Features
   the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
 - Implemented difference pressure vs mass flow characteristic line for valve (`c4eec6d <https://github.com/oemof/tespy/commit/c4eec6d17ce7c8ce260a44757d37aa26214ae2b0>`_).
 - Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Busses, components and connections are now equipped with :code:`printout` attribute. For example, if you specify :code:`myconn.set_attr(printout=False)`
+  the results of the specified connection will not be printed by the :code:`print_results` method of your network. This is especially useful, if you have a 
+  large network and only want to print the results at the most important points (`PR #126 <https://github.com/oemof/tespy/pull/126>`_).
 
 Documentation
 #############
@@ -49,8 +52,9 @@ Bug fixes
 
 Other changes
 #############
-
 - Adjust logging levels for grouped component parameter initialisation (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
+- The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make accessing the individual properties
+  much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_).
 
 Contributors
 ############

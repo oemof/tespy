@@ -7,6 +7,7 @@ from tespy.tools.characteristics import (char_line, compressor_map,
 
 from tespy.tools.helpers import extend_basic_path
 from pkg_resources import resource_filename
+import os
 import json
 import numpy as np
 import shutil

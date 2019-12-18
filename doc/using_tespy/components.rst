@@ -194,55 +194,42 @@ your own characteristic functions.
 
 Characteristics are available for the following components and parameters:
 
-- pump
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.eta_s_char_func>`:
-       isentropic efficiency vs. volumetric flow rate.
-    * :py:meth:`flow_char <tespy.components.turbomachinery.pump.flow_char_func>`:
-      pressure rise vs. volumetric flow.
-- valve
-    * :py:meth:`dp_char <tespy.components.piping.valve.dp_char_func>`:
-       pressure drop vs. flow rate.
-- compressor
-    * :py:meth:`char_map <tespy.components.turbomachinery.compressor.char_map_func>`:
-      component map for isentropic efficiency and pressure rise.
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.eta_s_char_func>`:
-      isentropic efficiency vs. pressure ratio.
-- turbine
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.eta_s_char_func>`:
-      isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
-- heat exchangers:
-    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.kA_func>`:
-      heat transfer coefficient vs. mass flow.
-- simple heat exchangers
-    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.kA_func>`:
-      heat transfer coefficient vs. mass flow.
 - combustion engine
-    * :py:meth:`tiP_char <tespy.components.combustion.cogeneration_unit.tiP_char_func>`:
-       thermal input vs. power ratio.
-    * :py:meth:`Q1_char <tespy.components.combustion.cogeneration_unit.Q1_char_func>`:
-       heat output 1 vs. power ratio.
-    * :py:meth:`Q2_char <tespy.components.combustion.cogeneration_unit.Q2_char_func>`:
-      heat output 2 vs. power ratio.
-    * :py:meth:`Qloss_char <tespy.components.combustion.cogeneration_unit.Qloss_char_func>`:
-      heat loss vs. power ratio.
+    * :py:meth:`tiP_char <tespy.components.combustion.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
+    * :py:meth:`Q1_char <tespy.components.combustion.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
+    * :py:meth:`Q2_char <tespy.components.combustion.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
+    * :py:meth:`Qloss_char <tespy.components.combustion.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
+- compressor
+    * :py:meth:`char_map <tespy.components.turbomachinery.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
+- heat exchangers:
+    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.kA_func>`: heat transfer coefficient vs. mass flow.
+- pump
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
+    * :py:meth:`flow_char <tespy.components.turbomachinery.pump.flow_char_func>`: pressure rise vs. volumetric flow.
+- simple heat exchangers
+    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.kA_func>`: heat transfer coefficient vs. mass flow.
+- turbine
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
+- valve
+    * :py:meth:`dp_char <tespy.components.piping.valve.dp_char_func>`: pressure drop vs. flow rate.
 - water electrolyzer
-    * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`:
-       efficiency vs. load ratio.
+    * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`: efficiency vs. load ratio.
        
 For more information to how the characteristic functions work
-:ref:`click here <custom_characteristics_label>`.
+:ref:`click here <using_tespy_characteristics_label>`.
 
 Custom components
 -----------------
 
-You can add own components. The class should inherit from
-:py:class:`tespy.components.components.component class <tespy.components.components.component>`
+You can add own components. The class should inherit from the
+:py:class:`component <tespy.components.components.component>` class
 or its children. In order to do that, create a python file in your working
-directory and import the base class for your custom component, e. g. the
-:py:mod:`tespy.components.components.component <tespy.components.components>`
-class. Now add create a class for your component and at least add the following
+directory and import the base class for your custom component. Now create
+a class for your component and at least add the following
 methods.
 
+- :code:`component(self)`,
 - :code:`attr(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)`,
@@ -250,11 +237,11 @@ methods.
 - :code:`derivatives(self)` as well as
 - :code:`calc_parameters(self)`.
 
-The starting lines of your file would look like this:
+The starting lines of your file should look like this:
 
 .. code:: python
 
-    from tespy.components.components import component
+    from tespy.components import component
     from tespy.tools import dc_cc, dc_cp
 
     class my_custom_component(component):
@@ -266,19 +253,21 @@ The starting lines of your file would look like this:
         are applied and which optional equations can be applied using the
         component parameters.
         """
-
+        
+        def component(self):
+            return 'name of your component'
 
 Attributes
 ^^^^^^^^^^
 
-The attr method must return a dictionary with the attributes you want to
-specify. The keys represent the attributes and the respective values the type
-of data_container used. Using the data_container attributes it is possible to
-add defaults. Defaults for characteristic lines or characteristic maps are
-loaded automatically by the component initialisation method of class
-:code:`component`.
-
-ADD DEFAULT CHAR DESCRIPTION
+The attr method must return a dictionary with the attributes you want to use
+for your component. The keys represent the attributes and the respective values
+the type of data container used for this attribute. Using the data container
+attributes it is possible to add defaults. Defaults for characteristic lines or
+characteristic maps are loaded automatically by the component initialisation
+method of class :code:`component`. For more information on the default
+characteristics consider this
+:ref:`chapter <using_tespy_characteristics_label>`.
 
 .. code:: python
 
@@ -302,28 +291,32 @@ of strings. The list may look like this:
         return ['out1', 'out2']
 
 The number of inlets and outlets might even be generic, e. g. if you have added
-an attribute :code:`'num_in'` in :code:`attr(self)`:
+an attribute :code:`'num_in'` your code could look like this:
 
 .. code:: python
 
     def inlets(self):
-        if self.num_in_set:
-            return ['in' + str(i + 1) for i in range(self.num_in)]
+        if self.num_in.is_set:
+            return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
-            self.set_attr(num_in=2)
-            return self.inlets()
+            # default number is 2
+            return ['in1', 'in2']
 
 Equations
 ^^^^^^^^^
 
-The equations contain the information on the changes to the fluid properties within the component. Each equation must be defined in a way, that the correct result is zero, e. g.:
+The equations contain the information on the changes to the fluid properties
+within the component. Each equation must be defined in a way, that the correct
+result is zero, e. g.:
 
 .. math::
 
     0 = \dot{m}_{in} - \dot{m}_{out}\\
     0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
 
-The connections connected to your component are available as a list in :code:`self.inl` and :code:`self.outl` respectively.
+The connections connected to your component are available as a list in
+:code:`self.inl` and :code:`self.outl` respectively. Optional equations should
+only be applied, if the paramter has been specified by the user.
 
 .. code:: python
 
@@ -332,23 +325,36 @@ The connections connected to your component are available as a list in :code:`se
         vec_res = []
 
         vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
-        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI - self.dp.val]
+        
+        if self.dp.is_set:
+            vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI -
+                        self.dp.val]
+                        
+        return vec_res
 
-The equations are added to a list one after another, which will be returned at the end.
+The equations are added to a list one after another, which is returned by the
+method.
 
 Derivatives
 ^^^^^^^^^^^
 
-You need to calculate the partial derivatives of the equations to all variables of the network.
-This means, that you have to calculate the partial derivatives to mass flow, pressure, enthalpy and all fluids in the fluid vector on each incomming or outgoing connection of the component.
+You need to calculate the partial derivatives of the equations to all variables
+of the network. This means, that you have to calculate the partial derivatives
+to mass flow, pressure, enthalpy and all fluids in the fluid vector on each
+incomming or outgoing connection of the component.
 
-Add all derivatives to a list (in the same order as the equations) and return the list as numpy array (:code:`np.asarray(list)`).
-The derivatives can be calculated analytically or numerically by using the inbuilt function :code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
+Add all derivatives to a list (*in the same order as the equations!*) and
+return the list as numpy array (:code:`np.asarray(list)`). The derivatives can
+be calculated analytically or numerically by using the inbuilt function
+:code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
 
 - :code:`func` is the function you want to calculate the derivatives for,
 - :code:`dx` is the variable you want to calculate the derivative to and
-- :code:`pos` indicates the connection you want to calculate the derivative for, e. g. :code:`pos=1` means, that counting your inlets and outlets from low index to high index (first inlets, then outlets),
-  the connection to be used is the second connection in that list.
+- :code:`pos` indicates the connection you want to calculate the derivative
+  for, e. g. :code:`pos=1` means, that counting your inlets and outlets from
+  low index to high index (first inlets, then outlets), the connection to be
+  used is the second connection in that list.
 - :code:`kwargs` are additional keyword arguments required for the function.
 
-For a good start just look into the source code of the inbuilt components. If you have further questions feel free to contact us.
+For a good start just look into the source code of the inbuilt components. If
+you have further questions do not hesitate to contact us.

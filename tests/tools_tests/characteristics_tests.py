@@ -24,11 +24,11 @@ class characteristics_tests:
         # we need to write some data to the path first, using defaults
         data_path = resource_filename('tespy.data', 'char_lines.json')
 
-        with open(path) as f:
+        with open(data_path) as f:
             raw_data = json.loads(f.read())
 
         data = raw_data['heat exchanger']['kA_char1']
-        with open(os.path.join(self.path, 'char_maps.json'), 'w') as outfile:
+        with open(os.path.join(self.path, 'char_lines.json'), 'w') as outfile:
             json.dump(data, outfile)
 
         char_original = load_default_char('heat exchanger', 'kA_char1',
@@ -49,3 +49,48 @@ class characteristics_tests:
                'the default characteristic line ' + str(char_original.y) + ' '
                'as these have been duplicated before load.')
         eq_(True, y_cond, msg)
+
+    def test_custom_char_map_import(self):
+
+        # we need to write some data to the path first, using defaults
+        data_path = resource_filename('tespy.data', 'char_maps.json')
+
+        with open(data_path) as f:
+            raw_data = json.loads(f.read())
+
+        data = raw_data['compressor']['char_map']
+        with open(os.path.join(self.path, 'char_maps.json'), 'w') as outfile:
+            json.dump(data, outfile)
+
+        char_original = load_default_char('compressor', 'char_map',
+                                          'DEFAULT', compressor_map)
+        char_custom = load_custom_char('DEFAULT', compressor_map)
+
+        x_cond = np.array_equal(char_original.x, char_custom.x)
+        y_cond = np.array_equal(char_original.y, char_custom.y)
+        z1_cond = np.array_equal(char_original.z1, char_custom.z1)
+        z2_cond = np.array_equal(char_original.z2, char_custom.z2)
+
+        msg = ('The x values from the custom characteristic line ' +
+               str(char_custom.x) + ' must be identical to the x values from '
+               'the default characteristic line ' + str(char_original.x) + ' '
+               'as these have been duplicated before load.')
+        eq_(True, x_cond, msg)
+
+        msg = ('The y values from the custom characteristic line ' +
+               str(char_custom.y) + ' must be identical to the y values from '
+               'the default characteristic line ' + str(char_original.y) + ' '
+               'as these have been duplicated before load.')
+        eq_(True, y_cond, msg)
+
+        msg = ('The z1 values from the custom characteristic line ' +
+               str(char_custom.z1) + ' must be identical to the z1 values from '
+               'the default characteristic line ' + str(char_original.z1) + ' '
+               'as these have been duplicated before load.')
+        eq_(True, z1_cond, msg)
+
+        msg = ('The z2 values from the custom characteristic line ' +
+               str(char_custom.z2) + ' must be identical to the z2 values from '
+               'the default characteristic line ' + str(char_original.z2) + ' '
+               'as these have been duplicated before load.')
+        eq_(True, z2_cond, msg)

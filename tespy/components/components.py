@@ -85,6 +85,7 @@ class component:
         else:
             self.label = label
 
+        # defaults
         self.new_design = True
         self.design_path = None
         self.design = []
@@ -92,6 +93,7 @@ class component:
         self.local_design = False
         self.local_offdesign = False
         self.char_warnings = True
+        self.printout = True
 
         # add container for components attributes
         var = self.attr()
@@ -103,8 +105,7 @@ class component:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a component for provided keyword
-        arguments.
+        Sets reset or unset attributes of a component for provided arguments.
 
         Parameters
         ----------
@@ -258,6 +259,14 @@ class component:
                            'string or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
+
+            elif key == 'printout':
+                if not isinstance(kwargs[key], bool):
+                    msg = ('Please provide the ' + key + ' as boolean.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+                else:
+                    self.__dict__.update({key: kwargs[key]})
 
             # invalid keyword
             else:

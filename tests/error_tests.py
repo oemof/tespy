@@ -12,7 +12,7 @@ from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
-from tespy.tools.characteristics import char_map, char_line
+from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import shutil
 import csv
@@ -122,6 +122,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)
         self.set_attr_TypeError(self.pipe, hydro_group=5)
+        self.set_attr_TypeError(self.comp, printout=5)
 
         self.set_attr_TypeError(self.conn, design='h')
         self.set_attr_TypeError(self.conn, fluid_balance=1)
@@ -131,12 +132,15 @@ class specification_error_tests:
         self.set_attr_TypeError(self.conn, design_path=5)
         self.set_attr_TypeError(self.conn, local_design=5)
         self.set_attr_TypeError(self.conn, local_offdesign=5)
+        self.set_attr_TypeError(self.conn, printout=5)
 
         self.set_attr_TypeError(self.nw, m_range=5)
         self.set_attr_TypeError(self.nw, p_range=5)
         self.set_attr_TypeError(self.nw, h_range=5)
         self.set_attr_TypeError(self.nw, T_range=5)
         self.set_attr_TypeError(self.nw, iterinfo=5)
+        self.set_attr_TypeError(self.bus, P='some value')
+        self.set_attr_TypeError(self.bus, printout=5)
 
         self.bus_add_comps_TypeError({'c': self.conn})
         self.bus_add_comps_TypeError({'f': self.comp})
@@ -151,7 +155,7 @@ class specification_error_tests:
         # KeyErrors
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
-        self.set_attr_KeyError(self.sub, a=7)
+        self.set_attr_KeyError(self.bus, power_output=100000)
 
         self.get_attr_KeyError(self.comp, 'wow')
         self.get_attr_KeyError(self.conn, 'key')
@@ -319,7 +323,8 @@ def test_network_max_iter():
     source = basics.source('source')
     pipe = piping.pipe('pipe', pr=1, Q=100e3)
     sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280, fluid={'water': 1})
+    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
+                   fluid={'water': 1})
     b = connection(pipe, 'out1', sink, 'in1')
     nw.add_conns(a, b)
     nw.solve('design', max_iter=2)
@@ -356,6 +361,14 @@ def test_char_map_number_of_points():
 @raises(ValueError)
 def test_char_map_number_of_dimensions():
     char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
+
+@raises(FileNotFoundError)
+def test_missing_char_files():
+    load_custom_char('stuff', char_line)
+
+@raises(FileNotFoundError)
+def test_missing_char_files():
+    load_custom_char('some other stuff', char_map)
 
 ##############################################################################
 # tespy fluid
@@ -449,11 +462,10 @@ class combustion_chamber_stoich_error_tests:
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
-                           air_alias='TESPy::air')
+                               air_alias='TESPy::air')
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
-
     def test_cc_stoich_missing_oxygen(self):
         """
         Test bad name for air alias.
@@ -591,6 +603,7 @@ def test_turbomachine_eta_s_deriv():
     instance = turbomachinery.turbomachine('turbomachine')
     instance.eta_s_deriv()
 
+
 @raises(ValueError)
 def test_compressor_missing_char_parameter():
     """
@@ -607,6 +620,7 @@ def test_compressor_missing_char_parameter():
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
+
 
 @raises(ValueError)
 def test_turbine_missing_char_parameter():

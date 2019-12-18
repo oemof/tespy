@@ -119,6 +119,32 @@ class network:
     >>> mynetwork.set_attr(iterinfo=True)
     >>> mynetwork.iterinfo
     True
+
+    A simple network consisting of a source, a pipe and a sink. This example
+    shows how the printout parameter can be used. We specify
+    :code:`printout=False` for both connections, the pipe as well as the heat
+    bus. Therefore the :code:`.print_results()` method should not print any
+    results.
+
+    >>> from tespy.networks import network
+    >>> from tespy.components import source, sink, pipe
+    >>> from tespy.connections import connection, bus
+    >>> nw = network(['CH4'], T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> p = pipe('pipe', Q=0, pr=0.95, printout=False)
+    >>> a = connection(so, 'out1', p, 'in1')
+    >>> b = connection(p, 'out1', si, 'in1')
+    >>> nw.add_conns(a, b)
+    >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
+    >>> b.set_attr(printout=False)
+    >>> b = bus('heat bus')
+    >>> b.add_comps({'c': p})
+    >>> nw.add_busses(b)
+    >>> b.set_attr(printout=False)
+    >>> nw.set_attr(iterinfo=False)
+    >>> nw.solve('design')
+    >>> nw.print_results()
     """
 
     def __init__(self, fluids, **kwargs):
@@ -2663,9 +2689,7 @@ class network:
 # %% printing and plotting
 
     def print_results(self):
-        r"""
-        Prints the calculations results for components and connections to
-        prompt.
+        r"""Print the calculations results to prompt.
         """
         cp_sort = self.comps.copy()
         # sort components by component type alphabetically
@@ -2679,67 +2703,77 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            # gather printouts
+            # gather parameters to print for components of type c
             cols = []
             for col, val in df.index[0].attr().items():
                 if isinstance(val, dc.dc_cp):
                     if val.get_attr('printout'):
                         cols += [col]
 
-            # any printouts?
+            # are there any parameters to print?
             if len(cols) > 0:
-                print('##### RESULTS (' + c + ') #####')
                 for col in cols:
                     df[col] = df.apply(network.print_components, axis=1,
                                        args=(col,))
 
                 df.set_index('label', inplace=True)
                 df.drop('cp', axis=1, inplace=True)
+                df = df.dropna(how='all')
 
-                # printout with tabulate
-                print(tabulate(df, headers='keys',
-                               tablefmt='psql', floatfmt='.2e'))
+                if len(df) > 0:
+                    # printout with tabulate
+                    print('##### RESULTS (' + c + ') #####')
+                    print(tabulate(df, headers='keys', tablefmt='psql',
+                                   floatfmt='.2e'))
 
         # connection properties
         df = pd.DataFrame(columns=['m / (' + self.m_unit + ')',
                                    'p / (' + self.p_unit + ')',
                                    'h / (' + self.h_unit + ')',
                                    'T / (' + self.T_unit + ')'])
-        print('##### RESULTS (connections) #####')
         for c in self.conns.index:
-            row = c.s.label + ':' + c.s_id + ' -> ' + c.t.label + ':' + c.t_id
-            df.loc[row] = (
-                    [c.m.val_SI / self.m[self.m_unit],
-                     c.p.val_SI / self.p[self.p_unit],
-                     c.h.val_SI / self.h[self.h_unit],
-                     c.T.val_SI / self.T[self.T_unit][1] -
-                     self.T[self.T_unit][0]]
-                    )
-        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
+            if c.printout is True:
+                row = (c.s.label + ':' + c.s_id + ' -> ' +
+                       c.t.label + ':' + c.t_id)
+                df.loc[row] = (
+                        [c.m.val_SI / self.m[self.m_unit],
+                         c.p.val_SI / self.p[self.p_unit],
+                         c.h.val_SI / self.h[self.h_unit],
+                         c.T.val_SI / self.T[self.T_unit][1] -
+                         self.T[self.T_unit][0]]
+                        )
+        if len(df) > 0:
+            print('##### RESULTS (connections) #####')
+            print(tabulate(df, headers='keys', tablefmt='psql',
+                           floatfmt='.3e'))
 
         for b in self.busses.values():
-            print('##### RESULTS (' + b.label + ') #####')
             df = pd.DataFrame(columns=['component', 'value'])
-            df['cp'] = b.comps.index
-            df['ref'] = b.comps['P_ref'].values
-            df['component'] = df['cp'].apply(lambda x: x.label)
-            df['value'] = df['cp'].apply(lambda x: x.bus_func(b.comps.loc[x]))
-            df.loc['total'] = df.sum()
-            df.loc['total', 'component'] = 'total'
-            df.set_index('component', inplace=True)
-            df.drop('cp', axis=1, inplace=True)
-            print(tabulate(df, headers='keys',
-                           tablefmt='psql', floatfmt='.3e'))
+            if b.printout is True:
+                df['cp'] = b.comps.index
+                df['ref'] = b.comps['P_ref'].values
+                df['component'] = df['cp'].apply(lambda x: x.label)
+                df['value'] = df['cp'].apply(
+                    lambda x: x.bus_func(b.comps.loc[x]))
+                df.loc['total'] = df.sum()
+                df.loc['total', 'component'] = 'total'
+                df.set_index('component', inplace=True)
+                df.drop('cp', axis=1, inplace=True)
+                print('##### RESULTS (' + b.label + ') #####')
+                print(tabulate(df, headers='keys', tablefmt='psql',
+                               floatfmt='.3e'))
 
     def print_components(c, *args):
-        return c.name.get_attr(args[0]).val
+        if c.name.printout is True:
+            return c.name.get_attr(args[0]).val
+        else:
+            return np.nan
 
 # %% saving
 
     def save(self, path, **kwargs):
         r"""
-        Saves the results to results file. If structure is True, the network
-        structure is exported.
+        Save the results to results files.
 
         Parameters
         ----------
@@ -2752,9 +2786,9 @@ class network:
 
         - netw.csv (network information)
         - conn.csv (connection information)
-        - folder comps containing .csv files (bus.csv, char_line.csv,
-          char_map.csv) as well as .csv files for all types of components
-          within your network.
+        - folder comps containing .csv files for busses and characteristics
+          as well as .csv files for all types of components within your
+          network.
         """
         if path[-1] != '/' and path[-1] != '\\':
             path += '/'
@@ -2779,7 +2813,7 @@ class network:
 
     def save_network(self, fn):
         r"""
-        Saves basic network configuration.
+        Save basic network configuration.
 
         Parameters
         ----------
@@ -2806,8 +2840,7 @@ class network:
 
     def save_connections(self, fn):
         r"""
-        Saves connections to fn, saves network structure data if structure is
-        True.
+        Save the connection properties.
 
         - Uses connections object id as row identifier and saves
             * connections source and target as well as
@@ -2819,8 +2852,6 @@ class network:
         ----------
         fn : str
             Path/filename for the file.
-
-        TODO: local_offdesign, local_design
         """
         f = network.get_props
         df = pd.DataFrame()
@@ -2890,7 +2921,7 @@ class network:
 
     def save_components(self, path):
         r"""
-        Saves the components to filename/comps/name_of_component_type.csv
+        Save the component properties.
 
         - Uses components labels as row identifier.
         - Writes:
@@ -2979,7 +3010,7 @@ class network:
 
     def save_busses(self, fn):
         r"""
-        Saves the busses parametrisation to filename/comps/bus.csv
+        Save the bus properties.
 
         Parameters
         ----------
@@ -3001,7 +3032,7 @@ class network:
 
     def save_characteristics(self, path):
         r"""
-        Saves the busses parametrisation to filename/comps/char.csv
+        Save the characteristics.
 
         Parameters
         ----------

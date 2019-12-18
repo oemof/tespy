@@ -418,7 +418,7 @@ class valve(component):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        return i[1] - o[1] - self.dp_char.func.f_x(i[0])
+        return i[1] - o[1] - self.dp_char.func.evaluate(i[0])
 
     def dp_char_deriv(self):
         r"""

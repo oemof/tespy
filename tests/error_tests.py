@@ -457,11 +457,10 @@ class combustion_chamber_stoich_error_tests:
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
-                           air_alias='TESPy::air')
+                               air_alias='TESPy::air')
         self.nw.solve('design', init_only=True)
 
     @raises(TESPyComponentError)
-
     def test_cc_stoich_missing_oxygen(self):
         """
         Test bad name for air alias.

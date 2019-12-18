@@ -4,7 +4,7 @@ TESPy characteristics
 In this part we give an introduction on the TESPy characteritics
 implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`char_line <tespy.tools.characteristics.char_line>`)
-and maps (:py:class:`char_line <tespy.tools.characteristics.char_map>`).
+and maps (:py:class:`char_map <tespy.tools.characteristics.char_map>`).
 
 Characteristic lines
 --------------------

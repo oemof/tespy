@@ -429,8 +429,10 @@ def dlamb_trans_dlamb(params, lamb):
 
 def modify_path_os(path):
     """
-    Modify the path according the os. Also detects weather the path
-    specification is absolute or relative and adjusts the path respectively.
+    Modify a path according the os.
+
+    Also detects weather the path specification is absolute or relative and
+    adjusts the path respectively.
 
     Parameters
     ----------
@@ -461,3 +463,29 @@ def modify_path_os(path):
         logging.warning(msg)
 
     return path
+
+# %%
+
+
+def get_basic_path():
+    """
+    Return the basic tespy path and creates it if necessary.
+
+    The basic path is the '.tespy' folder in the $HOME directory.
+    """
+    basicpath = os.path.join(os.path.expanduser('~'), '.tespy')
+    if not os.path.isdir(basicpath):
+        os.mkdir(basicpath)
+    return basicpath
+
+
+def extend_basic_path(subfolder):
+    """
+    Return a path based on the basic tespy path and creates it if necessary.
+
+    The subfolder is the name of the path extension.
+    """
+    extended_path = os.path.join(get_basic_path(), subfolder)
+    if not os.path.isdir(extended_path):
+        os.mkdir(extended_path)
+    return extended_path

@@ -57,10 +57,18 @@ Import your own characteristics
 -------------------------------
 
 It is possible to import your own characteristic lines or maps instead of
-writing the x, y (z1 and z2) data into your python script. Go to your .tespy
-folder in your HOME directory. Create a folder named :code:`data`, if it does
-not exist. In this folder you can place two json-files for your
-characteristics.
+writing the x, y (z1 and z2) data into your python script, for example:
+
+.. code-block:: python
+
+    from tespy.tools.characteristics import load_custom_char, char_line
+    
+    gen_char = load_custom_char('generator', char_line)
+
+
+For the imports to work in the way shown, go to your .tespy folder in your HOME
+directory. Create a folder named :code:`data`, if it does not exist. In this
+folder, you can place two json-files for your characteristics.
 
 - :code:`char_lines.json`
 - :code:`char_maps.json`

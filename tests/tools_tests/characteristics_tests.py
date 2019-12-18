@@ -35,13 +35,13 @@ class characteristics_tests:
         y_cond = np.array_equal(char_original.y, char_custom.y)
 
         msg = ('The x values from the custom characteristic line ' +
-               str(char_custom.x) ' must be identical to the x values from '
+               str(char_custom.x) + ' must be identical to the x values from '
                'the default characteristic line ' + str(char_original.x) + ' '
                'as these have been duplicated before load.')
         eq_(True, x_cond, msg)
 
         msg = ('The y values from the custom characteristic line ' +
-               str(char_custom.y) ' must be identical to the y values from '
+               str(char_custom.y) + ' must be identical to the y values from '
                'the default characteristic line ' + str(char_original.y) + ' '
                'as these have been duplicated before load.')
         eq_(True, y_cond, msg)

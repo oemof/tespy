@@ -12,7 +12,7 @@ from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
-from tespy.tools.characteristics import char_map, char_line
+from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import shutil
 import csv
@@ -356,6 +356,14 @@ def test_char_map_number_of_points():
 @raises(ValueError)
 def test_char_map_number_of_dimensions():
     char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
+
+@raises(FileNotFoundError)
+def test_missing_char_files():
+    load_custom_char('stuff', char_line)
+
+@raises(FileNotFoundError)
+def test_missing_char_files():
+    load_custom_char('some other stuff', char_map)
 
 ##############################################################################
 # tespy fluid

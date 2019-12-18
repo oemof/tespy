@@ -6,6 +6,8 @@ from tespy.components.basics import sink, source
 from tespy.components.piping import valve, pipe
 from tespy.connections import connection
 from tespy.networks.networks import network
+from tespy.tools.characteristics import char_line
+from tespy.tools.data_containers import dc_cc
 
 import numpy as np
 import shutil
@@ -47,6 +49,23 @@ class piping_tests:
         msg = ('Value of dimension independent zeta value must be ' +
                str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
         eq_(zeta, round(instance.zeta.val, 0), msg)
+
+        # dp char
+        x = np.array([8, 9, 10, 11, 12])
+        y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
+        dp_char = char_line(x, y)
+        instance.set_attr(zeta=np.nan,
+                          dp_char=dc_cc(func=dp_char, is_set=True))
+        m = 11
+        self.c1.set_attr(m=m)
+        self.c2.set_attr(p=np.nan)
+        self.nw.solve('design')
+        self.nw.print_results()
+        dp = round(-dp_char.evaluate(m), 0)
+        dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)
+        msg = ('The pressure drop at the valve should be ' + str(dp) + ' but '
+               'is ' + str(dp_act) + '.')
+        eq_(dp, dp_act, msg)
 
     def test_pipe(self):
         """

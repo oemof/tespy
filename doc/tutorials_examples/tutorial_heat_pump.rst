@@ -10,13 +10,13 @@ Task
 ^^^^
 
 This tutorial introduces you in how to model a heat pump in TESPy. You can see
-the plants topology in figure 1. Also, you will find a fully working model in
+the plants topology in the figure. Also, you will find a fully working model in
 the last chapter of this tutorial.
 
 .. figure:: api/_images/tutorial_heat_pump.svg
     :align: center
 
-    Figure 1: Topology of the heat pump.
+    Figure: Topology of the heat pump.
 
 The main purpose of the heat pump is to deliver heat e. g. for the consumers of
 a heating system. Thus, the heat pump's parameters will be set in a way, which

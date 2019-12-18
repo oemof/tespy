@@ -24,6 +24,26 @@ is returned instead.
 Characteristic maps
 -------------------
 
+The characteristic maps use linear interpolation as well. First step is
+interpolation on the x-dimension identical to the characteristic line 
+functionality. As the y, z1 and z2 data are two-dimensional, **each row of**
+**the data corresponds to one x value**. Thus, the result of the first step is
+a vector for each dimesion (y, z1 and z2).
+
+.. math::
+
+    \vec{y} = \vec{y0} + \frac{x-x0}{x1-x0} \cdot \left(\vec{y1}-\vec{y0}
+    \right)
+    
+    \vec{z1} = \vec{z10} + \frac{x-x0}{x1-x0} \cdot \left(\vec{z11}-\vec{z10}
+    \right)
+    
+    \vec{z2} = \vec{z20} + \frac{x-x0}{x1-x0} \cdot \left(\vec{z21}-\vec{z20}
+    \right)
+    
+Using the y value as second input dimension the corresponding z1 and z2 values
+are calculated, again using linear interpolation.
+
 .. _import_custom_characteristics_label:
 
 Import your own characteristics

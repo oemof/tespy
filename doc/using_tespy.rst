@@ -45,5 +45,7 @@ Additionally we provide basic examples in the :ref:`examples section <tespy_exam
 .. include:: using_tespy/subsystems.rst
 .. _using_tespy_connections_label:
 .. include:: using_tespy/connections.rst
+.. _using_tespy_characteristics_label:
+.. include:: using_tespy/characteristics.rst
 .. include:: using_tespy/fluid_properties.rst
 .. include:: using_tespy/other.rst

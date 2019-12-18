@@ -81,13 +81,13 @@ class turbomachine(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : Sring/float/tespy.helpers.dc_cp
+    P : String/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : Sring/float/tespy.helpers.dc_cp
+    eta_s : String/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : str/tespy.helpers.dc_cc
@@ -409,13 +409,13 @@ class compressor(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : Sring/float/tespy.helpers.dc_cp
+    P : String/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : Sring/float/tespy.helpers.dc_cp
+    eta_s : String/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : str/tespy.helpers.dc_cc
@@ -919,13 +919,13 @@ class pump(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : Sring/float/tespy.helpers.dc_cp
+    P : String/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : Sring/float/tespy.helpers.dc_cp
+    eta_s : String/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : str/tespy.helpers.dc_cc
@@ -1355,13 +1355,13 @@ class turbine(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : Sring/float/tespy.helpers.dc_cp
+    P : String/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : Sring/float/tespy.helpers.dc_cp
+    eta_s : String/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     eta_s_char : str/tespy.helpers.dc_cc

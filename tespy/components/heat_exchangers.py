@@ -89,10 +89,10 @@ class heat_exchanger_simple(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -109,7 +109,7 @@ class heat_exchanger_simple(component):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : String/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -843,10 +843,10 @@ class solar_collector(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -863,7 +863,7 @@ class solar_collector(heat_exchanger_simple):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : String/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -1186,13 +1186,13 @@ class heat_exchanger(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2148,13 +2148,13 @@ class condenser(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2513,13 +2513,13 @@ class desuperheater(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp

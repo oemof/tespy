@@ -4,6 +4,8 @@ from nose.tools import eq_
 
 from tespy.tools.characteristics import (char_line, compressor_map,
                                          load_default_char, load_custom_char)
+
+from tespy.tools.helpers import extend_basic_path
 import json
 import numpy as np
 import shutil

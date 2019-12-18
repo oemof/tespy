@@ -151,82 +151,86 @@ specified range.
     # benefit: specification of bounds will increase stability
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
                              min_val=0.1, max_val=0.3))
-
-REVIEW THE COMPONENT CHARACTERISTICS PART
       
 Component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Component characteristics are implemented for parameters in 
-:ref:`several components <component_characteristics_label>`.
+Several components integrate parameters using a characteristic function. These
+parameters come with default characteristics. As the user might not notice
+this, TESPy prompts warnings in the preprocessing, if the default
+characteristics are used. The default characteristics available can be found in
+the :py:mod:`data <tespy.data>` module. Of course, it is possible to specify
+your own characteristic functions.
 
 .. code-block:: python
 
     from tespy.components import heat_exchanger
     from tespy.tools import dc_cc
+    from tespy.tools.characteristics import load_default_char as ldc
+    from tespy.tools.characteristics import char_line
     import numpy as np
 
     he = heat_exchanger('evaporator')
 
-    # specify name of predefined method
-    he.set_attr(kA_char1='EVA_HOT')
-    he.set_attr(kA_char2='EVA_COLD')
+    # use a characteristic line from the defaults: specify the component, the
+    # parameter and the name of the characteristc function. Also, specify, what
+    # type of characteristic function you want to use.
+    kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
+    kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
+    he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2)
 
-    # specify data container (yields same result)
-    he.set_attr(kA_char1=dc_cc(method='EVA_HOT', param='m'))
+    # specification of a data container yields same result. It is aditionally
+    # possible to specify the characteristics parameter, mass flow in this case
+    # the specification parameters available are stated in the components 
+    # class documentation    
+    he.set_attr(kA_char1=dc_cc(param='m', func=kA_char1),
+                kA_char2=dc_cc(param='m', func=kA_char2))
 
-    # specify data container (custom interpolation points x and y)
+    # use custom specification parameters
     x = np.array([0, 0.5, 1, 2])
     y = np.array([0, 0.8, 1, 1.2])
-    he.set_attr(kA_char1=dc_cc(param='m', x=x, y=y))
-
-.. _component_characteristics_label:
-
-Component characteristics
--------------------------
+    kA_char1 = char_line(x, y)
+    he.set_attr(kA_char1=kA_char1)
 
 Characteristics are available for the following components and parameters:
 
 - pump
-    * :py:meth:`eta_s_char <tespy.components.components.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
-    * :py:meth:`flow_char <tespy.components.components.pump.flow_char_func>`: pressure rise vs. volumetric flow characteristic.
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.eta_s_char_func>`:
+       isentropic efficiency vs. volumetric flow rate.
+    * :py:meth:`flow_char <tespy.components.turbomachinery.pump.flow_char_func>`:
+      pressure rise vs. volumetric flow.
+- valve
+    * :py:meth:`dp_char <tespy.components.piping.valve.dp_char_func>`:
+       pressure drop vs. flow rate.
 - compressor
-    * :py:meth:`char_map <tespy.components.components.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
-    * :py:meth:`eta_s_char <tespy.components.components.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
+    * :py:meth:`char_map <tespy.components.turbomachinery.compressor.char_map_func>`:
+      component map for isentropic efficiency and pressure rise.
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.eta_s_char_func>`:
+      isentropic efficiency vs. pressure ratio.
 - turbine
-    * :py:meth:`eta_s_char <tespy.components.components.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
+    * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.eta_s_char_func>`:
+      isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
 - heat exchangers:
-    * :py:meth:`kA1_char, kA2_char <tespy.components.components.heat_exchanger.kA_func>`: heat transfer coefficient, various predefined types, mass flows as specification parameters.
+    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.kA_func>`:
+      heat transfer coefficient vs. mass flow.
 - simple heat exchangers
-    * :py:meth:`kA_char <tespy.components.components.heat_exchanger_simple.kA_func>`: e. g. pipe, see heat exchangers
-- cogeneration unit
-    * :py:meth:`tiP_char <tespy.components.components.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
-    * :py:meth:`Q1_char <tespy.components.components.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
-    * :py:meth:`Q2_char <tespy.components.components.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
-    * :py:meth:`Qloss_char <tespy.components.components.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
-
-You can specify the name of a default characteristic line or you define the whole data container for this parameter. The default characteristic lines can be found in the :py:mod:`documentation <tespy.components.characteristics>`.
-
-.. code-block:: python
-
-    from tespy.components import turbine, heat_exchanger
-    from tespy.tools import dc_cc
-
-    turb = turbine('turbine')
-    # method specification (default characteristic line "TRAUPEL")
-    turb.set_attr(eta_s_char='TRAUPEL')
-    # data container specification
-    turb.set_attr(eta_s_char=dc_cc(method='TRAUPEL', param='dh_s', x=None, y=None))
-
-    # defining a custom line (this line overrides the default characteristic line, method does not need to be specified)
-    x = np.array([0, 1, 2])
-    y = np.array([0.95, 1, 0.95])
-    turb.set_attr(eta_s_char=dc_cc(param='dh_s', x=x, y=y)
-
-    # heat exchanger analogously
-    he = heat_exchanger('evaporator')
-    he.set_attr(kA_char1='EVA_HOT')
-    he.set_attr(kA_char2='EVA_COLD')
+    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.kA_func>`:
+      heat transfer coefficient vs. mass flow.
+- combustion engine
+    * :py:meth:`tiP_char <tespy.components.combustion.cogeneration_unit.tiP_char_func>`:
+       thermal input vs. power ratio.
+    * :py:meth:`Q1_char <tespy.components.combustion.cogeneration_unit.Q1_char_func>`:
+       heat output 1 vs. power ratio.
+    * :py:meth:`Q2_char <tespy.components.combustion.cogeneration_unit.Q2_char_func>`:
+      heat output 2 vs. power ratio.
+    * :py:meth:`Qloss_char <tespy.components.combustion.cogeneration_unit.Qloss_char_func>`:
+      heat loss vs. power ratio.
+- water electrolyzer
+    * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`:
+       efficiency vs. load ratio.
+       
+For more information to how the characteristic functions work
+:ref:`click here <custom_characteristics_label>`.
 
 Custom components
 -----------------

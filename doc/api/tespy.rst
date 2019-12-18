@@ -7,6 +7,7 @@ Submodules
 .. toctree::
 
    tespy.components
+   tespy.data
    tespy.networks
    tespy.tools
 

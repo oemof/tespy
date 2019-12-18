@@ -2,7 +2,7 @@ First steps
 ===========
 
 In this section we provide you with a very simple example as firsts steps in
-using TESPy. The model used in this introduction is shown in figure 2. It
+using TESPy. The model used in this introduction is shown the figure. It
 consists of a central heating plant and a consumer, represented by a heat
 exchanger with a control valve.
 
@@ -23,7 +23,7 @@ the fluid properties jump to the
 .. code-block:: python
 
     from tespy.networks import network
-    
+
     # create a network object with water as fluid
     fluid_list = ['water']
     my_plant = network(fluids=fluid_list)
@@ -31,7 +31,7 @@ the fluid properties jump to the
 On top of that, it is possible to specify a unit system and value ranges for
 the networks variables. If you do not specify these, TESPy will use SI-units.
 The specification of the **value range** is used to **improve convergence**
-**stability**, in case you are dealing with **fluid mixtures**, e. g. using 
+**stability**, in case you are dealing with **fluid mixtures**, e. g. using
 combustion. We will thus only specify the unit systems, in this case.
 
 .. code-block:: python
@@ -60,10 +60,9 @@ exchanger. The definition of the parameters available can be found here:
 .. note::
 
 	Parameters for components are generally optional. Only the components label
-	and in case you want to use a stoichiometric combustion chamber, its fuel and
-	air composition are mandatory parameters to provide. If an optional parameter
-	is not specified by the user, it will be a result of the plants simulation.
-	This way, the set of equations a component returns is determined by which
+    is mandatory parameters to provide. If an optional parameter is not
+    specified by the user, it will be a result of the plants simulation. This
+    way, the set of equations a component returns is determined by which
 	parameters you specify. You can find all equations in the components
 	documentation as well.
 
@@ -117,12 +116,12 @@ way as parameters are set for components. The basic specification options are:
  * a fluid vector (fluid)
 
 .. note::
-    
-    There are more specification options available. Please refer to the
-	:ref:`connections section <using_tespy_connections_label>` in the TESPy
+
+    There are more specification options available. Please refer to
+    the :ref:`connections section <using_tespy_connections_label>` in the TESPy
     modules chapter for detailed information. The specification options are
-    stated in the connection's
-    :py:class:`class documentation <tespy.connections.connection>`, too.
+    stated in the
+    connection :py:class:`class documentation <tespy.connections.connection>`.
 
 In the example case, we just set inlet and outlet temperature of the system, as
 well as the inlet pressure. The pressure losses in the pipes, the consumer and
@@ -158,12 +157,6 @@ following line at the end of your script and off you go:
     my_plant.solve(mode='design')
     my_plant.print_results()
 
-For further examples, that go deeper into TESPy, jump to the
-:ref:`TESPy examples <tespy_examples_label>`.
-
-In order to get a good overview of the TESPy functionalities, the sections on
-the :ref:`TESPy modules <tespy_modules_label>` will guide you in detail.
-
 We highly recommend to check our step-by-step
 :ref:`tutorial <heat_pump_tutorial_label>` on how to set up a heat pump (see
 figure below) in TESPy. You will learn, how to set up and design a plant as
@@ -176,3 +169,6 @@ well as calculate offdesign/partload performance.
 
 Additional examples are provided in the
 :ref:`examples section <tespy_examples_label>`.
+
+In order to get a good overview of the TESPy functionalities, the sections on
+the :ref:`TESPy modules <tespy_modules_label>` will guide you in detail.

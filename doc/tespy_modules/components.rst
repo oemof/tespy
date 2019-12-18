@@ -162,6 +162,30 @@ characteristics are used. The default characteristics available can be found in
 the :py:mod:`data <tespy.data>` module. Of course, it is possible to specify
 your own characteristic functions.
 
+.. note::
+
+    **There are two different characteristics specifications**
+    
+    The characteristic function can be an auxiliary parameter of a different
+    component property. This is the case for :code:`kA_char1`
+    and :code:`kA_char2` of heat exchangers, :code:`kA_char` of simple
+    heat exchangers and pipes as well as the characteristics of a combustion
+    engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
+    and :code:`Qloss_char`.
+    
+    The characteristic function is an individual parameter of the component.
+    This is the case for all other components!
+    
+    **What does this mean?**
+    
+    For the auxiliary functionality the main parameter,
+    e. g. :code:`kA` of a heat exchanger must be set :code:`.kA.is_set=True`.
+    
+    For the other functionality the characteristics parameter must be
+    set e. g. :code:`.eta_s_char.is_set=True`.
+    
+For example, :code:`kA` specification for heat exchangers:
+
 .. code-block:: python
 
     from tespy.components import heat_exchanger
@@ -170,7 +194,7 @@ your own characteristic functions.
     from tespy.tools.characteristics import char_line
     import numpy as np
 
-    he = heat_exchanger('evaporator')
+    he = heat_exchanger('evaporator', kA=1e5)
 
     # use a characteristic line from the defaults: specify the component, the
     # parameter and the name of the characteristc function. Also, specify, what
@@ -191,6 +215,30 @@ your own characteristic functions.
     y = np.array([0, 0.8, 1, 1.2])
     kA_char1 = char_line(x, y)
     he.set_attr(kA_char1=kA_char1)
+    
+For example, :code:`eta_s_char` specification for a pump.
+
+.. code-block:: python
+
+    from tespy.components import pump
+    from tespy.tools import dc_cc
+    from tespy.tools.characteristics import load_default_char as ldc
+    from tespy.tools.characteristics import char_line
+    import numpy as np
+
+    pu = pump('pump')
+
+    # use a characteristic line from the defaults
+    # CAUTION: this example does only specify the function to follow
+    # the given default line. The parameter will not be used in a 
+    # simulation!
+    eta_s_char = ldc('pump', 'eta_s_char', 'DEFAULT', char_line)
+    pu.set_attr(eta_s_char=eta_s_char)
+    
+    # If we want to use the parameter in the simulation:
+    eta_s_char = dc_cc(func=ldc('pump', 'eta_s_char', 'DEFAULT', char_line),
+                       is_set=True)
+    pu.set_attr(eta_s_char=eta_s_char)
 
 Characteristics are available for the following components and parameters:
 

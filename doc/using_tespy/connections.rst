@@ -32,7 +32,7 @@ In order to create the connections we create the components to connect first.
     from tespy.tools import dc_prop
     from tespy.connections import connection, ref
     from tespy.components import sink, source
-    
+
     # create components
     source1 = source('source 1')
     source2 = source('source 2')
@@ -42,25 +42,31 @@ In order to create the connections we create the components to connect first.
     # creat connections
     myconn = connection(source1, 'out1', sink1, 'in1')
     myotherconn = connection(source2, 'out1', sink2, 'in1')
-    
-    # set pressure and vapour mass fraction by value, temperature and enthalpy analogously
+
+    # set pressure and vapour mass fraction by value, temperature and enthalpy
+    # analogously
     myconn.set_attr(p=7, x=0.5)
 
-    # set starting values for mass flow, pressure and enthalpy (has no effect on temperature and vapour mass fraction!)
+    # set starting values for mass flow, pressure and enthalpy (has no effect
+    # on temperature and vapour mass fraction!)
     myconn.set_attr(m0=10, p0=15, h0=100)
 
     # do the same with a data container
-    myconn.set_attr(p=dc_prop(val=7, val_set=True), x=dc_prop(val=0.5, val_set=True))
-    myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15), h=dc_prop(val0=100))
+    myconn.set_attr(p=dc_prop(val=7, val_set=True),
+                    x=dc_prop(val=0.5, val_set=True))
+    myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15),
+                    h=dc_prop(val0=100))
 
     # specify a value in a different unit for a specific parameter
     myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
 
-    # specify a referenced value: pressure of myconn is 1.2 times pressure at myotherconn minus 5 Pa (always SI unit here)
+    # specify a referenced value: pressure of myconn is 1.2 times pressure at
+    # myotherconn minus 5 Pa (always SI unit here)
     myconn.set_attr(p=ref(myotherconn, 1.2, -5))
 
     # specify value and reference at the same time
-    myconn.set_attr(p=dc_prop(val=7, val_set=True, ref=ref(myotherconn, 1.2, -5), ref_set=True))
+    myconn.set_attr(p=dc_prop(val=7, val_set=True,
+                    ref=ref(myotherconn, 1.2, -5), ref_set=True))
 
     # unset value and reference
     myconn.set_attr(p=np.nan)
@@ -75,7 +81,8 @@ If you want to specify the fluid vector you can do it in the following way:
     # set both elements of the fluid vector
     myconn.set_attr(fluid={'water': 1, 'air': 0})
     # same thing, but using data container
-    myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0}, val_set:{'water': True, 'air': True}))
+    myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0},
+                    val_set:{'water': True, 'air': True}))
 
     # set starting values
     myconn.set_attr(fluid0={'water': 1, 'air': 0})
@@ -93,61 +100,112 @@ References can not be used for fluid composition at the moment!
 Busses
 ------
 
-Busses can be used to add up the power of different turbomachinery or to add up heat flow of different heat exchangers within your network.
-The handling is very similar to connections and components. You need to add components to your busses as a dictionary containing at least the instance of your component.
-Additionally you may provide a characteristic line, linking the ratio of actual heat flow/power to referenced heat flow/power to a factor the actual heat flow/power of the component is multiplied with on the bus.
-For instance, you can provide a characteristic line of an electrical generator or motor for a variable conversion efficiency. The referenced value (P_ref) is retrieved by the design point of your system.
-Offdesign calculations use the referenced value from your system design point for the characteristic line. In design case, the heat flow/power ratio thus will be equal to 1.
+Busses are energy flow connectors. You can sum the energy flow of different
+components and create relations between components regarding mass free energy
+transport.
+
+Different use-cases for busses could be:
+
+- Easy post-processing.
+- Introduce motor or generator efficiencies.
+- Create relations of different components.
+
+The handling of busses is very similar to connections and components. You need
+to add components to your busses as a dictionary containing at least the
+instance of your component. Additionally you may provide a characteristic line,
+linking the ratio of actual value to referenced value (design case value) to a
+factor the actual value of the component is multiplied with on the bus. For
+instance, you can provide a characteristic line of an electrical generator or
+motor for a variable conversion efficiency. The referenced value is retrieved
+by the design point of your system. Offdesign calculations use the referenced
+value from your system's design point for the characteristic line. In design
+case, the ratio will always be 1.
 
 .. note::
-    The available keywords for the dictionary are
 
-    - 'c' for the component instance,
-    - 'p' for the parameter (the cogeneration unit has various parameters, have a look at the :ref:`cogeneration unit example <cogeneration_unit_label>`),
-    - 'P_ref' for the reference heat flow/power value of the component and
+    The available keywords for the dictionary are
+    - 'c' for the component instance.
+    - 'p' for the parameter (the combustion engine has various parameters,
+      have a look at the
+      :ref:`combustion engine example <combustion_engine_label>`).
+    - 'P_ref' for the reference value of the component.
     - 'char' for the characteristic line.
 
     There are different specification possibilites:
+    - If you specify the component only, the parameter will be default
+      (not working with cogeneration unit) and the conversion factor of the
+      characteristic line will be 1 for every load.
+    - If you specify a numeric value for char, the conversion factor will be
+      equal to that value for every load.
+    - If you want to specify a characteristic line, provide a
+      :py:class:` <tespy.components.characteristics.char_line>` object.
 
-    - If you specify the component only, the parameter will be default (not working with cogeneration unit) and the conversion factor of the characteristic line will be 1 for every load.
-    - If you specify a numeric value for char, the conversion factor will be that value for every load.
-    - If you want to specify a characteristic line, you need to provide a :py:class:`TESPy characteristics <tespy.components.characteristics.characteristics>` object.
+The examples below shows the implementation of busses in your TESPy simulation.
 
-This can be used for easy post processing, e. g. to calculate thermal efficiency or you can build up relations between components in your network.
-If you want to use the busses for postprocessing only, you must not specify the sum of the power or heat flow on your bus.
-If you set a value for P (equal parameter for heat flow or power), an additional equation will be added to your network. This way the total heat flow/power of the bus will equal to the specified value.
-This could be useful, e. g. for establishing relations between different components, for instance when using a steam turbine powered feed water pump.
-In the code example the power of the turbine and the feed water pump is added up and set to zero, as the turbines and feed water pumps power have to be equal in absolute value but have different sign.
-The sign can be manipulated, e. g. in order to design two turbines with equal power output.
-Do not forget to add the busses to you network.
+Create a pump that is powered by a turbine. The turbine's power output must
+therefore be equal to the pump's power consumption.
 
 .. code-block:: python
 
     from tespy.networks import network
+    from tespy.components import pump, turbine, combustion_engine
     from tespy.connections import bus
-    from tespy.characteristics import characteristics
 
-    ...
-
-    fwp_bus = bus('feed water pump', P=0) # set a value for the total power on this bus.
+    # the total power on this bus must be zero
+    # this way we can make sure the power of the turbine has the same value as
+    # the pump's power but with negative sign
+    fwp_bus = bus('feed water pump bus', P=0)
     fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
+    my_network.add_busses(fwp_bus)
 
-    turbine_bus = bus('turbines', P=0) # set a value for the total power on this bus
-    turbine_bus.add_comps({'c': turbine_hp}, {'c': turbine_hp, 'char': -1})
-    # the values for the busses power can be altered by using .set_attr()
+Create two turbines which have the same power output.
 
-    power = con.bus('power output') # bus for postprocessing, no power (or heat flow) specified but with variable conversion efficiency
+.. code:: python
+
+    # the total power on this bus must be zero, too
+    # we make sure the two turbines yield the same power output by adding the char
+    # parameter for the second turbine and using -1 as char
+    turbine_bus = bus('turbines', P=0)
+    turbine_bus.add_comps({'c': turbine_1}, {'c': turbine_2, 'char': -1})
+    my_network.add_busses(turbine_bus)
+
+Create a bus for post-processing purpose only. Include a characteristic line
+of a generator.
+
+.. code:: python
+
+    # bus for postprocessing, no power (or heat flow) specified but with variable
+    # conversion efficiency
+    power_bus = bus('power output')
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-    gen = characteristics(x=x, y=y) # characteristic line for a generator
-    power.add_comps({'c': turbine_hp, 'char': gen}, {'c': turbine_lp, 'char': gen})
+    # createa characteristic line for a generator
+    gen1 = char_line(x=x, y=y)
+    gen2 = char_line(x=x, y=y)
+    power.add_comps({'c': turbine_hp, 'char': gen1}, {'c': turbine_lp, 'char': gen2})
+    my_network.add_busses(power_bus)
 
-    chp = bus('chp power') # bus for cogeneration unit power
-    chp.add_comps({'c': cog_unit, 'p': 'P', 'char': gen})
+Create a bus for the electrical power output of a combustion engine. Use a
+generator for power conversion an specify the total power output.
 
-    my_network.add_busses(fwp_bus, turbine_bus, power)
-    
+.. code:: python
+
+    # bus for cogeneration unit power
+    x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
+    y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+    # createa characteristic line for a generator
+    gen = char_line(x=x, y=y)
+    el_power_bus = bus('combustion engine power', P=10e6)
+    el_power_bus.add_comps({'c': comb_engine, 'p': 'P', 'char': gen})
+
+
 .. note::
 
-    The x-values of the characteristic line represent the relative load of the component: actual value of the bus divided by the reference/design point value.
-    In design-calculations the x-value used in the function evaluation will always be at 1.
+    The x-values of the characteristic line represent the relative load of the
+    component: actual value of the bus divided by the reference/design point
+    value. In design-calculations the x-value used in the function evaluation
+    will always be at 1.
+
+As mentioned in the component section: If you want to learn more about the
+usage of characteristic funcitons in TESPy have a look at
+:ref:`this part <using_tespy_characteristics_label>`.

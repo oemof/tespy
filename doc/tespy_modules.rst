@@ -4,39 +4,25 @@
 The TESPy modules
 ~~~~~~~~~~~~~~~~~
 
-TESPy provides a simulation package for component based thermal engineering
-containing the most important components of such plants. As reference
-literature, the following books can be recommended:
+The following sections give a detailed overview on the modules of TESPy. This
+includes all important settings of networks, components and connections as well
+as the underlying functionalities of the software.
 
- * Leopold Böswirth, Sabine Bschorer, Thomas Buck: Technische Strömungslehre,
-   Wiesbaden, 2012. (german)
- * Hans Dieter Baehr, Stephan Kabelac: Thermodynamik, Berlin, 2016. (german)
-
-In the introduction you will learn the basics of modelling component based
-plants in TESPy. We then give an overview on the main TESPy modules, which will
-be demonstrated on a very simple example:
-
- * tespy.networks,
- * tespy.components,
- * tespy.connections,
- * tespy.network_reader and
- * tespy.tools.
-
-At the end of this page we give a brief overview how TESPy handles fluid
-properties.
+At the end of this page, we provide an example on how to couple energy system
+simulation with TESPy.
 
 .. contents:: `Contents`
     :depth: 1
     :local:
     :backlinks: top
 
-.. include:: using_tespy/networks.rst
+.. include:: tespy_modules/networks.rst
 .. _using_tespy_components_label:
-.. include:: using_tespy/components.rst
-.. include:: using_tespy/subsystems.rst
+.. include:: tespy_modules/components.rst
+.. include:: tespy_modules/subsystems.rst
 .. _using_tespy_connections_label:
-.. include:: using_tespy/connections.rst
+.. include:: tespy_modules/connections.rst
 .. _using_tespy_characteristics_label:
-.. include:: using_tespy/characteristics.rst
-.. include:: using_tespy/fluid_properties.rst
-.. include:: using_tespy/other.rst
+.. include:: tespy_modules/characteristics.rst
+.. include:: tespy_modules/fluid_properties.rst
+.. include:: tespy_modules/other.rst

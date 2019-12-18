@@ -11,6 +11,8 @@ New Features
 - Added optical efficiency to the "solar_collector". The incoming radiation E no longer represents 
   the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
 - Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- It is possible to place custom characteristic lines and maps in the :code:`HOME/.tespy/data` folder and import these
+  for your TESPy scripts. For an example see below (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
 
 Documentation
 #############

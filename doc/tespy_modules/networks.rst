@@ -512,10 +512,31 @@ Postprocessing
 A postprocessing is performed automatically after the calculation finished. You
 have two further options:
 
- * print the results to prompt (:code:`nw.print_results()`) and
- * save the results in a .csv-file (:code:`nw.save('savename')`).
+ * print the results to prompt (:code:`myplant.print_results()`) and
+ * save the results in a .csv-file (:code:`myplant.save('savename')`).
 
-Printing the results prints out the component, connection and bus properties.
+The :code:`print_results()` method will print out component, connection and bus
+properties. If you want to prevent the printout of components, connections or 
+busses, you can specify the :code:`printout` parameter:
+
+.. code-block:: python
+
+    mycomp.set_attr(printout=False)
+    myconn.set_attr(printout=False)
+    mybus.set_attr(printout=False)
+    
+If you want to prevent all printouts of a subsystem, add something like this:
+
+.. code-block:: python
+
+    # connections
+    for c in mysubsystem.conns.values():
+        c.set_attr(printout=False)
+        
+    # components
+    for c in mysubsystem.comps.values():
+        c.set_attr(printout=False)
+
 If you choose to save your results the specified folder will be created
 containing information about the network, all connections, busses, components
 and characteristics.
@@ -547,7 +568,7 @@ the network first.
 
 .. code:: python
 
-    nw.save('mynetwork')
+    myplant.save('mynetwork')
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,
@@ -561,15 +582,15 @@ created network.
 .. code:: python
 
     from tespy.networks import load_network
-    nw = load_network('path/to/mynetwork')
-    nw.solve('design')
+    imported_plant = load_network('path/to/mynetwork')
+    imported_plant.solve('design')
 
 .. note::
 
     - Imported connections are accessible by the connections' source and source
       id as well as target and target id following this principle:
-      :code:`nw.imp_conns['source-component-label:source-id_target-component-label:source-id']`,
-      e. g. :code:`nw.imp_conns['condenser:out1_condensate pump:in1']`.
+      :code:`imported_plant.imp_conns['source-component-label:source-id_target-component-label:source-id']`,
+      e. g. :code:`imported_plant.imp_conns['condenser:out1_condensate pump:in1']`.
     - Imported components and busses are accessible by their label, e. g.
-      :code:`nw.imp_comps['condenser']` and
-      :code:`nw.imp_busses['total heat output']` respectively.
+      :code:`imported_plant.imp_comps['condenser']` and
+      :code:`imported_plant.imp_busses['total heat output']` respectively.

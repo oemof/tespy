@@ -40,8 +40,6 @@ calculation.
 
 .. code-block:: python
 
-# %% network
-
     from tespy.networks import network
 
     # define full fluid list for the network's variable space
@@ -57,10 +55,7 @@ components and add the connections to your network afterwards.
 
 .. code-block:: python
 
-    # %% components
-
     from tespy.components import sink, source, combustion_chamber
-    from tespy.connections import connection
 
     # sinks & sources
     amb = source('ambient')
@@ -70,7 +65,9 @@ components and add the connections to your network afterwards.
     # combustion chamber
     comb=combustion_chamber(label='combustion chamber')
 
-    # %% connections
+.. code-block:: python
+
+    from tespy.connections import connection
 
     amb_comb = connection(amb, 'out1', comb, 'in1')
     sf_comb = connection(sf, 'out1', comb, 'in2')
@@ -84,8 +81,6 @@ stoichmetric air ratio lamb and the thermal input
 
 .. code-block:: python
 
-    # %% component parameters
-
     # set combustion chamber air to stoichometric air ratio and thermal input
     comb.set_attr(lamb=3, ti=2e6)
 	
@@ -94,8 +89,6 @@ the next step. The air and the fuel gas composition must fully be stated, the
 component combustion chamber can not handle "Air" as input fluid!
 
 .. code-block:: python
-
-    # %% connection parameters
 
     # air from abient (ambient pressure and temperature), air composition must
     # be stated component wise.
@@ -110,8 +103,6 @@ component combustion chamber can not handle "Air" as input fluid!
 Finally run the code:
 
 .. code-block:: python
-
-    # %% solving
 
     nw.solve('design')
     nw.print_results()

@@ -66,13 +66,15 @@ available options are documented in the
 :py:func:`API <tespy.tools.logger.define_logging>`.
 
 Prior to solving the network there are options regarding the **console**
-printouts for the calculation progress**. Specify, if you want to enable or
+**printouts for the calculation progress**. Specify, if you want to enable or
 disable convergence progress printouts:
 
 .. code-block:: python
 
-    myplant.set_attr(iterinfo=False)	# disable iteration information printout
-    myplant.set_attr(iterinfo=True)		# enable iteration information printout
+    # disable iteration information printout
+    myplant.set_attr(iterinfo=False)
+    # enable iteration information printout
+    myplant.set_attr(iterinfo=True)
 
 Adding connections
 ++++++++++++++++++
@@ -137,7 +139,7 @@ choose :code:`offdesign` as calculation mode the specification of a
 
 The usage of an initialisation path is always optional but highly recommended,
 as the convergence of the solution process will be improved, if you provide
-good starting values. If do not specify an :code:`init_path`, the
+good starting values. If you do not specify an :code:`init_path`, the
 initialisation from priorly saved results will be skipped.
 :code:`init_only=True` usually is used for debugging. Or, you could use this
 feature to export a not solved network, if you want to do the parametrisation
@@ -148,7 +150,7 @@ Design mode
 
 The design mode is used to design your system and is always the first
 calculation of your plant. **The offdesign calculation is always based on a**
-design calculation!**. Obviously as you are designing the plant the way you
+**design calculation!**. Obviously as you are designing the plant the way you
 want, you are flexible to choose the parameters to specify. However, you can
 not specify parameters that are based on a design case, as for example the
 isentropic efficiency characteristic function of a turbine or a pump.
@@ -162,7 +164,7 @@ The offdesign mode is used to **calulate the performance of your plant, if**
 operation, operation at different temperature or pressure levels etc.. Thus,
 before starting an offdesing calculation you have to design your plant first.
 By stating :code:`'offdesign'` as calculation mode, **components and**
-**connections will switch to the offdesign mode.**This means that all
+**connections will switch to the offdesign mode.** This means that all
 parameters provided as design parameters will be unset and all parameters
 provided as offdesign parameters will be set instead. You can specify a
 connection's or component's (off-)design parameters using the set_attr method.
@@ -188,8 +190,8 @@ with zeta values.
     is calculated as function of the actual mass flow to design mass flow
     ratio. You can provide your own (measured) data or use the already existing
     data from TESPy. All standard characteristic functions are available at
-    :py:class:`tespy.tools.characteristics.characteristics`. How to specify own
-    data and all available characteristic functions are provided in
+    :py:mod:`tespy.data`. How to specify own data and all available
+    characteristic functions are provided in
     :ref:`this section <component_characteristics_label>`.
 
 For connections it works in the same way, e. g. write
@@ -257,7 +259,7 @@ your network's design point information using:
 
     myplant.save('path/for/export')
 
-The finding of starting values for you calculations starts with the fluid
+Starting value generation for your calculations starts with the fluid
 propagation. **The fluid propagation is a very important step in the**
 **initialisation.** Often, you will specify the fluid at one point of the
 network only, all other connections are missing an initial information on the
@@ -391,16 +393,17 @@ applied:
  * Check, wheather the fluid properties of pure fluids are within the available
    ranges of CoolProp and readjust the values if not.
 
-The next two steps are applied, if the user did not specify an init_path and
-the iteration count is lower than 3, thus in the first three iteration steps of
-the algorithm only. In other cases this convergence check is skipped.
+The next two steps are applied, if the user did not specify an
+:code:`init_path` and the iteration count is lower than 3, thus in the first
+three iteration steps of the algorithm only. In other cases this convergence
+check is skipped.
 
  * Fox mixtures: check, if the fluid properties (pressure, enthalpy and
    temperature)
    are within the user specified boundaries (:code:`p_range, h_range, T_range`)
    and if not, cut off higher/lower values.
  * Check the fluid properties of the connections based on the components they
-   are connecting.E. g. check if the pressure at the outlet of a turbine is
+   are connecting. E. g. check if the pressure at the outlet of a turbine is
    lower than the pressure at the inlet or if the flue gas composition at a
    combustion chamber's outlet is within the range of a "typical" flue gas
    composition. If there are any violations, the corresponding variables are
@@ -483,8 +486,7 @@ terminal temperature differences at heat exchangers, etc.. In this case,
 **fluid state is not within the two-phase region:** The specification of
 temperature and pressure in a two-phase region does not yield a distict value
 for the enthalpy. Even if this specific case appears after some iterations,
-better starting values often do the trick. Also consider reading
-:ref:`this <using_tespy_convergence_check_label>`.
+better starting values often do the trick.
 
 Another frequent error is that fluid properties move out of the bounds given by
 the fluid property database. The calculation will stop immediately.
@@ -525,16 +527,16 @@ For the components this is the way to go
 
 .. code:: python
 
-    eff = mycomp.eta_s.val	# isentropic efficiency of mycomp
+    eff = mycomp.eta_s.val  # isentropic efficiency of mycomp
     P = mycomp.P.val
 
 Use this code for connection parameters:
 
 .. code:: python
 
-    mass_flow = myconn.m.val 					# value in specified network unit
-    mass_flow_SI = myconn.m.val_SI				# value in SI unit
-    mass_fraction_oxy = myconn.fluid.val['O2']	# mass fraction of oxygen
+    mass_flow = myconn.m.val  # value in specified network unit
+    mass_flow_SI = myconn.m.val_SI  # value in SI unit
+    mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
 
 TESPy network reader
 ====================
@@ -567,7 +569,7 @@ created network.
     - Imported connections are accessible by the connections' source and source
       id as well as target and target id following this principle:
       :code:`nw.imp_conns['source-component-label:source-id_target-component-label:source-id']`,
-       e. g. :code:`nw.imp_conns['condenser:out1_condensate pump:in1']`.
+      e. g. :code:`nw.imp_conns['condenser:out1_condensate pump:in1']`.
     - Imported components and busses are accessible by their label, e. g.
       :code:`nw.imp_comps['condenser']` and
       :code:`nw.imp_busses['total heat output']` respectively.

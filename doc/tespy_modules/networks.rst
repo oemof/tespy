@@ -1,7 +1,7 @@
 .. _using_tespy_networks_label:
 
-TESPy networks
-==============
+Networks
+========
 
 The network class handles preprocessing, solving and postprocessing.
 We will walk you through all the important steps.

@@ -1,5 +1,5 @@
-TESPy connections
-=================
+Connections
+===========
 
 This section provides an overview of the parametrisation of connections, the
 usage of references and busses (connections for energy flow).

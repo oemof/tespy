@@ -1,8 +1,8 @@
 .. _tespy_modules_label:
 
-~~~~~~~~~~~~~~~~~
-The TESPy modules
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+TESPy modules
+~~~~~~~~~~~~~
 
 The following sections give a detailed overview on the modules of TESPy. This
 includes all important settings of networks, components and connections as well

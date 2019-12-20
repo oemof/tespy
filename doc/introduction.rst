@@ -1,8 +1,8 @@
 .. _tespy_label:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-About TESPy - Thermal Engineering Systems in Python
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+About TESPy
+~~~~~~~~~~~
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as power

@@ -1,5 +1,5 @@
-TESPy characteristics
-=====================
+Characteristics
+===============
 
 In this part we give an introduction on the TESPy characteritics
 implementation. There two different types of characteristics available in

@@ -1,7 +1,7 @@
 .. _tespy_fluid_properties_label:
 
-Fluid properties in TESPy
-=========================
+Fluid properties
+================
 
 The basic fluid properties are handled by `CoolProp <http://www.coolprop.org/>`_. All available fluids can be found on their homepage.
 

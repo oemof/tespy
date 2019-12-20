@@ -1,5 +1,5 @@
-TESPy components
-================
+Components
+==========
 
 In this section we will introduce you into the details of component
 parametrisation and component characteristics. At the end of the section we

@@ -89,9 +89,6 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str/tespy.helpers.dc_simple
-        Fuel for the combustion chamber, see list of available fluids above.
-
     lamb : float/tespy.helpers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
@@ -157,10 +154,9 @@ class combustion_chamber(component):
         return 'combustion chamber'
 
     def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -1999,9 +1995,6 @@ class combustion_engine(combustion_chamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str
-        Fuel for the combustion chamber, see list of available fluids above.
-
     lamb : float/tespy.helpers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
@@ -2127,8 +2120,7 @@ class combustion_engine(combustion_chamber):
         return 'combustion engine'
 
     def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'P': dc_cp(val=1e6, d=1, min_val=1),
                 'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),

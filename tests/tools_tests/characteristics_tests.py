@@ -35,6 +35,8 @@ class characteristics_tests:
                                           'EVAPORATING FLUID', char_line)
         char_custom = load_custom_char('EVAPORATING FLUID', char_line)
 
+        shutil.rmtree(self.path, ignore_errors=True)
+
         x_cond = np.array_equal(char_original.x, char_custom.x)
         y_cond = np.array_equal(char_original.y, char_custom.y)
 
@@ -70,6 +72,8 @@ class characteristics_tests:
         y_cond = np.array_equal(char_original.y, char_custom.y)
         z1_cond = np.array_equal(char_original.z1, char_custom.z1)
         z2_cond = np.array_equal(char_original.z2, char_custom.z2)
+
+        shutil.rmtree(self.path, ignore_errors=True)
 
         msg = ('The x values from the custom characteristic line ' +
                str(char_custom.x) + ' must be identical to the x values from '

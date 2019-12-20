@@ -206,6 +206,6 @@ generator for power conversion an specify the total power output.
     value. In design-calculations the x-value used in the function evaluation
     will always be at 1.
 
-As mentioned in the component section: If you want to learn more about the
-usage of characteristic funcitons in TESPy have a look at
-:ref:`this part <using_tespy_characteristics_label>`.
+As mentioned in the component section: It is also possible to import your
+custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
+about this :ref:`here <using_tespy_characteristics_label>`.

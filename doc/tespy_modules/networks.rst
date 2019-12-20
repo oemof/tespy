@@ -559,8 +559,8 @@ Use this code for connection parameters:
     mass_flow_SI = myconn.m.val_SI  # value in SI unit
     mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
 
-TESPy network reader
-====================
+Network reader
+==============
 
 The network reader is a useful tool to import networks from a datastructure
 using .csv-files. In order to reimport an exported TESPy network, you must save

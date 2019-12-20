@@ -239,7 +239,21 @@ For example, :code:`eta_s_char` specification for a pump.
     eta_s_char = dc_cc(func=ldc('pump', 'eta_s_char', 'DEFAULT', char_line),
                        is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
+    
+Instead of writing your custom characteristic line information directly into
+your Python script, TESPy provides a second method of implementation: It is
+possible to store your data in the :code:`HOME/.tespy/data` folder and import
+from there. For additional information on formatting and usage, look into
+:ref:`this part <using_tespy_characteristics_label>`.
 
+.. code-block:: python
+
+    from tespy.tools.characteristics import load_custom_char as lcc
+    
+    eta_s_char = dc_cc(func=lcc('my_custom_char', char_line), is_set=True)
+    pu.set_attr(eta_s_char=eta_s_char)
+        
+    
 Characteristics are available for the following components and parameters:
 
 - combustion engine

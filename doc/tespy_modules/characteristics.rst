@@ -66,9 +66,10 @@ writing the x, y (z1 and z2) data into your python script, for example:
     gen_char = load_custom_char('generator', char_line)
 
 
-For the imports to work in the way shown, go to your .tespy folder in your HOME
-directory. Create a folder named :code:`data`, if it does not exist. In this
-folder, you can place two json-files for your characteristics.
+For the imports to work in the way shown, navigate to your .tespy folder in
+your HOME directory :code:`HOME/.tespy`. Create a folder named :code:`data`, if
+it does not exist. In this folder, you can place two json-files for your
+characteristics.
 
 - :code:`char_lines.json`
 - :code:`char_maps.json`

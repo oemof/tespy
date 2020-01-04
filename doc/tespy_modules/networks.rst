@@ -107,7 +107,7 @@ generators, too. Add them to your network with the following method:
     myplant.add_busses()
 
 You will learn more about busses and how they work in
-:ref:`this part<tespy_busses_label>`.
+:ref:`this part <tespy_busses_label>`.
 
 Start calculation
 ^^^^^^^^^^^^^^^^^

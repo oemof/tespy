@@ -478,7 +478,7 @@ class network:
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
-            for c in subsys.conns:
+            for c in subsys.conns.values():
                 self.add_conns(c)
 
     def add_nwks(self, *args):

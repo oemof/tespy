@@ -3,48 +3,48 @@
 Subsystems and component groups
 ===============================
 
-Usage
------
-
-REWORK USAGE PART 
-
 Subsystems are an easy way to add frequently used component groups such as a
-drum with evaporator or a preheater with desuperheater to your system. You can
-:ref:`create a subsytem yourself <tespy_subsystems_label>`. Every subsystem
-should have two interfaces, an inlet interface and an outlet interface. These
-interfaces have a variable number of connections, which can be connected with
-the rest of your network.
+drum with evaporator or a preheater with desuperheater to your system. In this
+section you will learn how to create a subsystem and implement it in your work.
+The subsystems are highly customizable and thus a very powerful tool, if you
+require to use specific component groups frequently. We provide an example, of
+how to create a simple subsystem and use it in a simulation.
 
 Custom subsystems
 -----------------
 
-You can use subsystems in order to represent groups of different components.
-These are highly customizable and thus a very powerful tool, if you require to
-use specific component groups frequently. You will learn how to create your own
-subsystems. Create a .py file in your working-directory with the
-class-definition of your custom subsystem. This includes the following
-methods:
+Create a :code:`.py` file in your working-directory. This file contains the
+class definition of your subsystem and at minimum two methods:
 
-- :code:`__init__`: Initialisation of subsystem object. Do not override this
-  method, if you do not need additional input parameters regarding the 
-  subsystem's topology. However, if you need additional parameters, e. g. the
-  number of components in a subsystem should be determined on creation, take 
-  the standard :code:`__init__` method and add your code between the label 
-  declaration and the components and connection creation.
-- :code:`create_comps`: Create the components of your subsystem and save them
-  in the :code:`subsystem.comps` attribute (dictionary).
-- :code:`create_conns`: Create the connections of your subsystem and save them
-  in the :code:`subsystem.conns` attribute (dictionary).
+- :code:`create_comps`: Method to create the components of your subsystem and
+  save them in the :code:`subsystem.comps` attribute (dictionary).
+- :code:`create_conns`: Method to create the connections of your subsystem and
+  save them in the :code:`subsystem.conns` attribute (dictionary).
 
-Example: Waste heat steam generator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+All other functionalities are inherited by the parent class of the
+:py:class:`subsystem <tespy.components.subsystems.subsystem>` object.
 
-The following section shows, how the different functions of a subsystem can be
-defined. We create a waste heat steam generator containing a superheater, an
-evaporator and a drum as well as an economizer.
+Example
+-------
 
-Start the file with the following lines (or add your class in at the end of the
-:py:mod:`subsystems module<tespy.components.subsystems>`.
+Create the subsystem
+^^^^^^^^^^^^^^^^^^^^
+
+We create a subsystem for the usage of a waste heat steam generator. The
+subsystem is built up of a superheater, an evaporator, a drum and an economizer
+as seen in the figure below.
+
+.. figure:: api/_images/subsystem_waste_heat_generator.svg
+    :align: center
+
+    Figure: Topology of the waste heat steam generator.
+
+Create a file, e. g. :code:`mysubsystems.py` and add the following lines:
+- Imports of the necessary classes from tespy.
+- Class definition of the subsystem (inheriting from subsystem class).
+- Methods for component and connection creation. Both, components and
+  connections, are stored in a dictionary for easy access by their respective
+  label.
 
 .. code-block:: python
 
@@ -52,33 +52,56 @@ Start the file with the following lines (or add your class in at the end of the
     from tespy.connections import connection
 
     class waste_heat_steam_generator(subsystem):
-		"""Class documentation"""
-		
-		def create_comps(self):
-			"""Method documentation"""
-			self.comps['eco'] = heat_exchanger('economizer')
-			self.comps['eva'] = heat_exchanger('evaporator')
-			self.comps['sup'] = heat_exchanger('superheater')
-			self.comps['drum'] = drum('drum')
-		
-		def create_conns(self):
-			"""Method documentation"""
-			self.conns['eco_dr'] = connection(self.comps['eco'], 'out2',
-			                                  self.comps['drum'], 'in1')
-			self.conns['dr_eva'] = connection(self.comps['drum'], 'out1',
-			                                  self.comps['eva'], 'in2')
-			self.conns['eva_dr'] = connection(self.comps['eva'], 'out2',
-			                                  self.comps['drum'], 'in2')
-			self.conns['dr_sup'] = connection(self.comps['drum'], 'out2',
-			                                  self.comps['sup'], 'in2')
-			self.conns['sup_eva'] = connection(self.comps['sup'], 'out1',
-			                                   self.comps['eva'], 'in1')
-			self.conns['eva_eco'] = connection(self.comps['eva'], 'out1',
-			                                   self.comps['eco'], 'in1')
+        """Class documentation"""
+
+        def create_comps(self):
+            """Create the subsystem's components."""
+            self.comps['eco'] = heat_exchanger('economizer')
+            self.comps['eva'] = heat_exchanger('evaporator')
+            self.comps['sup'] = heat_exchanger('superheater')
+            self.comps['drum'] = drum('drum')
+
+        def create_conns(self):
+            """Define the subsystem's connections."""
+            self.conns['eco_dr'] = connection(self.comps['eco'], 'out2',
+                                              self.comps['drum'], 'in1')
+            self.conns['dr_eva'] = connection(self.comps['drum'], 'out1',
+                                              self.comps['eva'], 'in2')
+            self.conns['eva_dr'] = connection(self.comps['eva'], 'out2',
+                                              self.comps['drum'], 'in2')
+            self.conns['dr_sup'] = connection(self.comps['drum'], 'out2',
+                                              self.comps['sup'], 'in2')
+            self.conns['sup_eva'] = connection(self.comps['sup'], 'out1',
+                                               self.comps['eva'], 'in1')
+            self.conns['eva_eco'] = connection(self.comps['eva'], 'out1',
+                                               self.comps['eco'], 'in1')
+
+Import your subsystem
+^^^^^^^^^^^^^^^^^^^^^
+
+In a different script, we create a network and import the subsystem we just
+created along with the different tespy classes required. The location of the
+:code:`mysubsystems.py` file must be known by your python installation or lie
+within the same folder as your script.
+
+.. code-block:: python
+
+    from tespy.components import source, sink
+    from tespy.connections import connection
+    from tespy.networks import network
+    
+    from mysubsystems import waste_heat_steam_generator as whsg
 
 
 Add more felxibility
-^^^^^^^^^^^^^^^^^^^^
+--------------------
+
+- :code:`__init__`: Initialisation of subsystem object. Do not override this
+  method, if you do not need additional input parameters regarding the
+  subsystem's topology. However, if you need additional parameters, e. g. the
+  number of components in a subsystem should be determined on creation, take
+  the standard :code:`__init__` method and add your code between the label
+  declaration and the components and connection creation.
 
 If you want to add even more flexibility, you might need to manipulate the
 :code:`__init__()` method. For example, if you want a variable number of inlets

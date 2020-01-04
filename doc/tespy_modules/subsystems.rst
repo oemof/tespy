@@ -86,11 +86,70 @@ within the same folder as your script.
 
 .. code-block:: python
 
+    from tespy.networks import network
     from tespy.components import source, sink
     from tespy.connections import connection
-    from tespy.networks import network
-    
+    import numpy as np
+
     from mysubsystems import waste_heat_steam_generator as whsg
+
+    # %% network definition
+
+    fluid_list = ['air', 'water']
+    nw = network(fluid_list, p_unit='bar', T_unit='C')
+
+    # %% component definition
+
+    feed_water = source('feed water inlet')
+    steam = sink('live steam outlet')
+
+    waste_heat = source('waste heat inlet')
+    chimney = sink('waste heat chimney')
+
+    sg = whsg('waste heat steam generator')
+
+    # %% connection definition
+
+    fw_sg = connection(feed_water, 'out1', sg.comps['eco'], 'in2')
+    sg_ls = connection(sg.comps['sup'], 'out2', steam, 'in1')
+    fg_sg = connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
+    sg_ch = connection(sg.comps['eco'], 'out1', chimney, 'in1')
+
+    nw.add_conns(fw_sg, sg_ls, fg_sg, sg_ch)
+    nw.add_subsys(sg)
+
+    # %% connection parameters
+
+    fw_sg.set_attr(fluid={'air': 0, 'water': 1}, T=25)
+    fg_sg.set_attr(fluid={'air': 1, 'water': 0}, T=650, m=100)
+
+    sg_ls.set_attr(p=130)
+    sg_ch.set_attr(p=1, T=150, design=['T'])
+
+    sg.conns['eva_dr'].set_attr(x=0.6)
+
+    # %% component parameters
+
+    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97,
+                             design=['pr1', 'pr2'],
+                             offdesign=['zeta1', 'zeta2', 'kA'])
+
+    sg.comps['eva'].set_attr(pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
+                             offdesign=['zeta1', 'kA'])
+
+    sg.comps['sup'].set_attr(pr1=0.999,  pr2=0.99, ttd_u=50,
+                             design=['pr1', 'pr2', 'ttd_u'],
+                             offdesign=['zeta1', 'zeta2', 'kA'])
+
+    # %% solve
+
+    # solve design case
+    nw.solve('design')
+    nw.print_results()
+    nw.save('tmp')
+
+    # offdesign test
+    nw.solve('offdesign', design_path='tmp')
 
 
 Add more felxibility

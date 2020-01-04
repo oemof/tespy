@@ -369,12 +369,15 @@ Equations
 
 The equations contain the information on the changes to the fluid properties
 within the component. Each equation must be defined in a way, that the correct
-result is zero, e. g.:
+result is zero, e. g. if the mass flow at the inlet :math:`\dot{m}_{in}` should
+be equal to the mass flow at the outlet :math:`\dot{m}_{out}` and the pressure
+at the outlet :math:`p_{out}` is smaller than the pressure at the inlet
+:math:`p_{in}` by a specified pressure difference :math:`\Delta p`.
 
 .. math::
 
     0 = \dot{m}_{in} - \dot{m}_{out}\\
-    0 = \dot{p}_{in} - \dot{p}_{out} - \Delta p
+    0 = p_{in} - p_{out} - \Delta p
 
 The connections connected to your component are available as a list in
 :code:`self.inl` and :code:`self.outl` respectively. Optional equations should

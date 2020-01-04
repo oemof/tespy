@@ -160,9 +160,8 @@ If you want to add even more flexibility, you might need to manipulate the
 need to override this method. However, if you need additional parameters, e. g.
 in order to alter the subsystem's topology or specify additional information,
 take a look at the standard
-:py:meth:`__init__ <tespy.components.subsystems.subsystem.__init__>` method
-and add your code between the label declaration and the components and
-connection creation.
+:py:meth:`__init__ <tespy.components.subsystems.subsystem>` method and add your
+code between the label declaration and the components and connection creation.
 
 For example, if you want a variable number of inlets and outlets because you
 have a variable number of components groups within your subsystem, you may

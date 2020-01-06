@@ -537,24 +537,31 @@ class network:
 
     def check_conns(self):
         r"""
-        Checks the networks connections for multiple usage of inlets or outlets
-        of components.
+        Check the networks connections for multiple usage of inlets or outlets.
         """
-        dub = self.conns.loc[
-                self.conns.duplicated(['s', 's_id']) == True].index
-        for c in dub:
-            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        for c in dub.index:
+            targets = ''
+            for conns in self.conns[(self.conns.s == c.s) &
+                                    (self.conns.s_id == c.s_id)].index:
+                targets += conns.t.label + ' (' + conns.t_id + '); '
+
+            msg = ('The source ' + c.s.label + ' (' + c.s_id + ') is attached '
+                   'to more than one target: ' + targets[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[
-                self.conns.duplicated(['t', 't_id']) == True].index
-        for c in dub:
-            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        for c in dub.index:
+            sources = ''
+            for conns in self.conns[(self.conns.t == c.t) &
+                                    (self.conns.t_id == c.t_id)].index:
+                sources += conns.s.label + ' (' + conns.s_id + '); '
+
+            msg = ('The target ' + c.t.label + ' (' + c.t_id + ') is attached '
+                   'to more than one source: ' + sources[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 

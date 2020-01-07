@@ -26,7 +26,7 @@ but unfortunately is the reason for many issues, as the solving algorithm is
 very sensitive to small changes e. g. the fluid composition. We will
 demonstrate how to handle the combustion chamber in a very small, simple
 example. You can download the full code from the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion_chamber>`_.
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber>`_.
 
 First of all you need to define the network containing all fluid components
 used for the combustion chamber. **These are at least the fuel, oxygen,
@@ -155,7 +155,7 @@ below we added some hydrogen to the fuel mixture.
 
     amb_comb.set_attr(p=1, T=20,
                       fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
-                             'CO2': 0.0004, 'O2': 0.2314, 'H2': 0.01})
+                             'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
 
     sf_comb.set_attr(T=25, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,'O2': 0, 'H2O': 0,
                                   'CH4': 0.95, 'H2': 0.05})

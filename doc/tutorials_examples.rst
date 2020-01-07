@@ -1,28 +1,6 @@
 ~~~~~~~~~~~~~~~~~~~~~~
-Tutorials and Examples
+Examples and Tutorials
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. _tespy_tutorial_label:
-
-Tutorials
-=========
-
-We provide two different tutorials for you to better understand how to work
-with TESPy. You will learn how to create basic models and get the idea of
-designing a plant and simulating the offdesign behaviour in the heat pump
-tutorial. On top of that, we created a tutorial for the usage of the combustion
-chamber: It is an important component for thermal power plants while beeing a
-source for many errors in the calculation.
-
-.. contents:: `Tutorials`
-    :depth: 1
-    :local:
-    :backlinks: top
-	
-.. _heat_pump_tutorial_label:
-.. include:: tutorials_examples/tutorial_heat_pump.rst
-.. _combustion_chamber_tutorial_label:
-.. include:: tutorials_examples/tutorial_combustion_chamber.rst
 
 .. _tespy_examples_label:
 
@@ -55,7 +33,7 @@ on github. Additional small examples can be found in the API-documentation.
     :backlinks: top
 	
 .. _basic_example_label:
-.. include:: tutorials_examples/basic.rst
+.. include:: tutorials_examples/clausius_rankine.rst
 .. _combined_cycle_example_label:
 .. include:: tutorials_examples/ccbp.rst
 .. _chp_example_label:
@@ -68,3 +46,24 @@ on github. Additional small examples can be found in the API-documentation.
 .. include:: tutorials_examples/heat_pump.rst
 .. _solar_collector_example_label:
 .. include:: tutorials_examples/solar_collector.rst
+.. _tespy_tutorial_label:
+
+Tutorials
+=========
+
+We provide two different tutorials for you to better understand how to work
+with TESPy. You will learn how to create basic models and get the idea of
+designing a plant and simulating the offdesign behaviour in the heat pump
+tutorial. On top of that, we created a tutorial for the usage of the combustion
+chamber: It is an important component for thermal power plants while beeing a
+source for many errors in the calculation.
+
+.. contents:: `Tutorials`
+    :depth: 1
+    :local:
+    :backlinks: top
+	
+.. _heat_pump_tutorial_label:
+.. include:: tutorials_examples/tutorial_heat_pump.rst
+.. _combustion_chamber_tutorial_label:
+.. include:: tutorials_examples/tutorial_combustion_chamber.rst

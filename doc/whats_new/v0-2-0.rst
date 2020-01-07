@@ -16,6 +16,8 @@ New Features
   large network and only want to print the results at the most important points (`PR #126 <https://github.com/oemof/tespy/pull/126>`_).
 - It is possible to place custom characteristic lines and maps in the :code:`HOME/.tespy/data` folder and import these
   for your TESPy scripts. For an example see below (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
+- If the network check fails due to component inlets or outlets being connected to more than one connection at a time,
+  all connections are printed for easier network topology debugging (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
 
 Documentation
 #############
@@ -52,22 +54,25 @@ Bug fixes
 - Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Busses and characteristics are not exported, if none are used in the network. The network_reader can now
   handle missing bus.csv, char_line.csv and char_map.csv (`PR #127 <https://github.com/oemof/tespy/pull/127>`_).
+- Some parameters of class :py:class:`combustion_engine <tespy.components.combustion.combustion_engine>` have been
+  printed out twice in the value range check (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
 
 Other changes
 #############
 - Adjust logging levels for grouped component parameter initialisation (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
 - Implement pep8speaks (PEP8 checker) in GitHub repository (`PR #131 <https://github.com/oemof/tespy/pull/131>`_).
-- The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make accessing the individual properties
-  much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_).
+- The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make
+  accessing the individual properties much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_). For a use
+  case of subsystems, have a look at the :ref:`district heating example <dh_example_label>`.
   
 Contributors
 ############
-- @FranziPl
 - Francesco Witte (@fwitte)
-- @jfreissmann
-- @maltefritz
 - @MarBrandt
+- @maltefritz
 - @stianchris
+- @jfreissmann
+- @FranziPl
 
 .. _tespy_v020_examples_label:
 

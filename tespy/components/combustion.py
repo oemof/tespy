@@ -3074,8 +3074,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the combustion's outlet.
+        Calculate reaction balance for generic starting values at outlet.
 
         Parameters
         ----------
@@ -3132,8 +3131,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -3162,8 +3160,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -3194,8 +3191,6 @@ class combustion_engine(combustion_chamber):
         r"""
         Postprocessing parameter calculation.
         """
-        combustion_chamber.calc_parameters(self)
-
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -3227,4 +3222,4 @@ class combustion_engine(combustion_chamber):
         self.Q1_char.func.get_bound_errors(expr, self.label)
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
-        self.check_parameter_bounds()
+        combustion_chamber.calc_parameters(self)

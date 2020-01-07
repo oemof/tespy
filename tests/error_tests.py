@@ -117,6 +117,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, P=[5])
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
+        self.set_attr_TypeError(self.comp, lamb=dc_cc())
         self.set_attr_TypeError(self.comp, design_path=7)
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)

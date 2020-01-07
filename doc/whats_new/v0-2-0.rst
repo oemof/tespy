@@ -138,7 +138,3 @@ Examples
     y = [0.90, 0.98, 1.00, 0.99]
     char = dc_cc(is_set=True, func=char_line(x, y))
     turb.set_attr(eta_s_char=char)
-
-    from tespy.components import combustion_engine, subsystem_interface
-    chp = combustion_engine('combined heat and power')
-    IF = subsystem_interface('subsystem interface')

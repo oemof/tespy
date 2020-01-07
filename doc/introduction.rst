@@ -55,7 +55,7 @@ examples at the :ref:`examples section <tespy_examples_label>`. On top of that,
 there is a step-by-step :ref:`tutorial <heat_pump_tutorial_label>` on how to
 model a heat pump in TESPy.
 
-The :ref:`using TESPy section <using_tespy_introduction_label>` provides you
+The :ref:`TESPy modules section <tespy_modules_label>` provides you
 with all important information on the different modules of TESPy.
 
 License

@@ -190,9 +190,7 @@ with zeta values.
     is calculated as function of the actual mass flow to design mass flow
     ratio. You can provide your own (measured) data or use the already existing
     data from TESPy. All standard characteristic functions are available at
-    :py:mod:`tespy.data`. How to specify own data and all available
-    characteristic functions are provided in
-    :ref:`this section <component_characteristics_label>`.
+    :py:mod:`tespy.data`.
 
 For connections it works in the same way, e. g. write
 

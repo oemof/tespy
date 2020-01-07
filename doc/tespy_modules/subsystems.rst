@@ -40,6 +40,7 @@ as seen in the figure below.
     Figure: Topology of the waste heat steam generator.
 
 Create a file, e. g. :code:`mysubsystems.py` and add the following lines:
+
 - Imports of the necessary classes from tespy.
 - Class definition of the subsystem (inheriting from subsystem class).
 - Methods for component and connection creation. Both, components and

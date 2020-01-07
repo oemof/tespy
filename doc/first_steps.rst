@@ -59,17 +59,17 @@ exchanger. The definition of the parameters available can be found here:
 
 .. note::
 
-	Parameters for components are generally optional. Only the components label
+    Parameters for components are generally optional. Only the components label
     is mandatory parameters to provide. If an optional parameter is not
     specified by the user, it will be a result of the plants simulation. This
     way, the set of equations a component returns is determined by which
-	parameters you specify. You can find all equations in the components
-	documentation as well.
+    parameters you specify. You can find all equations in the components
+    documentation as well.
 
 .. code-block:: python
 
     from tespy.components import (sink, source, pipe, valve,
-	                              heat_excanger_simple)
+                                  heat_excanger_simple)
 
     # sources & sinks (central heating plant)
     so = source('heat source output')

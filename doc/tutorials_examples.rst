@@ -35,9 +35,9 @@ on github. Additional small examples can be found in the API-documentation.
 .. _basic_example_label:
 .. include:: tutorials_examples/clausius_rankine.rst
 .. _combined_cycle_example_label:
-.. include:: tutorials_examples/ccbp.rst
+.. include:: tutorials_examples/combined_cycle_chp.rst
 .. _chp_example_label:
-.. include:: tutorials_examples/chp.rst
+.. include:: tutorials_examples/clausius_rankine_chp.rst
 .. _combustion_engine_label:
 .. include:: tutorials_examples/combustion_engine.rst
 .. _dh_example_label:

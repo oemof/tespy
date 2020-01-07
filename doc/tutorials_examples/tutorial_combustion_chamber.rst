@@ -246,10 +246,10 @@ properties from path:
 	- you change the air or the fuel composition.
 
 - **For convergence stability choose large maximum temperatures**, much higher
-than the highest temperature you are expecting at the combustion chambers 
-outlet.
+  than the highest temperature you are expecting at the combustion chambers 
+  outlet.
 - **If you use more than one combustion chamber** do not use identical aliases,
-if the fluid compositions are not identical.
+  if the fluid compositions are not identical.
 
 As in the example above, we also specify thermal input and lambda, as well as
 identical parameters for the connections. Thus the results should be exactly

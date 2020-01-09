@@ -8,7 +8,6 @@ from tespy.networks import (
     networks
     )
 
-
 # tespy connection imports
 from tespy import connections
 

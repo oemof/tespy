@@ -1287,12 +1287,12 @@ class combustion_chamber_stoich(combustion_chamber):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.val_set or not isinstance(self.fuel.val, dict):
+        if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.fuel_alias.val_set:
+        if not self.fuel_alias.is_set:
             msg = 'Must specify fuel alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1301,12 +1301,12 @@ class combustion_chamber_stoich(combustion_chamber):
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air.val_set or not isinstance(self.air.val, dict):
+        if not self.air.is_set or not isinstance(self.air.val, dict):
             msg = 'Must specify air composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air_alias.val_set:
+        if not self.air_alias.is_set:
             msg = 'Must specify air alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1548,7 +1548,7 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in self.fg.keys():
             self.fg[f] /= m_fg
 
-        if not self.path.val_set:
+        if not self.path.is_set:
             self.path.val = None
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI,

@@ -1407,15 +1407,15 @@ class network:
 
             # starting values for specified subcooling/overheating
             # and state specification
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1996,16 +1996,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.02
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
@@ -2907,7 +2907,7 @@ class network:
         # state property
         key = 'state'
         df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'val_set'))
+        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
         for val in self.fluids:
@@ -3001,7 +3001,7 @@ class network:
                 elif isinstance(data, dc.dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'val_set'))
+                                                args=(col, 'is_set'))
 
                 # component property container
                 elif isinstance(data, dc.dc_gcp):

@@ -1596,7 +1596,7 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                return self.inl[0].m.val_SI
@@ -1629,7 +1629,7 @@ class heat_exchanger(component):
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                deriv[0, 0, 0] = 1
@@ -1685,7 +1685,7 @@ class heat_exchanger(component):
           feasible.
         """
 
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[1] == 2 or c[1] == 4 or c[1] == 5:
 #                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
@@ -2393,7 +2393,7 @@ class condenser(heat_exchanger):
         - Perform value manipulation, if temperature levels are physically
           infeasible.
         """
-        if self.zero_flag.val_set:
+        if self.zero_flag.is_set:
             return self.inl[0].p.val_SI - self.inl[0].p.design
 
         i1 = self.inl[0].to_flow()

@@ -338,13 +338,13 @@ class subsystem_interface(component):
         return {'num_inter': dc_simple()}
 
     def inlets(self):
-        if self.num_inter.val_set:
+        if self.num_inter.is_set:
             return ['in' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['in1']
 
     def outlets(self):
-        if self.num_inter.val_set:
+        if self.num_inter.is_set:
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']

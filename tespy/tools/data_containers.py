@@ -75,7 +75,7 @@ class data_container:
     >>> type(dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
     ...      unit_set=False, ref=None, ref_set=False))
     <class 'tespy.tools.data_containers.dc_prop'>
-    >>> type(dc_simple(val=5, val_set=False))
+    >>> type(dc_simple(val=5, is_set=False))
     <class 'tespy.tools.data_containers.dc_simple'>
     """
 
@@ -417,8 +417,8 @@ class dc_simple(data_container):
         Value for the property, no predefined datatype. Unset this property by
         stating val=np.nan.
 
-    val_set : boolean
+    is_set : boolean
         Has the value for this property been set? default: val_set=False.
     """
     def attr(self):
-        return {'val': np.nan, 'val_set': False}
+        return {'val': np.nan, 'is_set': False}

@@ -1407,15 +1407,15 @@ class network:
 
             # starting values for specified subcooling/overheating
             # and state specification
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1996,16 +1996,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.02
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98

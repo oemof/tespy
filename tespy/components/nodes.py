@@ -154,14 +154,14 @@ class node(component):
                 'num_out': dc_simple()}
 
     def inlets(self):
-        if self.num_in.val_set:
+        if self.num_in.is_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -969,7 +969,7 @@ class merge(node):
                 'zero_flag': dc_simple()}
 
     def inlets(self):
-        if self.num_in.val_set:
+        if self.num_in.is_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
@@ -1190,7 +1190,7 @@ class separator(node):
         return ['in1']
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -1406,7 +1406,7 @@ class splitter(node):
         return ['in1']
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)

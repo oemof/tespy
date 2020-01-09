@@ -3001,7 +3001,7 @@ class network:
                 elif isinstance(data, dc.dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'val_set'))
+                                                args=(col, 'is_set'))
 
                 # component property container
                 elif isinstance(data, dc.dc_gcp):

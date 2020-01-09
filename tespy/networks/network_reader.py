@@ -376,7 +376,7 @@ def construct_comps(c, *args):
 
             # component parameters
             elif isinstance(value, dc_simple):
-                kwargs[key] = dc_simple(val=c[key], val_set=c[key + '_set'])
+                kwargs[key] = dc_simple(val=c[key], is_set=c[key + '_set'])
 
             # component characteristics
             elif isinstance(value, dc_cc):
@@ -510,7 +510,7 @@ def construct_conns(c, *args):
 
     key = 'state'
     if key in c:
-        kwargs[key] = dc_simple(val=c[key], val_set=c[key + '_set'])
+        kwargs[key] = dc_simple(val=c[key], is_set=c[key + '_set'])
 
     # read fluid vector
     val = {}

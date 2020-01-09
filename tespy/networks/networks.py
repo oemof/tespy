@@ -2907,7 +2907,7 @@ class network:
         # state property
         key = 'state'
         df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'val_set'))
+        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
         for val in self.fluids:

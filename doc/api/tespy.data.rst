@@ -18,11 +18,6 @@ Characteristic lines
     :alt: Characteristic line "TRAUPEL" for parameter "eta_s_char".
     :align: center
 
-.. figure:: _images/turbine_cone_DEFAULT.svg
-    :scale: 100 %
-    :alt: Characteristic line "DEFAULT" for parameter "cone".
-    :align: center
-
 **compressor**
 
 .. figure:: _images/compressor_eta_s_char_DEFAULT.svg

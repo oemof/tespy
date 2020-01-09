@@ -39,54 +39,54 @@ Characteristic lines
 
 **combustion engine**
 
-.. figure:: _images/combustion engine_tiP_char_DEFAULT.svg
+.. figure:: _images/combustion_engine_tiP_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "tiP_char".
     :align: center
 
-.. figure:: _images/combustion engine_Q1_char_DEFAULT.svg
+.. figure:: _images/combustion_engine_Q1_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "Q1_char".
     :align: center
 
-.. figure:: _images/combustion engine_Q2_char_DEFAULT.svg
+.. figure:: _images/combustion_engine_Q2_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "Q2_char".
     :align: center
 
-.. figure:: _images/combustion engine_Qloss_char_DEFAULT.svg
+.. figure:: _images/combustion_engine_Qloss_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "Qloss_char".
     :align: center
 
 **heat exchanger**
 
-.. figure:: _images/heat exchanger_kA_char1_DEFAULT.svg
+.. figure:: _images/heat_exchanger_kA_char1_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
     :align: center
 
-.. figure:: _images/heat exchanger_kA_char1_CONDENSING FLUID.svg
+.. figure:: _images/heat_exchanger_kA_char1_CONDENSING_FLUID.svg
     :scale: 100 %
     :alt: Characteristic line "CONDENSING FLUID" for parameter "kA_char1".
     :align: center
 
-.. figure:: _images/heat exchanger_kA_char1_EVAPORATING FLUID.svg
+.. figure:: _images/heat_exchanger_kA_char1_EVAPORATING_FLUID.svg
     :scale: 100 %
     :alt: Characteristic line "EVAPORATING FLUID" for parameter "kA_char1".
     :align: center
 
-.. figure:: _images/heat exchanger_kA_char2_DEFAULT.svg
+.. figure:: _images/heat_exchanger_kA_char2_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
     :align: center
 
-.. figure:: _images/heat exchanger_kA_char2_CONDENSING FLUID.svg
+.. figure:: _images/heat_exchanger_kA_char2_CONDENSING_FLUID.svg
     :scale: 100 %
     :alt: Characteristic line "CONDENSING FLUID" for parameter "kA_char2".
     :align: center
 
-.. figure:: _images/heat exchanger_kA_char2_EVAPORATING FLUID.svg
+.. figure:: _images/heat_exchanger_kA_char2_EVAPORATING_FLUID.svg
     :scale: 100 %
     :alt: Characteristic line "EVAPORATING FLUID" for parameter "kA_char2".
     :align: center
@@ -117,7 +117,7 @@ Characteristic lines
 
 **heat exchanger simple**
 
-.. figure:: _images/heat exchanger simple_kA_char_DEFAULT.svg
+.. figure:: _images/heat_exchanger_simple_kA_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "kA_char".
     :align: center
@@ -131,7 +131,7 @@ Characteristic lines
 
 **water electrolyzer**
 
-.. figure:: _images/water electrolyzer_eta_char_DEFAULT.svg
+.. figure:: _images/water_electrolyzer_eta_char_DEFAULT.svg
     :scale: 100 %
     :alt: Characteristic line "DEFAULT" for parameter "eta_char".
     :align: center

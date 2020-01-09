@@ -220,8 +220,8 @@ def load_network(path):
     fn = path_comps + 'char_line.csv'
     try:
         char_lines = pd.read_csv(fn, sep=';', decimal='.',
-                            converters={'x': ast.literal_eval,
-                                        'y': ast.literal_eval})
+                                 converters={'x': ast.literal_eval,
+                                             'y': ast.literal_eval})
         msg = 'Reading characteristic lines data from ' + fn + '.'
         logging.debug(msg)
 
@@ -606,7 +606,7 @@ def busses_add_comps(c, *args):
 
         values = char == args[1]['id']
         char = char_line(x=args[1][values].x.values[0],
-                                        y=args[1][values].y.values[0])
+                         y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
         args[0].instance[b == args[0]['label']].values[0].add_comps(

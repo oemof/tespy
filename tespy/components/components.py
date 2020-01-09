@@ -209,15 +209,15 @@ class component:
                             isinstance(kwargs[key], np.int64) or
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
-                            self.get_attr(key).set_attr(val_set=False)
+                            self.get_attr(key).set_attr(is_set=False)
 
                         else:
                             self.get_attr(key).set_attr(
-                                    val=kwargs[key], val_set=True)
+                                    val=kwargs[key], is_set=True)
 
                     else:
                         self.get_attr(key).set_attr(
-                                val=kwargs[key], val_set=True)
+                                val=kwargs[key], is_set=True)
 
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):

@@ -1,5 +1,5 @@
-v0.2.0 (to be dated)
-++++++++++++++++++++
+v0.2.0 (January, 14, 2020)
+++++++++++++++++++++++++++
 **Version 0.2.0 will not be compatible with older versions!**
 
 The examples below quickly show, how to modify your scripts in order to work with the new version.

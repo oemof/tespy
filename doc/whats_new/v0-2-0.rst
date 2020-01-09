@@ -87,13 +87,14 @@ Examples
 
     from tespy import cmp, cmp_char, con, hlp, logger, nwk, nwkr, subsys
 
-*tespy 0.2.x*
+*tespy 0.2.x (example imports)*
 
 .. code-block:: python
 
-    from tespy.components import heat_exchanger
-    from tespy.connections import connection
+    from tespy.components import heat_exchanger, turbine
+    from tespy.connections import connection, bus, ref
     from tespy.networks import network, load_network
+    from tespy.tools import char_line, char_map
     from tespy.tools import logger
 
 **Rename**

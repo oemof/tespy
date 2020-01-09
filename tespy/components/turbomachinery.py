@@ -1425,7 +1425,7 @@ class turbine(turbomachine):
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=0, max_val=1),
                 'eta_s_char': dc_cc(param='m'),
-                'cone': dc_cc(),
+                'cone': dc_simple(),
                 'Sirr': dc_simple()}
 
     def additional_equations(self):

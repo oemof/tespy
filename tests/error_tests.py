@@ -348,6 +348,7 @@ def test_subsys_label_forbidden():
 ##############################################################################
 # characteristics
 
+
 @raises(ValueError)
 def test_char_number_of_points():
     char_line(x=[0, 1, 2], y=[1, 2, 3, 4])

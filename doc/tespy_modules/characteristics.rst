@@ -5,6 +5,8 @@ In this part we give an introduction on the TESPy characteritics
 implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`char_line <tespy.tools.characteristics.char_line>`)
 and maps (:py:class:`char_map <tespy.tools.characteristics.char_map>`).
+The default characteristics available are to be found in the
+:py:mod:`tespy.data <tespy.data>` module documentation.
 
 Characteristic lines
 --------------------

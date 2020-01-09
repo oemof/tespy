@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for component groups.
+"""Module for custom component groups.
 
 It is possible to create subsystems of component groups in tespy. The subsystem
 class is the base class for custom subsystems.

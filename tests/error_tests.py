@@ -117,7 +117,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, P=[5])
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
-        self.set_attr_TypeError(self.comp, fuel=dc_cp(val='CH4'))
+        self.set_attr_TypeError(self.comp, lamb=dc_cc())
         self.set_attr_TypeError(self.comp, design_path=7)
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)
@@ -362,9 +362,11 @@ def test_char_map_number_of_points():
 def test_char_map_number_of_dimensions():
     char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
 
+
 @raises(FileNotFoundError)
 def test_missing_char_files():
     load_custom_char('stuff', char_line)
+
 
 @raises(FileNotFoundError)
 def test_missing_char_files():

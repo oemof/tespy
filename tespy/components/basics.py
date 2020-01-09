@@ -21,7 +21,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import dc_simple, dc_cp
 
 # %%
 
@@ -97,6 +97,10 @@ class cycle_closer(component):
     def outlets(self):
         return ['out1']
 
+    def attr(self):
+        return {'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
+                'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)}
+
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -146,6 +150,18 @@ class cycle_closer(component):
         # derivatives with constant value (all for this component)
 
         return self.mat_deriv
+
+    def calc_parameters(self):
+
+        self.mass_deviation.val = np.abs(self.inl[0].m.val_SI -
+                                         self.outl[0].m.val_SI)
+
+        d1 = self.inl[0].fluid.val
+        d2 = self.outl[0].fluid.val
+        diff = [d1[key] - d2[key] for key in d1.keys()]
+        self.fluid_deviation.val = np.linalg.norm(diff)
+
+        self.check_parameter_bounds()
 
 # %%
 

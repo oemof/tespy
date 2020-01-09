@@ -35,7 +35,8 @@ from tabulate import tabulate
 
 from tespy import connections as con
 
-from tespy.components.basics import sink, source, subsystem_interface
+from tespy.components.basics import (sink, source, subsystem_interface,
+                                     cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
@@ -477,7 +478,7 @@ class network:
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
-            for c in subsys.conns:
+            for c in subsys.conns.values():
                 self.add_conns(c)
 
     def add_nwks(self, *args):
@@ -536,24 +537,31 @@ class network:
 
     def check_conns(self):
         r"""
-        Checks the networks connections for multiple usage of inlets or outlets
-        of components.
+        Check the networks connections for multiple usage of inlets or outlets.
         """
-        dub = self.conns.loc[
-                self.conns.duplicated(['s', 's_id']) == True].index
-        for c in dub:
-            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        for c in dub.index:
+            targets = ''
+            for conns in self.conns[(self.conns.s == c.s) &
+                                    (self.conns.s_id == c.s_id)].index:
+                targets += conns.t.label + ' (' + conns.t_id + '); '
+
+            msg = ('The source ' + c.s.label + ' (' + c.s_id + ') is attached '
+                   'to more than one target: ' + targets[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[
-                self.conns.duplicated(['t', 't_id']) == True].index
-        for c in dub:
-            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        for c in dub.index:
+            sources = ''
+            for conns in self.conns[(self.conns.t == c.t) &
+                                    (self.conns.t_id == c.t_id)].index:
+                sources += conns.s.label + ' (' + conns.s_id + '); '
+
+            msg = ('The target ' + c.t.label + ' (' + c.t_id + ') is attached '
+                   'to more than one source: ' + sources[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1215,7 +1223,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
+        if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
+                not isinstance(c.t, cycle_closer)) or
                 isinstance(c.t, heat_exchanger) or
                 isinstance(c.t, subsystem_interface)):
 
@@ -1279,7 +1288,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
+        if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
+                not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
                 isinstance(c.s, subsystem_interface)):
 

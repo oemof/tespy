@@ -89,9 +89,6 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str/tespy.helpers.dc_simple
-        Fuel for the combustion chamber, see list of available fluids above.
-
     lamb : float/tespy.helpers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
@@ -157,10 +154,9 @@ class combustion_chamber(component):
         return 'combustion chamber'
 
     def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
     def inlets(self):
         return ['in1', 'in2']
@@ -1999,9 +1995,6 @@ class combustion_engine(combustion_chamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str
-        Fuel for the combustion chamber, see list of available fluids above.
-
     lamb : float/tespy.helpers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
@@ -2127,8 +2120,7 @@ class combustion_engine(combustion_chamber):
         return 'combustion engine'
 
     def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'P': dc_cp(val=1e6, d=1, min_val=1),
                 'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),
@@ -3074,8 +3066,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the combustion's outlet.
+        Calculate reaction balance for generic starting values at outlet.
 
         Parameters
         ----------
@@ -3132,8 +3123,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -3162,8 +3152,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -3194,8 +3183,6 @@ class combustion_engine(combustion_chamber):
         r"""
         Postprocessing parameter calculation.
         """
-        combustion_chamber.calc_parameters(self)
-
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -3227,4 +3214,4 @@ class combustion_engine(combustion_chamber):
         self.Q1_char.func.get_bound_errors(expr, self.label)
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
-        self.check_parameter_bounds()
+        combustion_chamber.calc_parameters(self)

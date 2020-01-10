@@ -1,6 +1,14 @@
 tespy.data module
 =================
 
+Module contents
+---------------
+
+.. automodule:: tespy.data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Default characteristics
 -----------------------
 
@@ -134,10 +142,10 @@ Characteristic lines
 Characteristic maps
 ^^^^^^^^^^^^^^^^^^^
 
-Module contents
----------------
+**compressor**
 
-.. automodule:: tespy.data
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. figure:: _images/compressor_char_map_DEFAULT.svg
+    :scale: 100 %
+    :alt: Characteristic map "DEFAULT" for parameter "char_map".
+    :align: center
+

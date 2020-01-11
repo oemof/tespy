@@ -16,6 +16,99 @@ import sys
 import os
 import tespy
 
+import json
+from pkg_resources import resource_filename
+from matplotlib import pyplot as plt
+
+
+def get_char_line_data():
+    path = resource_filename('tespy.data', 'char_lines.json')
+
+    with open(path) as f:
+        data = json.loads(f.read())
+
+    return data
+
+
+def plot_line(component, parameter, name, data):
+
+    title = 'Characteristic line "' + name +'" for parameter "' + parameter + '".'
+    xlabel = '$\\frac{x}{x_0}$'
+    ylabel = '$f(x)$'
+
+    # plotting
+    fig = plt.figure()
+    ax = plt.subplot()
+    ax.plot(data['x'], data['y'], 'x', mew=2)
+    plt.grid(linestyle='dotted')
+
+    # formatting
+    plt.tight_layout()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+
+    path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
+    # export
+    fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
+
+
+def generate_api_doc(component, parameter, name, char_type, rst):
+    path = '_images/' + component + '_' + parameter + '_' + name + '.svg'
+    rst = (
+        '.. figure:: ' + path.replace(' ', '_') + '\n'
+        '    :scale: 100 %\n'
+        '    :alt: Characteristic ' + char_type + ' "' + name +'" for parameter "' + parameter + '".\n'
+        '    :align: center\n\n'
+    )
+    return rst
+
+
+rst = (
+    'tespy.data module\n'
+    '=================\n\n'
+)
+
+rst += (
+    'Module contents\n'
+    '---------------\n\n'
+    '.. automodule:: tespy.data\n'
+    '    :members:\n'
+    '    :undoc-members:\n'
+    '    :show-inheritance:\n\n'
+    'Default characteristics\n'
+    '-----------------------\n\n'
+)
+
+rst += (
+    'Characteristic lines\n'
+    '^^^^^^^^^^^^^^^^^^^^\n'
+)
+
+for component, params in get_char_line_data().items():
+    rst += '**' + component + '**\n\n'
+    for param, lines in params.items():
+        for line, data in lines.items():
+            plot_line(component, param, line, data)
+            rst += generate_api_doc(component, param, line, 'line', rst)
+
+rst += (
+    'Characteristic maps\n'
+    '^^^^^^^^^^^^^^^^^^^\n\n'
+)
+
+for component, params in get_char_map_data().items():
+    rst += '**' + component + '**\n\n'
+    for param, chars in params.items():
+        for char, data in chars.items():
+            plot_map(component, param, char, data)
+            rst += generate_api_doc(component, param, char, 'map', rst)
+
+with open('./api/tespy.data.rst', 'w') as f:
+    f.write(rst)
+    f.close()
+
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.

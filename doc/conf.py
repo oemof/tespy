@@ -52,6 +52,7 @@ def plot_line(component, parameter, name, data):
     path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
     # export
     fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
+    plt.close(fig)
 
 
 def plot_map(component, parameter, name, data):
@@ -85,7 +86,7 @@ def plot_map(component, parameter, name, data):
 
     # export
     fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
-    plt.close()
+    plt.close(fig)
 
 
 def generate_api_doc(component, parameter, name, char_type, rst):

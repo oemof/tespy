@@ -15,7 +15,7 @@
 import sys
 import os
 import tespy
-
+import sphinx_rtd_theme
 import json
 from pkg_resources import resource_filename
 from matplotlib import pyplot as plt
@@ -32,7 +32,8 @@ def get_char_data(filename):
 
 def plot_line(component, parameter, name, data):
 
-    title = 'Characteristic line "' + name +'" for parameter "' + parameter + '".'
+    title = ('Characteristic line "' + name + '" for parameter "' +
+             parameter + '".')
     xlabel = '$\\frac{x}{x_0}$'
     ylabel = '$f(x)$'
 
@@ -55,7 +56,8 @@ def plot_line(component, parameter, name, data):
 
 def plot_map(component, parameter, name, data):
 
-    title = 'Characteristic map "' + name +'" for parameter "' + parameter + '".'
+    title = ('Characteristic map "' + name + '" for parameter "' +
+             parameter + '".')
     xlabel = '$\\frac{y}{y_0}$'
     ylabel1 = '$\\frac{z1}{z1_0}$'
     ylabel2 = '$\\frac{z2}{z2_0}$'
@@ -91,7 +93,8 @@ def generate_api_doc(component, parameter, name, char_type, rst):
     rst = (
         '.. figure:: ' + path.replace(' ', '_') + '\n'
         '    :scale: 100 %\n'
-        '    :alt: Characteristic ' + char_type + ' "' + name +'" for parameter "' + parameter + '".\n'
+        '    :alt: Characteristic ' + char_type + ' "' + name +
+        '" for parameter "' + parameter + '".\n'
         '    :align: center\n\n'
     )
     return rst
@@ -238,7 +241,6 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #html_theme = 'bizstyle'
-import sphinx_rtd_theme
 
 html_theme = "sphinx_rtd_theme"
 

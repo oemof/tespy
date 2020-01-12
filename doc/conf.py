@@ -21,8 +21,8 @@ from pkg_resources import resource_filename
 from matplotlib import pyplot as plt
 
 
-def get_char_line_data():
-    path = resource_filename('tespy.data', 'char_lines.json')
+def get_char_data(filename):
+    path = resource_filename('tespy.data', filename + '.json')
 
     with open(path) as f:
         data = json.loads(f.read())
@@ -51,6 +51,37 @@ def plot_line(component, parameter, name, data):
     path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
     # export
     fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
+
+
+def plot_map(component, parameter, name, data):
+
+    title = 'Characteristic map "' + name +'" for parameter "' + parameter + '".'
+    xlabel = '$\\frac{y}{y_0}$'
+    ylabel1 = '$\\frac{z1}{z1_0}$'
+    ylabel2 = '$\\frac{z2}{z2_0}$'
+
+    # plotting
+    fig = plt.figure()
+    ax1 = plt.subplot()
+    ax1.plot(data['y'], data['z1'], 'x', mew=2, color='#1f77b4')
+
+    ax2 = ax1.twinx()
+    ax2.plot(data['y'], data['z2'], 'x', mew=2, color='r')
+
+    plt.grid(linestyle='dotted')
+
+    # formatting
+    plt.tight_layout()
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel1)
+    ax2.set_ylabel(ylabel2)
+    ax1.set_title(title)
+
+    ax2.set_ylim(ax1.get_ylim())
+
+    # export
+    fig.savefig(component + '_' + parameter + '_' + name + '.svg', bbox_inches='tight')
+    plt.close()
 
 
 def generate_api_doc(component, parameter, name, char_type, rst):
@@ -85,7 +116,7 @@ rst += (
     '^^^^^^^^^^^^^^^^^^^^\n'
 )
 
-for component, params in get_char_line_data().items():
+for component, params in get_char_data('char_lines').items():
     rst += '**' + component + '**\n\n'
     for param, lines in params.items():
         for line, data in lines.items():
@@ -97,7 +128,7 @@ rst += (
     '^^^^^^^^^^^^^^^^^^^\n\n'
 )
 
-for component, params in get_char_map_data().items():
+for component, params in get_char_data('char_maps').items():
     rst += '**' + component + '**\n\n'
     for param, chars in params.items():
         for char, data in chars.items():

@@ -70,6 +70,7 @@ Other changes
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 - Move the default characteristic function plots to the :py:mod:`tespy.data <tespy.data>` module documentation
   (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
+- Plots of default characteristic lines and maps are generated automatically on documentation build (`PR #139 <https://github.com/oemof/tespy/pull/139>`_).
 
 Contributors
 ############

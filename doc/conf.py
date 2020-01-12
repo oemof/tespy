@@ -15,6 +15,136 @@
 import sys
 import os
 import tespy
+import sphinx_rtd_theme
+import json
+from pkg_resources import resource_filename
+from matplotlib import pyplot as plt
+
+
+def get_char_data(filename):
+    path = resource_filename('tespy.data', filename + '.json')
+
+    with open(path) as f:
+        data = json.loads(f.read())
+
+    return data
+
+
+def plot_line(component, parameter, name, data):
+
+    title = ('Characteristic line "' + name + '" for parameter "' +
+             parameter + '".')
+    xlabel = '$\\frac{x}{x_0}$'
+    ylabel = '$f(x)$'
+
+    # plotting
+    fig = plt.figure()
+    ax = plt.subplot()
+    ax.plot(data['x'], data['y'], 'x', mew=2)
+    plt.grid(linestyle='dotted')
+
+    # formatting
+    plt.tight_layout()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+
+    path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
+    # export
+    fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
+    plt.close(fig)
+
+
+def plot_map(component, parameter, name, data):
+
+    title = ('Characteristic map "' + name + '" for parameter "' +
+             parameter + '".')
+    xlabel = '$\\frac{y}{y_0}$'
+    ylabel1 = '$\\frac{z1}{z1_0}$'
+    ylabel2 = '$\\frac{z2}{z2_0}$'
+
+    # plotting
+    fig = plt.figure()
+    ax1 = plt.subplot()
+    ax1.plot(data['y'], data['z1'], 'x', mew=2, color='#1f77b4')
+
+    ax2 = ax1.twinx()
+    ax2.plot(data['y'], data['z2'], 'x', mew=2, color='r')
+
+    plt.grid(linestyle='dotted')
+
+    # formatting
+    plt.tight_layout()
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel1)
+    ax2.set_ylabel(ylabel2)
+    ax1.set_title(title)
+
+    ax2.set_ylim(ax1.get_ylim())
+
+    path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
+
+    # export
+    fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
+    plt.close(fig)
+
+
+def generate_api_doc(component, parameter, name, char_type, rst):
+    path = '_images/' + component + '_' + parameter + '_' + name + '.svg'
+    rst = (
+        '.. figure:: ' + path.replace(' ', '_') + '\n'
+        '    :scale: 100 %\n'
+        '    :alt: Characteristic ' + char_type + ' "' + name +
+        '" for parameter "' + parameter + '".\n'
+        '    :align: center\n\n'
+    )
+    return rst
+
+
+rst = (
+    'tespy.data module\n'
+    '=================\n\n'
+)
+
+rst += (
+    'Module contents\n'
+    '---------------\n\n'
+    '.. automodule:: tespy.data\n'
+    '    :members:\n'
+    '    :undoc-members:\n'
+    '    :show-inheritance:\n\n'
+    'Default characteristics\n'
+    '-----------------------\n\n'
+)
+
+rst += (
+    'Characteristic lines\n'
+    '^^^^^^^^^^^^^^^^^^^^\n'
+)
+
+for component, params in get_char_data('char_lines').items():
+    rst += '**' + component + '**\n\n'
+    for param, lines in params.items():
+        for line, data in lines.items():
+            plot_line(component, param, line, data)
+            rst += generate_api_doc(component, param, line, 'line', rst)
+
+rst += (
+    'Characteristic maps\n'
+    '^^^^^^^^^^^^^^^^^^^\n\n'
+)
+
+for component, params in get_char_data('char_maps').items():
+    rst += '**' + component + '**\n\n'
+    for param, chars in params.items():
+        for char, data in chars.items():
+            plot_map(component, param, char, data)
+            rst += generate_api_doc(component, param, char, 'map', rst)
+
+with open('./api/tespy.data.rst', 'w') as f:
+    f.write(rst)
+    f.close()
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -32,9 +162,9 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
     'sphinx.ext.imgmath',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode'
 ]
 
 numpydoc_show_class_members = False
@@ -112,7 +242,6 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #html_theme = 'bizstyle'
-import sphinx_rtd_theme
 
 html_theme = "sphinx_rtd_theme"
 

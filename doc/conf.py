@@ -161,9 +161,10 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
+    'sphinx.ext.imgconverter',
     'sphinx.ext.imgmath',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode'
 ]
 
 numpydoc_show_class_members = False

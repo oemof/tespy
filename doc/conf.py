@@ -79,8 +79,10 @@ def plot_map(component, parameter, name, data):
 
     ax2.set_ylim(ax1.get_ylim())
 
+    path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
+
     # export
-    fig.savefig(component + '_' + parameter + '_' + name + '.svg', bbox_inches='tight')
+    fig.savefig(path.replace(' ', '_'), bbox_inches='tight')
     plt.close()
 
 

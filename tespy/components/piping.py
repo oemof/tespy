@@ -38,7 +38,7 @@ class pipe(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -188,7 +188,7 @@ class valve(component):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.valve.dp_char_func`
+        - :func:`tespy.components.piping.valve.dp_char_func`
 
 
     Inlets/Outlets

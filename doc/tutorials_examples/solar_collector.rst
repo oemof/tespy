@@ -14,14 +14,16 @@ found at the `tespy_examples repository
 The solarthermal collector is used to transfer heat from the solar radiation to
 the collector fluid. The TESPy component :py:class:`solar_collector 
 <tespy.components.components.solar_collector>` inherits from the 
-:py:class:`simple_heat_exchanger <tespy.components.components.simple_heat_exchanger>` component.
-An energy balance is applied according to the :py:class:`solar collector energy 
-func <tespy.components.components.solar_collector.energy_func>` method, which takes the collector's
+:py:class:`simple_heat_exchanger <tespy.components.components.simple_heat_exchanger>`
+component. An energy balance is applied according to the
+:py:class:`solar collector energy func <tespy.components.components.solar_collector.energy_func>`
+method, which takes the collector's
 
 - surface area :code:`A`,
 - loss key figures :code:`lkf_lin` (linear) and :code:`lkf_quad` (quadratic),
-- ambient temperature :code:`t_a` as well as
-- area independent absorped energy :code:`E` (radiation on inclined surface minus optical losses)
+- ambient temperature :code:`Tamb`,
+- optical efficiency :code:`eta_opt` as well as
+- incoming radiation :code:`E` (W/m^2)
 
 into account.
 

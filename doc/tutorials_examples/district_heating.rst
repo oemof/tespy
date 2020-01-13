@@ -37,8 +37,8 @@ the upstream part with the fork subsystem (Ki, see subsystem fork).
     Figure: Generic topology of the forks (variable number of branches).
 
 After the system has been set up, we designed the pipes' insulation in a way,
-that the feed flow the temperature gradient is at 0.6 K / 100 m and the back flow
-gradient is at 0.4 K / 100 m. Having designed the system, heat losses at
+that the feed flow the temperature gradient is at 1 K / 100 m and the back flow
+gradient is at 0.5 K / 100 m. Having designed the system, heat losses at
 different ambient temperatures can be calculated, as the heat transfer
 coefficient for the pipes has been calculated in the design case. By this way,
 it is for example possible to apply load profiles for the consumers as well as

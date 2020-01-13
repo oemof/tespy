@@ -805,7 +805,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -813,12 +813,12 @@ class solar_collector(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.solar_collector.additional_equations`
+        - :func:`tespy.components.heat_exchangers.solar_collector.additional_equations`
 
     Inlets/Outlets
 
@@ -982,12 +982,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
+        elif self.hydro_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -1003,12 +1003,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set:
+        elif self.energy_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -1118,7 +1118,8 @@ class solar_collector(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+        if self.energy_group.is_set is True:
+            self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
 

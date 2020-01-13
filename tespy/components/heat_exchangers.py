@@ -237,9 +237,9 @@ class heat_exchanger_simple(component):
         if is_set:
             self.hydro_group.set_attr(is_set=True)
             if self.hydro_group.method == 'HW':
-                method = 'Hazen-Williams equation.'
+                method = 'Hazen-Williams equation'
             else:
-                method = 'darcy friction factor.'
+                method = 'darcy friction factor'
             msg = ('Pressure loss calculation from pipe dimensions method is '
                    'set to ' + method + '.')
             logging.debug(msg)

@@ -26,6 +26,8 @@ Documentation
 #############
 - Full review of online documentation (`PR #112 <https://github.com/oemof/tespy/pull/112>`_).
 - Full review of the examples repository (`PR #46 of oemof_examples <https://github.com/oemof/oemof_examples/pull/46>`_).
+- Plots of default characteristic lines and maps are generated automatically on
+  documentation build (`PR #139 <https://github.com/oemof/tespy/pull/139>`_).
 
 Parameter renaming
 ##################
@@ -70,7 +72,6 @@ Other changes
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 - Move the default characteristic function plots to the :py:mod:`tespy.data <tespy.data>` module documentation
   (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
-- Plots of default characteristic lines and maps are generated automatically on documentation build (`PR #139 <https://github.com/oemof/tespy/pull/139>`_).
 
 Contributors
 ############

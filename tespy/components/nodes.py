@@ -48,9 +48,9 @@ class node(component):
 
         **additional equations**
 
-        - :func:`tespy.components.components.splitter.additional_equations`
-        - :func:`tespy.components.components.separator.additional_equations`
-        - :func:`tespy.components.components.merge.additional_equations`
+        - :func:`tespy.components.nodes.splitter.additional_equations`
+        - :func:`tespy.components.nodes.separator.additional_equations`
+        - :func:`tespy.components.nodes.merge.additional_equations`
 
     Inlets/Outlets
 
@@ -236,7 +236,7 @@ class node(component):
 
             **mandatroy equations**
 
-            - :func:`tespy.components.components.node.fluid_func`
+            - :func:`tespy.components.nodes.node.fluid_func`
 
             .. math::
 
@@ -502,7 +502,7 @@ class drum(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.drum.fluid_func`
+        - :func:`tespy.components.nodes.drum.fluid_func`
         - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
@@ -1094,7 +1094,7 @@ class separator(node):
 
         **additional equations**
 
-        - :func:`tespy.components.components.separator.additional_equations`
+        - :func:`tespy.components.nodes.separator.additional_equations`
 
     Inlets/Outlets
 
@@ -1324,7 +1324,7 @@ class splitter(node):
 
         **additional equations**
 
-        - :func:`tespy.components.components.splitter.additional_equations`
+        - :func:`tespy.components.nodes.splitter.additional_equations`
 
     Inlets/Outlets
 

@@ -1027,7 +1027,7 @@ class solar_collector(heat_exchanger_simple):
 
             **optional equations**
 
-            - :func:`tespy.components.components.solar_collector.energy_func`
+            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
 
         Returns
         -------
@@ -1137,7 +1137,7 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
@@ -1679,7 +1679,7 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
@@ -2388,7 +2388,7 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are physically

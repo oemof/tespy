@@ -669,7 +669,7 @@ class combustion_chamber(component):
 
             .. math::
 
-                \begin{split}
+                \begin{split}s
                 res = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
                 & - \sum_j \dot{m}_{out,j} \cdot
@@ -688,7 +688,7 @@ class combustion_chamber(component):
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
         chamber uses a different reference, you will find it in the
-        :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+        :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
         documentation.
 
         - Reference temperature: 293.15 K.
@@ -1936,24 +1936,24 @@ class combustion_engine(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_engine.reaction_balance`
-        - :func:`tespy.components.components.combustion_engine.fluid_func`
+        - :func:`tespy.components.combustion.combustion_engine.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_engine.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.combustion_engine.mass_flow_func`
+        - :func:`tespy.components.combustion.combustion_engine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :func:`tespy.components.components.combustion_engine.energy_balance`
+        - :func:`tespy.components.combustion.combustion_engine.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_engine.lambda_func`
-        - :func:`tespy.components.components.combustion_engine.ti_func`
-        - :func:`tespy.components.components.combustion_engine.Q1_func`
-        - :func:`tespy.components.components.combustion_engine.Q2_func`
+        - :func:`tespy.components.combustion.combustion_engine.lambda_func`
+        - :func:`tespy.components.combustion.combustion_engine.ti_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q1_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q2_func`
 
         .. math::
 

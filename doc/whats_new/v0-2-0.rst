@@ -81,8 +81,8 @@ Contributors
 - Francesco Witte (@fwitte)
 - @MarBrandt
 - @maltefritz
-- @stianchris
 - @jfreissmann
+- @stianchris
 - @FranziPl
 
 .. _tespy_v020_examples_label:

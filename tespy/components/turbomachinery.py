@@ -103,17 +103,21 @@ class turbomachine(component):
     - :class:`tespy.components.turbomachinery.turbine`
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'turbomachine'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
                 'eta_s_char': dc_cc(), 'Sirr': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -474,10 +478,12 @@ class compressor(turbomachine):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'compressor'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(min_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=1),
@@ -773,7 +779,8 @@ class compressor(turbomachine):
             if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
                 i[0].h.val_SI = o[0].h.val_SI * 0.9
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -803,7 +810,8 @@ class compressor(turbomachine):
         elif key == 'h':
             return 6e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -991,10 +999,12 @@ class pump(turbomachine):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'pump'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(min_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=1),
@@ -1222,7 +1232,8 @@ class pump(turbomachine):
             else:
                 pass
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -1252,7 +1263,8 @@ class pump(turbomachine):
         elif key == 'h':
             return 3e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -1417,10 +1429,12 @@ class turbine(turbomachine):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'turbine'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(max_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=0, max_val=1),
@@ -1650,7 +1664,8 @@ class turbine(turbomachine):
             if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
                 o[0].h.val_SI = 5e5
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -1680,7 +1695,8 @@ class turbine(turbomachine):
         elif key == 'h':
             return 1.5e6
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.

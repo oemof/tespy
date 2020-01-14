@@ -212,10 +212,12 @@ class water_electrolyzer(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'water electrolyzer'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(min_val=0),
                 'Q': dc_cp(max_val=0),
                 'eta': dc_cp(min_val=0, max_val=1),
@@ -225,10 +227,12 @@ class water_electrolyzer(component):
                 'eta_char': dc_cc(method='GENERIC'),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):

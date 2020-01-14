@@ -150,18 +150,22 @@ class combustion_chamber(component):
     1208.4
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -1013,7 +1017,8 @@ class combustion_chamber(component):
             if fuel_found is True:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -1043,7 +1048,8 @@ class combustion_chamber(component):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -1259,10 +1265,12 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber stoichiometric flue gas'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
                 'air': dc_simple(), 'air_alias': dc_simple(),
                 'path': dc_simple(),
@@ -1270,13 +1278,16 @@ class combustion_chamber_stoich(combustion_chamber):
                 'ti': dc_cp(min_val=0),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
-    def fuels(self):
+    @staticmethod
+    def fuels():
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
 
@@ -2116,10 +2127,12 @@ class combustion_engine(combustion_chamber):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion engine'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'P': dc_cp(val=1e6, d=1, min_val=1),
@@ -2135,10 +2148,12 @@ class combustion_engine(combustion_chamber):
                 'Qloss_char': dc_cc(method='QLOSS'),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2', 'in3', 'in4']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
@@ -3121,7 +3136,8 @@ class combustion_engine(combustion_chamber):
             if not o.fluid.val_set[fluid] and fluid in fg.keys():
                 o.fluid.val[fluid] = fg[fluid]
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -3150,7 +3166,8 @@ class combustion_engine(combustion_chamber):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Return a starting value for pressure and enthalpy at inlet.
 

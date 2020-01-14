@@ -373,11 +373,13 @@ class water_electrolyzer(component):
             vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
+        # specified pressure ratio
         if self.pr_c.is_set:
             vec_res += [self.inl[0].p.val_SI * self.pr_c.val -
                         self.outl[0].p.val_SI]
 
+        ######################################################################
+        # specified zeta value
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
@@ -576,7 +578,6 @@ class water_electrolyzer(component):
             mat_deriv += deriv.tolist()
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
         # derivatives for zeta value
         if self.zeta.is_set:
 

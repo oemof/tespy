@@ -1,6 +1,6 @@
-Cyclic Clausius - v0.2.0 (January, 15, 2020)
-++++++++++++++++++++++++++++++++++++++++++++
-TESPy `Cyclic Clausius <https://en.wikipedia.org/wiki/Rudolf_Clausius>`_
+Calorific Clausius - v0.2.0 (January, 15, 2020)
++++++++++++++++++++++++++++++++++++++++++++++++
+TESPy `Calorific Clausius <https://en.wikipedia.org/wiki/Rudolf_Clausius>`_
 includes many backend adjustments for future development. Additionally, some
 new features have been implemented improving the usage of the software. Due to
 changes in the API, **version 0.2.0 will not be compatible with older**

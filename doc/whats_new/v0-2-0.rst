@@ -1,9 +1,10 @@
-v0.2.0 (January, 14, 2020)
-++++++++++++++++++++++++++
-The new version of TESPy includes many backend adjustments for future
-development. Additionally, some new features have been implemented improving
-the usage of the software. Due to changes in the API, 
-**version 0.2.0 will not be compatible with older versions of TESPy!**
+Cyclic Clausius - v0.2.0 (January, 15, 2020)
+++++++++++++++++++++++++++++++++++++++++++++
+TESPy `Cyclic Clausius <https://en.wikipedia.org/wiki/Rudolf_Clausius>`_
+includes many backend adjustments for future development. Additionally, some
+new features have been implemented improving the usage of the software. Due to
+changes in the API, **version 0.2.0 will not be compatible with older**
+**versions of TESPy!**
 
 The :ref:`example section below <tespy_v020_examples_label>` quickly shows,
 how to modify your scripts in order to work with the new version.

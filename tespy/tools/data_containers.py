@@ -127,7 +127,8 @@ class data_container:
             logging.error(msg)
             raise KeyError(msg)
 
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -174,7 +175,8 @@ class dc_cc(data_container):
     and/or y-values, these will override the defaults values of the chosen
     method.
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -228,7 +230,8 @@ class dc_cm(data_container):
     method as well as interpolation points, these will override the defaults
     values of the chosen method.
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -277,7 +280,8 @@ class dc_cp(data_container):
     printout : boolean
         Should the value of this attribute be printed in the results overview?
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -316,7 +320,8 @@ class dc_flu(data_container):
         Should the fluid balance equation be applied for this mixture?
         default: False.
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -348,7 +353,8 @@ class dc_gcp(data_container):
         Which component properties are part of this component group?
         default elements=[].
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return the available attributes for a data_container type object.
 
@@ -399,7 +405,8 @@ class dc_prop(data_container):
     -------
     See :func:`tespy.tools.data_containers.data_container`
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
                 'unit': None, 'unit_set': False, 'design': np.nan}
@@ -420,5 +427,6 @@ class dc_simple(data_container):
     is_set : boolean
         Has the value for this property been set? default: val_set=False.
     """
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'val': np.nan, 'is_set': False}

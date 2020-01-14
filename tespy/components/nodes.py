@@ -146,10 +146,12 @@ class node(component):
     1.333
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'node'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_in': dc_simple(),
                 'num_out': dc_simple()}
 
@@ -431,7 +433,8 @@ class node(component):
                         if not i.fluid.val_set[fluid]:
                             i.fluid.val[fluid] = c.fluid.val[fluid]
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -461,7 +464,8 @@ class node(component):
         elif key == 'h':
             return 5e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -629,13 +633,16 @@ class drum(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'drum'
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
     def comp_init(self, nw):
@@ -792,7 +799,8 @@ class drum(component):
             deriv[k, k + 1, 1] = -1
         return deriv.tolist()
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -826,7 +834,8 @@ class drum(component):
             else:
                 return h_mix_pQ(c.to_flow(), 1)
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -961,10 +970,12 @@ class merge(node):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'merge'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_in': dc_simple(),
                 'zero_flag': dc_simple()}
 
@@ -975,7 +986,8 @@ class merge(node):
             self.set_attr(num_in=2)
             return self.inlets()
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def additional_equations(self):
@@ -1180,13 +1192,16 @@ class separator(node):
     0.65
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'separator'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_out': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
     def outlets(self):
@@ -1293,7 +1308,8 @@ class separator(node):
             j += 1
         return deriv.tolist()
 
-    def initialise_fluids(self, nw):
+    @staticmethod
+    def initialise_fluids(nw):
         r"""
         Fluid initialisation for fluid mixture at outlet of the node.
 
@@ -1396,13 +1412,16 @@ class splitter(node):
     20.0
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'splitter'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_out': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
     def outlets(self):
@@ -1508,7 +1527,8 @@ class splitter(node):
 
         return deriv.tolist()
 
-    def initialise_fluids(self, nw):
+    @staticmethod
+    def initialise_fluids(nw):
         r"""
         Fluid initialisation for fluid mixture at outlet of the node.
 

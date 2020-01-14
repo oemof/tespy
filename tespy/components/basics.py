@@ -88,18 +88,22 @@ class cycle_closer(component):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'cycle closer'
 
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
                 'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)}
+
+    @staticmethod
+    def inlets():
+        return ['in1']
+
+    @staticmethod
+    def outlets():
+        return ['out1']
 
     def comp_init(self, nw):
 
@@ -196,10 +200,12 @@ class sink(component):
     'a labeled sink'
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'sink'
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
 # %%
@@ -235,10 +241,12 @@ class source(component):
     'a labeled source'
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'source'
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
 # %%
@@ -331,10 +339,12 @@ class subsystem_interface(component):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'subsystem interface'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_inter': dc_simple()}
 
     def inlets(self):

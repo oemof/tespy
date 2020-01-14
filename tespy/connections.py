@@ -518,7 +518,8 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return available attributes of a connection.
 

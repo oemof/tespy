@@ -344,13 +344,16 @@ class component:
         self.num_fl = len(nw.fluids)
         self.fluids = nw.fluids
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return []
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return []
 
     def equations(self):

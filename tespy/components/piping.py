@@ -161,7 +161,8 @@ class pipe(heat_exchanger_simple):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'pipe'
 
 # %%
@@ -269,19 +270,23 @@ class valve(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'valve'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
                 'dp_char': dc_cc(param='m'),
                 'Sirr': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):

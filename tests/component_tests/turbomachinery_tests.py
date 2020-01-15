@@ -236,7 +236,7 @@ class turbomachinery_tests:
         instance.set_attr(eta_s=1.1)
         self.nw.solve('design')
         eta_s = round((self.c2.h.val_SI - self.c1.h.val_SI) /
-                 (instance.h_os('') - self.c1.h.val_SI), 3)
+                      (instance.h_os('') - self.c1.h.val_SI), 3)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
         eq_(eta_s, round(instance.eta_s.val, 3), msg)

@@ -1,7 +1,7 @@
 v0.2.0 - Clausius' Circus (January, 15, 2020)
 +++++++++++++++++++++++++++++++++++++++++++++
 TESPy `Clausius' Circus <https://en.wikipedia.org/wiki/Rudolf_Clausius>`_
-includes many backend adjustments for future development. Additionally, some
+includes many back end adjustments for future development. Additionally, some
 new features have been implemented improving the usage of the software. Due to
 changes in the API, **version 0.2.0 will not be compatible with older**
 **versions of TESPy!**

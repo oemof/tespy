@@ -1,0 +1,173 @@
+v0.2.0 - Clausius' Circus (January, 15, 2020)
++++++++++++++++++++++++++++++++++++++++++++++
+TESPy `Clausius' Circus <https://en.wikipedia.org/wiki/Rudolf_Clausius>`_
+includes many backend adjustments for future development. Additionally, some
+new features have been implemented improving the usage of the software. Due to
+changes in the API, **version 0.2.0 will not be compatible with older**
+**versions of TESPy!**
+
+The :ref:`example section below <tespy_v020_examples_label>` quickly shows,
+how to modify your scripts in order to work with the new version.
+
+New Features
+############
+- Implemented a new component "cycle_closer". This component may serve as substitute for a
+  sink/source or splitter/merge combination in closed cycle simulations (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
+- Added optical efficiency to the "solar_collector". The incoming radiation E no longer represents
+  the actual absorption but the radiation on the collector surface area (`PR #110 <https://github.com/oemof/tespy/pull/110>`_).
+- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports
+  (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Busses, components and connections are now equipped with :code:`printout` attribute. For example, if you specify :code:`myconn.set_attr(printout=False)`
+  the results of the specified connection will not be printed by the :code:`print_results` method of your network. This is especially useful, if you have a
+  large network and only want to print the results at the most important points (`PR #126 <https://github.com/oemof/tespy/pull/126>`_).
+- It is possible to place custom characteristic lines and maps in the :code:`HOME/.tespy/data` folder and import these
+  for your TESPy scripts. Have a look at :ref:`the documentation <import_custom_characteristics_label>` for more information
+  (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
+- If the network check fails due to component inlets or outlets being connected to more than one connection at a time,
+  all connections are printed for easier network topology debugging (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
+
+Documentation
+#############
+- Full review of online documentation (`PR #112 <https://github.com/oemof/tespy/pull/112>`_).
+- Full review of the examples repository (`PR #46 of oemof_examples <https://github.com/oemof/oemof_examples/pull/46>`_).
+- Plots of default characteristic lines and maps are generated automatically on
+  documentation build (`PR #139 <https://github.com/oemof/tespy/pull/139>`_).
+
+Parameter renaming
+##################
+- New name for *cogeneration_unit*: **combustion_engine** (`PR #105 <https://github.com/oemof/tespy/pull/105>`_).
+- New name for *subsys_interface*: **subsystem_interface** (`PR #107 <https://github.com/oemof/tespy/pull/107>`_).
+- The module import shortcuts (:code:`from tespy import ...`) for components (cmp), connections (con),
+  helpers (hlp), logger (logger), networks (nwk), network_reader (nwkr) are **no longer supported**
+  (`PR #108 <https://github.com/oemof/tespy/pull/108>`_)! We instead implemented new shortcuts instead
+  for tespy.networks and tespy.components modules (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
+- The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore.
+  Use :code:`yournetwork.set_attr(iterinfo=True/False)` in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Parameter :code:`interface` for sinks and sources has been removed (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- The method for loading networks from the network_reader module has been renamed from :code:`load_nwk` to
+  :code:`load_network` (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
+
+Testing
+#######
+- Improved doc-test for class tespy_fluid (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Add doc-test for fluid_structure function of tespy.tools.helpers (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Reworked a lot of examples in the components API-documentation (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Update software tests (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
+- Add value limit test for newton-algorithm (`PR #129 <https://github.com/oemof/tespy/pull/129>`_).
+
+Bug fixes
+#########
+- Bus value specification uses :code:`is_set` instead of :code:`val_set` as the component
+  properties data container is used (`39ca830 <https://github.com/oemof/tespy/commit/39ca830c05f6b97a2e4867265ce1de32f6a6f2bc>`_).
+- Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
+- Busses and characteristics are not exported, if none are used in the network. The network_reader can now
+  handle missing bus.csv, char_line.csv and char_map.csv (`PR #127 <https://github.com/oemof/tespy/pull/127>`_).
+- Some parameters of class :py:class:`combustion_engine <tespy.components.combustion.combustion_engine>` have been
+  printed out twice in the value range check (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
+
+Other changes
+#############
+- Adjust logging levels for grouped component parameter initialisation (`PR #111 <https://github.com/oemof/tespy/pull/111>`_).
+- Implement pep8speaks (PEP8 checker) in GitHub repository (`PR #131 <https://github.com/oemof/tespy/pull/131>`_).
+- The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make
+  accessing the individual properties much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_). For a use
+  case of subsystems, have a look at the :ref:`district heating example <dh_example_label>`.
+- Change the specification of set value for :py:class:`dc_simple <tespy.tools.data_containers.dc_simple>`
+  class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
+- Move the default characteristic function plots to the :py:mod:`tespy.data <tespy.data>` module documentation
+  (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
+
+Contributors
+############
+- Francesco Witte (@fwitte)
+- @MarBrandt
+- @maltefritz
+- @jfreissmann
+- @stianchris
+- @FranziPl
+
+.. _tespy_v020_examples_label:
+
+Examples
+########
+
+**Removed default import shortcuts**
+
+*tespy 0.1.x*
+
+.. code-block:: python
+
+    from tespy import cmp, cmp_char, con, hlp, logger, nwk, nwkr, subsys
+
+*tespy 0.2.x (example imports)*
+
+.. code-block:: python
+
+    from tespy.components import heat_exchanger, turbine
+    from tespy.connections import connection, bus, ref
+    from tespy.networks import network, load_network
+    from tespy.tools import char_line, char_map
+    from tespy.tools import logger
+
+**Renaming components**
+
+*tespy 0.1.x*
+
+.. code-block:: python
+
+    from tespy import cmp
+    chp = cmp.cogeneration_unit('combined heat and power')
+    IF = cmp.subsys_interface('subsystem interface')  
+
+*tespy 0.2.x*
+
+.. code-block:: python
+
+    from tespy.components import combustion_engine, subsystem_interface
+    chp = combustion_engine('combined heat and power')
+    IF = subsystem_interface('subsystem interface')
+
+**Renaming tespy.networks functionalities**
+
+*tespy 0.1.x*
+
+.. code-block:: python
+
+    from tespy import nwkr
+    mynetwork = nwkr.load_nwk('path/to/exported/networkfiles')
+    mynetwork.set_printoptions(print_level='none')
+    mynetwork.set_printoptions(print_level='info')
+
+*tespy 0.2.x*
+
+.. code-block:: python
+
+    from tespy.networks import load_network
+    mynetwork = load_network('path/to/exported/networkfiles')
+    mynetwork.set_attr(iterinfo=False)
+    mynetwork.set_attr(iterinfo=True)
+
+**Component characteristic specification**
+
+*tespy 0.1.x*
+
+.. code-block:: python
+
+    from tespy import cmp, hlp
+    turb = cmp.turbine('turbine')
+    x = [0.50, 0.75, 1.00, 1.25]
+    y = [0.90, 0.98, 1.00, 0.99]
+    char = hlp.dc_cc(is_set=True, x=x, y=y)
+    turb.set_attr(eta_s_char=char)
+
+*tespy 0.2.x*
+
+.. code-block:: python
+
+    from tespy.components import turbine
+    from tespy.tools import char_line
+    turb = turbine('turbine')
+    x = [0.50, 0.75, 1.00, 1.25]
+    y = [0.90, 0.98, 1.00, 0.99]
+    char = dc_cc(is_set=True, func=char_line(x, y))
+    turb.set_attr(eta_s_char=char)

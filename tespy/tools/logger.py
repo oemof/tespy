@@ -1,9 +1,12 @@
 # -*- coding: utf-8
 
-"""
-.. module:: logger
+"""Module for logging specification.
 
-.. moduleauthor:: Francesco Witte <francesco.witte@hs-flensburg.de>
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/tools/logger.py
+
+SPDX-License-Identifier: MIT
 """
 
 
@@ -86,11 +89,10 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
     >>> mypath[-9:]
     'tespy.log'
-    >>> logging.debug("Hi")
+    >>> logging.debug('Hi')
     """
-
     if logpath is None:
-        logpath = extend_basic_path('log_files')
+        logpath = tespy.tools.helpers.extend_basic_path('log_files')
 
     file = os.path.join(logpath, logfile)
 
@@ -139,9 +141,10 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
 
 def get_version():
     """
-    Returns a string part of the used version. If the commit and the branch
-    is available the commit and the branch will be returned otherwise the
-    version number.
+    Return a string part of the used version.
+
+    If the commit and the branch is available the commit and the branch will b
+    returned otherwise the version number.
 
     Example
     -------
@@ -158,7 +161,7 @@ def get_version():
 
 def check_version():
     """
-    Returns the actual version number of the used TESPy version.
+    Return the actual version number of the used TESPy version.
 
     Example
     -------
@@ -176,7 +179,7 @@ def check_version():
 
 def check_git_branch():
     """
-    Passes the used branch and commit to the logger
+    Pass the used branch and commit to the logger.
 
     The following test reacts on a local system different than on Travis-CI.
     Therefore, a try/except test is created.
@@ -191,7 +194,6 @@ def check_git_branch():
     >>> type(v)
     <class 'str'>
     """
-
     path = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), os.pardir,
         os.pardir, '.git')
@@ -211,23 +213,3 @@ def check_git_branch():
     f.close()
 
     return "{0}@{1}".format(last_commit, name_branch)
-
-
-def get_basic_path():
-    """
-    Returns the basic oemof path and creates it if necessary. The basic path is the '.tespy' folder in the $HOME directory.
-    """
-    basicpath = os.path.join(os.path.expanduser('~'), '.tespy')
-    if not os.path.isdir(basicpath):
-        os.mkdir(basicpath)
-    return basicpath
-
-
-def extend_basic_path(subfolder):
-    """
-    Returns a path based on the basic oemof path and creates it if necessary. The subfolder is the name of the path extension.
-    """
-    extended_path = os.path.join(get_basic_path(), subfolder)
-    if not os.path.isdir(extended_path):
-        os.mkdir(extended_path)
-    return extended_path

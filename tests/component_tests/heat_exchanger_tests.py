@@ -200,7 +200,7 @@ class heat_exchanger_tests:
                    self.c1.T.val + self.c4.T.val) /
                   np.log((self.c2.T.val - self.c3.T.val) /
                          (self.c1.T.val - self.c4.T.val)))
-        kA = round(-Q / td_log ,0)
+        kA = round(-Q / td_log, 0)
         msg = ('Value of heat transfer must be ' + str(round(Q, 0)) + ', is ' +
                str(round(instance.Q.val, 0)) + '.')
         eq_(round(Q, 0), round(instance.Q.val, 0), msg)
@@ -239,7 +239,8 @@ class heat_exchanger_tests:
         self.c2.set_attr(T=30)
         self.nw.solve('design')
         msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) + '.')
+               'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) +
+               '.')
         eq_(True, instance.ttd_l.val < 0, msg)
 
         # trigger negative upper terminal temperature difference as result

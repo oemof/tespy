@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.2.0 - Clausius\' Circus'
+__version__ = '0.2.1 dev'
 
 # tespy networks imports
 from tespy.networks import (

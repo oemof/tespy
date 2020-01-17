@@ -94,10 +94,12 @@ def load_network(path):
 
     - Folder: path (e. g. 'mynetwork')
     - Subfolder: comps (e. g. 'mynetwork/comps') containing
+
         - bus.csv*
         - char.csv*
         - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
+
     - conns.csv
     - netw.csv
 

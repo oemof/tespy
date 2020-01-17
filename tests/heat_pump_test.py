@@ -274,9 +274,9 @@ class test_heat_pump_ebsilon:
 
     def test_model(self):
         """
-        Tests the operating points of the heat pump against an ebsilon model.
-        By now, not all characteristic functions are available in detail,
-        thus perfect matching is not possible!
+        Tests the operating points of the heat pump against a different model.
+        By now, not all characteristic functions of the original model are
+        available in detail, thus perfect matching is not possible!
         """
 
         self.nw.solve('design')

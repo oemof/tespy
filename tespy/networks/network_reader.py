@@ -2,7 +2,7 @@
 
 """Module for loading a tespy network from saved state.
 
-Use the method :func:`tespy.networks.network_reader.load_nwk` for importing
+Use the method :func:`tespy.networks.network_reader.load_network` for importing
 a network from a saved state.
 
 

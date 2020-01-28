@@ -8,7 +8,7 @@ from tespy.components.combustion import (
     )
 from tespy.components.heat_exchangers import (
     heat_exchanger_simple, solar_collector,
-    condenser, desuperheater, heat_exchanger
+    condenser, desuperheater, heat_exchanger, evaporator
     )
 from tespy.components.nodes import (
     drum, merge, node, separator, splitter

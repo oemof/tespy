@@ -2883,18 +2883,24 @@ class evaporator(component):
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((self.num_fl * 3, 6 + self.num_vars, 3 + self.num_fl))
-        # hot side
+        # hot side 1
         i = 0
         for fluid in self.fluids:
             deriv[i, 0, i + 3] = 1
             deriv[i, 3, i + 3] = -1
             i += 1
-        # cold side
+        # hot side 2
         j = 0
         for fluid in self.fluids:
             deriv[i + j, 1, j + 3] = 1
             deriv[i + j, 4, j + 3] = -1
             j += 1
+        # cold side
+        k = 0
+        for fluid in self.fluids:
+            deriv[i + j + k, 2, k + 3] = 1
+            deriv[i + j + k, 5, k + 3] = -1
+            k += 1
         return deriv.tolist()
 
     def mass_flow_deriv(self):

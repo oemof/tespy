@@ -2776,7 +2776,7 @@ class evaporator(component):
         ######################################################################
         # derivatives for specified pressure ratio at cold side
         if self.pr3.is_set:
-            pr3_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr3_deriv = np.zeros((1, 6, self.num_fl + 3))
             pr3_deriv[0, 2, 1] = self.pr3.val
             pr3_deriv[0, 5, 1] = -1
             mat_deriv += pr3_deriv.tolist()

@@ -2617,9 +2617,10 @@ class evaporator(component):
                 'td_log': dc_cp(min_val=0),
                 'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1), 'pr3': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0), 'zeta3': dc_cp(min_val=0),
                 'kA_char1': dc_cc(param='m'),
                 'kA_char2': dc_cc(param='m'),
+                'kA_char3': dc_cc(param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
@@ -2684,26 +2685,37 @@ class evaporator(component):
             vec_res += [self.ttd_l_func()]
 
         ######################################################################
-        # equations for specified pressure ratio at hot side
+        # equations for specified pressure ratio at hot side 1
         if self.pr1.is_set:
             vec_res += [self.pr1.val * self.inl[0].p.val_SI -
                         self.outl[0].p.val_SI]
 
         ######################################################################
-        # equations for specified pressure ratio at cold side
+        # equations for specified pressure ratio at hot side 2
         if self.pr2.is_set:
             vec_res += [self.pr2.val * self.inl[1].p.val_SI -
                         self.outl[1].p.val_SI]
 
         ######################################################################
-        # equations for specified zeta at hot side
+        # equations for specified pressure ratio at cold side
+        if self.pr3.is_set:
+            vec_res += [self.pr3.val * self.inl[2].p.val_SI -
+                        self.outl[2].p.val_SI]
+
+        ######################################################################
+        # equations for specified zeta at hot side 1
         if self.zeta1.is_set:
             vec_res += [self.zeta_func()]
 
         ######################################################################
-        # equations for specified zeta at cold side
+        # equations for specified zeta at hot side 2
         if self.zeta2.is_set:
             vec_res += [self.zeta2_func()]
+
+        ######################################################################
+        # equations for specified zeta at cold side
+        if self.zeta3.is_set:
+            vec_res += [self.zeta3_func()]
 
         ######################################################################
         # additional equations
@@ -2746,55 +2758,33 @@ class evaporator(component):
         mat_deriv += self.energy_deriv()
 
         ######################################################################
-        # derivatives for specified heat transfer
-        if self.Q.is_set:
-            deriv = np.zeros((1, 4, self.num_fl + 3))
-            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            deriv[0, 0, 2] = -self.inl[0].m.val_SI
-            deriv[0, 2, 2] = self.inl[0].m.val_SI
-            mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for specified heat transfer coefficient
-        if self.kA.is_set:
-            kA_deriv = np.zeros((1, 4, self.num_fl + 3))
-            kA_deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
-            kA_deriv[0, 1, 0] = self.numeric_deriv(self.kA_func, 'm', 1)
-            for i in range(4):
-                kA_deriv[0, i, 1] = self.numeric_deriv(self.kA_func, 'p', i)
-                kA_deriv[0, i, 2] = self.numeric_deriv(self.kA_func, 'h', i)
-            mat_deriv += kA_deriv.tolist()
-
-        ######################################################################
-        # derivatives for specified upper terminal temperature difference
-        if self.ttd_u.is_set:
-            mat_deriv += self.ttd_u_deriv()
-
-        ######################################################################
-        # derivatives for specified lower terminal temperature difference
-        if self.ttd_l.is_set:
-            mat_deriv += self.ttd_l_deriv()
-
-        ######################################################################
         # derivatives for specified pressure ratio at hot side
         if self.pr1.is_set:
-            pr1_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr1_deriv = np.zeros((1, 6, self.num_fl + 3))
             pr1_deriv[0, 0, 1] = self.pr1.val
-            pr1_deriv[0, 2, 1] = -1
+            pr1_deriv[0, 3, 1] = -1
             mat_deriv += pr1_deriv.tolist()
 
         ######################################################################
         # derivatives for specified pressure ratio at cold side
         if self.pr2.is_set:
-            pr2_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr2_deriv = np.zeros((1, 6, self.num_fl + 3))
             pr2_deriv[0, 1, 1] = self.pr2.val
-            pr2_deriv[0, 3, 1] = -1
+            pr2_deriv[0, 4, 1] = -1
             mat_deriv += pr2_deriv.tolist()
 
         ######################################################################
-        # derivatives for specified zeta at hot side
+        # derivatives for specified pressure ratio at cold side
+        if self.pr3.is_set:
+            pr3_deriv = np.zeros((1, 4, self.num_fl + 3))
+            pr3_deriv[0, 2, 1] = self.pr3.val
+            pr3_deriv[0, 5, 1] = -1
+            mat_deriv += pr3_deriv.tolist()
+
+        ######################################################################
+        # derivatives for specified zeta at hot side 1
         if self.zeta1.is_set:
-            zeta1_deriv = np.zeros((1, 4, self.num_fl + 3))
+            zeta1_deriv = np.zeros((1, 6, self.num_fl + 3))
             zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
             zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
@@ -2803,15 +2793,26 @@ class evaporator(component):
             mat_deriv += zeta1_deriv.tolist()
 
         ######################################################################
-        # derivatives for specified zeta at cold side
+        # derivatives for specified zeta at hot side 2
         if self.zeta2.is_set:
-            zeta2_deriv = np.zeros((1, 4, self.num_fl + 3))
+            zeta2_deriv = np.zeros((1, 6, self.num_fl + 3))
             zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
             zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
             zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
             zeta2_deriv[0, 3, 1] = self.numeric_deriv(self.zeta2_func, 'p', 3)
             zeta2_deriv[0, 3, 2] = self.numeric_deriv(self.zeta2_func, 'h', 3)
             mat_deriv += zeta2_deriv.tolist()
+
+        ######################################################################
+        # derivatives for specified zeta at cold side
+        if self.zeta3.is_set:
+            zeta3_deriv = np.zeros((1, 6, self.num_fl + 3))
+            zeta3_deriv[0, 1, 0] = self.numeric_deriv(self.zeta3_func, 'm', 1)
+            zeta3_deriv[0, 1, 1] = self.numeric_deriv(self.zeta3_func, 'p', 1)
+            zeta3_deriv[0, 1, 2] = self.numeric_deriv(self.zeta3_func, 'h', 1)
+            zeta3_deriv[0, 3, 1] = self.numeric_deriv(self.zeta3_func, 'p', 3)
+            zeta3_deriv[0, 3, 2] = self.numeric_deriv(self.zeta3_func, 'h', 3)
+            mat_deriv += zeta3_deriv.tolist()
 
         ######################################################################
         # derivatives for additional equations
@@ -2954,8 +2955,8 @@ class evaporator(component):
                                         self.inl[0].h.val_SI) +
                 self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
                                         self.inl[1].h.val_SI) +
-                self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
-                                        self.inl[1].h.val_SI))
+                self.inl[2].m.val_SI * (self.outl[2].h.val_SI -
+                                        self.inl[2].h.val_SI))
 
     def energy_deriv(self):
         r"""
@@ -2967,7 +2968,7 @@ class evaporator(component):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 6, len(self.inl[0].fluid.val) + 3))
 
 #        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
@@ -2987,9 +2988,9 @@ class evaporator(component):
 #                deriv[0, 3, 2] = 1
 #
 #        else:
-        for k in range(2):
+        for k in range(3):
             deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-            deriv[0, k, 2] = -self.inl[k].m.val_SI
+            deriv[0, k, 3] = -self.inl[k].m.val_SI
 
         deriv[0, 2, 2] = self.inl[0].m.val_SI
         deriv[0, 3, 2] = self.inl[1].m.val_SI

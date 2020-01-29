@@ -3040,23 +3040,28 @@ class evaporator(component):
 
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
+        i3 = self.inl[2].to_flow()
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
+        o3 = self.outl[2].to_flow()
 
         i1_d = self.inl[0].to_flow_design()
         i2_d = self.inl[1].to_flow_design()
+        i3_d = self.inl[2].to_flow_design()
 
         T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
+        T_i3 = T_mix_ph(i3, T0=self.inl[2].T.val_SI)
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
+        T_o3 = T_mix_ph(o3, T0=self.outl[2].T.val_SI)
 
 #        if T_i1 <= T_o2 and self.inl[0].T.val_set is False:
-        if T_i1 <= T_o2:
-            T_i1 = T_o2 + 0.01
+        if T_i1 <= T_o3:
+            T_i1 = T_o3 + 0.01
 #        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
-        if T_i1 <= T_o2:
-            T_o2 = T_i1 - 0.01
+        if T_i1 <= T_o3:
+            T_o3 = T_i1 - 0.01
 #        if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
 #            msg = ('Infeasibility at ' + str(self.label) + ': Value for upper '
 #                   'temperature difference is ' + str(round(T_i1 - T_o2)) +
@@ -3065,11 +3070,11 @@ class evaporator(component):
 #            raise ValueError(msg)
 
 #        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
-        if T_i1 <= T_o2:
-            T_o1 = T_i2 + 0.02
+        if T_i1 <= T_o3:
+            T_o1 = T_i3 + 0.02
 #        if T_o1 <= T_i2 and self.inl[1].T.val_set is False:
-        if T_o1 <= T_i2:
-            T_i2 = T_o1 - 0.02
+        if T_o1 <= T_i3:
+            T_i3 = T_o1 - 0.02
 #        if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
 #            msg = ('Infeasibility at ' + str(self.label) + ': Value for lower '
 #                   'temperature difference is ' + str(round(T_o1 - T_i2)) +
@@ -3089,9 +3094,15 @@ class evaporator(component):
                 if not i2[0] == 0:
                     fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
+        fkA3 = 1
+        if self.kA_char3.param == 'm':
+            if not np.isnan(i3_d[0]):
+                if not i3[0] == 0:
+                    fkA3 = self.kA_char3.func.evaluate(i3[0] / i3_d[0])
+
+        td_log = ((T_o1 - T_i3 - T_i1 + T_o3) /
+                  np.log((T_o1 - T_i3) / (T_i1 - T_o3)))
+        return i1[0] * (o1[3] - i1[3]) + self.kA.val * fkA1 * fkA2 * fkA3 * td_log
 
     def ttd_u_func(self):
         r"""
@@ -3304,6 +3315,9 @@ class evaporator(component):
             if c.s_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
+            elif c.s_id == 'out2':
+                T = 200 + 273.15
+                return h_mix_pT(flow, T)
             else:
                 T = 250 + 273.15
                 return h_mix_pT(flow, T)
@@ -3341,6 +3355,9 @@ class evaporator(component):
             if c.t_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
+            elif c.t_id == 'in2':
+                T = 300 + 273.15
+                return h_mix_pT(flow, T)
             else:
                 T = 220 + 273.15
                 return h_mix_pT(flow, T)
@@ -3363,10 +3380,10 @@ class evaporator(component):
         else:
             T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_i3 = T_mix_ph(i2, T0=self.inl[2].T.val_SI)
+        T_i3 = T_mix_ph(i3, T0=self.inl[2].T.val_SI)
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        T_o3 = T_mix_ph(o2, T0=self.outl[2].T.val_SI)
+        T_o3 = T_mix_ph(o3, T0=self.outl[2].T.val_SI)
 
         # specific volume
         v_i1 = v_mix_ph(i1, T0=T_i1)
@@ -3391,22 +3408,26 @@ class evaporator(component):
 
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]
+        self.pr3.val = o2[2] / i2[2]
         self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
                           (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
         self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
                           (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
+        self.zeta3.val = ((i3[1] - o3[1]) * np.pi ** 2 /
+                          (8 * i3[0] ** 2 * (v_i3 + v_o3) / 2))
 
         self.SQ1.val = self.inl[0].m.val_SI * (s_o1 - s_i1)
         self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
-        self.Sirr.val = self.SQ1.val + self.SQ2.val
+        self.SQ3.val = self.inl[2].m.val_SI * (s_o3 - s_i3)
+        self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
 
         # kA and logarithmic temperature difference
-        if T_i1 <= T_o2 or T_o1 <= T_i2:
+        if T_i1 <= T_o3 or T_o1 <= T_i3:
             self.td_log.val = np.nan
             self.kA.val = np.nan
         else:
-            self.td_log.val = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                               np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+            self.td_log.val = ((T_o1 - T_i3 - T_i1 + T_o3) /
+                               np.log((T_o1 - T_i3) / (T_i1 - T_o3)))
             self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
 
         if self.kA.is_set:
@@ -3426,6 +3447,12 @@ class evaporator(component):
                         self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
                                                             self.label)
 
-        self.check_parameter_bounds()
+            # get bound errors for kA copld side characteristics
+            if self.kA_char3.param == 'm':
+                i3_d = self.inl[2].to_flow_design()
+                if not np.isnan(i3_d[0]):
+                    if not i1[0] == 0:
+                        self.kA_char3.func.get_bound_errors(i3[0] / i3_d[0],
+                                                            self.label)
 
-# %%
+        self.check_parameter_bounds()

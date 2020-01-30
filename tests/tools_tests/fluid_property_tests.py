@@ -72,50 +72,57 @@ class fluid_property_tests:
                     # the deviations might have to be checked
                     if p <= 1e6:
                         d_rel_max = 0.015
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     elif p < 5e6 and T < 500:
                         d_rel_max = 0.05
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     elif p < 5e6 and T < 1000:
                         d_rel_max = 0.04
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     elif p < 5e6 and T < 1500:
                         d_rel_max = 0.03
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     elif T < 500:
                         d_rel_max = 0.1
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     elif T < 1000:
                         d_rel_max = 0.075
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)
                     else:
                         d_rel_max = 0.025
-                        msg = ('Relative deviation is ' +str(round(d_rel, 4)) +
-                               ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                               str(round(T, 0)) + ' for function ' + name +
-                               ', should be < ' + str(d_rel_max) + '.')
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
                         eq_(d_rel < d_rel_max, True, self.errormsg + msg)

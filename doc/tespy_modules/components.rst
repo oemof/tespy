@@ -257,10 +257,10 @@ from there. For additional information on formatting and usage, look into
 Characteristics are available for the following components and parameters:
 
 - combustion engine
-    * :py:meth:`tiP_char <tespy.components.combustion.cogeneration_unit.tiP_char_func>`: thermal input vs. power ratio.
-    * :py:meth:`Q1_char <tespy.components.combustion.cogeneration_unit.Q1_char_func>`: heat output 1 vs. power ratio.
-    * :py:meth:`Q2_char <tespy.components.combustion.cogeneration_unit.Q2_char_func>`: heat output 2 vs. power ratio.
-    * :py:meth:`Qloss_char <tespy.components.combustion.cogeneration_unit.Qloss_char_func>`: heat loss vs. power ratio.
+    * :py:meth:`tiP_char <tespy.components.combustion.combustion_engine.tiP_char_func>`: thermal input vs. power ratio.
+    * :py:meth:`Q1_char <tespy.components.combustion.combustion_engine.Q1_char_func>`: heat output 1 vs. power ratio.
+    * :py:meth:`Q2_char <tespy.components.combustion.combustion_engine.Q2_char_func>`: heat output 2 vs. power ratio.
+    * :py:meth:`Qloss_char <tespy.components.combustion.combustion_engine.Qloss_char_func>`: heat loss vs. power ratio.
 - compressor
     * :py:meth:`char_map <tespy.components.turbomachinery.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
     * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.

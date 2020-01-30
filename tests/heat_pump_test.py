@@ -69,7 +69,8 @@ class test_heat_pump_ebsilon:
         mot2 = char_line(x=x, y=y)
 
         self.power = bus('total compressor power')
-        self.power.add_comps({'c': cp1, 'char': mot1}, {'c': cp2, 'char': mot2})
+        self.power.add_comps({'c': cp1, 'char': mot1},
+                             {'c': cp2, 'char': mot2})
         self.heat = bus('total delivered heat')
         self.heat.add_comps({'c': cd, 'char': -1})
         self.nw.add_busses(self.power, self.heat)
@@ -282,7 +283,6 @@ class test_heat_pump_ebsilon:
         self.nw.save('tmp')
         self.nw.save('tmp2')
 
-
         self.nw.print_results()
 
         # input values from ebsilon
@@ -330,6 +330,7 @@ class test_heat_pump_ebsilon:
             i += 1
         shutil.rmtree('./tmp', ignore_errors=True)
         shutil.rmtree('./tmp2', ignore_errors=True)
+
 
 a = test_heat_pump_ebsilon()
 a.setup()

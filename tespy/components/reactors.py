@@ -212,10 +212,12 @@ class water_electrolyzer(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'water electrolyzer'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(min_val=0),
                 'Q': dc_cp(max_val=0),
                 'eta': dc_cp(min_val=0, max_val=1),
@@ -225,10 +227,12 @@ class water_electrolyzer(component):
                 'eta_char': dc_cc(method='GENERIC'),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
@@ -369,11 +373,13 @@ class water_electrolyzer(component):
             vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
+        # specified pressure ratio
         if self.pr_c.is_set:
             vec_res += [self.inl[0].p.val_SI * self.pr_c.val -
                         self.outl[0].p.val_SI]
 
+        ######################################################################
+        # specified zeta value
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
@@ -572,7 +578,6 @@ class water_electrolyzer(component):
             mat_deriv += deriv.tolist()
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
         # derivatives for zeta value
         if self.zeta.is_set:
 
@@ -811,7 +816,7 @@ class water_electrolyzer(component):
         The temperature for the reference state is set to 20 °C, thus
         the feed water must be liquid as proposed in the calculation of
         the minimum specific energy consumption for electrolysis:
-        :func:`tespy.components.components.water_electrolyzer.calc_e0`.
+        :func:`tespy.components.reactors.water_electrolyzer.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.

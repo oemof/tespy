@@ -5,7 +5,7 @@ Combustion Chamber Tutorial
     :depth: 1
     :local:
     :backlinks: top
-	
+    
 There are two different types of combustion chambers available. The combustion 
 chamber can handle varying fluid compositions for the air and the fuel and
 calculates the fluid composition of the flue gas. Thus, it is possible to e. g.
@@ -17,10 +17,10 @@ in a faster solution process. Thus, if the air composition and the fuel
 composition are known prior to calculation, it is always recommended to use the
 stoichiometric combustion chamber. We provide a tutorial for both components,
 where you learn how they work, and what the differences are.
-	
+    
 Combustion chamber
 ^^^^^^^^^^^^^^^^^^
-	
+    
 The combustion chamber is an important component within thermal power plants,
 but unfortunately is the reason for many issues, as the solving algorithm is
 very sensitive to small changes e. g. the fluid composition. We will
@@ -48,7 +48,7 @@ calculation.
     # define unit systems and fluid property ranges
     nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
                  p_range=[0.5, 10], T_range=[10, 1200])
-					 
+                     
 As components there are two sources required, one for the fresh air, one for
 the fuel, a sink for the flue gas and the combustion chamber. Connect the
 components and add the connections to your network afterwards.
@@ -74,7 +74,7 @@ components and add the connections to your network afterwards.
     comb_fg = connection(comb, 'out1', fg, 'in1')
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
-	
+    
 For the parametrisation we specify the combustions chambers the air to
 stoichmetric air ratio lamb and the thermal input
 (:math:`LHV \cdot \dot{m}_{f}`).
@@ -83,7 +83,7 @@ stoichmetric air ratio lamb and the thermal input
 
     # set combustion chamber air to stoichometric air ratio and thermal input
     comb.set_attr(lamb=3, ti=2e6)
-	
+    
 The ambient conditions as well as the fuel gas inlet temperature are defined in
 the next step. The air and the fuel gas composition must fully be stated, the
 component combustion chamber can not handle "Air" as input fluid!
@@ -99,14 +99,14 @@ component combustion chamber can not handle "Air" as input fluid!
     # and outlets of the combustion chamber
     sf_comb.set_attr(T=25, fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0, 'O2': 0,
                                   'H2O': 0, 'CH4': 0.96})
-							
+                            
 Finally run the code:
 
 .. code-block:: python
 
     nw.solve('design')
     nw.print_results()
-	
+    
 Of course, you can change the parametrisation in any desired way. For example
 instead of stating the thermal input, you could choose any of the mass flows,
 or instead of the air to stoichometric air ratio you could specify the flue
@@ -126,7 +126,7 @@ below we added some hydrogen to the fuel mixture.
 
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
     nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-                                 p_range=[0.5, 10], T_range=[10, 1200])
+                 p_range=[0.5, 10], T_range=[10, 1200])
 
     # %% components
 
@@ -153,9 +153,9 @@ below we added some hydrogen to the fuel mixture.
 
     # %% connection parameters
 
-    amb_comb.set_attr(p=1, T=20,
-                      fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
-                             'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
+    amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+                                        'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314,
+                                        'H2': 0})
 
     sf_comb.set_attr(T=25, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,'O2': 0, 'H2O': 0,
                                   'CH4': 0.95, 'H2': 0.05})
@@ -189,7 +189,7 @@ specific component, we will explain later, why it is.
 
     # define unit systems and fluid property ranges
     nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-                     p_range=[1, 10], T_range=[10, 2000])
+                 p_range=[1, 10], T_range=[10, 2000])
 
 The components required are then the same as in the first tutorial, the
 stoichiometric combustion chamber's class is called
@@ -219,7 +219,7 @@ afterwards.
     comb_fg = connection(comb, 'out1', fg, 'in1')
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
-	
+    
 The basic parametrisation of the stoichiometric combustion chamber is different
 compared to the normal combustion chamber: We need to specify the air and the
 fuel composition, and additionally, aliases for the these fluids. Since air and
@@ -242,8 +242,8 @@ properties from path:
 
 - **Do not specify the path in case**
 
-	- you change the pressure range or the temperature range or
-	- you change the air or the fuel composition.
+    - you change the pressure range or the temperature range or
+    - you change the air or the fuel composition.
 
 - **For convergence stability choose large maximum temperatures**, much higher
   than the highest temperature you are expecting at the combustion chambers 
@@ -259,18 +259,18 @@ the same.
 
     # for the first calculation run
     comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-                        air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-                             'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-                        fuel_alias='myFuel', air_alias='myAir',
-                        lamb=3, ti=20000)
+                  air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+                       'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
+                  fuel_alias='myFuel', air_alias='myAir',
+                  lamb=3, ti=20000)
 
     # if there are existing lookup tables
     comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-                        air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-                        'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-                         fuel_alias='myFuel', air_alias='myAir', path='./LUT',
-                         lamb=3, ti=20000)
-				  
+                  air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+                       'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
+                  fuel_alias='myFuel', air_alias='myAir', path='./LUT',
+                  lamb=3, ti=20000)
+                  
 .. code-block:: python
 
     # air from abient (ambient pressure and temperature), air composition must
@@ -282,14 +282,14 @@ the same.
     # and outlets of the combustion chamber
     sf_comb.set_attr(T=25, fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
                                   'TESPy::myFuel_fg': 0})
-							
+                            
 Finally run the code:
 
 .. code-block:: python
 
-	# %% solving
+    # %% solving
 
-	mode = 'design'
-	nw.solve(mode=mode)
-	nw.print_results()
-	nw.save('combustion')
+    mode = 'design'
+    nw.solve(mode=mode)
+    nw.print_results()
+    nw.save('combustion')

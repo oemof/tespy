@@ -587,7 +587,7 @@ created network.
 
     - Imported connections are accessible by the connections' source and source
       id as well as target and target id following this principle:
-      :code:`imported_plant.imp_conns['source-component-label:source-id_target-component-label:source-id']`,
+      :code:`imported_plant.imp_conns['source-label:source-id_target-label:target-id']`,
       e. g. :code:`imported_plant.imp_conns['condenser:out1_condensate pump:in1']`.
     - Imported components and busses are accessible by their label, e. g.
       :code:`imported_plant.imp_comps['condenser']` and

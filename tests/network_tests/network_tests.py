@@ -19,7 +19,7 @@ class network_tests:
 
     def setup(self):
         self.nw = network(['CH4'],
-                              T_unit='C', p_unit='bar', v_unit='m3 / s')
+                          T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.source = basics.source('source')
         self.sink = basics.sink('sink')
 
@@ -116,9 +116,10 @@ class network_tests:
         imported_nwk = load_network('tmp')
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
-                'should have been successful, too, but it is not.')
+               'should have been successful, too, but it is not.')
         eq_(imported_nwk.checked, True, msg)
         shutil.rmtree('./tmp', ignore_errors=True)
+
 
 @raises(TESPyNetworkError)
 def offdesign_TESPyNetworkError(nw, **kwargs):
@@ -134,7 +135,7 @@ def test_network_missing_data_in_design_case_files():
     pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
     sink = basics.sink('sink')
     a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
-                       fluid={'water': 1})
+                   fluid={'water': 1})
     b = connection(pipe, 'out1', sink, 'in1')
     nw.add_conns(a, b)
     nw.solve('design')
@@ -165,7 +166,7 @@ def test_network_missing_data_in_individual_design_case_file():
     pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
     sink = basics.sink('sink')
     a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
-                       fluid={'water': 1})
+                   fluid={'water': 1})
     b = connection(pipe, 'out1', sink, 'in1', design_path='tmp2')
     nw.add_conns(a, b)
     nw.solve('design')

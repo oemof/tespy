@@ -192,10 +192,12 @@ class heat_exchanger_simple(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger simple'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -208,10 +210,12 @@ class heat_exchanger_simple(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -237,9 +241,9 @@ class heat_exchanger_simple(component):
         if is_set:
             self.hydro_group.set_attr(is_set=True)
             if self.hydro_group.method == 'HW':
-                method = 'Hazen-Williams equation.'
+                method = 'Hazen-Williams equation'
             else:
-                method = 'darcy friction factor.'
+                method = 'darcy friction factor'
             msg = ('Pressure loss calculation from pipe dimensions method is '
                    'set to ' + method + '.')
             logging.debug(msg)
@@ -941,10 +945,12 @@ class solar_collector(heat_exchanger_simple):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'solar collector'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -960,12 +966,6 @@ class solar_collector(heat_exchanger_simple):
                 'Q_loss': dc_cp(min_val=0),
                 'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
-
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
 
     def comp_init(self, nw):
 
@@ -1027,7 +1027,7 @@ class solar_collector(heat_exchanger_simple):
 
             **optional equations**
 
-            - :func:`tespy.components.components.solar_collector.energy_func`
+            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
 
         Returns
         -------
@@ -1137,7 +1137,7 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
@@ -1279,10 +1279,12 @@ class heat_exchanger(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -1294,10 +1296,12 @@ class heat_exchanger(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
     def comp_init(self, nw):
@@ -1679,7 +1683,7 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
@@ -2258,10 +2262,12 @@ class condenser(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'condenser'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -2388,7 +2394,7 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are physically
@@ -2606,7 +2612,8 @@ class desuperheater(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'desuperheater'
 
     def additional_equations(self):

@@ -186,7 +186,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'tespy'
-copyright = u'2018, Francesco Witte'
+copyright = u'2018-2020, Francesco Witte'
 author = u'Francesco Witte'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -414,7 +414,7 @@ texinfo_documents = [
 epub_title = u'tespy'
 epub_author = u'Francesco Witte'
 epub_publisher = u'Francesco Witte'
-epub_copyright = u'2018-2019, Francesco Witte'
+epub_copyright = u'2018-2020, Francesco Witte'
 
 # The basename for the epub file. It defaults to the project name.
 #epub_basename = u'pahesmf'

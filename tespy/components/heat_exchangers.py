@@ -2656,8 +2656,8 @@ class evaporator(component):
         ######################################################################
         # equations for specified heat transfer
         if self.Q.is_set:
-            vec_res += [self.inl[0].m.val_SI *
-                        (self.outl[0].h.val_SI - self.inl[0].h.val_SI) -
+            vec_res += [self.inl[3].m.val_SI *
+                        (self.outl[3].h.val_SI - self.inl[3].h.val_SI) +
                         self.Q.val]
 
         ######################################################################
@@ -2749,7 +2749,7 @@ class evaporator(component):
         mat_deriv += self.energy_deriv()
 
         ######################################################################
-        # derivatives for specified pressure ratio at hot side
+        # derivatives for specified pressure ratio at hot side 1
         if self.pr1.is_set:
             pr1_deriv = np.zeros((1, 6, self.num_fl + 3))
             pr1_deriv[0, 0, 1] = self.pr1.val
@@ -2757,7 +2757,7 @@ class evaporator(component):
             mat_deriv += pr1_deriv.tolist()
 
         ######################################################################
-        # derivatives for specified pressure ratio at cold side
+        # derivatives for specified pressure ratio at hot side 2
         if self.pr2.is_set:
             pr2_deriv = np.zeros((1, 6, self.num_fl + 3))
             pr2_deriv[0, 1, 1] = self.pr2.val
@@ -2779,8 +2779,8 @@ class evaporator(component):
             zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
             zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
             zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-            zeta1_deriv[0, 2, 1] = self.numeric_deriv(self.zeta_func, 'p', 2)
-            zeta1_deriv[0, 2, 2] = self.numeric_deriv(self.zeta_func, 'h', 2)
+            zeta1_deriv[0, 3, 1] = self.numeric_deriv(self.zeta_func, 'p', 3)
+            zeta1_deriv[0, 3, 2] = self.numeric_deriv(self.zeta_func, 'h', 3)
             mat_deriv += zeta1_deriv.tolist()
 
         ######################################################################
@@ -2790,19 +2790,19 @@ class evaporator(component):
             zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
             zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
             zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
-            zeta2_deriv[0, 3, 1] = self.numeric_deriv(self.zeta2_func, 'p', 3)
-            zeta2_deriv[0, 3, 2] = self.numeric_deriv(self.zeta2_func, 'h', 3)
+            zeta2_deriv[0, 4, 1] = self.numeric_deriv(self.zeta2_func, 'p', 4)
+            zeta2_deriv[0, 4, 2] = self.numeric_deriv(self.zeta2_func, 'h', 4)
             mat_deriv += zeta2_deriv.tolist()
 
         ######################################################################
         # derivatives for specified zeta at cold side
         if self.zeta3.is_set:
             zeta3_deriv = np.zeros((1, 6, self.num_fl + 3))
-            zeta3_deriv[0, 1, 0] = self.numeric_deriv(self.zeta3_func, 'm', 1)
-            zeta3_deriv[0, 1, 1] = self.numeric_deriv(self.zeta3_func, 'p', 1)
-            zeta3_deriv[0, 1, 2] = self.numeric_deriv(self.zeta3_func, 'h', 1)
-            zeta3_deriv[0, 3, 1] = self.numeric_deriv(self.zeta3_func, 'p', 3)
-            zeta3_deriv[0, 3, 2] = self.numeric_deriv(self.zeta3_func, 'h', 3)
+            zeta3_deriv[0, 2, 0] = self.numeric_deriv(self.zeta3_func, 'm', 2)
+            zeta3_deriv[0, 2, 1] = self.numeric_deriv(self.zeta3_func, 'p', 2)
+            zeta3_deriv[0, 2, 2] = self.numeric_deriv(self.zeta3_func, 'h', 2)
+            zeta3_deriv[0, 5, 1] = self.numeric_deriv(self.zeta3_func, 'p', 5)
+            zeta3_deriv[0, 5, 2] = self.numeric_deriv(self.zeta3_func, 'h', 5)
             mat_deriv += zeta3_deriv.tolist()
 
         ######################################################################
@@ -2981,10 +2981,11 @@ class evaporator(component):
 #        else:
         for k in range(3):
             deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-            deriv[0, k, 3] = -self.inl[k].m.val_SI
+            deriv[0, k, 2] = -self.inl[k].m.val_SI
 
-        deriv[0, 2, 2] = self.inl[0].m.val_SI
-        deriv[0, 3, 2] = self.inl[1].m.val_SI
+        deriv[0, 3, 2] = self.inl[0].m.val_SI
+        deriv[0, 4, 2] = self.inl[1].m.val_SI
+        deriv[0, 5, 2] = self.inl[2].m.val_SI
         return deriv.tolist()
 
     def kA_func(self):

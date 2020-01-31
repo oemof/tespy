@@ -2717,15 +2717,40 @@ class evaporator(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculates vector vec_res with results of additional equations for this
+        component.
+
+        Equations
+
+            **mandatory equations**
+
+            .. math::
+
+                0 = h_{1,out} - h\left(p, x=0 \right)\\
+                x: \text{vapour mass fraction}
 
         Returns
         -------
         vec_res : list
             Vector of residual values.
         """
-        return []
+        vec_res = []
+
+        ######################################################################
+        # equation for saturated liquid at hot side 1 outlet
+        if not self.subcooling.val:
+            outl = self.outl
+            o1 = outl[0].to_flow()
+            vec_res += [o1[2] - h_mix_pQ(o1, 0)]
+
+        ######################################################################
+        # equation for saturated gas at cold side outlet
+        if not self.overheating.val:
+            outl = self.outl
+            o3 = outl[2].to_flow()
+            vec_res += [o3[2] - h_mix_pQ(o3, 1)]
+
+        return vec_res
 
     def derivatives(self):
         r"""
@@ -2814,40 +2839,34 @@ class evaporator(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
-
-        Equations
-
-            **mandatory equations**
-
-            .. math::
-
-                0 = h_{1,out} - h\left(p, x=0 \right)\\
-                x: \text{vapour mass fraction}
+        Calculates matrix of partial derivatives for given additional equations.
 
         Returns
         -------
-        vec_res : list
-            Vector of residual values.
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
         """
-        vec_res = []
+        mat_deriv = []
 
         ######################################################################
-        # equation for saturated liquid at hot side 1 outlet
+        # derivatives for saturated liquid at hot side 1 outlet equation
         if not self.subcooling.val:
-            outl = self.outl
-            o1 = outl[0].to_flow()
-            vec_res += [o1[2] - h_mix_pQ(o1, 0)]
+            o1 = self.outl[0].to_flow()
+            x_deriv = np.zeros((1, 6, self.num_fl + 3))
+            x_deriv[0, 3, 1] = -dh_mix_dpQ(o1, 0)
+            x_deriv[0, 3, 2] = 1
+            mat_deriv += x_deriv.tolist()
 
         ######################################################################
-        # equation for saturated gas at cold side outlet
+        # derivatives for saturated gas at cold side outlet 3 equation
         if not self.overheating.val:
-            outl = self.outl
-            o3 = outl[2].to_flow()
-            vec_res += [o3[2] - h_mix_pQ(o3, 1)]
+            o3 = self.outl[2].to_flow()
+            deriv = np.zeros((1, 6, self.num_fl + 3))
+            deriv[0, 5, 1] = -dh_mix_dpQ(o3, 1)
+            deriv[0, 5, 2] = 1
+            mat_deriv += deriv.tolist()
 
-        return vec_res
+        return mat_deriv
 
     def fluid_func(self):
         r"""

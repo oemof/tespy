@@ -2618,6 +2618,7 @@ class evaporator(component):
                 'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1), 'pr3': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0), 'zeta3': dc_cp(min_val=0),
+                'subcooling': dc_simple(val=False),
                 'kA_char1': dc_cc(param='m'),
                 'kA_char2': dc_cc(param='m'),
                 'kA_char3': dc_cc(param='m'),
@@ -2822,15 +2823,33 @@ class evaporator(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculates vector vec_res with results of additional equations for this
+        component.
+
+        Equations
+
+            **mandatory equations**
+
+            .. math::
+
+                0 = h_{1,out} - h\left(p, x=0 \right)\\
+                x: \text{vapour mass fraction}
 
         Returns
         -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
+        vec_res : list
+            Vector of residual values.
         """
-        return []
+        vec_res = []
+
+        ######################################################################
+        # equation for saturated liquid at hot side 1 outlet
+        if not self.subcooling.val:
+            outl = self.outl
+            o1 = outl[0].to_flow()
+            vec_res += [o1[2] - h_mix_pQ(o1, 0)]
+
+        return vec_res
 
     def fluid_func(self):
         r"""

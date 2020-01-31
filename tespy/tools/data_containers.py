@@ -104,7 +104,7 @@ class data_container:
         for key in kwargs:
             if key in var.keys():
                 self.__dict__.update({key: kwargs[key]})
-            
+
             else:
                 msg = ('Data container of type ' + self.__class__.__name__ +
                        ' has no attribute ' + key + '.')

@@ -22,6 +22,6 @@ setup(name='TESPy',
       python_requires='>=3',
       install_requires=['CoolProp >= 6.0.0',
                         'numpy >= 1.13.3',
-                        'pandas >= 0.19.2',
+                        'pandas <= 1.0.0',
                         'scipy >= 0.19.1',
                         'tabulate >= 0.8.2'])

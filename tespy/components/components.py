@@ -175,13 +175,10 @@ class component:
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
                       isinstance(self.get_attr(key), dc_cm)):
-                    # value specification for characteristic lines
-                    if isinstance(kwargs[key], char_line):
-                        self.get_attr(key).func = kwargs[key]
-
-                    # value specification for characteristic maps
-                    elif (isinstance(kwargs[key], char_map) or
-                          isinstance(kwargs[key], compressor_map)):
+                    # value specification for characteristics
+                    if (isinstance(kwargs[key], char_line) or
+                            isinstance(kwargs[key], char_map) or
+                            isinstance(kwargs[key], compressor_map)):
                         self.get_attr(key).func = kwargs[key]
 
                     # invalid datatype for keyword

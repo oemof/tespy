@@ -25,7 +25,7 @@ from tespy.components.components import component
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
 
-from tespy.tools.data_containers import dc_cc, dc_cp, dc_cm, dc_simple
+from tespy.tools.data_containers import dc_cc, dc_cm, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
         num_fluids, err)
@@ -81,18 +81,18 @@ class turbomachine(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : String/float/tespy.helpers.dc_cp
+    P : str/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : String/float/tespy.helpers.dc_cp
+    eta_s : str/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : str/tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide x and y values
-        or use generic values (e. g. calculated from design case).
+    eta_s_char : tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide char_line as
+        function :code:`func`.
 
     Example
     -------
@@ -413,23 +413,24 @@ class compressor(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : String/float/tespy.helpers.dc_cp
+    P : str/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : String/float/tespy.helpers.dc_cp
+    eta_s : str/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : str/tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide x and y values
-        or use generic values (e. g. calculated from design case).
+    eta_s_char : tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide char_line as
+        function :code:`func`.
 
-    char_map : str/tespy.helpers.dc_cm
+    char_map : tespy.helpers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
-        tespy.components.characteristics.compressor for further information.
+        tespy.tools.characteristics.compressor_map for further information.
+        Provide a compressor_map as function :code:`func`.
 
     igva : str/float/tespy.helpers.dc_cp
         Inlet guide vane angle, :math:`igva/^\circ`.
@@ -927,23 +928,23 @@ class pump(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : String/float/tespy.helpers.dc_cp
+    P : str/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : String/float/tespy.helpers.dc_cp
+    eta_s : str/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : str/tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide x and y values
-        or use generic values (e. g. calculated from design case).
+    eta_s_char : tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide char_line as
+        function :code:`func`.
 
-    flow_char : str/tespy.helpers.dc_cc
+    flow_char : tespy.helpers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
-        provide data: :math:`x/\frac{\text{m}^3}{\text{s}} \,
-        y/\text{Pa}`
+        provide char_line as function :code:`func`.
+        :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
 
     Example
     -------
@@ -1367,21 +1368,21 @@ class turbine(turbomachine):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : String/float/tespy.helpers.dc_cp
+    P : str/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : String/float/tespy.helpers.dc_cp
+    eta_s : str/float/tespy.helpers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : str/tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide x and y values
-        or use generic values (e. g. calculated from design case).
+    eta_s_char : tespy.helpers.dc_cc
+        Characteristic curve for isentropic efficiency, provide char_line as
+        function :code:`func`.
 
-    cone : tespy.helpers.dc_cc
-        Characteristics for stodolas cone law.
+    cone : tespy.helpers.dc_simple
+        Apply Stodola's cone law.
 
     Example
     -------

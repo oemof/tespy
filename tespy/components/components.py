@@ -245,7 +245,7 @@ class component:
                     raise ValueError(msg)
 
             elif key == 'local_design' or key == 'local_offdesign':
-                logging.info(str(type(kwargs[key])))
+                logging.info(str(type(kwargs[key])) + ' ' + str(kwargs[key]))
                 if not isinstance(kwargs[key], bool):
                     msg = ('Please provide the parameter ' + key +
                            ' as boolean at component' + self.label + '.')

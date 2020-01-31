@@ -153,6 +153,7 @@ class specification_error_tests:
         self.create_ref_TypeError([self.comp, 1, 0])
 
         # KeyErrors
+        self.set_attr_KeyError(dc_cc(), x=7)
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
         self.set_attr_KeyError(self.bus, power_output=100000)

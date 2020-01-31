@@ -2618,7 +2618,7 @@ class evaporator(component):
                 'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1), 'pr3': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0), 'zeta3': dc_cp(min_val=0),
-                'subcooling': dc_simple(val=False),
+                'subcooling': dc_simple(val=False), 'overheating': dc_simple(val=False),
                 'kA_char1': dc_cc(param='m'),
                 'kA_char2': dc_cc(param='m'),
                 'kA_char3': dc_cc(param='m'),
@@ -2848,6 +2848,13 @@ class evaporator(component):
             outl = self.outl
             o1 = outl[0].to_flow()
             vec_res += [o1[2] - h_mix_pQ(o1, 0)]
+
+        ######################################################################
+        # equation for saturated gas at cold side outlet
+        if not self.overheating.val:
+            outl = self.outl
+            o3 = outl[2].to_flow()
+            vec_res += [o3[2] - h_mix_pQ(o3, 1)]
 
         return vec_res
 

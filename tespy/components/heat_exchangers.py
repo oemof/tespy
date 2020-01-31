@@ -2621,7 +2621,7 @@ class evaporator(component):
                 'kA_char1': dc_cc(param='m'),
                 'kA_char2': dc_cc(param='m'),
                 'kA_char3': dc_cc(param='m'),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
     @staticmethod
@@ -3412,8 +3412,8 @@ class evaporator(component):
         s_o3 = s_mix_ph(o3, T0=T_o3)
 
         # component parameters
-        self.ttd_u.val = T_i1 - T_o2
-        self.ttd_l.val = T_o1 - T_i2
+        self.ttd_u.val = T_i1 - T_o3
+        self.ttd_l.val = T_o1 - T_i3
         self.Q.val = i1[0] * (o1[2] - i1[2])
 
         self.pr1.val = o1[1] / i1[1]

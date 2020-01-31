@@ -97,6 +97,9 @@ class turbomachinery_tests:
         self.c1.set_attr(v=1, T=100, m=np.nan)
 
         # test parameter specification for eta_s_char with unset char map
+        instance.set_attr(eta_s_char=dc_cc(func=ldc(
+            'compressor', 'eta_s_char', 'DEFAULT', char_line),
+            is_set=True))
         instance.char_map.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +

@@ -3414,7 +3414,7 @@ class evaporator(component):
         # component parameters
         self.ttd_u.val = T_i1 - T_o3
         self.ttd_l.val = T_o1 - T_i3
-        self.Q.val = i1[0] * (o1[2] - i1[2])
+        self.Q.val = -i3[0] * (o3[2] - i3[2])
 
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]

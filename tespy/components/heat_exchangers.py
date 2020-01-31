@@ -121,7 +121,7 @@ class heat_exchanger_simple(component):
     kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y
         values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+        Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature
@@ -1211,12 +1211,12 @@ class heat_exchanger(component):
     kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide
         x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'HE_HOT', Parameter 'm'.
+        Standard parameter 'm'.
 
     kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side,
         provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'HE_COLD', Parameter 'm'.
+        design case). Standard parameter 'm'.
 
     Note
     ----
@@ -2177,12 +2177,12 @@ class condenser(heat_exchanger):
     kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide
         x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+        case). Standard parameter 'm'.
 
     kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side,
         provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+        design case). Standard parameter 'm'.
 
     subcooling : bool
         Enable/disable subcooling, default value: disabled.
@@ -2544,12 +2544,12 @@ class desuperheater(heat_exchanger):
     kA_char1 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at hot side, provide
         x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+        case). Standard parameter 'm'.
 
     kA_char2 : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient at cold side,
         provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+        design case). Standard parameter 'm'.
 
     Note
     ----

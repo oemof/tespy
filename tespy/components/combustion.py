@@ -2142,10 +2142,10 @@ class combustion_engine(combustion_chamber):
                 'pr2': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0),
                 'zeta2': dc_cp(min_val=0),
-                'tiP_char': dc_cc(method='TI'),
-                'Q1_char': dc_cc(method='Q1'),
-                'Q2_char': dc_cc(method='Q2'),
-                'Qloss_char': dc_cc(method='QLOSS'),
+                'tiP_char': dc_cc(),
+                'Q1_char': dc_cc(),
+                'Q2_char': dc_cc(),
+                'Qloss_char': dc_cc(),
                 'S': dc_simple()}
 
     @staticmethod

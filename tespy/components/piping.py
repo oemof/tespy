@@ -108,7 +108,7 @@ class pipe(heat_exchanger_simple):
     kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y
         values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+        Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature

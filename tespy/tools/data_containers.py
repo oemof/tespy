@@ -59,7 +59,7 @@ class data_container:
     >>> from tespy.components.piping import pipe
     >>> type(dc_cm(is_set=True))
     <class 'tespy.tools.data_containers.dc_cm'>
-    >>> type(dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
+    >>> type(dc_cc(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.dc_cc'>
     >>> type(dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...      max_val=1000, min_val=1))

@@ -368,7 +368,8 @@ class subsystem_interface(component):
     rest of your network. It is necessary to specify the number of interfaces
     of the subsystem interface, if you want any number other than 1. We will
     not go in depth of subsystem usage in this example. Please refer to
-    TODO: PLACELINKHERE for more information on building your own subsystems.
+    :ref:`this section <tespy_subsystems_label>` for more information on
+    building your own subsystems.
 
     >>> from tespy.components import sink, source, subsystem_interface
     >>> from tespy.connections import connection

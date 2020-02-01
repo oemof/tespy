@@ -72,7 +72,7 @@ class char_line:
 
     def evaluate(self, x):
         r"""
-        Returns characteristic line evaluation at x.
+        Return characteristic line evaluation at x.
 
         Parameters
         ----------
@@ -102,8 +102,7 @@ class char_line:
 
     def get_bound_errors(self, x, c):
         r"""
-        Returns error messages, if operation is out of bounds of characteristc
-        line.
+        Prompt error messages, if value is out of bounds.
 
         Parameters
         ----------
@@ -253,7 +252,26 @@ class char_map:
         return yarr, z1arr, z2arr
 
     def evaluate_y(self, y, yarr, z1arr, z2arr):
+        r"""
+        Evaluate char_map for y inputs.
 
+        Parameters
+        ----------
+        y : float
+            Input for second dimension of char_map.
+
+        yarr : ndarray
+            Second dimension array of char_map calculated from first dimension
+            input.
+
+        z1arr : ndarray
+            First dimension output array of char_map calculated from first
+            dimension input.
+
+        z2arr : ndarray
+            Second dimension output array of char_map calculated from first
+            dimension input.
+        """
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr):
             return z1arr[ypos - 1], z2arr[ypos - 1]
@@ -393,6 +411,29 @@ class char_map:
 
 
 class compressor_map(char_map):
+    r"""
+    Class for compressor maps.
+
+    Parameters
+    ----------
+    x : ndarray
+        An array for the first dimension input of the map.
+
+    y : ndarray
+        A two-dimensional array of the second dimension input of the map.
+
+    z1 : ndarray
+        A two-dimensional array of the first dimension output of the map.
+
+    z2 : ndarray
+        A two-dimensional array of the second dimension output of the map.
+
+    Note
+    ----
+    Ìn contrast to the :py:class:`tespy.tools.characteristics.char_map` this
+    classes output is manipulated with the inlet guide vane angle
+    :code:`igva`.
+    """
 
     def evaluate(self, x, y, igva):
         r"""
@@ -419,6 +460,16 @@ class compressor_map(char_map):
 
         z2 : float
             Isentropic efficiency of compressor.
+
+        Note
+        ----
+        Value manipulation by igva:
+
+        .. math::
+
+            \vec{y} = \vec{y} * \left( 1 - \frac{igva}{100} \right)
+            \vec{z1} = \vec{z1} * \left( 1 - \frac{igva}{100} \right)
+            \vec{z2} = \vec{z2} * \left( 1 - \frac{igva^2}{10000} \right)
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)
 

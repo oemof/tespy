@@ -103,7 +103,8 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     log.setLevel(logging.DEBUG)
 
     if file_format is None:
-        file_format = ("%(asctime)s - %(levelname)s - %(module)s - %(message)s")
+        file_format = (
+            "%(asctime)s - %(levelname)s - %(module)s - %(message)s")
     file_formatter = logging.Formatter(file_format, file_datefmt)
 
     if screen_format is None:

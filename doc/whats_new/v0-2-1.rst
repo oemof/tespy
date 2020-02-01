@@ -6,6 +6,8 @@ New Features
 
 Documentation
 #############
+- Minor fixes in the docs to meet PEP8 guidelines
+(`PR #143 <https://github.com/oemof/tespy/pull/143>`_).
 
 Parameter renaming
 ##################

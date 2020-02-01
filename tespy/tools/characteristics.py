@@ -467,8 +467,8 @@ class compressor_map(char_map):
 
         .. math::
 
-            \vec{y} = \vec{y} * \left( 1 - \frac{igva}{100} \right)
-            \vec{z1} = \vec{z1} * \left( 1 - \frac{igva}{100} \right)
+            \vec{y} = \vec{y} * \left( 1 - \frac{igva}{100} \right)\\
+            \vec{z1} = \vec{z1} * \left( 1 - \frac{igva}{100} \right)\\
             \vec{z2} = \vec{z2} * \left( 1 - \frac{igva^2}{10000} \right)
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)

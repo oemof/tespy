@@ -25,8 +25,7 @@ from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
         T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        h_mix_pQ, dh_mix_dpQ, h_mix_pT
-        )
+        h_mix_pQ, dh_mix_dpQ)
 
 # %%
 
@@ -193,7 +192,7 @@ class node(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -222,7 +221,7 @@ class node(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -315,8 +314,7 @@ class node(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -346,8 +344,7 @@ class node(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -374,7 +371,7 @@ class node(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -399,7 +396,7 @@ class node(component):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for all pressure equations.
+        Calculate partial derivatives for all pressure equations.
 
         Returns
         -------
@@ -451,8 +448,7 @@ class node(component):
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -482,8 +478,7 @@ class node(component):
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -685,7 +680,7 @@ class drum(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -728,7 +723,7 @@ class drum(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -777,8 +772,7 @@ class drum(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -800,7 +794,7 @@ class drum(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -816,7 +810,7 @@ class drum(component):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for pressure equations.
+        Calculate partial derivatives for pressure equations.
 
         Returns
         -------
@@ -832,8 +826,7 @@ class drum(component):
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -867,8 +860,7 @@ class drum(component):
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -1037,8 +1029,7 @@ class merge(node):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1081,8 +1072,7 @@ class merge(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1111,7 +1101,7 @@ class merge(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1165,10 +1155,10 @@ class separator(node):
            :alt: alternative text
            :align: center
 
-    TODO
-
-        - fluid separation requires power and cooling, equations have not
-          been implemented!
+    Todo
+    ----
+    - fluid separation requires power and cooling, equations have not been
+      implemented!
 
     Parameters
     ----------
@@ -1273,8 +1263,7 @@ class separator(node):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1314,8 +1303,7 @@ class separator(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1348,7 +1336,7 @@ class separator(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1515,8 +1503,7 @@ class splitter(node):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1551,8 +1538,7 @@ class splitter(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1565,7 +1551,7 @@ class splitter(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1586,7 +1572,7 @@ class splitter(node):
 
     def enthalpy_deriv(self):
         r"""
-        Calculates matrix of partial derivatives for enthalpy balance equation.
+        Calculate partial derivatives for enthalpy balance equation.
 
         Returns
         -------

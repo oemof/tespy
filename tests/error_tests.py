@@ -153,6 +153,7 @@ class specification_error_tests:
         self.create_ref_TypeError([self.comp, 1, 0])
 
         # KeyErrors
+        self.set_attr_KeyError(dc_cc(), x=7)
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
         self.set_attr_KeyError(self.bus, power_output=100000)
@@ -619,7 +620,7 @@ def test_compressor_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
@@ -637,7 +638,7 @@ def test_turbine_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()

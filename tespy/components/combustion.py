@@ -89,6 +89,21 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     lamb : float/tespy.helpers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
@@ -1163,6 +1178,21 @@ class combustion_chamber_stoich(combustion_chamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     fuel : dict
         Fuel composition, e. g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
 
@@ -2006,6 +2036,21 @@ class combustion_engine(combustion_chamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     lamb : float/tespy.helpers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
@@ -2142,10 +2187,10 @@ class combustion_engine(combustion_chamber):
                 'pr2': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0),
                 'zeta2': dc_cp(min_val=0),
-                'tiP_char': dc_cc(method='TI'),
-                'Q1_char': dc_cc(method='Q1'),
-                'Q2_char': dc_cc(method='Q2'),
-                'Qloss_char': dc_cc(method='QLOSS'),
+                'tiP_char': dc_cc(),
+                'Q1_char': dc_cc(),
+                'Q2_char': dc_cc(),
+                'Qloss_char': dc_cc(),
                 'S': dc_simple()}
 
     @staticmethod

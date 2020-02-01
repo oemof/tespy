@@ -44,6 +44,18 @@ class component:
     design_path: str
         Path to the components design case.
 
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     **kwargs :
         See the class documentation of desired component for available
         keywords.
@@ -175,13 +187,10 @@ class component:
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
                       isinstance(self.get_attr(key), dc_cm)):
-                    # value specification for characteristic lines
-                    if isinstance(kwargs[key], char_line):
-                        self.get_attr(key).func = kwargs[key]
-
-                    # value specification for characteristic maps
-                    elif (isinstance(kwargs[key], char_map) or
-                          isinstance(kwargs[key], compressor_map)):
+                    # value specification for characteristics
+                    if (isinstance(kwargs[key], char_line) or
+                            isinstance(kwargs[key], char_map) or
+                            isinstance(kwargs[key], compressor_map)):
                         self.get_attr(key).func = kwargs[key]
 
                     # invalid datatype for keyword
@@ -237,8 +246,8 @@ class component:
 
             elif key == 'local_design' or key == 'local_offdesign':
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean '
-                           'at ' + self.label + '.')
+                    msg = ('Please provide the parameter ' + key +
+                           ' as boolean at component ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
 

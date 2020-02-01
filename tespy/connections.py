@@ -93,6 +93,9 @@ class connection:
     local_design : boolean
         Treat this connection in design mode in an offdesign calculation.
 
+    printout: boolean
+        Include this connection in the network's results printout.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -320,6 +323,9 @@ class connection:
 
         local_design : boolean
             Treat this connection in design mode in an offdesign calculation.
+
+        printout: boolean
+            Include this connection in the network's results printout.
 
         Note
         ----

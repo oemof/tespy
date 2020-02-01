@@ -224,7 +224,7 @@ class water_electrolyzer(component):
                 'e': dc_cp(),
                 'pr_c': dc_cp(max_val=1),
                 'zeta': dc_cp(min_val=0),
-                'eta_char': dc_cc(method='GENERIC'),
+                'eta_char': dc_cc(),
                 'S': dc_simple()}
 
     @staticmethod

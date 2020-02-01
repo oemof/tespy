@@ -59,7 +59,7 @@ class data_container:
     >>> from tespy.components.piping import pipe
     >>> type(dc_cm(is_set=True))
     <class 'tespy.tools.data_containers.dc_cm'>
-    >>> type(dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
+    >>> type(dc_cc(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.dc_cc'>
     >>> type(dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...      max_val=1000, min_val=1))
@@ -104,6 +104,12 @@ class data_container:
         for key in kwargs:
             if key in var.keys():
                 self.__dict__.update({key: kwargs[key]})
+
+            else:
+                msg = ('Data container of type ' + self.__class__.__name__ +
+                       ' has no attribute ' + key + '.')
+                logging.error(msg)
+                raise KeyError(msg)
 
     def get_attr(self, key):
         r"""
@@ -154,26 +160,9 @@ class dc_cc(data_container):
     is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : str
-        Which default method for this characteristic function should be used?
-        default: method='default'.
-
     param : str
         Which parameter should be applied as the x value?
         default: method='default'.
-
-    x : numpy.array
-        Array for the x-values of the characteristic line, default x=None.
-
-    y : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    Note
-    ----
-    If you do not specify x-values or y-values, default values according to the
-    specified method will be used. If you specify a method as well as x-values
-    and/or y-values, these will override the defaults values of the chosen
-    method.
     """
     @staticmethod
     def attr():
@@ -186,8 +175,7 @@ class dc_cc(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None,
-                'x': None, 'y': None}
+        return {'func': None, 'is_set': False, 'param': None}
 
 # %%
 
@@ -203,32 +191,9 @@ class dc_cm(data_container):
     is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : str
-        Which default method for this characteristic function should be used?
-        default: method='default'.
-
     param : str
         Which parameter should be applied as the x value?
         default: method='default'.
-
-    x : numpy.array
-        Array for the x-values of the characteristic line, default x=None.
-
-    y : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    z1 : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    z2 : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    Note
-    ----
-    If you do not specify any interpolation points (x, y, z1, z2), default
-    values according to the specified method will be used. If you specify a
-    method as well as interpolation points, these will override the defaults
-    values of the chosen method.
     """
     @staticmethod
     def attr():
@@ -241,8 +206,7 @@ class dc_cm(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None,
-                'x': None, 'y': None, 'z1': None, 'z2': None}
+        return {'func': None, 'is_set': False, 'param': None}
 
 # %%
 

@@ -535,9 +535,7 @@ class network:
         self.checked = False
 
     def check_conns(self):
-        r"""
-        Check the networks connections for multiple usage of inlets or outlets.
-        """
+        r"""Check connections for multiple usage of inlets or outlets."""
         dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
         for c in dub.index:
             targets = ''
@@ -627,9 +625,7 @@ class network:
             raise TypeError(msg)
 
     def check_network(self):
-        r"""
-        Check if all components are connected properly within the network.
-        """
+        r"""Check if components are connected properly within the network."""
         self.check_conns()
         # get unique components in connections dataframe
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
@@ -1659,7 +1655,7 @@ class network:
         logging.info(msg)
 
     def solve_loop(self):
-        r"""Loop of the newton algorithm"""
+        r"""Loop of the newton algorithm."""
         self.start_time = time()
         self.progress = True
 
@@ -1852,7 +1848,7 @@ class network:
 
     def solve_control(self):
         r"""
-        Iteration step control of the newton algorithm.
+        Control iteration step of the newton algorithm.
 
         - Calculate the residual value for each equation
         - Calculate the jacobian matrix
@@ -3098,15 +3094,15 @@ class network:
                           '.')
 
     def get_id(c):
-        """TODO: docs"""
+        """Return the id of the python object."""
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
 
     def get_class_base(c):
-        """TODO: docs"""
+        """Return the class name."""
         return c.name.__class__.__name__
 
     def get_props(c, *args):
-        """TODO: docs"""
+        """Return properties."""
         if hasattr(c.name, args[0]):
             if (not isinstance(c.name.get_attr(args[0]), int) and
                     not isinstance(c.name.get_attr(args[0]), str) and
@@ -3137,7 +3133,7 @@ class network:
             return ''
 
     def get_busses(c, *args):
-        """TODO: docs"""
+        """Return the list of busses a component is integrated in."""
         busses = []
         for bus in args[0]:
             if c.name in bus.comps.index:
@@ -3145,7 +3141,7 @@ class network:
         return busses
 
     def get_bus_data(c, *args):
-        """TODO: docs"""
+        """Return bus information of a component."""
         items = []
         if args[1] == 'char':
             for bus in args[0]:

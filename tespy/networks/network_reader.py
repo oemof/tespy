@@ -437,7 +437,7 @@ def construct_comps(c, *args):
 
 def construct_network(path):
     r"""
-    Creates TESPy network from the data provided in the netw.csv-file.
+    Create TESPy network from the data provided in the netw.csv-file.
 
     Parameters
     ----------
@@ -473,8 +473,7 @@ def construct_network(path):
 
 def construct_conns(c, *args):
     r"""
-    Creates TESPy connection from data in the .csv-file and specifies its
-    parameters.
+    Create TESPy connection from data in the .csv-file and its parameters.
 
     Parameters
     ----------
@@ -536,7 +535,7 @@ def construct_conns(c, *args):
 
 def conns_set_ref(c, *args):
     r"""
-    Sets references on connections as specified in connection data.
+    Set references on connections as specified in connection data.
 
     Parameters
     ----------
@@ -567,7 +566,7 @@ def conns_set_ref(c, *args):
 
 def construct_busses(c, *args):
     r"""
-    Creates busses of the network.
+    Create busses of the network.
 
     Parameters
     ----------
@@ -589,7 +588,7 @@ def construct_busses(c, *args):
 
 def busses_add_comps(c, *args):
     r"""
-    Adds components to busses according to data from .csv file.
+    Add components to busses according to data from .csv file.
 
     Parameters
     ----------

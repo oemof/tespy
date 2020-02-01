@@ -201,7 +201,7 @@ class turbomachine(component):
 
     def derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -248,7 +248,7 @@ class turbomachine(component):
 
     def additional_derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given additional equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -564,7 +564,7 @@ class compressor(turbomachine):
 
     def additional_derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given additional equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------

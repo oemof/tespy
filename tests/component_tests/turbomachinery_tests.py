@@ -9,7 +9,8 @@ from tespy.connections import connection, bus, ref
 from tespy.networks.networks import network
 from tespy.tools.data_containers import dc_cc, dc_cm
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import char_line, compressor_map
+from tespy.tools.characteristics import load_default_char as ldc
 import numpy as np
 import shutil
 
@@ -61,8 +62,9 @@ class turbomachinery_tests:
         # remove pressure at outlet, use characteristic map for pressure
         # rise calculation
         self.c2.set_attr(p=np.nan)
-        instance.set_attr(char_map=dc_cm(method='GENERIC', is_set=True),
-                          eta_s=np.nan)
+        instance.set_attr(char_map=dc_cm(func=ldc(
+            'compressor', 'char_map', 'DEFAULT', compressor_map),
+            is_set=True), eta_s=np.nan)
 
         # offdesign test, efficiency value should be at design value
         self.nw.solve('offdesign', design_path='tmp')
@@ -94,9 +96,10 @@ class turbomachinery_tests:
         self.c2.set_attr(p=7)
         self.c1.set_attr(v=1, T=100, m=np.nan)
 
-        # test parameter specification for eta_s_char, unset char map
-        instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
-                                           is_set=True, param='m'))
+        # test parameter specification for eta_s_char with unset char map
+        instance.set_attr(eta_s_char=dc_cc(func=ldc(
+            'compressor', 'eta_s_char', 'DEFAULT', char_line),
+            is_set=True, param='m'))
         instance.char_map.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
@@ -168,7 +171,9 @@ class turbomachinery_tests:
         char = dc_cc(func=char_line(x, y), is_set=True)
         # apply flow char and eta_s char
         instance.set_attr(flow_char=char, eta_s=np.nan,
-                          eta_s_char=dc_cc(method='GENERIC', is_set=True))
+                          eta_s_char=dc_cc(func=ldc('pump', 'eta_s_char',
+                                                    'DEFAULT', char_line),
+                                           is_set=True))
         self.nw.solve('offdesign', design_path='tmp')
 
         # value for difference pressure

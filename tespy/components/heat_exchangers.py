@@ -89,10 +89,25 @@ class heat_exchanger_simple(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -109,7 +124,7 @@ class heat_exchanger_simple(component):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : String/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -118,10 +133,9 @@ class heat_exchanger_simple(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide x and y
-        values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+    kA_char : tespy.helpers.dc_cc
+        Characteristic curve for heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature
@@ -847,10 +861,25 @@ class solar_collector(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -867,7 +896,7 @@ class solar_collector(heat_exchanger_simple):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : String/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -1187,13 +1216,28 @@ class heat_exchanger(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : String/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : String/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -1208,15 +1252,13 @@ class heat_exchanger(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'HE_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'HE_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Note
     ----
@@ -2153,13 +2195,28 @@ class condenser(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : String/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : String/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2174,15 +2231,13 @@ class condenser(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     subcooling : bool
         Enable/disable subcooling, default value: disabled.
@@ -2520,13 +2575,28 @@ class desuperheater(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : String/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : String/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2541,15 +2611,13 @@ class desuperheater(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Note
     ----

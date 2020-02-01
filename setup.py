@@ -20,8 +20,8 @@ setup(name='TESPy',
       data_files=[('tespy/data', ['tespy/data/char_lines.json',
                                   'tespy/data/char_maps.json'])],
       python_requires='>=3',
-      install_requires=['CoolProp >= 6.3.0',
-                        'numpy >= 1.16.2',
-                        'pandas < 1.0.0',
-                        'scipy >= 1.4.1',
-                        'tabulate >= 0.8.6'])
+      install_requires=['CoolProp>=6,<7',
+                        'numpy>=1.13.3,<2',
+                        'pandas>=0.19.2,<1',
+                        'scipy>=0.19.1,<2',
+                        'tabulate>=0.8.2,<0.9'])

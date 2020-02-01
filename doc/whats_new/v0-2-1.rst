@@ -31,3 +31,6 @@ Other changes
 
 Contributors
 ############
+
+- Francesco Witte (@fwitte)
+- @maltefritz

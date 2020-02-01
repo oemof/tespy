@@ -36,8 +36,7 @@ from tespy.tools.helpers import TESPyComponentError
 
 class turbomachine(component):
     r"""
-    The component turbomachine is the parent class for pump, compressor and
-    turbine.
+    Parent class for compressor, pump and turbine.
 
     Equations
 
@@ -148,14 +147,13 @@ class turbomachine(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
         vec_res : list
             Vector of residual values.
         """
-
         vec_res = []
 
         ######################################################################
@@ -192,8 +190,7 @@ class turbomachine(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Returns
         -------
@@ -204,7 +201,7 @@ class turbomachine(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -251,8 +248,7 @@ class turbomachine(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate matrix of partial derivatives for given additional equations.
 
         Returns
         -------
@@ -262,20 +258,14 @@ class turbomachine(component):
         return []
 
     def eta_s_func(self):
-        r"""
-        Calculates residual value of isentropic efficiency function, see
-        subclasses.
-        """
+        r"""Calculate residual value of isentropic efficiency equation."""
         msg = ('If you want to use eta_s as parameter, please specify which '
                'type of turbomachine you are using.')
         logging.error(msg)
         raise TESPyComponentError(msg)
 
     def eta_s_deriv(self):
-        r"""
-        Calculates partial derivatives for isentropic efficiency function, see
-        subclasses.
-        """
+        r"""Calculate partial derivatives of isentropic efficiency equation."""
         msg = ('If you want to use eta_s as parameter, please specify which '
                'type of turbomachine you are using.')
         logging.error(msg)
@@ -283,8 +273,7 @@ class turbomachine(component):
 
     def h_os(self, mode):
         r"""
-        Calculates the enthalpy at the outlet if compression or expansion is
-        isentropic.
+        Calculate the enthalpy at the outlet after isentropic process.
 
         Parameters
         ----------
@@ -323,7 +312,7 @@ class turbomachine(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -351,7 +340,7 @@ class turbomachine(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -370,9 +359,7 @@ class turbomachine(component):
         return deriv
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
         self.P.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
@@ -385,6 +372,8 @@ class turbomachine(component):
 
 class compressor(turbomachine):
     r"""
+    Class for axial or radial compressor.
+
     Equations
 
         **mandatory equations**
@@ -545,8 +534,7 @@ class compressor(turbomachine):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        compressor.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -576,8 +564,7 @@ class compressor(turbomachine):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate matrix of partial derivatives for given additional equations.
 
         Returns
         -------
@@ -617,8 +604,7 @@ class compressor(turbomachine):
 
     def eta_s_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency function.
+        Calculate partial derivatives of the isentropic efficiency equation.
 
         Returns
         -------
@@ -636,8 +622,7 @@ class compressor(turbomachine):
 
     def eta_s_char_func(self):
         r"""
-        Equation for given isentropic efficiency characteristic of a
-        compressor.
+        Equation for given isentropic efficiency characteristic.
 
         Returns
         -------
@@ -676,8 +661,7 @@ class compressor(turbomachine):
 
     def eta_s_char_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency characteristic function.
+        Calculate partial derivatives of efficiency characteristic function.
 
         Returns
         -------
@@ -695,7 +679,7 @@ class compressor(turbomachine):
 
     def char_map_func(self):
         r"""
-        Equations for characteristic map of compressor.
+        Equation for characteristic map of compressor.
 
         Parameters
 
@@ -747,8 +731,7 @@ class compressor(turbomachine):
 
     def char_map_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the compressor
-        characteristic map function.
+        Calculate partial derivatives of characteristic map equations.
 
         Returns
         -------
@@ -783,7 +766,7 @@ class compressor(turbomachine):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -813,8 +796,7 @@ class compressor(turbomachine):
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -844,8 +826,7 @@ class compressor(turbomachine):
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -873,9 +854,7 @@ class compressor(turbomachine):
             return 4e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         turbomachine.calc_parameters(self)
 
         self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
@@ -915,6 +894,8 @@ class compressor(turbomachine):
 
 class pump(turbomachine):
     r"""
+    Class for axial or radial pumps.
+
     Equations
 
         **mandatory equations**
@@ -1060,8 +1041,7 @@ class pump(turbomachine):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        pump.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1091,8 +1071,7 @@ class pump(turbomachine):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1115,7 +1094,7 @@ class pump(turbomachine):
 
     def eta_s_func(self):
         r"""
-        Equation for given isentropic efficiency of a pump.
+        Equation for given isentropic efficiency.
 
         Returns
         -------
@@ -1132,8 +1111,7 @@ class pump(turbomachine):
 
     def eta_s_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency function.
+        Calculate partial derivatives of isentropic efficiency function.
 
         Returns
         -------
@@ -1151,7 +1129,7 @@ class pump(turbomachine):
 
     def eta_s_char_func(self):
         r"""
-        Equation for given isentropic efficiency characteristic of a pump.
+        Equation for given isentropic efficiency characteristic.
 
         Returns
         -------
@@ -1182,8 +1160,7 @@ class pump(turbomachine):
 
     def eta_s_char_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency characteristic function.
+        Calculate partial derivatives of efficiency characteristic.
 
         Returns
         -------
@@ -1223,8 +1200,7 @@ class pump(turbomachine):
 
     def flow_char_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the flow characteristic
-        of a pump.
+        Calculate partial derivatives of the flow characteristic.
 
         Returns
         -------
@@ -1242,7 +1218,7 @@ class pump(turbomachine):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1281,8 +1257,7 @@ class pump(turbomachine):
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -1312,8 +1287,7 @@ class pump(turbomachine):
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -1341,9 +1315,7 @@ class pump(turbomachine):
             return 2.9e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         turbomachine.calc_parameters(self)
 
         self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
@@ -1370,6 +1342,8 @@ class pump(turbomachine):
 
 class turbine(turbomachine):
     r"""
+    Class for gas or steam turbines.
+
     Equations
 
         **mandatory equations**
@@ -1505,8 +1479,7 @@ class turbine(turbomachine):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        turbine.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1536,8 +1509,7 @@ class turbine(turbomachine):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1583,8 +1555,7 @@ class turbine(turbomachine):
 
     def eta_s_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency function.
+        Calculate partial derivatives of the isentropic efficiency function.
 
         Returns
         -------
@@ -1630,11 +1601,11 @@ class turbine(turbomachine):
         return (- i[0] + i_d[0] * i[1] / i_d[1] *
                 np.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
                 np.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
-                        (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
+                            (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
 
     def eta_s_char_func(self):
         r"""
-        Equation for given isentropic efficiency characteristic of a turbine.
+        Equation for given isentropic efficiency characteristic.
 
         Returns
         -------
@@ -1674,8 +1645,7 @@ class turbine(turbomachine):
 
     def eta_s_char_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the isentropic
-        efficiency characteristic function.
+        Calculate partial derivatives of efficiency characteristic function.
 
         Returns
         -------
@@ -1694,7 +1664,7 @@ class turbine(turbomachine):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1728,8 +1698,7 @@ class turbine(turbomachine):
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -1759,8 +1728,7 @@ class turbine(turbomachine):
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -1788,9 +1756,7 @@ class turbine(turbomachine):
             return 2e6
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         turbomachine.calc_parameters(self)
 
         self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /

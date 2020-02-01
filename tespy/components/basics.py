@@ -28,6 +28,8 @@ from tespy.tools.data_containers import dc_simple, dc_cp
 
 class cycle_closer(component):
     r"""
+    Component for closing cycles.
+
     Equations
 
         **mandatory equations**
@@ -135,7 +137,7 @@ class cycle_closer(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -158,7 +160,7 @@ class cycle_closer(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -299,6 +301,8 @@ class source(component):
 
 class subsystem_interface(component):
     r"""
+    The subsystem interface does not change fluid properties.
+
     Equations
 
         **mandatory equations**
@@ -368,7 +372,8 @@ class subsystem_interface(component):
     rest of your network. It is necessary to specify the number of interfaces
     of the subsystem interface, if you want any number other than 1. We will
     not go in depth of subsystem usage in this example. Please refer to
-    TODO: PLACELINKHERE for more information on building your own subsystems.
+    :ref:`this section <tespy_subsystems_label>` for more information on
+    building your own subsystems.
 
     >>> from tespy.components import sink, source, subsystem_interface
     >>> from tespy.connections import connection
@@ -431,7 +436,7 @@ class subsystem_interface(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -467,7 +472,7 @@ class subsystem_interface(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -482,7 +487,7 @@ class subsystem_interface(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate the partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -499,8 +504,9 @@ class subsystem_interface(component):
 
     def inout_deriv(self, pos):
         r"""
-        Calculates the partial derivatives for all mass flow, pressure and
-        enthalpy equations.
+        Calculate partial derivatives.
+
+        Method applies for all mass flow, pressure and enthalpy equations.
 
         Parameters
         ----------

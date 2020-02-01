@@ -22,8 +22,7 @@ import numpy as np
 
 class data_container:
     r"""
-    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop,
-    dc_simple.
+    The data_container is parent class for all data_containers.
 
     Parameters
     ----------
@@ -151,9 +150,10 @@ class data_container:
 
 class dc_cc(data_container):
     r"""
+    Data container for component characteristics.
+
     Parameters
     ----------
-
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristics, default: None.
 
@@ -164,6 +164,7 @@ class dc_cc(data_container):
         Which parameter should be applied as the x value?
         default: method='default'.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -182,9 +183,10 @@ class dc_cc(data_container):
 
 class dc_cm(data_container):
     r"""
+    Data container for characteristic maps.
+
     Parameters
     ----------
-
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristic map, default: None.
 
@@ -195,6 +197,7 @@ class dc_cm(data_container):
         Which parameter should be applied as the x value?
         default: method='default'.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -213,9 +216,10 @@ class dc_cm(data_container):
 
 class dc_cp(data_container):
     r"""
+    Data container for component properties.
+
     Parameters
     ----------
-
     val : float
         Value for this component attribute, default: val=1.
 
@@ -244,6 +248,7 @@ class dc_cp(data_container):
     printout : boolean
         Should the value of this attribute be printed in the results overview?
     """
+
     @staticmethod
     def attr():
         r"""
@@ -264,9 +269,10 @@ class dc_cp(data_container):
 
 class dc_flu(data_container):
     r"""
+    Data container for fluid composition.
+
     Parameters
     ----------
-
     val : dict
         Mass fractions of the fluids in a mixture, default: val={}.
         Pattern for dictionary: keys are fluid name, values are mass fractions.
@@ -284,6 +290,7 @@ class dc_flu(data_container):
         Should the fluid balance equation be applied for this mixture?
         default: False.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -303,6 +310,8 @@ class dc_flu(data_container):
 
 class dc_gcp(data_container):
     r"""
+    Data container for grouped component parameters.
+
     Parameters
     ----------
     is_set : boolean
@@ -317,6 +326,7 @@ class dc_gcp(data_container):
         Which component properties are part of this component group?
         default elements=[].
     """
+
     @staticmethod
     def attr():
         r"""
@@ -335,6 +345,8 @@ class dc_gcp(data_container):
 
 class dc_prop(data_container):
     r"""
+    Data container for fluid properties.
+
     Parameters
     ----------
     val : float
@@ -369,8 +381,18 @@ class dc_prop(data_container):
     -------
     See :func:`tespy.tools.data_containers.data_container`
     """
+
     @staticmethod
     def attr():
+        r"""
+        Return the available attributes for a data_container type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
                 'unit': None, 'unit_set': False, 'design': np.nan}
@@ -391,6 +413,16 @@ class dc_simple(data_container):
     is_set : boolean
         Has the value for this property been set? default: val_set=False.
     """
+
     @staticmethod
     def attr():
+        r"""
+        Return the available attributes for a data_container type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
         return {'val': np.nan, 'is_set': False}

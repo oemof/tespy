@@ -29,6 +29,8 @@ from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
 
 class pipe(heat_exchanger_simple):
     r"""
+    The pipe is a subclass of a simple heat exchanger.
+
     Equations
 
         **mandatory equations**
@@ -185,6 +187,8 @@ class pipe(heat_exchanger_simple):
 
 class valve(component):
     r"""
+    The valve throttles a fluid without changing enthalpy.
+
     Equations
 
         **mandatory equations**
@@ -438,8 +442,7 @@ class valve(component):
 
     def dp_char_func(self):
         r"""
-        Equation for characteristic line defining difference pressure to
-        mass flow.
+        Equation for characteristic line of difference pressure to mass flow.
 
         Returns
         -------
@@ -457,8 +460,7 @@ class valve(component):
 
     def dp_char_deriv(self):
         r"""
-        Calculate the matrix of partial derivatives of the difference pressure
-        to mass flow characteristic line.
+        Calculate partial derivatives of characteristic line.
 
         Returns
         -------
@@ -475,8 +477,7 @@ class valve(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -505,8 +506,7 @@ class valve(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -534,9 +534,7 @@ class valve(component):
             return 5e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.pr.val = o[1] / i[1]

@@ -346,8 +346,7 @@ class heat_exchanger_simple(component):
 
     def additional_equations(self):
         r"""
-        Calculate vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -371,7 +370,7 @@ class heat_exchanger_simple(component):
 
     def derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -450,8 +449,7 @@ class heat_exchanger_simple(component):
 
     def additional_derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -498,7 +496,7 @@ class heat_exchanger_simple(component):
 
     def Q_deriv(self):
         r"""
-        Calculate the matrix of partial derivatives for heat transfer equation.
+        Calculate partial derivatives for heat transfer equation.
 
         Returns
         -------
@@ -675,7 +673,7 @@ class heat_exchanger_simple(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculate the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -1027,8 +1025,9 @@ class solar_collector(heat_exchanger_simple):
             self.hydro_group.set_attr(is_set=False)
 
         # parameters for energy group
-        self.energy_group.set_attr(elements=[self.E, self.eta_opt, self.lkf_lin,
-                                             self.lkf_quad, self.A, self.Tamb])
+        self.energy_group.set_attr(
+            elements=[self.E, self.eta_opt, self.lkf_lin,
+                      self.lkf_quad, self.A, self.Tamb])
 
         is_set = True
         for e in self.energy_group.elements:
@@ -1049,8 +1048,7 @@ class solar_collector(heat_exchanger_simple):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1074,8 +1072,7 @@ class solar_collector(heat_exchanger_simple):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1123,7 +1120,6 @@ class solar_collector(heat_exchanger_simple):
                 \left(T_m - T_{amb}\right)^2 \right]
                 \end{split}
         """
-
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
@@ -1131,14 +1127,13 @@ class solar_collector(heat_exchanger_simple):
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
         return (i[0] * (o[2] - i[2]) -
-                self.A.val * (self.E.val * self.eta_opt.val -
-                (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+                self.A.val * (
+                    self.E.val * self.eta_opt.val -
+                    (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+                    self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
@@ -1355,7 +1350,7 @@ class heat_exchanger(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -1428,8 +1423,7 @@ class heat_exchanger(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Returns
         -------
@@ -1440,7 +1434,7 @@ class heat_exchanger(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -1536,8 +1530,7 @@ class heat_exchanger(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1548,8 +1541,7 @@ class heat_exchanger(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate residual values for fluid balance equations.
 
         Returns
         -------
@@ -1570,8 +1562,7 @@ class heat_exchanger(component):
 
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value for mass flow balance equation.
 
         Returns
         -------
@@ -1590,7 +1581,7 @@ class heat_exchanger(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1614,7 +1605,7 @@ class heat_exchanger(component):
 
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -1666,8 +1657,7 @@ class heat_exchanger(component):
 
     def energy_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for energy balance
-        equation.
+        Calculate partial derivatives for energy balance equation.
 
         Returns
         -------
@@ -1704,8 +1694,7 @@ class heat_exchanger(component):
 
     def kA_func(self):
         r"""
-        Equation for heat transfer from conditions on both sides of heat
-        exchanger.
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -1731,7 +1720,6 @@ class heat_exchanger(component):
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
-
 #        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[1] == 2 or c[1] == 4 or c[1] == 5:
@@ -1752,7 +1740,6 @@ class heat_exchanger(component):
 #
 #            else:
 #                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
-
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -1827,8 +1814,7 @@ class heat_exchanger(component):
 
     def ttd_u_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for upper temperature
-        difference equation.
+        Calculate partial derivatives of upper temperature difference equation.
 
         Returns
         -------
@@ -1863,8 +1849,7 @@ class heat_exchanger(component):
 
     def ttd_l_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for lower temperature
-        difference equation.
+        Calculate partial derivatives of lower temperature difference equation.
 
         Returns
         -------
@@ -1881,7 +1866,7 @@ class heat_exchanger(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -1911,7 +1896,7 @@ class heat_exchanger(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -1931,7 +1916,7 @@ class heat_exchanger(component):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1986,8 +1971,7 @@ class heat_exchanger(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -2023,8 +2007,7 @@ class heat_exchanger(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -2059,9 +2042,7 @@ class heat_exchanger(component):
                 return h_mix_pT(flow, T)
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         # connection information
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
@@ -2337,8 +2318,7 @@ class condenser(heat_exchanger):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -2367,7 +2347,7 @@ class condenser(heat_exchanger):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -2408,8 +2388,7 @@ class condenser(heat_exchanger):
 
     def energy_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for energy balance
-        equation.
+        Calculate partial derivatives for energy balance equation.
 
         Returns
         -------
@@ -2427,7 +2406,7 @@ class condenser(heat_exchanger):
 
     def kA_func(self):
         r"""
-        Equation for heat transfer from conditions on both sides of condenser.
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -2523,6 +2502,8 @@ class condenser(heat_exchanger):
 
 class desuperheater(heat_exchanger):
     r"""
+    The desuperheater cools a fluid to the saturated gas state.
+
     Equations
 
         **mandatory equations**
@@ -2686,8 +2667,7 @@ class desuperheater(heat_exchanger):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -2714,8 +2694,7 @@ class desuperheater(heat_exchanger):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------

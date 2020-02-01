@@ -117,7 +117,7 @@ class component:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets reset or unset attributes of a component for provided arguments.
+        Set, reset or unset attributes of a component for provided arguments.
 
         Parameters
         ----------
@@ -308,7 +308,7 @@ class component:
 
     def comp_init(self, nw):
         r"""
-        Performs component initialization in network preprocessing.
+        Perform component initialization in network preprocessing.
 
         Parameters
         ----------
@@ -373,8 +373,7 @@ class component:
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -400,8 +399,7 @@ class component:
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -451,9 +449,7 @@ class component:
                     self.get_attr(key).design = np.nan
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         return
 
     def check_parameter_bounds(self):
@@ -484,8 +480,7 @@ class component:
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -504,14 +499,13 @@ class component:
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-
         deriv = np.zeros((self.num_fl, 2 + self.num_vars, 3 + self.num_fl))
         i = 0
         for fluid in self.fluids:
@@ -524,8 +518,7 @@ class component:
 
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value for mass flow balance equation.
 
         Returns
         -------
@@ -536,7 +529,6 @@ class component:
                 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
                 \forall i \in inlets, \forall j \in outlets
         """
-
         res = 0
         for i in self.inl:
             res += i.m.val_SI
@@ -546,7 +538,7 @@ class component:
 
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -554,7 +546,6 @@ class component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-
         deriv = np.zeros((1, self.num_i + self.num_o +
                           self.num_vars, 3 + self.num_fl))
         for i in range(self.num_i):
@@ -567,8 +558,7 @@ class component:
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
         r"""
-        Calculates partial derivative of the function func to dx at given
-        connection.
+        Calculate partial derivative of the function func to dx.
 
         Parameters
         ----------
@@ -593,7 +583,6 @@ class component:
 
                 \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
         """
-
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
             dm = 1e-4
@@ -658,7 +647,7 @@ class component:
 
     def zeta_func(self):
         r"""
-        Calculates residual value of :math:`\zeta`-function.
+        Calculate residual value of :math:`\zeta`-function.
 
         Returns
         -------
@@ -669,8 +658,8 @@ class component:
 
                 val = \begin{cases}
                 p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
-                \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
+                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}
+                {8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
                 v_{out}}{2}} &
                 |\dot{m}| > \epsilon
                 \end{cases}
@@ -704,8 +693,7 @@ class component:
 
     def zeta2_func(self):
         r"""
-        calculates residual value of :math:`\zeta`-function (for heat
-        exchangers at lower temperature side).
+        Calculate residual value of :math:`\zeta_2`-function.
 
         Returns
         -------

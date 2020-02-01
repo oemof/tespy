@@ -6,6 +6,8 @@ New Features
 
 Documentation
 #############
+- Fixes in code and docstrings to meet PEP8 guidelines
+(`PR #143 <https://github.com/oemof/tespy/pull/143>`_).
 - Update the class documentations of component and connection classes
 (`PR #146 <https://github.com/oemof/tespy/pull/146>`_).
 
@@ -29,3 +31,6 @@ Other changes
 
 Contributors
 ############
+
+- Francesco Witte (@fwitte)
+- @maltefritz

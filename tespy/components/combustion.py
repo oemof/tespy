@@ -187,8 +187,18 @@ class combustion_chamber(component):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.mass_flow_deriv()
-        self.p_deriv = self.pressure_deriv()
+        self.num_eq = self.num_fl + 4
+        for var in [self.lamb, self.ti]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.nw_vars))
+
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.mat_deriv[1:3] = self.pressure_deriv()
 
         self.fuel_list = []
         fuels = ['methane', 'ethane', 'propane', 'butane', 'hydrogen']
@@ -284,37 +294,36 @@ class combustion_chamber(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
-        ######################################################################
-        # equations for fluids in reaction balance
-        for fluid in self.inl[0].fluid.val.keys():
-            vec_res += [self.reaction_balance(fluid)]
-
+        self.vec_res = []
         ######################################################################
         # eqation for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for pressure
         for i in self.inl:
-            vec_res += [self.outl[0].p.val_SI - i.p.val_SI]
+            self.vec_res += [self.outl[0].p.val_SI - i.p.val_SI]
+
+        ######################################################################
+        # equations for fluids in reaction balance
+        for fluid in self.inl[0].fluid.val.keys():
+            self.vec_res += [self.reaction_balance(fluid)]
 
         ######################################################################
         # equation for energy balance
-        vec_res += [self.energy_balance()]
+        self.vec_res += [self.energy_balance()]
 
         ######################################################################
         # equation for specified air to stoichiometric air ratio lamb
         if self.lamb.is_set:
-            vec_res += [self.lambda_func()]
+            self.vec_res += [self.lambda_func()]
 
         ######################################################################
         # equation for speciified thermal input
         if self.ti.is_set:
-            vec_res += [self.ti_func()]
+            self.vec_res += [self.ti_func()]
 
-        return vec_res
+        return self.vec_res
 
     def derivatives(self):
         r"""
@@ -325,49 +334,37 @@ class combustion_chamber(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
+        k = 3
         ######################################################################
         # derivatives for reaction balance
-        j = 0
-        deriv = np.zeros((self.num_fl, 3, self.num_fl + 3))
         for fluid in self.fluids:
             for i in range(3):
-                deriv[j, i, 0] = self.rb_numeric_deriv('m', i, fluid)
-                deriv[j, i, 3:] = self.rb_numeric_deriv('fluid', i, fluid)
+                self.mat_deriv[k, i, 0] = self.rb_numeric_deriv('m', i, fluid)
+                self.mat_deriv[k, i, 3:] = self.rb_numeric_deriv(
+                    'fluid', i, fluid)
 
-            j += 1
-        mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for mass balance equations
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for pressure equations
-        mat_deriv += self.p_deriv
+            k += 1
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((1, 3, self.num_fl + 3))
+        f = self.energy_balance
         for i in range(3):
-            deriv[0, i, 0] = self.numeric_deriv(self.energy_balance, 'm', i)
-            deriv[0, i, 1] = self.numeric_deriv(self.energy_balance, 'p', i)
+            self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
             if i >= self.num_i:
-                deriv[0, i, 2] = -(self.inl + self.outl)[i].m.val_SI
+                self.mat_deriv[k, i, 2] = -(self.inl + self.outl)[i].m.val_SI
             else:
-                deriv[0, i, 2] = (self.inl + self.outl)[i].m.val_SI
-        mat_deriv += deriv.tolist()
+                self.mat_deriv[k, i, 2] = (self.inl + self.outl)[i].m.val_SI
+        k += 1
 
         ######################################################################
         # derivatives for specified lamb
         if self.lamb.is_set:
-            deriv = np.zeros((1, 3, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(self.lambda_func, 'm', 0)
-            deriv[0, 0, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 0)
-            deriv[0, 1, 0] = self.numeric_deriv(self.lambda_func, 'm', 1)
-            deriv[0, 1, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 1)
-            mat_deriv += deriv.tolist()
+            self.mat_deriv[k, 0, 0] = self.numeric_deriv(self.lambda_func, 'm', 0)
+            self.mat_deriv[k, 0, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 0)
+            self.mat_deriv[k, 1, 0] = self.numeric_deriv(self.lambda_func, 'm', 1)
+            self.mat_deriv[k, 1, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 1)
+            k += 1
 
         ######################################################################
         # derivatives for specified thermal input
@@ -377,29 +374,28 @@ class combustion_chamber(component):
                 pos = 3 + self.fluids.index('TESPy::' + self.fuel_alias.val)
                 fuel = 'TESPy::' + self.fuel_alias.val
 
-                deriv = np.zeros((1, 3, self.num_fl + 3))
                 for i in range(2):
-                    deriv[0, i, 0] = -self.inl[i].fluid.val[fuel]
-                    deriv[0, i, pos] = -self.inl[i].m.val_SI
-                deriv[0, 2, 0] = self.outl[0].fluid.val[fuel]
-                deriv[0, 2, pos] = self.outl[0].m.val_SI
-                mat_deriv += (deriv * self.lhv).tolist()
+                    self.mat_deriv[k, i, 0] = -self.inl[i].fluid.val[fuel] * self.lhv
+                    self.mat_deriv[k, i, pos] = -self.inl[i].m.val_SI * self.lhv
+                self.mat_deriv[k, 2, 0] = self.outl[0].fluid.val[fuel] * self.lhv
+                self.mat_deriv[k, 2, pos] = self.outl[0].m.val_SI * self.lhv
             # combustion chamber
             else:
-
-                deriv = np.zeros((1, 3, self.num_fl + 3))
+                self.mat_deriv[k, 0, 0] = 0
+                self.mat_deriv[k, 1, 0] = 0
+                self.mat_deriv[k, 2, 0] = 0
                 for f in self.fuel_list:
                     pos = 3 + self.fluids.index(f)
                     lhv = self.fuels[f]['LHV']
 
                     for i in range(2):
-                        deriv[0, i, 0] += -self.inl[i].fluid.val[f] * lhv
-                        deriv[0, i, pos] = -self.inl[i].m.val_SI * lhv
-                    deriv[0, 2, 0] += self.outl[0].fluid.val[f] * lhv
-                    deriv[0, 2, pos] = self.outl[0].m.val_SI * lhv
-                mat_deriv += deriv.tolist()
+                        self.mat_deriv[k, i, 0] += -self.inl[i].fluid.val[f] * lhv
+                        self.mat_deriv[k, i, pos] = -self.inl[i].m.val_SI * lhv
+                    self.mat_deriv[k, 2, 0] += self.outl[0].fluid.val[f] * lhv
+                    self.mat_deriv[k, 2, pos] = self.outl[0].m.val_SI * lhv
+            k += 1
 
-        return np.asarray(mat_deriv)
+        return self.mat_deriv
 
     def pressure_deriv(self):
         r"""
@@ -414,7 +410,7 @@ class combustion_chamber(component):
         for k in range(2):
             deriv[k][2][1] = 1
             deriv[k][k][1] = -1
-        return deriv.tolist()
+        return deriv
 
     def reaction_balance(self, fluid):
         r"""

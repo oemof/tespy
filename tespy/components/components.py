@@ -319,7 +319,7 @@ class component:
         self.num_vars = 0
         var = self.attr()
         for val in var.keys():
-            if isinstance(self.attr()[val], dc_cp):
+            if isinstance(var[val], dc_cp):
                 if self.get_attr(val).is_var:
                     self.get_attr(val).var_pos = self.num_vars
                     self.num_vars += 1
@@ -352,6 +352,7 @@ class component:
 
         self.num_fl = len(nw.fluids)
         self.fluids = nw.fluids
+        self.nw_vars = self.num_fl + 3
 
     @staticmethod
     def attr():
@@ -512,7 +513,7 @@ class component:
             deriv[i, 0, i + 3] = 1
             deriv[i, 1, i + 3] = -1
             i += 1
-        return deriv.tolist()
+        return deriv
 
 # %%
 
@@ -552,7 +553,7 @@ class component:
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
             deriv[0, j + i + 1, 0] = -1
-        return deriv.tolist()
+        return deriv
 
 # %%
 

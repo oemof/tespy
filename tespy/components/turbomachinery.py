@@ -681,8 +681,13 @@ class compressor(turbomachine):
         r"""
         Equation for characteristic map of compressor.
 
-        Parameters
-        ----------
+        Returns
+        -------
+        res : ndarray (Z1, Z2)
+            Residual values of equations.
+
+        Note
+        ----
         - X: speedline index (rotational speed is constant)
         - Y: nondimensional mass flow
         - Z1: pressure ratio equation
@@ -703,11 +708,6 @@ class compressor(turbomachine):
 
             Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
             \eta_{s,c}(char(m, igva))
-
-        Returns
-        -------
-        res : ndarray (Z1, Z2)
-            Residual values of equations.
         """
         # actual values
         i = self.inl[0].to_flow()

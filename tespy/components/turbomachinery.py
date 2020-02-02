@@ -98,15 +98,8 @@ class turbomachine(component):
     P : str/float/tespy.helpers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
-        Isentropic efficiency, :math:`\eta_s/1`
-
     pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
-
-    eta_s_char : tespy.helpers.dc_cc
-        Characteristic curve for isentropic efficiency, provide char_line as
-        function :code:`func`.
 
     Example
     -------
@@ -123,8 +116,8 @@ class turbomachine(component):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(), 'eta_s': dc_cp(), 'pr': dc_cp(),
-                'eta_s_char': dc_cc(), 'Sirr': dc_simple()}
+        return {'P': dc_cp(), 'pr': dc_cp(),
+                'Sirr': dc_simple()}
 
     @staticmethod
     def inlets():
@@ -143,7 +136,6 @@ class turbomachine(component):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.vec_res = []
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -208,12 +200,15 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
+        ######################################################################
+        # derivatives fluid and mass balance are static
         k = self.num_fl + 1
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
             if abs(self.vec_res[k]) > err or self.it == 0:
-                self.mat_deriv[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+                self.mat_deriv[k, 0, 0] = (
+                    self.outl[0].h.val_SI - self.inl[0].h.val_SI)
                 self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
                 self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
             k += 1
@@ -359,8 +354,6 @@ class compressor(turbomachine):
 
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
             0 = pr \cdot p_{in} - p_{out}
-
-        - :func:`tespy.components.turbomachinery.compressor.eta_s_func`
 
         **additional equations**
 
@@ -508,7 +501,6 @@ class compressor(turbomachine):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.vec_res = []
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -525,6 +517,8 @@ class compressor(turbomachine):
 
             **optional equations**
 
+
+            - :func:`tespy.components.turbomachinery.compressor.eta_s_func`
             - :func:`tespy.components.turbomachinery.compressor.eta_s_char_func`
             - :func:`tespy.components.turbomachinery.compressor.char_map_func`
         """
@@ -534,14 +528,14 @@ class compressor(turbomachine):
             self.vec_res += [self.eta_s_func()]
 
         ######################################################################
-        # equations for specified characteristic map
-        if self.char_map.is_set:
-            self.vec_res += self.char_map_func().tolist()
-
-        ######################################################################
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             self.vec_res += [self.eta_s_char_func()]
+
+        ######################################################################
+        # equations for specified characteristic map
+        if self.char_map.is_set:
+            self.vec_res += self.char_map_func().tolist()
 
         return
 
@@ -557,6 +551,20 @@ class compressor(turbomachine):
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
                 self.mat_deriv[k, 1, 2] = -self.eta_s.val
             k += 1
+
+        ######################################################################
+        # derivatives for specified isentropic efficiency characteristics
+        if self.eta_s_char.is_set:
+            if abs(self.vec_res[k]) > err or self.it == 0:
+                f = self.eta_s_char_func
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            k += 1
+
+        self.it += 1
 
         ######################################################################
         # derivatives for specified characteristic map
@@ -584,21 +592,7 @@ class compressor(turbomachine):
                     k += 1
             else:
                 k += 2
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
-                f = self.eta_s_char_func
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            k += 1
-
-        self.it += 1
-        return
+            return
 
     def eta_s_func(self):
         r"""
@@ -854,8 +848,6 @@ class pump(turbomachine):
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
             0 = pr \cdot p_{in} - p_{out}
 
-        - :func:`tespy.components.turbomachinery.pump.eta_s_func`
-
         **additional equations**
 
         - :func:`tespy.components.turbomachinery.pump.additional_equations`
@@ -988,11 +980,11 @@ class pump(turbomachine):
         component.comp_init(self, nw)
 
         self.num_eq = self.num_fl + 1
-        for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.flow_char]:
+        for var in [self.P, self.pr, self.eta_s, self.eta_s_char,
+                    self.flow_char]:
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.vec_res = []
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -1009,13 +1001,9 @@ class pump(turbomachine):
 
             **optional equations**
 
+            - :func:`tespy.components.turbomachinery.pump.eta_s_func`
             - :func:`tespy.components.turbomachinery.pump.eta_s_char_func`
             - :func:`tespy.components.turbomachinery.pump.flow_char_func`
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -1415,7 +1403,6 @@ class turbine(turbomachine):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.vec_res = []
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,

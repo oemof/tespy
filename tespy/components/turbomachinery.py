@@ -206,7 +206,7 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 self.mat_deriv[k, 0, 0] = (
                     self.outl[0].h.val_SI - self.inl[0].h.val_SI)
                 self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
@@ -216,7 +216,7 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 self.mat_deriv[k, 0, 1] = self.pr.val
                 self.mat_deriv[k, 1, 1] = -1
             k += 1
@@ -225,6 +225,8 @@ class turbomachine(component):
         # derivatives for additional equations
         self.additional_derivatives(k)
 
+        # iteration counter
+        self.it += 1
         return self.mat_deriv
 
     def additional_derivatives(self):
@@ -544,7 +546,7 @@ class compressor(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_func
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
@@ -555,7 +557,7 @@ class compressor(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_char_func
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
@@ -564,12 +566,10 @@ class compressor(turbomachine):
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
-        self.it += 1
-
         ######################################################################
         # derivatives for specified characteristic map
         if self.char_map.is_set:
-            if all(abs(np.array(self.vec_res[k:k + 2])) > err) or self.it == 0:
+            if all(abs(np.array(self.vec_res[k:k + 2])) > err) or self.it % 3 == 0:
                 f = self.char_map_func
                 m11 = self.numeric_deriv(f, 'm', 0)
                 p11 = self.numeric_deriv(f, 'p', 0)
@@ -1027,7 +1027,7 @@ class pump(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_func
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
@@ -1038,7 +1038,7 @@ class pump(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_char_func
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
@@ -1051,7 +1051,7 @@ class pump(turbomachine):
         # derivatives for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
             f = self.flow_char_func
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
                 for i in range(2):
@@ -1444,7 +1444,7 @@ class turbine(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_func
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
@@ -1455,7 +1455,7 @@ class turbine(turbomachine):
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.eta_s_char_func
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
@@ -1467,7 +1467,7 @@ class turbine(turbomachine):
         ######################################################################
         # derivatives for specified cone law
         if self.cone.is_set:
-            if abs(self.vec_res[k]) > err or self.it == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.cone_func
                 self.mat_deriv[k, 0, 0] = -1
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)

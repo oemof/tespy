@@ -315,6 +315,7 @@ class component:
         nw : tespy.networks.network
             Network this component is integrated in.
         """
+        self.it = 0
         self.vars = {}
         self.num_vars = 0
         var = self.attr()

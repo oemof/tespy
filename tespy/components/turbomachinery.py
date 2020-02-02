@@ -682,27 +682,27 @@ class compressor(turbomachine):
         Equation for characteristic map of compressor.
 
         Parameters
+        ----------
+        - X: speedline index (rotational speed is constant)
+        - Y: nondimensional mass flow
+        - Z1: pressure ratio equation
+        - Z2: isentropic efficiency equation
+        - igva: variable inlet guide vane angle (assumed 0° if not
+          specified)
 
-            - X: speedline index (rotational speed is constant)
-            - Y: nondimensional mass flow
-            - Z1: pressure ratio equation
-            - Z2: isentropic efficiency equation
-            - igva: variable inlet guide vane angle (assumed 0° if not
-              specified)
+        .. math::
 
-            .. math::
+            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
 
-                X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
+            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
+            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
 
-                Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
-                {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
+            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}
+            {p_1 \cdot p_\mathrm{2,ref}}-
+            pr_{c}(char(m, igva))
 
-                Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}
-                {p_1 \cdot p_\mathrm{2,ref}}-
-                pr_{c}(char(m, igva))
-
-                Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
-                \eta_{s,c}(char(m, igva))
+            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
+            \eta_{s,c}(char(m, igva))
 
         Returns
         -------

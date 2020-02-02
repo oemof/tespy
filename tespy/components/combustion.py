@@ -2544,7 +2544,6 @@ class combustion_engine(combustion_chamber):
                 \forall i \in [1, 2]\\
                 0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
         """
-
         vec_res = []
         for i in range(2):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
@@ -2708,7 +2707,6 @@ class combustion_engine(combustion_chamber):
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
                 \dot{Q}_2=\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right)
         """
-
         ######################################################################
         # value for bus parameter of thermal input (TI)
         if bus.param == 'TI':
@@ -3049,7 +3047,6 @@ class combustion_engine(combustion_chamber):
 
                 \forall i \in [3,4]
         """
-
         ti = 0
         for f in self.fuel_list:
             m = 0

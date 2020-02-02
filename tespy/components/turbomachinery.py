@@ -138,12 +138,19 @@ class turbomachine(component):
 
         component.comp_init(self, nw)
 
-        if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
-                self.local_design is False):
-            self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
+        self.num_eq = self.num_fl + 1
+        for var in [self.P, self.pr]:
+            if var.is_set is True:
+                self.num_eq += 1
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
+        self.vec_res = []
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.nw_vars))
+
+        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
+        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
 
     def equations(self):
         r"""
@@ -154,39 +161,32 @@ class turbomachine(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
+        self.vec_res = []
         ######################################################################
         # eqations for fluids
-        vec_res += self.fluid_func()
+        self.vec_res += self.fluid_func()
 
         ######################################################################
         # eqations for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res += self.mass_flow_func()
 
         ######################################################################
         # eqations for specified power
         if self.P.is_set:
-            vec_res += [self.inl[0].m.val_SI * (
-                    self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val]
+            self.vec_res += [self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val]
 
         ######################################################################
         # eqations for specified pressure ratio
         if self.pr.is_set:
-            vec_res += [self.pr.val * self.inl[0].p.val_SI -
-                        self.outl[0].p.val_SI]
-
-        ######################################################################
-        # eqations for specified isentropic efficiency
-        if self.eta_s.is_set:
-            self.eta_s_res = self.eta_s_func()
-            vec_res += [self.eta_s_res]
+            self.vec_res += [self.pr.val * self.inl[0].p.val_SI -
+                             self.outl[0].p.val_SI]
 
         ######################################################################
         # additional equations
-        vec_res += self.additional_equations()
+        self.additional_equations()
 
-        return vec_res
+        return self.vec_res
 
     def additional_equations(self):
         r"""
@@ -197,7 +197,7 @@ class turbomachine(component):
         vec_res : list
             Vector of residual values.
         """
-        return []
+        return
 
     def derivatives(self):
         r"""
@@ -208,43 +208,29 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
-        ######################################################################
-        # derivatives fluid composition
-        mat_deriv += self.fl_deriv
-
-        ######################################################################
-        # derivatives for mass flow balance
-        mat_deriv += self.m_deriv
-
+        k = self.num_fl + 1
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
-            P_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            P_deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            P_deriv[0, 0, 2] = -self.inl[0].m.val_SI
-            P_deriv[0, 1, 2] = self.inl[0].m.val_SI
-            mat_deriv += P_deriv.tolist()
+            if abs(self.vec_res[k]) > err:
+                self.mat_deriv[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+                self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
+                self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
+            k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            pr_deriv[0, 0, 1] = self.pr.val
-            pr_deriv[0, 1, 1] = -1
-            mat_deriv += pr_deriv.tolist()
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency
-        if self.eta_s.is_set:
-            mat_deriv += self.eta_s_deriv()
+            if abs(self.vec_res[k]) > err:
+                self.mat_deriv[k, 0, 1] = self.pr.val
+                self.mat_deriv[k, 1, 1] = -1
+            k += 1
 
         ######################################################################
         # derivatives for additional equations
-        mat_deriv += self.additional_derivatives()
+        self.additional_derivatives(k)
 
-        return np.asarray(mat_deriv)
+        return self.mat_deriv
 
     def additional_derivatives(self):
         r"""
@@ -255,21 +241,7 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        return []
-
-    def eta_s_func(self):
-        r"""Calculate residual value of isentropic efficiency equation."""
-        msg = ('If you want to use eta_s as parameter, please specify which '
-               'type of turbomachine you are using.')
-        logging.error(msg)
-        raise TESPyComponentError(msg)
-
-    def eta_s_deriv(self):
-        r"""Calculate partial derivatives of isentropic efficiency equation."""
-        msg = ('If you want to use eta_s as parameter, please specify which '
-               'type of turbomachine you are using.')
-        logging.error(msg)
-        raise TESPyComponentError(msg)
+        return
 
     def h_os(self, mode):
         r"""
@@ -1477,6 +1449,28 @@ class turbine(turbomachine):
                 'cone': dc_simple(),
                 'Sirr': dc_simple()}
 
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
+                self.local_design is False):
+            self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
+
+        self.num_eq = self.num_fl + 1
+        for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.vec_res = []
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.nw_vars))
+
+        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
+        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
+
     def additional_equations(self):
         r"""
         Calculate vector vec_res with results of additional equations.
@@ -1487,53 +1481,61 @@ class turbine(turbomachine):
 
             - :func:`tespy.components.turbomachinery.turbine.eta_s_char_func`
             - :func:`tespy.components.turbomachinery.turbine.cone_func`
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
+        ######################################################################
+        # eqations for specified isentropic efficiency
+        if self.eta_s.is_set:
+            self.vec_res += [self.eta_s_func()]
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            vec_res += [self.eta_s_char_func()]
+            self.vec_res += [self.eta_s_char_func()]
 
         ######################################################################
         # equation for specified cone law
         if self.cone.is_set:
-            vec_res += [self.cone_func()]
+            self.vec_res += [self.cone_func()]
 
-        return vec_res
+        return
 
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
+    def additional_derivatives(self, k):
+        r"""Calculate partial derivatives for given additional equations."""
+        ######################################################################
+        # derivatives for specified isentropic efficiency
+        if self.eta_s.is_set:
+            if abs(self.vec_res[k]) > err:
+                f = self.eta_s_func
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 1, 2] = -1
+            k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            mat_deriv += self.eta_s_char_deriv()
+            if abs(self.vec_res[k]) > err:
+                f = self.eta_s_char_func
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            k += 1
 
         ######################################################################
         # derivatives for specified cone law
         if self.cone.is_set:
-            cone_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            cone_deriv[0, 0, 0] = -1
-            cone_deriv[0, 0, 1] = self.numeric_deriv(self.cone_func, 'p', 0)
-            cone_deriv[0, 0, 2] = self.numeric_deriv(self.cone_func, 'h', 0)
-            cone_deriv[0, 1, 2] = self.numeric_deriv(self.cone_func, 'p', 1)
-            mat_deriv += cone_deriv.tolist()
+            if abs(self.vec_res[k]) > err:
+                f = self.cone_func
+                self.mat_deriv[k, 0, 0] = -1
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
+            k += 1
 
-        return mat_deriv
+        return
 
     def eta_s_func(self):
         r"""

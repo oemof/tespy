@@ -2525,6 +2525,7 @@ class combustion_engine(combustion_chamber):
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
             k += 1
 
+        self.it += 1
         return self.mat_deriv
 
     def fluid_func(self):

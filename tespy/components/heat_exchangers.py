@@ -2267,24 +2267,6 @@ class condenser(heat_exchanger):
                 self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
                                         self.inl[1].h.val_SI))
 
-    def energy_deriv(self):
-        r"""
-        Calculate partial derivatives for energy balance equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        for k in range(2):
-            deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-            deriv[0, k, 2] = -self.inl[k].m.val_SI
-
-        deriv[0, 2, 2] = self.inl[0].m.val_SI
-        deriv[0, 3, 2] = self.inl[1].m.val_SI
-        return deriv.tolist()
-
     def kA_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient.

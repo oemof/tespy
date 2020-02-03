@@ -236,9 +236,6 @@ class heat_exchanger_simple(component):
 
         component.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
-
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
         self.Tamb.design = ((self.Tamb.design + nw.T[nw.T_unit][0]) *
@@ -292,6 +289,24 @@ class heat_exchanger_simple(component):
         else:
             self.kA_group.set_attr(is_set=False)
 
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
+        for var in [self.Q, self.pr, self.zeta, self.hydro_group,
+                    self.kA_group]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+
     def equations(self):
         r"""
         Calculate vector vec_res with results of equations for this component.
@@ -301,31 +316,31 @@ class heat_exchanger_simple(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # equations for fluid balance
-        vec_res += self.fluid_func()
+        self.vec_res += self.fluid_func()
 
         ######################################################################
         # equations for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for specified heta transfer
         if self.Q.is_set:
-            vec_res += [self.Q_func()]
+            self.vec_res += [self.Q_func()]
 
         ######################################################################
         # equations for specified pressure ratio
         if self.pr.is_set:
-            vec_res += [self.inl[0].p.val_SI * self.pr.val -
-                        self.outl[0].p.val_SI]
+            self.vec_res += [self.inl[0].p.val_SI * self.pr.val -
+                             self.outl[0].p.val_SI]
 
         ######################################################################
         # equations for specified zeta
         if self.zeta.is_set:
-            vec_res += [self.zeta_func()]
+            self.vec_res += [self.zeta_func()]
 
         ######################################################################
         # equation for specified hydro-group paremeters
@@ -336,13 +351,13 @@ class heat_exchanger_simple(component):
             # darcy friction factor
             else:
                 func = self.darcy_func
-            vec_res += [func()]
+            self.vec_res += [func()]
 
         ######################################################################
         # additional equations
-        vec_res += self.additional_equations()
+        self.additional_equations()
 
-        return vec_res
+        return self.vec_res
 
     def additional_equations(self):
         r"""
@@ -353,20 +368,11 @@ class heat_exchanger_simple(component):
             **optional equations**
 
             - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func`
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
-
         ######################################################################
         # equation for specified kA-group paremeters
         if self.kA_group.is_set:
-            vec_res += [self.kA_func()]
-
-        return vec_res
+            self.vec_res += [self.kA_func()]
 
     def derivatives(self):
         r"""
@@ -377,46 +383,47 @@ class heat_exchanger_simple(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
         ######################################################################
-        # derivatives for fluid balance
-        mat_deriv += self.fl_deriv
-
-        ######################################################################
-        # derivatives for mass flow balance
-        mat_deriv += self.m_deriv
+        # derivatives fluid and mass balance are static
+        k = self.num_nw_fluids + 1
 
         ######################################################################
         # derivatives for specified heat transfer
         if self.Q.is_set:
-            mat_deriv += self.Q_deriv()
+            self.mat_deriv[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
+            self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
+            # custom variable Q
+            if self.Q.is_var:
+                self.mat_deriv[k, 2 + self.Q.var_pos, 0] = -1
+            k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            pr_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            pr_deriv[0, 0, 1] = self.pr.val
-            pr_deriv[0, 1, 1] = -1
+            self.mat_deriv[k, 0, 1] = self.pr.val
+            self.mat_deriv[k, 1, 1] = -1
             # custom variable pr
             if self.pr.is_var:
-                pr_deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
-            mat_deriv += pr_deriv.tolist()
+                self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
+                    self.inl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            zeta_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            zeta_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-            zeta_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
-            zeta_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-            zeta_deriv[0, 1, 1] = self.numeric_deriv(self.zeta_func, 'p', 1)
-            zeta_deriv[0, 1, 2] = self.numeric_deriv(self.zeta_func, 'h', 1)
+            f = self.zeta_func
+            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variable zeta
             if self.zeta.is_var:
-                zeta_deriv[0, 2 + self.zeta.var_pos, 0] = (
-                        self.numeric_deriv(self.zeta_func, 'zeta', 2))
-            mat_deriv += zeta_deriv.tolist()
+                self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
+                    self.numeric_deriv(f, 'zeta', 2))
+            k += 1
 
         ######################################################################
         # derivatives for specified hydro-group parameters
@@ -428,54 +435,43 @@ class heat_exchanger_simple(component):
             else:
                 func = self.darcy_func
 
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(func, 'm', 0)
-            deriv[0, 0, 1] = self.numeric_deriv(func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(func, 'h', 0)
-            deriv[0, 1, 1] = self.numeric_deriv(func, 'p', 1)
-            deriv[0, 1, 2] = self.numeric_deriv(func, 'h', 1)
+            self.mat_deriv[k, 0, 0] = self.numeric_deriv(func, 'm', 0)
+            self.mat_deriv[k, 0, 1] = self.numeric_deriv(func, 'p', 0)
+            self.mat_deriv[k, 0, 2] = self.numeric_deriv(func, 'h', 0)
+            self.mat_deriv[k, 1, 1] = self.numeric_deriv(func, 'p', 1)
+            self.mat_deriv[k, 1, 2] = self.numeric_deriv(func, 'h', 1)
             # custom variables of hydro group
             for var in self.hydro_group.elements:
                 if var.is_var:
-                    deriv[0, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(func, self.vars[var], 2))
-            mat_deriv += deriv.tolist()
+                    self.mat_deriv[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(func, self.vars[var], 2))
+            k += 1
 
         ######################################################################
         # derivatives for additional equations
-        mat_deriv += self.additional_derivatives()
+        self.additional_derivatives(k)
 
-        return np.asarray(mat_deriv)
+        return self.mat_deriv
 
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def additional_derivatives(self, k):
+        r"""Calculategit partial derivatives for given additional equations."""
         mat_deriv = []
 
         ######################################################################
         # derivatives for specified kA-group paremeters
         if self.kA_group.is_set:
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(self.kA_func, 'm', 0)
-            deriv[0, 0, 1] = self.numeric_deriv(self.kA_func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(self.kA_func, 'h', 0)
-            deriv[0, 1, 1] = self.numeric_deriv(self.kA_func, 'p', 1)
-            deriv[0, 1, 2] = self.numeric_deriv(self.kA_func, 'h', 1)
-            #
+            f = self.kA_func
+            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            # variable Tamb or kA
             for var in self.kA_group.elements:
                 if var.is_var:
-                    deriv[0, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(self.kA_func, self.vars[var], 2)
-                            )
-            mat_deriv += deriv.tolist()
-
-        return mat_deriv
+                    deself.mat_derivriv[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(f, self.vars[var], 2))
+            k += 1
 
     def Q_func(self):
         r"""
@@ -493,25 +489,6 @@ class heat_exchanger_simple(component):
         """
         return self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
-
-    def Q_deriv(self):
-        r"""
-        Calculate partial derivatives for heat transfer equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-        deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        deriv[0, 0, 2] = -self.inl[0].m.val_SI
-        deriv[0, 1, 2] = self.inl[0].m.val_SI
-        # custom variable Q
-        if self.Q.is_var:
-            deriv[0, 2 + self.Q.var_pos, 0] = -1
-
-        return deriv.tolist()
 
     def darcy_func(self):
         r"""
@@ -998,9 +975,6 @@ class solar_collector(heat_exchanger_simple):
 
         component.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
-
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
 
@@ -1046,6 +1020,24 @@ class solar_collector(heat_exchanger_simple):
         else:
             self.energy_group.set_attr(is_set=False)
 
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
+        for var in [self.Q, self.pr, self.zeta, self.hydro_group,
+                    self.energy_group]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+
     def additional_equations(self):
         r"""
         Calculate vector vec_res with results of additional equations.
@@ -1055,50 +1047,29 @@ class solar_collector(heat_exchanger_simple):
             **optional equations**
 
             - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
-
         ######################################################################
         # equation for specified energy-group paremeters
         if self.energy_group.is_set:
-            vec_res += [self.energy_func()]
+            self.vec_res += [self.energy_func()]
 
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
+    def additional_derivatives(self, k):
+        r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified energy-group paremeters
         if self.energy_group.is_set:
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            deriv[0, 0, 1] = self.numeric_deriv(self.energy_func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(self.energy_func, 'h', 0)
-            deriv[0, 1, 1] = self.numeric_deriv(self.energy_func, 'p', 1)
-            deriv[0, 1, 2] = self.numeric_deriv(self.energy_func, 'h', 1)
+            f = self.energy_func
+            self.mat_deriv[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variables for the energy-group
             for var in self.energy_group.elements:
                 if var.is_var:
-                    deriv[0, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(self.energy_func,
-                                               self.vars[var], 2))
-            mat_deriv += deriv.tolist()
-
-        return mat_deriv
+                    self.mat_deriv[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(f, self.vars[var], 2))
 
     def energy_func(self):
         r"""

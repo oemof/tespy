@@ -1692,19 +1692,19 @@ class network:
 
     def solve_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
-        vec_res = []
+        # number of equations from components
+        # component variables
         self.num_comp_vars = 0
+        # component equations
+        self.num_comp_eq = 0
         for cp in self.comps.index:
             self.num_comp_vars += cp.num_vars
-            vec_res += cp.equations()
+            self.num_comp_eq += cp.num_eq
 
-        n = len(vec_res)
-        msg = 'Number of component equations: ' + str(n)
+        msg = 'Number of component equations: ' + str(self.num_comp_eq) + '.'
         logging.debug(msg)
 
-        # number of equations from components
-        self.num_comp_eq = n
-
+        # number of equations from connections
         n = 0
         for c in self.conns.index:
             n += [c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
@@ -1714,36 +1714,30 @@ class network:
             n += list(c.fluid.val_set.values()).count(True)
             n += [c.fluid.balance].count(True)
 
-        msg = 'Number of connection equations: ' + str(n)
+        msg = 'Number of connection equations: ' + str(n) + '.'
         logging.debug(msg)
-
-        # number of equations from connections
         self.num_conn_eq = n
 
-        n = 0
+        # number of equations from busses
+        self.num_bus_eq = 0
         for b in self.busses.values():
-            n += [b.P.is_set].count(True)
+            self.num_bus_eq += [b.P.is_set].count(True)
 
-        msg = 'Number of bus equations: ' + str(n)
+        msg = 'Number of bus equations: ' + str(self.num_bus_eq) + '.'
         logging.debug(msg)
 
-        # number of equations from busses
-        self.num_bus_eq = n
-
+        # total number of variables
         self.num_vars = (self.num_conn_vars * len(self.conns.index) +
                          self.num_comp_vars)
 
         self.vec_res = np.zeros([self.num_vars])
-        self.vec_res[0:self.num_comp_eq] = vec_res
 
-        msg = 'Total number of variables: ' + str(self.num_vars)
+        msg = 'Total number of variables: ' + str(self.num_vars) + '.'
         logging.debug(msg)
-
-        msg = 'Number of component variables: ' + str(self.num_comp_vars)
+        msg = 'Number of component variables: ' + str(self.num_comp_vars) + '.'
         logging.debug(msg)
-
         msg = ('Number of connection variables: ' +
-               str(self.num_conn_vars * len(self.conns.index)))
+               str(self.num_conn_vars * len(self.conns.index)) + '.')
         logging.debug(msg)
 
         n = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
@@ -2076,54 +2070,39 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
-        if self.iter > 0:
-            eq = self.comps.apply(network.solve_comp_eq, axis=1)
-            vec_res = []
-            vec_res += [it for ls in eq.tolist() for it in ls]
-
-        deriv = self.comps.apply(network.solve_comp_deriv, axis=1)
-
+        vec_res = []
         sum_eq = 0
-        k = 0
         c_var = 0
         for cp in self.comps.index:
+            cp.equations()
+            cp.derivatives()
 
-            if (not isinstance(cp, source) and
-                    not isinstance(cp, sink)):
+            vec_res += cp.vec_res
+            deriv = cp.mat_deriv
 
+            if deriv is not None:
                 i = 0
-                num_eq = len(deriv.iloc[k][0])
-                inlets = self.comps.loc[cp].i.tolist()
-                outlets = self.comps.loc[cp].o.tolist()
-
+                num_eq = cp.num_eq
                 # place derivatives in jacobian matrix
-                for c in inlets + outlets:
+                for c in cp.inl + cp.outl:
                     loc = self.conns.index.get_loc(c)
                     coll_s = loc * self.num_conn_vars
                     coll_e = (loc + 1) * self.num_conn_vars
-                    self.mat_deriv[sum_eq:sum_eq + num_eq, coll_s:coll_e] = (
-                            deriv.iloc[k][0][:, i])
+                    self.mat_deriv[
+                        sum_eq:sum_eq + cp.num_eq, coll_s:coll_e] = deriv[:, i]
                     i += 1
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
                     coll = self.num_vars - self.num_comp_vars + c_var
-                    self.mat_deriv[sum_eq:sum_eq + num_eq, coll] = (
-                            deriv.iloc[k][0][:, i + j, :1].transpose()[0])
+                    self.mat_deriv[sum_eq:sum_eq + cp.num_eq, coll] = (
+                        deriv[:, i + j, :1].transpose()[0])
                     c_var += 1
 
                 sum_eq += num_eq
-            k += 1
             cp.it += 1
 
-        if self.iter > 0:
-            self.vec_res[0:self.num_comp_eq] = vec_res
-
-    def solve_comp_eq(cp):
-        return cp.name.equations()
-
-    def solve_comp_deriv(cp):
-        return [cp.name.derivatives()]
+        self.vec_res[0:self.num_comp_eq] = vec_res
 
     def solve_connections(self):
         r"""

@@ -496,8 +496,7 @@ class water_electrolyzer(component):
             if self.e.is_var:
                 self.mat_deriv[k, 5 + self.e.var_pos, 0] = -(
                     self.outl[2].m.val_SI)
-
-            mat_deriv += deriv.tolist()
+            k += 1
 
         ######################################################################
         # derivatives for pressure ratio

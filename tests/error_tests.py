@@ -499,7 +499,9 @@ class combustion_engine_bus_error_tests:
         """
         Test missing bus parameter in bus derivatives for combustion engine.
         """
-        self.instance.num_nw_vars = 2
+        # both values do not matter, but are required for the test
+        self.instance.num_nw_vars = 1
+        self.instance.num_vars = 1
         self.instance.inl = [connection(self.instance, 'out1',
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
@@ -582,8 +584,9 @@ class water_electrolyzer_error_tests:
         self.nw = network(['H2O', 'O2', 'H2'])
         self.instance = reactors.water_electrolyzer('electrolyzer')
         # required for calling bus_deriv method without network initialisation
-        self.instance.num_vars = 2
-        self.instance.num_fl = 3
+        self.instance.num_vars = 1
+        self.instance.num_nw_fluids = 1
+        self.instance.num_nw_vars = 1
         some_bus = bus('some_bus')
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})

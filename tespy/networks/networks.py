@@ -2114,6 +2114,7 @@ class network:
 
                 sum_eq += num_eq
             k += 1
+            cp.it += 1
 
         if self.iter > 0:
             self.vec_res[0:self.num_comp_eq] = vec_res

@@ -419,8 +419,6 @@ class combustion_chamber(component):
                             self.outl[0].m.val_SI * lhv)
             k += 1
 
-        # iteration counter
-        self.it += 1
         return self.mat_deriv
 
     def pressure_deriv(self):
@@ -886,12 +884,11 @@ class combustion_chamber(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 3, self.num_nw_vars))
+        f = self.bus_func
         for i in range(3):
-            deriv[0, i, 0] = self.numeric_deriv(self.bus_func,
-                                                'm', i, bus=bus)
-            deriv[0, i, 3:] = self.numeric_deriv(self.bus_func,
-                                                 'fluid', i, bus=bus)
+            deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+            deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
         return deriv
 
@@ -2556,7 +2553,6 @@ class combustion_engine(combustion_chamber):
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
             k += 1
 
-        self.it += 1
         return self.mat_deriv
 
     def fluid_func(self):
@@ -2853,70 +2849,61 @@ class combustion_engine(combustion_chamber):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 7 + self.num_vars,
-                          len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 7 + self.num_vars, self.num_nw_vars))
+        f = self.bus_func
 
         ######################################################################
         # derivatives for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of power production (P)
         elif bus.param == 'P':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
             # variable power
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(self.bus_func, 'P', 7, bus=bus))
+                    self.numeric_deriv(f, 'P', 7, bus=bus))
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             for i in range(2):
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 2] = (
-                        self.numeric_deriv(self.bus_func, 'h', i, bus=bus))
-                deriv[0, i + 4, 2] = (
-                        self.numeric_deriv(self.bus_func, 'h', i + 4, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 2] = self.numeric_deriv(f, 'h', i, bus=bus)
+                deriv[0, i + 4, 2] = self.numeric_deriv(f, 'h', i + 4, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
-            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-            deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
+            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+            deriv[0, 4, 2] = self.numeric_deriv(f, 'h', 4, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
-            deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
-            deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
+            deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
+            deriv[0, 5, 2] = self.numeric_deriv(f, 'h', 5, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
             # variable power
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(self.bus_func, 'P', 7, bus=bus))
+                        self.numeric_deriv(f, 'P', 7, bus=bus))
 
         ######################################################################
         # missing/invalid bus parameter

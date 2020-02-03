@@ -230,8 +230,6 @@ class turbomachine(component):
         # derivatives for additional equations
         self.additional_derivatives(k)
 
-        # iteration counter
-        self.it += 1
         return self.mat_deriv
 
     def additional_derivatives(self):
@@ -327,9 +325,10 @@ class turbomachine(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, self.num_nw_vars))
-        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
+        f = self.bus_func
+        deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
         return deriv
 
     def calc_parameters(self):

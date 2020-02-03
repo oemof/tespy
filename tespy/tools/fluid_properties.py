@@ -981,11 +981,11 @@ def h_mix_pQ(flow, Q):
         logging.error(msg)
         raise ValueError(msg)
 
-    pcrit = CPPSI('Pcrit', fluid)
-    if flow[1] > pcrit:
-        memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
-    else:
+    try:
         memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], Q)
+    except ValueError:
+        pcrit = CPPSI('Pcrit', fluid)
+        memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
 
     return memorise.heos[fluid].hmass()
 

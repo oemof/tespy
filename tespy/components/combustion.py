@@ -26,10 +26,11 @@ from tespy.components.components import component
 
 from tespy.tools.data_containers import (dc_cc, dc_cp, dc_simple)
 from tespy.tools.fluid_properties import (
-        h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid, v_mix_ph)
+    h_mix_pQ, h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid,
+    v_mix_ph)
 from tespy.tools.global_vars import molar_masses, err
 from tespy.tools.helpers import (
-        fluid_structure, molar_mass_flow, TESPyComponentError)
+    fluid_structure, molar_mass_flow, TESPyComponentError)
 
 # %%
 
@@ -737,8 +738,8 @@ class combustion_chamber(component):
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
         for o in self.outl:
             dh = 0
@@ -747,15 +748,17 @@ class combustion_chamber(component):
                 p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = h_pT(p, T_ref, self.h2o)
                 try:
-                    h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                    flow = [0, p, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
+                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 except ValueError:
-                    h_steam = CP.PropsSI('H', 'P', 615, 'Q', 1, self.h2o)
+                    flow = [0, 615, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
                 if h < h_steam:
                     dh = (h_steam - h) * o.fluid.val[self.h2o]
 
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
-                                 dh)
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
 
         res += self.calc_ti()
 
@@ -1795,11 +1798,11 @@ class combustion_chamber_stoich(combustion_chamber):
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
 
         return res + self.calc_ti()
 
@@ -2691,8 +2694,8 @@ class combustion_engine(combustion_chamber):
 
         res = 0
         for i in self.inl[2:]:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
         for o in self.outl[2:]:
             dh = 0
@@ -2700,20 +2703,25 @@ class combustion_engine(combustion_chamber):
             if n_h2o > 0:
                 p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = h_pT(p, T_ref, self.h2o)
-                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                try:
+                    flow = [0, p, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
+                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                except ValueError:
+                    flow = [0, 615, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
                 if h < h_steam:
                     dh = (h_steam - h) * o.fluid.val[self.h2o]
 
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
-                                 dh)
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
 
         res += self.calc_ti()
 
         # cooling water
         for i in range(2):
-            res -= self.inl[i].m.val_SI * (self.outl[i].h.val_SI -
-                                           self.inl[i].h.val_SI)
+            res -= self.inl[i].m.val_SI * (
+                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
         # power output and heat loss
         res -= self.P.val + self.Qloss.val

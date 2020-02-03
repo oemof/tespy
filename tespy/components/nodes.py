@@ -330,7 +330,7 @@ class node(component):
         ######################################################################
         # derivatives for energy balance equations
         deriv = np.zeros((len(self.outg), self.num_i + self.num_o,
-                          self.num_fl + 3))
+                          self.num_nw_vars))
         k = 0
         for o in self.outg:
             deriv[k, o[1], 2] = -self.m_inc
@@ -361,7 +361,7 @@ class node(component):
         """
         vec_res = []
 
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             m = 0
             for i in self.inc:
                 m += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
@@ -379,11 +379,11 @@ class node(component):
             Matrix with partial derivatives for the fluid equations.
         """
         num_o = len(self.outg)
-        deriv = np.zeros((self.num_fl * num_o, self.num_i + self.num_o,
-                          3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids * num_o, self.num_i + self.num_o,
+                          self.num_nw_vars))
         j = 0
         k = 0
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             for o in self.outg:
                 deriv[k, o[1], j + 3] = -self.m_inc
                 for i in self.inc:
@@ -404,7 +404,7 @@ class node(component):
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((self.num_i + self.num_o - 1, self.num_i + self.num_o,
-                          self.num_fl + 3))
+                          self.num_nw_vars))
 
         inl = []
         if self.num_i > 1:
@@ -746,7 +746,7 @@ class drum(component):
 
         ######################################################################
         # derivatives for energy balance equation
-        deriv = np.zeros((1, 4, self.num_fl + 3))
+        deriv = np.zeros((1, 4, self.num_nw_vars))
         k = 0
         for i in self.inl:
             deriv[0, k, 0] = i.h.val_SI
@@ -761,7 +761,7 @@ class drum(component):
 
         ######################################################################
         # derivatives of equations for saturated states at outlets
-        x_deriv = np.zeros((2, 4, self.num_fl + 3))
+        x_deriv = np.zeros((2, 4, self.num_nw_vars))
         x_deriv[0, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
         x_deriv[0, 2, 2] = -1
         x_deriv[1, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
@@ -801,11 +801,11 @@ class drum(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((2 * self.num_fl, 4, 3 + self.num_fl))
+        deriv = np.zeros((2 * self.num_nw_fluids, 4, self.num_nw_vars))
         for k in range(2):
-            for i in range(self.num_fl):
-                deriv[i + k * self.num_fl, 0, i + 3] = 1
-                deriv[i + k * self.num_fl, k + 2, i + 3] = -1
+            for i in range(self.num_nw_fluids):
+                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
+                deriv[i + k * self.num_nw_fluids, k + 2, i + 3] = -1
         return deriv.tolist()
 
     def pressure_deriv(self):
@@ -817,7 +817,7 @@ class drum(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((3, 4, self.num_fl + 3))
+        deriv = np.zeros((3, 4, self.num_nw_vars))
         for k in range(3):
             deriv[k, 0, 1] = 1
             deriv[k, k + 1, 1] = -1
@@ -1087,7 +1087,7 @@ class merge(node):
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((1, self.num_i + 1, self.num_fl + 3))
+        deriv = np.zeros((1, self.num_i + 1, self.num_nw_vars))
         deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
         deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
         k = 0
@@ -1108,7 +1108,7 @@ class merge(node):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl, self.num_i + 1, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids, self.num_i + 1, self.num_nw_vars))
         j = 0
         for fluid, x in self.outl[0].fluid.val.items():
             k = 0
@@ -1318,7 +1318,7 @@ class separator(node):
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
+        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_nw_vars))
         i = self.inl[0].to_flow()
         k = 0
         for o in self.outl:
@@ -1343,9 +1343,9 @@ class separator(node):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl, 1 + self.num_o, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids, 1 + self.num_o, self.num_nw_vars))
         j = 0
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             k = 0
             for o in self.outl:
                 deriv[j, k + 1, 0] = -o.fluid.val[fluid]
@@ -1558,14 +1558,14 @@ class splitter(node):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl * self.num_o, 1 + self.num_o,
-                          3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids * self.num_o, 1 + self.num_o,
+                          self.num_nw_vars))
         k = 0
         for o in self.outl:
             i = 0
-            for fluid in self.fluids:
-                deriv[i + k * self.num_fl, 0, i + 3] = 1
-                deriv[i + k * self.num_fl, k + 1, i + 3] = -1
+            for fluid in self.nw_fluids:
+                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
+                deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
                 i += 1
             k += 1
         return deriv.tolist()
@@ -1579,7 +1579,7 @@ class splitter(node):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_fl + 3))
+        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_nw_vars))
         k = 0
         for o in self.outl:
             deriv[k, 0, 2] = 1

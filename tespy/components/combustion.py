@@ -348,7 +348,7 @@ class combustion_chamber(component):
         ######################################################################
         # derivatives for reaction balance
         for fluid in self.nw_fluids:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0 or self.it < 15:
                 for i in range(3):
                     self.mat_deriv[k, i, 0] = self.rb_numeric_deriv(
                         'm', i, fluid)
@@ -2604,7 +2604,7 @@ class combustion_engine(combustion_chamber):
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((self.num_nw_fluids * 2,

@@ -26,6 +26,7 @@ from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
     T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
     h_mix_pQ, dh_mix_dpQ)
+import logging
 
 # %%
 
@@ -187,8 +188,34 @@ class node(component):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.mass_flow_deriv().tolist()
-        self.p_deriv = self.pressure_deriv()
+        # number of mandatroy equations for
+        # mass flow: 1
+        # pressure: number of inlets + number of outlets - 1
+        # the number of fluid and enthalpy equations is variable for a node!
+
+        self.num_eq = 1 + self.num_i + self.num_o - 1
+
+        inc = 0
+        self.outg = 0
+        for c in self.inl:
+            if c.m.val_SI < 0:
+                outg += 1
+        for c in self.outl:
+            if c.m.val_SI >= 0:
+                outg += 1
+
+        # number of fluid equations
+        self.num_eq += self.num_nw_fluids * outg
+        # number of enthalpy equations
+        self.num_eq += outg
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.mat_deriv[1:self.num_i + self.num_o - 1] = self.pressure_deriv()
 
     def equations(self):
         r"""
@@ -199,11 +226,11 @@ class node(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # eqation for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res += self.mass_flow_func()
 
         ######################################################################
         # equations for pressure
@@ -211,13 +238,11 @@ class node(component):
         if self.num_i > 1:
             inl = self.inl[1:]
         for c in inl + self.outl:
-            vec_res += [self.inl[0].p.val_SI - c.p.val_SI]
+            self.vec_res += [self.inl[0].p.val_SI - c.p.val_SI]
 
         ######################################################################
         # additional eqations
-        vec_res += self.additional_equations()
-
-        return vec_res
+        self.additional_equations()
 
     def derivatives(self):
         r"""
@@ -228,21 +253,12 @@ class node(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
         ######################################################################
-        # derivative for mass flow balance equation
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for pressure equations
-        mat_deriv += self.p_deriv
-
+        # derivatives for mass and pressure are static
+        k = self.num_i + self.num_o
         ######################################################################
         # additional derivatives
-        mat_deriv += self.additional_derivatives()
-
-        return np.asarray(mat_deriv)
+        self.additional_derivatives(k)
 
     def additional_equations(self):
         r"""
@@ -312,7 +328,7 @@ class node(component):
 
         return vec_res
 
-    def additional_derivatives(self):
+    def additional_derivatives(self, k):
         r"""
         Calculate partial derivatives for given additional equations.
 
@@ -321,6 +337,7 @@ class node(component):
         mat_deriv : list
             Matrix of partial derivatives.
         """
+        logging.info(str(self))
         mat_deriv = []
 
         ######################################################################
@@ -403,8 +420,10 @@ class node(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_i + self.num_o - 1, self.num_i + self.num_o,
-                          self.num_nw_vars))
+        deriv = np.zeros((
+            self.num_i + self.num_o - 1,
+            self.num_i + self.num_o,
+            self.num_nw_vars))
 
         inl = []
         if self.num_i > 1:
@@ -412,7 +431,7 @@ class node(component):
         for k in range(len(inl + self.outl)):
             deriv[k, 0, 1] = 1
             deriv[k, k + 1, 1] = -1
-        return deriv.tolist()
+        return deriv
 
     def initialise_fluids(self, nw):
         r"""
@@ -734,8 +753,6 @@ class drum(component):
         self.vec_res += [
             h_mix_pQ(self.outl[1].to_flow(), 1) - self.outl[1].h.val_SI]
 
-        return self.vec_res
-
     def derivatives(self):
         r"""
         Calculate partial derivatives for given equations.
@@ -772,7 +789,7 @@ class drum(component):
         self.mat_deriv[k, 3, 2] = -1
         k += 1
 
-        return self.mat_deriv
+
 
     def fluid_func(self):
         r"""
@@ -1031,6 +1048,27 @@ class merge(node):
     def outlets():
         return ['out1']
 
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        # number of mandatroy equations for
+        # mass flow: 1
+        # pressure: number of inlets + number of outlets - 1
+        # fluid: number of fluids
+        # enthalpy: 1
+
+        self.num_eq = self.num_i + self.num_o + self.num_nw_fluids + 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        end = self.num_i + self.num_o
+        self.mat_deriv[1:end] = self.pressure_deriv()
+
     def additional_equations(self):
         r"""
         Calculate vector vec_res with results of additional equations.
@@ -1049,81 +1087,48 @@ class merge(node):
 
                 0 = h_{in} - h_{out,i} \;
                 \forall i \in \mathrm{outlets}\\
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
-
         ######################################################################
         # equations for fluid balance
         for fluid, x in self.outl[0].fluid.val.items():
             res = -x * self.outl[0].m.val_SI
             for i in self.inl:
                 res += i.fluid.val[fluid] * i.m.val_SI
-            vec_res += [res]
+            self.vec_res += [res]
 
         ######################################################################
         # equation for energy balance
         h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
         for i in self.inl:
             h_res += i.m.val_SI * i.h.val_SI
-        vec_res += [h_res]
+        self.vec_res += [h_res]
 
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
+    def additional_derivatives(self, k):
+        r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for fluid balance equations
-        mat_deriv += self.fluid_deriv()
+        i = 0
+        for fluid, x in self.outl[0].fluid.val.items():
+            j = 0
+            for inl in self.inl:
+                self.mat_deriv[k, j, 0] = inl.fluid.val[fluid]
+                self.mat_deriv[k, j, i + 3] = inl.m.val_SI
+                j += 1
+            self.mat_deriv[k, j, 0] = -x
+            self.mat_deriv[k, j, i + 3] = -self.outl[0].m.val_SI
+            i += 1
+            k += 1
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((1, self.num_i + 1, self.num_nw_vars))
-        deriv[0, self.num_i, 0] = -self.outl[0].h.val_SI
-        deriv[0, self.num_i, 2] = -self.outl[0].m.val_SI
-        k = 0
-        for i in self.inl:
-            deriv[0, k, 0] = i.h.val_SI
-            deriv[0, k, 2] = i.m.val_SI
-            k += 1
-        mat_deriv += deriv.tolist()
-
-        return mat_deriv
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids, self.num_i + 1, self.num_nw_vars))
+        self.mat_deriv[k, self.num_i, 0] = -self.outl[0].h.val_SI
+        self.mat_deriv[k, self.num_i, 2] = -self.outl[0].m.val_SI
         j = 0
-        for fluid, x in self.outl[0].fluid.val.items():
-            k = 0
-            for i in self.inl:
-                deriv[j, k, 0] = i.fluid.val[fluid]
-                deriv[j, k, j + 3] = i.m.val_SI
-                k += 1
-            deriv[j, k, 0] = -x
-            deriv[j, k, j + 3] = -self.outl[0].m.val_SI
+        for i in self.inl:
+            self.mat_deriv[k, j, 0] = i.h.val_SI
+            self.mat_deriv[k, j, 2] = i.m.val_SI
             j += 1
-        return deriv.tolist()
+        k += 1
 
 # %%
 
@@ -1265,6 +1270,27 @@ class separator(node):
             self.set_attr(num_out=2)
             return self.outlets()
 
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        # number of mandatroy equations for
+        # mass flow: 1
+        # pressure: number of inlets + number of outlets - 1
+        # fluid: number of fluids
+        # enthalpy: number of outlets
+
+        self.num_eq = self.num_i + self.num_o * 2 + self.num_nw_fluids
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        end = self.num_i + self.num_o
+        self.mat_deriv[1:end] = self.pressure_deriv()
+
     def additional_equations(self):
         r"""
         Calculate vector vec_res with results of additional equations.
@@ -1280,63 +1306,52 @@ class separator(node):
 
                 0 = T_{in} - T_{out,i} \;
                 \forall i \in \mathrm{outlets}
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
-
         ######################################################################
         # equations for fluid balance
         for fluid, x in self.inl[0].fluid.val.items():
             res = x * self.inl[0].m.val_SI
             for o in self.outl:
                 res -= o.fluid.val[fluid] * o.m.val_SI
-            vec_res += [res]
+            self.vec_res += [res]
 
         ######################################################################
         # equations for energy balance
         for o in self.outl:
-            vec_res += [
-                    T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI) -
-                    T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
+            self.vec_res += [
+                T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI) -
+                T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
 
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = []
-
+    def additional_derivatives(self, k):
+        r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for fluid balance equations
-        mat_deriv += self.fluid_deriv()
+        i = 0
+        for fluid in self.nw_fluids:
+            j = 0
+            for o in self.outl:
+                self.mat_deriv[k, j + 1, 0] = -o.fluid.val[fluid]
+                self.mat_deriv[k, j + 1, i + 3] = -o.m.val_SI
+                j += 1
+            self.mat_deriv[k, 0, 0] = self.inl[0].fluid.val[fluid]
+            self.mat_deriv[k, 0, i + 3] = self.inl[0].m.val_SI
+            k += 1
+            i += 1
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_nw_vars))
         i = self.inl[0].to_flow()
-        k = 0
+        j = 0
         for o in self.outl:
             o = o.to_flow()
-            deriv[k, 0, 1] = dT_mix_dph(i)
-            deriv[k, 0, 2] = dT_mix_pdh(i)
-            deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
-            deriv[k, k + 1, 1] = -dT_mix_dph(o)
-            deriv[k, k + 1, 2] = -dT_mix_pdh(o)
-            deriv[k, k + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            self.mat_deriv[k, 0, 1] = dT_mix_dph(i)
+            self.mat_deriv[k, 0, 2] = dT_mix_pdh(i)
+            self.mat_deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            self.mat_deriv[k, j + 1, 1] = -dT_mix_dph(o)
+            self.mat_deriv[k, j + 1, 2] = -dT_mix_pdh(o)
+            self.mat_deriv[k, j + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            j += 1
             k += 1
-        mat_deriv += deriv.tolist()
-
-        return mat_deriv
 
     def fluid_deriv(self):
         r"""
@@ -1500,10 +1515,30 @@ class splitter(node):
 
     def comp_init(self, nw):
 
-        node.comp_init(self, nw)
+        component.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.h_deriv = self.enthalpy_deriv()
+        # number of mandatroy equations for
+        # mass flow: 1
+        # pressure: number of inlets + number of outlets - 1
+        # fluid: number of outlets * number of fluid_set
+        # enthalpy: number of outlets
+
+        self.num_eq = self.num_i + self.num_o * (2 + self.num_nw_fluids)
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        end = self.num_i + self.num_o
+        self.mat_deriv[1:end] = self.pressure_deriv()
+        start = end
+        end = start + self.num_o * self.num_nw_fluids
+        self.mat_deriv[start:end] = self.fluid_deriv()
+        start = end
+        end = start + self.num_o
+        self.mat_deriv[start:end] = self.enthalpy_deriv()
 
     def additional_equations(self):
         r"""
@@ -1519,39 +1554,21 @@ class splitter(node):
             .. math::
                 0 = h_{in} - h_{out,i} \;
                 \forall i \in \mathrm{outlets}\\
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
         """
-        vec_res = []
-
         ######################################################################
         # equations for fluid balance
         for o in self.outl:
             for fluid, x in self.inl[0].fluid.val.items():
-                vec_res += [x - o.fluid.val[fluid]]
+                self.vec_res += [x - o.fluid.val[fluid]]
 
         ######################################################################
         # equations for energy balance
         for o in self.outl:
-            vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
+            self.vec_res += [self.inl[0].h.val_SI - o.h.val_SI]
 
-        return vec_res
-
-    def additional_derivatives(self):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : list
-            Matrix of partial derivatives.
-        """
-        ######################################################################
-        # derivatives for fluid and energy balance equations are constant
-        return self.fl_deriv + self.h_deriv
+    def additional_derivatives(self, k):
+        r"""Calculate partial derivatives for given additional equations."""
+        return
 
     def fluid_deriv(self):
         r"""
@@ -1572,7 +1589,7 @@ class splitter(node):
                 deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
                 i += 1
             k += 1
-        return deriv.tolist()
+        return deriv
 
     def enthalpy_deriv(self):
         r"""
@@ -1590,7 +1607,7 @@ class splitter(node):
             deriv[k, k + 1, 2] = -1
             k += 1
 
-        return deriv.tolist()
+        return deriv
 
     @staticmethod
     def initialise_fluids(nw):

@@ -232,7 +232,7 @@ class turbomachine(component):
 
         return self.mat_deriv
 
-    def additional_derivatives(self):
+    def additional_derivatives(self, k):
         r"""
         Calculate partial derivatives for given additional equations.
 

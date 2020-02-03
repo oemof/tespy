@@ -475,7 +475,7 @@ class heat_exchanger_simple(component):
                 # variable Tamb or kA
                 for var in self.kA_group.elements:
                     if var.is_var:
-                        deself.mat_derivriv[k, 2 + var.var_pos, 0] = (
+                        self.mat_derivriv[k, 2 + var.var_pos, 0] = (
                             self.numeric_deriv(f, self.vars[var], 2))
             k += 1
 

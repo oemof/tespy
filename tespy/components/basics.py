@@ -126,8 +126,11 @@ class cycle_closer(component):
 
         component.comp_init(self, nw)
 
-        # all derivatives are constants
-        self.mat_deriv = np.zeros((2, 2, 3 + self.num_fl))
+        # number of mandatroy equations for
+        # pressure: 1
+        # enthalpy: 1
+        self.mat_deriv = np.zeros((2, 2, self.num_nw_vars))
+
         # derivatives for pressure
         self.mat_deriv[0, 0, 1] = 1
         self.mat_deriv[0, 1, 1] = -1
@@ -144,19 +147,19 @@ class cycle_closer(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # equation for pressure
-        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+        self.vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
 
         ######################################################################
         # equation for enthalpy
-        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+        self.vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
 
         ######################################################################
 
-        return vec_res
+        return self.vec_res
 
     def derivatives(self):
         r"""
@@ -168,15 +171,16 @@ class cycle_closer(component):
             Matrix of partial derivatives.
         """
         ######################################################################
-        # derivatives with constant value (all for this component)
-
+        # all derivatives are static
         return self.mat_deriv
 
     def calc_parameters(self):
 
-        self.mass_deviation.val = np.abs(self.inl[0].m.val_SI -
-                                         self.outl[0].m.val_SI)
+        # calculate deviation in mass flow
+        self.mass_deviation.val = np.abs(
+            self.inl[0].m.val_SI - self.outl[0].m.val_SI)
 
+        # calculate deviation in fluid composition
         d1 = self.inl[0].fluid.val
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
@@ -428,11 +432,27 @@ class subsystem_interface(component):
 
         component.comp_init(self, nw)
 
-        # retrieve always constant derivatives
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.inout_deriv(0)
-        self.p_deriv = self.inout_deriv(1)
-        self.h_deriv = self.inout_deriv(2)
+        # number of mandatroy equations for
+        # fluid: num_inter * num_nw_fluids
+        # mass flow: num_inter
+        # pressure: num_inter
+        # enthalpy: num_inter
+        self.mat_deriv = np.zeros((
+            (self.num_nw_fluids + 3) * self.num_i,
+            2 * self.num_i,
+            self.num_nw_vars))
+
+        stop = self.num_nw_fluids * self.num_i
+        self.mat_deriv[0:stop] = self.fluid_deriv()
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(0)
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(1)
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(2)
 
     def equations(self):
         r"""
@@ -443,32 +463,32 @@ class subsystem_interface(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # eqations for fluids
         for i in range(self.num_i):
             for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
+                self.vec_res += [x - self.outl[i].fluid.val[fluid]]
 
         ######################################################################
         # equations for mass flow
         for i in range(self.num_i):
-            vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            self.vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
 
         ######################################################################
         # equations for pressure
         for i in range(self.num_i):
-            vec_res += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
+            self.vec_res += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
 
         ######################################################################
         # equations for enthalpy
         for i in range(self.num_i):
-            vec_res += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
+            self.vec_res += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
 
         ######################################################################
 
-        return vec_res
+        return self.vec_res
 
     def derivatives(self):
         r"""
@@ -480,10 +500,8 @@ class subsystem_interface(component):
             Matrix of partial derivatives.
         """
         ######################################################################
-        # derivatives with constant value (all for this component)
-        mat_deriv = self.fl_deriv + self.m_deriv + self.p_deriv + self.h_deriv
-
-        return np.asarray(mat_deriv)
+        # all derivatives are static
+        return self.mat_deriv
 
     def fluid_deriv(self):
         r"""
@@ -494,12 +512,13 @@ class subsystem_interface(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((
-                self.num_fl * self.num_i, 2 * self.num_i, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+                          2 * self.num_i,
+                          self.num_nw_vars))
         for i in range(self.num_i):
-            for j in range(self.num_fl):
-                deriv[i * self.num_fl + j, i, j + 3] = 1
-                deriv[i * self.num_fl + j, self.num_i + i, j + 3] = -1
+            for j in range(self.num_nw_fluids):
+                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
+                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv.tolist()
 
     def inout_deriv(self, pos):
@@ -519,7 +538,7 @@ class subsystem_interface(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_fl + 3))
+        deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[i, i, pos] = 1
         for j in range(self.num_i):

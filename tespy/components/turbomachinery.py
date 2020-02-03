@@ -134,7 +134,7 @@ class turbomachine(component):
         # number of mandatroy equations for
         # fluid balance: num_fl
         # mass flow: 1
-        self.num_eq = self.num_fl + 1
+        self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr]:
             if var.is_set is True:
                 self.num_eq += 1
@@ -144,8 +144,9 @@ class turbomachine(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
-        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
     def equations(self):
         r"""
@@ -205,7 +206,7 @@ class turbomachine(component):
         """
         ######################################################################
         # derivatives fluid and mass balance are static
-        k = self.num_fl + 1
+        k = self.num_nw_fluids + 1
 
         ######################################################################
         # derivatives for specified power
@@ -515,9 +516,9 @@ class compressor(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
-        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
-            self.mass_flow_deriv())
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self):
         r"""
@@ -1002,9 +1003,9 @@ class pump(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
-        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
-            self.mass_flow_deriv())
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self):
         r"""
@@ -1424,9 +1425,9 @@ class turbine(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
-        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
-            self.mass_flow_deriv())
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self):
         r"""

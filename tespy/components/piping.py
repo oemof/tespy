@@ -341,11 +341,10 @@ class valve(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
-        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
-            self.mass_flow_deriv())
-        self.mat_deriv[self.num_nw_fluids + 1:self.num_nw_fluids + 2] = (
-            self.enthalpy_deriv())
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.mat_deriv[pos + 1:pos + 2] = self.enthalpy_deriv()
 
     def equations(self):
         r"""

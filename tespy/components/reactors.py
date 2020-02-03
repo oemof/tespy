@@ -341,28 +341,28 @@ class water_electrolyzer(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # equations for fluids
 
         # equations for fluid composition in cooling water
         for fluid, x in self.inl[0].fluid.val.items():
-            vec_res += [x - self.outl[0].fluid.val[fluid]]
+            self.vec_res += [x - self.outl[0].fluid.val[fluid]]
 
         # equations to constrain fluids to inlets/outlets
-        vec_res += [1 - self.inl[1].fluid.val[self.h2o]]
-        vec_res += [1 - self.outl[1].fluid.val[self.o2]]
-        vec_res += [1 - self.outl[2].fluid.val[self.h2]]
+        self.vec_res += [1 - self.inl[1].fluid.val[self.h2o]]
+        self.vec_res += [1 - self.outl[1].fluid.val[self.o2]]
+        self.vec_res += [1 - self.outl[2].fluid.val[self.h2]]
 
         # equations to ban fluids off inlets/outlets
         for fluid in self.inl[1].fluid.val.keys():
             if fluid != self.h2o:
-                vec_res += [0 - self.inl[1].fluid.val[fluid]]
+                self.vec_res += [0 - self.inl[1].fluid.val[fluid]]
             if fluid != self.o2:
-                vec_res += [0 - self.outl[1].fluid.val[fluid]]
+                self.vec_res += [0 - self.outl[1].fluid.val[fluid]]
             if fluid != self.h2:
-                vec_res += [0 - self.outl[2].fluid.val[fluid]]
+                self.vec_res += [0 - self.outl[2].fluid.val[fluid]]
 
         ######################################################################
         # eqations for mass flow balance
@@ -371,60 +371,63 @@ class water_electrolyzer(component):
                                       2 * molar_masses[self.h2])
 
         # equation for mass flow balance cooling water
-        vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
+        self.vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
 
         # equations for mass flow balance electrolyzer
-        vec_res += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
-        vec_res += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
+        self.vec_res += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
+        self.vec_res += [
+            (1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
 
         ######################################################################
         # equations for pressure to set o2 and h2 output equal
-        vec_res += [self.inl[1].p.val_SI - self.outl[1].p.val_SI]
-        vec_res += [self.inl[1].p.val_SI - self.outl[2].p.val_SI]
+        self.vec_res += [self.inl[1].p.val_SI - self.outl[1].p.val_SI]
+        self.vec_res += [self.inl[1].p.val_SI - self.outl[2].p.val_SI]
 
         ######################################################################
         # equation for energy balance
-        vec_res += [self.P.val + self.energy_balance()]
+        self.vec_res += [self.P.val + self.energy_balance()]
 
         ######################################################################
         # temperature electrolyzer outlet
-        vec_res += [T_mix_ph(self.outl[1].to_flow()) -
-                    T_mix_ph(self.outl[2].to_flow())]
+        self.vec_res += [
+            T_mix_ph(self.outl[1].to_flow()) -
+            T_mix_ph(self.outl[2].to_flow())]
 
         ######################################################################
         # power vs hydrogen production
         if self.e.is_set:
-            vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
+            self.vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
 
         ######################################################################
         # specified pressure ratio
         if self.pr_c.is_set:
-            vec_res += [self.inl[0].p.val_SI * self.pr_c.val -
-                        self.outl[0].p.val_SI]
+            self.vec_res += [
+                self.inl[0].p.val_SI * self.pr_c.val -
+                self.outl[0].p.val_SI]
 
         ######################################################################
         # specified zeta value
         if self.zeta.is_set:
-            vec_res += [self.zeta_func()]
+            self.vec_res += [self.zeta_func()]
 
         # equation for heat transfer
 
         if self.Q.is_set:
-            vec_res += [self.Q.val - self.inl[0].m.val_SI *
-                        (self.inl[0].h.val_SI - self.outl[0].h.val_SI)]
+            self.vec_res += [
+                self.Q.val - self.inl[0].m.val_SI *
+                (self.inl[0].h.val_SI - self.outl[0].h.val_SI)]
 
         ######################################################################
         # specified efficiency (efficiency definition: e0 / e)
         if self.eta.is_set:
-            vec_res += [self.P.val - self.outl[2].m.val_SI *
-                        self.e0 / self.eta.val]
+            self.vec_res += [
+                self.P.val - self.outl[2].m.val_SI *
+                self.e0 / self.eta.val]
 
         ######################################################################
         # specified characteristic line for efficiency
         if self.eta_char.is_set:
-            vec_res += [self.eta_char_func()]
-
-        return vec_res
+            self.vec_res += [self.eta_char_func()]
 
     def derivatives(self):
         r"""
@@ -551,7 +554,7 @@ class water_electrolyzer(component):
 
         ######################################################################
 
-        return self.mat_deriv
+
 
     def eta_char_func(self):
         r"""

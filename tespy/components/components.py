@@ -315,9 +315,16 @@ class component:
         nw : tespy.networks.network
             Network this component is integrated in.
         """
+        self.num_nw_fluids = len(nw.fluids)
+        self.nw_fluids = nw.fluids
+        self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
+        self.vec_res = []
+        self.mat_deriv = None
+        self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
+
         var = self.attr()
         for key, val in var.items():
             if isinstance(val, dc_cp):
@@ -350,10 +357,6 @@ class component:
                ' custom variables.')
         logging.debug(msg)
 
-        self.num_nw_fluids = len(nw.fluids)
-        self.nw_fluids = nw.fluids
-        self.num_nw_vars = self.num_nw_fluids + 3
-
     @staticmethod
     def attr():
         return {}
@@ -367,10 +370,10 @@ class component:
         return []
 
     def equations(self):
-        return []
+        return
 
     def derivatives(self):
-        return []
+        return
 
     def initialise_source(self, c, key):
         r"""

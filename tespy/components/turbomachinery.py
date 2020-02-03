@@ -182,7 +182,7 @@ class turbomachine(component):
         # additional equations
         self.additional_equations()
 
-        return self.vec_res
+
 
     def additional_equations(self):
         r"""
@@ -230,7 +230,7 @@ class turbomachine(component):
         # derivatives for additional equations
         self.additional_derivatives(k)
 
-        return self.mat_deriv
+
 
     def additional_derivatives(self, k):
         r"""

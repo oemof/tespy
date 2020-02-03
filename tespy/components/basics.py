@@ -129,7 +129,12 @@ class cycle_closer(component):
         # number of mandatroy equations for
         # pressure: 1
         # enthalpy: 1
-        self.mat_deriv = np.zeros((2, 2, self.num_nw_vars))
+        self.num_eq = 2
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
 
         # derivatives for pressure
         self.mat_deriv[0, 0, 1] = 1
@@ -159,8 +164,6 @@ class cycle_closer(component):
 
         ######################################################################
 
-        return self.vec_res
-
     def derivatives(self):
         r"""
         Calculate partial derivatives for given equations.
@@ -172,7 +175,7 @@ class cycle_closer(component):
         """
         ######################################################################
         # all derivatives are static
-        return self.mat_deriv
+
 
     def calc_parameters(self):
 
@@ -437,8 +440,10 @@ class subsystem_interface(component):
         # mass flow: num_inter
         # pressure: num_inter
         # enthalpy: num_inter
+        self.num_eq = (self.num_nw_fluids + 3) * self.num_i
+
         self.mat_deriv = np.zeros((
-            (self.num_nw_fluids + 3) * self.num_i,
+            self.num_eq,
             2 * self.num_i,
             self.num_nw_vars))
 
@@ -488,7 +493,7 @@ class subsystem_interface(component):
 
         ######################################################################
 
-        return self.vec_res
+
 
     def derivatives(self):
         r"""
@@ -501,7 +506,7 @@ class subsystem_interface(component):
         """
         ######################################################################
         # all derivatives are static
-        return self.mat_deriv
+
 
     def fluid_deriv(self):
         r"""

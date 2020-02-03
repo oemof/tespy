@@ -358,7 +358,7 @@ class heat_exchanger_simple(component):
         # additional equations
         self.additional_equations()
 
-        return self.vec_res
+
 
     def additional_equations(self):
         r"""
@@ -456,7 +456,7 @@ class heat_exchanger_simple(component):
         # derivatives for additional equations
         self.additional_derivatives(k)
 
-        return self.mat_deriv
+
 
     def additional_derivatives(self, k):
         r"""Calculategit partial derivatives for given additional equations."""
@@ -1414,7 +1414,7 @@ class heat_exchanger(component):
         # additional equations
         self.additional_equations()
 
-        return self.vec_res
+
 
     def additional_equations(self):
         r"""Calculate vector vec_res with results of additional equations."""
@@ -1531,7 +1531,7 @@ class heat_exchanger(component):
         # derivatives for additional equations
         self.additional_derivatives(k)
 
-        return self.mat_deriv
+
 
     def additional_derivatives(self, k):
         r"""Calculate partial derivatives for given additional equations."""

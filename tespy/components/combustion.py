@@ -331,7 +331,7 @@ class combustion_chamber(component):
         if self.ti.is_set:
             self.vec_res += [self.ti_func()]
 
-        return self.vec_res
+
 
     def derivatives(self):
         r"""
@@ -420,7 +420,7 @@ class combustion_chamber(component):
                             self.outl[0].m.val_SI * lhv)
             k += 1
 
-        return self.mat_deriv
+
 
     def pressure_deriv(self):
         r"""
@@ -2353,7 +2353,7 @@ class combustion_engine(combustion_chamber):
         if self.zeta2.is_set:
             self.vec_res += [self.zeta2_func()]
 
-        return self.vec_res
+
 
     def derivatives(self):
         r"""
@@ -2556,7 +2556,7 @@ class combustion_engine(combustion_chamber):
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
             k += 1
 
-        return self.mat_deriv
+
 
     def fluid_func(self):
         r"""

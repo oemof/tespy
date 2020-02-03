@@ -386,7 +386,7 @@ class valve(component):
         if self.dp_char.is_set:
             self.vec_res += [self.dp_char_func()]
 
-        return self.vec_res
+
 
     def derivatives(self):
         r"""
@@ -437,7 +437,7 @@ class valve(component):
                 self.mat_deriv[k, 1, 1] = -1
             k += 1
 
-        return self.mat_deriv
+
 
     def enthalpy_deriv(self):
         r"""

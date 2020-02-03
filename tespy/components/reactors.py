@@ -739,7 +739,7 @@ class water_electrolyzer(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 5 + self.num_vars, self.num_nw_vars))
         f = self.bus_func
 
         ######################################################################

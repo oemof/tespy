@@ -24,8 +24,8 @@ from tespy.components.components import component
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
-        T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        h_mix_pQ, dh_mix_dpQ)
+    T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
+    h_mix_pQ, dh_mix_dpQ)
 
 # %%
 
@@ -674,9 +674,24 @@ class drum(component):
 
         component.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv().tolist()
-        self.p_deriv = self.pressure_deriv()
+        # number of mandatroy equations for
+        # fluid balance: num_fl * 2
+        # mass flow: 1
+        # pressure: 3
+        # enthalpy: 1
+        # saturated liquid outlet: 1
+        # saturated gas outlet: 1
+        self.num_eq = self.num_nw_fluids * 2 + 7
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        pos = self.num_nw_fluids * 2
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.mat_deriv[pos + 1:pos + 4] = self.pressure_deriv()
 
     def equations(self):
         r"""
@@ -687,21 +702,21 @@ class drum(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        self.vec_res = []
 
         ######################################################################
         # eqations for fluid balance
-        vec_res += self.fluid_func()
+        self.vec_res += self.fluid_func()
 
         ######################################################################
         # eqations for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res += self.mass_flow_func()
 
         ######################################################################
         # eqations for pressure
         p = self.inl[0].p.val_SI
         for c in [self.inl[1]] + self.outl:
-            vec_res += [p - c.p.val_SI]
+            self.vec_res += [p - c.p.val_SI]
 
         ######################################################################
         # eqations for enthalpy
@@ -710,16 +725,16 @@ class drum(component):
             val += i.m.val_SI * i.h.val_SI
         for o in self.outl:
             val -= o.m.val_SI * o.h.val_SI
-        vec_res += [val]
+        self.vec_res += [val]
 
         ######################################################################
         # eqations for staturated fluid state at outlets
-        vec_res += [h_mix_pQ(self.outl[0].to_flow(), 0) -
-                    self.outl[0].h.val_SI]
-        vec_res += [h_mix_pQ(self.outl[1].to_flow(), 1) -
-                    self.outl[1].h.val_SI]
+        self.vec_res += [
+            h_mix_pQ(self.outl[0].to_flow(), 0) - self.outl[0].h.val_SI]
+        self.vec_res += [
+            h_mix_pQ(self.outl[1].to_flow(), 1) - self.outl[1].h.val_SI]
 
-        return vec_res
+        return self.vec_res
 
     def derivatives(self):
         r"""
@@ -730,45 +745,34 @@ class drum(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
         ######################################################################
-        # derivatives for fluid balance equations
-        mat_deriv += self.fl_deriv
-
-        ######################################################################
-        # derivatives for mass flow balance equation
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for pressure eqauations
-        mat_deriv += self.p_deriv
+        # derivatives fluid, mass flow and pressure balance are static
+        k = self.num_nw_fluids * 2 + 4
 
         ######################################################################
         # derivatives for energy balance equation
-        deriv = np.zeros((1, 4, self.num_nw_vars))
-        k = 0
-        for i in self.inl:
-            deriv[0, k, 0] = i.h.val_SI
-            deriv[0, k, 2] = i.m.val_SI
-            k += 1
+        i = 0
+        for inl in self.inl:
+            self.mat_deriv[k, i, 0] = inl.h.val_SI
+            self.mat_deriv[k, i, 2] = inl.m.val_SI
+            i += 1
         j = 0
-        for o in self.outl:
-            deriv[0, j + k, 0] = -o.h.val_SI
-            deriv[0, j + k, 2] = -o.m.val_SI
+        for outl in self.outl:
+            self.mat_deriv[k, j + i, 0] = -outl.h.val_SI
+            self.mat_deriv[k, j + i, 2] = -outl.m.val_SI
             j += 1
-        mat_deriv += deriv.tolist()
+        k += 1
 
         ######################################################################
         # derivatives of equations for saturated states at outlets
-        x_deriv = np.zeros((2, 4, self.num_nw_vars))
-        x_deriv[0, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
-        x_deriv[0, 2, 2] = -1
-        x_deriv[1, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
-        x_deriv[1, 3, 2] = -1
-        mat_deriv += x_deriv.tolist()
+        self.mat_deriv[k, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.mat_deriv[k, 2, 2] = -1
+        k += 1
+        self.mat_deriv[k, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
+        self.mat_deriv[k, 3, 2] = -1
+        k += 1
 
-        return np.asarray(mat_deriv)
+        return self.mat_deriv
 
     def fluid_func(self):
         r"""
@@ -798,7 +802,7 @@ class drum(component):
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((2 * self.num_nw_fluids, 4, self.num_nw_vars))
@@ -806,7 +810,7 @@ class drum(component):
             for i in range(self.num_nw_fluids):
                 deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
                 deriv[i + k * self.num_nw_fluids, k + 2, i + 3] = -1
-        return deriv.tolist()
+        return deriv
 
     def pressure_deriv(self):
         r"""
@@ -815,13 +819,13 @@ class drum(component):
         Returns
         -------
         deriv : list
-            Matrix with partial derivatives for the fluid equations.
+            Matrix with partial derivatives for the pressure equations.
         """
         deriv = np.zeros((3, 4, self.num_nw_vars))
         for k in range(3):
             deriv[k, 0, 1] = 1
             deriv[k, k + 1, 1] = -1
-        return deriv.tolist()
+        return deriv
 
     @staticmethod
     def initialise_source(c, key):

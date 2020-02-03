@@ -342,8 +342,6 @@ class turbomachinery_tests:
         instance.set_attr(P=1e5)
         self.nw.solve('design')
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        msg = ('Value of power must be ' + str(pr) + ', is ' +
-               str(instance.pr.val) + '.')
-        eq_(pr, instance.pr.val, msg)
-        instance.set_attr(eta_s=0.8)
-        self.c2.set_attr(h=np.nan)
+        msg = ('Value of power must be ' + str(power) + ', is ' +
+               str(instance.P.val) + '.')
+        eq_(power, instance.P.val, msg)

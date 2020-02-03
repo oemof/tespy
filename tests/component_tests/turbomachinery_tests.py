@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Testing for tespy turbomachines module.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/component_tests/turbomachinery_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.components.basics import sink, source
@@ -27,9 +37,7 @@ class turbomachinery_tests:
         self.nw.add_conns(self.c1, self.c2)
 
     def test_compressor(self):
-        """
-        Test component properties of compressors.
-        """
+        """Test component properties of compressors."""
         instance = compressor('compressor')
         self.setup_network(instance)
 
@@ -130,9 +138,7 @@ class turbomachinery_tests:
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_pump(self):
-        """
-        Test component properties of pumps.
-        """
+        """Test component properties of pumps."""
         instance = pump('pump')
         self.setup_network(instance)
         fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'NH3': 0}
@@ -216,9 +222,7 @@ class turbomachinery_tests:
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_turbine(self):
-        """
-        Test component properties of turbines.
-        """
+        """Test component properties of turbines."""
         instance = turbine('turbine')
         self.setup_network(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
@@ -306,10 +310,11 @@ class turbomachinery_tests:
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_turbomachine(self):
-        """
-        Test component properties of turbomachines.
-        """
+        """Test component properties of turbomachines."""
         instance = turbomachine('turbomachine')
+        msg = ('Component name must be turbomachine, is ' +
+               instance.component() + '.')
+        eq_('turbomachine', instance.component(), msg)
         self.setup_network(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
               'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}

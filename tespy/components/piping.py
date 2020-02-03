@@ -22,6 +22,7 @@ from tespy.components.heat_exchangers import heat_exchanger_simple
 
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
+from tespy.tools.global_vars import err
 
 
 # %%
@@ -403,34 +404,37 @@ class valve(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            self.mat_deriv[k, 0, 1] = self.pr.val
-            self.mat_deriv[k, 1, 1] = -1
-            if self.pr.is_var:
-                self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
-                    self.inl[0].p.val_SI)
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+                self.mat_deriv[k, 0, 1] = self.pr.val
+                self.mat_deriv[k, 1, 1] = -1
+                if self.pr.is_var:
+                    self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
+                        self.inl[0].p.val_SI)
             k += 1
 
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            f = self.zeta_func
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            if self.zeta.is_var:
-                self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2))
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+                f = self.zeta_func
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                if self.zeta.is_var:
+                    self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
+                        self.numeric_deriv(f, 'zeta', 2))
             k += 1
 
         ######################################################################
         # derivatives for specified difference pressure
         if self.dp_char.is_set:
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                self.dp_char_func, 'm', 0)
-            self.mat_deriv[k, 0, 1] = 1
-            self.mat_deriv[k, 1, 1] = -1
+            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    self.dp_char_func, 'm', 0)
+                self.mat_deriv[k, 0, 1] = 1
+                self.mat_deriv[k, 1, 1] = -1
             k += 1
 
         return self.mat_deriv

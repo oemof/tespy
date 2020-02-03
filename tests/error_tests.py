@@ -490,16 +490,16 @@ class combustion_engine_bus_error_tests:
     @raises(ValueError)
     def test_missing_bus_param_func(self):
         """
-        Test missing bus parameter in bus function for cogeneration unit.
+        Test missing bus parameter in bus function for combustion engine.
         """
         self.instance.bus_func(self.bus.comps.loc[self.instance])
 
     @raises(ValueError)
     def test_missing_bus_param_deriv(self):
         """
-        Test missing bus parameter in bus derivatives for cogeneration unit.
+        Test missing bus parameter in bus derivatives for combustion engine.
         """
-        self.instance.num_vars = 2
+        self.instance.num_nw_vars = 2
         self.instance.inl = [connection(self.instance, 'out1',
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
@@ -588,24 +588,6 @@ class water_electrolyzer_error_tests:
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})
         self.instance.bus_deriv(some_bus.comps.loc[self.instance])
-
-
-@raises(TESPyComponentError)
-def test_turbomachine_eta_s_func():
-    """
-    Turbomachine has no isentropic efficency function.
-    """
-    instance = turbomachinery.turbomachine('turbomachine')
-    instance.eta_s_func()
-
-
-@raises(TESPyComponentError)
-def test_turbomachine_eta_s_deriv():
-    """
-    Turbomachine has no isentropic efficency derivative.
-    """
-    instance = turbomachinery.turbomachine('turbomachine')
-    instance.eta_s_deriv()
 
 
 @raises(ValueError)

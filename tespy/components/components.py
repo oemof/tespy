@@ -319,20 +319,15 @@ class component:
         self.vars = {}
         self.num_vars = 0
         var = self.attr()
-        for val in var.keys():
-            if isinstance(var[val], dc_cp):
-                if self.get_attr(val).is_var:
-                    self.get_attr(val).var_pos = self.num_vars
-                    self.num_vars += 1
-                    self.vars[self.get_attr(val)] = val
-
-        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
-               ' custom variables.')
-        logging.debug(msg)
-
-        # characteristics creation
         for key, val in var.items():
-            if isinstance(val, dc_cc):
+            if isinstance(val, dc_cp):
+                if self.get_attr(key).is_var:
+                    self.get_attr(key).var_pos = self.num_vars
+                    self.num_vars += 1
+                    self.vars[self.get_attr(key)] = key
+
+            # characteristics creation
+            elif isinstance(val, dc_cc):
                 if self.get_attr(key).func is None:
                     try:
                         self.get_attr(key).func = ldc(
@@ -351,9 +346,13 @@ class component:
                                'component.char_warnings=False.')
                         logging.warning(msg)
 
-        self.num_fl = len(nw.fluids)
-        self.fluids = nw.fluids
-        self.nw_vars = self.num_fl + 3
+        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
+               ' custom variables.')
+        logging.debug(msg)
+
+        self.num_nw_fluids = len(nw.fluids)
+        self.nw_fluids = nw.fluids
+        self.num_nw_vars = self.num_nw_fluids + 3
 
     @staticmethod
     def attr():
@@ -508,9 +507,11 @@ class component:
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl, 2 + self.num_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids,
+                          2 + self.num_vars,
+                          self.num_nw_vars))
         i = 0
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             deriv[i, 0, i + 3] = 1
             deriv[i, 1, i + 3] = -1
             i += 1
@@ -549,7 +550,7 @@ class component:
             equations.
         """
         deriv = np.zeros((1, self.num_i + self.num_o +
-                          self.num_vars, 3 + self.num_fl))
+                          self.num_vars, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):

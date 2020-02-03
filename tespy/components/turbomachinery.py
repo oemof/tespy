@@ -131,6 +131,9 @@ class turbomachine(component):
 
         component.comp_init(self, nw)
 
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
         self.num_eq = self.num_fl + 1
         for var in [self.P, self.pr]:
             if var.is_set is True:
@@ -139,7 +142,7 @@ class turbomachine(component):
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
-            self.nw_vars))
+            self.num_nw_vars))
 
         self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
         self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
@@ -203,6 +206,7 @@ class turbomachine(component):
         ######################################################################
         # derivatives fluid and mass balance are static
         k = self.num_fl + 1
+
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
@@ -321,7 +325,7 @@ class turbomachine(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 2, self.num_nw_vars))
         deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
         deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
         deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
@@ -496,7 +500,10 @@ class compressor(turbomachine):
                        'component.char_warnings=False.')
                 logging.warning(msg)
 
-        self.num_eq = self.num_fl + 1
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
         # characteristic map delivers two equations
         for var in [self.P, self.pr, self.eta_s, self.char_map, self.char_map,
                     self.eta_s_char]:
@@ -506,10 +513,11 @@ class compressor(turbomachine):
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
-            self.nw_vars))
+            self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
-        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
+        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
+        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
+            self.mass_flow_deriv())
 
     def additional_equations(self):
         r"""
@@ -569,7 +577,8 @@ class compressor(turbomachine):
         ######################################################################
         # derivatives for specified characteristic map
         if self.char_map.is_set:
-            if all(abs(np.array(self.vec_res[k:k + 2])) > err) or self.it % 3 == 0:
+            if (all(abs(np.array(self.vec_res[k:k + 2])) > err) or
+                    self.it % 3 == 0):
                 f = self.char_map_func
                 m11 = self.numeric_deriv(f, 'm', 0)
                 p11 = self.numeric_deriv(f, 'p', 0)
@@ -979,7 +988,10 @@ class pump(turbomachine):
 
         component.comp_init(self, nw)
 
-        self.num_eq = self.num_fl + 1
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char,
                     self.flow_char]:
             if var.is_set is True:
@@ -988,10 +1000,11 @@ class pump(turbomachine):
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
-            self.nw_vars))
+            self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
-        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
+        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
+        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
+            self.mass_flow_deriv())
 
     def additional_equations(self):
         r"""
@@ -1398,7 +1411,10 @@ class turbine(turbomachine):
                 self.local_design is False):
             self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
 
-        self.num_eq = self.num_fl + 1
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
             if var.is_set is True:
                 self.num_eq += 1
@@ -1406,10 +1422,11 @@ class turbine(turbomachine):
         self.mat_deriv = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
-            self.nw_vars))
+            self.num_nw_vars))
 
-        self.mat_deriv[0:self.num_fl] = self.fluid_deriv()
-        self.mat_deriv[self.num_fl:self.num_fl + 1] = self.mass_flow_deriv()
+        self.mat_deriv[0:self.num_nw_fluids] = self.fluid_deriv()
+        self.mat_deriv[self.num_nw_fluids:self.num_nw_fluids + 1] = (
+            self.mass_flow_deriv())
 
     def additional_equations(self):
         r"""
@@ -1495,24 +1512,6 @@ class turbine(turbomachine):
                 (self.h_os('post') - self.inl[0].h.val_SI) *
                 self.eta_s.val)
 
-    def eta_s_deriv(self):
-        r"""
-        Calculate partial derivatives of the isentropic efficiency function.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-
-        mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_func, 'p', 0)
-        mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_func, 'p', 1)
-        mat_deriv[0, 0, 2] = self.numeric_deriv(self.eta_s_func, 'h', 0)
-        mat_deriv[0, 1, 2] = -1
-
-        return mat_deriv.tolist()
-
     def cone_func(self):
         r"""
         Equation for stodolas cone law.
@@ -1584,25 +1583,6 @@ class turbine(turbomachine):
         return (-(o[2] - i[2]) + self.eta_s.design *
                 self.eta_s_char.func.evaluate(expr) *
                 (self.h_os('post') - i[2]))
-
-    def eta_s_char_deriv(self):
-        r"""
-        Calculate partial derivatives of efficiency characteristic function.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        mat_deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-
-        mat_deriv[0, 0, 0] = self.numeric_deriv(self.eta_s_char_func, 'm', 0)
-        mat_deriv[0, 0, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 0)
-        mat_deriv[0, 0, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 0)
-        mat_deriv[0, 1, 1] = self.numeric_deriv(self.eta_s_char_func, 'p', 1)
-        mat_deriv[0, 1, 2] = self.numeric_deriv(self.eta_s_char_func, 'h', 1)
-
-        return mat_deriv.tolist()
 
     def convergence_check(self, nw):
         r"""

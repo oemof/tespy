@@ -187,7 +187,7 @@ class node(component):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.mass_flow_deriv()
+        self.m_deriv = self.mass_flow_deriv().tolist()
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):
@@ -675,7 +675,7 @@ class drum(component):
         component.comp_init(self, nw)
 
         self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
+        self.m_deriv = self.mass_flow_deriv().tolist()
         self.p_deriv = self.pressure_deriv()
 
     def equations(self):

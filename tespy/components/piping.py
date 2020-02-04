@@ -383,13 +383,15 @@ class valve(component):
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            self.vec_res[k] = self.zeta_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.zeta_func()
             k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            self.vec_res[k] = self.dp_char_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.dp_char_func()
             k += 1
 
     def derivatives(self, vec_z):
@@ -408,37 +410,40 @@ class valve(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                self.mat_deriv[k, 0, 1] = self.pr.val
-                self.mat_deriv[k, 1, 1] = -1
-                if self.pr.is_var:
-                    self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
-                        self.inl[0].p.val_SI)
+            self.mat_deriv[k, 0, 1] = self.pr.val
+            self.mat_deriv[k, 1, 1] = -1
+            if self.pr.is_var:
+                self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
+                    self.inl[0].p.val_SI)
             k += 1
 
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.zeta_func
+            f = self.zeta_func
+            if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-                if self.zeta.is_var:
-                    self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                        self.numeric_deriv(f, 'zeta', 2))
+            if self.zeta.is_var:
+                self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
+                    self.numeric_deriv(f, 'zeta', 2))
             k += 1
 
         ######################################################################
         # derivatives for specified difference pressure
         if self.dp_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+            if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(
                     self.dp_char_func, 'm', 0)
-                self.mat_deriv[k, 0, 1] = 1
-                self.mat_deriv[k, 1, 1] = -1
+            self.mat_deriv[k, 0, 1] = 1
+            self.mat_deriv[k, 1, 1] = -1
             k += 1
 
     def enthalpy_deriv(self):

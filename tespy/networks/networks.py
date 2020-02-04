@@ -2281,16 +2281,14 @@ class network:
             # temperature
             if c.T.val_set is True:
                 if (np.absolute(self.vec_res[k]) > err ** 2 or
-                        self.iter % 2 == 0):
+                        self.iter % 1 == 0):
                     self.vec_res[k] = c.T.val_SI - fp.T_mix_ph(
                         flow, T0=c.T.val_SI)
 
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = (
-                        -fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                if not self.vec_z_filter[col + 2]:
-                    self.mat_deriv[k, col + 2] = (
-                        -fp.dT_mix_pdh(flow, T0=c.T.val_SI))
+                self.mat_deriv[k, col + 1] = (
+                    -fp.dT_mix_dph(flow, T0=c.T.val_SI))
+                self.mat_deriv[k, col + 2] = (
+                    -fp.dT_mix_pdh(flow, T0=c.T.val_SI))
                 if len(self.fluids) != 1:
                     col_s = c.conn_loc * self.num_conn_vars + 3
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
@@ -2357,14 +2355,11 @@ class network:
                     self.vec_res[k] = (
                         c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
                         c.m.val_SI)
-                if not self.vec_z_filter[col]:
-                    self.mat_deriv[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = -(
-                        fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
-                if not self.vec_z_filter[col + 2]:
-                    self.mat_deriv[k, col + 2] = -(
-                        fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
+                self.mat_deriv[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
+                self.mat_deriv[k, col + 1] = -(
+                    fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
+                self.mat_deriv[k, col + 2] = -(
+                    fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
                 k += 1
 
             # temperature difference to boiling point

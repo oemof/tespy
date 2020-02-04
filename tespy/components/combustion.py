@@ -318,13 +318,13 @@ class combustion_chamber(component):
         ######################################################################
         # equations for fluids in reaction balance
         for fluid in self.inl[0].fluid.val.keys():
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
                 self.vec_res[k] = self.reaction_balance(fluid)
             k += 1
 
         ######################################################################
         # equation for energy balance
-        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
             self.vec_res[k] = self.energy_balance()
         k += 1
 
@@ -1282,6 +1282,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> import numpy as np
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',

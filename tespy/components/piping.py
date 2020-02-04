@@ -342,7 +342,7 @@ class valve(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()

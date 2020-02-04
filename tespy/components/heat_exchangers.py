@@ -3248,10 +3248,10 @@ class evaporator(component):
 
                 val = P \cdot f\left( \frac{P}{P_{ref}}\right)
 
-                P = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in} \right)
+                P = \dot{m}_{3,in} \cdot \left( h_{3,out} - h_{3,in} \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[3].to_flow()
+        o = self.outl[3].to_flow()
 
         val = i[0] * (o[2] - i[2])
         if np.isnan(bus.P_ref):
@@ -3274,10 +3274,10 @@ class evaporator(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 6, len(self.inl[0].fluid.val) + 3))
         deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
         deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+        deriv[0, 3, 2] = self.numeric_deriv(self.bus_func, 'h', 3, bus=bus)
         return deriv
 
     def convergence_check(self, nw):

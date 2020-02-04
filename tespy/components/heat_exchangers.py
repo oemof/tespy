@@ -305,7 +305,7 @@ class heat_exchanger_simple(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
@@ -347,19 +347,21 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equations for specified zeta
         if self.zeta.is_set:
-            self.vec_res[k] = self.zeta_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.zeta_func()
             k += 1
 
         ######################################################################
         # equation for specified hydro-group paremeters
         if self.hydro_group.is_set:
-            # hazen williams equation
-            if self.hydro_group.method == 'HW':
-                func = self.hw_func
-            # darcy friction factor
-            else:
-                func = self.darcy_func
-            self.vec_res[k] = func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                # hazen williams equation
+                if self.hydro_group.method == 'HW':
+                    func = self.hw_func
+                # darcy friction factor
+                else:
+                    func = self.darcy_func
+                self.vec_res[k] = func()
             k += 1
 
         ######################################################################
@@ -422,11 +424,16 @@ class heat_exchanger_simple(component):
         # derivatives for specified zeta
         if self.zeta.is_set:
             f = self.zeta_func
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variable zeta
             if self.zeta.is_var:
                 self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
@@ -443,11 +450,16 @@ class heat_exchanger_simple(component):
             else:
                 func = self.darcy_func
 
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(func, 'm', 0)
-            self.mat_deriv[k, 0, 1] = self.numeric_deriv(func, 'p', 0)
-            self.mat_deriv[k, 0, 2] = self.numeric_deriv(func, 'h', 0)
-            self.mat_deriv[k, 1, 1] = self.numeric_deriv(func, 'p', 1)
-            self.mat_deriv[k, 1, 2] = self.numeric_deriv(func, 'h', 1)
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(func, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(func, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(func, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(func, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(func, 'h', 1)
             # custom variables of hydro group
             for var in self.hydro_group.elements:
                 if var.is_var:
@@ -466,11 +478,16 @@ class heat_exchanger_simple(component):
         if self.kA_group.is_set:
             if abs(self.vec_res[k]) > err or self.it % 3 == 0:
                 f = self.kA_func
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                if not vec_z[0, 0]:
+                    self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                if not vec_z[0, 1]:
+                    self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                if not vec_z[0, 2]:
+                    self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                if not vec_z[1, 1]:
+                    self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                if not vec_z[1, 2]:
+                    self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
                 # variable Tamb or kA
                 for var in self.kA_group.elements:
                     if var.is_var:
@@ -1022,7 +1039,7 @@ class solar_collector(heat_exchanger_simple):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
@@ -1040,7 +1057,8 @@ class solar_collector(heat_exchanger_simple):
         ######################################################################
         # equation for specified energy-group paremeters
         if self.energy_group.is_set:
-            self.vec_res[k] = self.energy_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.energy_func()
 
     def additional_derivatives(self, vec_z, k):
         r"""Calculate partial derivatives for given additional equations."""
@@ -1051,10 +1069,14 @@ class solar_collector(heat_exchanger_simple):
                 f = self.energy_func
                 self.mat_deriv[k, 0, 0] = (
                     self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                if not vec_z[0, 1]:
+                        self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                if not vec_z[0, 2]:
+                    self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                if not vec_z[1, 1]:
+                    self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                if not vec_z[1, 2]:
+                    self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
                 # custom variables for the energy-group
                 for var in self.energy_group.elements:
                     if var.is_var:
@@ -1322,7 +1344,7 @@ class heat_exchanger(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids * 2
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 2] = self.mass_flow_deriv()
@@ -1442,11 +1464,15 @@ class heat_exchanger(component):
         # derivatives for specified heat transfer coefficient
         if self.kA.is_set:
             f = self.kA_func
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[1, 0]:
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
             for i in range(4):
-                self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
+                if not vec_z[i, 1]:
+                    self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
+                if not vec_z[i, 2]:
+                    self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
             k += 1
 
         ######################################################################
@@ -1454,8 +1480,10 @@ class heat_exchanger(component):
         if self.ttd_u.is_set:
             f = self.ttd_u_func
             for i in [0, 3]:
-                self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
+                if not vec_z[i, 1]:
+                    self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
+                if not vec_z[i, 2]:
+                    self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
             k += 1
 
         ######################################################################
@@ -1463,8 +1491,10 @@ class heat_exchanger(component):
         if self.ttd_l.is_set:
             f = self.ttd_l_func
             for i in [1, 2]:
-                self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
+                if not vec_z[i, 1]:
+                    self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
+                if not vec_z[i, 2]:
+                    self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
             k += 1
 
         ######################################################################
@@ -1485,22 +1515,32 @@ class heat_exchanger(component):
         # derivatives for specified zeta at hot side
         if self.zeta1.is_set:
             f = self.zeta_func
-            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 2, 1] = self.numeric_deriv(f, 'p', 2)
-            self.mat_deriv[k, 2, 2] = self.numeric_deriv(f, 'h', 2)
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[2, 1]:
+                self.mat_deriv[k, 2, 1] = self.numeric_deriv(f, 'p', 2)
+            if not vec_z[2, 2]:
+                self.mat_deriv[k, 2, 2] = self.numeric_deriv(f, 'h', 2)
             k += 1
 
         ######################################################################
         # derivatives for specified zeta at cold side
         if self.zeta2.is_set:
             f = self.zeta2_func
-            self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
-            self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            self.mat_deriv[k, 3, 1] = self.numeric_deriv(f, 'p', 3)
-            self.mat_deriv[k, 3, 2] = self.numeric_deriv(f, 'h', 3)
+            if not vec_z[1, 0]:
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not vec_z[3, 1]:
+                self.mat_deriv[k, 3, 1] = self.numeric_deriv(f, 'p', 3)
+            if not vec_z[3, 2]:
+                self.mat_deriv[k, 3, 2] = self.numeric_deriv(f, 'h', 3)
             k += 1
 
         ######################################################################
@@ -2188,7 +2228,7 @@ class condenser(heat_exchanger):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids * 2
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 2] = self.mass_flow_deriv()
@@ -2523,7 +2563,7 @@ class desuperheater(heat_exchanger):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.vec_res = np.zeros(self.num_eq)
         pos = self.num_nw_fluids * 2
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 2] = self.mass_flow_deriv()

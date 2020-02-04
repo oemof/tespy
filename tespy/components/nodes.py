@@ -1318,7 +1318,7 @@ class separator(node):
             res = x * self.inl[0].m.val_SI
             for o in self.outl:
                 res -= o.fluid.val[fluid] * o.m.val_SI
-            self.vec_res[k] += res
+            self.vec_res[k] = res
             k += 1
 
         ######################################################################

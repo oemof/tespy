@@ -1685,6 +1685,9 @@ class network:
                     self.progress = False
                     break
 
+            # clean up residual value Vector
+            self.vec_res = self.vec_res * 0
+
         self.end_time = time()
 
         self.print_iterinfo('end')

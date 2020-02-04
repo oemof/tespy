@@ -136,6 +136,7 @@ class cycle_closer(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         # derivatives for pressure
         self.mat_deriv[0, 0, 1] = 1
         self.mat_deriv[0, 1, 1] = -1
@@ -152,30 +153,21 @@ class cycle_closer(component):
         vec_res : list
             Vector of residual values.
         """
-        self.vec_res = []
-
+        k = 0
         ######################################################################
         # equation for pressure
-        self.vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+        self.vec_res[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        k += 1
 
         ######################################################################
         # equation for enthalpy
-        self.vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        k += 1
 
-        ######################################################################
-
-    def derivatives(self):
-        r"""
-        Calculate partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, vek_z):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
         # all derivatives are static
-
 
     def calc_parameters(self):
 
@@ -447,6 +439,7 @@ class subsystem_interface(component):
             2 * self.num_i,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         stop = self.num_nw_fluids * self.num_i
         self.mat_deriv[0:stop] = self.fluid_deriv()
         start = stop
@@ -468,45 +461,38 @@ class subsystem_interface(component):
         vec_res : list
             Vector of residual values.
         """
-        self.vec_res = []
-
+        k = 0
         ######################################################################
         # eqations for fluids
         for i in range(self.num_i):
             for fluid, x in self.inl[i].fluid.val.items():
-                self.vec_res += [x - self.outl[i].fluid.val[fluid]]
+                self.vec_res[k] = x - self.outl[i].fluid.val[fluid]
+                k += 1
 
         ######################################################################
         # equations for mass flow
         for i in range(self.num_i):
-            self.vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            self.vec_res[k] = self.inl[i].m.val_SI - self.outl[i].m.val_SI
+            k += 1
 
         ######################################################################
         # equations for pressure
         for i in range(self.num_i):
-            self.vec_res += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
+            self.vec_res[k] = self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            k += 1
 
         ######################################################################
         # equations for enthalpy
         for i in range(self.num_i):
-            self.vec_res += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
+            self.vec_res[k] = self.inl[i].h.val_SI - self.outl[i].h.val_SI
+            k += 1
 
         ######################################################################
 
-
-
-    def derivatives(self):
-        r"""
-        Calculate partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, vek_z):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
         # all derivatives are static
-
 
     def fluid_deriv(self):
         r"""

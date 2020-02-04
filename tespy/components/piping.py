@@ -342,6 +342,7 @@ class valve(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
@@ -356,39 +357,42 @@ class valve(component):
         vec_res : list
             Vector of residual values.
         """
-        self.vec_res = []
-
+        k = 0
         ######################################################################
         # eqations for fluids
-        self.vec_res += self.fluid_func()
+        self.vec_res[k:k + self.num_nw_fluids] = self.fluid_func()
+        k += self.num_nw_fluids
 
         ######################################################################
         # eqation for mass flow
-        self.vec_res += self.mass_flow_func()
+        self.vec_res[k] = self.mass_flow_func()
+        k += 1
 
         ######################################################################
         # eqation for enthalpy
-        self.vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        k += 1
 
         ######################################################################
         # eqation for specified pressure ratio
         if self.pr.is_set:
-            self.vec_res += [self.inl[0].p.val_SI * self.pr.val -
-                             self.outl[0].p.val_SI]
+            self.vec_res[k] = (
+                self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            self.vec_res += [self.zeta_func()]
+            self.vec_res[k] = self.zeta_func()
+            k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            self.vec_res += [self.dp_char_func()]
+            self.vec_res[k] = self.dp_char_func()
+            k += 1
 
-
-
-    def derivatives(self):
+    def derivatives(self, vec_z):
         r"""
         Calculate matrix of partial derivatives for given equations.
 
@@ -436,8 +440,6 @@ class valve(component):
                 self.mat_deriv[k, 0, 1] = 1
                 self.mat_deriv[k, 1, 1] = -1
             k += 1
-
-
 
     def enthalpy_deriv(self):
         r"""

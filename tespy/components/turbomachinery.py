@@ -144,6 +144,7 @@ class turbomachine(component):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
@@ -157,53 +158,45 @@ class turbomachine(component):
         vec_res : list
             Vector of residual values.
         """
-        self.vec_res = []
+        k = 0
         ######################################################################
         # eqations for fluids
-        self.vec_res += self.fluid_func()
+        if (any(np.absolute(self.vec_res[k:self.num_nw_fluids])) > err ** 2 or
+                self.it % 5 == 0):
+            self.vec_res[k:self.num_nw_fluids] = self.fluid_func()
+        k += self.num_nw_fluids
 
         ######################################################################
         # eqations for mass flow balance
-        self.vec_res += self.mass_flow_func()
+        self.vec_res[k] = self.mass_flow_func()
+        k += 1
 
         ######################################################################
         # eqations for specified power
         if self.P.is_set:
-            self.vec_res += [self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val]
+            self.vec_res[k] = self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+
+            k += 1
 
         ######################################################################
         # eqations for specified pressure ratio
         if self.pr.is_set:
-            self.vec_res += [self.pr.val * self.inl[0].p.val_SI -
-                             self.outl[0].p.val_SI]
+            self.vec_res[k] = (
+                self.pr.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # additional equations
-        self.additional_equations()
+        self.additional_equations(k)
 
-
-
-    def additional_equations(self):
-        r"""
-        Calculate vector vec_res with results of additional equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+    def additional_equations(self, k):
+        r"""Calculate vector vec_res with results of additional equations."""
         return
 
-    def derivatives(self):
-        r"""
-        Calculate partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, vec_z):
+        r"""Calculate partial derivatives for given equations."""
+        # print(np.where(abs(vec_z) < err))
         ######################################################################
         # derivatives fluid and mass balance are static
         k = self.num_nw_fluids + 1
@@ -211,36 +204,25 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                self.mat_deriv[k, 0, 0] = (
-                    self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
-                self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
+            self.mat_deriv[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
+            self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
             k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                self.mat_deriv[k, 0, 1] = self.pr.val
-                self.mat_deriv[k, 1, 1] = -1
+            self.mat_deriv[k, 0, 1] = self.pr.val
+            self.mat_deriv[k, 1, 1] = -1
             k += 1
 
         ######################################################################
         # derivatives for additional equations
-        self.additional_derivatives(k)
+        self.additional_derivatives(vec_z, k)
 
-
-
-    def additional_derivatives(self, k):
-        r"""
-        Calculate partial derivatives for given additional equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def additional_derivatives(self, vec_z, k):
+        r"""Calculate partial derivatives for given additional equations."""
         return
 
     def h_os(self, mode):
@@ -515,11 +497,12 @@ class compressor(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
-    def additional_equations(self):
+    def additional_equations(self, k):
         r"""
         Calculate vector vec_res with results of additional equations.
 
@@ -535,73 +518,88 @@ class compressor(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.vec_res += [self.eta_s_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_func()
+            k += 1
 
         ######################################################################
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            self.vec_res += [self.eta_s_char_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_char_func()
+            k += 1
 
         ######################################################################
         # equations for specified characteristic map
         if self.char_map.is_set:
-            self.vec_res += self.char_map_func().tolist()
+            if (any(np.absolute(self.vec_res[k:k + 2])) > err ** 2 or
+                    self.it % 5 == 0):
+                self.vec_res[k:k + 2] = self.char_map_func()
+            k += 2
 
-        return
-
-    def additional_derivatives(self, k):
+    def additional_derivatives(self, vec_z, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_func
+            f = self.eta_s_func
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 2] = -self.eta_s.val
+            self.mat_deriv[k, 1, 2] = -self.eta_s.val
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_char_func
+            f = self.eta_s_char_func
+            if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
         ######################################################################
         # derivatives for specified characteristic map
         if self.char_map.is_set:
-            if (all(abs(np.array(self.vec_res[k:k + 2])) > err) or
-                    self.it % 3 == 0):
-                f = self.char_map_func
+            f = self.char_map_func
+            if not vec_z[0, 0]:
                 m11 = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = m11[0]
+                self.mat_deriv[k + 1, 0, 0] = m11[1]
+            if not vec_z[0, 1]:
                 p11 = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = p11[0]
+                self.mat_deriv[k + 1, 0, 1] = p11[1]
+            if not vec_z[0, 2]:
                 h11 = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = h11[0]
+                self.mat_deriv[k + 1, 0, 2] = h11[1]
 
+            if not vec_z[1, 1]:
                 p21 = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = p21[0]
+                self.mat_deriv[k + 1, 1, 1] = p21[1]
+            if not vec_z[1, 2]:
                 h21 = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = h21[0]
+                self.mat_deriv[k + 1, 1, 2] = h21[1]
 
+            if self.igva.is_var:
+                igva = self.numeric_deriv(f, 'igva', 1)
                 if self.igva.is_var:
-                    igva = self.numeric_deriv(f, 'igva', 1)
-
-                for i in range(2):
-                    self.mat_deriv[k, 0, 0] = m11[i]
-                    self.mat_deriv[k, 0, 1] = p11[i]
-                    self.mat_deriv[k, 0, 2] = h11[i]
-                    self.mat_deriv[k, 1, 1] = p21[i]
-                    self.mat_deriv[k, 1, 2] = h21[i]
-                    if self.igva.is_var:
-                        self.mat_deriv[k, 2 + self.igva.var_pos, 0] = igva[i]
-                    k += 1
-            else:
-                k += 2
-            return
+                    self.mat_deriv[k, 2 + self.igva.var_pos, 0] = igva[0]
+                    self.mat_deriv[k + 1, 2 + self.igva.var_pos, 0] = igva[1]
+            k += 2
 
     def eta_s_func(self):
         r"""
@@ -1002,11 +1000,12 @@ class pump(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
-    def additional_equations(self):
+    def additional_equations(self, k):
         r"""
         Calculate vector vec_res with results of additional equations.
 
@@ -1021,42 +1020,52 @@ class pump(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.vec_res += [self.eta_s_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_func()
+            k += 1
 
         ######################################################################
         # equations for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            self.vec_res += [self.eta_s_char_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_char_func()
+            k += 1
 
         ######################################################################
         # equations for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
-            self.vec_res += [self.flow_char_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.flow_char_func()
+            k += 1
 
-        return
-
-    def additional_derivatives(self, k):
+    def additional_derivatives(self, vec_z, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_func
+            f = self.eta_s_func
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 2] = -self.eta_s.val
+            self.mat_deriv[k, 1, 2] = -self.eta_s.val
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_char_func
+            f = self.eta_s_char_func
+            if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
@@ -1064,14 +1073,14 @@ class pump(turbomachine):
         # derivatives for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
             f = self.flow_char_func
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
+            if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                for i in range(2):
+            for i in range(2):
+                if not vec_z[i, 1]:
                     self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
             k += 1
-
-        return
 
     def eta_s_func(self):
         r"""
@@ -1357,7 +1366,7 @@ class turbine(turbomachine):
     >>> import shutil
     >>> fluid_list = ['water']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg', iterinfo=False)
+    ... h_unit='kJ / kg', iterinfo=False)
     >>> si = sink('sink')
     >>> so = source('source')
     >>> t = turbine('turbine')
@@ -1424,11 +1433,12 @@ class turbine(turbomachine):
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
+        self.vec_res = np.ones(self.num_eq)
         pos = self.num_nw_fluids
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
 
-    def additional_equations(self):
+    def additional_equations(self, k):
         r"""
         Calculate vector vec_res with results of additional equations.
 
@@ -1442,53 +1452,65 @@ class turbine(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.vec_res += [self.eta_s_func()]
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            self.vec_res += [self.eta_s_char_func()]
-
-        ######################################################################
-        # equation for specified cone law
-        if self.cone.is_set:
-            self.vec_res += [self.cone_func()]
-
-        return
-
-    def additional_derivatives(self, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for specified isentropic efficiency
-        if self.eta_s.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_func
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 1, 2] = -1
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.eta_s_char_func
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.eta_s_char_func()
+            k += 1
+
+        ######################################################################
+        # equation for specified cone law
+        if self.cone.is_set:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+                self.vec_res[k] = self.cone_func()
+            k += 1
+
+    def additional_derivatives(self, vec_z, k):
+        r"""Calculate partial derivatives for given additional equations."""
+        ######################################################################
+        # derivatives for specified isentropic efficiency
+        if self.eta_s.is_set:
+            f = self.eta_s_func
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.mat_deriv[k, 1, 2] = -1
+            k += 1
+
+        ######################################################################
+        # derivatives for specified isentropic efficiency characteristics
+        if self.eta_s_char.is_set:
+            f = self.eta_s_char_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
         ######################################################################
         # derivatives for specified cone law
         if self.cone.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.cone_func
-                self.mat_deriv[k, 0, 0] = -1
+            f = self.cone_func
+            self.mat_deriv[k, 0, 0] = -1
+            if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
             k += 1
 

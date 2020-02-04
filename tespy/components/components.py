@@ -372,7 +372,7 @@ class component:
     def equations(self):
         return
 
-    def derivatives(self):
+    def derivatives(self, vec_z):
         return
 
     def initialise_source(self, c, key):
@@ -540,7 +540,7 @@ class component:
             res += i.m.val_SI
         for o in self.outl:
             res -= o.m.val_SI
-        return [res]
+        return res
 
     def mass_flow_deriv(self):
         r"""

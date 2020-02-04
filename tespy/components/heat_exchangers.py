@@ -1070,7 +1070,7 @@ class solar_collector(heat_exchanger_simple):
                 self.mat_deriv[k, 0, 0] = (
                     self.outl[0].h.val_SI - self.inl[0].h.val_SI)
                 if not vec_z[0, 1]:
-                        self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                    self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
                 if not vec_z[0, 2]:
                     self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
                 if not vec_z[1, 1]:

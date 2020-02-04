@@ -192,7 +192,7 @@ class turbomachinery_tests:
         self.c1.set_attr(v=0.9)
         self.nw.solve('offdesign', design_path='tmp')
         dp = 775000.0
-        msg = ('Value of pressure rise must be ' + str() + ', is ' +
+        msg = ('Value of pressure rise must be ' + str(dp) + ', is ' +
                str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
         eq_(self.c2.p.val_SI - self.c1.p.val_SI, dp, msg)
 

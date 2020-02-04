@@ -688,6 +688,11 @@ class network:
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
 
+            # save the connection locations to the components
+            comp.conn_loc = []
+            for c in comp.inl + comp.outl:
+                comp.conn_loc += [self.conns.index.get_loc(c)]
+
         # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
             duplicates = [item for item, count in
@@ -1731,6 +1736,7 @@ class network:
                          self.num_comp_vars)
 
         self.vec_res = np.zeros([self.num_vars])
+        self.vec_z = np.ones([self.num_vars])
 
         msg = 'Total number of variables: ' + str(self.num_vars) + '.'
         logging.debug(msg)
@@ -1837,7 +1843,7 @@ class network:
             self.vec_z = inv(self.mat_deriv).dot(-self.vec_res)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
-            self.vec_z = np.asarray(self.vec_res) * 0
+            self.vec_z = self.vec_res * 0
             pass
 
     def solve_control(self):
@@ -1904,8 +1910,8 @@ class network:
                     pos = var.var_pos
 
                     # add increment
-                    var.val += self.vec_z[self.num_conn_vars *
-                                          len(self.conns) + c_vars + pos]
+                    var.val += self.vec_z[
+                        self.num_conn_vars * len(self.conns) + c_vars + pos]
 
                     # keep value within specified value range
                     if var.val < var.min_val:
@@ -2074,18 +2080,27 @@ class network:
         sum_eq = 0
         c_var = 0
         for cp in self.comps.index:
-            cp.equations()
-            cp.derivatives()
 
-            vec_res += cp.vec_res
+            tm = time()
+            indexes = []
+            for c in cp.conn_loc:
+                start = c * self.num_conn_vars
+                end = (c + 1) * self.num_conn_vars
+                indexes += [np.arange(start, end)]
+
+            custom_start = self.num_vars - self.num_comp_vars + c_var
+            custom_end = self.num_vars - self.num_comp_vars + cp.num_vars
+
+            cp.equations()
+            cp.derivatives(np.absolute(self.vec_z[np.array(indexes)]) < err)
+
+            self.vec_res[sum_eq:sum_eq + cp.num_eq] = cp.vec_res
             deriv = cp.mat_deriv
 
             if deriv is not None:
                 i = 0
-                num_eq = cp.num_eq
                 # place derivatives in jacobian matrix
-                for c in cp.inl + cp.outl:
-                    loc = self.conns.index.get_loc(c)
+                for loc in cp.conn_loc:
                     coll_s = loc * self.num_conn_vars
                     coll_e = (loc + 1) * self.num_conn_vars
                     self.mat_deriv[
@@ -2099,10 +2114,8 @@ class network:
                         deriv[:, i + j, :1].transpose()[0])
                     c_var += 1
 
-                sum_eq += num_eq
+                sum_eq += cp.num_eq
             cp.it += 1
-
-        self.vec_res[0:self.num_comp_eq] = vec_res
 
     def solve_connections(self):
         r"""

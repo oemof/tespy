@@ -3,6 +3,8 @@ v0.2.1 - (some date, probably 2020)
 
 New Features
 ############
+- Back end modifications in order to improve calculation speed. For the results
+  see (`PR #147 <https://github.com/oemof/tespy/pull/147>`_).
 
 Documentation
 #############

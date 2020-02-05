@@ -167,7 +167,7 @@ class orc_evaporator(component):
     ... log_path=True, log_version=True, timed_rotating={'backupCount': 4},
     ... screen_level=logging.WARNING, screen_datefmt = "no_date")
     >>> fluids = ['water', 'Isopentane']
-    >>> nw = network(fluids=fluids)
+    >>> nw = network(fluids=fluids, iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> evaporator = orc_evaporator('orc_evaporator')
     >>> source_wf = source('working fluid source')
@@ -196,7 +196,6 @@ class orc_evaporator(component):
     >>> mode = 'design'
     >>> file = 'orc_evaporator'
     >>> nw.solve(mode=mode)
-    >>> nw.print_results()
     >>> nw.save(file)
     """
 

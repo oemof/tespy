@@ -30,6 +30,163 @@ from tespy.tools.helpers import lamb, single_fluid
 
 
 class orc_evaporator(component):
+    r"""
+    Class orc_evaporator is the evaporator component in the Organic Rankine Cycle (ORC).
+    Generally, the hot side of the geo-fluid from the geothermal wells keeps 2-phase.
+    In order to fully use the energy in the geo-fluid, there are 2 inlets at the hot side.
+
+    The ORC evaporator represents counter current evaporators. Both, 2 hot
+    and 1 cold side of the evaporator, are simulated.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.customs.orc_evaporator.fluid_func`
+        - :func:`tespy.components.customs.orc_evaporator.mass_flow_func`
+
+        - :func:`tespy.components.customs.orc_evaporator.energy_func`
+
+        **optional equations**
+
+        .. math::
+
+            0 = \dot{m}_{in3} \cdot \left(h_{out3} - h_{in3} \right) - \dot{Q}
+
+        - :func:`tespy.components.customs.orc_evaporator.kA_func`
+
+        .. math::
+
+            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
+            0 = p_{2,in} \cdot pr2 - p_{2,out}\\
+            0 = p_{3,in} \cdot pr3 - p_{3,out}
+
+        - :func:`tespy.components.customs.orc_evaporator.zeta_func`
+        - :func:`tespy.components.customs.orc_evaporator.zeta2_func`
+        - :func:`tespy.components.customs.orc_evaporator.zeta3_func`
+
+        **additional equations**
+
+        - :func:`tespy.components.customs.orc_evaporator.additional_equations`
+
+    Inlets/Outlets
+
+        - in1, in2, in3 (index 1: hot side 1, index 2: hot side 2, index 3: cold side)
+        - out1, out2, out3 (index 1: hot side 1, index 2: hot side 2, index 3: cold side)
+
+    Image
+
+        .. image:: _images/orc_evaporator.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    Q : String/float/tespy.helpers.dc_cp
+        Heat transfer, :math:`Q/\text{W}`.
+
+    pr1 : String/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio at hot side 1, :math:`pr/1`.
+
+    pr2 : String/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio at hot side 2, :math:`pr/1`.
+
+    pr3 : String/float/tespy.helpers.dc_cp
+        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
+
+    zeta1 : str/float/tespy.helpers.dc_cp
+        Geometry independent friction coefficient at hot side,
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    zeta2 : str/float/tespy.helpers.dc_cp
+        Geometry independent friction coefficient at cold side,
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    zeta3 : str/float/tespy.helpers.dc_cp
+        Geometry independent friction coefficient at cold side,
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    kA : str/float/tespy.helpers.dc_cp
+        Area independent heat transition coefficient,
+        :math:`kA/\frac{\text{W}}{\text{K}}`.
+
+    kA_char1 : str/tespy.helpers.dc_cc
+        Characteristic curve for heat transfer coefficient at hot side 1,
+        provide x and y values or use generic values (e. g. calculated
+        from design case). Standard method 'HE_HOT', Parameter 'm'.
+
+    kA_char2 : str/tespy.helpers.dc_cc
+        Characteristic curve for heat transfer coefficient at hot side 2,
+        provide x and y values or use generic values (e. g. calculated from
+        design case). Standard method 'HE_HOT', Parameter 'm'.
+
+    kA_char3 : str/tespy.helpers.dc_cc
+        Characteristic curve for heat transfer coefficient at cold side,
+        provide x and y values or use generic values (e. g. calculated from
+        design case). Standard method 'HE_COLD', Parameter 'm'.
+
+    Note
+    ----
+    The ORC evaporator are countercurrent heat exchangers. Equation kA do not work
+    for directcurrent and crosscurrent or combinations of different types.
+
+    Example
+    -------
+    A 2-phase geo-fluid is used as the heat source for evaporating the working fluid.
+    The evaporator is designed for calculate the mass flow rate of the working fluid
+    with known steam and brine mass flow rate. The state of the brine, steam and is fixed.
+    From this, it is possible to calculate the mass flow rate of the working fluid that is
+    fully evaporated through the ORC evaporator and its heat transfer coefficient.
+
+    >>> from tespy.connections import connection
+    >>> from tespy.networks import network
+    >>> from tespy.components import source, sink
+    >>> from tespy.components.customs import orc_evaporator
+    >>> from tespy.tools import logger
+    >>> import logging
+    >>> mypath = logger.define_logging(
+    ... log_path=True, log_version=True, timed_rotating={'backupCount': 4},
+    ... screen_level=logging.WARNING, screen_datefmt = "no_date")
+    >>> fluids = ['water', 'Isopentane']
+    >>> nw = network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> evaporator = orc_evaporator('orc_evaporator')
+    >>> source_wf = source('working fluid source')
+    >>> sink_wf = sink('working fluid sink')
+    >>> source_s = source('steam source')
+    >>> source_b = source('brine source')
+    >>> sink_s = sink('steam sink')
+    >>> sink_b = sink('brine sink')
+    >>> evaporator_wf_in = connection(source_wf, 'out1', evaporator, 'in3')
+    >>> evaporator_wf_out = connection(evaporator, 'out3', sink_wf, 'in1')
+    >>> evaporator_steam_in = connection(source_s, 'out1', evaporator, 'in1')
+    >>> evaporator_sink_s = connection(evaporator, 'out1', sink_s, 'in1')
+    >>> evaporator_brine_in = connection(source_b, 'out1', evaporator, 'in2')
+    >>> evaporator_sink_b = connection(evaporator, 'out2', sink_b, 'in1')
+    >>> nw.add_conns(evaporator_wf_in, evaporator_wf_out)
+    >>> nw.add_conns(evaporator_steam_in, evaporator_sink_s)
+    >>> nw.add_conns(evaporator_brine_in, evaporator_sink_b)
+    >>> evaporator.set_attr(pr1=0.93181818, pr2=0.970588, pr3=1)
+    >>> evaporator_wf_in.set_attr(T=111.6, p=10.8, fluid={'water': 0, 'Isopentane': 1})
+    >>> evaporator_steam_in.set_attr(T=146.6, p=4.34, m=20.4, state='g', fluid={'water': 1, 'Isopentane': 0})
+    >>> evaporator_brine_in.set_attr(T=146.6, p=10.2, m=190.8, fluid={'water': 1, 'Isopentane': 0})
+    >>> evaporator_sink_b.set_attr(T=118.6)
+    >>> mode = 'design'
+    >>> file = 'orc_evaporator'
+    >>> nw.solve(mode=mode)
+    >>> nw.print_results()
+    >>> nw.save(file)
+    """
 
     @staticmethod
     def component():

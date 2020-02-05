@@ -302,11 +302,18 @@ class orc_evaporator(component):
 
         Equations
 
-            **mandatory equations**
+            **mandatory equations at outlet 1 of the hot side**
 
             .. math::
 
                 0 = h_{1,out} - h\left(p, x=0 \right)\\
+                x: \text{vapour mass fraction}
+
+            **mandatory equations at outlet of the cold side**
+
+            .. math::
+
+                0 = h_{1,out} - h\left(p, x=1 \right)\\
                 x: \text{vapour mass fraction}
 
         Returns
@@ -549,7 +556,8 @@ class orc_evaporator(component):
             .. math::
 
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
-                \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
+                \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) +
+                \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
         """
 #        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
@@ -625,18 +633,20 @@ class orc_evaporator(component):
 
             .. math::
 
-                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} -
-                T_{2,in} - T_{1,in} + T_{2,out}}
-                {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+                res = \dot{m}_{3,in} \cdot \left( h_{3,out} - h_{3,in}\right) +
+                kA \cdot f_{kA} \cdot \frac{T_{1,out} + T_{2,out} - T_{3,in} -
+                T_{2,in} - T_{1,in} + T_{3,out}}
+                {\ln{\frac{T_{1,out} + T_{2,out} - T_{3,in}}
+                {T_{1,in} + T_{2,in} - T_{3,out}}}}
 
                 f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}}\right)
+                f_2\left(\frac{m_2}{m_{2,ref}} \cdot
+                f_3\left(\frac{m_3}{m_{3,ref}}\right)
 
         Note
         ----
-        For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :func:`tespy.data`.
+        For standard functions f\ :subscript:`1` \, f\ :subscript:`2` \
+        and f\ :subscript:`2` \ see module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
@@ -698,6 +708,7 @@ class orc_evaporator(component):
 #        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
         if T_i1 <= T_o3:
             T_o1 = T_i3 + 0.02
+
 #        if T_o1 <= T_i2 and self.inl[1].T.val_set is False:
         if T_o1 <= T_i3:
             T_i3 = T_o1 - 0.02
@@ -726,9 +737,9 @@ class orc_evaporator(component):
                 if not i3[0] == 0:
                     fkA3 = self.kA_char3.func.evaluate(i3[0] / i3_d[0])
 
-        td_log = ((T_o1 - T_i3 - T_i1 + T_o3) /
-                  np.log((T_o1 - T_i3) / (T_i1 - T_o3)))
-        return i1[0] * (o1[3] - i1[3]) + self.kA.val * fkA1 * fkA2 * fkA3 * td_log
+        td_log = ((T_o1 + T_o2 - T_i3 - T_i1 - T_i2 + T_o3) /
+                  np.log((T_o1 + T_o2 - T_i3) / (T_i1 + T_i2 - T_o3)))
+        return i3[0] * (o3[2] - i3[2]) + self.kA.val * fkA1 * fkA2 * fkA3 * td_log
 
     def bus_func(self, bus):
         r"""

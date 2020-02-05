@@ -170,6 +170,8 @@ class orc_evaporator(component):
     >>> nw = network(fluids=fluids, iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     >>> evaporator = orc_evaporator('orc_evaporator')
+    >>> evaporator.component()
+    'orc_evaporator'
     >>> source_wf = source('working fluid source')
     >>> sink_wf = sink('working fluid sink')
     >>> source_s = source('steam source')
@@ -193,10 +195,7 @@ class orc_evaporator(component):
     >>> evaporator_brine_in.set_attr(T=146.6, p=10.2, m=190.8,
     ... fluid={'water': 1, 'Isopentane': 0})
     >>> evaporator_sink_b.set_attr(T=118.6)
-    >>> mode = 'design'
-    >>> file = 'orc_evaporator'
-    >>> nw.solve(mode=mode)
-    >>> nw.save(file)
+    >>> nw.solve(mode='design')
     """
 
     @staticmethod

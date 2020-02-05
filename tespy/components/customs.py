@@ -40,7 +40,6 @@ class orc_evaporator(component):
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
-                'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1), 'pr3': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0), 'zeta3': dc_cp(min_val=0),
                 'subcooling': dc_simple(val=False), 'overheating': dc_simple(val=False),
@@ -99,16 +98,6 @@ class orc_evaporator(component):
         # equations for specified heat transfer coefficient
         if self.kA.is_set:
             vec_res += [self.kA_func()]
-
-        ######################################################################
-        # equations for specified upper terminal temperature difference
-        if self.ttd_u.is_set:
-            vec_res += [self.ttd_u_func()]
-
-        ######################################################################
-        # equations for specified lower terminal temperature difference
-        if self.ttd_l.is_set:
-            vec_res += [self.ttd_l_func()]
 
         ######################################################################
         # equations for specified pressure ratio at hot side 1
@@ -584,77 +573,6 @@ class orc_evaporator(component):
                   np.log((T_o1 - T_i3) / (T_i1 - T_o3)))
         return i1[0] * (o1[3] - i1[3]) + self.kA.val * fkA1 * fkA2 * fkA3 * td_log
 
-    def ttd_u_func(self):
-        r"""
-        Equation for upper terminal temperature difference.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                res = ttd_{u} - T_{1,in} + T_{2,out}
-        """
-        T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-        T_o2 = T_mix_ph(self.outl[1].to_flow(), T0=self.outl[1].T.val_SI)
-        return self.ttd_u.val - T_i1 + T_o2
-
-    def ttd_u_deriv(self):
-        r"""
-        Calculates the matrix of partial derivatives for upper temperature
-        difference equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, i * 3, 1] = self.numeric_deriv(self.ttd_u_func,
-                                                    'p', i * 3)
-            deriv[0, i * 3, 2] = self.numeric_deriv(self.ttd_u_func,
-                                                    'h', i * 3)
-        return deriv.tolist()
-
-    def ttd_l_func(self):
-        r"""
-        Equation for upper terminal temperature difference.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                res = ttd_{l} - T_{1,out} + T_{2,in}
-        """
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        return (self.ttd_l.val - T_mix_ph(o1, T0=self.outl[0].T.val_SI) +
-                T_mix_ph(i2, T0=self.inl[1].T.val_SI))
-
-    def ttd_l_deriv(self):
-        r"""
-        Calculates the matrix of partial derivatives for lower temperature
-        difference equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
-        for i in range(2):
-            deriv[0, i + 1, 1] = self.numeric_deriv(self.ttd_l_func,
-                                                    'p', i + 1)
-            deriv[0, i + 1, 2] = self.numeric_deriv(self.ttd_l_func,
-                                                    'h', i + 1)
-        return deriv.tolist()
-
     def bus_func(self, bus):
         r"""
         Calculates the residual value of the bus function.
@@ -708,59 +626,7 @@ class orc_evaporator(component):
     def convergence_check(self, nw):
         r"""
         Performs a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
-
-        Note
-        ----
-        Manipulate enthalpies/pressure at inlet and outlet if not specified by
-        user to match physically feasible constraints, keep fluid composition
-        within feasible range and then propagates it towards the outlet.
         """
-        i, o = self.inl, self.outl
-
-        if self.ttd_l.is_set or self.ttd_u.is_set:
-            fl_i1 = single_fluid(i[0].fluid.val)
-            fl_i2 = single_fluid(i[1].fluid.val)
-            fl_i3 = single_fluid(i[2].fluid.val)
-            fl_o1 = single_fluid(o[0].fluid.val)
-            fl_o2 = single_fluid(o[1].fluid.val)
-            fl_o3 = single_fluid(o[2].fluid.val)
-
-        if self.ttd_l.is_set:
-            if isinstance(fl_o1, str):
-                T_min_o1 = memorise.vrange[fl_o1][2] * 1.1
-            else:
-                T_min_o1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_i2, str):
-                T_min_i2 = memorise.vrange[fl_i2][2] * 1.1
-            else:
-                T_min_i2 = nw.T_range_SI[0] * 1.1
-            h_min_o1 = h_mix_pT(o[0].to_flow(), T_min_o1)
-            h_min_i2 = h_mix_pT(i[1].to_flow(), T_min_i2)
-            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
-                o[0].h.val_SI = h_min_o1 * 2
-            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
-                i[1].h.val_SI = h_min_i2 * 1.1
-
-        if self.ttd_u.is_set:
-            if isinstance(fl_i1, str):
-                T_min_i1 = memorise.vrange[fl_i1][2] * 1.1
-            else:
-                T_min_i1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_o2, str):
-                T_min_o2 = memorise.vrange[fl_o2][2] * 1.1
-            else:
-                T_min_o2 = nw.T_range_SI[0] * 1.1
-            h_min_i1 = h_mix_pT(i[0].to_flow(), T_min_i1)
-            h_min_o2 = h_mix_pT(o[1].to_flow(), T_min_o2)
-            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
-                i[0].h.val_SI = h_min_i1 * 2
-            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
-                o[1].h.val_SI = h_min_o2 * 1.1
 
     def initialise_source(self, c, key):
         r"""
@@ -882,8 +748,6 @@ class orc_evaporator(component):
         s_o3 = s_mix_ph(o3, T0=T_o3)
 
         # component parameters
-        self.ttd_u.val = T_i1 - T_o3
-        self.ttd_l.val = T_o1 - T_i3
         self.Q.val = -i3[0] * (o3[2] - i3[2])
 
         self.pr1.val = o1[1] / i1[1]

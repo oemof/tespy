@@ -31,9 +31,11 @@ from tespy.tools.helpers import lamb, single_fluid
 
 class orc_evaporator(component):
     r"""
-    Class orc_evaporator is the evaporator component in the Organic Rankine Cycle (ORC).
-    Generally, the hot side of the geo-fluid from the geothermal wells keeps 2-phase.
-    In order to fully use the energy in the geo-fluid, there are 2 inlets at the hot side.
+    Class orc_evaporator is the evaporator component in
+    the Organic Rankine Cycle (ORC). Generally, the hot side
+    of the geo-fluid from the geothermal wells keeps 2-phase.
+    In order to fully use the energy in the geo-fluid,
+    there are 2 inlets at the hot side.
 
     The ORC evaporator represents counter current evaporators. Both, 2 hot
     and 1 cold side of the evaporator, are simulated.
@@ -71,8 +73,10 @@ class orc_evaporator(component):
 
     Inlets/Outlets
 
-        - in1, in2, in3 (index 1: hot side 1, index 2: hot side 2, index 3: cold side)
-        - out1, out2, out3 (index 1: hot side 1, index 2: hot side 2, index 3: cold side)
+        - in1, in2, in3 (index 1: hot side 1, index 2: hot side 2,
+        index 3: cold side)
+        - out1, out2, out3 (index 1: hot side 1, index 2: hot side 2,
+        index 3: cold side)
 
     Image
 
@@ -121,32 +125,37 @@ class orc_evaporator(component):
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side 1,
-        provide x and y values or use generic values (e. g. calculated
-        from design case). Standard method 'HE_HOT', Parameter 'm'.
+        Characteristic curve for heat transfer coefficient at
+        hot side 1, provide x and y values or use generic values
+        (e. g. calculated from design case).
+        Standard method 'HE_HOT', Parameter 'm'.
 
     kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side 2,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'HE_HOT', Parameter 'm'.
+        Characteristic curve for heat transfer coefficient at
+        hot side 2, provide x and y values or use generic values
+        (e. g. calculated from design case).
+        Standard method 'HE_HOT', Parameter 'm'.
 
     kA_char3 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'HE_COLD', Parameter 'm'.
+        Characteristic curve for heat transfer coefficient at
+        cold side, provide x and y values or use generic values
+        (e. g. calculated from design case).
+        Standard method 'HE_COLD', Parameter 'm'.
 
     Note
     ----
-    The ORC evaporator are countercurrent heat exchangers. Equation kA do not work
-    for directcurrent and crosscurrent or combinations of different types.
+    The ORC evaporator are countercurrent heat exchangers.
+    Equation kA do not work for directcurrent and crosscurrent
+    or combinations of different types.
 
     Example
     -------
-    A 2-phase geo-fluid is used as the heat source for evaporating the working fluid.
-    The evaporator is designed for calculate the mass flow rate of the working fluid
-    with known steam and brine mass flow rate. The state of the brine, steam and is fixed.
-    From this, it is possible to calculate the mass flow rate of the working fluid that is
-    fully evaporated through the ORC evaporator and its heat transfer coefficient.
+    A 2-phase geo-fluid is used as the heat source for evaporating
+    the working fluid. The evaporator is designed for calculate the
+    mass flow rate of the working fluid with known steam and
+    brine mass flow rate. From this, it is possible to calculate
+    the mass flow rate of the working fluid that is fully evaporated
+    through the ORC evaporator and its heat transfer coefficient.
 
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
@@ -177,9 +186,12 @@ class orc_evaporator(component):
     >>> nw.add_conns(evaporator_steam_in, evaporator_sink_s)
     >>> nw.add_conns(evaporator_brine_in, evaporator_sink_b)
     >>> evaporator.set_attr(pr1=0.93181818, pr2=0.970588, pr3=1)
-    >>> evaporator_wf_in.set_attr(T=111.6, p=10.8, fluid={'water': 0, 'Isopentane': 1})
-    >>> evaporator_steam_in.set_attr(T=146.6, p=4.34, m=20.4, state='g', fluid={'water': 1, 'Isopentane': 0})
-    >>> evaporator_brine_in.set_attr(T=146.6, p=10.2, m=190.8, fluid={'water': 1, 'Isopentane': 0})
+    >>> evaporator_wf_in.set_attr(T=111.6, p=10.8,
+    ... fluid={'water': 0, 'Isopentane': 1})
+    >>> evaporator_steam_in.set_attr(T=146.6, p=4.34, m=20.4, state='g',
+    ... fluid={'water': 1, 'Isopentane': 0})
+    >>> evaporator_brine_in.set_attr(T=146.6, p=10.2, m=190.8,
+    ... fluid={'water': 1, 'Isopentane': 0})
     >>> evaporator_sink_b.set_attr(T=118.6)
     >>> mode = 'design'
     >>> file = 'orc_evaporator'
@@ -197,13 +209,17 @@ class orc_evaporator(component):
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
-                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1), 'pr3': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0), 'zeta3': dc_cp(min_val=0),
-                'subcooling': dc_simple(val=False), 'overheating': dc_simple(val=False),
+                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+                'pr3': dc_cp(max_val=1),
+                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+                'zeta3': dc_cp(min_val=0),
+                'subcooling': dc_simple(val=False),
+                'overheating': dc_simple(val=False),
                 'kA_char1': dc_cc(param='m'),
                 'kA_char2': dc_cc(param='m'),
                 'kA_char3': dc_cc(param='m'),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(), 'Sirr': dc_simple(),
+                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(),
+                'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
     @staticmethod
@@ -426,7 +442,8 @@ class orc_evaporator(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional equations.
+        Calculates matrix of partial derivatives for
+        given additional equations.
 
         Returns
         -------
@@ -656,8 +673,10 @@ class orc_evaporator(component):
 #        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[1] == 2 or c[1] == 4 or c[1] == 5:
-#                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-#                T_i2 = T_mix_ph(self.inl[1].to_flow(), T0=self.inl[1].T.val_SI)
+#                T_i1 = T_mix_ph(self.inl[0].to_flow(),
+#                        T0=self.inl[0].T.val_SI)
+#                T_i2 = T_mix_ph(self.inl[1].to_flow(),
+#                        T0=self.inl[1].T.val_SI)
 #                T_o1 = T_mix_ph(self.outl[0].to_flow(),
 #                                T0=self.outl[0].T.val_SI)
 #                T_o2 = T_mix_ph(self.outl[1].to_flow(),
@@ -699,7 +718,8 @@ class orc_evaporator(component):
         if T_i1 <= T_o3:
             T_o3 = T_i1 - 0.01
 #        if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
-#            msg = ('Infeasibility at ' + str(self.label) + ': Value for upper '
+#            msg = ('Infeasibility at ' + str(self.label) +
+#                   ': Value for upper '
 #                   'temperature difference is ' + str(round(T_i1 - T_o2)) +
 #                   '.')
 #            logging.error(msg)
@@ -713,7 +733,8 @@ class orc_evaporator(component):
         if T_o1 <= T_i3:
             T_i3 = T_o1 - 0.02
 #        if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
-#            msg = ('Infeasibility at ' + str(self.label) + ': Value for lower '
+#            msg = ('Infeasibility at ' + str(self.label) +
+#                   ': Value for lower '
 #                   'temperature difference is ' + str(round(T_o1 - T_i2)) +
 #                   '.')
 #            logging.error(msg)
@@ -739,7 +760,9 @@ class orc_evaporator(component):
 
         td_log = ((T_o1 + T_o2 - T_i3 - T_i1 - T_i2 + T_o3) /
                   np.log((T_o1 + T_o2 - T_i3) / (T_i1 + T_i2 - T_o3)))
-        return i3[0] * (o3[2] - i3[2]) + self.kA.val * fkA1 * fkA2 * fkA3 * td_log
+        return \
+            i3[0] * (o3[2] - i3[2]) + \
+            self.kA.val * fkA1 * fkA2 * fkA3 * td_log
 
     def bus_func(self, bus):
         r"""

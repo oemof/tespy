@@ -855,7 +855,7 @@ class orc_evaporator(component):
         o3 = self.outl[2].to_flow()
 
         # temperatures
-        if isinstance(self, condenser):
+        if isinstance(self, orc_evaporator):
             T_i1 = T_bp_p(i1)
         else:
             T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)

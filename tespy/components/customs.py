@@ -190,7 +190,7 @@ class orc_evaporator(component):
 
     @staticmethod
     def component():
-        return 'evaporator'
+        return 'orc_evaporator'
 
     @staticmethod
     def attr():

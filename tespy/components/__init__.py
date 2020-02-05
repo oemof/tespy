@@ -6,9 +6,12 @@ from tespy.components.basics import (
 from tespy.components.combustion import (
     combustion_chamber, combustion_chamber_stoich, combustion_engine
     )
+from tespy.components.customs import (
+    orc_evaporator
+    )
 from tespy.components.heat_exchangers import (
     heat_exchanger_simple, solar_collector,
-    condenser, desuperheater, heat_exchanger, evaporator
+    condenser, desuperheater, heat_exchanger
     )
 from tespy.components.nodes import (
     drum, merge, node, separator, splitter

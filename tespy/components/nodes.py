@@ -790,8 +790,6 @@ class drum(component):
         self.mat_deriv[k, 3, 2] = -1
         k += 1
 
-
-
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.

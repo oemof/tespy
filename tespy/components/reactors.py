@@ -390,13 +390,13 @@ class water_electrolyzer(component):
 
         ######################################################################
         # equation for energy balance
-        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
             self.vec_res[k] = self.P.val + self.energy_balance()
         k += 1
 
         ######################################################################
         # temperature electrolyzer outlet
-        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
             self.vec_res[k] = (
                 T_mix_ph(self.outl[1].to_flow()) -
                 T_mix_ph(self.outl[2].to_flow()))
@@ -418,7 +418,7 @@ class water_electrolyzer(component):
         ######################################################################
         # specified zeta value
         if self.zeta.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
                 self.vec_res[k] = self.zeta_func()
             k += 1
 
@@ -575,10 +575,6 @@ class water_electrolyzer(component):
             if self.P.is_var:
                 self.mat_deriv[k, 5 + self.P.var_pos, 0] = 1
             k += 1
-
-        ######################################################################
-
-
 
     def eta_char_func(self):
         r"""

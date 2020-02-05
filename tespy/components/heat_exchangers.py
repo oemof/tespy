@@ -347,14 +347,14 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equations for specified zeta
         if self.zeta.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
                 self.vec_res[k] = self.zeta_func()
             k += 1
 
         ######################################################################
         # equation for specified hydro-group paremeters
         if self.hydro_group.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
                 # hazen williams equation
                 if self.hydro_group.method == 'HW':
                     func = self.hw_func
@@ -476,23 +476,22 @@ class heat_exchanger_simple(component):
         ######################################################################
         # derivatives for specified kA-group paremeters
         if self.kA_group.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.kA_func
-                if not vec_z[0, 0]:
-                    self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-                if not vec_z[0, 1]:
-                    self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                if not vec_z[0, 2]:
-                    self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                if not vec_z[1, 1]:
-                    self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                if not vec_z[1, 2]:
-                    self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-                # variable Tamb or kA
-                for var in self.kA_group.elements:
-                    if var.is_var:
-                        self.mat_deriv[k, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(f, self.vars[var], 2))
+            f = self.kA_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            # variable Tamb or kA
+            for var in self.kA_group.elements:
+                if var.is_var:
+                    self.mat_deriv[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(f, self.vars[var], 2))
             k += 1
 
     def darcy_func(self):
@@ -1057,7 +1056,7 @@ class solar_collector(heat_exchanger_simple):
         ######################################################################
         # equation for specified energy-group paremeters
         if self.energy_group.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 5 == 0:
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
                 self.vec_res[k] = self.energy_func()
 
     def additional_derivatives(self, vec_z, k):
@@ -1065,23 +1064,22 @@ class solar_collector(heat_exchanger_simple):
         ######################################################################
         # derivatives for specified energy-group paremeters
         if self.energy_group.is_set:
-            if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-                f = self.energy_func
-                self.mat_deriv[k, 0, 0] = (
-                    self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                if not vec_z[0, 1]:
-                    self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-                if not vec_z[0, 2]:
-                    self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-                if not vec_z[1, 1]:
-                    self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-                if not vec_z[1, 2]:
-                    self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-                # custom variables for the energy-group
-                for var in self.energy_group.elements:
-                    if var.is_var:
-                        self.mat_deriv[k, 2 + var.var_pos, 0] = (
-                            self.numeric_deriv(f, self.vars[var], 2))
+            f = self.energy_func
+            self.mat_deriv[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            # custom variables for the energy-group
+            for var in self.energy_group.elements:
+                if var.is_var:
+                    self.mat_deriv[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(f, self.vars[var], 2))
             k += 1
 
     def energy_func(self):
@@ -2591,7 +2589,6 @@ class desuperheater(heat_exchanger):
         ######################################################################
         # derivatives for saturated gas at hot side outlet equation
         o1 = self.outl[0].to_flow()
-        if abs(self.vec_res[k]) > err or self.it % 3 == 0:
-            self.mat_deriv[k, 2, 1] = -dh_mix_dpQ(o1, 1)
-            self.mat_deriv[k, 2, 2] = 1
+        self.mat_deriv[k, 2, 1] = -dh_mix_dpQ(o1, 1)
+        self.mat_deriv[k, 2, 2] = 1
         k += 1

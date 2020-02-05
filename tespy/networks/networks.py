@@ -1670,14 +1670,14 @@ class network:
 
         for self.iter in range(self.max_iter):
 
-            self.vec_z_filter = np.absolute(self.vec_z) < err
+            self.vec_z_filter = np.absolute(self.vec_z) < err ** 2
             self.solve_control()
             self.res = np.append(self.res, norm(self.vec_res))
 
             if self.iterinfo:
                 self.print_iterinfo('solving')
 
-            if ((self.iter > 1 and self.res[-1] < err ** (1 / 2)) or
+            if ((self.iter > 3 and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
                 break
 
@@ -2280,10 +2280,10 @@ class network:
 
             # temperature
             if c.T.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
-                        self.iter % 1 == 0):
-                    self.vec_res[k] = c.T.val_SI - fp.T_mix_ph(
-                        flow, T0=c.T.val_SI)
+                # if (np.absolute(self.vec_res[k]) > err ** 2 or
+                #         self.iter % 2 == 0):
+                self.vec_res[k] = c.T.val_SI - fp.T_mix_ph(
+                    flow, T0=c.T.val_SI)
 
                 # if not self.vec_z_filter[col + 1]:
                 self.mat_deriv[k, col + 1] = (
@@ -2304,11 +2304,11 @@ class network:
                 ref = c.T.ref
                 flow_ref = ref.obj.to_flow()
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
-                        self.iter % 1 == 0):
-                    self.vec_res[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
-                        fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
-                        ref.f + ref.d)
+                # if (np.absolute(self.vec_res[k]) > err ** 2 or
+                #         self.iter % 2 == 0):
+                self.vec_res[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
+                    fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
+                    ref.f + ref.d)
 
                 # if not self.vec_z_filter[col + 1]:
                 self.mat_deriv[k, col + 1] = (

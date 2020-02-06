@@ -1287,29 +1287,6 @@ class separator(node):
             j += 1
             k += 1
 
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((
-            self.num_nw_fluids, 1 + self.num_o, self.num_nw_vars))
-        j = 0
-        for fluid in self.nw_fluids:
-            k = 0
-            for o in self.outl:
-                deriv[j, k + 1, 0] = -o.fluid.val[fluid]
-                deriv[j, k + 1, j + 3] = -o.m.val_SI
-                k += 1
-            deriv[j, 0, 0] = self.inl[0].fluid.val[fluid]
-            deriv[j, 0, j + 3] = self.inl[0].m.val_SI
-            j += 1
-        return deriv
-
     @staticmethod
     def initialise_fluids(nw):
         r"""

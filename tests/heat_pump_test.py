@@ -342,6 +342,6 @@ class test_heat_pump:
         shutil.rmtree('./tmp2', ignore_errors=True)
 
 
-a = test_heat_pump_ebsilon()
+a = test_heat_pump()
 a.setup()
 a.test_model()

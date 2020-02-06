@@ -27,7 +27,7 @@ class characteristics_tests:
         with open(data_path) as f:
             raw_data = json.loads(f.read())
 
-        data = raw_data['heat exchanger']['kA_char1']
+        data = raw_data['heat exchanger']['kA_char2']
         with open(os.path.join(self.path, 'char_lines.json'), 'w') as outfile:
             json.dump(data, outfile)
 

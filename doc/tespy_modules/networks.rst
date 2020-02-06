@@ -2,16 +2,13 @@
 
 Networks
 ========
-
 The network class handles preprocessing, solving and postprocessing.
 We will walk you through all the important steps.
 
 Setup
 -----
-
 Network container
 ^^^^^^^^^^^^^^^^^
-
 The TESPy network contains all data of your plant, which in terms of the
 calculation is represented by a nonlinear system of equations. The system
 variables of your TESPy network are:
@@ -46,7 +43,6 @@ maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
 Printouts and logging
 +++++++++++++++++++++
-
 TESPy comes with an inbuilt logger. If you want to keep track of
 debugging-messages, general information, warnings or errors you should enable
 the logger. At the beginning of your python script e. g. add the following
@@ -78,7 +74,6 @@ disable convergence progress printouts:
 
 Adding connections
 ++++++++++++++++++
-
 As seen in the introduction, you will have to create your networks from the
 components and the connections between them. You can add connections directly
 or via subsystems and networks holding them by using the appropriate methods:
@@ -97,7 +92,6 @@ or via subsystems and networks holding them by using the appropriate methods:
 
 Busses: power connections
 +++++++++++++++++++++++++
-
 Another type of connection is the bus: Busses are power connections for e. g.
 turbomachines or heat exchangers. They can be used to model motors or
 generators, too. Add them to your network with the following method:
@@ -111,7 +105,6 @@ You will learn more about busses and how they work in
 
 Start calculation
 ^^^^^^^^^^^^^^^^^
-
 You can start the solution process with the following line:
 
 .. code-block:: python
@@ -147,7 +140,6 @@ in .csv-files rather than your python script.
 
 Design mode
 +++++++++++
-
 The design mode is used to design your system and is always the first
 calculation of your plant. **The offdesign calculation is always based on a**
 **design calculation!**. Obviously as you are designing the plant the way you
@@ -158,7 +150,6 @@ Specifying a value for the efficiency is of course possible.
 
 Offdesign mode
 ++++++++++++++
-
 The offdesign mode is used to **calulate the performance of your plant, if**
 **parameters deviate from the plant's design point**. This can be partload
 operation, operation at different temperature or pressure levels etc.. Thus,
@@ -210,7 +201,6 @@ To solve your offdesign calculation, use:
 
 Solving
 -------
-
 A TESPy network can be represented as a linear system of nonlinear equations,
 consequently the solution is obtained with numerical methods. TESPy uses the
 n-dimensional Newton–Raphson method to find the systems solution, which may
@@ -225,7 +215,6 @@ result. There are different levels for the initialisation.
 
 Initialisation
 ^^^^^^^^^^^^^^
-
 The initialisation is performed in the following steps.
 
 **General preprocessing:**
@@ -297,13 +286,11 @@ file.
 
 Algorithm
 ^^^^^^^^^
-
 In this section we will give you an introduction to the solving algorithm
 implemented.
 
 Newton–Raphson method
 +++++++++++++++++++++
-
 The Newton–Raphson method requires the calculation of residual values for the
 equations and of the partial derivatives to all system variables (jacobian
 matrix). In the next step the matrix is inverted and multiplied with the
@@ -372,7 +359,6 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 Convergence stability
 +++++++++++++++++++++
-
 One of the main downsides of the Newton–Raphson method is that the initial
 stepwidth is very large and that it does not know physical boundaries, for
 example mass fractions smaller than 0 and larger than 1 or negative pressure.
@@ -423,9 +409,38 @@ after the third iteration, further checks are usually not required.
     point. For an example see the release information of
     :ref:`version 0.1.1 <whats_new_011_example_label>`.
 
+Calculation speed improvement
++++++++++++++++++++++++++++++
+For improvement of calculation speed, the calculation of specific equations and
+derivatives is skipped if possible. There are two criteria for equations and
+one criterion for derivatives that are checked for calculation intensive
+operations, e. g. whenever fluid property library calls are necessary:
+
+For component equations the recalculation of the residual value is skipped,
+
+- if the absolute of the residual value of that equations is lower than the
+  threshold of :code:`1e-12` in the iteration before and simultaneously
+- the iteration count is not a multiple of 4.
+
+Connection equations are evaluated at least in every second iteration. If a
+temperature value has been specified, the equation will be evaluated in every
+iteration.
+
+The calculation of derivatives is skipped, if the change of the corresponding
+variable was below a threshold of :code:`1e-12` in the iteration before.
+Again, this does not apply to temperature value specification, as especially
+when using fluid mixtures, the convergence stability is very sensitive to
+these equations and derivatives.
+
+
+
+.. note::
+
+    In order to make sure, that every equations is evaluated at least twice,
+    the minimum amout of iterations before convergence can be accepted is at 4.
+
 Troubleshooting
 +++++++++++++++
-
 In this section we show you how you can troubleshoot your calculation and list
 up common mistakes. If you want to debug your code, make sure to enable the
 logger and have a look at the log-file at :code:`~/.tespy/` (or at your
@@ -506,7 +521,6 @@ for other users!
 
 Postprocessing
 --------------
-
 A postprocessing is performed automatically after the calculation finished. You
 have two further options:
 
@@ -514,7 +528,7 @@ have two further options:
  * save the results in a .csv-file (:code:`myplant.save('savename')`).
 
 The :code:`print_results()` method will print out component, connection and bus
-properties. If you want to prevent the printout of components, connections or 
+properties. If you want to prevent the printout of components, connections or
 busses, you can specify the :code:`printout` parameter:
 
 .. code-block:: python
@@ -522,7 +536,7 @@ busses, you can specify the :code:`printout` parameter:
     mycomp.set_attr(printout=False)
     myconn.set_attr(printout=False)
     mybus.set_attr(printout=False)
-    
+
 If you want to prevent all printouts of a subsystem, add something like this:
 
 .. code-block:: python
@@ -530,7 +544,7 @@ If you want to prevent all printouts of a subsystem, add something like this:
     # connections
     for c in mysubsystem.conns.values():
         c.set_attr(printout=False)
-        
+
     # components
     for c in mysubsystem.comps.values():
         c.set_attr(printout=False)
@@ -559,7 +573,6 @@ Use this code for connection parameters:
 
 Network reader
 ==============
-
 The network reader is a useful tool to import networks from a datastructure
 using .csv-files. In order to reimport an exported TESPy network, you must save
 the network first.

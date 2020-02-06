@@ -459,8 +459,8 @@ inbuilt function :code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
 - :code:`kwargs` are additional keyword arguments required for the function.
 
 For a good start just look into the source code of the inbuilt components. If
-you have further questions do not hesitate to contact us. The example above
-would look like this:
+you have further questions do not hesitate to contact us. The derivatives
+method code of the example above would look like this:
 
 .. code:: python
 

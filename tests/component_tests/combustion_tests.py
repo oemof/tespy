@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing components of type combustion.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/component_tests/combustion_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.components.basics import sink, source
@@ -163,21 +173,20 @@ class component_tests:
         Q2.set_attr(P=1.2 * instance.Q2.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
 
-        # calculate heat output over cooling loop, due to characteristic
-        # function Q1 is equal to Q2 for this combustion engine
-        heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
-        msg = ('Value of heat output 2 must be ' + str(heat1) + ', is ' +
+        # calculate heat output over cooling loop
+        heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
+        msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        eq_(round(heat1, 1), round(instance.Q2.val, 1), msg)
+        eq_(round(heat2, 1), round(instance.Q2.val, 1), msg)
 
         # test specified heat output 2 in component
         Q2.set_attr(P=np.nan)
-        instance.set_attr(Q2=heat1)
+        instance.set_attr(Q2=heat2)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
-        heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
-        msg = ('Value of heat output 2 must be ' + str(heat1) + ', is ' +
+        heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
+        msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        eq_(round(heat1, 1), round(instance.Q2.val, 1), msg)
+        eq_(round(heat2, 1), round(instance.Q2.val, 1), msg)
 
         # test total heat output bus value
         instance.set_attr(Q2=np.nan)

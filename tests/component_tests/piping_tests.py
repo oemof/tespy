@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing components of the piping module.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/component_tests/piping_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.components.basics import sink, source

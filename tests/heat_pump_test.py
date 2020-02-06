@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing a tespy simulation vs results from a different simulator.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/heat_pump_test.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.components.basics import sink, source
@@ -19,7 +29,7 @@ import shutil
 import logging
 
 
-class test_heat_pump_ebsilon:
+class test_heat_pump:
 
     def setup(self):
         # %% network
@@ -274,9 +284,9 @@ class test_heat_pump_ebsilon:
 
     def test_model(self):
         """
-        Tests the operating points of the heat pump against an ebsilon model.
-        By now, not all characteristic functions are available in detail,
-        thus perfect matching is not possible!
+        Tests the operating points of the heat pump against a different model.
+        By now, not all characteristic functions of the original model are
+        available in detail, thus perfect matching is not possible!
         """
 
         self.nw.solve('design')

@@ -30,6 +30,9 @@ Bug fixes
 
 Other changes
 #############
+- Replacing some of the characteristic lines by generic ones. The simulation
+  results using the default lines might slightly differ from the results using
+  the original defaults (`PR #149 <https://github.com/oemof/tespy/pull/149>`_).
 
 Contributors
 ############

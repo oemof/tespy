@@ -189,22 +189,22 @@ class heat_exchanger_simple(component):
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
-    >>> round(heat_sink.Q.val, 1)
-    -52580.9
-    >>> round(heat_sink.kA.val, 1)
-    321.1
+    >>> round(heat_sink.Q.val, 0)
+    -52581.0
+    >>> round(heat_sink.kA.val, 0)
+    321.0
     >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(heat_sink.Q.val, 1)
-    -57170.6
+    >>> round(heat_sink.Q.val, 0)
+    -59294.0
     >>> round(outg.T.val, 1)
-    156.5
+    154.9
     >>> inc.set_attr(m=0.75)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(heat_sink.Q.val, 1)
-    -46356.5
+    -44733.5
     >>> round(outg.T.val, 1)
-    141.2
+    143.3
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1286,13 +1286,13 @@ class heat_exchanger(component):
     >>> ex_he.set_attr(v=0.075)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    27.4
+    27.2
     >>> round(he_ex.T.val, 1)
-    14.5
+    14.7
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    33.9
+    33.8
     >>> round(he_ex.T.val, 1)
     18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -2169,9 +2169,9 @@ class condenser(heat_exchanger):
     >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.5
+    62.6
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    11.1
+    12.3
 
     It is possible to activate subcooling. The difference to boiling point
     temperature is specified to 5 K.
@@ -2180,9 +2180,9 @@ class condenser(heat_exchanger):
     >>> he_c.set_attr(Td_bp=-5)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.5
+    62.6
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    13.1
+    14.4
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2528,12 +2528,12 @@ class desuperheater(heat_exchanger):
     1.0
     >>> et_de.set_attr(v=12)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(cw_de.v.val, 1)
-    1.5
+    >>> round(cw_de.v.val, 2)
+    1.23
     >>> et_de.set_attr(v=7)
     >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
-    >>> round(cw_de.v.val, 1)
-    0.6
+    >>> round(cw_de.v.val, 2)
+    0.71
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

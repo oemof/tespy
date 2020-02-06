@@ -2153,6 +2153,7 @@ class combustion_engine(combustion_chamber):
     ... splitter)
     >>> from tespy.connections import connection, ref
     >>> from tespy.networks import network
+    >>> import numpy as np
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -2198,16 +2199,23 @@ class combustion_engine(combustion_chamber):
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
     >>> round(chp.ti.val)
-    22500000.0
+    25300000.0
     >>> round(chp.Q1.val)
-    1743636.0
-    >>> chp.set_attr(Q1=1.5e6, P=np.nan)
+    4980000.0
+    >>> chp.set_attr(Q1=4e6, P=np.nan)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val)
-    17427210.0
+    17794554.0
     >>> round(chp.P.val / chp.P.design, 3)
-    0.747
+    0.617
+    >>> chp.set_attr(P=chp.P.design * 0.75, Q1=np.nan)
+    >>> mode = 'offdesign'
+    >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
+    >>> round(chp.ti.val)
+    20550000.0
+    >>> round(chp.P.val / chp.P.design, 3)
+    0.75
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

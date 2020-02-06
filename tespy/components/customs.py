@@ -161,15 +161,10 @@ class orc_evaporator(component):
     >>> from tespy.networks import network
     >>> from tespy.components import source, sink
     >>> from tespy.components.customs import orc_evaporator
-    >>> from tespy.tools import logger
-    >>> import logging
-    >>> mypath = logger.define_logging(
-    ... log_path=True, log_version=True, timed_rotating={'backupCount': 4},
-    ... screen_level=logging.WARNING, screen_datefmt = "no_date")
     >>> fluids = ['water', 'Isopentane']
     >>> nw = network(fluids=fluids, iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> evaporator = orc_evaporator('orc_evaporator')
+    >>> evaporator = orc_evaporator('geothermal orc evaporator')
     >>> evaporator.component()
     'orc_evaporator'
     >>> source_wf = source('working fluid source')
@@ -178,24 +173,38 @@ class orc_evaporator(component):
     >>> source_b = source('brine source')
     >>> sink_s = sink('steam sink')
     >>> sink_b = sink('brine sink')
-    >>> evaporator_wf_in = connection(source_wf, 'out1', evaporator, 'in3')
-    >>> evaporator_wf_out = connection(evaporator, 'out3', sink_wf, 'in1')
-    >>> evaporator_steam_in = connection(source_s, 'out1', evaporator, 'in1')
-    >>> evaporator_sink_s = connection(evaporator, 'out1', sink_s, 'in1')
-    >>> evaporator_brine_in = connection(source_b, 'out1', evaporator, 'in2')
-    >>> evaporator_sink_b = connection(evaporator, 'out2', sink_b, 'in1')
-    >>> nw.add_conns(evaporator_wf_in, evaporator_wf_out)
-    >>> nw.add_conns(evaporator_steam_in, evaporator_sink_s)
-    >>> nw.add_conns(evaporator_brine_in, evaporator_sink_b)
-    >>> evaporator.set_attr(pr1=0.93181818, pr2=0.970588, pr3=1)
-    >>> evaporator_wf_in.set_attr(T=111.6, p=10.8,
+    >>> eva_wf_in = connection(source_wf, 'out1', evaporator, 'in3')
+    >>> eva_wf_out = connection(evaporator, 'out3', sink_wf, 'in1')
+    >>> eva_steam_in = connection(source_s, 'out1', evaporator, 'in1')
+    >>> eva_sink_s = connection(evaporator, 'out1', sink_s, 'in1')
+    >>> eva_brine_in = connection(source_b, 'out1', evaporator, 'in2')
+    >>> eva_sink_b = connection(evaporator, 'out2', sink_b, 'in1')
+    >>> nw.add_conns(eva_wf_in, eva_wf_out)
+    >>> nw.add_conns(eva_steam_in, eva_sink_s)
+    >>> nw.add_conns(eva_brine_in, eva_sink_b)
+
+    The orc working fluids leaves the evaporator in saturated steam state, the
+    geothermal steam leaves the component in staturated liquid state. We imply
+    the state of geothermal steam and brine with the corresponding mass flow as
+    well as the working fluid's state at the evaporator inlet. Additionaly, the
+    pressure ratios for all three streams are specified.
+
+    >>> evaporator.set_attr(pr1=0.95, pr2=0.98, pr3=0.99)
+    >>> eva_wf_in.set_attr(T=111, p=11,
     ... fluid={'water': 0, 'Isopentane': 1})
-    >>> evaporator_steam_in.set_attr(T=146.6, p=4.34, m=20.4, state='g',
+    >>> eva_steam_in.set_attr(T=147, p=4.3, m=20,
     ... fluid={'water': 1, 'Isopentane': 0})
-    >>> evaporator_brine_in.set_attr(T=146.6, p=10.2, m=190.8,
+    >>> eva_brine_in.set_attr(T=147, p=10.2, m=190,
     ... fluid={'water': 1, 'Isopentane': 0})
-    >>> evaporator_sink_b.set_attr(T=118.6)
+    >>> eva_sink_b.set_attr(T=117)
     >>> nw.solve(mode='design')
+
+    Check the state of the steam and working fluid outlet:
+
+    >>> eva_wf_out.x.val
+    1.0
+    >>> eva_sink_s.x.val
+    0.0
     """
 
     @staticmethod

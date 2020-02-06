@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Testing for tespy turbomachines module.
+"""Module for testing components of type turbomachinery.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,

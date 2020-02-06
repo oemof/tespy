@@ -574,7 +574,7 @@ class drum(component):
     transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
     design it is possible to calculate offdesign performance at 75 % part load.
 
-    >>> char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID',
+    >>> char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT',
     ... char_line)
     >>> char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID',
     ... char_line)
@@ -604,7 +604,7 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
-    4.1
+    3.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

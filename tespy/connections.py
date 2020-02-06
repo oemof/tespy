@@ -586,7 +586,7 @@ class bus:
     example at :func:`tespy.components.combustion.combustion_engine` and adds
     a flue gas cooler and a circulation pump for the cooling water. Then
     busses for heat output, thermal input and electricity output are
-    implementd.
+    implemented.
 
     >>> from tespy.components import (sink, source, combustion_engine,
     ... heat_exchanger, merge, splitter, pump)
@@ -695,11 +695,11 @@ class bus:
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
     >>> round(chp.ti.val)
-    21187537.0
+    21187552.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
     >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 3)
-    0.967
+    0.966
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

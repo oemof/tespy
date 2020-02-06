@@ -432,8 +432,6 @@ Again, this does not apply to temperature value specification, as especially
 when using fluid mixtures, the convergence stability is very sensitive to
 these equations and derivatives.
 
-
-
 .. note::
 
     In order to make sure, that every equations is evaluated at least twice,

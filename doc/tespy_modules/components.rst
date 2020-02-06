@@ -133,25 +133,25 @@ need to specify the diameter the following way.
 
     # make diameter variable of system
     my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
-    
+
     # a second way of specifying this is similar to the
     # way used in the component parameters section
     # the benefit is, that val will be the starting value
     my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True))
-    
+
 It is also possible to set value boundaries for you custom variable. You can do
 this, if you expect the result to be within a specific range. But beware: This
 might result in a non converging simulation, if the actual value is out of your
 specified range.
 
 .. code-block:: python
-    
+
     # data container specification with identical result,
     # benefit: specification of bounds will increase stability
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
                              min_val=0.1, max_val=0.3))
-      
+
 Component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -165,25 +165,25 @@ your own characteristic functions.
 .. note::
 
     **There are two different characteristics specifications**
-    
+
     The characteristic function can be an auxiliary parameter of a different
     component property. This is the case for :code:`kA_char1`
     and :code:`kA_char2` of heat exchangers, :code:`kA_char` of simple
     heat exchangers and pipes as well as the characteristics of a combustion
     engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
     and :code:`Qloss_char`.
-    
+
     The characteristic function is an individual parameter of the component.
     This is the case for all other components!
-    
+
     **What does this mean?**
-    
+
     For the auxiliary functionality the main parameter,
     e. g. :code:`kA` of a heat exchanger must be set :code:`.kA.is_set=True`.
-    
+
     For the other functionality the characteristics parameter must be
     set e. g. :code:`.eta_s_char.is_set=True`.
-    
+
 For example, :code:`kA` specification for heat exchangers:
 
 .. code-block:: python
@@ -205,8 +205,8 @@ For example, :code:`kA` specification for heat exchangers:
 
     # specification of a data container yields same result. It is aditionally
     # possible to specify the characteristics parameter, mass flow in this case
-    # the specification parameters available are stated in the components 
-    # class documentation    
+    # the specification parameters available are stated in the components
+    # class documentation
     he.set_attr(kA_char1=dc_cc(param='m', func=kA_char1),
                 kA_char2=dc_cc(param='m', func=kA_char2))
 
@@ -215,7 +215,7 @@ For example, :code:`kA` specification for heat exchangers:
     y = np.array([0, 0.8, 1, 1.2])
     kA_char1 = char_line(x, y)
     he.set_attr(kA_char1=kA_char1)
-    
+
 For example, :code:`eta_s_char` specification for a pump.
 
 .. code-block:: python
@@ -230,16 +230,16 @@ For example, :code:`eta_s_char` specification for a pump.
 
     # use a characteristic line from the defaults
     # CAUTION: this example does only specify the function to follow
-    # the given default line. The parameter will not be used in a 
+    # the given default line. The parameter will not be used in a
     # simulation!
     eta_s_char = ldc('pump', 'eta_s_char', 'DEFAULT', char_line)
     pu.set_attr(eta_s_char=eta_s_char)
-    
+
     # If we want to use the parameter in the simulation:
     eta_s_char = dc_cc(func=ldc('pump', 'eta_s_char', 'DEFAULT', char_line),
                        is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
-    
+
 Instead of writing your custom characteristic line information directly into
 your Python script, TESPy provides a second method of implementation: It is
 possible to store your data in the :code:`HOME/.tespy/data` folder and import
@@ -249,11 +249,11 @@ from there. For additional information on formatting and usage, look into
 .. code-block:: python
 
     from tespy.tools.characteristics import load_custom_char as lcc
-    
+
     eta_s_char = dc_cc(func=lcc('my_custom_char', char_line), is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
-        
-    
+
+
 Characteristics are available for the following components and parameters:
 
 - combustion engine
@@ -277,7 +277,7 @@ Characteristics are available for the following components and parameters:
     * :py:meth:`dp_char <tespy.components.piping.valve.dp_char_func>`: pressure drop vs. flow rate.
 - water electrolyzer
     * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`: efficiency vs. load ratio.
-       
+
 For more information to how the characteristic functions work
 :ref:`click here <using_tespy_characteristics_label>`.
 
@@ -285,16 +285,16 @@ Custom components
 -----------------
 
 You can add own components. The class should inherit from the
-:py:class:`component <tespy.components.components.component>` class
-or its children. In order to do that, create a python file in your working
-directory and import the base class for your custom component. Now create
-a class for your component and at least add the following
-methods.
+:py:class:`component <tespy.components.components.component>` class or its
+children. In order to do that, create a python file in your working directory
+and import the base class for your custom component. Now create a class for
+your component and at least add the following methods.
 
 - :code:`component(self)`,
 - :code:`attr(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)`,
+- :code:`comp_init(self, nw)`,
 - :code:`equations(self)`,
 - :code:`derivatives(self)` as well as
 - :code:`calc_parameters(self)`.
@@ -309,13 +309,13 @@ The starting lines of your file should look like this:
     class my_custom_component(component):
         """
         This is a custom component.
-        
+
         You can add your documentation here. From this part, it should be clear
         for the user, which parameters are available, which mandatory equations
         are applied and which optional equations can be applied using the
         component parameters.
         """
-        
+
         def component(self):
             return 'name of your component'
 
@@ -364,6 +364,48 @@ an attribute :code:`'num_in'` your code could look like this:
             # default number is 2
             return ['in1', 'in2']
 
+Component initialisation
+^^^^^^^^^^^^^^^^^^^^^^^^
+In the component initialisation you need to determine the total number of
+equations and set up the residual value vector as well as the matrix of patial
+derivates. The method
+:py:meth:`tespy.components.components.component.comp_init` already handles
+counting the custom variables and setting up default characteristic lines for
+you. The :code:`comp_init()` method of your new component should use call that
+method. In order to determine the total number of equations, determine
+the number of mandatory equations and the number of optional equations applied.
+
+Then set up the residual value vector and the matrix of partial derivatives.
+If the component delivers derivates that are constant, you can paste those
+values into the matrix already. The code example shows the implementation of
+the :py:meth:`tespy.components.turbomachinery.turbine.comp_init` method.
+
+.. code:: python
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
+
+        # number of optional equations, count which parameters are applied
+        for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
+        if var.is_set is True:
+            self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+        self.num_eq,
+        self.num_i + self.num_o + self.num_vars,
+        self.num_nw_vars))
+
+        self.vec_res = np.zeros(self.num_eq)
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+
 Equations
 ^^^^^^^^^
 
@@ -387,18 +429,14 @@ only be applied, if the paramter has been specified by the user.
 
     def equations(self):
 
-        vec_res = []
+        k = 0
+        self.vec_res[k] = self.inl[0].m.val_SI - self.outl[0].m.val_SI
+        k += 1
 
-        vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
-        
         if self.dp.is_set:
-            vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-                        self.dp.val]
-                        
-        return vec_res
-
-The equations are added to a list one after another, which is returned by the
-method.
+            self.vec_res[k] = (
+                self.inl[0].p.val_SI - self.outl[0].p.val_SI - self.dp.val
+            k += 1
 
 Derivatives
 ^^^^^^^^^^^
@@ -408,10 +446,9 @@ of the network. This means, that you have to calculate the partial derivatives
 to mass flow, pressure, enthalpy and all fluids in the fluid vector on each
 incomming or outgoing connection of the component.
 
-Add all derivatives to a list (*in the same order as the equations!*) and
-return the list as numpy array (:code:`np.asarray(list)`). The derivatives can
-be calculated analytically or numerically by using the inbuilt function
-:code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
+Add all derivatives to the matrix (*in the same order as the equations!*).
+The derivatives can be calculated analytically or numerically by using the
+inbuilt function :code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
 
 - :code:`func` is the function you want to calculate the derivatives for,
 - :code:`dx` is the variable you want to calculate the derivative to and
@@ -422,4 +459,19 @@ be calculated analytically or numerically by using the inbuilt function
 - :code:`kwargs` are additional keyword arguments required for the function.
 
 For a good start just look into the source code of the inbuilt components. If
-you have further questions do not hesitate to contact us.
+you have further questions do not hesitate to contact us. The example above
+would look like this:
+
+.. code:: python
+
+    def derivatives(self):
+
+        k = 0
+        self.mat_deriv[k, 0, 0] = 1
+        self.mat_deriv[k, 1, 0] = -1
+        k += 1
+
+        if self.dp.is_set:
+            self.mat_deriv[k, 0, 1] = 1
+            self.mat_deriv[k, 1, 1] = -1
+            k += 1

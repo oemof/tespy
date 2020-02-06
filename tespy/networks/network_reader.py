@@ -125,7 +125,7 @@ def load_network(path):
 
     >>> from tespy.components import (sink, source, combustion_chamber,
     ... compressor, turbine)
-    >>> from tespy.connections import connection, ref
+    >>> from tespy.connections import connection, ref, bus
     >>> from tespy.networks import load_network, network
     >>> import shutil
     >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']

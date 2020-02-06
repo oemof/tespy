@@ -26,10 +26,11 @@ from tespy.components.components import component
 
 from tespy.tools.data_containers import (dc_cc, dc_cp, dc_simple)
 from tespy.tools.fluid_properties import (
-        h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid, v_mix_ph)
-from tespy.tools.global_vars import molar_masses
+    h_mix_pQ, h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid,
+    v_mix_ph)
+from tespy.tools.global_vars import molar_masses, err
 from tespy.tools.helpers import (
-        fluid_structure, molar_mass_flow, TESPyComponentError)
+    fluid_structure, molar_mass_flow, TESPyComponentError)
 
 # %%
 
@@ -187,8 +188,26 @@ class combustion_chamber(component):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.mass_flow_deriv()
-        self.p_deriv = self.pressure_deriv()
+        if not isinstance(self, combustion_engine):
+
+            # number of mandatroy equations for
+            # reaction balance: num_fl
+            # mass flow: 1
+            # pressure: 2
+            # energy balance: 1
+            self.num_eq = self.num_nw_fluids + 4
+            for var in [self.lamb, self.ti]:
+                if var.is_set is True:
+                    self.num_eq += 1
+
+            self.mat_deriv = np.zeros((
+                self.num_eq,
+                self.num_i + self.num_o + self.num_vars,
+                self.num_nw_vars))
+
+            self.vec_res = np.zeros(self.num_eq)
+            self.mat_deriv[0:1] = self.mass_flow_deriv()
+            self.mat_deriv[1:3] = self.pressure_deriv()
 
         self.fuel_list = []
         fuels = ['methane', 'ethane', 'propane', 'butane', 'hydrogen']
@@ -284,39 +303,44 @@ class combustion_chamber(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
-        ######################################################################
-        # equations for fluids in reaction balance
-        for fluid in self.inl[0].fluid.val.keys():
-            vec_res += [self.reaction_balance(fluid)]
-
+        k = 0
         ######################################################################
         # eqation for mass flow balance
-        vec_res += self.mass_flow_func()
+        self.vec_res[k] = self.mass_flow_func()
+        k += 1
 
         ######################################################################
         # equations for pressure
         for i in self.inl:
-            vec_res += [self.outl[0].p.val_SI - i.p.val_SI]
+            self.vec_res[k] = self.outl[0].p.val_SI - i.p.val_SI
+            k += 1
+
+        ######################################################################
+        # equations for fluids in reaction balance
+        for fluid in self.inl[0].fluid.val.keys():
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 3 == 0:
+                self.vec_res[k] = self.reaction_balance(fluid)
+            k += 1
 
         ######################################################################
         # equation for energy balance
-        vec_res += [self.energy_balance()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.energy_balance()
+        k += 1
 
         ######################################################################
         # equation for specified air to stoichiometric air ratio lamb
         if self.lamb.is_set:
-            vec_res += [self.lambda_func()]
+            self.vec_res[k] = self.lambda_func()
+            k += 1
 
         ######################################################################
         # equation for speciified thermal input
         if self.ti.is_set:
-            vec_res += [self.ti_func()]
+            self.vec_res[k] = self.ti_func()
+            k += 1
 
-        return vec_res
-
-    def derivatives(self):
+    def derivatives(self, vec_z):
         r"""
         Calculate matrix of partial derivatives for given equations.
 
@@ -325,81 +349,87 @@ class combustion_chamber(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
+        ######################################################################
+        # derivatives for mass flow and pressure are static
+        k = 3
 
         ######################################################################
         # derivatives for reaction balance
-        j = 0
-        deriv = np.zeros((self.num_fl, 3, self.num_fl + 3))
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             for i in range(3):
-                deriv[j, i, 0] = self.rb_numeric_deriv('m', i, fluid)
-                deriv[j, i, 3:] = self.rb_numeric_deriv('fluid', i, fluid)
-
-            j += 1
-        mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for mass balance equations
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for pressure equations
-        mat_deriv += self.p_deriv
+                if not vec_z[i, 0]:
+                    self.mat_deriv[k, i, 0] = self.rb_numeric_deriv(
+                        'm', i, fluid)
+                if not all(vec_z[i, 3:]):
+                    self.mat_deriv[k, i, 3:] = self.rb_numeric_deriv(
+                        'fluid', i, fluid)
+            k += 1
 
         ######################################################################
         # derivatives for energy balance equations
-        deriv = np.zeros((1, 3, self.num_fl + 3))
+        f = self.energy_balance
         for i in range(3):
-            deriv[0, i, 0] = self.numeric_deriv(self.energy_balance, 'm', i)
-            deriv[0, i, 1] = self.numeric_deriv(self.energy_balance, 'p', i)
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not vec_z[i, 1]:
+                self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
             if i >= self.num_i:
-                deriv[0, i, 2] = -(self.inl + self.outl)[i].m.val_SI
+                self.mat_deriv[k, i, 2] = -(
+                    self.inl + self.outl)[i].m.val_SI
             else:
-                deriv[0, i, 2] = (self.inl + self.outl)[i].m.val_SI
-        mat_deriv += deriv.tolist()
+                self.mat_deriv[k, i, 2] = (
+                    self.inl + self.outl)[i].m.val_SI
+        k += 1
 
         ######################################################################
         # derivatives for specified lamb
         if self.lamb.is_set:
-            deriv = np.zeros((1, 3, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(self.lambda_func, 'm', 0)
-            deriv[0, 0, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 0)
-            deriv[0, 1, 0] = self.numeric_deriv(self.lambda_func, 'm', 1)
-            deriv[0, 1, 3:] = self.numeric_deriv(self.lambda_func, 'fluid', 1)
-            mat_deriv += deriv.tolist()
+            f = self.lambda_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not all(vec_z[0, 3:]):
+                self.mat_deriv[k, 0, 3:] = self.numeric_deriv(f, 'fluid', 0)
+            if not vec_z[1, 0]:
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+            if not all(vec_z[1, 3:]):
+                self.mat_deriv[k, 1, 3:] = self.numeric_deriv(f, 'fluid', 1)
+            k += 1
 
         ######################################################################
         # derivatives for specified thermal input
         if self.ti.is_set:
             # stoichiometric combustion chamber
             if isinstance(self, combustion_chamber_stoich):
-                pos = 3 + self.fluids.index('TESPy::' + self.fuel_alias.val)
+                pos = 3 + self.nw_fluids.index(
+                    'TESPy::' + self.fuel_alias.val)
                 fuel = 'TESPy::' + self.fuel_alias.val
 
-                deriv = np.zeros((1, 3, self.num_fl + 3))
                 for i in range(2):
-                    deriv[0, i, 0] = -self.inl[i].fluid.val[fuel]
-                    deriv[0, i, pos] = -self.inl[i].m.val_SI
-                deriv[0, 2, 0] = self.outl[0].fluid.val[fuel]
-                deriv[0, 2, pos] = self.outl[0].m.val_SI
-                mat_deriv += (deriv * self.lhv).tolist()
+                    self.mat_deriv[k, i, 0] = -self.inl[i].fluid.val[fuel]
+                    self.mat_deriv[k, i, pos] = -self.inl[i].m.val_SI
+                self.mat_deriv[k, 2, 0] = self.outl[0].fluid.val[fuel]
+                self.mat_deriv[k, 2, pos] = self.outl[0].m.val_SI
+                self.mat_deriv[k] *= self.lhv
             # combustion chamber
             else:
 
-                deriv = np.zeros((1, 3, self.num_fl + 3))
+                self.mat_deriv[k, 0, 0] = 0
+                self.mat_deriv[k, 1, 0] = 0
+                self.mat_deriv[k, 2, 0] = 0
                 for f in self.fuel_list:
-                    pos = 3 + self.fluids.index(f)
+                    pos = 3 + self.nw_fluids.index(f)
                     lhv = self.fuels[f]['LHV']
 
                     for i in range(2):
-                        deriv[0, i, 0] += -self.inl[i].fluid.val[f] * lhv
-                        deriv[0, i, pos] = -self.inl[i].m.val_SI * lhv
-                    deriv[0, 2, 0] += self.outl[0].fluid.val[f] * lhv
-                    deriv[0, 2, pos] = self.outl[0].m.val_SI * lhv
-                mat_deriv += deriv.tolist()
-
-        return np.asarray(mat_deriv)
+                        self.mat_deriv[k, i, 0] += -(
+                            self.inl[i].fluid.val[f] * lhv)
+                        self.mat_deriv[k, i, pos] = -(
+                            self.inl[i].m.val_SI * lhv)
+                    self.mat_deriv[k, 2, 0] += (
+                        self.outl[0].fluid.val[f] * lhv)
+                    self.mat_deriv[k, 2, pos] = (
+                        self.outl[0].m.val_SI * lhv)
+            k += 1
 
     def pressure_deriv(self):
         r"""
@@ -410,11 +440,11 @@ class combustion_chamber(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((2, 3, self.num_fl + 3))
+        deriv = np.zeros((2, 3, self.num_nw_vars))
         for k in range(2):
             deriv[k][2][1] = 1
             deriv[k][k][1] = -1
-        return deriv.tolist()
+        return deriv
 
     def reaction_balance(self, fluid):
         r"""
@@ -717,8 +747,8 @@ class combustion_chamber(component):
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
         for o in self.outl:
             dh = 0
@@ -727,15 +757,17 @@ class combustion_chamber(component):
                 p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = h_pT(p, T_ref, self.h2o)
                 try:
-                    h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                    flow = [0, p, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
+                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 except ValueError:
-                    h_steam = CP.PropsSI('H', 'P', 615, 'Q', 1, self.h2o)
+                    flow = [0, 615, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
                 if h < h_steam:
                     dh = (h_steam - h) * o.fluid.val[self.h2o]
 
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
-                                 dh)
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
 
         res += self.calc_ti()
 
@@ -864,12 +896,11 @@ class combustion_chamber(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 3, len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 3, self.num_nw_vars))
+        f = self.bus_func
         for i in range(3):
-            deriv[0, i, 0] = self.numeric_deriv(self.bus_func,
-                                                'm', i, bus=bus)
-            deriv[0, i, 3:] = self.numeric_deriv(self.bus_func,
-                                                 'fluid', i, bus=bus)
+            deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+            deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
         return deriv
 
@@ -1249,6 +1280,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
     >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> import numpy as np
     >>> import shutil
     >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -1319,8 +1351,24 @@ class combustion_chamber_stoich(combustion_chamber):
 
         component.comp_init(self, nw)
 
-        self.m_deriv = self.mass_flow_deriv()
-        self.p_deriv = self.pressure_deriv()
+        # number of mandatroy equations for
+        # reaction balance: num_fl
+        # mass flow: 1
+        # pressure: 2
+        # energy balance: 1
+        self.num_eq = self.num_nw_fluids + 4
+        for var in [self.lamb, self.ti]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.vec_res = np.zeros(self.num_eq)
+        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.mat_deriv[1:3] = self.pressure_deriv()
 
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
@@ -1761,11 +1809,11 @@ class combustion_chamber_stoich(combustion_chamber):
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
         for o in self.outl:
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
 
         return res + self.calc_ti()
 
@@ -2210,9 +2258,30 @@ class combustion_engine(combustion_chamber):
 
         combustion_chamber.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
-        self.p_deriv = self.pressure_deriv()
+        # number of mandatroy equations for
+        # cooling loops fluid balances: 2 * num_fl
+        # mass flow: 3
+        # pressure: 2
+        # reaction balance: num_fl
+        # energy balance, characteristic functions: 5
+        self.num_eq = self.num_nw_fluids * 2 + 3 + 2 + self.num_nw_fluids + 5
+        # P and Qloss are not included, as the equations are mandatory anyway
+        for var in [self.lamb, self.ti, self.Q1, self.Q2,
+                    self.pr1, self.pr2, self.zeta1, self.zeta2]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        pos = self.num_nw_fluids * 2
+
+        self.vec_res = np.zeros(self.num_eq)
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 3] = self.mass_flow_deriv()
+        self.mat_deriv[pos + 3:pos + 5] = self.pressure_deriv()
 
     def equations(self):
         r"""
@@ -2223,82 +2292,106 @@ class combustion_engine(combustion_chamber):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
+        k = 0
+        ######################################################################
+        # equations for fluids in cooling loops
+        self.vec_res[k:self.num_nw_fluids * 2] = self.fluid_func()
+        k += self.num_nw_fluids * 2
+
+        ######################################################################
+        # equations for mass flow
+        self.vec_res[k:k + 3] = self.mass_flow_func()
+        k += 3
+
+        ######################################################################
+        # equations for pressure balance in combustion
+        self.vec_res[k] = self.inl[2].p.val_SI - self.outl[2].p.val_SI
+        k += 1
+        self.vec_res[k] = self.inl[2].p.val_SI - self.inl[3].p.val_SI
+        k += 1
 
         ######################################################################
         # equations for fluids in combustion chamber
         for fluid in self.inl[0].fluid.val.keys():
-            vec_res += [self.reaction_balance(fluid)]
-
-        ######################################################################
-        # equations for fluids in cooling loops
-        vec_res += self.fluid_func()
-
-        ######################################################################
-        # equations for mass flow
-        vec_res += self.mass_flow_func()
-
-        ######################################################################
-        # equations for pressure balance in combustion
-        vec_res += [self.inl[2].p.val_SI - self.outl[2].p.val_SI]
-        vec_res += [self.inl[2].p.val_SI - self.inl[3].p.val_SI]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.reaction_balance(fluid)
+            k += 1
 
         ######################################################################
         # equation for combustion engine energy balance
-        vec_res += [self.energy_balance()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.energy_balance()
+        k += 1
 
         ######################################################################
         # equation for power to thermal input ratio from characteristic line
-        vec_res += [self.tiP_char_func()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.tiP_char_func()
+        k += 1
 
         ######################################################################
         # equations for heat outputs from characteristic line
-        vec_res += [self.Q1_char_func()]
-        vec_res += [self.Q2_char_func()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.Q1_char_func()
+        k += 1
+
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.Q2_char_func()
+        k += 1
 
         ######################################################################
         # equation for heat loss from characteristic line
-        vec_res += [self.Qloss_char_func()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.Qloss_char_func()
+        k += 1
 
         ######################################################################
         # equation for specified lambda
         if self.lamb.is_set:
-            vec_res += [self.lambda_func()]
+            self.vec_res[k] = self.lambda_func()
+            k += 1
 
         ######################################################################
         # equation for specified thermal input
         if self.ti.is_set:
-            vec_res += [self.ti_func()]
+            self.vec_res[k] = self.ti_func()
+            k += 1
 
         ######################################################################
         # equations for specified heat ouptputs
         if self.Q1.is_set:
-            vec_res += [self.Q1_func()]
+            self.vec_res[k] = self.Q1_func()
+            k += 1
 
         if self.Q2.is_set:
-            vec_res += [self.Q2_func()]
+            self.vec_res[k] = self.Q2_func()
+            k += 1
 
         ######################################################################
         # equations for specified pressure ratios at cooling loops
         if self.pr1.is_set:
-            vec_res += [self.pr1.val * self.inl[0].p.val_SI -
-                        self.outl[0].p.val_SI]
+            self.vec_res[k] = (
+                self.pr1.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
+            k += 1
 
         if self.pr2.is_set:
-            vec_res += [self.pr2.val * self.inl[1].p.val_SI -
-                        self.outl[1].p.val_SI]
+            self.vec_res[k] = (
+                self.pr2.val * self.inl[1].p.val_SI - self.outl[1].p.val_SI)
+            k += 1
 
         ######################################################################
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            vec_res += [self.zeta_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func()
+            k += 1
 
         if self.zeta2.is_set:
-            vec_res += [self.zeta2_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta2_func()
+            k += 1
 
-        return vec_res
-
-    def derivatives(self):
+    def derivatives(self, vec_z):
         r"""
         Calculate matrix of partial derivatives for given equations.
 
@@ -2307,206 +2400,223 @@ class combustion_engine(combustion_chamber):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
+        ######################################################################
+        # derivatives cooling water fluid, mass balance and pressure are static
+        k = self.num_nw_fluids * 2 + 5
 
         ######################################################################
         # derivatives for reaction balance
-        deriv = np.zeros((self.num_fl, 7 + self.num_vars, self.num_fl + 3))
-        j = 0
-        for fluid in self.fluids:
-
+        for fluid in self.nw_fluids:
             # fresh air and fuel inlets
-            deriv[j, 2, 0] = self.rb_numeric_deriv('m', 2, fluid)
-            deriv[j, 2, 3:] = self.rb_numeric_deriv('fluid', 2, fluid)
-            deriv[j, 3, 0] = self.rb_numeric_deriv('m', 3, fluid)
-            deriv[j, 3, 3:] = self.rb_numeric_deriv('fluid', 3, fluid)
+            if not vec_z[2, 0]:
+                self.mat_deriv[k, 2, 0] = self.rb_numeric_deriv('m', 2, fluid)
+            if not all(vec_z[2, 3:]):
+                self.mat_deriv[k, 2, 3:] = self.rb_numeric_deriv(
+                    'fluid', 2, fluid)
+            if not vec_z[3, 0]:
+                self.mat_deriv[k, 3, 0] = self.rb_numeric_deriv('m', 3, fluid)
+            if not all(vec_z[3, 3:]):
+                self.mat_deriv[k, 3, 3:] = self.rb_numeric_deriv(
+                    'fluid', 3, fluid)
 
             # combustion outlet
-            deriv[j, 6, 0] = self.rb_numeric_deriv('m', 6, fluid)
-            deriv[j, 6, 3:] = self.rb_numeric_deriv('fluid', 6, fluid)
-            j += 1
-        mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for cooling water fluid composition and mass flow
-        mat_deriv += self.fl_deriv
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for pressure equations
-        mat_deriv += self.p_deriv
+            if not vec_z[6, 0]:
+                self.mat_deriv[k, 6, 0] = self.rb_numeric_deriv('m', 6, fluid)
+            if not all(vec_z[6, 3:]):
+                self.mat_deriv[k, 6, 3:] = self.rb_numeric_deriv(
+                    'fluid', 6, fluid)
+            k += 1
 
         ######################################################################
         # derivatives for energy balance
-        eb_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-
+        f = self.energy_balance
         # mass flow cooling water
         for i in [0, 1]:
-            eb_deriv[0, i, 0] = -(self.outl[i].h.val_SI - self.inl[i].h.val_SI)
+            self.mat_deriv[k, i, 0] = -(
+                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
         # mass flow and pressure for combustion reaction
         for i in [2, 3, 6]:
-            eb_deriv[0, i, 0] = self.numeric_deriv(self.energy_balance, 'm', i)
-            eb_deriv[0, i, 1] = self.numeric_deriv(self.energy_balance, 'p', i)
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not vec_z[i, 1]:
+                self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
 
         # enthalpy
         for i in range(4):
-            eb_deriv[0, i, 2] = self.inl[i].m.val_SI
+            self.mat_deriv[k, i, 2] = self.inl[i].m.val_SI
         for i in range(3):
-            eb_deriv[0, i + 4, 2] = -self.outl[i].m.val_SI
+            self.mat_deriv[k, i + 4, 2] = -self.outl[i].m.val_SI
 
         # fluid composition
-        for f in self.fuel_list:
-            pos = 3 + self.fluids.index(f)
-            lhv = self.fuels[f]['LHV']
-            eb_deriv[0, 2, pos] = self.inl[2].m.val_SI * lhv
-            eb_deriv[0, 3, pos] = self.inl[3].m.val_SI * lhv
-            eb_deriv[0, 6, pos] = -self.outl[2].m.val_SI * lhv
+        for fl in self.fuel_list:
+            pos = 3 + self.nw_fluids.index(fl)
+            lhv = self.fuels[fl]['LHV']
+            self.mat_deriv[k, 2, pos] = self.inl[2].m.val_SI * lhv
+            self.mat_deriv[k, 3, pos] = self.inl[3].m.val_SI * lhv
+            self.mat_deriv[k, 6, pos] = -self.outl[2].m.val_SI * lhv
 
         # power and heat loss
         if self.P.is_var:
-            eb_deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.numeric_deriv(self.energy_balance, 'P', 7))
+            self.mat_deriv[k, 7 + self.P.var_pos, 0] = (
+                self.numeric_deriv(f, 'P', 7))
         if self.Qloss.is_var:
-            eb_deriv[0, 7 + self.Qloss.var_pos, 0] = (
-                    self.numeric_deriv(self.energy_balance, 'Qloss', 7))
-        mat_deriv += eb_deriv.tolist()
+            self.mat_deriv[k, 7 + self.Qloss.var_pos, 0] = (
+                self.numeric_deriv(f, 'Qloss', 7))
+        k += 1
 
         ######################################################################
         # derivatives for thermal input to power charactersitics
-        tiP_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
+        f = self.tiP_char_func
         for i in [2, 3, 6]:
-            tiP_deriv[0, i, 0] = self.numeric_deriv(self.tiP_char_func, 'm', i)
-            tiP_deriv[0, i, 3:] = (
-                    self.numeric_deriv(self.tiP_char_func, 'fluid', i))
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not all(vec_z[i, 3:]):
+                self.mat_deriv[k, i, 3:] = self.numeric_deriv(f, 'fluid', i)
 
         if self.P.is_var:
-            tiP_deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.numeric_deriv(self.tiP_char_func, 'P', 7))
-        mat_deriv += tiP_deriv.tolist()
+            self.mat_deriv[k, 7 + self.P.var_pos, 0] = (
+                self.numeric_deriv(f, 'P', 7))
+        k += 1
 
         ######################################################################
         # derivatives for heat output 1 to power charactersitics
-        Q1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-        Q1_deriv[0, 0, 0] = self.numeric_deriv(self.Q1_char_func, 'm', 0)
-        Q1_deriv[0, 0, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 0)
-        Q1_deriv[0, 4, 2] = self.numeric_deriv(self.Q1_char_func, 'h', 4)
+        f = self.Q1_char_func
+        if not vec_z[0, 0]:
+            self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not vec_z[0, 2]:
+            self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        if not vec_z[4, 2]:
+            self.mat_deriv[k, 4, 2] = self.numeric_deriv(f, 'h', 4)
         for i in [2, 3, 6]:
-            Q1_deriv[0, i, 0] = self.numeric_deriv(self.Q1_char_func, 'm', i)
-            Q1_deriv[0, i, 3:] = (
-                    self.numeric_deriv(self.Q1_char_func, 'fluid', i))
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not all(vec_z[i, 3:]):
+                self.mat_deriv[k, i, 3:] = self.numeric_deriv(f, 'fluid', i)
 
         if self.P.is_var:
-            Q1_deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.numeric_deriv(self.Q1_char_func, 'P', 7))
-        mat_deriv += Q1_deriv.tolist()
+            self.mat_deriv[k, 7 + self.P.var_pos, 0] = (
+                self.numeric_deriv(f, 'P', 7))
+        k += 1
 
         ######################################################################
         # derivatives for heat output 2 to power charactersitics
-        Q2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-        Q2_deriv[0, 1, 0] = self.numeric_deriv(self.Q2_char_func, 'm', 1)
-        Q2_deriv[0, 1, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 1)
-        Q2_deriv[0, 5, 2] = self.numeric_deriv(self.Q2_char_func, 'h', 5)
+        f = self.Q2_char_func
+        if not vec_z[1, 0]:
+            self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+        if not vec_z[1, 2]:
+            self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        if not vec_z[5, 2]:
+            self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
         for i in [2, 3, 6]:
-            Q2_deriv[0, i, 0] = self.numeric_deriv(self.Q2_char_func, 'm', i)
-            Q2_deriv[0, i, 3:] = (
-                    self.numeric_deriv(self.Q2_char_func, 'fluid', i))
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not all(vec_z[i, 3:]):
+                self.mat_deriv[k, i, 3:] = self.numeric_deriv(f, 'fluid', i)
 
         if self.P.is_var:
-            Q2_deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.numeric_deriv(self.Q2_char_func, 'P', 7))
-        mat_deriv += Q2_deriv.tolist()
+            self.mat_deriv[k, 7 + self.P.var_pos, 0] = (
+                self.numeric_deriv(f, 'P', 7))
+        k += 1
 
         ######################################################################
         # derivatives for heat loss to power charactersitics
-        Ql_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
+        f = self.Qloss_char_func
         for i in [2, 3, 6]:
-            Ql_deriv[0, i, 0] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'm', i))
-            Ql_deriv[0, i, 3:] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'fluid', i))
+            if not vec_z[i, 0]:
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+            if not all(vec_z[i, 3:]):
+                self.mat_deriv[k, i, 3:] = self.numeric_deriv(f, 'fluid', i)
 
         if self.P.is_var:
-            Ql_deriv[0, 7 + self.P.var_pos, 0] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'P', 7))
+            self.mat_deriv[k, 7 + self.P.var_pos, 0] = (
+                self.numeric_deriv(f, 'P', 7))
         if self.Qloss.is_var:
-            Ql_deriv[0, 7 + self.Qloss.var_pos, 0] = (
-                    self.numeric_deriv(self.Qloss_char_func, 'Qloss', 7))
-        mat_deriv += Ql_deriv.tolist()
+            self.mat_deriv[k, 7 + self.Qloss.var_pos, 0] = (
+                self.numeric_deriv(f, 'Qloss', 7))
+        k += 1
 
         ######################################################################
         # derivatives for specified lambda
         if self.lamb.is_set:
-            lamb_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            lamb_deriv[0, 2, 0] = self.numeric_deriv(self.lambda_func, 'm', 2)
-            lamb_deriv[0, 2, 3:] = (
-                    self.numeric_deriv(self.lambda_func, 'fluid', 2))
-            lamb_deriv[0, 3, 0] = self.numeric_deriv(self.lambda_func, 'm', 3)
-            lamb_deriv[0, 3, 3:] = (
-                    self.numeric_deriv(self.lambda_func, 'fluid', 3))
-            mat_deriv += lamb_deriv.tolist()
+            f = self.lambda_func
+            if not vec_z[2, 0]:
+                self.mat_deriv[k, 2, 0] = self.numeric_deriv(f, 'm', 2)
+            if not all(vec_z[2, 3:]):
+                self.mat_deriv[k, 2, 3:] = self.numeric_deriv(f, 'fluid', 2)
+            if not vec_z[3, 0]:
+                self.mat_deriv[k, 3, 0] = self.numeric_deriv(f, 'm', 3)
+            if not all(vec_z[3, 3:]):
+                self.mat_deriv[k, 3, 3:] = self.numeric_deriv(f, 'fluid', 3)
+            k += 1
 
         ######################################################################
         # derivatives for specified thermal input
         if self.ti.is_set:
-            ti_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
+            f = self.ti_func
             for i in [2, 3, 6]:
-                ti_deriv[0, i, 0] = self.numeric_deriv(self.ti_func, 'm', i)
-                ti_deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.ti_func, 'fluid', i))
-            mat_deriv += ti_deriv.tolist()
+                self.mat_deriv[k, i, 0] = self.numeric_deriv(f, 'm', i)
+                self.mat_deriv[k, i, 3:] = (
+                    self.numeric_deriv(self.ti_func, 'fluid', i))
+            k += 1
 
         ######################################################################
         # derivatives for specified heat outputs
         if self.Q1.is_set:
-            Q_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            Q_deriv[0, 0, 0] = - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            Q_deriv[0, 0, 2] = self.inl[0].m.val_SI
-            Q_deriv[0, 4, 2] = -self.inl[0].m.val_SI
-            mat_deriv += Q_deriv.tolist()
+            self.mat_deriv[k, 0, 0] = -(
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.mat_deriv[k, 0, 2] = self.inl[0].m.val_SI
+            self.mat_deriv[k, 4, 2] = -self.inl[0].m.val_SI
+            k += 1
 
         if self.Q2.is_set:
-            Q_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            Q_deriv[0, 1, 0] = - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            Q_deriv[0, 1, 2] = self.inl[1].m.val_SI
-            Q_deriv[0, 5, 2] = -self.inl[1].m.val_SI
-            mat_deriv += Q_deriv.tolist()
+            self.mat_deriv[k, 1, 0] = -(
+                self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+            self.mat_deriv[k, 1, 2] = self.inl[1].m.val_SI
+            self.mat_deriv[k, 5, 2] = -self.inl[1].m.val_SI
+            k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio at cooling loops
         if self.pr1.is_set:
-            pr1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            pr1_deriv[0, 0, 1] = self.pr1.val
-            pr1_deriv[0, 4, 1] = -1
-            mat_deriv += pr1_deriv.tolist()
+            self.mat_deriv[k, 0, 1] = self.pr1.val
+            self.mat_deriv[k, 4, 1] = -1
+            k += 1
 
         if self.pr2.is_set:
-            pr2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            pr2_deriv[0, 1, 1] = self.pr2.val
-            pr2_deriv[0, 5, 1] = -1
-            mat_deriv += pr2_deriv.tolist()
+            self.mat_deriv[k, 1, 1] = self.pr2.val
+            self.mat_deriv[k, 5, 1] = -1
+            k += 1
 
         ######################################################################
         # derivatives for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            zeta1_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-            zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
-            zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-            zeta1_deriv[0, 4, 1] = self.numeric_deriv(self.zeta_func, 'p', 4)
-            zeta1_deriv[0, 4, 2] = self.numeric_deriv(self.zeta_func, 'h', 4)
-            mat_deriv += zeta1_deriv.tolist()
+            f = self.zeta_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[4, 1]:
+                self.mat_deriv[k, 4, 1] = self.numeric_deriv(f, 'p', 4)
+            if not vec_z[4, 2]:
+                self.mat_deriv[k, 4, 2] = self.numeric_deriv(f, 'h', 4)
+            k += 1
 
         if self.zeta2.is_set:
-            zeta2_deriv = np.zeros((1, 7 + self.num_vars, self.num_fl + 3))
-            zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
-            zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
-            zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
-            zeta2_deriv[0, 5, 1] = self.numeric_deriv(self.zeta2_func, 'p', 5)
-            zeta2_deriv[0, 5, 2] = self.numeric_deriv(self.zeta2_func, 'h', 5)
-            mat_deriv += zeta2_deriv.tolist()
-
-        return np.asarray(mat_deriv)
+            f = self.zeta2_func
+            if not vec_z[1, 0]:
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not vec_z[5, 1]:
+                self.mat_deriv[k, 5, 1] = self.numeric_deriv(f, 'p', 5)
+            if not vec_z[5, 2]:
+                self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
+            k += 1
 
     def fluid_func(self):
         r"""
@@ -2523,7 +2633,6 @@ class combustion_engine(combustion_chamber):
                 \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
         """
         vec_res = []
-
         for i in range(2):
             for fluid, x in self.inl[i].fluid.val.items():
                 vec_res += [x - self.outl[i].fluid.val[fluid]]
@@ -2557,17 +2666,19 @@ class combustion_engine(combustion_chamber):
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl * 2, 7 + self.num_vars, 3 + self.num_fl))
-        for i in range(self.num_fl):
+        deriv = np.zeros((self.num_nw_fluids * 2,
+                          7 + self.num_vars,
+                          self.num_nw_vars))
+        for i in range(self.num_nw_fluids):
             deriv[i, 0, i + 3] = 1
             deriv[i, 4, i + 3] = -1
-        for j in range(self.num_fl):
+        for j in range(self.num_nw_fluids):
             deriv[i + 1 + j, 1, j + 3] = 1
             deriv[i + 1 + j, 5, j + 3] = -1
-        return deriv.tolist()
+        return deriv
 
     def mass_flow_deriv(self):
         r"""
@@ -2578,7 +2689,7 @@ class combustion_engine(combustion_chamber):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((3, 7 + self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((3, 7 + self.num_vars, self.num_nw_vars))
         for i in range(2):
             deriv[i, i, 0] = 1
         for j in range(2):
@@ -2586,7 +2697,7 @@ class combustion_engine(combustion_chamber):
         deriv[2, 2, 0] = 1
         deriv[2, 3, 0] = 1
         deriv[2, 6, 0] = -1
-        return deriv.tolist()
+        return deriv
 
     def pressure_deriv(self):
         r"""
@@ -2597,12 +2708,12 @@ class combustion_engine(combustion_chamber):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((2, 7 + self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((2, 7 + self.num_vars, self.num_nw_vars))
         for k in range(2):
             deriv[k, 2, 1] = 1
         deriv[0, 6, 1] = -1
         deriv[1, 3, 1] = -1
-        return deriv.tolist()
+        return deriv
 
     def energy_balance(self):
         r"""
@@ -2642,8 +2753,8 @@ class combustion_engine(combustion_chamber):
 
         res = 0
         for i in self.inl[2:]:
-            res += i.m.val_SI * (i.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (
+                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
         for o in self.outl[2:]:
             dh = 0
@@ -2651,20 +2762,25 @@ class combustion_engine(combustion_chamber):
             if n_h2o > 0:
                 p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
                 h = h_pT(p, T_ref, self.h2o)
-                h_steam = CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                try:
+                    flow = [0, p, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
+                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
+                except ValueError:
+                    flow = [0, 615, 0, {self.h2o: 1}]
+                    h_steam = h_mix_pQ(flow, 1)
                 if h < h_steam:
                     dh = (h_steam - h) * o.fluid.val[self.h2o]
 
-            res -= o.m.val_SI * (o.h.val_SI -
-                                 h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) -
-                                 dh)
+            res -= o.m.val_SI * (
+                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
 
         res += self.calc_ti()
 
         # cooling water
         for i in range(2):
-            res -= self.inl[i].m.val_SI * (self.outl[i].h.val_SI -
-                                           self.inl[i].h.val_SI)
+            res -= self.inl[i].m.val_SI * (
+                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
         # power output and heat loss
         res -= self.P.val + self.Qloss.val
@@ -2800,70 +2916,61 @@ class combustion_engine(combustion_chamber):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 7 + self.num_vars,
-                          len(self.inl[0].fluid.val) + 3))
+        deriv = np.zeros((1, 7 + self.num_vars, self.num_nw_vars))
+        f = self.bus_func
 
         ######################################################################
         # derivatives for bus parameter of thermal input (TI)
         if bus.param == 'TI':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of power production (P)
         elif bus.param == 'P':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
             # variable power
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(self.bus_func, 'P', 7, bus=bus))
+                    self.numeric_deriv(f, 'P', 7, bus=bus))
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)
         elif bus.param == 'Q':
             for i in range(2):
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 2] = (
-                        self.numeric_deriv(self.bus_func, 'h', i, bus=bus))
-                deriv[0, i + 4, 2] = (
-                        self.numeric_deriv(self.bus_func, 'h', i + 4, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 2] = self.numeric_deriv(f, 'h', i, bus=bus)
+                deriv[0, i + 4, 2] = self.numeric_deriv(f, 'h', i + 4, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 1 (Q1)
         elif bus.param == 'Q1':
-            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-            deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
+            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+            deriv[0, 4, 2] = self.numeric_deriv(f, 'h', 4, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 2 (Q2)
         elif bus.param == 'Q2':
-            deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
-            deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
+            deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
+            deriv[0, 5, 2] = self.numeric_deriv(f, 'h', 5, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat loss (Qloss)
         elif bus.param == 'Qloss':
             for i in [2, 3, 6]:
-                deriv[0, i, 0] = (
-                        self.numeric_deriv(self.bus_func, 'm', i, bus=bus))
-                deriv[0, i, 3:] = (
-                        self.numeric_deriv(self.bus_func, 'fluid', i, bus=bus))
+                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
+                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
             # variable power
             if self.P.is_var:
                 deriv[0, 7 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(self.bus_func, 'P', 7, bus=bus))
+                        self.numeric_deriv(f, 'P', 7, bus=bus))
 
         ######################################################################
         # missing/invalid bus parameter

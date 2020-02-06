@@ -315,23 +315,26 @@ class component:
         nw : tespy.networks.network
             Network this component is integrated in.
         """
+        self.num_nw_fluids = len(nw.fluids)
+        self.nw_fluids = nw.fluids
+        self.num_nw_vars = self.num_nw_fluids + 3
+        self.it = 0
+        self.vec_res = []
+        self.mat_deriv = None
+        self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
+
         var = self.attr()
-        for val in var.keys():
-            if isinstance(self.attr()[val], dc_cp):
-                if self.get_attr(val).is_var:
-                    self.get_attr(val).var_pos = self.num_vars
-                    self.num_vars += 1
-                    self.vars[self.get_attr(val)] = val
-
-        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
-               ' custom variables.')
-        logging.debug(msg)
-
-        # characteristics creation
         for key, val in var.items():
-            if isinstance(val, dc_cc):
+            if isinstance(val, dc_cp):
+                if self.get_attr(key).is_var:
+                    self.get_attr(key).var_pos = self.num_vars
+                    self.num_vars += 1
+                    self.vars[self.get_attr(key)] = key
+
+            # characteristics creation
+            elif isinstance(val, dc_cc):
                 if self.get_attr(key).func is None:
                     try:
                         self.get_attr(key).func = ldc(
@@ -350,8 +353,9 @@ class component:
                                'component.char_warnings=False.')
                         logging.warning(msg)
 
-        self.num_fl = len(nw.fluids)
-        self.fluids = nw.fluids
+        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
+               ' custom variables.')
+        logging.debug(msg)
 
     @staticmethod
     def attr():
@@ -366,10 +370,10 @@ class component:
         return []
 
     def equations(self):
-        return []
+        return
 
-    def derivatives(self):
-        return []
+    def derivatives(self, vec_z):
+        return
 
     def initialise_source(self, c, key):
         r"""
@@ -506,13 +510,15 @@ class component:
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_fl, 2 + self.num_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids,
+                          2 + self.num_vars,
+                          self.num_nw_vars))
         i = 0
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             deriv[i, 0, i + 3] = 1
             deriv[i, 1, i + 3] = -1
             i += 1
-        return deriv.tolist()
+        return deriv
 
 # %%
 
@@ -534,7 +540,7 @@ class component:
             res += i.m.val_SI
         for o in self.outl:
             res -= o.m.val_SI
-        return [res]
+        return res
 
     def mass_flow_deriv(self):
         r"""
@@ -547,12 +553,12 @@ class component:
             equations.
         """
         deriv = np.zeros((1, self.num_i + self.num_o +
-                          self.num_vars, 3 + self.num_fl))
+                          self.num_vars, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
             deriv[0, j + i + 1, 0] = -1
-        return deriv.tolist()
+        return deriv
 
 # %%
 

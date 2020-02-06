@@ -15,8 +15,6 @@ SPDX-License-Identifier: MIT
 
 import logging
 
-from tespy.networks.networks import network
-
 # %%
 
 

@@ -3,9 +3,15 @@ v0.2.1 - (some date, probably 2020)
 
 New Features
 ############
+- Back end modifications in order to improve calculation speed. For the results
+  see (`PR #147 <https://github.com/oemof/tespy/pull/147>`_).
 
 Documentation
 #############
+- Fixes in code and docstrings to meet PEP8 guidelines
+  (`PR #143 <https://github.com/oemof/tespy/pull/143>`_).
+- Update the class documentations of component and connection classes
+  (`PR #146 <https://github.com/oemof/tespy/pull/146>`_).
 
 Parameter renaming
 ##################
@@ -15,9 +21,18 @@ Testing
 
 Bug fixes
 #########
+- Prevent pandas 1.0.0 installation due to bug in the :code:`to_csv()` method
+  (bug will be fixed in
+  `PR #31513 <https://github.com/pandas-dev/pandas/pull/31513>`_ of pandas).
+  Additionally,the version requirements of third party packages have been
+  updated to prevent future bugs resulting from possible API changes
+  (`PR #146 <https://github.com/oemof/tespy/pull/146>`_).
 
 Other changes
 #############
 
 Contributors
 ############
+
+- Francesco Witte (@fwitte)
+- @maltefritz

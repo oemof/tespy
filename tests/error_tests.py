@@ -153,6 +153,7 @@ class specification_error_tests:
         self.create_ref_TypeError([self.comp, 1, 0])
 
         # KeyErrors
+        self.set_attr_KeyError(dc_cc(), x=7)
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
         self.set_attr_KeyError(self.bus, power_output=100000)
@@ -489,16 +490,18 @@ class combustion_engine_bus_error_tests:
     @raises(ValueError)
     def test_missing_bus_param_func(self):
         """
-        Test missing bus parameter in bus function for cogeneration unit.
+        Test missing bus parameter in bus function for combustion engine.
         """
         self.instance.bus_func(self.bus.comps.loc[self.instance])
 
     @raises(ValueError)
     def test_missing_bus_param_deriv(self):
         """
-        Test missing bus parameter in bus derivatives for cogeneration unit.
+        Test missing bus parameter in bus derivatives for combustion engine.
         """
-        self.instance.num_vars = 2
+        # both values do not matter, but are required for the test
+        self.instance.num_nw_vars = 1
+        self.instance.num_vars = 1
         self.instance.inl = [connection(self.instance, 'out1',
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
@@ -581,30 +584,13 @@ class water_electrolyzer_error_tests:
         self.nw = network(['H2O', 'O2', 'H2'])
         self.instance = reactors.water_electrolyzer('electrolyzer')
         # required for calling bus_deriv method without network initialisation
-        self.instance.num_vars = 2
-        self.instance.num_fl = 3
+        self.instance.num_vars = 1
+        self.instance.num_nw_fluids = 1
+        self.instance.num_nw_vars = 1
         some_bus = bus('some_bus')
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})
         self.instance.bus_deriv(some_bus.comps.loc[self.instance])
-
-
-@raises(TESPyComponentError)
-def test_turbomachine_eta_s_func():
-    """
-    Turbomachine has no isentropic efficency function.
-    """
-    instance = turbomachinery.turbomachine('turbomachine')
-    instance.eta_s_func()
-
-
-@raises(TESPyComponentError)
-def test_turbomachine_eta_s_deriv():
-    """
-    Turbomachine has no isentropic efficency derivative.
-    """
-    instance = turbomachinery.turbomachine('turbomachine')
-    instance.eta_s_deriv()
 
 
 @raises(ValueError)
@@ -619,7 +605,7 @@ def test_compressor_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
@@ -637,7 +623,7 @@ def test_turbine_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()

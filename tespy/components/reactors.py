@@ -25,13 +25,15 @@ from tespy.components.components import component
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_mix_pT, T_mix_ph, dT_mix_dph, dT_mix_pdh, v_mix_ph)
-from tespy.tools.global_vars import molar_masses
+from tespy.tools.global_vars import molar_masses, err
 
 # %%
 
 
 class water_electrolyzer(component):
     r"""
+    The water electrolyzer produces hydrogen and oxygen from water and power.
+
     Equations
 
         **mandatory equations**
@@ -224,7 +226,7 @@ class water_electrolyzer(component):
                 'e': dc_cp(),
                 'pr_c': dc_cp(max_val=1),
                 'zeta': dc_cp(min_val=0),
-                'eta_char': dc_cc(method='GENERIC'),
+                'eta_char': dc_cc(),
                 'S': dc_simple()}
 
     @staticmethod
@@ -246,8 +248,8 @@ class water_electrolyzer(component):
 
         component.comp_init(self, nw)
 
-        o2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-              for a in CP.get_aliases('O2')]]
+        o2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('O2')]]
         if len(o2) == 0:
             msg = ('Missing oxygen in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -257,8 +259,8 @@ class water_electrolyzer(component):
         else:
             self.o2 = o2[0]
 
-        h2o = [x for x in nw.fluids if x in [a.replace(' ', '')
-               for a in CP.get_aliases('H2O')]]
+        h2o = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2O')]]
         if len(h2o) == 0:
             msg = ('Missing water in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -268,8 +270,8 @@ class water_electrolyzer(component):
         else:
             self.h2o = h2o[0]
 
-        h2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-              for a in CP.get_aliases('H2')]]
+        h2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2')]]
         if len(h2) == 0:
             msg = ('Missing hydrogen in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -281,9 +283,33 @@ class water_electrolyzer(component):
 
         self.e0 = self.calc_e0()
 
+        # number of mandatroy equations for
+        # cooling loop fluids: num_fl
+        # fluid composition at reactor inlets/outlets: 3 * num_fl
+        # mass flow balances: 3
+        # pressure: 2
+        # energy balance: 1
+        # reactor outlet temperatures: 1
+        self.num_eq = self.num_nw_fluids * 4 + 7
+        for var in [self.e, self.eta, self.eta_char, self.Q, self.pr_c,
+                    self.zeta]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.vec_res = np.zeros(self.num_eq)
+        pos = self.num_nw_fluids * 4
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 3] = self.mass_flow_deriv()
+        self.mat_deriv[pos + 3:pos + 5] = self.pressure_deriv()
+
     def calc_e0(self):
         r"""
-        Calculates the minimum specific energy required for electrolysis.
+        Calculate the minimum specific energy required for electrolysis.
 
         Returns
         -------
@@ -298,7 +324,6 @@ class water_electrolyzer(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
-
         hf = {}
         hf['H2O'] = -286
         hf['H2'] = 0
@@ -309,331 +334,252 @@ class water_electrolyzer(component):
         return e0 * 1000
 
     def equations(self):
-        r"""
-        Calculates vector vec_res with results of equations for this component.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-        vec_res = []
-
+        r"""Calculate vector vec_res with results of equations."""
+        k = 0
         ######################################################################
         # equations for fluids
 
         # equations for fluid composition in cooling water
         for fluid, x in self.inl[0].fluid.val.items():
-            vec_res += [x - self.outl[0].fluid.val[fluid]]
+            self.vec_res[k] = x - self.outl[0].fluid.val[fluid]
+            k += 1
 
         # equations to constrain fluids to inlets/outlets
-        vec_res += [1 - self.inl[1].fluid.val[self.h2o]]
-        vec_res += [1 - self.outl[1].fluid.val[self.o2]]
-        vec_res += [1 - self.outl[2].fluid.val[self.h2]]
+        self.vec_res[k] = 1 - self.inl[1].fluid.val[self.h2o]
+        k += 1
+        self.vec_res[k] = 1 - self.outl[1].fluid.val[self.o2]
+        k += 1
+        self.vec_res[k] = 1 - self.outl[2].fluid.val[self.h2]
+        k += 1
 
         # equations to ban fluids off inlets/outlets
         for fluid in self.inl[1].fluid.val.keys():
             if fluid != self.h2o:
-                vec_res += [0 - self.inl[1].fluid.val[fluid]]
+                self.vec_res[k] = 0 - self.inl[1].fluid.val[fluid]
+                k += 1
             if fluid != self.o2:
-                vec_res += [0 - self.outl[1].fluid.val[fluid]]
+                self.vec_res[k] = 0 - self.outl[1].fluid.val[fluid]
+                k += 1
             if fluid != self.h2:
-                vec_res += [0 - self.outl[2].fluid.val[fluid]]
+                self.vec_res[k] = 0 - self.outl[2].fluid.val[fluid]
+                k += 1
 
         ######################################################################
         # eqations for mass flow balance
         # equation to calculate the ratio of o2 in water
-        o2 = molar_masses[self.o2] / (molar_masses[self.o2] +
-                                      2 * molar_masses[self.h2])
+        o2 = molar_masses[self.o2] / (
+            molar_masses[self.o2] + 2 * molar_masses[self.h2])
 
         # equation for mass flow balance cooling water
-        vec_res += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
+        self.vec_res[k] = self.inl[0].m.val_SI - self.outl[0].m.val_SI
+        k += 1
 
         # equations for mass flow balance electrolyzer
-        vec_res += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
-        vec_res += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
+        self.vec_res[k] = o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI
+        k += 1
+        self.vec_res[k] = (
+            (1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI)
+        k += 1
 
         ######################################################################
         # equations for pressure to set o2 and h2 output equal
-        vec_res += [self.inl[1].p.val_SI - self.outl[1].p.val_SI]
-        vec_res += [self.inl[1].p.val_SI - self.outl[2].p.val_SI]
+        self.vec_res[k] = self.inl[1].p.val_SI - self.outl[1].p.val_SI
+        k += 1
+        self.vec_res[k] = self.inl[1].p.val_SI - self.outl[2].p.val_SI
+        k += 1
 
         ######################################################################
         # equation for energy balance
-        vec_res += [self.P.val + self.energy_balance()]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = self.P.val + self.energy_balance()
+        k += 1
 
         ######################################################################
         # temperature electrolyzer outlet
-        vec_res += [T_mix_ph(self.outl[1].to_flow()) -
-                    T_mix_ph(self.outl[2].to_flow())]
+        if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+            self.vec_res[k] = (
+                T_mix_ph(self.outl[1].to_flow()) -
+                T_mix_ph(self.outl[2].to_flow()))
+        k += 1
 
         ######################################################################
         # power vs hydrogen production
         if self.e.is_set:
-            vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
+            self.vec_res[k] = self.P.val - self.outl[2].m.val_SI * self.e.val
+            k += 1
 
         ######################################################################
         # specified pressure ratio
         if self.pr_c.is_set:
-            vec_res += [self.inl[0].p.val_SI * self.pr_c.val -
-                        self.outl[0].p.val_SI]
+            self.vec_res[k] = (
+                self.inl[0].p.val_SI * self.pr_c.val - self.outl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # specified zeta value
         if self.zeta.is_set:
-            vec_res += [self.zeta_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func()
+            k += 1
 
         # equation for heat transfer
 
         if self.Q.is_set:
-            vec_res += [self.Q.val - self.inl[0].m.val_SI *
-                        (self.inl[0].h.val_SI - self.outl[0].h.val_SI)]
+            self.vec_res[k] = (
+                self.Q.val - self.inl[0].m.val_SI *
+                (self.inl[0].h.val_SI - self.outl[0].h.val_SI))
+            k += 1
 
         ######################################################################
         # specified efficiency (efficiency definition: e0 / e)
         if self.eta.is_set:
-            vec_res += [self.P.val - self.outl[2].m.val_SI *
-                        self.e0 / self.eta.val]
+            self.vec_res[k] = (
+                self.P.val - self.outl[2].m.val_SI *
+                self.e0 / self.eta.val)
+            k += 1
 
         ######################################################################
         # specified characteristic line for efficiency
         if self.eta_char.is_set:
-            vec_res += [self.eta_char_func()]
+            self.vec_res[k] = self.eta_char_func()
+            k += 1
 
-        return vec_res
-
-    def derivatives(self):
+    def derivatives(self, vec_z):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
         ######################################################################
-        # derivatives for cooling liquid composition
-        deriv = np.zeros((self.num_fl, 5 + self.num_vars, self.num_fl + 3))
-
-        j = 0
-        for fluid, x in self.inl[0].fluid.val.items():
-            deriv[j, 0, 3 + j] = 1
-            deriv[j, 2, 3 + j] = -1
-            j += 1
-
-        mat_deriv += deriv.tolist()
-
-        # derivatives to constrain fluids to inlets/outlets
-        deriv = np.zeros((3, 5 + self.num_vars, self.num_fl + 3))
-
-        i = 0
-        for fluid in self.inl[0].fluid.val.keys():
-            if fluid == self.h2o:
-                deriv[0, 1, 3 + i] = -1
-            elif fluid == self.o2:
-                deriv[1, 3, 3 + i] = -1
-            elif fluid == self.h2:
-                deriv[2, 4, 3 + i] = -1
-            i += 1
-
-        mat_deriv += deriv.tolist()
-
-        # derivatives to ban fluids off inlets/outlets
-        deriv = np.zeros((3 * len(self.inl[1].fluid.val.keys()) - 3,
-                          5 + self.num_vars, self.num_fl + 3))
-
-        i = 0
-        j = 0
-        for fluid in self.inl[1].fluid.val.keys():
-            if fluid != self.h2o:
-                deriv[j, 1, 3 + i] = -1
-                j += 1
-            if fluid != self.o2:
-                deriv[j, 3, 3 + i] = -1
-                j += 1
-            if fluid != self.h2:
-                deriv[j, 4, 3 + i] = -1
-                j += 1
-            i += 1
-
-        mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for mass balance equations
-
-        # deritatives for mass flow balance in the heat exchanger
-        deriv = np.zeros((3, 5 + self.num_vars, self.num_fl + 3))
-
-        deriv[0, 0, 0] = 1
-        deriv[0, 2, 0] = -1
-
-        # derivatives for mass flow balance for oxygen output
-        o2 = molar_masses[self.o2] / (molar_masses[self.o2] +
-                                      2 * molar_masses[self.h2])
-        deriv[1, 1, 0] = o2
-        deriv[1, 3, 0] = -1
-
-        # derivatives for mass flow balance for hydrogen output
-        deriv[2, 1, 0] = (1 - o2)
-        deriv[2, 4, 0] = -1
-
-        mat_deriv += deriv.tolist()
-
-        ######################################################################
-        # derivatives for pressure equations
-
-        # derivatives for pressure oxygen outlet
-        deriv = np.zeros((2, 5 + self.num_vars, self.num_fl + 3))
-
-        deriv[0, 1, 1] = 1
-        deriv[0, 3, 1] = -1
-
-        # derivatives for pressure hydrogen outlet
-        deriv[1, 1, 1] = 1
-        deriv[1, 4, 1] = -1
-
-        mat_deriv += deriv.tolist()
-
+        # derivatives fluid, mass flow and reactor pressure are static
+        k = self.num_nw_fluids * 4 + 5
         ######################################################################
         # derivatives for energy balance equations
-
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
         T_ref = 293.15
         p_ref = 1e5
-
         h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
         h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
         h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
 
         # derivatives cooling water inlet
-        deriv[0, 0, 0] = - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        deriv[0, 0, 2] = self.inl[0].m.val_SI
+        self.mat_deriv[k, 0, 0] = -(
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        self.mat_deriv[k, 0, 2] = self.inl[0].m.val_SI
 
         # derivatives feed water inlet
-        deriv[0, 1, 0] = (self.inl[1].h.val_SI - h_refh2o)
-        deriv[0, 1, 2] = self.inl[1].m.val_SI
+        self.mat_deriv[k, 1, 0] = (self.inl[1].h.val_SI - h_refh2o)
+        self.mat_deriv[k, 1, 2] = self.inl[1].m.val_SI
 
         # derivative cooling water outlet
-        deriv[0, 2, 2] = - self.inl[0].m.val_SI
+        self.mat_deriv[k, 2, 2] = - self.inl[0].m.val_SI
 
         # derivatives oxygen outlet
-        deriv[0, 3, 0] = - (self.outl[1].h.val_SI - h_refo2)
-        deriv[0, 3, 2] = - self.outl[1].m.val_SI
+        self.mat_deriv[k, 3, 0] = - (self.outl[1].h.val_SI - h_refo2)
+        self.mat_deriv[k, 3, 2] = - self.outl[1].m.val_SI
 
         # derivatives hydrogen outlet
-        deriv[0, 4, 0] = - self.e0 - (self.outl[2].h.val_SI - h_refh2)
-        deriv[0, 4, 2] = - self.outl[2].m.val_SI
+        self.mat_deriv[k, 4, 0] = - self.e0 - (self.outl[2].h.val_SI - h_refh2)
+        self.mat_deriv[k, 4, 2] = - self.outl[2].m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
-            deriv[0, 5 + self.P.var_pos, 0] = 1
+            self.mat_deriv[k, 5 + self.P.var_pos, 0] = 1
 
-        mat_deriv += deriv.tolist()
+        k += 1
 
         ######################################################################
         # derivatives for temperature at gas outlets
 
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
         # derivatives for outlet 1
-        deriv[0, 3, 1] = dT_mix_dph(self.outl[1].to_flow())
-        deriv[0, 3, 2] = dT_mix_pdh(self.outl[1].to_flow())
+        if not vec_z[3, 1]:
+            self.mat_deriv[k, 3, 1] = dT_mix_dph(self.outl[1].to_flow())
+        if not vec_z[3, 2]:
+            self.mat_deriv[k, 3, 2] = dT_mix_pdh(self.outl[1].to_flow())
 
         # derivatives for outlet 2
-        deriv[0, 4, 1] = - dT_mix_dph(self.outl[2].to_flow())
-        deriv[0, 4, 2] = - dT_mix_pdh(self.outl[2].to_flow())
+        if not vec_z[4, 1]:
+            self.mat_deriv[k, 4, 1] = - dT_mix_dph(self.outl[2].to_flow())
+        if not vec_z[4, 2]:
+            self.mat_deriv[k, 4, 2] = - dT_mix_pdh(self.outl[2].to_flow())
 
-        mat_deriv += deriv.tolist()
+        k += 1
 
         ######################################################################
         # derivatives for power vs. hydrogen production
-
         if self.e.is_set:
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
-            deriv[0, 4, 0] = - self.e.val
-
+            self.mat_deriv[k, 4, 0] = - self.e.val
             # derivatives for variable P
             if self.P.is_var:
-                deriv[0, 5 + self.P.var_pos, 0] = 1
-
+                self.mat_deriv[k, 5 + self.P.var_pos, 0] = 1
             # derivatives for variable e
             if self.e.is_var:
-                deriv[0, 5 + self.e.var_pos, 0] = - self.outl[2].m.val_SI
-
-            mat_deriv += deriv.tolist()
+                self.mat_deriv[k, 5 + self.e.var_pos, 0] = -(
+                    self.outl[2].m.val_SI)
+            k += 1
 
         ######################################################################
         # derivatives for pressure ratio
         if self.pr_c.is_set:
-
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
-            deriv[0, 0, 1] = self.pr_c.val
-            deriv[0, 2, 1] = - 1
-
-            mat_deriv += deriv.tolist()
+            self.mat_deriv[k, 0, 1] = self.pr_c.val
+            self.mat_deriv[k, 2, 1] = - 1
+            k += 1
 
         ######################################################################
         # derivatives for zeta value
         if self.zeta.is_set:
-
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-            deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-            deriv[0, 2, 1] = self.numeric_deriv(self.zeta_func, 'p', 2)
-            deriv[0, 2, 2] = self.numeric_deriv(self.zeta_func, 'h', 2)
+            f = self.zeta_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[2, 1]:
+                self.mat_deriv[k, 2, 1] = self.numeric_deriv(f, 'p', 2)
+            if not vec_z[2, 2]:
+                self.mat_deriv[k, 2, 2] = self.numeric_deriv(f, 'h', 2)
 
             # derivatives for variable zeta
             if self.zeta.is_var:
-                deriv[0, 5 + self.zeta.var_pos, 0] = (
-                        self.numeric_deriv(self.zeta_func, 'zeta', 5))
-
-            mat_deriv += deriv.tolist()
+                self.mat_deriv[k, 5 + self.zeta.var_pos, 0] = (
+                    self.numeric_deriv(f, 'zeta', 5))
+            k += 1
 
         ######################################################################
         # derivatives for heat flow
         if self.Q.is_set:
-
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
-            deriv[0, 0, 0] = - (self.inl[0].h.val_SI - self.outl[0].h.val_SI)
-            deriv[0, 0, 2] = - self.inl[0].m.val_SI
-            deriv[0, 2, 2] = self.inl[0].m.val_SI
-
-            mat_deriv += deriv.tolist()
+            self.mat_deriv[k, 0, 0] = -(
+                self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+            self.mat_deriv[k, 0, 2] = - self.inl[0].m.val_SI
+            self.mat_deriv[k, 2, 2] = self.inl[0].m.val_SI
+            k += 1
 
         ######################################################################
         # specified efficiency (efficiency definition: e0 / e)
         if self.eta.is_set:
-
-            deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
-
-            deriv[0, 4, 0] = - self.e0 / self.eta.val
-
+            self.mat_deriv[k, 4, 0] = - self.e0 / self.eta.val
             # derivatives for variable P
             if self.P.is_var:
-                deriv[0, 5 + self.P.var_pos, 0] = 1
-
-            mat_deriv += deriv.tolist()
+                self.mat_deriv[k, 5 + self.P.var_pos, 0] = 1
+            k += 1
 
         ######################################################################
         # specified characteristic line for efficiency
         if self.eta_char.is_set:
-
-            mat_deriv += self.eta_char_deriv()
-
-        ######################################################################
-
-        return np.asarray(mat_deriv)
+            self.mat_deriv[k, 4, 0] = self.numeric_deriv(
+                self.eta_char_func, 'm', 4)
+            # derivatives for variable P
+            if self.P.is_var:
+                self.mat_deriv[k, 5 + self.P.var_pos, 0] = 1
+            k += 1
 
     def eta_char_func(self):
         r"""
         Equation for given efficiency characteristic of a water electrolyzer.
+
         Efficiency is linked to hydrogen production.
 
         Returns
@@ -651,30 +597,101 @@ class water_electrolyzer(component):
         return (self.P.val - self.outl[2].m.val_SI * self.e0 / (
                 self.eta.design * self.eta_char.func.evaluate(expr)))
 
-    def eta_char_deriv(self):
+    def fluid_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the efficiency
-        characteristic function.
+        Calculate the partial derivatives for cooling loop fluid balance.
 
         Returns
         -------
-        deriv : list
-            Matrix of partial derivatives.
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
         """
+        # derivatives for cooling liquid composition
+        deriv = np.zeros((
+            self.num_nw_fluids * 4,
+            5 + self.num_vars,
+            self.num_nw_vars))
 
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+        k = 0
+        for fluid, x in self.inl[0].fluid.val.items():
+            deriv[k, 0, 3 + k] = 1
+            deriv[k, 2, 3 + k] = -1
+            k += 1
 
-        deriv[0, 4, 0] = self.numeric_deriv(self.eta_char_func, 'm', 4)
+        # derivatives to constrain fluids to inlets/outlets
+        i = 0
+        for fluid in self.nw_fluids:
+            if fluid == self.h2o:
+                deriv[k, 1, 3 + i] = -1
+            elif fluid == self.o2:
+                deriv[k + 1, 3, 3 + i] = -1
+            elif fluid == self.h2:
+                deriv[k + 2, 4, 3 + i] = -1
+            i += 1
+        k += 3
 
-        # derivatives for variable P
-        if self.P.is_var:
-            deriv[0, 5 + self.P.var_pos, 0] = 1
+        # derivatives to ban fluids off inlets/outlets
+        i = 0
+        for fluid in self.nw_fluids:
+            if fluid != self.h2o:
+                deriv[k, 1, 3 + i] = -1
+                k += 1
+            if fluid != self.o2:
+                deriv[k, 3, 3 + i] = -1
+                k += 1
+            if fluid != self.h2:
+                deriv[k, 4, 3 + i] = -1
+                k += 1
+            i += 1
 
-        return deriv.tolist()
+        return deriv
+
+    def mass_flow_deriv(self):
+        r"""
+        Calculate the partial derivatives for all mass flow balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the mass flow equations.
+        """
+        # deritatives for mass flow balance in the heat exchanger
+        deriv = np.zeros((3, 5 + self.num_vars, self.num_nw_vars))
+        deriv[0, 0, 0] = 1
+        deriv[0, 2, 0] = -1
+        # derivatives for mass flow balance for oxygen output
+        o2 = molar_masses[self.o2] / (molar_masses[self.o2] +
+                                      2 * molar_masses[self.h2])
+        deriv[1, 1, 0] = o2
+        deriv[1, 3, 0] = -1
+        # derivatives for mass flow balance for hydrogen output
+        deriv[2, 1, 0] = (1 - o2)
+        deriv[2, 4, 0] = -1
+
+        return deriv
+
+    def pressure_deriv(self):
+        r"""
+        Calculate the partial derivatives for combustion pressure equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the pressure equations.
+        """
+        deriv = np.zeros((2, 5 + self.num_vars, self.num_nw_vars))
+        # derivatives for pressure oxygen outlet
+        deriv[0, 1, 1] = 1
+        deriv[0, 3, 1] = -1
+        # derivatives for pressure hydrogen outlet
+        deriv[1, 1, 1] = 1
+        deriv[1, 4, 1] = -1
+
+        return deriv
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -732,7 +749,7 @@ class water_electrolyzer(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -744,36 +761,37 @@ class water_electrolyzer(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 5 + self.num_vars, self.num_nw_vars))
+        f = self.bus_func
 
         ######################################################################
         # derivatives for power on bus
         if bus.param == 'P':
-            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
+            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
 
-            deriv[0, 1, 0] = self.numeric_deriv(self.bus_func, 'm', 1, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
+            deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
 
-            deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+            deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
 
-            deriv[0, 3, 0] = self.numeric_deriv(self.bus_func, 'm', 3, bus=bus)
-            deriv[0, 3, 2] = self.numeric_deriv(self.bus_func, 'h', 3, bus=bus)
+            deriv[0, 3, 0] = self.numeric_deriv(f, 'm', 3, bus=bus)
+            deriv[0, 3, 2] = self.numeric_deriv(f, 'h', 3, bus=bus)
 
-            deriv[0, 4, 0] = self.numeric_deriv(self.bus_func, 'm', 4, bus=bus)
-            deriv[0, 4, 2] = self.numeric_deriv(self.bus_func, 'h', 4, bus=bus)
+            deriv[0, 4, 0] = self.numeric_deriv(f, 'm', 4, bus=bus)
+            deriv[0, 4, 2] = self.numeric_deriv(f, 'h', 4, bus=bus)
             # variable power
             if self.P.is_var:
                 deriv[0, 5 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(self.bus_func, 'P', 5, bus=bus))
+                        self.numeric_deriv(f, 'P', 5, bus=bus))
 
         ######################################################################
         # derivatives for heat on bus
         elif bus.param == 'Q':
 
-            deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-            deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+            deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter
@@ -790,9 +808,9 @@ class water_electrolyzer(component):
 
     def energy_balance(self):
         r"""
-        Calculates the residual in energy balance of the adiabatic water
-        electrolyzer. The residual is the negative to the necessary power
-        input.
+        Calculate the residual in energy balance of the water electrolyzer.
+
+        The residual is the negative to the necessary power input.
 
         Returns
         -------
@@ -842,7 +860,7 @@ class water_electrolyzer(component):
 
     def initialise_fluids(self, nw):
         r"""
-        Sets values to pure fluid on water inlet and gas outlets.
+        Set values to pure fluid on water inlet and gas outlets.
 
         Parameters
         ----------
@@ -855,8 +873,7 @@ class water_electrolyzer(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -887,8 +904,7 @@ class water_electrolyzer(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -918,9 +934,7 @@ class water_electrolyzer(component):
             return h_mix_pT(flow, T)
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
                                                self.inl[0].h.val_SI)
         self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI

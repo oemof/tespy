@@ -28,6 +28,8 @@ from tespy.tools.data_containers import dc_simple, dc_cp
 
 class cycle_closer(component):
     r"""
+    Component for closing cycles.
+
     Equations
 
         **mandatory equations**
@@ -50,6 +52,21 @@ class cycle_closer(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     Note
     ----
@@ -109,8 +126,17 @@ class cycle_closer(component):
 
         component.comp_init(self, nw)
 
-        # all derivatives are constants
-        self.mat_deriv = np.zeros((2, 2, 3 + self.num_fl))
+        # number of mandatroy equations for
+        # pressure: 1
+        # enthalpy: 1
+        self.num_eq = 2
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.vec_res = np.ones(self.num_eq)
         # derivatives for pressure
         self.mat_deriv[0, 0, 1] = 1
         self.mat_deriv[0, 1, 1] = -1
@@ -120,46 +146,36 @@ class cycle_closer(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
+        k = 0
         ######################################################################
         # equation for pressure
-        vec_res += [self.inl[0].p.val_SI - self.outl[0].p.val_SI]
+        self.vec_res[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        k += 1
 
         ######################################################################
         # equation for enthalpy
-        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        k += 1
 
+    def derivatives(self, vek_z):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
-
-        return vec_res
-
-    def derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        ######################################################################
-        # derivatives with constant value (all for this component)
-
-        return self.mat_deriv
+        # all derivatives are static
 
     def calc_parameters(self):
 
-        self.mass_deviation.val = np.abs(self.inl[0].m.val_SI -
-                                         self.outl[0].m.val_SI)
+        # calculate deviation in mass flow
+        self.mass_deviation.val = np.abs(
+            self.inl[0].m.val_SI - self.outl[0].m.val_SI)
 
+        # calculate deviation in fluid composition
         d1 = self.inl[0].fluid.val
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
@@ -187,6 +203,21 @@ class sink(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -229,6 +260,21 @@ class source(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     Example
     -------
     Create a source and specify a label.
@@ -254,6 +300,8 @@ class source(component):
 
 class subsystem_interface(component):
     r"""
+    The subsystem interface does not change fluid properties.
+
     Equations
 
         **mandatory equations**
@@ -293,6 +341,21 @@ class subsystem_interface(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     num_inter : float/tespy.helpers.dc_simple
         Number of interfaces for subsystem.
 
@@ -308,7 +371,8 @@ class subsystem_interface(component):
     rest of your network. It is necessary to specify the number of interfaces
     of the subsystem interface, if you want any number other than 1. We will
     not go in depth of subsystem usage in this example. Please refer to
-    TODO: PLACELINKHERE for more information on building your own subsystems.
+    :ref:`this section <tespy_subsystems_label>` for more information on
+    building your own subsystems.
 
     >>> from tespy.components import sink, source, subsystem_interface
     >>> from tespy.connections import connection
@@ -363,84 +427,96 @@ class subsystem_interface(component):
 
         component.comp_init(self, nw)
 
-        # retrieve always constant derivatives
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.inout_deriv(0)
-        self.p_deriv = self.inout_deriv(1)
-        self.h_deriv = self.inout_deriv(2)
+        # number of mandatroy equations for
+        # fluid: num_inter * num_nw_fluids
+        # mass flow: num_inter
+        # pressure: num_inter
+        # enthalpy: num_inter
+        self.num_eq = (self.num_nw_fluids + 3) * self.num_i
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            2 * self.num_i,
+            self.num_nw_vars))
+
+        self.vec_res = np.ones(self.num_eq)
+        stop = self.num_nw_fluids * self.num_i
+        self.mat_deriv[0:stop] = self.fluid_deriv()
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(0)
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(1)
+        start = stop
+        stop = start + self.num_i
+        self.mat_deriv[start:stop] = self.inout_deriv(2)
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
+        k = 0
         ######################################################################
         # eqations for fluids
         for i in range(self.num_i):
             for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
+                self.vec_res[k] = x - self.outl[i].fluid.val[fluid]
+                k += 1
 
         ######################################################################
         # equations for mass flow
         for i in range(self.num_i):
-            vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            self.vec_res[k] = self.inl[i].m.val_SI - self.outl[i].m.val_SI
+            k += 1
 
         ######################################################################
         # equations for pressure
         for i in range(self.num_i):
-            vec_res += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
+            self.vec_res[k] = self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            k += 1
 
         ######################################################################
         # equations for enthalpy
         for i in range(self.num_i):
-            vec_res += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
+            self.vec_res[k] = self.inl[i].h.val_SI - self.outl[i].h.val_SI
+            k += 1
 
         ######################################################################
 
-        return vec_res
-
-    def derivatives(self):
-        r"""
-        Calculates matrix of partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, vek_z):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
-        # derivatives with constant value (all for this component)
-        mat_deriv = self.fl_deriv + self.m_deriv + self.p_deriv + self.h_deriv
-
-        return np.asarray(mat_deriv)
+        # all derivatives are static
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate the partial derivatives for all fluid balance equations.
 
         Returns
         -------
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((
-                self.num_fl * self.num_i, 2 * self.num_i, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+                          2 * self.num_i,
+                          self.num_nw_vars))
         for i in range(self.num_i):
-            for j in range(self.num_fl):
-                deriv[i * self.num_fl + j, i, j + 3] = 1
-                deriv[i * self.num_fl + j, self.num_i + i, j + 3] = -1
+            for j in range(self.num_nw_fluids):
+                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
+                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv.tolist()
 
     def inout_deriv(self, pos):
         r"""
-        Calculates the partial derivatives for all mass flow, pressure and
-        enthalpy equations.
+        Calculate partial derivatives.
+
+        Method applies for all mass flow, pressure and enthalpy equations.
 
         Parameters
         ----------
@@ -453,7 +529,7 @@ class subsystem_interface(component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_fl + 3))
+        deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[i, i, pos] = 1
         for j in range(self.num_i):

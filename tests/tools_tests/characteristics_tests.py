@@ -31,7 +31,7 @@ class characteristics_tests:
         with open(os.path.join(self.path, 'char_lines.json'), 'w') as outfile:
             json.dump(data, outfile)
 
-        char_original = load_default_char('heat exchanger', 'kA_char1',
+        char_original = load_default_char('heat exchanger', 'kA_char2',
                                           'EVAPORATING FLUID', char_line)
         char_custom = load_custom_char('EVAPORATING FLUID', char_line)
 

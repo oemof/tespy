@@ -267,11 +267,6 @@ class orc_evaporator(component):
         self.mat_deriv[0:pos] = self.fluid_deriv()
         self.mat_deriv[pos:pos + 3] = self.mass_flow_deriv()
 
-        # component.comp_init(self, nw)
-
-        # self.fl_deriv = self.fluid_deriv()
-        # self.m_deriv = self.mass_flow_deriv()
-
     def equations(self):
         r"""
         Calculates vector vec_res with results of equations for this component.
@@ -281,36 +276,28 @@ class orc_evaporator(component):
         vec_res : list
             Vector of residual values.
         """
-        #vec_res = []
         k = 0
 
         ######################################################################
         # equations for fluid balance
-        # vec_res += self.fluid_func()
         self.vec_res[k:k + self.num_nw_fluids * 3] = self.fluid_func()
         k += self.num_nw_fluids * 3
 
         ######################################################################
         # equations for mass flow balance
-        # vec_res += self.mass_flow_func()
         self.vec_res[k:k + 3] = self.mass_flow_func()
         k += 3
 
         ######################################################################
         # equations for energy balance
-        # vec_res += [self.energy_func()]
         self.vec_res[k] = self.energy_func()
         k += 1
 
         ######################################################################
         # equations for specified heat transfer
-        # if self.Q.is_set:
-        #     vec_res += [self.inl[3].m.val_SI *
-        #                 (self.outl[3].h.val_SI - self.inl[3].h.val_SI) +
-        #                 self.Q.val]
         if self.Q.is_set:
             self.vec_res[k] = (
-                    self.inl[3].m.val_SI * (
+                self.inl[3].m.val_SI * (
                     self.outl[3].h.val_SI - self.inl[3].h.val_SI) - self.Q.val)
             k += 1
 
@@ -324,21 +311,24 @@ class orc_evaporator(component):
         # equations for specified pressure ratio at hot side 1
         if self.pr1.is_set:
             self.vec_res[k] = (
-                    self.pr1.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
+                    self.pr1.val * self.inl[0].p.val_SI -
+                    self.outl[0].p.val_SI)
             k += 1
 
         ######################################################################
         # equations for specified pressure ratio at hot side 2
         if self.pr2.is_set:
             self.vec_res[k] = (
-                    self.pr2.val * self.inl[1].p.val_SI - self.outl[1].p.val_SI)
+                    self.pr2.val * self.inl[1].p.val_SI -
+                    self.outl[1].p.val_SI)
             k += 1
 
         ######################################################################
         # equations for specified pressure ratio at cold side
         if self.pr3.is_set:
             self.vec_res[k] = (
-                    self.pr3.val * self.inl[2].p.val_SI - self.outl[2].p.val_SI)
+                    self.pr3.val * self.inl[2].p.val_SI -
+                    self.outl[2].p.val_SI)
             k += 1
 
         ######################################################################
@@ -389,14 +379,9 @@ class orc_evaporator(component):
         vec_res : list
             Vector of residual values.
         """
-        # vec_res = []
 
         ######################################################################
         # equation for saturated liquid at hot side 1 outlet
-        # if not self.subcooling.val:
-        #    outl = self.outl
-        #     o1 = outl[0].to_flow()
-        #     vec_res[k] += [o1[2] - h_mix_pQ(o1, 0]
         if self.subcooling.val is False:
             o1 = self.outl[0].to_flow()
             self.vec_res[k] = o1[2] - h_mix_pQ(o1, 0)
@@ -404,12 +389,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # equation for saturated gas at cold side outlet
-        # if not self.overheating.val:
-        #     outl = self.outl
-        #     o3 = outl[2].to_flow()
-        #     vec_res += [o3[2] - h_mix_pQ(o3, 1)]
-
-        # return vec_res
         if self.overheating.val is False:
             o3 = self.outl[2].to_flow()
             self.vec_res[k] = o3[2] - h_mix_pQ(o3, 1)
@@ -424,15 +403,8 @@ class orc_evaporator(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        # mat_deriv = []
 
         ######################################################################
-        # derivatives for fluid balance equations
-        # mat_deriv += self.fl_deriv
-        ######################################################################
-        # derivatives for mass flow balance equations
-        # mat_deriv += self.m_deriv
-
         # derivatives fluid and mass balance are static
         k = self.num_nw_fluids * 3 + 3
 
@@ -475,11 +447,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified pressure ratio at hot side 1
-        # if self.pr1.is_set:
-        #     pr1_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     pr1_deriv[0, 0, 1] = self.pr1.val
-        #     pr1_deriv[0, 3, 1] = -1
-        #     mat_deriv += pr1_deriv.tolist()
         if self.pr1.is_set:
             self.mat_deriv[k, 0, 1] = self.pr1.val
             self.mat_deriv[k, 3, 1] = -1
@@ -487,11 +454,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified pressure ratio at hot side 2
-        # if self.pr2.is_set:
-        #     pr2_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     pr2_deriv[0, 1, 1] = self.pr2.val
-        #     pr2_deriv[0, 4, 1] = -1
-        #     mat_deriv += pr2_deriv.tolist()
         if self.pr2.is_set:
             self.mat_deriv[k, 1, 1] = self.pr2.val
             self.mat_deriv[k, 4, 1] = -1
@@ -499,11 +461,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified pressure ratio at cold side
-        # if self.pr3.is_set:
-        #     pr3_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     pr3_deriv[0, 2, 1] = self.pr3.val
-        #     pr3_deriv[0, 5, 1] = -1
-        #     mat_deriv += pr3_deriv.tolist()
         if self.pr3.is_set:
             self.mat_deriv[k, 2, 1] = self.pr3.val
             self.mat_deriv[k, 5, 1] = -1
@@ -511,14 +468,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified zeta at hot side 1
-        # if self.zeta1.is_set:
-        #     zeta1_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     zeta1_deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-        #     zeta1_deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
-        #     zeta1_deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-        #     zeta1_deriv[0, 3, 1] = self.numeric_deriv(self.zeta_func, 'p', 3)
-        #     zeta1_deriv[0, 3, 2] = self.numeric_deriv(self.zeta_func, 'h', 3)
-        #     mat_deriv += zeta1_deriv.tolist()
         if self.zeta1.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
@@ -535,14 +484,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified zeta at hot side 2
-        # if self.zeta2.is_set:
-        #     zeta2_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     zeta2_deriv[0, 1, 0] = self.numeric_deriv(self.zeta2_func, 'm', 1)
-        #     zeta2_deriv[0, 1, 1] = self.numeric_deriv(self.zeta2_func, 'p', 1)
-        #     zeta2_deriv[0, 1, 2] = self.numeric_deriv(self.zeta2_func, 'h', 1)
-        #     zeta2_deriv[0, 4, 1] = self.numeric_deriv(self.zeta2_func, 'p', 4)
-        #     zeta2_deriv[0, 4, 2] = self.numeric_deriv(self.zeta2_func, 'h', 4)
-        #     mat_deriv += zeta2_deriv.tolist()
         if self.zeta2.is_set:
             f = self.zeta2_func
             if not vec_z[1, 0]:
@@ -559,14 +500,6 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for specified zeta at cold side
-        # if self.zeta3.is_set:
-        #     zeta3_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     zeta3_deriv[0, 2, 0] = self.numeric_deriv(self.zeta3_func, 'm', 2)
-        #     zeta3_deriv[0, 2, 1] = self.numeric_deriv(self.zeta3_func, 'p', 2)
-        #     zeta3_deriv[0, 2, 2] = self.numeric_deriv(self.zeta3_func, 'h', 2)
-        #     zeta3_deriv[0, 5, 1] = self.numeric_deriv(self.zeta3_func, 'p', 5)
-        #     zeta3_deriv[0, 5, 2] = self.numeric_deriv(self.zeta3_func, 'h', 5)
-        #     mat_deriv += zeta3_deriv.tolist()
         if self.zeta3.is_set:
             f = self.zeta2_func
             if not vec_z[2, 0]:
@@ -583,10 +516,7 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for additional equations
-        # mat_deriv += self.additional_derivatives()
         self.additional_derivatives(vec_z, k)
-
-        # return np.asarray(mat_deriv)
 
     def additional_derivatives(self, vec_z, k):
         r"""
@@ -598,16 +528,9 @@ class orc_evaporator(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        # mat_deriv = []
 
         ######################################################################
         # derivatives for saturated liquid at hot side 1 outlet equation
-        # if not self.subcooling.val:
-        #     o1 = self.outl[0].to_flow()
-        #     x_deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     x_deriv[0, 3, 1] = -dh_mix_dpQ(o1, 0)
-        #     x_deriv[0, 3, 2] = 1
-        #     mat_deriv += x_deriv.tolist()
         if self.subcooling.val is False:
             o1 = self.outl[0].to_flow()
             self.mat_deriv[k, 3, 1] = -dh_mix_dpQ(o1, 0)
@@ -616,20 +539,11 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for saturated gas at cold side outlet 3 equation
-        # if not self.overheating.val:
-        #     o3 = self.outl[2].to_flow()
-        #     deriv = np.zeros((1, 6, self.num_fl + 3))
-        #     deriv[0, 5, 1] = -dh_mix_dpQ(o3, 1)
-        #     deriv[0, 5, 2] = 1
-        #     mat_deriv += deriv.tolist()
-
-        # return mat_deriv
         if self.overheating.val is False:
             o3 = self.outl[2].to_flow()
             self.mat_deriv[k, 5, 1] = -dh_mix_dpQ(o3, 1)
             self.mat_deriv[k, 5, 2] = 1
             k += 1
-
 
     def fluid_func(self):
         r"""
@@ -737,67 +651,13 @@ class orc_evaporator(component):
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) +
                 \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
         """
-#        if self.zero_flag.is_set:
-#            c = self.zero_flag.val
-#            if c[0] > 0 and c[1] < 3:
-#                return self.inl[0].m.val_SI
-#
-#            elif ((c[0] == 0 and c[1] < 3) or
-#                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
-#                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
-#
-#            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
-#                  (c[0] == 3 and c[1] == 5)):
-#                return self.inl[1].m.val_SI
-#            else:
-#                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
-#
-#        else:
+
         return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
                                         self.inl[0].h.val_SI) +
                 self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
                                         self.inl[1].h.val_SI) +
                 self.inl[2].m.val_SI * (self.outl[2].h.val_SI -
                                         self.inl[2].h.val_SI))
-
-    def energy_deriv(self):
-        r"""
-        Calculates the matrix of partial derivatives for energy balance
-        equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 6, len(self.inl[0].fluid.val) + 3))
-
-#        if self.zero_flag.is_set:
-#            c = self.zero_flag.val
-#            if c[0] > 0 and c[1] < 3:
-#                deriv[0, 0, 0] = 1
-#
-#            elif ((c[0] == 0 and c[1] < 3) or
-#                  (c[0] > 1 and c[1] > 2 and c[1] < 5)):
-#                deriv[0, 0, 2] = -1
-#                deriv[0, 2, 2] = 1
-#
-#            elif ((c[0] < 2 and c[1] > 2 and c[1] < 5) or
-#                  (c[0] == 3 and c[1] == 5)):
-#                deriv[0, 1, 0] = 1
-#            else:
-#                deriv[0, 1, 2] = -1
-#                deriv[0, 3, 2] = 1
-#
-#        else:
-        for k in range(3):
-            deriv[0, k, 0] = self.outl[k].h.val_SI - self.inl[k].h.val_SI
-            deriv[0, k, 2] = -self.inl[k].m.val_SI
-
-        deriv[0, 3, 2] = self.inl[0].m.val_SI
-        deriv[0, 4, 2] = self.inl[1].m.val_SI
-        deriv[0, 5, 2] = self.inl[2].m.val_SI
-        return deriv.tolist()
 
     def kA_func(self):
         r"""
@@ -824,35 +684,12 @@ class orc_evaporator(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \, f\ :subscript:`2` \
-        and f\ :subscript:`2` \ see module :func:`tespy.data`.
+        and f\ :subscript:`3` \ see module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
-
-#        if self.zero_flag.is_set:
-#            c = self.zero_flag.val
-#            if c[1] == 2 or c[1] == 4 or c[1] == 5:
-#                T_i1 = T_mix_ph(self.inl[0].to_flow(),
-#                        T0=self.inl[0].T.val_SI)
-#                T_i2 = T_mix_ph(self.inl[1].to_flow(),
-#                        T0=self.inl[1].T.val_SI)
-#                T_o1 = T_mix_ph(self.outl[0].to_flow(),
-#                                T0=self.outl[0].T.val_SI)
-#                T_o2 = T_mix_ph(self.outl[1].to_flow(),
-#                                T0=self.outl[1].T.val_SI)
-#                return T_o1 - T_i2 - T_i1 + T_o2
-#
-#            elif c[0] < 3 and (c[1] == 1 or c[1] == 3):
-#                return self.outl[1].h.val_SI - self.inl[1].h.val_SI
-#
-#            elif ((c[0] < 2 and c[1] == 0) or
-#                  (c[0] == 3 and (c[1] == 1 or c[1] == 3))):
-#                return self.inl[1].m.val_SI
-#
-#            else:
-#                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
 
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
@@ -872,34 +709,17 @@ class orc_evaporator(component):
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         T_o3 = T_mix_ph(o3, T0=self.outl[2].T.val_SI)
 
-#        if T_i1 <= T_o2 and self.inl[0].T.val_set is False:
         if T_i1 <= T_o3:
             T_i1 = T_o3 + 0.01
-#        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
+
         if T_i1 <= T_o3:
             T_o3 = T_i1 - 0.01
-#        if T_i1 < T_o2 and self.inl[0].T.val_set and self.outl[1].T.val_set:
-#            msg = ('Infeasibility at ' + str(self.label) +
-#                   ': Value for upper '
-#                   'temperature difference is ' + str(round(T_i1 - T_o2)) +
-#                   '.')
-#            logging.error(msg)
-#            raise ValueError(msg)
 
-#        if T_i1 <= T_o2 and self.outl[1].T.val_set is False:
         if T_i1 <= T_o3:
             T_o1 = T_i3 + 0.02
 
-#        if T_o1 <= T_i2 and self.inl[1].T.val_set is False:
         if T_o1 <= T_i3:
             T_i3 = T_o1 - 0.02
-#        if T_o1 < T_i2 and self.inl[1].T.val_set and self.outl[0].T.val_set:
-#            msg = ('Infeasibility at ' + str(self.label) +
-#                   ': Value for lower '
-#                   'temperature difference is ' + str(round(T_o1 - T_i2)) +
-#                   '.')
-#            logging.error(msg)
-#            raise ValueError(msg)
 
         fkA1 = 1
         if self.kA_char1.param == 'm':

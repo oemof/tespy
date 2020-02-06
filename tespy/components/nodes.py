@@ -604,7 +604,7 @@ class drum(component):
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
-    4.0
+    4.1
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

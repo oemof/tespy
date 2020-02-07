@@ -196,15 +196,15 @@ class heat_exchanger_simple(component):
     >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(heat_sink.Q.val, 0)
-    -59294.0
+    -56599.0
     >>> round(outg.T.val, 1)
-    154.9
+    156.9
     >>> inc.set_attr(m=0.75)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(heat_sink.Q.val, 1)
-    -44733.5
+    -47275.8
     >>> round(outg.T.val, 1)
-    143.3
+    140.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -1289,13 +1289,13 @@ class heat_exchanger(component):
     >>> ex_he.set_attr(v=0.075)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    27.2
+    27.5
     >>> round(he_ex.T.val, 1)
-    14.7
+    14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    33.8
+    33.9
     >>> round(he_ex.T.val, 1)
     18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -2538,11 +2538,11 @@ class desuperheater(heat_exchanger):
     >>> et_de.set_attr(v=12)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(cw_de.v.val, 2)
-    1.23
+    1.94
     >>> et_de.set_attr(v=7)
     >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
     >>> round(cw_de.v.val, 2)
-    0.71
+    0.41
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

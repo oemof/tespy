@@ -695,11 +695,11 @@ class bus:
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
     >>> round(chp.ti.val)
-    21187552.0
+    21187528.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
     >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 3)
-    0.966
+    0.967
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

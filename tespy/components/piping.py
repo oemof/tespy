@@ -22,6 +22,7 @@ from tespy.components.heat_exchangers import heat_exchanger_simple
 
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
+from tespy.tools.global_vars import err
 
 
 # %%
@@ -29,6 +30,8 @@ from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
 
 class pipe(heat_exchanger_simple):
     r"""
+    The pipe is a subclass of a simple heat exchanger.
+
     Equations
 
         **mandatory equations**
@@ -76,10 +79,25 @@ class pipe(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : String/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -108,7 +126,7 @@ class pipe(heat_exchanger_simple):
     kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y
         values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+        Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature
@@ -170,6 +188,8 @@ class pipe(heat_exchanger_simple):
 
 class valve(component):
     r"""
+    The valve throttles a fluid without changing enthalpy.
+
     Equations
 
         **mandatory equations**
@@ -215,7 +235,22 @@ class valve(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    pr : String/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -293,9 +328,25 @@ class valve(component):
 
         component.comp_init(self, nw)
 
-        self.fl_deriv = self.fluid_deriv()
-        self.m_deriv = self.mass_flow_deriv()
-        self.h_deriv = self.enthalpy_deriv()
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        # enthalpy: 1
+        self.num_eq = self.num_nw_fluids + 2
+        for var in [self.pr, self.zeta, self.dp_char]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.mat_deriv = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.vec_res = np.zeros(self.num_eq)
+        pos = self.num_nw_fluids
+        self.mat_deriv[0:pos] = self.fluid_deriv()
+        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.mat_deriv[pos + 1:pos + 2] = self.enthalpy_deriv()
 
     def equations(self):
         r"""
@@ -306,39 +357,44 @@ class valve(component):
         vec_res : list
             Vector of residual values.
         """
-        vec_res = []
-
+        k = 0
         ######################################################################
         # eqations for fluids
-        vec_res += self.fluid_func()
+        self.vec_res[k:k + self.num_nw_fluids] = self.fluid_func()
+        k += self.num_nw_fluids
 
         ######################################################################
         # eqation for mass flow
-        vec_res += self.mass_flow_func()
+        self.vec_res[k] = self.mass_flow_func()
+        k += 1
 
         ######################################################################
         # eqation for enthalpy
-        vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
+        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        k += 1
 
         ######################################################################
         # eqation for specified pressure ratio
         if self.pr.is_set:
-            vec_res += [self.inl[0].p.val_SI * self.pr.val -
-                        self.outl[0].p.val_SI]
+            self.vec_res[k] = (
+                self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            vec_res += [self.zeta_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func()
+            k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            vec_res += [self.dp_char_func()]
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.dp_char_func()
+            k += 1
 
-        return vec_res
-
-    def derivatives(self):
+    def derivatives(self, vec_z):
         r"""
         Calculate matrix of partial derivatives for given equations.
 
@@ -347,50 +403,48 @@ class valve(component):
         mat_deriv : ndarray
             Matrix of partial derivatives.
         """
-        mat_deriv = []
-
         ######################################################################
-        # derivatives fluid composition
-        mat_deriv += self.fl_deriv
-
-        ######################################################################
-        # derivatives for mass flow balance
-        mat_deriv += self.m_deriv
-
-        ######################################################################
-        # derivatives for enthalpy
-        mat_deriv += self.h_deriv
+        # derivatives fluid, mass flow and enthalpy balance are static
+        k = self.num_nw_fluids + 2
 
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 1] = self.pr.val
-            deriv[0, 1, 1] = -1
+            self.mat_deriv[k, 0, 1] = self.pr.val
+            self.mat_deriv[k, 1, 1] = -1
             if self.pr.is_var:
-                deriv[0, 2 + self.pr.var_pos, 0] = self.inl[0].p.val_SI
-            mat_deriv += deriv.tolist()
+                self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
+                    self.inl[0].p.val_SI)
+            k += 1
 
         ######################################################################
         # derivatives for specified zeta
         if self.zeta.is_set:
-            deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-            deriv[0, 0, 0] = self.numeric_deriv(self.zeta_func, 'm', 0)
-            deriv[0, 0, 1] = self.numeric_deriv(self.zeta_func, 'p', 0)
-            deriv[0, 0, 2] = self.numeric_deriv(self.zeta_func, 'h', 0)
-            deriv[0, 1, 1] = self.numeric_deriv(self.zeta_func, 'p', 1)
-            deriv[0, 1, 2] = self.numeric_deriv(self.zeta_func, 'h', 1)
+            f = self.zeta_func
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not vec_z[0, 1]:
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not vec_z[0, 2]:
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not vec_z[1, 1]:
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not vec_z[1, 2]:
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             if self.zeta.is_var:
-                deriv[0, 2 + self.zeta.var_pos, 0] = (
-                        self.numeric_deriv(self.zeta_func, 'zeta', 2))
-            mat_deriv += deriv.tolist()
+                self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
+                    self.numeric_deriv(f, 'zeta', 2))
+            k += 1
 
         ######################################################################
         # derivatives for specified difference pressure
         if self.dp_char.is_set:
-            mat_deriv += self.dp_char_deriv()
-
-        return np.asarray(mat_deriv)
+            if not vec_z[0, 0]:
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    self.dp_char_func, 'm', 0)
+            self.mat_deriv[k, 0, 1] = 1
+            self.mat_deriv[k, 1, 1] = -1
+            k += 1
 
     def enthalpy_deriv(self):
         r"""
@@ -401,15 +455,14 @@ class valve(component):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_nw_vars))
         deriv[0, 0, 2] = 1
         deriv[0, 1, 2] = -1
         return deriv.tolist()
 
     def dp_char_func(self):
         r"""
-        Equation for characteristic line defining difference pressure to
-        mass flow.
+        Equation for characteristic line of difference pressure to mass flow.
 
         Returns
         -------
@@ -425,28 +478,9 @@ class valve(component):
 
         return i[1] - o[1] - self.dp_char.func.evaluate(i[0])
 
-    def dp_char_deriv(self):
-        r"""
-        Calculate the matrix of partial derivatives of the difference pressure
-        to mass flow characteristic line.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
-
-        deriv[0, 0, 0] = self.numeric_deriv(self.dp_char_func, 'm', 0)
-        deriv[0, 0, 1] = 1
-        deriv[0, 1, 1] = -1
-
-        return deriv.tolist()
-
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -475,8 +509,7 @@ class valve(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -504,9 +537,7 @@ class valve(component):
             return 5e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.pr.val = o[1] / i[1]

@@ -93,6 +93,9 @@ class connection:
     local_design : boolean
         Treat this connection in design mode in an offdesign calculation.
 
+    printout: boolean
+        Include this connection in the network's results printout.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -320,6 +323,9 @@ class connection:
 
         local_design : boolean
             Treat this connection in design mode in an offdesign calculation.
+
+        printout: boolean
+            Include this connection in the network's results printout.
 
         Note
         ----
@@ -580,7 +586,7 @@ class bus:
     example at :func:`tespy.components.combustion.combustion_engine` and adds
     a flue gas cooler and a circulation pump for the cooling water. Then
     busses for heat output, thermal input and electricity output are
-    implementd.
+    implemented.
 
     >>> from tespy.components import (sink, source, combustion_engine,
     ... heat_exchanger, merge, splitter, pump)
@@ -649,7 +655,7 @@ class bus:
 
     >>> load = np.array([0.2, 0.4, 0.6, 0.8, 1, 1.2])
     >>> gen_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
-    >>> mot_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) / 0.98
+    >>> mot_efficiency = 1 / (np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98)
     >>> gen = char_line(x=load, y=gen_efficiency)
     >>> mot = char_line(x=load, y=mot_efficiency)
     >>> power_bus = bus('total power output', P=10e6)
@@ -676,20 +682,24 @@ class bus:
     >>> heat_bus.comps.loc[fgc]['char'].y
     array([-1, -1])
     >>> round(chp.ti.val)
-    22957225.0
+    25813247.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)
-    3558138.0
+    8896898.0
     >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
-    8975912.0
+    12553049.0
     >>> round(heat_bus.P.val, 0)
-    8975912.0
+    12553049.0
+    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 2)
+    0.98
     >>> power_bus.set_attr(P=7.5e6)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
     >>> round(chp.ti.val)
-    18049591.0
+    21187528.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
+    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 3)
+    0.967
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

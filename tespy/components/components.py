@@ -44,6 +44,18 @@ class component:
     design_path: str
         Path to the components design case.
 
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     **kwargs :
         See the class documentation of desired component for available
         keywords.
@@ -105,7 +117,7 @@ class component:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets reset or unset attributes of a component for provided arguments.
+        Set, reset or unset attributes of a component for provided arguments.
 
         Parameters
         ----------
@@ -175,13 +187,10 @@ class component:
 
                 elif (isinstance(self.get_attr(key), dc_cc) or
                       isinstance(self.get_attr(key), dc_cm)):
-                    # value specification for characteristic lines
-                    if isinstance(kwargs[key], char_line):
-                        self.get_attr(key).func = kwargs[key]
-
-                    # value specification for characteristic maps
-                    elif (isinstance(kwargs[key], char_map) or
-                          isinstance(kwargs[key], compressor_map)):
+                    # value specification for characteristics
+                    if (isinstance(kwargs[key], char_line) or
+                            isinstance(kwargs[key], char_map) or
+                            isinstance(kwargs[key], compressor_map)):
                         self.get_attr(key).func = kwargs[key]
 
                     # invalid datatype for keyword
@@ -237,8 +246,8 @@ class component:
 
             elif key == 'local_design' or key == 'local_offdesign':
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean '
-                           'at ' + self.label + '.')
+                    msg = ('Please provide the parameter ' + key +
+                           ' as boolean at component ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -299,30 +308,33 @@ class component:
 
     def comp_init(self, nw):
         r"""
-        Performs component initialization in network preprocessing.
+        Perform component initialization in network preprocessing.
 
         Parameters
         ----------
         nw : tespy.networks.network
             Network this component is integrated in.
         """
+        self.num_nw_fluids = len(nw.fluids)
+        self.nw_fluids = nw.fluids
+        self.num_nw_vars = self.num_nw_fluids + 3
+        self.it = 0
+        self.vec_res = []
+        self.mat_deriv = None
+        self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
+
         var = self.attr()
-        for val in var.keys():
-            if isinstance(self.attr()[val], dc_cp):
-                if self.get_attr(val).is_var:
-                    self.get_attr(val).var_pos = self.num_vars
-                    self.num_vars += 1
-                    self.vars[self.get_attr(val)] = val
-
-        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
-               ' custom variables.')
-        logging.debug(msg)
-
-        # characteristics creation
         for key, val in var.items():
-            if isinstance(val, dc_cc):
+            if isinstance(val, dc_cp):
+                if self.get_attr(key).is_var:
+                    self.get_attr(key).var_pos = self.num_vars
+                    self.num_vars += 1
+                    self.vars[self.get_attr(key)] = key
+
+            # characteristics creation
+            elif isinstance(val, dc_cc):
                 if self.get_attr(key).func is None:
                     try:
                         self.get_attr(key).func = ldc(
@@ -341,8 +353,9 @@ class component:
                                'component.char_warnings=False.')
                         logging.warning(msg)
 
-        self.num_fl = len(nw.fluids)
-        self.fluids = nw.fluids
+        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
+               ' custom variables.')
+        logging.debug(msg)
 
     @staticmethod
     def attr():
@@ -357,15 +370,14 @@ class component:
         return []
 
     def equations(self):
-        return []
+        return
 
-    def derivatives(self):
-        return []
+    def derivatives(self, vec_z):
+        return
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -391,8 +403,7 @@ class component:
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -442,9 +453,7 @@ class component:
                     self.get_attr(key).design = np.nan
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         return
 
     def check_parameter_bounds(self):
@@ -475,8 +484,7 @@ class component:
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -495,28 +503,28 @@ class component:
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-
-        deriv = np.zeros((self.num_fl, 2 + self.num_vars, 3 + self.num_fl))
+        deriv = np.zeros((self.num_nw_fluids,
+                          2 + self.num_vars,
+                          self.num_nw_vars))
         i = 0
-        for fluid in self.fluids:
+        for fluid in self.nw_fluids:
             deriv[i, 0, i + 3] = 1
             deriv[i, 1, i + 3] = -1
             i += 1
-        return deriv.tolist()
+        return deriv
 
 # %%
 
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value for mass flow balance equation.
 
         Returns
         -------
@@ -527,17 +535,16 @@ class component:
                 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
                 \forall i \in inlets, \forall j \in outlets
         """
-
         res = 0
         for i in self.inl:
             res += i.m.val_SI
         for o in self.outl:
             res -= o.m.val_SI
-        return [res]
+        return res
 
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -545,21 +552,19 @@ class component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-
         deriv = np.zeros((1, self.num_i + self.num_o +
-                          self.num_vars, 3 + self.num_fl))
+                          self.num_vars, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[0, i, 0] = 1
         for j in range(self.num_o):
             deriv[0, j + i + 1, 0] = -1
-        return deriv.tolist()
+        return deriv
 
 # %%
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
         r"""
-        Calculates partial derivative of the function func to dx at given
-        connection.
+        Calculate partial derivative of the function func to dx.
 
         Parameters
         ----------
@@ -584,7 +589,6 @@ class component:
 
                 \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
         """
-
         dm, dp, dh, df = 0, 0, 0, 0
         if dx == 'm':
             dm = 1e-4
@@ -649,7 +653,7 @@ class component:
 
     def zeta_func(self):
         r"""
-        Calculates residual value of :math:`\zeta`-function.
+        Calculate residual value of :math:`\zeta`-function.
 
         Returns
         -------
@@ -660,8 +664,8 @@ class component:
 
                 val = \begin{cases}
                 p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}{8 \cdot
-                \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
+                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}
+                {8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
                 v_{out}}{2}} &
                 |\dot{m}| > \epsilon
                 \end{cases}
@@ -695,8 +699,7 @@ class component:
 
     def zeta2_func(self):
         r"""
-        calculates residual value of :math:`\zeta`-function (for heat
-        exchangers at lower temperature side).
+        Calculate residual value of :math:`\zeta_2`-function.
 
         Returns
         -------

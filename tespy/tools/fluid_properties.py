@@ -39,9 +39,10 @@ import logging
 
 class tespy_fluid:
     r"""
-    The tespy_fluid class allows the creation of custom fluid properies for a
-    specified mixture of fluids. The created fluid properties adress an ideal
-    mixture of real fluids.
+    Allow the creation of lookup tables for specified mixtures.
+
+    The created fluid property lookup table adress an ideal mixture of real
+    fluids.
 
     Parameters
     ----------
@@ -230,7 +231,7 @@ class tespy_fluid:
 
     def generate_lookup(self, name, func):
         r"""
-        Create lookup table from CoolProp-database
+        Create lookup table from CoolProp-database.
 
         Parameters
         ----------
@@ -260,8 +261,7 @@ class tespy_fluid:
 
     def save_lookup(self, name, x1, x2, y):
         r"""
-        Save lookup table to working dir in new folder
-        :code:`./LUT/fluid_alias/`.
+        Save lookup table to working dir :code:`./LUT/fluid_alias/`.
 
         Parameters
         ----------
@@ -312,9 +312,7 @@ tespy_fluid.fluids = {}
 
 
 class memorise:
-    r"""
-    Memorization of fluid properties.
-    """
+    r"""Memorization of fluid properties."""
 
     def add_fluids(fluids):
         r"""
@@ -420,14 +418,13 @@ class memorise:
 
     def del_memory(fluids):
         r"""
-        Deletes non frequently used fluid property values from memorise class.
+        Delete non frequently used fluid property values from memorise class.
 
         Parameters
         ----------
         fluids : list
             List of fluid for fluid property memorization.
         """
-
         fl = tuple(fluids)
 
         # delete memory
@@ -477,7 +474,7 @@ memorise.vrange = {}
 
 def T_mix_ph(flow, T0=300):
     r"""
-    Calculates the temperature from pressure and enthalpy.
+    Calculate the temperature from pressure and enthalpy.
 
     Parameters
     ----------
@@ -546,7 +543,7 @@ def T_mix_ph(flow, T0=300):
 
 def T_ph(p, h, fluid):
     r"""
-    Calculates the temperature from pressure and enthalpy for a pure fluid.
+    Calculate the temperature from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -579,8 +576,7 @@ def T_ph(p, h, fluid):
 
 def dT_mix_dph(flow, T0=300):
     r"""
-    Calculate partial derivate of temperature to pressure at constant enthalpy
-    and fluid composition.
+    Calculate partial derivate of temperature to pressure.
 
     Parameters
     ----------
@@ -608,8 +604,7 @@ def dT_mix_dph(flow, T0=300):
 
 def dT_mix_pdh(flow, T0=300):
     r"""
-    Calculate partial derivate of temperature to enthalpy at constant pressure
-    and fluid composition.
+    Calculate partial derivate of temperature to enthalpy.
 
     Parameters
     ----------
@@ -637,8 +632,7 @@ def dT_mix_pdh(flow, T0=300):
 
 def dT_mix_ph_dfluid(flow, T0=300):
     r"""
-    Calculate partial derivate of temperature to fluid composition at constant
-    pressure and enthalpy.
+    Calculate partial derivate of temperature to fluid composition.
 
     Parameters
     ----------
@@ -680,7 +674,7 @@ def dT_mix_ph_dfluid(flow, T0=300):
 
 def T_mix_ps(flow, s, T0=300):
     r"""
-    Calculates the temperature from pressure and entropy.
+    Calculate the temperature from pressure and entropy.
 
     Parameters
     ----------
@@ -761,7 +755,7 @@ def T_mix_ps(flow, s, T0=300):
 #
 #def T_ps(p, s, fluid):
 #    r"""
-#    Calculates the temperature from pressure and entropy for a pure fluid.
+#    Calculate the temperature from pressure and entropy for a pure fluid.
 #
 #    Parameters
 #    ----------
@@ -796,7 +790,7 @@ def T_mix_ps(flow, s, T0=300):
 
 def h_mix_pT(flow, T):
     r"""
-    Calculates the enthalpy from pressure and Temperature.
+    Calculate the enthalpy from pressure and Temperature.
 
     Parameters
     ----------
@@ -835,7 +829,7 @@ def h_mix_pT(flow, T):
 
 def h_pT(p, T, fluid):
     r"""
-    Calculates the enthalpy from pressure and temperature for a pure fluid.
+    Calculate the enthalpy from pressure and temperature for a pure fluid.
 
     Parameters
     ----------
@@ -867,8 +861,7 @@ def h_pT(p, T, fluid):
 
 def dh_mix_pdT(flow, T):
     r"""
-    Calculate partial derivate of enthalpy to temperature at constant pressure
-    and fluid composition.
+    Calculate partial derivate of enthalpy to temperature.
 
     Parameters
     ----------
@@ -897,7 +890,7 @@ def dh_mix_pdT(flow, T):
 
 def h_mix_ps(flow, s, T0=300):
     r"""
-    Calculates the enthalpy from pressure and temperature.
+    Calculate the enthalpy from pressure and temperature.
 
     Parameters
     ----------
@@ -926,7 +919,7 @@ def h_mix_ps(flow, s, T0=300):
 
 def h_ps(p, s, fluid):
     r"""
-    Calculates the enthalpy from pressure and entropy for a pure fluid.
+    Calculate the enthalpy from pressure and entropy for a pure fluid.
 
     Parameters
     ----------
@@ -962,7 +955,7 @@ def h_ps(p, s, fluid):
 
 def h_mix_pQ(flow, Q):
     r"""
-    Calculates the enthalpy from pressure and vapour mass fraction.
+    Calculate the enthalpy from pressure and vapour mass fraction.
 
     Parameters
     ----------
@@ -988,19 +981,18 @@ def h_mix_pQ(flow, Q):
         logging.error(msg)
         raise ValueError(msg)
 
-    pcrit = CPPSI('Pcrit', fluid)
-    if flow[1] > pcrit:
-        memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
-    else:
+    try:
         memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], Q)
+    except ValueError:
+        pcrit = CPPSI('Pcrit', fluid)
+        memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
 
     return memorise.heos[fluid].hmass()
 
 
 def dh_mix_dpQ(flow, Q):
     r"""
-    Calculate partial derivate of enthalpy to vapour mass fraction at constant
-    pressure.
+    Calculate partial derivate of enthalpy to vapour mass fraction.
 
     Parameters
     ----------
@@ -1039,7 +1031,7 @@ def dh_mix_dpQ(flow, Q):
 
 def T_bp_p(flow):
     r"""
-    Calculates temperature from boiling point pressure.
+    Calculate temperature from boiling point pressure.
 
     Parameters
     ----------
@@ -1103,7 +1095,7 @@ def dT_bp_dp(flow):
 
 def v_mix_ph(flow, T0=300):
     r"""
-    Calculates the specific volume from pressure and enthalpy.
+    Calculate the specific volume from pressure and enthalpy.
 
     Parameters
     ----------
@@ -1163,7 +1155,7 @@ def v_mix_ph(flow, T0=300):
 
 def d_ph(p, h, fluid):
     r"""
-    Calculates the density from pressure and enthalpy for a pure fluid.
+    Calculate the density from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -1199,8 +1191,7 @@ def d_ph(p, h, fluid):
 
 def Q_ph(p, h, fluid):
     r"""
-    Calculates the steam mass fraction from pressure and enthalpy for a pure
-    fluid.
+    Calculate steam mass fraction from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -1239,8 +1230,7 @@ def Q_ph(p, h, fluid):
 
 def dv_mix_dph(flow, T0=300):
     r"""
-    Calculate partial derivate of specific volume to pressure at constant
-    enthalpy and fluid composition.
+    Calculate partial derivate of specific volume to pressure.
 
     Parameters
     ----------
@@ -1269,8 +1259,7 @@ def dv_mix_dph(flow, T0=300):
 
 def dv_mix_pdh(flow, T0=300):
     r"""
-    Calculate partial derivate of specific volume to enthalpy at constant
-    pressure and fluid composition.
+    Calculate partial derivate of specific volume to enthalpy.
 
     Parameters
     ----------
@@ -1301,7 +1290,7 @@ def dv_mix_pdh(flow, T0=300):
 
 def v_mix_pT(flow, T):
     r"""
-    Calculates the specific volume from pressure and temperature.
+    Calculate the specific volume from pressure and temperature.
 
     Parameters
     ----------
@@ -1335,7 +1324,7 @@ def v_mix_pT(flow, T):
 
 def d_mix_pT(flow, T):
     r"""
-    Calculates the density from pressure and temperature.
+    Calculate the density from pressure and temperature.
 
     Parameters
     ----------
@@ -1364,7 +1353,7 @@ def d_mix_pT(flow, T):
 
 def d_pT(p, T, fluid):
     r"""
-    Calculates the density from pressure and temperature for a pure fluid.
+    Calculate the density from pressure and temperature for a pure fluid.
 
     Parameters
     ----------
@@ -1398,7 +1387,7 @@ def d_pT(p, T, fluid):
 
 def visc_mix_ph(flow, T0=300):
     r"""
-    Calculates the dynamic viscorsity from pressure and enthalpy.
+    Calculate the dynamic viscorsity from pressure and enthalpy.
 
     Parameters
     ----------
@@ -1458,8 +1447,7 @@ def visc_mix_ph(flow, T0=300):
 
 def visc_ph(p, h, fluid):
     r"""
-    Calculates the dynamic viscosity from pressure and enthalpy for a pure
-    fluid.
+    Calculate dynamic viscosity from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -1495,7 +1483,7 @@ def visc_ph(p, h, fluid):
 
 def visc_mix_pT(flow, T):
     r"""
-    Calculates the dynamic viscosity from pressure and temperature.
+    Calculate dynamic viscosity from pressure and temperature.
 
     Parameters
     ----------
@@ -1539,8 +1527,7 @@ def visc_mix_pT(flow, T):
 
 def visc_pT(p, T, fluid):
     r"""
-    Calculates the dynamic viscosity from pressure and temperature for a pure
-    fluid.
+    Calculate dynamic viscosity from pressure and temperature for a pure fluid.
 
     Parameters
     ----------
@@ -1574,7 +1561,7 @@ def visc_pT(p, T, fluid):
 
 def s_mix_ph(flow, T0=300):
     r"""
-    Calculates the entropy from pressure and enthalpy.
+    Calculate the entropy from pressure and enthalpy.
 
     Parameters
     ----------
@@ -1634,7 +1621,7 @@ def s_mix_ph(flow, T0=300):
 
 def s_ph(p, h, fluid):
     r"""
-    Calculates the entropy from pressure and enthalpy for a pure fluid.
+    Calculate the entropy from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -1670,7 +1657,7 @@ def s_ph(p, h, fluid):
 
 def s_mix_pT(flow, T):
     r"""
-    Calculates the entropy from pressure and temperature.
+    Calculate the entropy from pressure and temperature.
 
     Parameters
     ----------
@@ -1730,7 +1717,7 @@ def s_mix_pT(flow, T):
 
 def s_pT(p, T, fluid):
     r"""
-    Calculates the entropy from pressure and temperature for a pure fluid.
+    Calculate the entropy from pressure and temperature for a pure fluid.
 
     Parameters
     ----------
@@ -1762,8 +1749,7 @@ def s_pT(p, T, fluid):
 
 def ds_mix_pdT(flow, T):
     r"""
-    Calculate partial derivate of entropy to temperature at constant pressure
-    and fluid composition.
+    Calculate partial derivate of entropy to temperature.
 
     Parameters
     ----------

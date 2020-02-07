@@ -22,8 +22,7 @@ import numpy as np
 
 class data_container:
     r"""
-    Class data_container is the base class for dc_cc, dc_cp, dc_flu, dc_prop,
-    dc_simple.
+    The data_container is parent class for all data_containers.
 
     Parameters
     ----------
@@ -59,7 +58,7 @@ class data_container:
     >>> from tespy.components.piping import pipe
     >>> type(dc_cm(is_set=True))
     <class 'tespy.tools.data_containers.dc_cm'>
-    >>> type(dc_cc(x=[1, 2, 3, 4], y=[1, 4, 9, 16], is_set=True))
+    >>> type(dc_cc(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.dc_cc'>
     >>> type(dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...      max_val=1000, min_val=1))
@@ -105,6 +104,12 @@ class data_container:
             if key in var.keys():
                 self.__dict__.update({key: kwargs[key]})
 
+            else:
+                msg = ('Data container of type ' + self.__class__.__name__ +
+                       ' has no attribute ' + key + '.')
+                logging.error(msg)
+                raise KeyError(msg)
+
     def get_attr(self, key):
         r"""
         Get the value of a data_container's attribute.
@@ -145,36 +150,21 @@ class data_container:
 
 class dc_cc(data_container):
     r"""
+    Data container for component characteristics.
+
     Parameters
     ----------
-
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristics, default: None.
 
     is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : str
-        Which default method for this characteristic function should be used?
-        default: method='default'.
-
     param : str
         Which parameter should be applied as the x value?
         default: method='default'.
-
-    x : numpy.array
-        Array for the x-values of the characteristic line, default x=None.
-
-    y : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    Note
-    ----
-    If you do not specify x-values or y-values, default values according to the
-    specified method will be used. If you specify a method as well as x-values
-    and/or y-values, these will override the defaults values of the chosen
-    method.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -186,50 +176,28 @@ class dc_cc(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None,
-                'x': None, 'y': None}
+        return {'func': None, 'is_set': False, 'param': None}
 
 # %%
 
 
 class dc_cm(data_container):
     r"""
+    Data container for characteristic maps.
+
     Parameters
     ----------
-
     func : tespy.components.characteristics.characteristics
         Function to be applied for this characteristic map, default: None.
 
     is_set : boolean
         Should this equation be applied?, default: is_set=False.
 
-    method : str
-        Which default method for this characteristic function should be used?
-        default: method='default'.
-
     param : str
         Which parameter should be applied as the x value?
         default: method='default'.
-
-    x : numpy.array
-        Array for the x-values of the characteristic line, default x=None.
-
-    y : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    z1 : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    z2 : numpy.array
-        Array for the y-values of the characteristic line, default y=None.
-
-    Note
-    ----
-    If you do not specify any interpolation points (x, y, z1, z2), default
-    values according to the specified method will be used. If you specify a
-    method as well as interpolation points, these will override the defaults
-    values of the chosen method.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -241,17 +209,17 @@ class dc_cm(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None,
-                'x': None, 'y': None, 'z1': None, 'z2': None}
+        return {'func': None, 'is_set': False, 'param': None}
 
 # %%
 
 
 class dc_cp(data_container):
     r"""
+    Data container for component properties.
+
     Parameters
     ----------
-
     val : float
         Value for this component attribute, default: val=1.
 
@@ -280,6 +248,7 @@ class dc_cp(data_container):
     printout : boolean
         Should the value of this attribute be printed in the results overview?
     """
+
     @staticmethod
     def attr():
         r"""
@@ -300,9 +269,10 @@ class dc_cp(data_container):
 
 class dc_flu(data_container):
     r"""
+    Data container for fluid composition.
+
     Parameters
     ----------
-
     val : dict
         Mass fractions of the fluids in a mixture, default: val={}.
         Pattern for dictionary: keys are fluid name, values are mass fractions.
@@ -320,6 +290,7 @@ class dc_flu(data_container):
         Should the fluid balance equation be applied for this mixture?
         default: False.
     """
+
     @staticmethod
     def attr():
         r"""
@@ -339,6 +310,8 @@ class dc_flu(data_container):
 
 class dc_gcp(data_container):
     r"""
+    Data container for grouped component parameters.
+
     Parameters
     ----------
     is_set : boolean
@@ -353,6 +326,7 @@ class dc_gcp(data_container):
         Which component properties are part of this component group?
         default elements=[].
     """
+
     @staticmethod
     def attr():
         r"""
@@ -371,6 +345,8 @@ class dc_gcp(data_container):
 
 class dc_prop(data_container):
     r"""
+    Data container for fluid properties.
+
     Parameters
     ----------
     val : float
@@ -405,8 +381,18 @@ class dc_prop(data_container):
     -------
     See :func:`tespy.tools.data_containers.data_container`
     """
+
     @staticmethod
     def attr():
+        r"""
+        Return the available attributes for a data_container type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
                 'ref': None, 'ref_set': False,
                 'unit': None, 'unit_set': False, 'design': np.nan}
@@ -427,6 +413,16 @@ class dc_simple(data_container):
     is_set : boolean
         Has the value for this property been set? default: val_set=False.
     """
+
     @staticmethod
     def attr():
+        r"""
+        Return the available attributes for a data_container type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
         return {'val': np.nan, 'is_set': False}

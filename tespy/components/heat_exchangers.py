@@ -596,7 +596,8 @@ class heat_exchanger_simple(component):
                 kA \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
                 {\ln{\frac{ttd_u}{ttd_l}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right)
+                f_{kA} = \frac{2}{1 + \frac{1}
+                {f\left(\frac{m_1}{m_{1,ref}}\right)}}
 
                 T_{amb}: \text{ambient temperature}
 
@@ -615,10 +616,12 @@ class heat_exchanger_simple(component):
         else:
             td_log = 0
 
-        fkA = 1
+        f = 1
         if not np.isnan(self.inl[0].m.design):
             if self.kA_char.param == 'm':
-                fkA = self.kA_char.func.evaluate(i[0] / self.inl[0].m.design)
+                f = self.kA_char.func.evaluate(i[0] / self.inl[0].m.design)
+
+        fkA = 2 / (1 + 1 / f)
 
         return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
@@ -1667,8 +1670,9 @@ class heat_exchanger(component):
                 T_{2,in} - T_{1,in} + T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}}\right)
+                f_{kA} = \frac{2}{\fray{1}
+                {f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                {f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -1713,9 +1717,11 @@ class heat_exchanger(component):
                 if not i2[0] == 0:
                     fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
+        fkA = 2 / (1 / fkA1 + 1 / fkA2)
+
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
 
     def ttd_u_func(self):
         r"""
@@ -2298,8 +2304,9 @@ class condenser(heat_exchanger):
                 {\ln{\frac{T_{1,out} - T_{2,in}}
                 {T_s \left(p_{1,in}\right) - T_{2,out}}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}}\right)
+                f_{kA} = \frac{2}{\fray{1}
+                {f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                {f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -2345,6 +2352,8 @@ class condenser(heat_exchanger):
         if self.kA_char2.param == 'm':
             if not np.isnan(i2_d[0]):
                 fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+
+        fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))

@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing fluid properties of gas mixtures.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/tools_tests/fluid_property_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.tools import fluid_properties as fp

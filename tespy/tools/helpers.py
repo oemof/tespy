@@ -45,8 +45,7 @@ class TESPyComponentError(Exception):
 
 def newton(func, deriv, params, y, **kwargs):
     r"""
-    1-D newton algorithm to find zero crossings of function func with its
-    derivative deriv.
+    Find zero crossings with 1-D newton algorithm.
 
     Parameters
     ----------
@@ -126,8 +125,7 @@ def newton(func, deriv, params, y, **kwargs):
 
 def reverse_2d(params, y):
     r"""
-    Calculates the residual value of the inverse generic function with two
-    dimensions x1 and x2.
+    Calculate the residual value of an inverse function.
 
     Parameters
     ----------
@@ -138,7 +136,7 @@ def reverse_2d(params, y):
         Function value of function :math:`y = f \left( x_1, x_2 \right)`.
 
     Returns
-    ------
+    -------
     deriv : float
         Residual value of inverse function :math:`x_2 - f\left(x_1, y \right)`.
     """
@@ -148,8 +146,10 @@ def reverse_2d(params, y):
 
 def reverse_2d_deriv(params, y):
     r"""
-    Derivative of the reverse function for a lookup table.
+    Calculate derivative of an inverse function.
 
+    Parameters
+    ----------
     params : list
         Variable function parameters.
 
@@ -158,7 +158,7 @@ def reverse_2d_deriv(params, y):
         so that :math:`x_2 - f\left(x_1, y \right) = 0`
 
     Returns
-    ------
+    -------
     deriv : float
         Partial derivative :math:`\frac{\partial f}{\partial y}`.
     """
@@ -170,7 +170,7 @@ def reverse_2d_deriv(params, y):
 
 def molar_mass_flow(flow):
     r"""
-    Calculates molar mass flow.
+    Calculate molar mass flow.
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ def molar_mass_flow(flow):
 
 def num_fluids(fluids):
     r"""
-    Returns number of fluids in fluid mixture.
+    Return number of fluids in fluid mixture.
 
     Parameters
     ----------
@@ -230,7 +230,7 @@ def num_fluids(fluids):
 
 def single_fluid(fluids):
     r"""
-    Returns the name of the pure fluid in a fluid vector.
+    Return the name of the pure fluid in a fluid vector.
 
     Parameters
     ----------
@@ -254,7 +254,7 @@ def single_fluid(fluids):
 
 def fluid_structure(fluid):
     r"""
-    Returns the checmical formula of fluid.
+    Return the checmical formula of fluid.
 
     Parameters
     ----------
@@ -290,7 +290,7 @@ def fluid_structure(fluid):
 
 def lamb(re, ks, d):
     r"""
-    Calculates the darcy friction factor from the moody diagram.
+    Calculate the darcy friction factor from the moody diagram.
 
     Parameters
     ----------
@@ -393,33 +393,25 @@ def lamb(re, ks, d):
 
 
 def lamb_smooth(params, lamb):
-    """
-    TODO: DOCS!
-    """
+    """Calculate lambda in smooth conditions."""
     re = params[0]
     return 2 * math.log(re * math.sqrt(lamb), 10) - 0.8 - 1 / math.sqrt(lamb)
 
 
 def dlamb_smooth_dlamb(params, lamb):
-    """
-    TODO: DOCS!
-    """
+    """Calculate derivative of lambda in smooth conditions."""
     return 1 / (lamb * math.log(10)) + 1 / 2 * lamb ** (-1.5)
 
 
 def lamb_trans(params, lamb):
-    """
-    TODO: DOCS!
-    """
+    """Calculate lambda in transition region (smooth to rough)."""
     re, ks, d = params[0], params[1], params[2]
     return (2 * math.log(2.51 / (re * math.sqrt(lamb)) + ks / d * 0.269, 10) +
             1 / math.sqrt(lamb))
 
 
 def dlamb_trans_dlamb(params, lamb):
-    """
-    TODO: DOCS!
-    """
+    """Calculate derivative for lambda in transition region."""
     d = 0.001
     return (lamb_trans(params, lamb + d) -
             lamb_trans(params, lamb - d)) / (2 * d)
@@ -444,7 +436,6 @@ def modify_path_os(path):
     path : str
         Modified path.
     """
-
     if os.name == 'nt':
         # windows
         path = path.replace('/', '\\')

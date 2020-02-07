@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing reading charactersitic lines.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/tools_tests/characteristics_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.tools.characteristics import (char_line, compressor_map,
@@ -27,11 +37,11 @@ class characteristics_tests:
         with open(data_path) as f:
             raw_data = json.loads(f.read())
 
-        data = raw_data['heat exchanger']['kA_char1']
+        data = raw_data['heat exchanger']['kA_char2']
         with open(os.path.join(self.path, 'char_lines.json'), 'w') as outfile:
             json.dump(data, outfile)
 
-        char_original = load_default_char('heat exchanger', 'kA_char1',
+        char_original = load_default_char('heat exchanger', 'kA_char2',
                                           'EVAPORATING FLUID', char_line)
         char_custom = load_custom_char('EVAPORATING FLUID', char_line)
 

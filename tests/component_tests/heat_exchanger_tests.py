@@ -1,5 +1,15 @@
 # -*- coding: utf-8
 
+"""Module for testing components of type heat exchanger.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/component_tests/heat_exchanger_tests.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from nose.tools import eq_
 
 from tespy.components.basics import sink, source
@@ -9,6 +19,8 @@ from tespy.components.heat_exchangers import (heat_exchanger_simple,
 from tespy.connections import connection, bus
 from tespy.networks.networks import network
 from tespy.tools.fluid_properties import T_bp_p
+
+import logging
 
 import numpy as np
 import shutil
@@ -284,7 +296,8 @@ class heat_exchanger_tests:
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(T_bp_p(self.c1.to_flow()) - self.c4.T.val_SI, 1)
-        p = round(self.c1.p.val_SI, 0)
+        p = round(self.c1.p.val_SI, 5)
+        kA = instance.kA.val
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +
                str(ttd_u) + '.')
@@ -303,6 +316,6 @@ class heat_exchanger_tests:
         # no changes to design point means: identical pressure
         self.nw.solve('offdesign', design_path='tmp')
         msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
-               str(round(self.c1.p.val_SI)) + '.')
-        eq_(p, round(self.c1.p.val_SI, 0), msg)
+               str(round(self.c1.p.val_SI, 5)) + '.')
+        eq_(p, round(self.c1.p.val_SI, 5), msg)
         shutil.rmtree('./tmp', ignore_errors=True)

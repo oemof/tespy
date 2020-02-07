@@ -1670,9 +1670,9 @@ class heat_exchanger(component):
                 T_{2,in} - T_{1,in} + T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
 
-                f_{kA} = \frac{2}{\fray{1}
-                {f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
-                {f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
+                f_{kA} = \frac{2}{
+                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -2304,9 +2304,9 @@ class condenser(heat_exchanger):
                 {\ln{\frac{T_{1,out} - T_{2,in}}
                 {T_s \left(p_{1,in}\right) - T_{2,out}}}}
 
-                f_{kA} = \frac{2}{\fray{1}
-                {f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
-                {f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
+                f_{kA} = \frac{2}{
+                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----

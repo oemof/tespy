@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.2.1 dev'
+__version__ = '0.2.1 - Fourier\'s Fable'
 
 # tespy networks imports
 from tespy.networks import (

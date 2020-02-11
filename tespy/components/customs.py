@@ -320,8 +320,8 @@ class orc_evaporator(component):
         # equations for specified heat transfer
         if self.Q.is_set:
             self.vec_res[k] = (
-                self.inl[3].m.val_SI * (
-                    self.outl[3].h.val_SI - self.inl[3].h.val_SI) - self.Q.val)
+                self.inl[2].m.val_SI * (
+                    self.outl[2].h.val_SI - self.inl[2].h.val_SI) - self.Q.val)
             k += 1
 
         ######################################################################

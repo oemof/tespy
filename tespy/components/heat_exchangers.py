@@ -196,15 +196,15 @@ class heat_exchanger_simple(component):
     >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(heat_sink.Q.val, 0)
-    -59294.0
+    -56599.0
     >>> round(outg.T.val, 1)
-    154.9
+    156.9
     >>> inc.set_attr(m=0.75)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(heat_sink.Q.val, 1)
-    -44733.5
+    -47275.8
     >>> round(outg.T.val, 1)
-    143.3
+    140.0
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -217,9 +217,9 @@ class heat_exchanger_simple(component):
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
+                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
                 'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
+                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
                 'kA': dc_cp(min_val=0, d=1),
                 'Tamb': dc_cp(),
                 'kA_char': dc_cc(param='m'),
@@ -596,7 +596,8 @@ class heat_exchanger_simple(component):
                 kA \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
                 {\ln{\frac{ttd_u}{ttd_l}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right)
+                f_{kA} = \frac{2}{1 + \frac{1}
+                {f\left(\frac{m_1}{m_{1,ref}}\right)}}
 
                 T_{amb}: \text{ambient temperature}
 
@@ -615,10 +616,12 @@ class heat_exchanger_simple(component):
         else:
             td_log = 0
 
-        fkA = 1
+        f = 1
         if not np.isnan(self.inl[0].m.design):
             if self.kA_char.param == 'm':
-                fkA = self.kA_char.func.evaluate(i[0] / self.inl[0].m.design)
+                f = self.kA_char.func.evaluate(i[0] / self.inl[0].m.design)
+
+        fkA = 2 / (1 + 1 / f)
 
         return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
@@ -1286,13 +1289,13 @@ class heat_exchanger(component):
     >>> ex_he.set_attr(v=0.075)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    27.2
+    27.5
     >>> round(he_ex.T.val, 1)
-    14.7
+    14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(he_cw.T.val, 1)
-    33.8
+    33.9
     >>> round(he_ex.T.val, 1)
     18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -1667,8 +1670,9 @@ class heat_exchanger(component):
                 T_{2,in} - T_{1,in} + T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}}\right)
+                f_{kA} = \frac{2}{
+                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -1713,9 +1717,11 @@ class heat_exchanger(component):
                 if not i2[0] == 0:
                     fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
+        fkA = 2 / (1 / fkA1 + 1 / fkA2)
+
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
 
     def ttd_u_func(self):
         r"""
@@ -2298,8 +2304,9 @@ class condenser(heat_exchanger):
                 {\ln{\frac{T_{1,out} - T_{2,in}}
                 {T_s \left(p_{1,in}\right) - T_{2,out}}}}
 
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}}\right)
+                f_{kA} = \frac{2}{
+                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
+                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -2345,6 +2352,8 @@ class condenser(heat_exchanger):
         if self.kA_char2.param == 'm':
             if not np.isnan(i2_d[0]):
                 fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+
+        fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
@@ -2529,11 +2538,11 @@ class desuperheater(heat_exchanger):
     >>> et_de.set_attr(v=12)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(cw_de.v.val, 2)
-    1.23
+    1.94
     >>> et_de.set_attr(v=7)
     >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
     >>> round(cw_de.v.val, 2)
-    0.71
+    0.41
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

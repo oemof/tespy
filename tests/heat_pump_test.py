@@ -73,14 +73,8 @@ class test_heat_pump:
 
         # busses
 
-        x = np.array([0, 0.7, 1, 1.3])
-        y = 1 / (np.array([0.49, 0.9405, 1, 0.9702]) * 0.96806 * 0.99)
-        mot1 = char_line(x=x, y=y)
-        mot2 = char_line(x=x, y=y)
-
         self.power = bus('total compressor power')
-        self.power.add_comps({'c': cp1, 'char': mot1},
-                             {'c': cp2, 'char': mot2})
+        self.power.add_comps({'c': cp1}, {'c': cp2})
         self.heat = bus('total delivered heat')
         self.heat.add_comps({'c': cd, 'char': -1})
         self.nw.add_busses(self.power, self.heat)
@@ -154,15 +148,11 @@ class test_heat_pump:
 
         # evaporator system
 
-        x = np.array([0.0100, 0.0500, 0.1000, 0.1500, 0.2000, 0.2500, 0.3000,
-                      0.3500, 0.4000, 0.4500, 0.5000, 0.5500, 0.6000, 0.6500,
-                      0.7000, 0.7500, 0.8000, 0.8500, 0.9000, 0.9500, 1.0000,
-                      1.5000, 2.0000])
-
-        y = np.array([0.0297, 0.1582, 0.2451, 0.3133, 0.3730, 0.4271, 0.4772,
-                      0.5243, 0.5689, 0.6115, 0.6524, 0.6918, 0.7299, 0.7668,
-                      0.8027, 0.8376, 0.8716, 0.9048, 0.9372, 0.9689, 1.0000,
-                      1.2809, 1.5227])
+        x = np.linspace(0, 2.5, 26)
+        y = np.array([0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756,
+                      0.840, 0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374,
+                      1.446, 1.516, 1.585, 1.654, 1.722, 1.789, 1.855, 1.921,
+                      1.986, 2.051])
         kA_char1 = dc_cc(func=char_line(x, y), param='m')
 
         x = np.array([0.0100, 0.0400, 0.0700, 0.1100, 0.1500, 0.2000, 0.2500,
@@ -211,23 +201,22 @@ class test_heat_pump:
                      eta_s_char=dc_cc(func=char_line(x, y), param='m'))
 
         # characteristic line for intercooler kA
-        # x = np.linspace(0, 2.5, 26)
-        # y = np.array([0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323,
-        #               0.8045, 0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736,
-        #               1.2278, 1.2806, 1.3320, 1.3822, 1.4313, 1.4792, 1.5263,
-        #               1.5724, 1.6176, 1.6621, 1.7058, 1.7488])
-        x = np.array([0, 1])
-        y = np.array([1, 1])
+        x = np.linspace(0, 2.5, 26)
+        y = np.array([0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323,
+                      0.8045, 0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736,
+                      1.2278, 1.2806, 1.3320, 1.3822, 1.4313, 1.4792, 1.5263,
+                      1.5724, 1.6176, 1.6621, 1.7058, 1.7488])
+        # x = np.array([0, 1])
+        # y = np.array([1, 1])
         kA_char1 = dc_cc(func=char_line(x, y), param='m')
 
-        # x = np.linspace(0, 2.5, 26)
-        # y = np.array([0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756,
-        #               0.840, 0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374,
-        #               1.446, 1.516, 1.585, 1.654, 1.722, 1.789, 1.855, 1.921,
-        #               1.986, 2.051])
-        # kA_char2 = dc_cc(func=char_line(x, y), param='m')
-        x = np.array([0, 1])
-        y = np.array([1, 1])
+        x = np.linspace(0, 2.5, 26)
+        y = np.array([0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756,
+                      0.840, 0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374,
+                      1.446, 1.516, 1.585, 1.654, 1.722, 1.789, 1.855, 1.921,
+                      1.986, 2.051])
+        # x = np.array([0, 1])
+        # y = np.array([1, 1])
         kA_char2 = dc_cc(func=char_line(x, y), param='m')
 
         he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2,
@@ -300,15 +289,11 @@ class test_heat_pump:
         m_source = np.array([[23, 22, 20, 18, 16],
                              [27, 24, 20, 16, 12],
                              [31, 25, 20, 15, 10],
-                             [33, 25, 20, 15, 10]])
-        COP = np.array([[2.323, 2.306, 2.269, 2.221, 2.153],
-                        [2.464, 2.410, 2.329, 2.202, 2.031],
-                        [2.641, 2.524, 2.409, 2.250, 1.94],
-                        [2.726, 2.577, 2.462, 2.310, 1.988]])
-        P = np.array([[0.1064, 0.1041, 0.0991, 0.0937, 0.0883],
-                      [0.1098, 0.1039, 0.0948, 0.0842, 0.0725],
-                      [0.1099, 0.1000, 0.0888, 0.0754, 0.0620],
-                      [0.1099, 0.0968, 0.0852, 0.0717, 0.0585]]) * 1e6
+                             [33, 26, 20, 15, 10]])
+        COP = np.array([[2.436, 2.414, 2.368, 2.338, 2.287],
+                        [2.591, 2.523, 2.448, 2.355, 2.216],
+                        [2.777, 2.635, 2.557, 2.442, 2.243],
+                        [2.866, 2.711, 2.629, 2.528, 2.351]])
 
         i = 0
         for T in T:
@@ -316,7 +301,6 @@ class test_heat_pump:
             self.cd_cons.set_attr(T=T)
             for m in m_source[i]:
                 self.amb_in_su.set_attr(m=m)
-                print(m, T)
                 if j == 0:
                     self.nw.solve('offdesign', design_path='tmp', init_path='tmp2')
                     self.nw.save('tmp2')
@@ -324,24 +308,22 @@ class test_heat_pump:
                 else:
                     self.nw.solve('offdesign', design_path='tmp')
 
-                self.nw.print_results()
-
                 # relative deviation should not exceed 20 %
                 # this should be much less, unfortunately not all ebsilon characteristics are available,
                 # thus it is difficult/impossible to match the models perfectly!
                 # Another issue is, that the component characteristics for
                 # generators and motors do not work on the same basis (tespy: mechanical, ebsilon: electrical)!
                 d_rel_COP = abs(self.heat.P.val / self.power.P.val - COP[i, j]) / COP[i, j]
-                d_rel_P = abs(self.power.P.val - P[i, j]) / P[i, j]
-                print(d_rel_COP)
-                eq_(d_rel_COP < 0.2, True, 'The deviation in COP should be less than 0.1, is ' + str(d_rel_COP) + ' at mass flow ' + str(m) + '.')
-                eq_(d_rel_P < 0.2, True, 'The deviation in power should be less than 0.1, is ' + str(d_rel_P) + ' at mass flow ' + str(m) + '.')
+                msg = ('The deviation in COP should be less than 0.075, is ' +
+                       str(d_rel_COP) + ' at mass flow ' + str(m) +
+                       ' and temperature ' + str(T) + '.')
+                eq_(d_rel_COP < 0.075, True, msg)
                 j += 1
             i += 1
         shutil.rmtree('./tmp', ignore_errors=True)
         shutil.rmtree('./tmp2', ignore_errors=True)
 
 
-a = test_heat_pump_ebsilon()
+a = test_heat_pump()
 a.setup()
 a.test_model()

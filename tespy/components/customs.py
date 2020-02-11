@@ -96,6 +96,21 @@ class orc_evaporator(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
@@ -141,6 +156,14 @@ class orc_evaporator(component):
         cold side, provide x and y values or use generic values
         (e. g. calculated from design case).
         Standard method 'HE_COLD', Parameter 'm'.
+
+    subcooling : bool
+        Enable/disable subcooling at oulet of the hot side 1,
+        default value: disabled.
+
+    overheating : bool
+        Enable/disable overheating at oulet of the cold side,
+        default value: disabled.
 
     Note
     ----
@@ -297,8 +320,8 @@ class orc_evaporator(component):
         # equations for specified heat transfer
         if self.Q.is_set:
             self.vec_res[k] = (
-                self.inl[3].m.val_SI * (
-                    self.outl[3].h.val_SI - self.inl[3].h.val_SI) - self.Q.val)
+                self.inl[2].m.val_SI * (
+                    self.outl[2].h.val_SI - self.inl[2].h.val_SI) - self.Q.val)
             k += 1
 
         ######################################################################

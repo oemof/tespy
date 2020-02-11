@@ -1,5 +1,5 @@
-v0.2.1 - (some date, probably 2020)
-+++++++++++++++++++++++++++++++++++
+v0.2.1 - Fourier's Fable (February, 7 2020)
++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -18,6 +18,8 @@ Parameter renaming
 
 Testing
 #######
+- Improve the heat pump test
+  (`PR #150 <https://github.com/oemof/tespy/pull/150>`_).
 
 Bug fixes
 #########
@@ -27,6 +29,19 @@ Bug fixes
   Additionally,the version requirements of third party packages have been
   updated to prevent future bugs resulting from possible API changes
   (`PR #146 <https://github.com/oemof/tespy/pull/146>`_).
+- There was a bug in the heat exchanger kA-functions (
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func`,
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger.kA_func` and
+  :py:meth:`tespy.components.heat_exchangers.condenser.kA_func`). The factors
+  for the heat transfer coefficient should not simultaneously amplify the
+  value but instead with their inverse.
+
+  .. math::
+
+      f_{kA} = \frac{2}{\frac{1}{f_{kA,1}} + \frac{1}{f_{kA,2}}}
+
+  For simple heat exchangers, :math:`f_{kA,2}` will be equal to 1
+  (`PR #150 <https://github.com/oemof/tespy/pull/150>`_).
 
 Other changes
 #############

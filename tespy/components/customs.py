@@ -524,7 +524,7 @@ class orc_evaporator(component):
         ######################################################################
         # derivatives for specified zeta at cold side
         if self.zeta3.is_set:
-            f = self.zeta2_func
+            f = self.zeta3_func
             if not vec_z[2, 0]:
                 self.mat_deriv[k, 2, 0] = self.numeric_deriv(f, 'm', 2)
             if not vec_z[2, 1]:
@@ -788,8 +788,8 @@ class orc_evaporator(component):
 
                 P = \dot{m}_{3,in} \cdot \left( h_{3,out} - h_{3,in} \right)
         """
-        i = self.inl[3].to_flow()
-        o = self.outl[3].to_flow()
+        i = self.inl[2].to_flow()
+        o = self.outl[2].to_flow()
 
         val = i[0] * (o[2] - i[2])
         if np.isnan(bus.P_ref):
@@ -947,7 +947,7 @@ class orc_evaporator(component):
 
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]
-        self.pr3.val = o2[2] / i2[2]
+        self.pr3.val = o3[1] / i3[1]
         self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
                           (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
         self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
@@ -982,7 +982,7 @@ class orc_evaporator(component):
             if self.kA_char2.param == 'm':
                 i2_d = self.inl[1].to_flow_design()
                 if not np.isnan(i2_d[0]):
-                    if not i1[0] == 0:
+                    if not i2[0] == 0:
                         self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
                                                             self.label)
 
@@ -990,7 +990,7 @@ class orc_evaporator(component):
             if self.kA_char3.param == 'm':
                 i3_d = self.inl[2].to_flow_design()
                 if not np.isnan(i3_d[0]):
-                    if not i1[0] == 0:
+                    if not i3[0] == 0:
                         self.kA_char3.func.get_bound_errors(i3[0] / i3_d[0],
                                                             self.label)
 

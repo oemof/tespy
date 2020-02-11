@@ -98,8 +98,6 @@ h_{\mathrm{in,ref}}\right)_{i}-
 \dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)+
 \dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j}$$
 
-# Mathematics
-
 In oder to determine partload performance of the plant, design specific
 component parameters are calculated, for example an area independent heat
 transfer coefficient $kA$. The heat transferred at a different operation point

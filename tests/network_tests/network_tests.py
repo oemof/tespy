@@ -123,7 +123,7 @@ class network_tests:
 
 @raises(TESPyNetworkError)
 def offdesign_TESPyNetworkError(nw, **kwargs):
-    nw.solve('offdesign', kwargs)
+    nw.solve('offdesign', **kwargs)
 
 
 def test_network_missing_data_in_design_case_files():
@@ -187,6 +187,7 @@ def test_network_missing_data_in_individual_design_case_file():
     shutil.rmtree('./tmp', ignore_errors=True)
     shutil.rmtree('./tmp2', ignore_errors=True)
 
+
 def test_network_missing_connection_in_design_path():
     """
     Test for missing connection data in design case files.
@@ -211,7 +212,7 @@ def test_network_missing_connection_in_design_path():
         for line in all_lines:
             out.write(line.strip() + '\n')
 
-    offdesign_TESPyNetworkError(nw, design_path='tmp', init_only=True)
+    offdesign_TESPyNetworkError(nw, design_path='tmp')
 
     shutil.rmtree('./tmp', ignore_errors=True)
 

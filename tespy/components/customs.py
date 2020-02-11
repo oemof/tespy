@@ -49,14 +49,6 @@ class orc_evaporator(component):
 
         - :func:`tespy.components.customs.orc_evaporator.energy_func`
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in3} \cdot \left(h_{out3} - h_{in3} \right) - \dot{Q}
-
-        - :func:`tespy.components.customs.orc_evaporator.kA_func`
-
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
@@ -134,28 +126,6 @@ class orc_evaporator(component):
     zeta3 : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    kA : str/float/tespy.helpers.dc_cp
-        Area independent heat transition coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
-
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at
-        hot side 1, provide x and y values or use generic values
-        (e. g. calculated from design case).
-        Standard method 'HE_HOT', Parameter 'm'.
-
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at
-        hot side 2, provide x and y values or use generic values
-        (e. g. calculated from design case).
-        Standard method 'HE_HOT', Parameter 'm'.
-
-    kA_char3 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at
-        cold side, provide x and y values or use generic values
-        (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
 
     subcooling : bool
         Enable/disable subcooling at oulet of the hot side 1,
@@ -237,20 +207,14 @@ class orc_evaporator(component):
     @staticmethod
     def attr():
         return {'Q': dc_cp(max_val=0),
-                'kA': dc_cp(min_val=0),
-                'td_log': dc_cp(min_val=0),
                 'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
                 'pr3': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
                 'zeta3': dc_cp(min_val=0),
                 'subcooling': dc_simple(val=False),
                 'overheating': dc_simple(val=False),
-                'kA_char1': dc_cc(param='m'),
-                'kA_char2': dc_cc(param='m'),
-                'kA_char3': dc_cc(param='m'),
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(),
-                'Sirr': dc_simple(),
-                'zero_flag': dc_simple()}
+                'Sirr': dc_simple()}
 
     @staticmethod
     def inlets():
@@ -275,7 +239,7 @@ class orc_evaporator(component):
         # enthalpy cold side outlet (if not overheating): 1
         if self.overheating.val is False:
             self.num_eq += 1
-        for var in [self.Q, self.kA, self.pr1, self.pr2, self.pr3,
+        for var in [self.Q, self.pr1, self.pr2, self.pr3,
                     self.zeta1, self.zeta2, self.zeta3, ]:
             if var.is_set is True:
                 self.num_eq += 1
@@ -322,12 +286,6 @@ class orc_evaporator(component):
             self.vec_res[k] = (
                 self.inl[2].m.val_SI * (
                     self.outl[2].h.val_SI - self.inl[2].h.val_SI) - self.Q.val)
-            k += 1
-
-        ######################################################################
-        # equations for specified heat transfer coefficient
-        if self.kA.is_set:
-            self.vec_res[k] += self.kA_func()
             k += 1
 
         ######################################################################
@@ -451,21 +409,6 @@ class orc_evaporator(component):
                     self.outl[2].h.val_SI - self.inl[2].h.val_SI)
             self.mat_deriv[k, 2, 2] = -self.inl[2].m.val_SI
             self.mat_deriv[k, 5, 2] = self.inl[2].m.val_SI
-            k += 1
-
-        ######################################################################
-        # derivatives for specified heat transfer coefficient
-        if self.kA.is_set:
-            f = self.kA_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not vec_z[1, 0]:
-                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
-            for i in range(4):
-                if not vec_z[i, 1]:
-                    self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                if not vec_z[i, 2]:
-                    self.mat_deriv[k, i, 2] = self.numeric_deriv(f, 'h', i)
             k += 1
 
         ######################################################################
@@ -682,92 +625,6 @@ class orc_evaporator(component):
                 self.inl[2].m.val_SI * (self.outl[2].h.val_SI -
                                         self.inl[2].h.val_SI))
 
-    def kA_func(self):
-        r"""
-        Equation for heat transfer from conditions on both sides of heat
-        exchanger.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                res = \dot{m}_{3,in} \cdot \left( h_{3,out} - h_{3,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} + T_{2,out} - T_{3,in} -
-                T_{2,in} - T_{1,in} + T_{3,out}}
-                {\ln{\frac{T_{1,out} + T_{2,out} - T_{3,in}}
-                {T_{1,in} + T_{2,in} - T_{3,out}}}}
-
-                f_{kA} = f_1\left(\frac{m_1}{m_{1,ref}}\right) \cdot
-                f_2\left(\frac{m_2}{m_{2,ref}} \cdot
-                f_3\left(\frac{m_3}{m_{3,ref}}\right)
-
-        Note
-        ----
-        For standard functions f\ :subscript:`1` \, f\ :subscript:`2` \
-        and f\ :subscript:`3` \ see module :func:`tespy.data`.
-
-        - Calculate temperatures at inlets and outlets.
-        - Perform value manipulation, if temperature levels are not physically
-          feasible.
-        """
-
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        i3 = self.inl[2].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-        o3 = self.outl[2].to_flow()
-
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
-        i3_d = self.inl[2].to_flow_design()
-
-        T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_i3 = T_mix_ph(i3, T0=self.inl[2].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        T_o3 = T_mix_ph(o3, T0=self.outl[2].T.val_SI)
-
-        if T_i1 <= T_o3:
-            T_i1 = T_o3 + 0.01
-
-        if T_i1 <= T_o3:
-            T_o3 = T_i1 - 0.01
-
-        if T_i1 <= T_o3:
-            T_o1 = T_i3 + 0.02
-
-        if T_o1 <= T_i3:
-            T_i3 = T_o1 - 0.02
-
-        fkA1 = 1
-        if self.kA_char1.param == 'm':
-            if not np.isnan(i1_d[0]):
-                if not i1[0] == 0:
-                    fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
-
-        fkA2 = 1
-        if self.kA_char2.param == 'm':
-            if not np.isnan(i2_d[0]):
-                if not i2[0] == 0:
-                    fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
-
-        fkA3 = 1
-        if self.kA_char3.param == 'm':
-            if not np.isnan(i3_d[0]):
-                if not i3[0] == 0:
-                    fkA3 = self.kA_char3.func.evaluate(i3[0] / i3_d[0])
-
-        td_log = ((T_o1 + T_o2 - T_i3 - T_i1 - T_i2 + T_o3) /
-                  np.log((T_o1 + T_o2 - T_i3) / (T_i1 + T_i2 - T_o3)))
-        return \
-            i3[0] * (o3[2] - i3[2]) + \
-            self.kA.val * fkA1 * fkA2 * fkA3 * td_log
-
     def bus_func(self, bus):
         r"""
         Calculates the residual value of the bus function.
@@ -959,39 +816,3 @@ class orc_evaporator(component):
         self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
         self.SQ3.val = self.inl[2].m.val_SI * (s_o3 - s_i3)
         self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
-
-        # kA and logarithmic temperature difference
-        if T_i1 <= T_o3 or T_o1 <= T_i3:
-            self.td_log.val = np.nan
-            self.kA.val = np.nan
-        else:
-            self.td_log.val = ((T_o1 - T_i3 - T_i1 + T_o3) /
-                               np.log((T_o1 - T_i3) / (T_i1 - T_o3)))
-            self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
-
-        if self.kA.is_set:
-            # get bound errors for kA hot side characteristics
-            if self.kA_char1.param == 'm':
-                i1_d = self.inl[0].to_flow_design()
-                if not np.isnan(i1_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0],
-                                                            self.label)
-
-            # get bound errors for kA copld side characteristics
-            if self.kA_char2.param == 'm':
-                i2_d = self.inl[1].to_flow_design()
-                if not np.isnan(i2_d[0]):
-                    if not i2[0] == 0:
-                        self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
-                                                            self.label)
-
-            # get bound errors for kA copld side characteristics
-            if self.kA_char3.param == 'm':
-                i3_d = self.inl[2].to_flow_design()
-                if not np.isnan(i3_d[0]):
-                    if not i3[0] == 0:
-                        self.kA_char3.func.get_bound_errors(i3[0] / i3_d[0],
-                                                            self.label)
-
-        self.check_parameter_bounds()

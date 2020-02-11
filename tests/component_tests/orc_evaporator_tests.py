@@ -60,7 +60,7 @@ class orc_evaporator_tests:
         # design specification
         instance.set_attr(pr1=0.93181818, pr2=0.970588, pr3=1,
                           design=['pr1', 'pr2', 'pr3'],
-                          offdesign=['zeta1', 'zeta2', 'zeta3', 'kA'])
+                          offdesign=['zeta1', 'zeta2', 'zeta3'])
         self.c1.set_attr(T=146.6, p=4.34, m=20.4, state='g',
                          fluid={'water': 1, 'Isopentane': 0})
         self.c3.set_attr(T=146.6, p=10.2, m=190.8,

@@ -74,6 +74,7 @@ class orc_evaporator_tests:
         self.c3.set_attr(m=np.nan)
         instance.set_attr(Q=Q)
         self.nw.solve('design')
+        self.nw.save('tmp')
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
@@ -94,6 +95,9 @@ class orc_evaporator_tests:
         # Check the state of the steam and working fluid outlet:
         x_outl1_calc = self.c2.x.val
         x_outl3_calc = self.c6.x.val
+        zeta1 = instance.zeta1.val
+        zeta2 = instance.zeta2.val
+        zeta3 = instance.zeta3.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')
@@ -102,5 +106,21 @@ class orc_evaporator_tests:
         msg = ('Vapor mass fraction of working fluid outlet must be 1.0, is ' +
                str(round(x_outl3_calc, 1)) + '.')
         eq_(round(x_outl3_calc, 1), 1.0, msg)
+
+        # Check offdesign by zeta values (geometry independent friction coefficient)
+        self.nw.solve('offdesign', design_path='tmp')
+
+        msg = ('Geometry independent friction coefficient at hot side 1 (steam) '
+               'must be ' + str(round(zeta1, 1)) + ', is ' +
+               str(round(instance.zeta1.val, 1)) + '.')
+        eq_(round(instance.zeta1.val, 1), round(zeta1, 1), msg)
+        msg = ('Geometry independent friction coefficient at hot side 2 (brine) '
+               'must be ' + str(round(zeta2, 1)) + ', is ' +
+               str(round(instance.zeta2.val, 1)) + '.')
+        eq_(round(instance.zeta2.val, 1), round(zeta2, 1), msg)
+        msg = ('Geometry independent friction coefficient at cold side '
+               '(Isopentane) must be ' + str(round(zeta3, 1)) + ', is ' +
+               str(round(instance.zeta3.val, 1)) + '.')
+        eq_(round(instance.zeta3.val, 1), round(zeta3, 1), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

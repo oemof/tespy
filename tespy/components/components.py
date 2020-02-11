@@ -737,3 +737,44 @@ class component:
             v_o = v_mix_ph(o, T0=self.outl[1].T.val_SI)
             return (self.zeta2.val - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+
+    def zeta3_func(self):
+        r"""
+        Calculate residual value of :math:`\zeta_3`-function.
+
+        Returns
+        -------
+        val : float
+            Residual value of function.
+
+            .. math::
+
+                val = \begin{cases}
+                p_{in} - p_{out} & |\dot{m}| < \epsilon \\
+                \frac{\zeta_3}{D^4} - \frac{(p_{3,in} - p_{3,out}) \cdot \pi^2}
+                {8 \cdot \dot{m}_{3,in} \cdot |\dot{m}_{3,in}| \cdot
+                \frac{v_{3,in} + v_{3,out}}{2}} &
+                |\dot{m}| > \epsilon
+                \end{cases}
+
+        Note
+        ----
+        The zeta value is caluclated on the basis of a given pressure loss at
+        a given flow rate in the design case. As the cross sectional area A
+        will not change, it is possible to handle the equation in this way:
+
+        .. math::
+
+            \frac{\zeta_3}{D^4} =  \frac{\Delta p_3\cdot \pi^2}
+            {8 \cdot \dot{m}_3^2 \cdot v}
+        """
+        i = self.inl[2].to_flow()
+        o = self.outl[2].to_flow()
+
+        if abs(i[0]) < 1e-4:
+            return i[1] - o[1]
+        else:
+            v_i = v_mix_ph(i, T0=self.inl[2].T.val_SI)
+            v_o = v_mix_ph(o, T0=self.outl[2].T.val_SI)
+            return (self.zeta3.val - (i[1] - o[1]) * np.pi ** 2 /
+                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

@@ -63,7 +63,7 @@ class orc_evaporator_tests:
                           offdesign=['zeta1', 'zeta2', 'zeta3', 'kA'])
         self.c1.set_attr(T=146.6, p=4.34, m=20.4, state='g',
                          fluid={'water': 1, 'Isopentane': 0})
-        self.c3.set_attr(T=146.6, p=10.2, m=190,
+        self.c3.set_attr(T=146.6, p=10.2, m=190.8,
                          fluid={'water': 1, 'Isopentane': 0})
         self.c4.set_attr(T=118.6)
         self.c5.set_attr(T=111.6, p=10.8,
@@ -90,8 +90,20 @@ class orc_evaporator_tests:
 
         # test heat transfer
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
-        msg = ('Value of heat flow be ' + str(round(Q, 0)) +
+        msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
         eq_(round(Q, 0), round(Q_is, 0), msg)
+
+        # test bus
+        P = 6.64e+07
+        self.c4.set_attr(T=np.nan)
+        b = bus('heat transfer', P=P)
+        b.add_comps({'c': instance})
+        self.nw.add_busses(b)
+        self.nw.solve('design', init_path='tmp')
+
+        msg = ('Value of heat flow must be ' + str(round(P, 0)) +
+               ', is ' + str(round(-instance.Q.val, 0)) + '.')
+        eq_(round(P, 0), round(-instance.Q.val, 0), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

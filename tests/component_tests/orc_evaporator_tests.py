@@ -68,8 +68,28 @@ class orc_evaporator_tests:
         self.c4.set_attr(T=118.6)
         self.c5.set_attr(T=111.6, p=10.8,
                          fluid={'water': 0, 'Isopentane': 1})
+
+        # test heat transfer
+        Q = -6.64e+07
+        self.c3.set_attr(m=np.nan)
+        instance.set_attr(Q=Q)
         self.nw.solve('design')
-        self.nw.save('tmp')
+        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
+        msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
+               ', is ' + str(round(Q_is, 0)) + '.')
+        eq_(round(Q, 0), round(Q_is, 0), msg)
+
+        # test bus
+        P = 6.64e+07
+        b = bus('heat transfer', P=P)
+        b.add_comps({'c': instance})
+        self.nw.add_busses(b)
+        self.c4.set_attr(T=np.nan)
+        self.nw.solve('design')
+
+        msg = ('Value of heat flow must be ' + str(round(P, 0)) +
+               ', is ' + str(round(instance.Q.val, 0)) + '.')
+        eq_(round(P, 0), round(instance.Q.val, 0), msg)
 
         # Check the state of the steam and working fluid outlet:
         x_outl1_calc = self.c2.x.val
@@ -82,28 +102,5 @@ class orc_evaporator_tests:
         msg = ('Vapor mass fraction of working fluid outlet must be 1.0, is ' +
                str(round(x_outl3_calc, 1)) + '.')
         eq_(round(x_outl3_calc, 1), 1.0, msg)
-
-        Q = -60e6
-        self.c3.set_attr(m=np.nan)
-        instance.set_attr(Q=Q)
-        self.nw.solve('design')
-
-        # test heat transfer
-        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
-        msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
-               ', is ' + str(round(Q_is, 0)) + '.')
-        eq_(round(Q, 0), round(Q_is, 0), msg)
-
-        # test bus
-        P = 6.64e+07
-        self.c4.set_attr(T=np.nan)
-        b = bus('heat transfer', P=P)
-        b.add_comps({'c': instance})
-        self.nw.add_busses(b)
-        self.nw.solve('design', init_path='tmp')
-
-        msg = ('Value of heat flow must be ' + str(round(P, 0)) +
-               ', is ' + str(round(-instance.Q.val, 0)) + '.')
-        eq_(round(P, 0), round(-instance.Q.val, 0), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

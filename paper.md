@@ -1,91 +1,147 @@
 ---
-title: 'Thermal Engineering Systems in Python'
+title: 'TESPy: open source thermal engineering'
+
 tags:
   - Thermal Engineering
   - Thermodynamics
   - Power plant simulation
   - Python
+
 authors:
   - name: Francesco Witte
     orcid: 0000-0003-4019-0390
     affiliation: 1 # (Multiple affiliations must be quoted)
+
 affiliations:
  - name: Center for Sustainable Energy Systems, Flensburg University of Applied Sciences, Germany
    index: 1
-date: someday somemonth 2020
+
+date: February 2020
+
 bibliography: paper.bib
 
 ---
 
 # Summary
 
-TESPy - Thermal Engineering Systems in Python provides a powerful simulation
-toolkit for thermal engineering plants such as power plants, district heating
-systems or heat pumps.With the TESPy package it is possible to simulate
-stationary operation for process design of thermal energy applications. From
-that point it is possible to predict partload behaviour using underlying characteristics for each of the plant's components.
+TESPy (Thermal Engineering Systems in Python [@TESPy]) provides a powerful
+simulation toolkit for thermal process engineering, for instance power plants,
+district heating systems or heat pumps. With the TESPy package it is possible to
+design plants and simulate stationary operation. From that point, partload
+behaviour can be predicted using underlying characteristics for each of the
+plant's components. The component based structure combined with the solution
+method offer very high flexibility regarding the plant's topology and its
+parametrisation.
 
-The package inlcudes basic components, such as turbines, pumps, compressors,
-heat exchangers, pipes, mixers and splitters as well as some advanced
-components. To simulate the operation of a specific power plant an individual
-model is created by connecting the respective components to form a topological
-network. TESPy automatically generates a set of nonlinear equations based on
-the components applied. Using the multi-dimensional Newton-Raphson method the
-system of equations is solved to calculate mass flow as well as the fluid
-properties pressure and enthalpy along with the fluid composition at every
-point of the network.
+# Motivation
 
-A CAES power plant is defined by its topology as well as the parametrization of the respective components and connections. The component based power plant simulation software TESPy provides pre-defined components, for example different types of turbomachinery, heat exchangers and combustion chambers. Each component comes with built-in basic equations (e.g. mass flow balance) and optional equations (e.g. specification of isentropic efficiency).
-To simulate the operation of a specific power plant an individual model is created by connecting the respective components to form a topological network. TESPy automatically generates a set of nonlinear equations based on the components applied. Using the multi-dimensional Newton-Raphson method the system of equations is solved to calculate mass flow as well as fluid properties such as pressure, enthalpy and fluid composition at every point of the network.
-Description of the software
+Thermal process simulation is a fundamental discipline in energy engineering.
+Consequently, there are several well known commercial software solutions
+available in this field, for example EBSILON Professional or Aspen Plus, mainly
+used in the industrial environment. In order to open this kind of software to a
+wide (scientific) audience, an open source solution is very promising. Its
+prevalence in the scientific field and the availability of interfaces to other
+programming languages plead for a python implementation.
 
-Various technologies with individual topologies allow the integration of geothermal storage sites into an energy supply system. Thus, the power plant model integrated in a coupled simulator must provide usage of generic topologies within the technology scope. TESPy is a component based power plant simulation software that provides a variety of pre-defined components such as different types of turbomachinery, heat exchangers and piping components. To simulate the operation of a specific plant an individual model is created by connecting the respective components to form a topological network. TESPy automatically generates a set of nonlinear equations based on the components applied. Using the multi-dimensional Newton-Raphson method the system of equations is solved to calculate the primary variables mass flow as well as the fluid properties pressure and enthalpy at every point of the network [REFERENCES].
-TESPy applies balance equations for every component regarding
-    • mass flow,
-    • energy and
-    • fluid composition.
-As the simulation is in steady state mode, the total mass flow into a component must be equal to the total mass flow leaving the component (eq. 1). Additionally, all components except the combustion chamber and merges, do not change the fluid composition, thus equation (2) is applied. The energy balance of all components is derived from the stationary energy balance of open thermodynamic systems with multiple inlets and outlets. Differences in flow velocity as well as height are neglected as these are relatively small compared to change in enthalpy in thermal engineering applications. The values of heat and power transferred, depends on the individual component properties. For example, a pipe does not transfer power, thus only heat may be transferred. In contrast, the turbine is considered adiabatic, thus only transfers power (eq. 3).
+# Method
 
+The package is built of basic components, for example different types of
+turbomachinery, heat exchangers, pipes, valves and mixers or splitters. To
+simulate a specific plant an individual model is created connecting the
+components to form a topological network. Steady state operation of the plant is
+determined by the fluid's state on every connection (and therefore its change
+within components) between the plant's individual components. Thus, based on the
+components and parameters applied, TESPy generates a set of nonlinear equations
+representing the plant's topology and its parametrisation. By formulating the
+equations implicitly parameters and results are generally interchangeble
+offering high flexibilty in the user specifications. The system of equations is
+numerically solved using the multi-dimensional Newton-Raphson method to
+determine the mass flow, pressure, enthalpy and fluid composition of every
+connection. This way, it is possible to solve for both thermal as well as
+hydraulic state of the plant.
 
-The operation of the CAES is calculated with the component based power plant simulation software TESPy. It is designed to simulate stationary operation of thermal power plants and provides a variety of pre-defined components such as different types of turbomachinery, heat exchangers and combustion chambers. Each component comes with built-in basic equations and optional equations.
-To simulate the operation of a specific power plant an individual model is created by connecting the respective components to form a topological network. TESPy automatically generates a set of nonlinear equations based on the components applied. Using the multi-dimensional Newton-Raphson method the system of equations is solved to calculate the primary variables mass flow as well as the fluid properties pressure and enthalpy at every point of the network. If multiple fluids are applied within one network, the fluid composition is part of the solution, too.
-The following part provides a detailed description of the governing equations for the different components of a CAES in TESPy. Two individual models are created, one for the compression part and one for the expansion part of the power plant. Subsequently, the different CAES setups are presented.
-In general, TESPy applies balance equations for every component regarding
-    • mass flow,
-    • energy and
-    • fluid composition.
-As the simulation is in steady state mode, the total mass flow into a component must be equal to the total mass flow leaving the component (eq. 1). Additionally, all components except the combustion chamber and merges, do not change the fluid composition, thus equation (2) is applied. The energy balance of all components is derived from the stationary energy balance of open thermodynamic systems with multiple inlets and outlets. Differences in flow velocity as well as height are neglected as these are relatively small compared to change in enthalpy in thermal engineering applications. The values of heat and power transferred, depends on the individual component properties. For example, a pipe does not transfer power, thus only heat may be transferred. In contrast, the turbine is considered adiabatic, thus only transfers power (eq. 3). The energy balance of the combustion chamber is different, as the calorific value of the fuel has to be considered, too. Additionally, it is necessary to compensate for the different zero point definitions for enthalpy in the fluid properties of the fuel, the air and the flue gas. Thus a reference state  is defined.
+To achieve this, TESPy implements balance equations (based on standard
+literature, for example [@Baehr; @Epple]) for every component regarding
 
+• mass flow and species as well as
+
+• energy in regard to thermal and hydraulic properties.
+
+In steady state, the total mass flow into a component must be equal to the total
+mass flow leaving the component (eq. 1). Additionally, the mass balance of a
+specific fluid fl is applied (eq. 2). The energy balance of all components is
+derived from the stationary energy balance of open systems with multiple inlets
+and outlets. Differences in flow velocity as well as height are neglected as
+these are relatively small compared to change in enthalpy in thermal engineering
+applications. The values of heat and power transferred, depend on the individual
+component properties. For example, a pipe does not transfer power, thus only
+heat may be transferred. In contrast, turbomachinery is considered adiabatic,
+thus only transfers power (eq. 3). If chemical reactions take place, the
+corresponding chemical mass balance is taken into account instead of equation 2.
+On top of that, the energy balance is different, as the reaction enthalpy has to
+be considered, too. Furthermore, it is necessary to compensate for the different
+zero point definitions of enthalpy in the fluid properties of the reaction
+components by defining a reference state. E. g. for a combustion chamber
+equation 4 is implemented.
+
+$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}-\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}$$
+
+$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
+\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot x_{fl\mathrm{,out,}o}
+\ \forall fl\in\mathrm{network\ fluids}$$
+
+$$0=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
+\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}-P-\dot{Q}$$
+
+$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot\left(h_{\mathrm{in}}-
+h_{\mathrm{in,ref}}\right)_{i}-
+\dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)+
+\dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j}$$
 
 # Mathematics
 
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
+In oder to determine partload performance of the plant, design specific
+component parameters are calculated, for example an area independent heat
+transfer coefficient $kA$. The heat transferred at a different operation point
+may then be calculated using equation 5. Generally, this kind of parameter can
+be adjusted using lookup table functions in order to match the model behaviour
+to measured data. This is especially useful, if components with well known
+characteristics are implemented in a different plant or at different operating
+conditions. New equations or characteristic functions to further improve the
+representation of an actual plant can easily be added due to the modular
+structure of TESPy.
 
-Double dollars make self-standing equations:
+$$0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}$$
 
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
+# Example Implementations
 
+The core strength of TESPy lies in the generic and component based architecture
+allowing to simulate technologically and typologically different thermal
+engineering applications.
 
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-# Figures
-
-Figures can be included like this: ![Example figure.](figure.png)
+For example, as the increasing share of renewable energy sources to mitigate
+climate change will result in a significant storage demand, underground gas
+storage is considerd a large scale energy storage option [QUELLE]. Due to the
+feedback regarding the physical parameters of the fluid exchanged between the
+geological storage and the above-ground plant, an integrated simulation of the
+storage and the power plant is necessary for a detailed assessment of such
+storage options [@CAES]. Another important task in energy system transition is
+renweable heating: Heat pumps using subsuface heat to provide heating on
+houshold or even district level show analogous feedback reactions with the
+underground. As their electricity consumption highly depends on the heat source
+temperature level, simulator coupling provides valuable assessment possibilities
+in this field, too [QUELLE (ANGUS)]. Another possible application of TESPy lies
+in pipeline network simulation: TESPy has been implemented in OpenGeoSys [@ogs]
+in order to simulate the operation of BTES arrays [@BTES].
 
 # Acknowledgements
 
-Acknowledgement to contributors/institution
+This work is supported by University of Applied Sciences and the Center for
+Sustainable Energy Systems in Flensburg. It is part of the open energy modeling
+framework (oemof) [@oemof]. Many thanks to all [contributers](https://github.com/oemof/tespy/graphs/contributors).
+
+Key parts of TESPy require the following scientific software packages: CoolProp
+[@CoolProp], NumPy [@NumPy], pandas [@pandas]. Other packages implemented are
+tabulate and SciPy.
 
 # References

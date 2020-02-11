@@ -1160,12 +1160,7 @@ class network:
 
                 # if there is a starting value
                 elif fluid in tmp0.keys():
-                    if fluid in tmp_set.keys():
-                        if not tmp_set[fluid]:
-                            c.fluid.val[fluid] = tmp0[fluid]
-                            c.fluid.val0[fluid] = tmp0[fluid]
-                            c.fluid.val_set[fluid] = False
-                    else:
+                    if fluid not in tmp_set.keys():
                         c.fluid.val[fluid] = tmp0[fluid]
                         c.fluid.val0[fluid] = tmp0[fluid]
                         c.fluid.val_set[fluid] = False

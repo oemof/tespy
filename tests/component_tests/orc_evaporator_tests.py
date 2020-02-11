@@ -107,14 +107,17 @@ class orc_evaporator_tests:
                str(round(x_outl3_calc, 1)) + '.')
         eq_(round(x_outl3_calc, 1), 1.0, msg)
 
-        # Check offdesign by zeta values (geometry independent friction coefficient)
+        # Check offdesign by zeta values
+        # geometry independent friction coefficient
         self.nw.solve('offdesign', design_path='tmp')
 
-        msg = ('Geometry independent friction coefficient at hot side 1 (steam) '
+        msg = ('Geometry independent friction coefficient '
+               'at hot side 1 (steam) '
                'must be ' + str(round(zeta1, 1)) + ', is ' +
                str(round(instance.zeta1.val, 1)) + '.')
         eq_(round(instance.zeta1.val, 1), round(zeta1, 1), msg)
-        msg = ('Geometry independent friction coefficient at hot side 2 (brine) '
+        msg = ('Geometry independent friction coefficient at '
+               'hot side 2 (brine) '
                'must be ' + str(round(zeta2, 1)) + ', is ' +
                str(round(instance.zeta2.val, 1)) + '.')
         eq_(round(instance.zeta2.val, 1), round(zeta2, 1), msg)

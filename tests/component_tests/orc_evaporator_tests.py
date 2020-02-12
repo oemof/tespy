@@ -129,13 +129,13 @@ class orc_evaporator_tests:
 
         # test parameters of 'subcooling' and 'overheating'
         instance.set_attr(subcooling='Ture', overheating='Ture')
-        self.c2.set_attr(T=143)
-        self.c6.set_attr(T=119.7, state='g')
+        self.c2.set_attr(Td_bp=-3.0)
+        self.c6.set_attr(Td_bp=2.0)
         self.nw.solve(mode='design')
 
-        msg = ('Geometry independent friction coefficient at cold side '
-               '(Isopentane) must be ' + str(round(self.c5.m.val, 1)) +
+        msg = ('Mass flow rate of working fluid at cold side '
+               '(Isopentane) must be ' + str(round(m, 1)) +
                ', is ' + str(round(self.c5.m.val, 1)) + '.')
-        eq_(round(self.c5.m.val, 1), round(self.c5.m.val, 1), msg)
+        eq_(round(m, 1), round(self.c5.m.val, 1), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

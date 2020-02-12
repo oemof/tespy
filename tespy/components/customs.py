@@ -541,24 +541,13 @@ class orc_evaporator(component):
         deriv = np.zeros((self.num_nw_fluids * 3,
                           6 + self.num_vars,
                           self.num_nw_vars))
-        # hot side 1
-        i = 0
-        for fluid in self.nw_fluids:
-            deriv[i, 0, i + 3] = 1
-            deriv[i, 3, i + 3] = -1
-            i += 1
-        # hot side 2
-        j = 0
-        for fluid in self.nw_fluids:
-            deriv[i + j, 1, j + 3] = 1
-            deriv[i + j, 4, j + 3] = -1
-            j += 1
-        # cold side
-        k = 0
-        for fluid in self.nw_fluids:
-            deriv[i + j + k, 2, k + 3] = 1
-            deriv[i + j + k, 5, k + 3] = -1
-            k += 1
+        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+                          2 * self.num_i,
+                          self.num_nw_vars))
+        for i in range(self.num_i):
+            for j in range(self.num_nw_fluids):
+                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
+                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv.tolist()
 
     def mass_flow_deriv(self):
@@ -571,11 +560,11 @@ class orc_evaporator(component):
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((3, 6 + self.num_vars, self.num_nw_vars))
+        deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_nw_vars))
         for i in range(self.num_i):
             deriv[i, i, 0] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 0] = -1
+        for j in range(self.num_i):
+            deriv[j, j + self.num_i, 0] = -1
         return deriv.tolist()
 
     def energy_func(self):

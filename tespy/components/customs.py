@@ -59,16 +59,32 @@ class orc_evaporator(component):
         - :func:`tespy.components.customs.orc_evaporator.zeta2_func`
         - :func:`tespy.components.customs.orc_evaporator.zeta3_func`
 
-        **additional equations**
+        **mandatory equations at outlet of the steam
+        from geothermal heat source side**
 
         - :func:`tespy.components.customs.orc_evaporator.additional_equations`
 
+        .. math::
+
+            0 = h_{1,out} - h\left(p, x=0 \right)\\
+            x: \text{vapour mass fraction}
+
+        **mandatory equations at outlet of the working fluid
+        of being evaporated side**
+
+        .. math::
+
+            0 = h_{3,out} - h\left(p, x=1 \right)\\
+            x: \text{vapour mass fraction}
+
     Inlets/Outlets
 
-        - in1, in2, in3 (index 1: hot side 1, index 2: hot side 2,
-        index 3: cold side)
-        - out1, out2, out3 (index 1: hot side 1, index 2: hot side 2,
-        index 3: cold side)
+        - in1, in2, in3 (index 1: steam from geothermal heat source,
+        index 2: brine from geothermal heat source,
+        index 3: working fluid of being evaporated)
+        - out1, out2, out3 (index 1: steam from geothermal heat source,
+        index 2: brine from geothermal heat source,
+        index 3: working fluid of being evaporated)
 
     Image
 
@@ -137,9 +153,17 @@ class orc_evaporator(component):
 
     Note
     ----
-    The ORC evaporator are countercurrent heat exchangers.
-    Equation kA do not work for directcurrent and crosscurrent
-    or combinations of different types.
+    The ORC evaporator has an additional equation for enthalpy
+    at outlet of the steam from geothermal heat source side:
+    The fluid leaves the component in saturated liquid state.
+    If subcooling is activated, it possible to specify
+    the enthalpy at the outgoing connection manually.
+
+    It also has an another additional equation for enthalpy
+    at outlet of the working fluid of being evaporated:
+    The fluid leaves the component in saturated gas state.
+    If overheating is activated, it possible to specify
+    the enthalpy at the outgoing connection manually.
 
     Example
     -------
@@ -148,7 +172,7 @@ class orc_evaporator(component):
     mass flow rate of the working fluid with known steam and
     brine mass flow rate. From this, it is possible to calculate
     the mass flow rate of the working fluid that is fully evaporated
-    through the ORC evaporator and its heat transfer coefficient.
+    through the ORC evaporator.
 
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
@@ -338,22 +362,6 @@ class orc_evaporator(component):
         r"""
         Calculates vector vec_res with results of additional equations for this
         component.
-
-        Equations
-
-            **mandatory equations at outlet 1 of the hot side**
-
-            .. math::
-
-                0 = h_{1,out} - h\left(p, x=0 \right)\\
-                x: \text{vapour mass fraction}
-
-            **mandatory equations at outlet of the cold side**
-
-            .. math::
-
-                0 = h_{1,out} - h\left(p, x=1 \right)\\
-                x: \text{vapour mass fraction}
 
         Returns
         -------

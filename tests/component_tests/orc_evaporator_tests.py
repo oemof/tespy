@@ -98,6 +98,7 @@ class orc_evaporator_tests:
         zeta1 = instance.zeta1.val
         zeta2 = instance.zeta2.val
         zeta3 = instance.zeta3.val
+        m = self.c5.m.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')
@@ -125,5 +126,16 @@ class orc_evaporator_tests:
                '(Isopentane) must be ' + str(round(zeta3, 1)) + ', is ' +
                str(round(instance.zeta3.val, 1)) + '.')
         eq_(round(instance.zeta3.val, 1), round(zeta3, 1), msg)
+
+        # test parameters of 'subcooling' and 'overheating'
+        instance.set_attr(subcooling='Ture', overheating='Ture')
+        self.c2.set_attr(T=143)
+        self.c6.set_attr(T=119.7, state='g')
+        self.nw.solve(mode='design')
+
+        msg = ('Geometry independent friction coefficient at cold side '
+               '(Isopentane) must be ' + str(round(self.c5.m.val, 1)) +
+               ', is ' + str(round(self.c5.m.val, 1)) + '.')
+        eq_(round(self.c5.m.val, 1), round(self.c5.m.val, 1), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

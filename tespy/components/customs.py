@@ -55,8 +55,8 @@ class orc_evaporator(component):
             0 = p_{2,in} \cdot pr2 - p_{2,out}\\
             0 = p_{3,in} \cdot pr3 - p_{3,out}
 
-        - :func:`tespy.components.customs.orc_evaporator.zeta_func`
-        - :func:`tespy.components.customs.orc_evaporator.zeta2_func`
+        - :func:`tespy.components.components.component.zeta_func`
+        - :func:`tespy.components.components.component.zeta2_func`
         - :func:`tespy.components.customs.orc_evaporator.zeta3_func`
 
         **mandatory equations at outlet of the steam
@@ -121,24 +121,27 @@ class orc_evaporator(component):
         Heat transfer, :math:`Q/\text{W}`.
 
     pr1 : String/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at hot side 1, :math:`pr/1`.
+        Outlet to inlet pressure ratio at hot side 1 (steam),
+        :math:`pr/1`.
 
     pr2 : String/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at hot side 2, :math:`pr/1`.
+        Outlet to inlet pressure ratio at hot side 2 (brine),
+        :math:`pr/1`.
 
     pr3 : String/float/tespy.helpers.dc_cp
-        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
+        Outlet to inlet pressure ratio at cold side (working fluid),
+        :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at hot side,
+        Geometry independent friction coefficient at hot side 1 (steam),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at cold side,
+        Geometry independent friction coefficient at hot side 2 (brine),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     zeta3 : str/float/tespy.helpers.dc_cp
-        Geometry independent friction coefficient at cold side,
+        Geometry independent friction coefficient at cold side (working fluid),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     subcooling : bool
@@ -822,3 +825,5 @@ class orc_evaporator(component):
         self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
         self.SQ3.val = self.inl[2].m.val_SI * (s_o3 - s_i3)
         self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
+
+        self.check_parameter_bounds()

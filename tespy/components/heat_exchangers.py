@@ -1592,32 +1592,6 @@ class heat_exchanger(component):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
         return vec_res
 
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids * 2,
-                          4 + self.num_vars,
-                          self.num_nw_vars))
-        # hot side
-        i = 0
-        for fluid in self.nw_fluids:
-            deriv[i, 0, i + 3] = 1
-            deriv[i, 2, i + 3] = -1
-            i += 1
-        # cold side
-        j = 0
-        for fluid in self.nw_fluids:
-            deriv[i + j, 1, j + 3] = 1
-            deriv[i + j, 3, j + 3] = -1
-            j += 1
-        return deriv.tolist()
-
     def mass_flow_deriv(self):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
@@ -1633,7 +1607,7 @@ class heat_exchanger(component):
             deriv[i, i, 0] = 1
         for j in range(self.num_o):
             deriv[j, j + i + 1, 0] = -1
-        return deriv.tolist()
+        return deriv
 
     def energy_func(self):
         r"""

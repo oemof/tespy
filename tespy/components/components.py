@@ -510,14 +510,13 @@ class component:
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_nw_fluids,
-                          2 + self.num_vars,
+        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+                          2 * self.num_i + self.num_vars,
                           self.num_nw_vars))
-        i = 0
-        for fluid in self.nw_fluids:
-            deriv[i, 0, i + 3] = 1
-            deriv[i, 1, i + 3] = -1
-            i += 1
+        for i in range(self.num_i):
+            for j in range(self.num_nw_fluids):
+                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
+                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv
 
 # %%

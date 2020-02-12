@@ -62,8 +62,6 @@ class orc_evaporator(component):
         **mandatory equations at outlet of the steam
         from geothermal heat source side**
 
-        - :func:`tespy.components.customs.orc_evaporator.additional_equations`
-
         .. math::
 
             0 = h_{1,out} - h\left(p, x=0 \right)\\
@@ -355,21 +353,6 @@ class orc_evaporator(component):
             k += 1
 
         ######################################################################
-        # additional equations
-        self.additional_equations(k)
-
-    def additional_equations(self, k):
-        r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
-
-        ######################################################################
         # equation for saturated liquid at hot side 1 outlet
         if self.subcooling.val is False:
             o1 = self.outl[0].to_flow()
@@ -487,21 +470,6 @@ class orc_evaporator(component):
             if not vec_z[5, 2]:
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
             k += 1
-
-        ######################################################################
-        # derivatives for additional equations
-        self.additional_derivatives(vec_z, k)
-
-    def additional_derivatives(self, vec_z, k):
-        r"""
-        Calculates matrix of partial derivatives for
-        given additional equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
 
         ######################################################################
         # derivatives for saturated liquid at hot side 1 outlet equation

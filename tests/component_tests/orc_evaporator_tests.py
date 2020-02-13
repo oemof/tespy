@@ -16,6 +16,7 @@ from tespy.components.basics import sink, source
 from tespy.components.customs import orc_evaporator
 from tespy.connections import connection, bus
 from tespy.networks.networks import network
+from tespy.tools.fluid_properties import T_bp_p
 
 import logging
 
@@ -58,9 +59,9 @@ class orc_evaporator_tests:
         self.setup_orc_evaporator_network(instance)
 
         # design specification
-        instance.set_attr(pr1=0.93181818, pr2=0.970588, pr3=1,
+        instance.set_attr(pr1=0.95, pr2=0.975, pr3=0.975,
                           design=['pr1', 'pr2', 'pr3'],
-                          offdesign=['zeta1', 'zeta2', 'zeta3', 'kA'])
+                          offdesign=['zeta1', 'zeta2', 'zeta3'])
         self.c1.set_attr(T=146.6, p=4.34, m=20.4, state='g',
                          fluid={'water': 1, 'Isopentane': 0})
         self.c3.set_attr(T=146.6, p=10.2, m=190,
@@ -68,12 +69,38 @@ class orc_evaporator_tests:
         self.c4.set_attr(T=118.6)
         self.c5.set_attr(T=111.6, p=10.8,
                          fluid={'water': 0, 'Isopentane': 1})
+
+        # test heat transfer
+        Q = -6.64e+07
+        self.c3.set_attr(m=np.nan)
+        instance.set_attr(Q=Q)
+        self.nw.solve('design')
+        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
+        msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
+               ', is ' + str(round(Q_is, 0)) + '.')
+        eq_(round(Q, 0), round(Q_is, 0), msg)
+
+        # test bus
+        instance.set_attr(Q=np.nan)
+        P = 6.64e+07
+        b = bus('heat transfer', P=P)
+        b.add_comps({'c': instance})
+        self.nw.add_busses(b)
         self.nw.solve('design')
         self.nw.save('tmp')
+
+        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
+        msg = ('Value of heat flow must be ' + str(round(P, 0)) +
+               ', is ' + str(round(Q_is, 0)) + '.')
+        eq_(round(P, 0), round(Q_is, 0), msg)
 
         # Check the state of the steam and working fluid outlet:
         x_outl1_calc = self.c2.x.val
         x_outl3_calc = self.c6.x.val
+        zeta1 = instance.zeta1.val
+        zeta2 = instance.zeta2.val
+        zeta3 = instance.zeta3.val
+        m = self.c5.m.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')
@@ -83,15 +110,43 @@ class orc_evaporator_tests:
                str(round(x_outl3_calc, 1)) + '.')
         eq_(round(x_outl3_calc, 1), 1.0, msg)
 
-        Q = -60e6
-        self.c3.set_attr(m=np.nan)
-        instance.set_attr(Q=Q)
-        self.nw.solve('design')
+        # Check offdesign by zeta values
+        # geometry independent friction coefficient
+        self.nw.solve('offdesign', design_path='tmp')
 
-        # test heat transfer
-        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
-        msg = ('Value of heat flow be ' + str(round(Q, 0)) +
-               ', is ' + str(round(Q_is, 0)) + '.')
-        eq_(round(Q, 0), round(Q_is, 0), msg)
+        msg = ('Geometry independent friction coefficient '
+               'at hot side 1 (steam) '
+               'must be ' + str(round(zeta1, 1)) + ', is ' +
+               str(round(instance.zeta1.val, 1)) + '.')
+        eq_(round(instance.zeta1.val, 1), round(zeta1, 1), msg)
+        msg = ('Geometry independent friction coefficient at '
+               'hot side 2 (brine) '
+               'must be ' + str(round(zeta2, 1)) + ', is ' +
+               str(round(instance.zeta2.val, 1)) + '.')
+        eq_(round(instance.zeta2.val, 1), round(zeta2, 1), msg)
+        msg = ('Geometry independent friction coefficient at cold side '
+               '(Isopentane) must be ' + str(round(zeta3, 1)) + ', is ' +
+               str(round(instance.zeta3.val, 1)) + '.')
+        eq_(round(instance.zeta3.val, 1), round(zeta3, 1), msg)
+
+        # test parameters of 'subcooling' and 'overheating'
+        instance.set_attr(subcooling=True, overheating=True)
+        dT = 4
+        self.c2.set_attr(Td_bp=-5)
+        self.c6.set_attr(Td_bp=5)
+        self.nw.solve('offdesign', design_path='tmp')
+
+        T_steam = T_bp_p(self.c2.to_flow()) - 5
+        T_isop = T_bp_p(self.c6.to_flow()) + 5
+
+        msg = ('Temperature of working fluid outlet must be ' +
+               str(round(T_isop, 1)) + ', is ' +
+               str(round(self.c6.T.val_SI, 1)) + '.')
+        eq_(round(T_isop, 1), round(self.c6.T.val_SI, 1), msg)
+
+        msg = ('Temperature of steam outlet must be ' +
+               str(round(T_steam, 1)) + ', is ' +
+               str(round(self.c2.T.val_SI, 1)) + '.')
+        eq_(round(T_steam, 1), round(self.c2.T.val_SI, 1), msg)
 
         shutil.rmtree('./tmp', ignore_errors=True)

@@ -442,16 +442,12 @@ def modify_path_os(path):
         if path[0] != '\\' and path[1:2] != ':' and path[0] != '.':
             # relative path
             path = '.\\' + path
-    elif os.name == 'posix':
-        # linux, max
+    else:
+        # linux, mac
         path = path.replace('\\', '/')
         if path[0] != '/' and path[0] != '.':
-            # absolute path
+            # relative path
             path = './' + path
-    else:
-        # unkown os
-        msg = 'Unknown operating system, using posix pathing logic.'
-        logging.warning(msg)
 
     return path
 

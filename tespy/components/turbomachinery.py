@@ -943,8 +943,9 @@ class pump(turbomachine):
     After that we calculate offdesign performance using
     the pump curve and a characteristic function for the pump efficiency. We
     can calulate the offdesign efficiency and the volumetric flow, if the
-    difference pressure changed.
-    TODO: Link to deufalt characteristic lines?
+    difference pressure changed. The default characteristc lines are to be
+    found in the :py:mod:`tespy.data` module. Of course, you are able to
+    specify your own characteristcs.
 
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5

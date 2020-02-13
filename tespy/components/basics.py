@@ -494,24 +494,6 @@ class subsystem_interface(component):
         ######################################################################
         # all derivatives are static
 
-    def fluid_deriv(self):
-        r"""
-        Calculate the partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids * self.num_i,
-                          2 * self.num_i,
-                          self.num_nw_vars))
-        for i in range(self.num_i):
-            for j in range(self.num_nw_fluids):
-                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
-                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
-        return deriv.tolist()
-
     def inout_deriv(self, pos):
         r"""
         Calculate partial derivatives.
@@ -534,4 +516,4 @@ class subsystem_interface(component):
             deriv[i, i, pos] = 1
         for j in range(self.num_i):
             deriv[j, j + self.num_i, pos] = -1
-        return deriv.tolist()
+        return deriv

@@ -12,13 +12,25 @@ Parameter renaming
 
 Testing
 #######
+- Add convergence checks for all component tests. Some tests did not fail, even
+  if the calculation did not converge
+  (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
+- Improve coverage of the networks module
+  (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
 
 Bug fixes
 #########
 
 Other changes
 #############
+- Use the method :py:meth:`tespy.components.components.component.fluid_deriv`
+  for all components, that do not change composition between an inlet and the
+  respective outlet (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
+- Adjust the method :py:meth:`tespy.components.components.component.zeta_func`
+  to work with all zeta value specifications
+  (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
 
 Contributors
 ############
 
+- Francesco Witte (@fwitte)

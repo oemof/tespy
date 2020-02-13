@@ -23,6 +23,12 @@ import numpy as np
 import shutil
 
 
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    eq_(lin_dep, False, msg)
+
+
 class piping_tests:
 
     def setup_piping_network(self, instance):
@@ -47,6 +53,7 @@ class piping_tests:
         # test variable pressure ration
         instance.set_attr(pr='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(round(instance.pr.val, 2)) + '.')
@@ -56,6 +63,7 @@ class piping_tests:
         zeta = round(instance.zeta.val, 0)
         instance.set_attr(zeta='var', pr=np.nan)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of dimension independent zeta value must be ' +
                str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
         eq_(zeta, round(instance.zeta.val, 0), msg)
@@ -70,6 +78,7 @@ class piping_tests:
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=np.nan)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)

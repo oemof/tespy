@@ -2040,8 +2040,8 @@ class combustion_engine(combustion_chamber):
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.zeta2_func`
+        - loop 1 :func:`tespy.components.components.component.zeta_func`
+        - loop 2 :func:`tespy.components.components.component.zeta_func`
 
     Available fuels
 
@@ -2116,11 +2116,11 @@ class combustion_engine(combustion_chamber):
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2,
+        Geometry independent friction coefficient heating loop 1,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
     zeta2 : str/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2,
+        Geometry independent friction coefficient heating loop 2,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
     tiP_char : str/tespy.helpers.dc_cc
@@ -2391,12 +2391,12 @@ class combustion_engine(combustion_chamber):
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func()
+                self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
             k += 1
 
         if self.zeta2.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta2_func()
+                self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=1)
             k += 1
 
     def derivatives(self, vec_z):
@@ -2601,29 +2601,39 @@ class combustion_engine(combustion_chamber):
         if self.zeta1.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta1', conn=0)
             if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta1', conn=0)
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta1', conn=0)
             if not vec_z[4, 1]:
-                self.mat_deriv[k, 4, 1] = self.numeric_deriv(f, 'p', 4)
+                self.mat_deriv[k, 4, 1] = self.numeric_deriv(
+                    f, 'p', 4, zeta='zeta1', conn=0)
             if not vec_z[4, 2]:
-                self.mat_deriv[k, 4, 2] = self.numeric_deriv(f, 'h', 4)
+                self.mat_deriv[k, 4, 2] = self.numeric_deriv(
+                    f, 'h', 4, zeta='zeta1', conn=0)
             k += 1
 
         if self.zeta2.is_set:
-            f = self.zeta2_func
+            f = self.zeta_func
             if not vec_z[1, 0]:
-                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(
+                    f, 'm', 1, zeta='zeta2', conn=1)
             if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta2', conn=1)
             if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta2', conn=1)
             if not vec_z[5, 1]:
-                self.mat_deriv[k, 5, 1] = self.numeric_deriv(f, 'p', 5)
+                self.mat_deriv[k, 5, 1] = self.numeric_deriv(
+                    f, 'p', 5, zeta='zeta2', conn=1)
             if not vec_z[5, 2]:
-                self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
+                self.mat_deriv[k, 5, 2] = self.numeric_deriv(
+                    f, 'h', 5, zeta='zeta2', conn=1)
             k += 1
 
     def fluid_func(self):

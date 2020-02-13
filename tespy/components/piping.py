@@ -384,7 +384,7 @@ class valve(component):
         # eqation specified zeta
         if self.zeta.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func()
+                self.vec_res[k] = self.zeta_func(zeta='zeta', conn=0)
             k += 1
 
         ######################################################################
@@ -422,18 +422,23 @@ class valve(component):
         if self.zeta.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta', conn=0)
             if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta', conn=0)
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta', conn=0)
             if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta', conn=0)
             if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta', conn=0)
             if self.zeta.is_var:
                 self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2))
+                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta', conn=0))
             k += 1
 
         ######################################################################

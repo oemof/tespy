@@ -26,6 +26,12 @@ import numpy as np
 import shutil
 
 
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    eq_(lin_dep, False, msg)
+
+
 class heat_exchanger_tests:
 
     def setup(self):
@@ -82,6 +88,7 @@ class heat_exchanger_tests:
         b.add_comps({'c': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 3)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(instance.pr.val) + '.')
@@ -93,6 +100,7 @@ class heat_exchanger_tests:
         instance.set_attr(D=instance.D.val, zeta='var', pr=np.nan)
         instance.D.is_var = False
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of zeta must be ' + str(zeta) + ', is ' +
                str(round(instance.zeta.val, 0)) + '.')
         eq_(zeta, round(instance.zeta.val, 0), msg)
@@ -101,6 +109,7 @@ class heat_exchanger_tests:
         pr = round(instance.pr.val, 3)
         instance.set_attr(zeta=np.nan, pr='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) +
                ', is ' + str(round(instance.pr.val, 3)) + '.')
         eq_(pr, round(instance.pr.val, 3), msg)
@@ -110,6 +119,7 @@ class heat_exchanger_tests:
         instance.set_attr(kA='var', pr=np.nan)
         b.set_attr(P=-5e4)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
 
         # due to heat output being half of reference (for Tamb) kA should be
         # somewhere near to that (actual value is 677)
@@ -122,6 +132,7 @@ class heat_exchanger_tests:
         Q = -5e4
         b.set_attr(P=Q)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of heat transfer must be ' + str(Q) +
                ', is ' + str(instance.Q.val) + '.')
         eq_(Q, round(instance.Q.val, 0), msg)
@@ -149,6 +160,7 @@ class heat_exchanger_tests:
         instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
                           eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         # heat loss must be identical to Q - E * A (internal heat loss
         # calculation)
         T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
@@ -164,26 +176,31 @@ class heat_exchanger_tests:
         # test all parameters of the energy group: E
         instance.set_attr(A=instance.A.val, E='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
         # test all parameters of the energy group: eta_opt
         instance.set_attr(E=instance.E.val, eta_opt='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
         # test all parameters of the energy group: lkf_lin
         instance.set_attr(eta_opt=instance.eta_opt.val, lkf_lin='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
         # test all parameters of the energy group: lkf_quad
         instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
         # test all parameters of the energy group: Tamb
         instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
 
     def test_heat_ex(self):
@@ -204,6 +221,7 @@ class heat_exchanger_tests:
         b.add_comps({'c': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
 
         # check heat transfer
@@ -228,6 +246,7 @@ class heat_exchanger_tests:
         self.c2.set_attr(T=np.nan)
         instance.set_attr(ttd_l=20)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of terminal temperature difference must be ' +
                str(instance.ttd_l.val) + ', is ' +
                str(self.c2.T.val - self.c3.T.val) + '.')
@@ -239,6 +258,7 @@ class heat_exchanger_tests:
         self.c2.set_attr(T=70)
         instance.set_attr(ttd_l=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
                str(round(Q, 0)) + '.')
         eq_(round(Q, 0), round(instance.Q.val, 0), msg)
@@ -250,6 +270,7 @@ class heat_exchanger_tests:
         self.c4.set_attr(T=np.nan)
         self.c2.set_attr(T=30)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of upper terminal temperature differences must be '
                'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) +
                '.')
@@ -263,6 +284,7 @@ class heat_exchanger_tests:
         self.c1.set_attr(h=150e3, T=np.nan)
         self.c3.set_attr(T=40)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of upper terminal temperature differences must be '
                'smaller than zero, is ' + str(round(instance.ttd_u.val, 1)) +
                '.')
@@ -285,6 +307,7 @@ class heat_exchanger_tests:
         self.c4.set_attr(T=40)
         instance.set_attr(Q=-80e3)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
 
         # test heat transfer
@@ -306,6 +329,7 @@ class heat_exchanger_tests:
         # test lower terminal temperature difference
         instance.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of terminal temperature difference must be ' +
                str(instance.ttd_l.val) + ', is ' +
                str(self.c2.T.val - self.c3.T.val) + '.')
@@ -315,6 +339,7 @@ class heat_exchanger_tests:
         # check kA value with condensing pressure in offdesign mode:
         # no changes to design point means: identical pressure
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
                str(round(self.c1.p.val_SI, 5)) + '.')
         eq_(p, round(self.c1.p.val_SI, 5), msg)

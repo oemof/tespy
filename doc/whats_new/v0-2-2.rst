@@ -16,7 +16,7 @@ Testing
   if the calculation did not converge
   (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
 - Improve coverage of the networks module
-(`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
+  (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
 
 Bug fixes
 #########

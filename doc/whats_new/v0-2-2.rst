@@ -1,0 +1,24 @@
+v0.2.2 - (someday in 2020)
+++++++++++++++++++++++++++
+
+New Features
+############
+
+Documentation
+#############
+
+Parameter renaming
+##################
+
+Testing
+#######
+
+Bug fixes
+#########
+
+Other changes
+#############
+
+Contributors
+############
+

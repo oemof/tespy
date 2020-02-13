@@ -131,13 +131,13 @@ class orc_evaporator_tests:
 
         # test parameters of 'subcooling' and 'overheating'
         instance.set_attr(subcooling=True, overheating=True)
-        dT = 4
-        self.c2.set_attr(Td_bp=-5)
-        self.c6.set_attr(Td_bp=5)
+        dT = 0.5
+        self.c2.set_attr(Td_bp=-dT)
+        self.c6.set_attr(Td_bp=dT)
         self.nw.solve('offdesign', design_path='tmp')
 
-        T_steam = T_bp_p(self.c2.to_flow()) - 5
-        T_isop = T_bp_p(self.c6.to_flow()) + 5
+        T_steam = T_bp_p(self.c2.to_flow()) - dT
+        T_isop = T_bp_p(self.c6.to_flow()) + dT
 
         msg = ('Temperature of working fluid outlet must be ' +
                str(round(T_isop, 1)) + ', is ' +

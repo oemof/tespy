@@ -179,7 +179,7 @@ class water_electrolyzer(component):
     pressure is 25 bars. The electrolysis efficiency is at 80 % and the
     compressor isentropic efficiency at 85 %. After designing the plant the
     offdesign electrolysis efficiency is predicted by the characteristic line.
-    TODO: LINKTODEFAULTCHAR?
+    The default characteristic line can be found here: :py:mod:`tespy.data`.
 
     >>> fw_el = connection(fw, 'out1', el, 'in2')
     >>> el_o = connection(el, 'out2', oxy, 'in1')

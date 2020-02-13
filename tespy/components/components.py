@@ -654,6 +654,18 @@ class component:
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
+        Parameters
+        ----------
+        zeta : str
+            Component parameter to evaluate the zeta_func on, e. g.
+            :code:`zeta1`.
+
+        conn : int
+            Connection number of inlet and corresponding outlet.
+            In order to use the zeta function, the index of the inlet and
+            the corresponding outlet within the components :code:`ìnl` and
+            :code:`outl` respectively must be identical!
+
         Returns
         -------
         val : float

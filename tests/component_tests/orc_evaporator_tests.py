@@ -24,6 +24,12 @@ import numpy as np
 import shutil
 
 
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    eq_(lin_dep, False, msg)
+
+
 class orc_evaporator_tests:
 
     def setup(self):
@@ -64,7 +70,7 @@ class orc_evaporator_tests:
                           offdesign=['zeta1', 'zeta2', 'zeta3'])
         self.c1.set_attr(T=146.6, p=4.34, m=20.4, state='g',
                          fluid={'water': 1, 'Isopentane': 0})
-        self.c3.set_attr(T=146.6, p=10.2, m=190,
+        self.c3.set_attr(T=146.6, p=10.2,
                          fluid={'water': 1, 'Isopentane': 0})
         self.c4.set_attr(T=118.6)
         self.c5.set_attr(T=111.6, p=10.8,
@@ -72,9 +78,9 @@ class orc_evaporator_tests:
 
         # test heat transfer
         Q = -6.64e+07
-        self.c3.set_attr(m=np.nan)
         instance.set_attr(Q=Q)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
@@ -87,6 +93,7 @@ class orc_evaporator_tests:
         b.add_comps({'c': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
 
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
@@ -113,6 +120,7 @@ class orc_evaporator_tests:
         # Check offdesign by zeta values
         # geometry independent friction coefficient
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
 
         msg = ('Geometry independent friction coefficient '
                'at hot side 1 (steam) '
@@ -135,6 +143,7 @@ class orc_evaporator_tests:
         self.c2.set_attr(Td_bp=-dT)
         self.c6.set_attr(Td_bp=dT)
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
 
         T_steam = T_bp_p(self.c2.to_flow()) - dT
         T_isop = T_bp_p(self.c6.to_flow()) + dT

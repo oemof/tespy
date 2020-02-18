@@ -128,9 +128,9 @@ renweable heating: Heat pumps using subsuface heat to provide heating on
 houshold or even district level show analogous feedback reactions with the
 underground. As their electricity consumption highly depends on the heat source
 temperature level, simulator coupling provides valuable assessment possibilities
-in this field, too [QUELLE (ANGUS)]. Another possible application of TESPy lies
-in pipeline network simulation: TESPy has been implemented in OpenGeoSys [@ogs]
-in order to simulate the operation of BTES arrays [@BTES].
+in this field, too. Additionally, TESPy has been implemented in OpenGeoSys
+[@ogs] for pipeline network simulation of borhole thermal energy storage arrays
+[@BTES].
 
 # Acknowledgements
 

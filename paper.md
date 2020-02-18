@@ -1,5 +1,5 @@
 ---
-title: 'Thermal Engineering Systems in Python'
+title: 'TESPy: Thermal Engineering Systems in Python'
 
 tags:
   - Thermal Engineering

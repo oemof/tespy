@@ -4,7 +4,7 @@ title: 'TESPy: open source thermal engineering'
 tags:
   - Thermal Engineering
   - Thermodynamics
-  - Power plant simulation
+  - Power Plant Simulation
   - Python
 
 authors:
@@ -29,8 +29,8 @@ bibliography: paper.bib
 TESPy (Thermal Engineering Systems in Python [@TESPy]) provides a powerful
 simulation toolkit for thermal process engineering, for instance power plants,
 district heating systems or heat pumps. With the TESPy package it is possible to
-design plants and simulate stationary operation. From that point, partload
-behaviour can be predicted using underlying characteristics for each of the
+design plants and simulate stationary operation. From that point, part-load
+behavior can be predicted using underlying characteristics for each of the
 plant's components. The component based structure combined with the solution
 method offer very high flexibility regarding the plant's topology and its
 parametrisation.
@@ -55,8 +55,8 @@ determined by the fluid's state on every connection (and therefore its change
 within components) between the plant's individual components. Thus, based on the
 components and parameters applied, TESPy generates a set of nonlinear equations
 representing the plant's topology and its parametrisation. By formulating the
-equations implicitly parameters and results are generally interchangeble
-offering high flexibilty in the user specifications. The system of equations is
+equations implicitly parameters and results are generally interchangeable
+offering high flexibility in the user specifications. The system of equations is
 numerically solved with an inbuilt solver applying the multi-dimensional
 Newton-Raphson method to determine the mass flow, pressure, enthalpy and fluid
 composition of every connection. This way, it is possible to solve for both
@@ -95,21 +95,22 @@ $$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
 $$0=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
 \underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}-P-\dot{Q}$$
 
-$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot\left(h_{\mathrm{in}}-
+$$0=
+\dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)-
+\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot\left(h_{\mathrm{in}}-
 h_{\mathrm{in,ref}}\right)_{i}-
-\dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)+
 \dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j}$$
 
-To determine partload performance of the plant, design specific component
-parameters are calculated, for example the area independent heat transfer
-coefficient $kA$ of heat exchangers. The heat transferred at a different
-operation point may then be calculated using the design value of $kA$ applying
-equation (5).
+After designing a specific plant, part-load performance can be determined. For
+this, design specific component parameters are calculated in the design case,
+for example the area independent heat transfer coefficient $kA$ of heat
+exchangers. The heat transferred at a different operation point may then be
+calculated using the design value of $kA$ applying equation (5).
 
 $$0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}$$
 
 In general, these parameters can be adjusted using lookup table functions to
-match the model behaviour to measured data. This is especially useful if
+match the model behavior to measured data. This is especially useful if
 components with well known characteristics should be implemented in a different
 plant or at different operating conditions. Due to the modular structure of
 TESPy, new equations or characteristic functions to further improve the
@@ -117,23 +118,26 @@ representation of an actual plant can easily be added.
 
 # Example Implementations
 
+whabsdas
+
+
 The core strength of TESPy lies in the generic and component based architecture
-allowing to simulate technologically and typologically different thermal
+allowing to simulate technologically and topologically different thermal
 engineering applications.
 
 For example, as the increasing share of renewable energy sources to mitigate
 climate change will result in a significant storage demand, underground gas
-storage is considerd a large scale energy storage option [@IEA; @Pfeiffer]. Due
+storage is considered a large scale energy storage option [@IEA; @Pfeiffer]. Due
 to the feedback regarding the physical parameters of the fluid exchanged between
 the geological storage and the above-ground plant, an integrated simulation of
 the storage and the power plant is necessary for a detailed assessment of such
 storage options [@CAES]. Another important task in energy system transition is
-renweable heating: Heat pumps using subsuface heat to provide heating on
-houshold or even district level show analogous feedback reactions with the
+renewable heating: Heat pumps using subsurface heat to provide heating on
+household or even district level show analogous feedback reactions with the
 underground. As their electricity consumption highly depends on the heat source
 temperature level, simulator coupling provides valuable assessment possibilities
-in this field, too. Additionally, TESPy has been implemented in OpenGeoSys
-[@ogs] for pipeline network simulation of borhole thermal energy storage arrays
+in this field, too. Additionally, TESPy has been coupled with OpenGeoSys
+[@ogs] for pipeline network simulation of borehole thermal energy storage arrays
 [@BTES].
 
 # Acknowledgements

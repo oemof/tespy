@@ -43,7 +43,7 @@ class orc_evaporator(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.customs.orc_evaporator.fluid_func`
+        - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.customs.orc_evaporator.mass_flow_func`
 
         - :func:`tespy.components.customs.orc_evaporator.energy_func`
@@ -549,8 +549,8 @@ class orc_evaporator(component):
                 \begin{split}
                 res = &
                 \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) \\
-                + \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) \\
-                + \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
+                &+ \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) \\
+                &+ \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
                 \end{split}
         """
 
@@ -631,13 +631,17 @@ class orc_evaporator(component):
             .. math::
 
                 val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                h\left(p, 200 \text{K} \right) & \text{key = 'h' at outlet 1}\\
-                h\left(p, 250 \text{K} \right) & \text{key = 'h' at outlet 2}
+                10 \cdot 10^5 & \text{key = 'p'}\\
+                h\left(p, 473.15 \text{K} \right) &
+                \text{key = 'h' at outlet 1}\\
+                h\left(p, 473.15 \text{K} \right) &
+                \text{key = 'h' at outlet 2}\\
+                h\left(p, 523.15 \text{K} \right) &
+                \text{key = 'h' at outlet 3}
                 \end{cases}
         """
         if key == 'p':
-            return 50e5
+            return 10e5
         elif key == 'h':
             flow = c.to_flow()
             if c.s_id == 'out1':
@@ -670,13 +674,17 @@ class orc_evaporator(component):
             .. math::
 
                 val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                h\left(p, 300 \text{K} \right) & \text{key = 'h' at inlet 1}\\
-                h\left(p, 220 \text{K} \right) & \text{key = 'h' at outlet 2}
+                10 \cdot 10^5 & \text{key = 'p'}\\
+                h\left(p, 573.15 \text{K} \right) &
+                \text{key = 'h' at inlet 1}\\
+                h\left(p, 573.15 \text{K} \right) &
+                \text{key = 'h' at inlet 2}\\
+                h\left(p, 493.15 \text{K} \right) &
+                \text{key = 'h' at inlet 3}
                 \end{cases}
         """
         if key == 'p':
-            return 50e5
+            return 10e5
         elif key == 'h':
             flow = c.to_flow()
             if c.t_id == 'in1':

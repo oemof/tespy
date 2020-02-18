@@ -662,11 +662,11 @@ class component:
             Component parameter to evaluate the zeta_func on, e. g.
             :code:`zeta1`.
 
-        conn : int
-            Connection number of inlet and corresponding outlet.
-            In order to use the zeta function, the index of the inlet and
-            the corresponding outlet within the components :code:`ìnl` and
-            :code:`outl` respectively must be identical!
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
 
         Returns
         -------

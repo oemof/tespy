@@ -1567,27 +1567,6 @@ class heat_exchanger(component):
         r"""Calculate partial derivatives for given additional equations."""
         return
 
-    def fluid_func(self):
-        r"""
-        Calculate residual values for fluid balance equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-        """
-        vec_res = []
-
-        for i in range(self.num_i):
-            for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
-        return vec_res
-
     def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.

@@ -492,13 +492,15 @@ class component:
             Vector of residual values for component's fluid balance.
 
             .. math::
-                0 = fluid_{i,in} - fluid_{i,out} \;
-                \forall i \in \mathrm{fluid}
+
+                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
         """
         vec_res = []
 
-        for fluid, x in self.inl[0].fluid.val.items():
-            vec_res += [x - self.outl[0].fluid.val[fluid]]
+        for i in range(self.num_i):
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - self.outl[0].fluid.val[fluid]]
         return vec_res
 
     def fluid_deriv(self):

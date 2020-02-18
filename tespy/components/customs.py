@@ -30,15 +30,14 @@ from tespy.tools.helpers import lamb, single_fluid
 
 
 class orc_evaporator(component):
-    r"""
-    Class orc_evaporator is the evaporator component in
-    the Organic Rankine Cycle (ORC). Generally, the hot side
-    of the geo-fluid from the geothermal wells keeps 2-phase.
-    In order to fully use the energy in the geo-fluid,
-    there are 2 inlets at the hot side.
+    r"""Evaporator of the geothermal Organic Rankine Cycle (ORC).
 
-    The ORC evaporator represents counter current evaporators. Both, 2 hot
-    and 1 cold side of the evaporator, are simulated.
+    Generally, the hot side of the geo-fluid from the geothermal wells deliver
+    two phases: steam and brine. In order to fully use the energy of the
+    geo-fluid, there are 2 inlets at the hot side.
+
+    The ORC evaporator represents counter current evaporators. Both, two hot
+    and one cold side of the evaporator, are simulated.
 
     Equations
 
@@ -78,11 +77,11 @@ class orc_evaporator(component):
     Inlets/Outlets
 
         - in1, in2, in3 (index 1: steam from geothermal heat source,
-        index 2: brine from geothermal heat source,
-        index 3: working fluid of being evaporated)
+          index 2: brine from geothermal heat source,
+          index 3: working fluid of being evaporated)
         - out1, out2, out3 (index 1: steam from geothermal heat source,
-        index 2: brine from geothermal heat source,
-        index 3: working fluid of being evaporated)
+          index 2: brine from geothermal heat source,
+          index 3: working fluid of being evaporated)
 
     Image
 
@@ -146,34 +145,29 @@ class orc_evaporator(component):
 
     subcooling : bool
         Enable/disable subcooling at oulet of the hot side 1,
-        default value: disabled.
+        default value: disabled (False).
 
     overheating : bool
         Enable/disable overheating at oulet of the cold side,
-        default value: disabled.
+        default value: disabled (False).
 
     Note
     ----
-    The ORC evaporator has an additional equation for enthalpy
-    at outlet of the steam from geothermal heat source side:
-    The fluid leaves the component in saturated liquid state.
-    If subcooling is activated, it possible to specify
-    the enthalpy at the outgoing connection manually.
+    The ORC evaporator has an additional equation for enthalpy at the outlet of
+    the steam from geothermal heat source side: The fluid leaves the component
+    in saturated liquid state. If subcooling is activated, it possible to
+    specify the enthalpy at the outgoing connection manually.
 
-    It also has an another additional equation for enthalpy
-    at outlet of the working fluid of being evaporated:
-    The fluid leaves the component in saturated gas state.
-    If overheating is activated, it possible to specify
-    the enthalpy at the outgoing connection manually.
+    It also has an additional equation for enthalpy at outlet of the working
+    fluid: It leaves the component in saturated gas state. If overheating is
+    enabled, it possible to specifycthe enthalpy at the outgoing connection
+    manually.
 
     Example
     -------
-    A 2-phase geo-fluid is used as the heat source for evaporating
-    the working fluid. The evaporator is designed for calculate the
-    mass flow rate of the working fluid with known steam and
-    brine mass flow rate. From this, it is possible to calculate
-    the mass flow rate of the working fluid that is fully evaporated
-    through the ORC evaporator.
+    A 2-phase geo-fluid is used as the heat source for evaporating the working
+    fluid. We calculate the mass flow of the working fluid with known steam and
+    brine mass flow.
 
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
@@ -281,7 +275,7 @@ class orc_evaporator(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations for this component.
 
         Returns
         -------
@@ -371,7 +365,7 @@ class orc_evaporator(component):
 
     def derivatives(self, vec_z):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -486,7 +480,7 @@ class orc_evaporator(component):
                     f, 'p', 5, zeta='zeta3', inconn=2, outconn=2)
             if not vec_z[5, 2]:
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(
-                    f, 'h', 5, zeta='zeta3', inconn=2, outconn=2)
+                    f, 'h', 5, zeta='zeta3')
             k += 1
 
         ######################################################################
@@ -505,32 +499,9 @@ class orc_evaporator(component):
             self.mat_deriv[k, 5, 2] = 1
             k += 1
 
-    def fluid_func(self):
-        r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-        """
-        vec_res = []
-
-        for i in range(self.num_i):
-            for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
-        return vec_res
-
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value of mass flow balance equations.
 
         Returns
         -------
@@ -547,30 +518,9 @@ class orc_evaporator(component):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
         return vec_res
 
-    def fluid_deriv(self):
-        r"""
-        Calculates the partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids * 3,
-                          6 + self.num_vars,
-                          self.num_nw_vars))
-        deriv = np.zeros((self.num_nw_fluids * self.num_i,
-                          2 * self.num_i,
-                          self.num_nw_vars))
-        for i in range(self.num_i):
-            for j in range(self.num_nw_fluids):
-                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
-                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
-        return deriv
-
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -596,9 +546,12 @@ class orc_evaporator(component):
 
             .. math::
 
-                0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
-                \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) +
-                \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
+                \begin{split}
+                res = &
+                \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) \\
+                + \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right) \\
+                + \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
+                \end{split}
         """
 
         return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
@@ -610,7 +563,7 @@ class orc_evaporator(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -640,7 +593,7 @@ class orc_evaporator(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate the matrix of partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -660,8 +613,7 @@ class orc_evaporator(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -700,8 +652,7 @@ class orc_evaporator(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -739,9 +690,7 @@ class orc_evaporator(component):
                 return h_mix_pT(flow, T)
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         # connection information
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()

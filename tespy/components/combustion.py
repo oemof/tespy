@@ -2747,7 +2747,7 @@ class combustion_engine(combustion_chamber):
             .. math::
 
                 \begin{split}
-                0 = & \sum_i \dot{m}_{in,i} \cdot
+                res = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
                 & - \sum_j \dot{m}_{out,3} \cdot
                 \left( h_{out,3} - h_{out,3,ref} \right)\\

@@ -11,12 +11,14 @@ authors:
   - name: Francesco Witte
     orcid: 0000-0003-4019-0390
     affiliation: 1 # (Multiple affiliations must be quoted)
+  - name: Ilja Tuschy
+    affiliation: 1 # (Multiple affiliations must be quoted)
 
 affiliations:
  - name: Center for Sustainable Energy Systems, Flensburg University of Applied Sciences, Germany
    index: 1
 
-date: February 2020
+date: 18. February 2020
 
 bibliography: paper.bib
 
@@ -55,17 +57,17 @@ components and parameters applied, TESPy generates a set of nonlinear equations
 representing the plant's topology and its parametrisation. By formulating the
 equations implicitly parameters and results are generally interchangeble
 offering high flexibilty in the user specifications. The system of equations is
-numerically solved using the multi-dimensional Newton-Raphson method to
-determine the mass flow, pressure, enthalpy and fluid composition of every
-connection. This way, it is possible to solve for both thermal as well as
-hydraulic state of the plant.
+numerically solved with an inbuilt solver applying the multi-dimensional
+Newton-Raphson method to determine the mass flow, pressure, enthalpy and fluid
+composition of every connection. This way, it is possible to solve for both
+thermal as well as hydraulic state of the plant.
 
 To achieve this, TESPy implements balance equations (based on standard
 literature, for example [@Baehr; @Epple]) for every component regarding
 
-• mass flow and species as well as
+• mass flow and fluid composition as well as
 
-• energy in regard to thermal and hydraulic properties.
+• energy (covering thermal and hydraulic properties).
 
 In steady state, the total mass flow into a component must be equal to the total
 mass flow leaving the component (eq. 1). Additionally, the mass balance of a
@@ -98,18 +100,20 @@ h_{\mathrm{in,ref}}\right)_{i}-
 \dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)+
 \dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j}$$
 
-In oder to determine partload performance of the plant, design specific
-component parameters are calculated, for example an area independent heat
-transfer coefficient $kA$. The heat transferred at a different operation point
-may then be calculated using equation 5. Generally, this kind of parameter can
-be adjusted using lookup table functions in order to match the model behaviour
-to measured data. This is especially useful, if components with well known
-characteristics are implemented in a different plant or at different operating
-conditions. New equations or characteristic functions to further improve the
-representation of an actual plant can easily be added due to the modular
-structure of TESPy.
+To determine partload performance of the plant, design specific component
+parameters are calculated, for example the area independent heat transfer
+coefficient $kA$ of heat exchangers. The heat transferred at a different
+operation point may then be calculated using the design value of $kA$ applying
+equation (5).
 
 $$0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}$$
+
+In general, these parameters can be adjusted using lookup table functions to
+match the model behaviour to measured data. This is especially useful if
+components with well known characteristics should be implemented in a different
+plant or at different operating conditions. Due to the modular structure of
+TESPy, new equations or characteristic functions to further improve the
+representation of an actual plant can easily be added.
 
 # Example Implementations
 

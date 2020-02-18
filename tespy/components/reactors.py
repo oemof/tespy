@@ -904,7 +904,7 @@ class water_electrolyzer(component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             T = 50 + 273.15
             return h_mix_pT(flow, T)
 
@@ -935,7 +935,7 @@ class water_electrolyzer(component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             T = 20 + 273.15
             return h_mix_pT(flow, T)
 

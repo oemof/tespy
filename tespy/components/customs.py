@@ -700,12 +700,12 @@ class orc_evaporator(component):
         o3 = self.outl[2].to_flow()
 
         # specific volume
-        v_i1 = v_mix_ph(i1, T0=T_i1)
-        v_i2 = v_mix_ph(i2, T0=T_i2)
-        v_i3 = v_mix_ph(i3, T0=T_i3)
-        v_o1 = v_mix_ph(o1, T0=T_o1)
-        v_o2 = v_mix_ph(o2, T0=T_o2)
-        v_o3 = v_mix_ph(o3, T0=T_o3)
+        v_i1 = v_mix_ph(i1, T0=self.inl[0].T.val_SI)
+        v_i2 = v_mix_ph(i2, T0=self.inl[1].T.val_SI)
+        v_i3 = v_mix_ph(i3, T0=self.inl[2].T.val_SI)
+        v_o1 = v_mix_ph(o1, T0=self.outl[0].T.val_SI)
+        v_o2 = v_mix_ph(o2, T0=self.outl[1].T.val_SI)
+        v_o3 = v_mix_ph(o3, T0=self.outl[2].T.val_SI)
 
         # specific entropy
         s_i1 = s_mix_ph(i1, T0=self.inl[0].T.val_SI)

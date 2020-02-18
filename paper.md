@@ -120,9 +120,6 @@ representation of an actual plant can easily be added.
 
 # Example Implementations
 
-whabsdas
-
-
 The core strength of TESPy lies in the generic and component based architecture
 allowing to simulate technologically and topologically different thermal
 engineering applications.

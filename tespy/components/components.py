@@ -650,7 +650,7 @@ class component:
 
 # %%
 
-    def zeta_func(self, zeta='', conn=0):
+    def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
@@ -693,14 +693,14 @@ class component:
             {8 \cdot \dot{m}^2 \cdot v}
         """
         zeta = self.get_attr(zeta).val
-        i = self.inl[conn].to_flow()
-        o = self.outl[conn].to_flow()
+        i = self.inl[inconn].to_flow()
+        o = self.outl[outconn].to_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
 
         else:
-            v_i = v_mix_ph(i, T0=self.inl[conn].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[conn].T.val_SI)
+            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
+            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
             return (zeta - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

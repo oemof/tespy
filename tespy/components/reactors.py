@@ -419,7 +419,7 @@ class water_electrolyzer(component):
         # specified zeta value
         if self.zeta.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta', conn=0)
+                self.vec_res[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         # equation for heat transfer
@@ -533,25 +533,25 @@ class water_electrolyzer(component):
             f = self.zeta_func
             if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta', conn=0)
+                    f, 'm', 0, zeta='zeta')
             if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta', conn=0)
+                    f, 'p', 0, zeta='zeta')
             if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta', conn=0)
+                    f, 'h', 0, zeta='zeta')
             if not vec_z[2, 1]:
                 self.mat_deriv[k, 2, 1] = self.numeric_deriv(
-                    f, 'p', 2, zeta='zeta', conn=0)
+                    f, 'p', 2, zeta='zeta')
             if not vec_z[2, 2]:
                 self.mat_deriv[k, 2, 2] = self.numeric_deriv(
-                    f, 'h', 2, zeta='zeta', conn=0)
+                    f, 'h', 2, zeta='zeta')
 
             # derivatives for variable zeta
             if self.zeta.is_var:
                 self.mat_deriv[k, 5 + self.zeta.var_pos, 0] = (
                     self.numeric_deriv(
-                        f, 'zeta', 5, zeta='zeta', conn=0))
+                        f, 'zeta', 5, zeta='zeta'))
             k += 1
 
         ######################################################################

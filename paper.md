@@ -1,5 +1,5 @@
 ---
-title: 'TESPy: open source thermal engineering'
+title: 'Thermal Engineering Systems in Python'
 
 tags:
   - Thermal Engineering

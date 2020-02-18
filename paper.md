@@ -10,13 +10,15 @@ tags:
 authors:
   - name: Francesco Witte
     orcid: 0000-0003-4019-0390
-    affiliation: 1 # (Multiple affiliations must be quoted)
+    affiliation: "1, 2"
   - name: Ilja Tuschy
-    affiliation: 1 # (Multiple affiliations must be quoted)
+    affiliation: "1, 2"
 
 affiliations:
- - name: Center for Sustainable Energy Systems, Flensburg University of Applied Sciences, Germany
+ - name: Center for Sustainable Energy Systems, Flensburg
    index: 1
+ - name: Flensburg University of Applied Sciences
+   index: 2
 
 date: 18. February 2020
 

@@ -639,7 +639,7 @@ class orc_evaporator(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.s_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
@@ -678,7 +678,7 @@ class orc_evaporator(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.t_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
@@ -699,17 +699,6 @@ class orc_evaporator(component):
         o2 = self.outl[1].to_flow()
         o3 = self.outl[2].to_flow()
 
-        # temperatures
-        if isinstance(self, orc_evaporator):
-            T_i1 = T_bp_p(i1)
-        else:
-            T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_i3 = T_mix_ph(i3, T0=self.inl[2].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        T_o3 = T_mix_ph(o3, T0=self.outl[2].T.val_SI)
-
         # specific volume
         v_i1 = v_mix_ph(i1, T0=T_i1)
         v_i2 = v_mix_ph(i2, T0=T_i2)
@@ -719,12 +708,12 @@ class orc_evaporator(component):
         v_o3 = v_mix_ph(o3, T0=T_o3)
 
         # specific entropy
-        s_i1 = s_mix_ph(i1, T0=T_i1)
-        s_i2 = s_mix_ph(i2, T0=T_i2)
-        s_i3 = s_mix_ph(i3, T0=T_i3)
-        s_o1 = s_mix_ph(o1, T0=T_o1)
-        s_o2 = s_mix_ph(o2, T0=T_o2)
-        s_o3 = s_mix_ph(o3, T0=T_o3)
+        s_i1 = s_mix_ph(i1, T0=self.inl[0].T.val_SI)
+        s_i2 = s_mix_ph(i2, T0=self.inl[1].T.val_SI)
+        s_i3 = s_mix_ph(i3, T0=self.inl[2].T.val_SI)
+        s_o1 = s_mix_ph(o1, T0=self.outl[0].T.val_SI)
+        s_o2 = s_mix_ph(o2, T0=self.outl[1].T.val_SI)
+        s_o3 = s_mix_ph(o3, T0=self.outl[2].T.val_SI)
 
         # component parameters
         self.Q.val = -i3[0] * (o3[2] - i3[2])

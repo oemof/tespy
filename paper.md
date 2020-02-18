@@ -28,7 +28,7 @@ bibliography: paper.bib
 
 # Summary
 
-TESPy (Thermal Engineering Systems in Python [@TESPy]) provides a powerful
+TESPy (Thermal Engineering Systems in Python) provides a powerful
 simulation toolkit for thermal process engineering, for instance power plants,
 district heating systems or heat pumps. With the TESPy package it is possible to
 design plants and simulate stationary operation. From that point, part-load

@@ -1,4 +1,4 @@
-, inconn=0, outconn=0# -*- coding: utf-8
+# -*- coding: utf-8
 
 """Module for components using combustion.
 

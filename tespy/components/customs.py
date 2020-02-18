@@ -340,19 +340,19 @@ class orc_evaporator(component):
         ######################################################################
         # equations for specified zeta at hot side 1
         if self.zeta1.is_set:
-            self.vec_res[k] = self.zeta_func(zeta=self.zeta1.val, conn=0)
+            self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at hot side 2
         if self.zeta2.is_set:
-            self.vec_res[k] = self.zeta_func(zeta=self.zeta2.val, conn=0)
+            self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta3.is_set:
-            self.vec_res[k] = self.zeta_func(zeta=self.zeta3.val, conn=0)
+            self.vec_res[k] = self.zeta_func(zeta='zeta3', conn=0)
             k += 1
 
         ######################################################################

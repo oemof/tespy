@@ -119,10 +119,10 @@ engineering applications.
 
 For example, as the increasing share of renewable energy sources to mitigate
 climate change will result in a significant storage demand, underground gas
-storage is considerd a large scale energy storage option [QUELLE]. Due to the
-feedback regarding the physical parameters of the fluid exchanged between the
-geological storage and the above-ground plant, an integrated simulation of the
-storage and the power plant is necessary for a detailed assessment of such
+storage is considerd a large scale energy storage option [@IEA; @Pfeiffer]. Due
+to the feedback regarding the physical parameters of the fluid exchanged between
+the geological storage and the above-ground plant, an integrated simulation of
+the storage and the power plant is necessary for a detailed assessment of such
 storage options [@CAES]. Another important task in energy system transition is
 renweable heating: Heat pumps using subsuface heat to provide heating on
 houshold or even district level show analogous feedback reactions with the
@@ -136,7 +136,8 @@ in this field, too. Additionally, TESPy has been implemented in OpenGeoSys
 
 This work is supported by University of Applied Sciences and the Center for
 Sustainable Energy Systems in Flensburg. It is part of the open energy modeling
-framework (oemof) [@oemof]. Many thanks to all [contributers](https://github.com/oemof/tespy/graphs/contributors).
+framework (oemof) [@oemof]. Many thanks to all
+[contributers](https://github.com/oemof/tespy/graphs/contributors).
 
 Key parts of TESPy require the following scientific software packages: CoolProp
 [@CoolProp], NumPy [@NumPy], pandas [@pandas]. Other packages implemented are

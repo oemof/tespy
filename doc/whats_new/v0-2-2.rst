@@ -3,6 +3,11 @@ v0.2.2 - (someday in 2020)
 
 New Features
 ############
+- Add a new component evaporator for geothermal organic rankine cycle. The
+  component has inlets for geothermal steam brine. On the cold side, the orc
+  working fluid is evaporated. Read more about this component in the API 
+  documentation: :py:class:`tespy.components.customs.orc_evaporator`
+  (`PR #148 <https://github.com/oemof/tespy/pull/148>`_).
 
 Documentation
 #############

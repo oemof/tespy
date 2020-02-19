@@ -1557,7 +1557,11 @@ class network:
             Maximum number of iterations before calculation stops, default: 50.
 
         init_only : boolean
-            Perform initialisation only? default: :code:`False`.
+            Perform initialisation only, default: :code:`False`.
+
+        init_previous : boolean
+            Initialise the calculation with values from the previous
+            calculation, default: :code:`True`.
 
         Note
         ----

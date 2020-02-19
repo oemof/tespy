@@ -1360,6 +1360,8 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
+            if self.init_previous is False:
+                c.good_starting_values = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if c.get_attr(key).unit_set is False and key != 'x':
                     if key == 'Td_bp':

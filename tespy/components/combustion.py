@@ -986,7 +986,7 @@ class combustion_chamber(component):
 
         m = 0
         for i in inl:
-            if i.init_csv is False:
+            if i.good_starting_values is False:
                 if i.m.val_SI < 0 and not i.m.val_set:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
@@ -994,7 +994,7 @@ class combustion_chamber(component):
         ######################################################################
         # check fluid composition
         for o in outl:
-            if o.init_csv is False:
+            if o.good_starting_values is False:
                 fluids = [f for f in o.fluid.val.keys()
                           if not o.fluid.val_set[f]]
                 for f in fluids:
@@ -1031,7 +1031,7 @@ class combustion_chamber(component):
         ######################################################################
         # flue gas propagation
         for o in outl:
-            if o.init_csv is False:
+            if o.good_starting_values is False:
                 if o.m.val_SI < 0 and not o.m.val_set:
                     o.m.val_SI = 10
                 nw.init_target(o, o.t)
@@ -1045,7 +1045,7 @@ class combustion_chamber(component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                if i.init_csv is False:
+                if i.good_starting_values is False:
                     fuel = 0
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]

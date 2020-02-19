@@ -381,7 +381,8 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equation for specified kA-group paremeters
         if self.kA_group.is_set:
-            self.vec_res[k] = self.kA_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.kA_func()
             k += 1
 
     def derivatives(self, vec_z):
@@ -1384,7 +1385,8 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified heat transfer coefficient
         if self.kA.is_set:
-            self.vec_res[k] = self.kA_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.kA_func()
             k += 1
 
         ######################################################################
@@ -1416,13 +1418,15 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified zeta at hot side
         if self.zeta1.is_set:
-            self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta2.is_set:
-            self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=1)
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=1)
             k += 1
 
         ######################################################################

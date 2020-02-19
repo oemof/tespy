@@ -509,6 +509,8 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
 
+            c.good_starting_values = False
+
             self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
             msg = ('Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' +
                    c.t.label + ' (' + c.t_id + ') to network.')
@@ -1358,7 +1360,6 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            c.init_csv = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if c.get_attr(key).unit_set is False and key != 'x':
                     if key == 'Td_bp':
@@ -1367,7 +1368,8 @@ class network:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
                 if (key not in ['T', 'x', 'v', 'Td_bp'] and
                         c.get_attr(key).val_set is False):
-                    self.init_val0(c, key)
+                    if c.good_starting_values is False:
+                        self.init_val0(c, key)
                     c.get_attr(key).val_SI = (
                             c.get_attr(key).val0 * self.get_attr(key)[
                                     c.get_attr(key).unit])
@@ -1514,7 +1516,7 @@ class network:
                 c.p.val0 = c.p.val_SI / self.p[c.p.unit]
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
-                c.init_csv = True
+                c.good_starting_values = True
             else:
                 msg = ('Could not find connection ' + c.s.label + ' (' +
                        c.s_id + ') -> ' + c.t.label + ' (' + c.t_id +
@@ -1525,7 +1527,7 @@ class network:
         logging.debug(msg)
 
     def solve(self, mode, init_path=None, design_path=None,
-              max_iter=50, init_only=False):
+              max_iter=50, init_only=False, init_previous=True):
         r"""
         Solve the network.
 
@@ -1578,6 +1580,7 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1646,7 +1649,7 @@ class network:
             logging.error(msg)
             return
 
-        self.post_processing()
+        self.postprocessing()
         fp.memorise.del_memory(self.fluids)
 
         if not self.progress:
@@ -1992,7 +1995,7 @@ class network:
                     c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.9
+                c.h.val_SI = hmax * 0.99
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set is True or c.state.is_set is True) and
@@ -2010,7 +2013,7 @@ class network:
                         c.h.val_SI = h * 0.98
                         logging.debug(self.property_range_message(c, 'h'))
 
-        elif self.iter < 4 and c.init_csv is False:
+        elif self.iter < 4 and c.good_starting_values is False:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -2443,7 +2446,7 @@ class network:
 
                 row += 1
 
-    def post_processing(self):
+    def postprocessing(self):
         r"""Calculate bus, component parameters and connection parameters."""
         # components
         self.comps.apply(network.process_components, axis=1)
@@ -2463,6 +2466,7 @@ class network:
 
         # connections
         for c in self.conns.index:
+            c.good_starting_values = True
             c.T.val_SI = fp.T_mix_ph(c.to_flow(), T0=c.T.val_SI)
             c.v.val_SI = fp.v_mix_ph(c.to_flow(), T0=c.T.val_SI) * c.m.val_SI
             c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])

@@ -725,18 +725,16 @@ class compressor(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if o[0].init_csv is False:
-            if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-                o[0].p.val_SI = o[0].p.val_SI * 2
+        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+            o[0].p.val_SI = o[0].p.val_SI * 1.1
 
-            if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-                o[0].h.val_SI = o[0].h.val_SI * 1.1
+        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+            o[0].h.val_SI = o[0].h.val_SI * 1.1
 
-        if i[0].init_csv is False:
-            if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-                i[0].p.val_SI = o[0].p.val_SI * 0.5
-            if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-                i[0].h.val_SI = o[0].h.val_SI * 0.9
+        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+            i[0].p.val_SI = o[0].p.val_SI * 0.9
+        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+            i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     @staticmethod
     def initialise_source(c, key):
@@ -1623,22 +1621,21 @@ class turbine(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if i[0].init_csv is False:
+        if i[0].good_starting_values is False:
             if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
                 i[0].p.val_SI = 1e5
 
             if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
                 i[0].h.val_SI = 10e5
 
-        if o[0].init_csv is False:
-            if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
-                o[0].h.val_SI = i[0].h.val_SI * 0.75
-
-            if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
-                o[0].p.val_SI = i[0].p.val_SI / 2
-
             if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
                 o[0].h.val_SI = 5e5
+
+        if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
+            o[0].h.val_SI = i[0].h.val_SI * 0.9
+
+        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
+            o[0].p.val_SI = i[0].p.val_SI * 0.9
 
     @staticmethod
     def initialise_source(c, key):

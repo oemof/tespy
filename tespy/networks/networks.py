@@ -1238,18 +1238,20 @@ class network:
             outc['s'] = self.conns.s == c.t
             outc['s_id'] = self.conns.s_id == c.t_id.replace('in', 'out')
             conn, cid = outc['s'] == True, outc['s_id'] == True
-            outc = outc.index[conn & cid][0]
+            outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if not outc.fluid.val_set[fluid]:
-                    outc.fluid.val[fluid] = x
+                if (outconn.fluid.val_set[fluid] is False and
+                        outconn.good_starting_values is False):
+                    outconn.fluid.val[fluid] = x
 
             self.init_target(outc, start)
 
         if isinstance(c.t, splitter):
             for outconn in self.comps.loc[c.t].o:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1259,13 +1261,15 @@ class network:
                 outconn = self.comps.loc[c.t].o[0]
 
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
         if isinstance(c.t, combustion_engine):
             for outconn in self.comps.loc[c.t].o[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1274,7 +1278,8 @@ class network:
             start = c.t
             for outconn in self.comps.loc[c.t].o:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1310,15 +1315,17 @@ class network:
             inc = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if not inc.fluid.val_set[fluid]:
-                    inc.fluid.val[fluid] = x
+                if (inconn.fluid.val_set[fluid] is False and
+                        inconn.good_starting_values is False):
+                    inconn.fluid.val[fluid] = x
 
             self.init_source(inc, start)
 
         if isinstance(c.s, splitter):
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1326,7 +1333,8 @@ class network:
         if isinstance(c.s, merge):
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1334,7 +1342,8 @@ class network:
         if isinstance(c.s, combustion_engine):
             for inconn in self.comps.loc[c.s].i[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1343,7 +1352,8 @@ class network:
             start = c.s
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)

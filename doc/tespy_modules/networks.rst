@@ -124,6 +124,8 @@ available keywords:
  * :code:`max_iter` is the maximum amount of iterations performed by the
    solver.
  * :code:`init_only` stop after initialisation (True/False).
+ * :code:`init_previous` use starting values from previous simulation
+   (True/False).
 
 There are two calculation modes available (:code:`'design'` and
 :code:`'offdesign'`), which are explained in the subsections below. If you
@@ -137,6 +139,11 @@ initialisation from priorly saved results will be skipped.
 :code:`init_only=True` usually is used for debugging. Or, you could use this
 feature to export a not solved network, if you want to do the parametrisation
 in .csv-files rather than your python script.
+
+The :code:`init_previous` parameter can be used in design and offdesign
+calculations and works very similar to specifying an :code:`init_path`.
+In contrast, starting values are taken from the previous calculation. Specifying
+the :code:`ìnit_path` overwrites :code:`init_previous`.
 
 Design mode
 +++++++++++
@@ -229,8 +236,9 @@ The initialisation is performed in the following steps.
 
  * fluid propagation.
  * fluid property initialisation.
- * initialisation from .csv (setting starting values from
-   :code:`init_path` argument).
+ * initialisation from previous simulation run (:code:`ìnit_previous`).
+ * initialisation from .csv (setting starting values from :code:`init_path`
+   argument).
 
 The network check is used to find errors in the network topology, the
 calulation can not start without a successful check. For components, a
@@ -261,9 +269,11 @@ starting value for the fluid at every point of the network.
     fluid property database can not find a value, because the fluid is 'nan'.
     Providing starting values manually can fix this problem.
 
-The fluid property initialisation takes the user specified starting values, if
-available, and otherwise uses generic starting values on the bases of which
-components the connection is linked to.
+If available, the fluid property initialisation uses the user specified starting
+values or the results from the previous simulation. Otherwise generic starting
+values are generated on basis of which components a connection is linked to.
+If you do not want to use the results of a previous calculation, you need to
+specify :code:`init_previous=False` on the :code:`network.solve` method call.
 
 Last step in starting value generation is the initialisation from a saved
 network structure. In order to initialise your calculation from the
@@ -280,8 +290,7 @@ file.
     network from the :code:`init_path`. Be aware that a change within the fluid
     vector does not alow this practice! If you plan to use additional fluids in
     parts of the network you have not touched until now, you will need to state
-    all fluids from the beginning. Generally, initialisation from a converged
-    calculation yields the best performance and is highly receommended.
+    all fluids from the beginning.
 
 
 Algorithm

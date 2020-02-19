@@ -1245,7 +1245,7 @@ class network:
                         outconn.good_starting_values is False):
                     outconn.fluid.val[fluid] = x
 
-            self.init_target(outc, start)
+            self.init_target(outconn, start)
 
         if isinstance(c.t, splitter):
             for outconn in self.comps.loc[c.t].o:
@@ -1312,14 +1312,14 @@ class network:
             inc['t'] = self.conns.t == c.s
             inc['t_id'] = self.conns.t_id == c.s_id.replace('out', 'in')
             conn, cid = inc['t'] == True, inc['t_id'] == True
-            inc = inc.index[conn & cid][0]
+            inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
                 if (inconn.fluid.val_set[fluid] is False and
                         inconn.good_starting_values is False):
                     inconn.fluid.val[fluid] = x
 
-            self.init_source(inc, start)
+            self.init_source(inconn, start)
 
         if isinstance(c.s, splitter):
             for inconn in self.comps.loc[c.s].i:

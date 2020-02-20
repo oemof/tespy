@@ -3,6 +3,12 @@ v0.2.2 - (someday in 2020)
 
 New Features
 ############
+- Allow initialisation for the primary variables from previous calculation.
+  Until now, the user needed to save the network's state and reload that state
+  for his next simulation. This feature is enabled as default. If you want to
+  disable this feature, you need to state
+  :code:`mynetwork.solve(..., init_previous=False)`
+  (`PR #156 <https://github.com/oemof/tespy/pull/156>`_).
 
 Documentation
 #############
@@ -20,6 +26,11 @@ Testing
 
 Bug fixes
 #########
+- Fix the bugged tests for compressor characteristic maps
+  (:py:meth:`tespy.components.turbomachinery.compressor.char_map_func`). The
+  pressure ratio factor of the lowest speedline available in the default data
+  ranges from about 0.2 to 0.5. Therefore the design pressure ratio should be
+  higher than 5 (`PR #156 <https://github.com/oemof/tespy/pull/156>`_).
 
 Other changes
 #############

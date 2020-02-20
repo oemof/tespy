@@ -48,9 +48,9 @@ class turbomachinery_tests:
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'NH3': 1}
-        self.c1.set_attr(fluid=fl, v=1, p=5, T=100)
-        self.c2.set_attr(p=7)
+        fl = {'N2': 1, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'NH3': 0}
+        self.c1.set_attr(fluid=fl, v=1, p=1, T=5)
+        self.c2.set_attr(p=6)
         instance.set_attr(eta_s=0.8)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -91,9 +91,10 @@ class turbomachinery_tests:
 
         # move to highest available speedline, mass flow below lowest value
         # at that line
-        self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=30)
+        self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=-30)
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
+
         # should be value
         eta_s = eta_s_d * instance.char_map.func.z2[6, 0]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
@@ -102,7 +103,7 @@ class turbomachinery_tests:
 
         # going below lowest available speedline, above highest mass flow at
         # that line
-        self.c1.set_attr(T=300)
+        self.c1.set_attr(T=175)
         self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
         convergence_check(self.nw.lin_dep)
         # should be value
@@ -112,8 +113,8 @@ class turbomachinery_tests:
         eq_(round(eta_s, 4), round(instance.eta_s.val, 4), msg)
 
         # back to design properties, test eta_s_char
-        self.c2.set_attr(p=7)
-        self.c1.set_attr(v=1, T=100, m=np.nan)
+        self.c2.set_attr(p=6)
+        self.c1.set_attr(v=1, T=5, m=np.nan)
 
         # test parameter specification for eta_s_char with unset char map
         instance.set_attr(eta_s_char=dc_cc(func=ldc(
@@ -139,7 +140,7 @@ class turbomachinery_tests:
         # test parameter specification for pr
         instance.eta_s_char.set_attr(param='pr')
         self.c1.set_attr(v=1)
-        self.c2.set_attr(p=7.5)
+        self.c2.set_attr(p=6)
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
         expr = (self.c2.p.val_SI * self.c1.p.design /

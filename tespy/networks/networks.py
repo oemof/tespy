@@ -1886,14 +1886,14 @@ class network:
         i = 0
         for c in self.conns.index:
             # mass flow, pressure and enthalpy
-            if not c.m.val_set:
+            if c.m.val_set is False:
                 c.m.val_SI += self.vec_z[i * (self.num_conn_vars)]
-            if not c.p.val_set:
+            if c.p.val_set is False:
                 # this prevents negative pressures
                 relax = max(1, -self.vec_z[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
                 c.p.val_SI += self.vec_z[i * (self.num_conn_vars) + 1] / relax
-            if not c.h.val_set:
+            if c.h.val_set is False:
                 c.h.val_SI += self.vec_z[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
@@ -1901,7 +1901,7 @@ class network:
                 j = 0
                 for fluid in self.fluids:
                     # add increment
-                    if not c.fluid.val_set[fluid]:
+                    if c.fluid.val_set[fluid] is False:
                         c.fluid.val[fluid] += (
                                 self.vec_z[i * (self.num_conn_vars) + 3 + j])
 
@@ -2011,7 +2011,7 @@ class network:
                     c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.99
+                c.h.val_SI = hmax * 0.95
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set is True or c.state.is_set is True) and

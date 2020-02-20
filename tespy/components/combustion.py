@@ -759,7 +759,6 @@ class combustion_chamber(component):
                 try:
                     flow = [0, p, 0, {self.h2o: 1}]
                     h_steam = h_mix_pQ(flow, 1)
-                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 except ValueError:
                     flow = [0, 615, 0, {self.h2o: 1}]
                     h_steam = h_mix_pQ(flow, 1)

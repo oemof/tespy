@@ -2350,7 +2350,7 @@ class condenser(heat_exchanger):
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
 
     def ttd_u_func(self):
         r"""

@@ -302,8 +302,7 @@ class test_heat_pump:
             for m in m_source[i]:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
-                    self.nw.solve('offdesign', design_path='tmp', init_path='tmp2')
-                    self.nw.save('tmp2')
+                    self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
 
                 else:
                     self.nw.solve('offdesign', design_path='tmp')
@@ -314,14 +313,13 @@ class test_heat_pump:
                 # Another issue is, that the component characteristics for
                 # generators and motors do not work on the same basis (tespy: mechanical, ebsilon: electrical)!
                 d_rel_COP = abs(self.heat.P.val / self.power.P.val - COP[i, j]) / COP[i, j]
-                msg = ('The deviation in COP should be less than 0.075, is ' +
+                msg = ('The deviation in COP should be less than 0.065, is ' +
                        str(d_rel_COP) + ' at mass flow ' + str(m) +
                        ' and temperature ' + str(T) + '.')
-                eq_(d_rel_COP < 0.075, True, msg)
+                eq_(d_rel_COP < 0.065, True, msg)
                 j += 1
             i += 1
         shutil.rmtree('./tmp', ignore_errors=True)
-        shutil.rmtree('./tmp2', ignore_errors=True)
 
 
 a = test_heat_pump()

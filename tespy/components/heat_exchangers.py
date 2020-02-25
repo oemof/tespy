@@ -631,7 +631,7 @@ class heat_exchanger_simple(component):
 
         return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
-    def bus_func(self, bus):
+    def bus_func(self, bus, calc_base=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -640,10 +640,13 @@ class heat_exchanger_simple(component):
         bus : tespy.connections.bus
             TESPy bus object.
 
+        calc_base : boolean
+            Calculate bus base value without applying characteristcs.
+
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer.
 
             .. math::
 
@@ -657,6 +660,8 @@ class heat_exchanger_simple(component):
         val = i[0] * (o[2] - i[2])
         if np.isnan(bus.P_ref):
             expr = 1
+        elif calc_base is True:
+            return val
         else:
             expr = abs(val / bus.P_ref)
         return val * bus.char.evaluate(expr)
@@ -1751,7 +1756,7 @@ class heat_exchanger(component):
         return (self.ttd_l.val - T_mix_ph(o1, T0=self.outl[0].T.val_SI) +
                 T_mix_ph(i2, T0=self.inl[1].T.val_SI))
 
-    def bus_func(self, bus):
+    def bus_func(self, bus, calc_base=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -1760,10 +1765,13 @@ class heat_exchanger(component):
         bus : tespy.connections.bus
             TESPy bus object.
 
+        calc_base : boolean
+            Calculate bus base value without applying characteristcs.
+
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer.
 
             .. math::
 
@@ -1777,6 +1785,8 @@ class heat_exchanger(component):
         val = i[0] * (o[2] - i[2])
         if np.isnan(bus.P_ref):
             expr = 1
+        elif calc_base is True:
+            return val
         else:
             expr = abs(val / bus.P_ref)
         return val * bus.char.evaluate(expr)

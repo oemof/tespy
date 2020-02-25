@@ -1695,7 +1695,7 @@ class network:
                     self.lin_dep):
                 break
 
-            if self.iter > 20:
+            if self.iter > 40:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2] * 0.95) and
                         self.res[-1] >= self.res[-2] * 0.95):
                     self.progress = False
@@ -2574,7 +2574,10 @@ class network:
                 df['component'] = df['cp'].apply(lambda x: x.label)
                 df['value'] = df['cp'].apply(
                     lambda x: x.bus_func(b.comps.loc[x]))
+                df['eta'] = df['cp'].apply(lambda x: x.bus_func(
+                    b.comps.loc[x], calc_base=True))
                 df.loc['total'] = df.sum()
+                df['eta'] = df['eta'] / df['value']
                 df.loc['total', 'component'] = 'total'
                 df.set_index('component', inplace=True)
                 df.drop('cp', axis=1, inplace=True)

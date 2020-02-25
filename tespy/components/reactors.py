@@ -119,6 +119,21 @@ class water_electrolyzer(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     P : float/tespy.helpers.dc_cp
         Power input, :math:`P/\text{W}`.
 
@@ -695,7 +710,7 @@ class water_electrolyzer(component):
 
         return deriv
 
-    def bus_func(self, bus):
+    def bus_func(self, bus, calc_eta=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -704,10 +719,13 @@ class water_electrolyzer(component):
         bus : tespy.connections.bus
             TESPy bus object.
 
+        calc_base : boolean
+            Calculate bus base value without applying characteristcs.
+
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer.
 
             .. math::
 
@@ -723,24 +741,14 @@ class water_electrolyzer(component):
         ######################################################################
         # equations for power on bus
         if bus.param == 'P':
-            P = - self.energy_balance()
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(P / bus.P_ref)
-            return P * bus.char.evaluate(expr)
+            val = - self.energy_balance()
 
         ######################################################################
         # equations for heat on bus
 
         elif bus.param == 'Q':
-            val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                            self.inl[0].h.val_SI)
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(val / bus.P_ref)
-            return val * bus.char.evaluate(expr)
+            val = - self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
         ######################################################################
         # missing/invalid bus parameter
@@ -752,6 +760,14 @@ class water_electrolyzer(component):
                    self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
+
+        if np.isnan(bus.P_ref):
+            expr = 1
+        elif calc_eta is True:
+            return val
+        else:
+            expr = abs(val / bus.P_ref)
+        return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""

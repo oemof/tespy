@@ -154,20 +154,20 @@ class orc_evaporator(component):
     Note
     ----
     The ORC evaporator has an additional equation for enthalpy at the outlet of
-    the steam from geothermal heat source side: The fluid leaves the component
-    in saturated liquid state. If subcooling is activated, it possible to
+    the geothermal steam: The fluid leaves the component in saturated liquid
+    state. If code:`subcooling` is activated (:code:`True`), it is possible to
     specify the enthalpy at the outgoing connection manually.
 
-    It also has an additional equation for enthalpy at outlet of the working
-    fluid: It leaves the component in saturated gas state. If overheating is
-    enabled, it possible to specifycthe enthalpy at the outgoing connection
-    manually.
+    Additionally, an equation for enthalpy at the outlet of the working fluid
+    is imposed: It leaves the component in saturated gas state. If
+    :code:`overheating` is enabled (:code:`True`), it is possible to specify
+    the enthalpy at the outgoing connection manually.
 
     Example
     -------
-    A 2-phase geo-fluid is used as the heat source for evaporating the working
-    fluid. We calculate the mass flow of the working fluid with known steam and
-    brine mass flow.
+    A two-phase geo-fluid is used as the heat source for evaporating the
+    working fluid. We calculate the mass flow of the working fluid with known
+    steam and brine mass flow.
 
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
@@ -198,8 +198,8 @@ class orc_evaporator(component):
     The orc working fluids leaves the evaporator in saturated steam state, the
     geothermal steam leaves the component in staturated liquid state. We imply
     the state of geothermal steam and brine with the corresponding mass flow as
-    well as the working fluid's state at the evaporator inlet. Additionaly, the
-    pressure ratios for all three streams are specified.
+    well as the working fluid's state at the evaporator inlet. The pressure
+    ratio is specified for each of the three streams.
 
     >>> evaporator.set_attr(pr1=0.95, pr2=0.98, pr3=0.99)
     >>> eva_wf_in.set_attr(T=111, p=11,

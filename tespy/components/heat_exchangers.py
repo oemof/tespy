@@ -2168,9 +2168,9 @@ class condenser(heat_exchanger):
     >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.6
+    62.5
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    12.3
+    11.3
 
     It is possible to activate subcooling. The difference to boiling point
     temperature is specified to 5 K.
@@ -2179,9 +2179,9 @@ class condenser(heat_exchanger):
     >>> he_c.set_attr(Td_bp=-5)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.6
+    62.5
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    14.4
+    13.4
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

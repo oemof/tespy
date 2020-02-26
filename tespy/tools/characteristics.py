@@ -39,6 +39,8 @@ class char_line:
         The corresponding y-values for the lookup table. Number of x and y
         values must be identical.
 
+    extrapolate : boolean
+
     Note
     ----
     This class generates a lookup table from the given input data x and y,
@@ -50,10 +52,11 @@ class char_line:
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.array([1, 1])):
+    def __init__(self, x=np.array([0, 1]), y=np.array([1, 1]), extrapolate=False):
 
         self.x = x
         self.y = y
+        self.extrapolate = extrapolate
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -92,13 +95,20 @@ class char_line:
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
-            y = self.y[xpos - 1]
+            if self.extrapolate is True:
+                yfrac = (x - self.x[-1]) / (self.x[-1] - self.x[-2])
+                return self.y[-1] + yfrac * (self.y[-1] - self.y[-2])
+            else:
+                return self.y[-1]
         elif xpos == 0:
-            y = self.y[0]
+            if self.extrapolate is True:
+                yfrac = (x - self.x[0]) / (self.x[1] - self.x[0])
+                return self.y[0] + yfrac * (self.y[1] - self.y[0])
+            else:
+                return self.y[0]
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            y = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-        return y
+            return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
 
     def get_bound_errors(self, x, c):
         r"""

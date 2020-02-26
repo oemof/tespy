@@ -2574,10 +2574,10 @@ class network:
                 df['component'] = df['cp'].apply(lambda x: x.label)
                 df['value'] = df['cp'].apply(
                     lambda x: x.bus_func(b.comps.loc[x]))
-                df['eta'] = df['cp'].apply(lambda x: x.bus_func(
-                    b.comps.loc[x], calc_base=True))
+                df['efficiency'] = df['cp'].apply(lambda x: x.bus_func(
+                    b.comps.loc[x], calc_efficiency=True))
                 df.loc['total'] = df.sum()
-                df['eta'] = df['eta'] / df['value']
+                df.loc['total', 'efficiency'] = np.nan
                 df.loc['total', 'component'] = 'total'
                 df.set_index('component', inplace=True)
                 df.drop('cp', axis=1, inplace=True)

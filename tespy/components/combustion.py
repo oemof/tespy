@@ -855,7 +855,7 @@ class combustion_chamber(component):
 
         return ti
 
-    def bus_func(self, bus, calc_base=False):
+    def bus_func(self, bus, calc_efficiency=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -864,7 +864,7 @@ class combustion_chamber(component):
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_base : boolean
+        calc_efficiency : boolean
             Calculate bus base value without applying characteristcs.
 
         Returns
@@ -880,11 +880,13 @@ class combustion_chamber(component):
         val = self.calc_ti()
         if np.isnan(bus.P_ref):
             expr = 1
-        elif calc_base is True:
-            return val
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        if calc_efficiency is True:
+            return bus.char.evaluate(expr)
+        else:
+            return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""
@@ -2809,7 +2811,7 @@ class combustion_engine(combustion_chamber):
 
         return res
 
-    def bus_func(self, bus, calc_base=False):
+    def bus_func(self, bus, calc_efficiency=False):
         r"""
         Calculate the value of the bus function.
 
@@ -2818,7 +2820,7 @@ class combustion_engine(combustion_chamber):
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_base : boolean
+        calc_efficiency : boolean
             Calculate bus base value without applying characteristcs.
 
         Returns
@@ -2896,11 +2898,13 @@ class combustion_engine(combustion_chamber):
 
         if np.isnan(bus.P_ref):
             expr = 1
-        elif calc_base is True:
-            return val
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        if calc_efficiency is True:
+            return bus.char.evaluate(expr)
+        else:
+            return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""

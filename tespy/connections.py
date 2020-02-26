@@ -705,7 +705,8 @@ class bus:
 
     def __init__(self, label, **kwargs):
 
-        self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
+        self.comps = pd.DataFrame(
+            columns=['param', 'P_ref', 'char', 'efficiency'])
 
         self.label = label
         self.P = dc_cp(val=np.nan, is_set=False)
@@ -830,7 +831,8 @@ class bus:
             if isinstance(c, dict):
                 if 'c' in c.keys():
                     if isinstance(c['c'], component):
-                        self.comps.loc[c['c']] = [None, np.nan, self.char]
+                        self.comps.loc[c['c']] = [
+                            None, np.nan, self.char, np.nan]
                     else:
                         msg = ('Keyword c must hold a TESPy component.')
                         logging.error(msg)

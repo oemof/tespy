@@ -281,6 +281,8 @@ class test_heat_pump:
         self.nw.solve('design')
         self.nw.save('tmp')
 
+        self.nw.print_results()
+
         # input values from ebsilon
         T = [105, 100, 90, 80]
         m_source = np.array([[23, 22, 20, 18, 16],

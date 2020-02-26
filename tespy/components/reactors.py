@@ -710,7 +710,7 @@ class water_electrolyzer(component):
 
         return deriv
 
-    def bus_func(self, bus, calc_eta=False):
+    def bus_func(self, bus, calc_efficiency=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -719,7 +719,7 @@ class water_electrolyzer(component):
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_base : boolean
+        calc_efficiency : boolean
             Calculate bus base value without applying characteristcs.
 
         Returns
@@ -763,11 +763,13 @@ class water_electrolyzer(component):
 
         if np.isnan(bus.P_ref):
             expr = 1
-        elif calc_eta is True:
-            return val
         else:
             expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        if calc_efficiency is True:
+            return bus.char.evaluate(expr)
+        else:
+            return val * bus.char.evaluate(expr)
 
     def bus_deriv(self, bus):
         r"""

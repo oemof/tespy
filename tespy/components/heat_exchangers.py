@@ -811,9 +811,10 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
-
         .. math::
+
+            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
+            \dot{Q}
 
             0 = p_{in} \cdot pr - p_{out}
 

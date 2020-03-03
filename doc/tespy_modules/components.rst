@@ -197,7 +197,7 @@ For example, :code:`kA` specification for heat exchangers:
     he = heat_exchanger('evaporator', kA=1e5)
 
     # use a characteristic line from the defaults: specify the component, the
-    # parameter and the name of the characteristc function. Also, specify, what
+    # parameter and the name of the characteristic function. Also, specify, what
     # type of characteristic function you want to use.
     kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)

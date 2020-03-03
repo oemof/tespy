@@ -197,7 +197,7 @@ For example, :code:`kA` specification for heat exchangers:
     he = heat_exchanger('evaporator', kA=1e5)
 
     # use a characteristic line from the defaults: specify the component, the
-    # parameter and the name of the characteristc function. Also, specify, what
+    # parameter and the name of the characteristic function. Also, specify, what
     # type of characteristic function you want to use.
     kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
@@ -253,6 +253,21 @@ from there. For additional information on formatting and usage, look into
     eta_s_char = dc_cc(func=lcc('my_custom_char', char_line), is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
 
+It is possible to allow value extrapolation at the lower and upper limit of the
+value range at the creation of characteristic lines. If you are using default
+lines, you need to set the extrapolation to :code:`True` manually.
+
+.. code-block:: python
+
+    # use custom specification parameters
+    x = np.array([0, 0.5, 1, 2])
+    y = np.array([0, 0.8, 1, 1.2])
+    kA_char1 = char_line(x, y, extrapolate=True)
+    he.set_attr(kA_char1=kA_char1)
+
+    # manually set extrapolation to True, e. g.
+    he.kA_char1.func.extrapolate = True
+    pu.eta_s_char.func.extrapolate = True
 
 Characteristics are available for the following components and parameters:
 

@@ -124,7 +124,7 @@ case, the ratio will always be 1.
 .. note::
 
     The available keywords for the dictionary are:
-	
+
     - 'c' for the component instance.
     - 'p' for the parameter (the combustion engine has various parameters,
       have a look at the :ref:`combustion engine example <combustion_engine_label>`).
@@ -132,14 +132,15 @@ case, the ratio will always be 1.
     - 'char' for the characteristic line.
 
     There are different specification possibilites:
-	
+
     - If you specify the component only, the parameter will be default
       (not working with cogeneration unit) and the conversion factor of the
       characteristic line will be 1 for every load.
     - If you specify a numeric value for char, the conversion factor will be
       equal to that value for every load.
     - If you want to specify a characteristic line, provide
-      a :py:class:` <tespy.components.characteristics.char_line>` object.
+      a :py:class:`char_line <tespy.tools.characteristics.char_line>`
+      object.
 
 The examples below shows the implementation of busses in your TESPy simulation.
 

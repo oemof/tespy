@@ -349,10 +349,10 @@ def construct_comps(c, *args):
         Component information from .csv-file.
 
     args[0] : pandas.core.frame.DataFrame
-        DataFrame containing the x and y data of characteristic functions.
+        DataFrame containing the data of characteristic lines.
 
     args[1] : pandas.core.frame.DataFrame
-        DataFrame containing the x, y, z1 and z2 data of characteristic maps.
+        DataFrame containing the data of characteristic maps.
 
     Returns
     -------
@@ -388,7 +388,11 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
-                    char = char_line(x=x, y=y)
+                    if 'extrapolate' in args[0].columns:
+                        extrapolate = args[0][values].extrapolate.values[0]
+                    else:
+                        extrapolate = False
+                    char = char_line(x=x, y=y, extrapolate=extrapolate)
 
                 except IndexError:
 

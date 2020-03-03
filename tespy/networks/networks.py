@@ -2885,7 +2885,7 @@ class network:
             df['id'] = df.apply(network.get_id, axis=1)
             df['type'] = df.apply(network.get_class_base, axis=1)
 
-            cols = ['x', 'y']
+            cols = ['x', 'y', 'extrapolate']
             for val in cols:
                 df[val] = df.apply(network.get_props, axis=1, args=(val,))
 

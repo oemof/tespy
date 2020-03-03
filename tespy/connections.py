@@ -678,9 +678,9 @@ class bus:
     gas cooler.
 
     >>> heat_bus.comps.loc[fgc]['char'].x
-    array([0, 3])
+    array([0., 3.])
     >>> heat_bus.comps.loc[fgc]['char'].y
-    array([-1, -1])
+    array([-1., -1.])
     >>> round(chp.ti.val)
     25813247.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)

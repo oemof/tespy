@@ -66,6 +66,9 @@ class char_line:
         if isinstance(self.y, list):
             self.y = np.array(self.y)
 
+        self.x = self.x.astype(float)
+        self.y = self.y.astype(float)
+
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. '
                    'Number of x-values is ' + str(len(self.x)) + ', number of '
@@ -214,6 +217,11 @@ class char_map:
         if isinstance(self.z2, list):
             self.z2 = np.array(self.z2)
 
+        self.x = self.x.astype(float)
+        self.y = self.y.astype(float)
+        self.z1 = self.z1.astype(float)
+        self.z2 = self.z2.astype(float)
+
         if self.x.shape[0] != self.y.shape[0]:
             msg = ('The number of x-values determines the number of dimension '
                    'for the characteristic map. You have provided ' +
@@ -325,7 +333,8 @@ class char_map:
         z2 : float
             Resulting z2 value.
         """
-        z1, z2 = self.evaluate_y(y, self.evaluate_x(x))
+        yarr, z1arr, z2arr = self.evaluate_x(x)
+        z1, z2 = self.evaluate_y(y, yarr, z1arr, z2arr)
 
         return z1, z2
 

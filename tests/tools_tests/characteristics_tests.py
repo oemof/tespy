@@ -216,6 +216,9 @@ def test_char_map_evaluation():
            "must be 25.0, but is " + str(round(z2, 1)) + ".")
     eq_(25.0, round(z2, 1), msg)
 
+    # check, if bound errors go through
+    map.get_bound_errors(x, y, 'Componentlabel')
+
 
 def test_compressor_map_evaluation():
     """Test the characteristc compressor map evaluation."""

@@ -19,16 +19,19 @@ the corresponding y-values.
 .. math::
 
     y = y_0 + \frac{x-x_0}{x_1-x_0} \cdot \left(y_1-y_0 \right)
-	
-If the x value is above the maximum x value or below the minium x value of the
-characteristic line the y value corresponding to the the maximum/minimum value
-is returned instead.
+
+It is possible to specify an :code:`extrapolate` parameter. If the value is
+:code:`False` (default state) and the x-value is above the maximum or below the
+minimum value of the characteristic line the y-value corresponding to the the
+maximum/minimum value is returned instead. If the :code:`extrapolate` is
+:code:`True` linear extrapolation is performed using the two lower most or
+upper moste value pairs respectively.
 
 Characteristic maps
 -------------------
 
 The characteristic maps use linear interpolation as well. First step is
-interpolation on the x-dimension similar to the characteristic line 
+interpolation on the x-dimension similar to the characteristic line
 functionality. As the y, z1 and z2 data are two-dimensional, **each row of**
 **the data corresponds to one x value**. Thus, the result of the first step is
 a vector for each dimesion (y, z1 and z2).
@@ -37,20 +40,20 @@ a vector for each dimesion (y, z1 and z2).
 
     \vec{y} = \vec{y_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{y_1}-
     \vec{y_0} \right)
-    
+
     \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z1_1}-
     \vec{z1_0} \right)
-    
+
     \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x1-x_0} \cdot \left(\vec{z2_1}-
     \vec{z2_0}\right)
-    
+
 Using the y value as second input dimension the corresponding z1 and z2 values
 are calculated, again using linear interpolation.
 
 .. math::
 
     z1 = z1_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z1_1-z1_0 \right)
-    
+
     z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
 
 .. _import_custom_characteristics_label:
@@ -64,7 +67,7 @@ writing the x, y (z1 and z2) data into your python script, for example:
 .. code-block:: python
 
     from tespy.tools.characteristics import load_custom_char, char_line
-    
+
     gen_char = load_custom_char('generator', char_line)
 
 

@@ -253,6 +253,21 @@ from there. For additional information on formatting and usage, look into
     eta_s_char = dc_cc(func=lcc('my_custom_char', char_line), is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
 
+It is possible to allow value extrapolation at the lower and upper limit of the
+value range at the creation of characteristic lines. If you are using default
+lines, you need to set the extrapolation to :code:`True` manually.
+
+.. code-block:: python
+
+    # use custom specification parameters
+    x = np.array([0, 0.5, 1, 2])
+    y = np.array([0, 0.8, 1, 1.2])
+    kA_char1 = char_line(x, y, extrapolate=True)
+    he.set_attr(kA_char1=kA_char1)
+
+    # manually set extrapolation to True, e. g.
+    he.kA_char1.func.extrapolate = True
+    pu.eta_s_char.func.extrapolate = True
 
 Characteristics are available for the following components and parameters:
 

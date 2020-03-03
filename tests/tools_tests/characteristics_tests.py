@@ -23,13 +23,14 @@ import numpy as np
 import shutil
 
 
-class characteristics_tests:
+class characteristics_loader_tests:
 
     def setup(self):
         # create data path and write json files into path
         self.path = extend_basic_path('data')
 
     def test_custom_char_line_import(self):
+        """Test importing a custom characteristc lines."""
 
         # we need to write some data to the path first, using defaults
         data_path = resource_filename('tespy.data', 'char_lines.json')
@@ -63,6 +64,7 @@ class characteristics_tests:
         eq_(True, y_cond, msg)
 
     def test_custom_char_map_import(self):
+        """Test importing a custom characteristc map."""
 
         # we need to write some data to the path first, using defaults
         data_path = resource_filename('tespy.data', 'char_maps.json')
@@ -108,3 +110,73 @@ class characteristics_tests:
                'the default characteristic line ' + str(char_original.z2) + ' '
                'as these have been duplicated before load.')
         eq_(True, z2_cond, msg)
+
+
+def test_characteristic_line():
+    """Test the characteristc line without extrapolation."""
+
+    # create a characteristc line with values of y=(x-2)^2
+    line = char_line(x=[0, 1, 2, 3, 4], y=[4, 1, 0, 1, 4])
+
+    # test evaluation at given x value (x=3, y=1)
+    x = 3
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 1.0, but is" +
+           str(y) + ".")
+    eq_(1.0, round(y, 1), msg)
+
+    # test evaluation at x=0.5 to force interpolation, result: y=2.5
+    x = 0.5
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 2.5, but is" +
+           str(y) + ".")
+    eq_(2.5, round(y, 1), msg)
+
+    # test evaluation at x=-1 to check lower limits, result: y=4
+    x = -1
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 4, but is" +
+           str(y) + ".")
+    eq_(4, round(y, 1), msg)
+
+    # test evaluation at x=5 to check upper limits, result: y=4
+    x = 5
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 4, but is" +
+           str(y) + ".")
+    eq_(4, round(y, 1), msg)
+
+
+def test_extrapolation():
+    """Test the characteristc line with extrapolation."""
+
+    # create a characteristc line with values of y=(x-2)^2
+    line = char_line(x=[0, 1, 2, 3, 4], y=[4, 1, 0, 1, 4], extrapolate=True)
+
+    # test evaluation at given x value (x=3, y=1)
+    x = 1
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 1.0, but is" +
+           str(y) + ".")
+    eq_(1.0, round(y, 1), msg)
+
+    # test evaluation at x=0.5 to force interpolation, result: y=2.5
+    x = 0.5
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 2.5, but is" +
+           str(y) + ".")
+    eq_(2.5, round(y, 1), msg)
+
+    # test evaluation at x=-1 to check lower limits, result: y=7
+    x = -1
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 7, but is" +
+           str(y) + ".")
+    eq_(7.0, round(y, 1), msg)
+
+    # test evaluation at x=5 to check upper limits, result: y=7
+    x = 5
+    y = line.evaluate(x)
+    msg = ("The evaluation of x=" + str(x) + " must be 7, but is" +
+           str(y) + ".")
+    eq_(7.0, round(y, 1), msg)

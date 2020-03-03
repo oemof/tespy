@@ -27,7 +27,7 @@ from tespy.tools.helpers import extend_basic_path
 
 class char_line:
     r"""
-    Class characteristics for components.
+    Class for characteristc lines.
 
     Parameters
     ----------
@@ -40,6 +40,8 @@ class char_line:
         values must be identical.
 
     extrapolate : boolean
+        If :code:`True` linear extrapolation is performed when the x value is
+        out of the defined value range.
 
     Note
     ----
@@ -52,7 +54,8 @@ class char_line:
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.array([1, 1]), extrapolate=False):
+    def __init__(
+            self, x=np.array([0, 1]), y=np.array([1, 1]), extrapolate=False):
 
         self.x = x
         self.y = y
@@ -80,7 +83,7 @@ class char_line:
         Parameters
         ----------
         x : float
-            Input value for lookup table.
+            Input value for linear interpolation.
 
         Returns
         -------
@@ -89,35 +92,44 @@ class char_line:
 
         Note
         ----
-        This methods checks for the value range first. If the x-value is
-        outside of the specified range, the function will return the values at
-        the corresponding boundary.
+        This methods checks for the value range first. If :code:`extrapolate`
+        is :code:`False` (default) and the x-value is outside of the specified
+        range, the function will return the values at the corresponding
+        boundary. If :code:`extrapolate` is :code:`True` the y-value is
+        calculated by linear extrapolation.
+
+        .. math::
+
+            y = y_0 + \frac{x-x_0}{x_1-x_0} \cdot \left(y_1-y_0 \right)
+
+        where the index :math:`x_0` represents the lower and :math:`x_1` the
+        upper adjacent x-value. :math:`y_0` and :math:`y_1` are the
+        corresponding y-values. On extrapolation the two smallest or the two
+        largest value pairs are used respectively.
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
             if self.extrapolate is True:
-                yfrac = (x - self.x[-1]) / (self.x[-1] - self.x[-2])
-                return self.y[-1] + yfrac * (self.y[-1] - self.y[-2])
+                xpos = -1
             else:
                 return self.y[-1]
         elif xpos == 0:
             if self.extrapolate is True:
-                yfrac = (x - self.x[0]) / (self.x[1] - self.x[0])
-                return self.y[0] + yfrac * (self.y[1] - self.y[0])
+                xpos = 1
             else:
                 return self.y[0]
-        else:
-            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+
+        yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+        return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
 
     def get_bound_errors(self, x, c):
         r"""
-        Prompt error messages, if value is out of bounds.
+        Prompt error messages, if x value is out of bounds.
 
         Parameters
         ----------
         x : float
-            Input value for lookup table.
+            Input value for linear interpolation.
 
         Returns
         -------

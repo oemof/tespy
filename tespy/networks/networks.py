@@ -38,6 +38,7 @@ from tespy import connections as con
 from tespy.components.basics import (sink, source, subsystem_interface,
                                      cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
+from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
 from tespy.components.reactors import water_electrolyzer
@@ -1232,7 +1233,8 @@ class network:
         if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
                 not isinstance(c.t, cycle_closer)) or
                 isinstance(c.t, heat_exchanger) or
-                isinstance(c.t, subsystem_interface)):
+                isinstance(c.t, subsystem_interface) or
+                isinstance(c.t, orc_evaporator)):
 
             outc = pd.DataFrame()
             outc['s'] = self.conns.s == c.t
@@ -1306,7 +1308,8 @@ class network:
         if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
                 not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
-                isinstance(c.s, subsystem_interface)):
+                isinstance(c.s, subsystem_interface) or
+                isinstance(c.t, orc_evaporator)):
 
             inc = pd.DataFrame()
             inc['t'] = self.conns.t == c.s

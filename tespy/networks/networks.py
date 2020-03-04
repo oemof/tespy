@@ -1309,7 +1309,7 @@ class network:
                 not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
                 isinstance(c.s, subsystem_interface) or
-                isinstance(c.t, orc_evaporator)):
+                isinstance(c.s, orc_evaporator)):
 
             inc = pd.DataFrame()
             inc['t'] = self.conns.t == c.s

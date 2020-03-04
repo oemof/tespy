@@ -385,9 +385,7 @@ class orc_evaporator(component):
                     self.outl[i].h.val_SI - self.inl[i].h.val_SI)
             self.mat_deriv[k, i, 2] = -self.inl[i].m.val_SI
 
-        self.mat_deriv[k, 3, 2] = self.inl[0].m.val_SI
-        self.mat_deriv[k, 4, 2] = self.inl[1].m.val_SI
-        self.mat_deriv[k, 5, 2] = self.inl[2].m.val_SI
+            self.mat_deriv[k, i + 3, 2] = self.inl[i].m.val_SI
         k += 1
 
         ######################################################################

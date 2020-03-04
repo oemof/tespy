@@ -119,26 +119,27 @@ class water_electrolyzer(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : float/tespy.helpers.dc_cp
+    P : str/float/tespy.tools.data_containers.dc_cp
         Power input, :math:`P/\text{W}`.
 
-    Q : float/tespy.helpers.dc_cp
+    Q : float/tespy.tools.data_containers.dc_cp
         Heat output of cooling, :math:`Q/\text{W}`
 
-    e : float/tespy.helpers.dc_cp
+    e : str/float/tespy.tools.data_containers.dc_cp
         Electrolysis specific energy consumption,
         :math:`e/(\text{J}/\text{m}^3)`.
 
-    eta : float/tespy.helpers.dc_cp
+    eta : str/float/tespy.tools.data_containers.dc_cp
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : str/tespy.helpers.dc_cc
+    eta_char : tespy.tools.characteristics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Electrolysis efficiency characteristic line.
 
-    pr : float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

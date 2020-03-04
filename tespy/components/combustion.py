@@ -105,10 +105,10 @@ class combustion_chamber(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -1235,10 +1235,10 @@ class combustion_chamber_stoich(combustion_chamber):
     path : str
         Path to existing fluid property table.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -2089,49 +2089,53 @@ class combustion_engine(combustion_chamber):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : str/float/tespy.tools.data_containers.dc_cp
         Power output, :math:`P/\text{W}`.
 
-    Q1 : str/float/tespy.helpers.dc_cp
+    Q1 : float/tespy.tools.data_containers.dc_cp
         Heat output 1, :math:`\dot Q/\text{W}`.
 
-    Q2 : str/float/tespy.helpers.dc_cp
+    Q2 : float/tespy.tools.data_containers.dc_cp
         Heat output 2, :math:`\dot Q/\text{W}`.
 
-    Qloss : str/float/tespy.helpers.dc_cp
+    Qloss : str/float/tespy.tools.data_containers.dc_cp
         Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : float/tespy.tools.data_containers.dc_cp
         Pressure ratio heat outlet 1, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : float/tespy.tools.data_containers.dc_cp
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient heating loop 1,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient heating loop 2,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    tiP_char : str/tespy.helpers.dc_cc
+    tiP_char : tespy.tools.charactersitics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic line linking fuel input to power output.
 
-    Q1_char : str/tespy.helpers.dc_cc
+    Q1_char : tespy.tools.charactersitics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : str/tespy.helpers.dc_cc
+    Q2_char : tespy.tools.charactersitics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : str/tespy.helpers.dc_cc
+    Qloss_char : tespy.tools.charactersitics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic line linking heat loss to power output.
 
     Note

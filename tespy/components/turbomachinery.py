@@ -95,10 +95,10 @@ class turbomachine(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     Example
@@ -385,26 +385,28 @@ class compressor(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    char_map : tespy.helpers.dc_cm
+    char_map : tespy.tools.characteristics.compressor_map/\
+    tespy.tools.data_containers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
         tespy.tools.characteristics.compressor_map for further information.
         Provide a compressor_map as function :code:`func`.
 
-    igva : str/float/tespy.helpers.dc_cp
+    igva : str/float/tespy.tools.data_containers.dc_cp
         Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example
@@ -895,20 +897,22 @@ class pump(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    flow_char : tespy.helpers.dc_cc
+    flow_char : tespy.tools.characteristics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide char_line as function :code:`func`.
         :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
@@ -1336,20 +1340,21 @@ class turbine(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/\
+    tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    cone : tespy.helpers.dc_simple
+    cone : tespy.tools.data_containers.dc_simple
         Apply Stodola's cone law.
 
     Example

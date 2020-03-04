@@ -9,7 +9,7 @@ List of components
 ------------------
 
 More information on the components can be gathered from the code documentation.
-We have linked the base class containing a figure and basic informations as
+We have linked the base class containing a figure and basic information as
 well as the equations.
 
 - Basics
@@ -152,6 +152,8 @@ specified range.
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
                              min_val=0.1, max_val=0.3))
 
+.. _component_characteristic_specification_label:
+
 Component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -293,7 +295,7 @@ Characteristics are available for the following components and parameters:
 - water electrolyzer
     * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
-For more information to how the characteristic functions work
+For more information on how the characteristic functions work
 :ref:`click here <using_tespy_characteristics_label>`.
 
 Custom components
@@ -382,8 +384,8 @@ an attribute :code:`'num_in'` your code could look like this:
 Component initialisation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 In the component initialisation you need to determine the total number of
-equations and set up the residual value vector as well as the matrix of patial
-derivates. The method
+equations and set up the residual value vector as well as the matrix of partial
+derivatives. The method
 :py:meth:`tespy.components.components.component.comp_init` already handles
 counting the custom variables and setting up default characteristic lines for
 you. The :code:`comp_init()` method of your new component should use call that
@@ -391,7 +393,7 @@ method. In order to determine the total number of equations, determine
 the number of mandatory equations and the number of optional equations applied.
 
 Then set up the residual value vector and the matrix of partial derivatives.
-If the component delivers derivates that are constant, you can paste those
+If the component delivers derivatives that are constant, you can paste those
 values into the matrix already. The code example shows the implementation of
 the :py:meth:`tespy.components.turbomachinery.turbine.comp_init` method.
 
@@ -438,7 +440,7 @@ at the outlet :math:`p_{out}` is smaller than the pressure at the inlet
 
 The connections connected to your component are available as a list in
 :code:`self.inl` and :code:`self.outl` respectively. Optional equations should
-only be applied, if the paramter has been specified by the user.
+only be applied, if the parameter has been specified by the user.
 
 .. code:: python
 
@@ -459,7 +461,7 @@ Derivatives
 You need to calculate the partial derivatives of the equations to all variables
 of the network. This means, that you have to calculate the partial derivatives
 to mass flow, pressure, enthalpy and all fluids in the fluid vector on each
-incomming or outgoing connection of the component.
+incoming or outgoing connection of the component.
 
 Add all derivatives to the matrix (*in the same order as the equations!*).
 The derivatives can be calculated analytically or numerically by using the

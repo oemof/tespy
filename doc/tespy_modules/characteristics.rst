@@ -1,7 +1,7 @@
 Characteristics
 ===============
 
-In this part we give an introduction on the TESPy characteritics
+In this part we give an introduction on the TESPy characteristics
 implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`char_line <tespy.tools.characteristics.char_line>`)
 and maps (:py:class:`char_map <tespy.tools.characteristics.char_map>`).
@@ -106,7 +106,7 @@ stated as list.
     }
 
 The :code:`char_maps.json` should also have names for identification of the
-characteristic lines on the first level. On the second level we aditionally
+characteristic lines on the first level. On the second level we additionally
 need z1 and z2 data. The x data are a list of values, the y, z1 and z2 data
 are arrays with a list of values for each dimension of the x data. The example
 below has 3 x values, thus the y, z1 and z2 data must contain 3 sets of values.

@@ -480,7 +480,7 @@ class orc_evaporator(component):
                     f, 'p', 5, zeta='zeta3', inconn=2, outconn=2)
             if not vec_z[5, 2]:
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(
-                    f, 'h', 5, zeta='zeta3')
+                    f, 'h', 5, zeta='zeta3', inconn=2, outconn=2)
             k += 1
 
         ######################################################################

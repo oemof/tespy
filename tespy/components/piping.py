@@ -123,17 +123,12 @@ class pipe(heat_exchanger_simple):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for heat transfer coefficient.
 
     Tamb : float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature
         unit.
-
-    Tamb_ref : float/tespy.tools.data_containers.dc_cp
-         Ambient temperature for reference in offdesign case, provide
-         parameter in network's temperature unit.
 
     kA_group : tespy.helpers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
@@ -256,8 +251,7 @@ class valve(component):
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    dp_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for difference pressure to mass flow.
 
     Example

@@ -394,13 +394,11 @@ class compressor(turbomachine):
     pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    char_map : tespy.tools.characteristics.compressor_map/\
-    tespy.tools.data_containers.dc_cm
+    char_map : tespy.tools.characteristics.compressor_map/tespy.tools.data_containers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
         tespy.tools.characteristics.compressor_map for further information.
@@ -906,13 +904,11 @@ class pump(turbomachine):
     pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    flow_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    flow_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide char_line as function :code:`func`.
         :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
@@ -1349,8 +1345,7 @@ class turbine(turbomachine):
     pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 

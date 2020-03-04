@@ -19,7 +19,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple, dc_gcp
+from tespy.tools.data_containers import dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_mix_pT, s_mix_ph, v_mix_ph, visc_mix_ph, T_mix_ph,
         dh_mix_dpQ, h_mix_pQ, T_bp_p, memorise

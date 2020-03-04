@@ -132,8 +132,7 @@ class water_electrolyzer(component):
     eta : str/float/tespy.tools.data_containers.dc_cp
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : tespy.tools.characteristics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    eta_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Electrolysis efficiency characteristic line.
 
     pr : float/tespy.tools.data_containers.dc_cp

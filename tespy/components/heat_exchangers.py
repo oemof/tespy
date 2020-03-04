@@ -135,8 +135,7 @@ class heat_exchanger_simple(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for heat transfer coefficient.
 
     Tamb : str/float/tespy.tools.data_containers.dc_cp
@@ -1235,12 +1234,10 @@ class heat_exchanger(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for cold side heat transfer coefficient.
 
     Note
@@ -2077,12 +2074,10 @@ class condenser(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for cold side heat transfer coefficient.
 
     subcooling : bool
@@ -2448,12 +2443,10 @@ class desuperheater(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for cold side heat transfer coefficient.
 
     Note

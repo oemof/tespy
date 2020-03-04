@@ -2122,20 +2122,16 @@ class combustion_engine(combustion_chamber):
         Geometry independent friction coefficient heating loop 2,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    tiP_char : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    tiP_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking fuel input to power output.
 
-    Q1_char : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    Q1_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    Q2_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : tespy.tools.charactersitics.char_line/\
-    tespy.tools.data_containers.dc_cc
+    Qloss_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat loss to power output.
 
     Note

@@ -348,7 +348,7 @@ class heat_exchanger_simple(component):
         # equations for specified zeta
         if self.zeta.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta', conn=0)
+                self.vec_res[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
@@ -427,23 +427,23 @@ class heat_exchanger_simple(component):
             f = self.zeta_func
             if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta', conn=0)
+                    f, 'm', 0, zeta='zeta')
             if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta', conn=0)
+                    f, 'p', 0, zeta='zeta')
             if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta', conn=0)
+                    f, 'h', 0, zeta='zeta')
             if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta', conn=0)
+                    f, 'p', 1, zeta='zeta')
             if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta', conn=0)
+                    f, 'h', 1, zeta='zeta')
             # custom variable zeta
             if self.zeta.is_var:
                 self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta', conn=0))
+                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta'))
             k += 1
 
         ######################################################################
@@ -1420,14 +1420,16 @@ class heat_exchanger(component):
         # equations for specified zeta at hot side
         if self.zeta1.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta2.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=1)
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
         ######################################################################
@@ -1528,19 +1530,19 @@ class heat_exchanger(component):
             f = self.zeta_func
             if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta1', conn=0)
+                    f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta1', conn=0)
+                    f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta1', conn=0)
+                    f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[2, 1]:
                 self.mat_deriv[k, 2, 1] = self.numeric_deriv(
-                    f, 'p', 2, zeta='zeta1', conn=0)
+                    f, 'p', 2, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[2, 2]:
                 self.mat_deriv[k, 2, 2] = self.numeric_deriv(
-                    f, 'h', 2, zeta='zeta1', conn=0)
+                    f, 'h', 2, zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         ######################################################################
@@ -1549,19 +1551,19 @@ class heat_exchanger(component):
             f = self.zeta_func
             if not vec_z[1, 0]:
                 self.mat_deriv[k, 1, 0] = self.numeric_deriv(
-                    f, 'm', 1, zeta='zeta2', conn=1)
+                    f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta2', conn=1)
+                    f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta2', conn=1)
+                    f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[3, 1]:
                 self.mat_deriv[k, 3, 1] = self.numeric_deriv(
-                    f, 'p', 3, zeta='zeta2', conn=1)
+                    f, 'p', 3, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[3, 2]:
                 self.mat_deriv[k, 3, 2] = self.numeric_deriv(
-                    f, 'h', 3, zeta='zeta2', conn=1)
+                    f, 'h', 3, zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
         ######################################################################
@@ -1571,27 +1573,6 @@ class heat_exchanger(component):
     def additional_derivatives(self, vec_z, k):
         r"""Calculate partial derivatives for given additional equations."""
         return
-
-    def fluid_func(self):
-        r"""
-        Calculate residual values for fluid balance equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-        """
-        vec_res = []
-
-        for i in range(self.num_i):
-            for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
-        return vec_res
 
     def mass_flow_func(self):
         r"""
@@ -1885,7 +1866,7 @@ class heat_exchanger(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.s_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
@@ -1921,7 +1902,7 @@ class heat_exchanger(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.t_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)

@@ -2390,12 +2390,14 @@ class combustion_engine(combustion_chamber):
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta1', conn=0)
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta2', conn=1)
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
     def derivatives(self, vec_z):
@@ -2601,38 +2603,38 @@ class combustion_engine(combustion_chamber):
             f = self.zeta_func
             if not vec_z[0, 0]:
                 self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta1', conn=0)
+                    f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 1]:
                 self.mat_deriv[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta1', conn=0)
+                    f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 2]:
                 self.mat_deriv[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta1', conn=0)
+                    f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[4, 1]:
                 self.mat_deriv[k, 4, 1] = self.numeric_deriv(
-                    f, 'p', 4, zeta='zeta1', conn=0)
+                    f, 'p', 4, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[4, 2]:
                 self.mat_deriv[k, 4, 2] = self.numeric_deriv(
-                    f, 'h', 4, zeta='zeta1', conn=0)
+                    f, 'h', 4, zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
             f = self.zeta_func
             if not vec_z[1, 0]:
                 self.mat_deriv[k, 1, 0] = self.numeric_deriv(
-                    f, 'm', 1, zeta='zeta2', conn=1)
+                    f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 1]:
                 self.mat_deriv[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta2', conn=1)
+                    f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 2]:
                 self.mat_deriv[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta2', conn=1)
+                    f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[5, 1]:
                 self.mat_deriv[k, 5, 1] = self.numeric_deriv(
-                    f, 'p', 5, zeta='zeta2', conn=1)
+                    f, 'p', 5, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[5, 2]:
                 self.mat_deriv[k, 5, 2] = self.numeric_deriv(
-                    f, 'h', 5, zeta='zeta2', conn=1)
+                    f, 'h', 5, zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
     def fluid_func(self):
@@ -2744,7 +2746,7 @@ class combustion_engine(combustion_chamber):
             .. math::
 
                 \begin{split}
-                0 = & \sum_i \dot{m}_{in,i} \cdot
+                res = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
                 & - \sum_j \dot{m}_{out,3} \cdot
                 \left( h_{out,3} - h_{out,3,ref} \right)\\

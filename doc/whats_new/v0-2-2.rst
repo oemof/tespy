@@ -1,5 +1,5 @@
-v0.2.2 - (someday in 2020)
-++++++++++++++++++++++++++
+v0.2.2 - (March, someday, 2020)
++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -12,8 +12,16 @@ New Features
 - Extrapolation for characteristic lines is available. In default state, the
   upper or lower value range limit is used when a characteristic line is
   evaluated outside of the available x-value range. The :code:`extrapolate`
-  parameter allows linear extrapolation, for an example see the section below
+  parameter allows linear extrapolation, for an example see the corresponding
+  sections in the online documentation
+  :ref:`component characteristics <component_characteristic_specification_label>`
+  :ref:`tespy characteristics <using_tespy_characteristics_label>`
   (`PR #159 <https://github.com/oemof/tespy/pull/159>`_).
+- Add a new component evaporator for geothermal organic rankine cycle. The
+  component has inlets for geothermal steam brine. On the cold side, the orc
+  working fluid is evaporated. Read more about this component in the API
+  documentation: :py:class:`tespy.components.customs.orc_evaporator`
+  (`PR #148 <https://github.com/oemof/tespy/pull/148>`_).
 
 Documentation
 #############
@@ -50,6 +58,6 @@ Other changes
 
 Contributors
 ############
-
-- Francesco Witte (@fwitte)
-- @maltefritz
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@maltefritz <https://github.com/maltefritz>`_
+- `@ChaofanChen <https://github.com/ChaofanChen>`_

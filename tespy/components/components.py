@@ -492,13 +492,15 @@ class component:
             Vector of residual values for component's fluid balance.
 
             .. math::
-                0 = fluid_{i,in} - fluid_{i,out} \;
-                \forall i \in \mathrm{fluid}
+
+                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
         """
         vec_res = []
 
-        for fluid, x in self.inl[0].fluid.val.items():
-            vec_res += [x - self.outl[0].fluid.val[fluid]]
+        for i in range(self.num_i):
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - self.outl[0].fluid.val[fluid]]
         return vec_res
 
     def fluid_deriv(self):
@@ -650,7 +652,7 @@ class component:
 
 # %%
 
-    def zeta_func(self, zeta='', conn=0):
+    def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
@@ -660,11 +662,11 @@ class component:
             Component parameter to evaluate the zeta_func on, e. g.
             :code:`zeta1`.
 
-        conn : int
-            Connection number of inlet and corresponding outlet.
-            In order to use the zeta function, the index of the inlet and
-            the corresponding outlet within the components :code:`ìnl` and
-            :code:`outl` respectively must be identical!
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
 
         Returns
         -------
@@ -693,14 +695,14 @@ class component:
             {8 \cdot \dot{m}^2 \cdot v}
         """
         zeta = self.get_attr(zeta).val
-        i = self.inl[conn].to_flow()
-        o = self.outl[conn].to_flow()
+        i = self.inl[inconn].to_flow()
+        o = self.outl[outconn].to_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
 
         else:
-            v_i = v_mix_ph(i, T0=self.inl[conn].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[conn].T.val_SI)
+            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
+            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
             return (zeta - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

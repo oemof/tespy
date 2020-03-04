@@ -25,6 +25,14 @@ tespy.components.components module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.customs module
+-------------------------------
+
+.. automodule:: tespy.components.customs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.heat_exchangers module
 ---------------------------------------
 

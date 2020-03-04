@@ -94,23 +94,23 @@ class pipe(heat_exchanger_simple):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.tools.data_containers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
@@ -119,22 +119,16 @@ class pipe(heat_exchanger_simple):
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide x and y
-        values or use generic values (e. g. calculated from design case).
-        Standard parameter 'm'.
+    kA_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for heat transfer coefficient.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature
         unit.
-
-    Tamb_ref : float/tespy.helpers.dc_cp
-         Ambient temperature for reference in offdesign case, provide
-         parameter in network's temperature unit.
 
     kA_group : tespy.helpers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
@@ -250,14 +244,14 @@ class valve(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : str/tespy.helpers.dc_cc
+    dp_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for difference pressure to mass flow.
 
     Example

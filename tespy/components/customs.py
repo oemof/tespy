@@ -19,7 +19,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple, dc_gcp
+from tespy.tools.data_containers import dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_mix_pT, s_mix_ph, v_mix_ph, visc_mix_ph, T_mix_ph,
         dh_mix_dpQ, h_mix_pQ, T_bp_p, memorise
@@ -116,30 +116,30 @@ class orc_evaporator(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : String/float/tespy.helpers.dc_cp
+    Q : float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : String/float/tespy.helpers.dc_cp
+    pr1 : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side 1 (steam),
         :math:`pr/1`.
 
-    pr2 : String/float/tespy.helpers.dc_cp
+    pr2 : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side 2 (brine),
         :math:`pr/1`.
 
-    pr3 : String/float/tespy.helpers.dc_cp
+    pr3 : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side (working fluid),
         :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side 1 (steam),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side 2 (brine),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta3 : str/float/tespy.helpers.dc_cp
+    zeta3 : float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side (working fluid),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

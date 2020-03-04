@@ -106,48 +106,43 @@ class heat_exchanger_simple(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.tools.data_containers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.tools.data_containers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for heat transfer coefficient.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : str/float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature
         unit.
 
-    Tamb_ref : float/tespy.helpers.dc_cp
-         Ambient temperature for reference in offdesign case, provide
-         parameter in network's temperature unit.
-
-    kA_group : tespy.helpers.dc_gcp
+    kA_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
 
@@ -865,54 +860,54 @@ class solar_collector(heat_exchanger_simple):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.tools.data_containers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.tools.data_containers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    E : str/float/tespy.helpers.dc_cp
+    E : str/float/tespy.tools.data_containers.dc_cp
         Radiation at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
-    eta_opt : str/float/tespy.helpers.dc_cp
+    eta_opt : str/float/tespy.tools.data_containers.dc_cp
         optical loss at surface cover,
         :math:`\eta_{opt}`.
 
-    lkf_lin : str/float/tespy.helpers.dc_cp
+    lkf_lin : str/float/tespy.tools.data_containers.dc_cp
         Linear loss key figure,
         :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
-    lkf_quad : str/float/tespy.helpers.dc_cp
+    lkf_quad : str/float/tespy.tools.data_containers.dc_cp
         Quadratic loss key figure,
         :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
-    A : str/float/tespy.helpers.dc_cp
+    A : str/float/tespy.tools.data_containers.dc_cp
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature unit.
 
-    energy_group : tespy.helpers.dc_gcp
+    energy_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
 
     Example
@@ -1218,34 +1213,32 @@ class heat_exchanger(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     Note
     ----
@@ -2060,34 +2053,32 @@ class condenser(heat_exchanger):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     subcooling : bool
         Enable/disable subcooling, default value: disabled.
@@ -2431,34 +2422,32 @@ class desuperheater(heat_exchanger):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     Note
     ----

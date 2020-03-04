@@ -90,10 +90,10 @@ class node(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_in : float/tespy.helpers.dc_simple
+    num_in : float/tespy.tools.data_containers.dc_simple
         Number of inlets for this component, default value: 2.
 
-    num_out : float/tespy.helpers.dc_simple
+    num_out : float/tespy.tools.data_containers.dc_simple
         Number of outlets for this component, default value: 2.
 
     Note
@@ -900,7 +900,7 @@ class merge(node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_in : float/tespy.helpers.dc_simple
+    num_in : float/tespy.tools.data_containers.dc_simple
         Number of inlets for this component, default value: 2.
 
     Example
@@ -1126,7 +1126,7 @@ class separator(node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_out : float/tespy.helpers.dc_simple
+    num_out : float/tespy.tools.data_containers.dc_simple
         Number of outlets for this component, default value: 2.
 
     Example
@@ -1359,7 +1359,7 @@ class splitter(node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_out : float/tespy.helpers.dc_simple
+    num_out : float/tespy.tools.data_containers.dc_simple
         Number of outlets for this component, default value: 2.
 
     Example

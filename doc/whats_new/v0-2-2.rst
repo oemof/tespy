@@ -13,8 +13,8 @@ New Features
   upper or lower value range limit is used when a characteristic line is
   evaluated outside of the available x-value range. The :code:`extrapolate`
   parameter allows linear extrapolation, for an example see the corresponding
-  sections in the online documentation
-  :ref:`component characteristics <component_characteristic_specification_label>`
+  sections in the online documentation:
+  :ref:`component characteristics <component_characteristic_specification_label>`,
   :ref:`tespy characteristics <using_tespy_characteristics_label>`
   (`PR #159 <https://github.com/oemof/tespy/pull/159>`_).
 - Add a new component evaporator for geothermal organic rankine cycle. The

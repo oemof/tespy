@@ -44,7 +44,7 @@ well as the equations.
 List of custom components
 -------------------------
 Here we list the components integrated in the
-:py:mod:`<tespy.components.customs>` module.
+:py:mod:`customs <tespy.components.customs>` module.
 
 - :py:class:`Evaporator for geothermal organic rankine cycle <tespy.components.customs.orc_evaporator>`
 

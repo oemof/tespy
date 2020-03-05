@@ -7,7 +7,6 @@ show you, how to create custom components.
 
 List of components
 ------------------
-
 More information on the components can be gathered from the code documentation.
 We have linked the base class containing a figure and basic information as
 well as the equations.
@@ -19,10 +18,10 @@ well as the equations.
     * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>`
 - Combustion
     * :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber>`
-    * :py:class:`Combustion chamber stoichiometric <tespy.components.combustion.combustion_chamber_stoich>`
+    * :py:class:`Stoichiometric Combustion chamber <tespy.components.combustion.combustion_chamber_stoich>`
     * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>`
 - Heat exchangers
-    * :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>`
+    * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.heat_exchanger_simple>`
     * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>`
     * :py:class:`Condenser <tespy.components.heat_exchangers.condenser>`
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
@@ -41,6 +40,13 @@ well as the equations.
     * :py:class:`Compressor <tespy.components.turbomachinery.compressor>`
     * :py:class:`Pump <tespy.components.turbomachinery.pump>`
     * :py:class:`Turbine <tespy.components.turbomachinery.turbine>`
+
+List of custom components
+-------------------------
+Here we list the components integrated in the
+:py:mod:`<tespy.components.customs>` module.
+
+- :py:class:`Evaporator for geothermal organic rankine cycle <tespy.components.customs.orc_evaporator>`
 
 .. _using_tespy_components_parametrisation_label:
 
@@ -116,12 +122,13 @@ There are three components using parameter groups:
 
 Custom variables
 ^^^^^^^^^^^^^^^^
-
 It is possible to use component parameters as variables of your system of
-equations. For example, give a pressure ratio :code:`pr`, length :code:`L` and
-roughness :code:`ks` of a pipe you want to calculate the pipe's diameter
-:code:`D` required to achieve the specified pressure ratio. In this case you
-need to specify the diameter the following way.
+equations. In the component parameter list, if a parameter can be a string, it
+is possible to specify this parameter as custom variable. For example, given
+the pressure ratio :code:`pr`, length :code:`L` and roughness :code:`ks` of a
+pipe you may want to calculate the pipe's diameter :code:`D` required to
+achieve the specified pressure ratio. In this case you need to specify the
+diameter the following way.
 
 .. code-block:: python
 
@@ -303,9 +310,11 @@ Custom components
 
 You can add own components. The class should inherit from the
 :py:class:`component <tespy.components.components.component>` class or its
-children. In order to do that, create a python file in your working directory
-and import the base class for your custom component. Now create a class for
-your component and at least add the following methods.
+children. In order to do that, use the
+:py:mod:`customs <tespy.components.customs>` module or create a
+python file in your working directory and import the base class for your
+custom component. Now create a class for your component and at least add the
+following methods.
 
 - :code:`component(self)`,
 - :code:`attr(self)`,

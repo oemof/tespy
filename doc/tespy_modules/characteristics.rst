@@ -56,6 +56,22 @@ are calculated, again using linear interpolation.
 
     z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
 
+.. note::
+
+    Using compressor maps :math:`\vec{y}`, :math:`\vec{z1}` and
+    :math:`\vec{z2}` are manipulated with by the value of the inlet guide vane
+    angle:
+
+    .. math::
+
+        \vec{y} = \vec{y} \cdot \left(1-\frac{igva}{100}\right)\\
+        \vec{z1} = \vec{z1} \cdot \left(1-\frac{igva}{100}\right)\\
+        \vec{z2} = \vec{z2} \cdot \left(1-\frac{igva}{100}^2\right)
+
+    Also see the corresponding
+    :py:class:`section <tespy.tools.characteristics.compressor_map>` in the
+    API documentation.
+
 .. _import_custom_characteristics_label:
 
 Import your own characteristics

@@ -89,15 +89,19 @@ def plot_map(component, parameter, name, data):
     plt.close(fig)
 
 
-def generate_api_doc(component, parameter, name, char_type, rst):
+def generate_api_doc(component, parameter, name, char_type, ref):
     path = '_images/' + component + '_' + parameter + '_' + name + '.svg'
     rst = (
         '.. figure:: ' + path.replace(' ', '_') + '\n'
         '    :scale: 100 %\n'
         '    :alt: Characteristic ' + char_type + ' "' + name +
         '" for parameter "' + parameter + '".\n'
-        '    :align: center\n\n'
+        '    :align: center\n'
     )
+    if ref is not False:
+        rst += '    Reference: :cite:`' + ref + '`.\n'
+
+    rst += '\n'
     return rst
 
 
@@ -127,7 +131,7 @@ for component, params in get_char_data('char_lines').items():
     for param, lines in params.items():
         for line, data in lines.items():
             plot_line(component, param, line, data)
-            rst += generate_api_doc(component, param, line, 'line', rst)
+            rst += generate_api_doc(component, param, line, 'line', data['ref'])
 
 rst += (
     'Characteristic maps\n'
@@ -139,7 +143,7 @@ for component, params in get_char_data('char_maps').items():
     for param, chars in params.items():
         for char, data in chars.items():
             plot_map(component, param, char, data)
-            rst += generate_api_doc(component, param, char, 'map', rst)
+            rst += generate_api_doc(component, param, char, 'map', data['ref'])
 
 with open('./api/tespy.data.rst', 'w') as f:
     f.write(rst)

@@ -132,7 +132,8 @@ for component, params in get_char_data('char_lines').items():
     for param, lines in params.items():
         for line, data in lines.items():
             plot_line(component, param, line, data)
-            rst += generate_api_doc(component, param, line, 'line', data['ref'])
+            rst += generate_api_doc(
+                component, param, line, 'line', data['ref'])
 
 rst += (
     'Characteristic maps\n'

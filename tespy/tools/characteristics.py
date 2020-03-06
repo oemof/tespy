@@ -498,6 +498,8 @@ class compressor_map(char_map):
         This method is different from the base method. The second dimension
         array is manipulated by the inlet guide vane angle igva.
 
+        Reference: :cite:`GasTurb2018`.
+
         Parameters
         ----------
         x : float

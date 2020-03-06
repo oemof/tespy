@@ -1485,6 +1485,8 @@ def visc_mix_pT(flow, T):
     r"""
     Calculate dynamic viscosity from pressure and temperature.
 
+    Reference: :cite:`Herning1936`.
+
     Parameters
     ----------
     flow : list

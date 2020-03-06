@@ -1091,6 +1091,8 @@ class solar_collector(heat_exchanger_simple):
         r"""
         Equation for solar collector energy balance.
 
+        Reference: :cite:`Quaschning2013`.
+
         Returns
         -------
         res : float

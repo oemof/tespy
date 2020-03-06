@@ -5,7 +5,7 @@ Component equations are based on balance equation for fluid composition, mass
 flow and energy in regarding thermal and hydraulic state. For example, see
 :cite:`Baehr2016,Epple2012,Bswirth2012`.
 
-.. bibliography:: references.bib
+.. bibliography:: ../references.bib
 
 tespy.components.basics module
 ------------------------------

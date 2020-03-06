@@ -164,7 +164,8 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    'sphinxcontrib.bibtex'
 ]
 
 numpydoc_show_class_members = False

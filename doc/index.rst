@@ -20,6 +20,7 @@ Contents:
 	tespy_modules
 	developing_tespy
 	whats_new
+	zliterature
 	api
 
 Indices and tables
@@ -28,4 +29,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

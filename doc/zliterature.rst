@@ -1,0 +1,4 @@
+Literature
+==========
+
+.. bibliography:: references.bib

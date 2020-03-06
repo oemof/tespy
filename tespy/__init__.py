@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.2.2 - Rankine\'s Realm'
+__version__ = '0.2.3 - dev'
 
 # tespy networks imports
 from tespy.networks import (

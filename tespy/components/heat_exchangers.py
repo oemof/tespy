@@ -1096,16 +1096,20 @@ class solar_collector(heat_exchanger_simple):
         res : float
             Residual value of equation.
 
-            .. math::
+        Note
+        ----
+        .. math::
 
-                T_m = \frac{T_{out} + T_{in}}{2}\\
+            T_m = \frac{T_{out} + T_{in}}{2}\\
 
-                \begin{split}
-                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-                & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
-                \left(T_m - T_{amb} \right) - \alpha_2 \cdot
-                \left(T_m - T_{amb}\right)^2 \right]
-                \end{split}
+            \begin{split}
+            0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+            & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
+            \left(T_m - T_{amb} \right) - \alpha_2 \cdot
+            \left(T_m - T_{amb}\right)^2 \right]
+            \end{split}
+
+        Reference: :cite:`Quaschning2013`.
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

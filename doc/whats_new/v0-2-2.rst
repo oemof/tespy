@@ -1,5 +1,5 @@
-v0.2.2 Rankine's Realm - (March, someday, 2020)
-+++++++++++++++++++++++++++++++++++++++++++++++
+v0.2.2 Rankine's Realm - (March, 6, 2020)
++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -25,6 +25,8 @@ New Features
 
 Documentation
 #############
+- Add method for automatic citations and references
+  (`PR #163 <https://github.com/oemof/tespy/pull/163>`_).
 
 Parameter renaming
 ##################

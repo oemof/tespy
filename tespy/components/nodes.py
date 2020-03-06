@@ -1095,10 +1095,10 @@ class separator(node):
            :alt: alternative text
            :align: center
 
-    Todo
+    Note
     ----
-    - fluid separation requires power and cooling, equations have not been
-      implemented!
+    Fluid separation requires power and cooling, equations have not been
+    implemented, yet!
 
     Parameters
     ----------

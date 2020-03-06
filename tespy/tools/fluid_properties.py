@@ -1485,8 +1485,6 @@ def visc_mix_pT(flow, T):
     r"""
     Calculate dynamic viscosity from pressure and temperature.
 
-    Reference: :cite:`Herning1936`.
-
     Parameters
     ----------
     flow : list
@@ -1513,6 +1511,8 @@ def visc_mix_pT(flow, T):
         \forall i \in \text{fluid components}\\
         y: \text{volume fraction}\\
         M: \text{molar mass}
+
+    Reference: :cite:`Herning1936`.
     """
     n = molar_mass_flow(flow[3])
 

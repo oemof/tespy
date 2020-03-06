@@ -498,8 +498,6 @@ class compressor_map(char_map):
         This method is different from the base method. The second dimension
         array is manipulated by the inlet guide vane angle igva.
 
-        Reference: :cite:`GasTurb2018`.
-
         Parameters
         ----------
         x : float
@@ -529,6 +527,8 @@ class compressor_map(char_map):
             \vec{y} = \vec{y} \cdot \left( 1 - \frac{igva}{100} \right)\\
             \vec{z1} = \vec{z1} \cdot \left( 1 - \frac{igva}{100} \right)\\
             \vec{z2} = \vec{z2} \cdot \left( 1 - \frac{igva}{100}^2 \right)
+
+        Reference: :cite:`GasTurb2018`.
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)
 

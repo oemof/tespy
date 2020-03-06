@@ -332,6 +332,31 @@ class char_map:
 
         z2 : float
             Resulting z2 value.
+
+        Note
+        ----
+        This methods checks for the value range first. If the x-value is
+        outside of the specified range, the function will return the arrays
+        for :math:`y`, :math:`z1` and :math:`z2`.
+
+        .. math::
+
+            \vec{y} = \vec{y_0} + \frac{x-x_0}{x_1-x_0} \cdot
+            \left(\vec{y_1}-\vec{y_0} \right)\\
+            \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot
+            \left(\vec{z1_1}-\vec{z1_0} \right)\\
+            \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x1-x_0} \cdot
+            \left(\vec{z2_1}-\vec{z2_0}\right)
+
+        The index :math:`x_0` represents the lower and :math:`x_1` the
+        upper adjacent x-value. Using the y-value as second input dimension
+        the corresponding z1- and z2-values are calculated, again using linear
+        interpolation.
+
+        .. math::
+
+            z1 = z1_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z1_1-z1_0 \right)\\
+            z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)
         z1, z2 = self.evaluate_y(y, yarr, z1arr, z2arr)
@@ -494,13 +519,14 @@ class compressor_map(char_map):
 
         Note
         ----
-        Value manipulation by igva:
+        In contrast to the :py:class:`tespy.tools.characteristics.char_map`
+        the values are manipulated by the inlet guide vane angle (igva):
 
         .. math::
 
-            \vec{y} = \vec{y} * \left( 1 - \frac{igva}{100} \right)\\
-            \vec{z1} = \vec{z1} * \left( 1 - \frac{igva}{100} \right)\\
-            \vec{z2} = \vec{z2} * \left( 1 - \frac{igva^2}{10000} \right)
+            \vec{y} = \vec{y} \cdot \left( 1 - \frac{igva}{100} \right)\\
+            \vec{z1} = \vec{z1} \cdot \left( 1 - \frac{igva}{100} \right)\\
+            \vec{z2} = \vec{z2} \cdot \left( 1 - \frac{igva}{100}^2 \right)
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)
 

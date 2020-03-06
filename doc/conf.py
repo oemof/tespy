@@ -96,12 +96,13 @@ def generate_api_doc(component, parameter, name, char_type, ref):
         '    :scale: 100 %\n'
         '    :alt: Characteristic ' + char_type + ' "' + name +
         '" for parameter "' + parameter + '".\n'
-        '    :align: center\n'
+        '    :align: center\n\n'
     )
     if ref is not False:
-        rst += '    Reference: :cite:`' + ref + '`.\n'
+        rst += '    Reference: :cite:`' + ref + '`.\n\n'
+    else:
+        rst += '    Reference: Generic data.\n\n'
 
-    rst += '\n'
     return rst
 
 

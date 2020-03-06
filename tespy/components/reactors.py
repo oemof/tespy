@@ -119,26 +119,26 @@ class water_electrolyzer(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    P : float/tespy.helpers.dc_cp
+    P : str/float/tespy.tools.data_containers.dc_cp
         Power input, :math:`P/\text{W}`.
 
-    Q : float/tespy.helpers.dc_cp
+    Q : float/tespy.tools.data_containers.dc_cp
         Heat output of cooling, :math:`Q/\text{W}`
 
-    e : float/tespy.helpers.dc_cp
+    e : str/float/tespy.tools.data_containers.dc_cp
         Electrolysis specific energy consumption,
         :math:`e/(\text{J}/\text{m}^3)`.
 
-    eta : float/tespy.helpers.dc_cp
+    eta : str/float/tespy.tools.data_containers.dc_cp
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : str/tespy.helpers.dc_cc
+    eta_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Electrolysis efficiency characteristic line.
 
-    pr : float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -179,7 +179,7 @@ class water_electrolyzer(component):
     pressure is 25 bars. The electrolysis efficiency is at 80 % and the
     compressor isentropic efficiency at 85 %. After designing the plant the
     offdesign electrolysis efficiency is predicted by the characteristic line.
-    TODO: LINKTODEFAULTCHAR?
+    The default characteristic line can be found here: :py:mod:`tespy.data`.
 
     >>> fw_el = connection(fw, 'out1', el, 'in2')
     >>> el_o = connection(el, 'out2', oxy, 'in1')
@@ -419,7 +419,7 @@ class water_electrolyzer(component):
         # specified zeta value
         if self.zeta.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func()
+                self.vec_res[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         # equation for heat transfer
@@ -532,20 +532,26 @@ class water_electrolyzer(component):
         if self.zeta.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta')
             if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta')
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta')
             if not vec_z[2, 1]:
-                self.mat_deriv[k, 2, 1] = self.numeric_deriv(f, 'p', 2)
+                self.mat_deriv[k, 2, 1] = self.numeric_deriv(
+                    f, 'p', 2, zeta='zeta')
             if not vec_z[2, 2]:
-                self.mat_deriv[k, 2, 2] = self.numeric_deriv(f, 'h', 2)
+                self.mat_deriv[k, 2, 2] = self.numeric_deriv(
+                    f, 'h', 2, zeta='zeta')
 
             # derivatives for variable zeta
             if self.zeta.is_var:
                 self.mat_deriv[k, 5 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 5))
+                    self.numeric_deriv(
+                        f, 'zeta', 5, zeta='zeta'))
             k += 1
 
         ######################################################################
@@ -898,7 +904,7 @@ class water_electrolyzer(component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             T = 50 + 273.15
             return h_mix_pT(flow, T)
 
@@ -929,7 +935,7 @@ class water_electrolyzer(component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = [c.m.val0, 5e5, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             T = 20 + 273.15
             return h_mix_pT(flow, T)
 

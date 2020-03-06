@@ -123,7 +123,7 @@ class network_tests:
 
 @raises(TESPyNetworkError)
 def offdesign_TESPyNetworkError(nw, **kwargs):
-    nw.solve('offdesign', kwargs)
+    nw.solve('offdesign', **kwargs)
 
 
 def test_network_missing_data_in_design_case_files():
@@ -186,6 +186,35 @@ def test_network_missing_data_in_individual_design_case_file():
 
     shutil.rmtree('./tmp', ignore_errors=True)
     shutil.rmtree('./tmp2', ignore_errors=True)
+
+
+def test_network_missing_connection_in_design_path():
+    """
+    Test for missing connection data in design case files.
+    """
+    nw = network(['water'])
+    source = basics.source('source')
+    pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
+                   fluid={'water': 1})
+    b = connection(pipe, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    nw.solve('design')
+    nw.save('tmp')
+
+    inputs = open('./tmp/conn.csv')
+    all_lines = inputs.readlines()
+    all_lines.pop(len(all_lines) - 1)
+    inputs.close()
+
+    with open('./tmp/conn.csv', 'w') as out:
+        for line in all_lines:
+            out.write(line.strip() + '\n')
+
+    offdesign_TESPyNetworkError(nw, design_path='tmp')
+
+    shutil.rmtree('./tmp', ignore_errors=True)
 
 
 class test_network_individual_offdesign:
@@ -340,3 +369,34 @@ class test_network_individual_offdesign:
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)
+
+    def test_missing_design_path_local_offdesign_on_connections(self):
+        """
+        Test missing design path specification on connections in local
+        offdesign mode.
+        """
+        self.setup_network_individual_offdesign()
+        self.nw.solve('design')
+        self.sc2_v2.set_attr(m=0)
+        self.nw.solve('design')
+        self.nw.save('design1')
+        v1_design = self.sc1_v1.v.val_SI
+        zeta_sc1_design = self.sc1.zeta.val
+
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+
+        self.sc1.set_attr(local_offdesign=True, design_path='design1')
+        self.pump1.set_attr(local_offdesign=True, design_path='design1')
+        self.sp_p1.set_attr(local_offdesign=True, design_path='design1')
+        self.p1_sc1.set_attr(local_offdesign=True, design_path='design1')
+        self.sc1_v1.set_attr(local_offdesign=True)
+        self.sc1.set_attr(E=500)
+
+        self.sc2_v2.set_attr(T=95, m=np.nan)
+        try:
+            self.nw.solve('design', init_only=True)
+        except TESPyNetworkError:
+            pass
+
+        shutil.rmtree('./design1', ignore_errors=True)

@@ -95,10 +95,10 @@ class turbomachine(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     Example
@@ -385,26 +385,26 @@ class compressor(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    char_map : tespy.helpers.dc_cm
+    char_map : tespy.tools.characteristics.compressor_map/tespy.tools.data_containers.dc_cm
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
         tespy.tools.characteristics.compressor_map for further information.
         Provide a compressor_map as function :code:`func`.
 
-    igva : str/float/tespy.helpers.dc_cp
+    igva : str/float/tespy.tools.data_containers.dc_cp
         Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example
@@ -725,18 +725,16 @@ class compressor(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if o[0].init_csv is False:
-            if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-                o[0].p.val_SI = o[0].p.val_SI * 2
+        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+            o[0].p.val_SI = o[0].p.val_SI * 1.1
 
-            if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-                o[0].h.val_SI = o[0].h.val_SI * 1.1
+        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+            o[0].h.val_SI = o[0].h.val_SI * 1.1
 
-        if i[0].init_csv is False:
-            if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
-                i[0].p.val_SI = o[0].p.val_SI * 0.5
-            if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
-                i[0].h.val_SI = o[0].h.val_SI * 0.9
+        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+            i[0].p.val_SI = o[0].p.val_SI * 0.9
+        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+            i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     @staticmethod
     def initialise_source(c, key):
@@ -897,20 +895,20 @@ class pump(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    flow_char : tespy.helpers.dc_cc
+    flow_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide char_line as function :code:`func`.
         :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
@@ -943,8 +941,9 @@ class pump(turbomachine):
     After that we calculate offdesign performance using
     the pump curve and a characteristic function for the pump efficiency. We
     can calulate the offdesign efficiency and the volumetric flow, if the
-    difference pressure changed.
-    TODO: Link to deufalt characteristic lines?
+    difference pressure changed. The default characteristc lines are to be
+    found in the :py:mod:`tespy.data` module. Of course, you are able to
+    specify your own characteristcs.
 
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
@@ -1337,20 +1336,20 @@ class turbine(turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : float/tespy.tools.data_containers.dc_cp
         Power, :math:`P/\text{W}`
 
-    eta_s : str/float/tespy.helpers.dc_cp
+    eta_s : float/tespy.tools.data_containers.dc_cp
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.helpers.dc_cc
+    eta_s_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic curve for isentropic efficiency, provide char_line as
         function :code:`func`.
 
-    cone : tespy.helpers.dc_simple
+    cone : tespy.tools.data_containers.dc_simple
         Apply Stodola's cone law.
 
     Example
@@ -1622,22 +1621,21 @@ class turbine(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if i[0].init_csv is False:
+        if i[0].good_starting_values is False:
             if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
                 i[0].p.val_SI = 1e5
 
             if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
                 i[0].h.val_SI = 10e5
 
-        if o[0].init_csv is False:
-            if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
-                o[0].h.val_SI = i[0].h.val_SI * 0.75
-
-            if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
-                o[0].p.val_SI = i[0].p.val_SI / 2
-
             if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
                 o[0].h.val_SI = 5e5
+
+        if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
+            o[0].h.val_SI = i[0].h.val_SI * 0.9
+
+        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
+            o[0].p.val_SI = i[0].p.val_SI * 0.9
 
     @staticmethod
     def initialise_source(c, key):

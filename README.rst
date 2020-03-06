@@ -63,9 +63,10 @@ Examples
 
 For a short introduction on how TESPy works and how you can use it, we provide
 some
-`examples and tutorials <http://tespy.readthedocs.io/en/latest/getting_started.html>`_,
-go and check them out. You can download the python scripts of all example plants from
-the `tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
+`examples and tutorials <https://tespy.readthedocs.io/en/master/tutorials_examples.html>`_,
+go and check them out. You can download the python scripts of all example plants
+from the
+`tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
 repository.
 
 License

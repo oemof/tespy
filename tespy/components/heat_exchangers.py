@@ -106,48 +106,43 @@ class heat_exchanger_simple(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.tools.data_containers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.tools.data_containers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for heat transfer coefficient.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : str/float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature
         unit.
 
-    Tamb_ref : float/tespy.helpers.dc_cp
-         Ambient temperature for reference in offdesign case, provide
-         parameter in network's temperature unit.
-
-    kA_group : tespy.helpers.dc_gcp
+    kA_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
 
@@ -348,7 +343,7 @@ class heat_exchanger_simple(component):
         # equations for specified zeta
         if self.zeta.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func()
+                self.vec_res[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
@@ -381,7 +376,8 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equation for specified kA-group paremeters
         if self.kA_group.is_set:
-            self.vec_res[k] = self.kA_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.kA_func()
             k += 1
 
     def derivatives(self, vec_z):
@@ -425,19 +421,24 @@ class heat_exchanger_simple(component):
         if self.zeta.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta')
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta')
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta')
             if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta')
             if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta')
             # custom variable zeta
             if self.zeta.is_var:
                 self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2))
+                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta'))
             k += 1
 
         ######################################################################
@@ -805,9 +806,10 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
-
         .. math::
+
+            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
+            \dot{Q}
 
             0 = p_{in} \cdot pr - p_{out}
 
@@ -858,54 +860,54 @@ class solar_collector(heat_exchanger_simple):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
+    ks : str/float/tespy.tools.data_containers.dc_cp
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.tools.data_containers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    E : str/float/tespy.helpers.dc_cp
+    E : str/float/tespy.tools.data_containers.dc_cp
         Radiation at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
-    eta_opt : str/float/tespy.helpers.dc_cp
+    eta_opt : str/float/tespy.tools.data_containers.dc_cp
         optical loss at surface cover,
         :math:`\eta_{opt}`.
 
-    lkf_lin : str/float/tespy.helpers.dc_cp
+    lkf_lin : str/float/tespy.tools.data_containers.dc_cp
         Linear loss key figure,
         :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
-    lkf_quad : str/float/tespy.helpers.dc_cp
+    lkf_quad : str/float/tespy.tools.data_containers.dc_cp
         Quadratic loss key figure,
         :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
-    A : str/float/tespy.helpers.dc_cp
+    A : str/float/tespy.tools.data_containers.dc_cp
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature unit.
 
-    energy_group : tespy.helpers.dc_gcp
+    energy_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for energy balance of solarthermal collector.
 
     Example
@@ -1094,16 +1096,20 @@ class solar_collector(heat_exchanger_simple):
         res : float
             Residual value of equation.
 
-            .. math::
+        Note
+        ----
+        .. math::
 
-                T_m = \frac{T_{out} + T_{in}}{2}\\
+            T_m = \frac{T_{out} + T_{in}}{2}\\
 
-                \begin{split}
-                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-                & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
-                \left(T_m - T_{amb} \right) - \alpha_2 \cdot
-                \left(T_m - T_{amb}\right)^2 \right]
-                \end{split}
+            \begin{split}
+            0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+            & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
+            \left(T_m - T_{amb} \right) - \alpha_2 \cdot
+            \left(T_m - T_{amb}\right)^2 \right]
+            \end{split}
+
+        Reference: :cite:`Quaschning2013`.
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -1166,8 +1172,8 @@ class heat_exchanger(component):
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.zeta2_func`
+        - hot side :func:`tespy.components.components.component.zeta_func`
+        - cold side :func:`tespy.components.components.component.zeta_func`
 
         **additional equations**
 
@@ -1211,34 +1217,32 @@ class heat_exchanger(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     Note
     ----
@@ -1379,7 +1383,8 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified heat transfer coefficient
         if self.kA.is_set:
-            self.vec_res[k] = self.kA_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.kA_func()
             k += 1
 
         ######################################################################
@@ -1411,13 +1416,17 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified zeta at hot side
         if self.zeta1.is_set:
-            self.vec_res[k] = self.zeta_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta2.is_set:
-            self.vec_res[k] = self.zeta2_func()
+            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
         ######################################################################
@@ -1517,31 +1526,41 @@ class heat_exchanger(component):
         if self.zeta1.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[2, 1]:
-                self.mat_deriv[k, 2, 1] = self.numeric_deriv(f, 'p', 2)
+                self.mat_deriv[k, 2, 1] = self.numeric_deriv(
+                    f, 'p', 2, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[2, 2]:
-                self.mat_deriv[k, 2, 2] = self.numeric_deriv(f, 'h', 2)
+                self.mat_deriv[k, 2, 2] = self.numeric_deriv(
+                    f, 'h', 2, zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         ######################################################################
         # derivatives for specified zeta at cold side
         if self.zeta2.is_set:
-            f = self.zeta2_func
+            f = self.zeta_func
             if not vec_z[1, 0]:
-                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(
+                    f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[3, 1]:
-                self.mat_deriv[k, 3, 1] = self.numeric_deriv(f, 'p', 3)
+                self.mat_deriv[k, 3, 1] = self.numeric_deriv(
+                    f, 'p', 3, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[3, 2]:
-                self.mat_deriv[k, 3, 2] = self.numeric_deriv(f, 'h', 3)
+                self.mat_deriv[k, 3, 2] = self.numeric_deriv(
+                    f, 'h', 3, zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
         ######################################################################
@@ -1551,27 +1570,6 @@ class heat_exchanger(component):
     def additional_derivatives(self, vec_z, k):
         r"""Calculate partial derivatives for given additional equations."""
         return
-
-    def fluid_func(self):
-        r"""
-        Calculate residual values for fluid balance equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-        """
-        vec_res = []
-
-        for i in range(self.num_i):
-            for fluid, x in self.inl[i].fluid.val.items():
-                vec_res += [x - self.outl[i].fluid.val[fluid]]
-        return vec_res
 
     def mass_flow_func(self):
         r"""
@@ -1592,32 +1590,6 @@ class heat_exchanger(component):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
         return vec_res
 
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids * 2,
-                          4 + self.num_vars,
-                          self.num_nw_vars))
-        # hot side
-        i = 0
-        for fluid in self.nw_fluids:
-            deriv[i, 0, i + 3] = 1
-            deriv[i, 2, i + 3] = -1
-            i += 1
-        # cold side
-        j = 0
-        for fluid in self.nw_fluids:
-            deriv[i + j, 1, j + 3] = 1
-            deriv[i + j, 3, j + 3] = -1
-            j += 1
-        return deriv.tolist()
-
     def mass_flow_deriv(self):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
@@ -1633,7 +1605,7 @@ class heat_exchanger(component):
             deriv[i, i, 0] = 1
         for j in range(self.num_o):
             deriv[j, j + i + 1, 0] = -1
-        return deriv.tolist()
+        return deriv
 
     def energy_func(self):
         r"""
@@ -1891,7 +1863,7 @@ class heat_exchanger(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.s_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
@@ -1927,7 +1899,7 @@ class heat_exchanger(component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = [c.m.val0, c.p.val_SI, c.h.val_SI, c.fluid.val]
+            flow = c.to_flow()
             if c.t_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
@@ -2040,8 +2012,8 @@ class condenser(heat_exchanger):
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.zeta2_func`
+        - hot side :func:`tespy.components.components.component.zeta_func`
+        - cold side :func:`tespy.components.components.component.zeta_func`
 
         **additional equations**
 
@@ -2085,34 +2057,32 @@ class condenser(heat_exchanger):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     subcooling : bool
         Enable/disable subcooling, default value: disabled.
@@ -2175,9 +2145,9 @@ class condenser(heat_exchanger):
     >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.6
+    62.5
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    12.3
+    11.3
 
     It is possible to activate subcooling. The difference to boiling point
     temperature is specified to 5 K.
@@ -2186,9 +2156,9 @@ class condenser(heat_exchanger):
     >>> he_c.set_attr(Td_bp=-5)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
-    62.6
+    62.5
     >>> round(T_bp_p(ws_he.to_flow()) - 273.15 - he_amb.T.val, 1)
-    14.4
+    13.4
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
@@ -2357,7 +2327,7 @@ class condenser(heat_exchanger):
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA1 * fkA2 * td_log
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
 
     def ttd_u_func(self):
         r"""
@@ -2411,8 +2381,8 @@ class desuperheater(heat_exchanger):
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.zeta2_func`
+        - hot side :func:`tespy.components.components.component.zeta_func`
+        - cold side :func:`tespy.components.components.component.zeta_func`
 
         **additional equations**
 
@@ -2456,34 +2426,32 @@ class desuperheater(heat_exchanger):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
+    zeta1 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
+    zeta2 : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.helpers.dc_cc
-        Characteristic curve for hot side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.helpers.dc_cc
-        Characteristic curve for cold side heat transfer coefficient, provide
-        char_line as function :code:`func`. Standard parameter 'm'.
+    kA_char2 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for cold side heat transfer coefficient.
 
     Note
     ----

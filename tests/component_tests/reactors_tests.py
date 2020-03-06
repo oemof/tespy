@@ -21,6 +21,12 @@ import numpy as np
 import shutil
 
 
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    eq_(lin_dep, False, msg)
+
+
 class reactors_tests:
 
     def setup(self):
@@ -62,6 +68,7 @@ class reactors_tests:
         self.nw.add_busses(power)
 
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be ' + str(power.P.val) + ', is ' +
                str(self.instance.P.val) + '.')
         eq_(round(power.P.val, 1), round(self.instance.P.val), msg)
@@ -75,6 +82,7 @@ class reactors_tests:
         self.nw.add_busses(heat)
 
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(heat.P.val) +
                ', is ' + str(self.instance.Q.val) + '.')
         eq_(round(heat.P.val, 1), round(self.instance.Q.val), msg)
@@ -85,6 +93,7 @@ class reactors_tests:
         Q = heat.P.val * 0.9
         heat.set_attr(P=Q)
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(Q) +
                ', is ' + str(self.instance.Q.val) + '.')
         eq_(round(Q, 1), round(self.instance.Q.val), msg)
@@ -95,6 +104,7 @@ class reactors_tests:
         # test efficiency vs. specific energy consumption
         self.instance.set_attr(eta=0.9, e='var')
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of efficiency must be ' + str(self.instance.eta.val) +
                ', is ' + str(self.instance.e0 / self.instance.e.val) + '.')
         eq_(round(self.instance.eta.val, 2),
@@ -106,6 +116,7 @@ class reactors_tests:
         self.instance.set_attr(e=np.nan, eta=np.nan)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of efficiency must be ' + str(self.instance.e0 / e) +
                ', is ' + str(self.instance.eta.val) + '.')
         eq_(round(self.instance.e0 / e, 2), round(self.instance.eta.val, 2),
@@ -116,6 +127,7 @@ class reactors_tests:
         self.instance.set_attr(e=np.nan, eta=np.nan)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of specific energy consumption e must be ' + str(e) +
                ', is ' + str(self.instance.e.val) + '.')
         eq_(round(e, 1), round(self.instance.e.val, 1), msg)
@@ -125,7 +137,9 @@ class reactors_tests:
         self.instance.set_attr(pr_c=pr, e=np.nan, zeta='var',
                                P=2.5e6, design=['pr_c'])
         self.nw.solve('design')
+        shutil.rmtree('./tmp', ignore_errors=True)
         self.nw.save('tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr_c.val) + '.')
         eq_(round(pr, 2), round(self.instance.pr_c.val, 2), msg)
@@ -134,6 +148,7 @@ class reactors_tests:
         # ratio must not change
         self.instance.set_attr(zeta=np.nan, offdesign=['zeta'])
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr_c.val) + '.')
         eq_(round(pr, 2), round(self.instance.pr_c.val, 2), msg)
@@ -142,6 +157,7 @@ class reactors_tests:
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
+        convergence_check(self.nw.lin_dep)
         msg = ('Value of heat must be ' + str(Q) + ', is ' +
                str(self.instance.Q.val) + '.')
         eq_(round(Q, 0), round(self.instance.Q.val, 0), msg)

@@ -5,7 +5,7 @@ Fluid properties
 
 The basic fluid properties are handled by
 `CoolProp <http://www.coolprop.org/>`_. All available fluids can be found on
-their homepage.
+their homepage. Also see :cite:`Bell2014`.
 
 Pure and pseudo-pure fluids
 ---------------------------
@@ -13,16 +13,16 @@ Pure and pseudo-pure fluids
 If you use pure fluids, TESPy directly uses CoolProp functions to gather all
 fluid properties. CoolProp covers the most important fluids such as water, air
 as a pseudo-pure fluid as well as its components, several fuels and
-refrigerants etc.. Look for the aliases in the
-`list of fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html#list-of-fluids>`_.
+refrigerants etc.. Look for the aliases in the list of
+`fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html>`_.
 All fluids provided in this list cover liquid and gaseous state and the
 two-phase region.
 
 Incompressible fluids
 ---------------------
 
-If you are looking for heat transer fluids, the
-`list of incompressible fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`_
+If you are looking for heat transer fluids, the list of incompressible
+`fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`_
 might be interesting for you. In contrast to the pure fluids, the properties
 cover liquid state only.
 
@@ -37,8 +37,9 @@ Ideal mixtures of gaseous fluids
 
 TESPy can handle mixtures of gaseous fluids, by using the single fluid
 properties from CoolProp together with corresponding equations for mixtures.
-The equations can be found in the :py:mod:`fluid_properties <tespy.tools.fluid_properties>`
-module and are applied automatically to the fluid vector.
+The equations can be found in the
+:py:mod:`fluid_properties <tespy.tools.fluid_properties>` module and are
+applied automatically to the fluid vector.
 
 It is also possible create lookup-tables for fluid mixtures with fixed mass
 fractions of the components, as this reduces the amount of CoolProp fluid

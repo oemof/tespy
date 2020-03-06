@@ -492,13 +492,15 @@ class component:
             Vector of residual values for component's fluid balance.
 
             .. math::
-                0 = fluid_{i,in} - fluid_{i,out} \;
-                \forall i \in \mathrm{fluid}
+
+                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
+                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
         """
         vec_res = []
 
-        for fluid, x in self.inl[0].fluid.val.items():
-            vec_res += [x - self.outl[0].fluid.val[fluid]]
+        for i in range(self.num_i):
+            for fluid, x in self.inl[0].fluid.val.items():
+                vec_res += [x - self.outl[0].fluid.val[fluid]]
         return vec_res
 
     def fluid_deriv(self):
@@ -510,14 +512,13 @@ class component:
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_nw_fluids,
-                          2 + self.num_vars,
+        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+                          2 * self.num_i + self.num_vars,
                           self.num_nw_vars))
-        i = 0
-        for fluid in self.nw_fluids:
-            deriv[i, 0, i + 3] = 1
-            deriv[i, 1, i + 3] = -1
-            i += 1
+        for i in range(self.num_i):
+            for j in range(self.num_nw_fluids):
+                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
+                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv
 
 # %%
@@ -651,9 +652,21 @@ class component:
 
 # %%
 
-    def zeta_func(self):
+    def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
+
+        Parameters
+        ----------
+        zeta : str
+            Component parameter to evaluate the zeta_func on, e. g.
+            :code:`zeta1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
 
         Returns
         -------
@@ -681,59 +694,15 @@ class component:
             \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
             {8 \cdot \dot{m}^2 \cdot v}
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        if hasattr(self, 'zeta'):
-            val = self.zeta.val
-        else:
-            val = self.zeta1.val
+        zeta = self.get_attr(zeta).val
+        i = self.inl[inconn].to_flow()
+        o = self.outl[outconn].to_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
 
         else:
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
-            return (val - (i[1] - o[1]) * np.pi ** 2 /
-                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
-
-    def zeta2_func(self):
-        r"""
-        Calculate residual value of :math:`\zeta_2`-function.
-
-        Returns
-        -------
-        val : float
-            Residual value of function.
-
-            .. math::
-
-                val = \begin{cases}
-                p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \frac{\zeta_2}{D^4} - \frac{(p_{2,in} - p_{2,out}) \cdot \pi^2}
-                {8 \cdot \dot{m}_{2,in} \cdot |\dot{m}_{2,in}| \cdot
-                \frac{v_{2,in} + v_{2,out}}{2}} &
-                |\dot{m}| > \epsilon
-                \end{cases}
-
-        Note
-        ----
-        The zeta value is caluclated on the basis of a given pressure loss at
-        a given flow rate in the design case. As the cross sectional area A
-        will not change, it is possible to handle the equation in this way:
-
-        .. math::
-
-            \frac{\zeta_2}{D^4} =  \frac{\Delta p_2 \cdot \pi^2}
-            {8 \cdot \dot{m}_2^2 \cdot v}
-        """
-        i = self.inl[1].to_flow()
-        o = self.outl[1].to_flow()
-
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
-        else:
-            v_i = v_mix_ph(i, T0=self.inl[1].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[1].T.val_SI)
-            return (self.zeta2.val - (i[1] - o[1]) * np.pi ** 2 /
+            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
+            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
+            return (zeta - (i[1] - o[1]) * np.pi ** 2 /
                     (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))

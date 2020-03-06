@@ -1511,6 +1511,8 @@ def visc_mix_pT(flow, T):
         \forall i \in \text{fluid components}\\
         y: \text{volume fraction}\\
         M: \text{molar mass}
+
+    Reference: :cite:`Herning1936`.
     """
     n = molar_mass_flow(flow[3])
 

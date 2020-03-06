@@ -14,7 +14,7 @@ from tespy.tools.global_vars import (
 
 import CoolProp as CP
 
-import math
+import numpy as np
 
 import os
 import logging
@@ -379,12 +379,12 @@ def lamb(re, ks, d):
             elif re > 1e5 and re < 5e6:
                 return 0.0032 + 0.221 * re ** (-0.237)
             else:
-                l0 = 0.0001
+                l0 = 0.02
                 return newton(lamb_smooth, dlamb_smooth_dlamb, [re],
                               0, val0=l0, valmin=0.00001, valmax=0.2)
 
         elif re * ks / d > 1300:
-            return 1 / (2 * math.log(3.71 * d / ks, 10)) ** 2
+            return 1 / (-2 * np.log10(ks / (3.71 * d))) ** 2
 
         else:
             l0 = 0.002
@@ -395,19 +395,19 @@ def lamb(re, ks, d):
 def lamb_smooth(params, lamb):
     """Calculate lambda in smooth conditions."""
     re = params[0]
-    return 2 * math.log(re * math.sqrt(lamb), 10) - 0.8 - 1 / math.sqrt(lamb)
+    return 2 * np.log10(re * lamb ** 0.5) - 0.8 - 1 / lamb ** 0.5
 
 
 def dlamb_smooth_dlamb(params, lamb):
     """Calculate derivative of lambda in smooth conditions."""
-    return 1 / (lamb * math.log(10)) + 1 / 2 * lamb ** (-1.5)
+    return 1 / (lamb * np.log(10)) + 1 / 2 * lamb ** (-1.5)
 
 
 def lamb_trans(params, lamb):
     """Calculate lambda in transition region (smooth to rough)."""
     re, ks, d = params[0], params[1], params[2]
-    return (2 * math.log(2.51 / (re * math.sqrt(lamb)) + ks / d * 0.269, 10) +
-            1 / math.sqrt(lamb))
+    return (2 * np.log10(2.51 / (re * lamb ** 0.5) + ks / (3.71 * d)) +
+            1 / lamb ** 0.5)
 
 
 def dlamb_trans_dlamb(params, lamb):
@@ -442,16 +442,12 @@ def modify_path_os(path):
         if path[0] != '\\' and path[1:2] != ':' and path[0] != '.':
             # relative path
             path = '.\\' + path
-    elif os.name == 'posix':
-        # linux, max
+    else:
+        # linux, mac
         path = path.replace('\\', '/')
         if path[0] != '/' and path[0] != '.':
-            # absolute path
+            # relative path
             path = './' + path
-    else:
-        # unkown os
-        msg = 'Unknown operating system, using posix pathing logic.'
-        logging.warning(msg)
 
     return path
 

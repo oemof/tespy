@@ -105,10 +105,10 @@ class combustion_chamber(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -759,7 +759,6 @@ class combustion_chamber(component):
                 try:
                     flow = [0, p, 0, {self.h2o: 1}]
                     h_steam = h_mix_pQ(flow, 1)
-                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
                 except ValueError:
                     flow = [0, 615, 0, {self.h2o: 1}]
                     h_steam = h_mix_pQ(flow, 1)
@@ -986,7 +985,7 @@ class combustion_chamber(component):
 
         m = 0
         for i in inl:
-            if i.init_csv is False:
+            if i.good_starting_values is False:
                 if i.m.val_SI < 0 and not i.m.val_set:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
@@ -994,7 +993,7 @@ class combustion_chamber(component):
         ######################################################################
         # check fluid composition
         for o in outl:
-            if o.init_csv is False:
+            if o.good_starting_values is False:
                 fluids = [f for f in o.fluid.val.keys()
                           if not o.fluid.val_set[f]]
                 for f in fluids:
@@ -1031,7 +1030,7 @@ class combustion_chamber(component):
         ######################################################################
         # flue gas propagation
         for o in outl:
-            if o.init_csv is False:
+            if o.good_starting_values is False:
                 if o.m.val_SI < 0 and not o.m.val_set:
                     o.m.val_SI = 10
                 nw.init_target(o, o.t)
@@ -1045,7 +1044,7 @@ class combustion_chamber(component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                if i.init_csv is False:
+                if i.good_starting_values is False:
                     fuel = 0
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
@@ -1236,10 +1235,10 @@ class combustion_chamber_stoich(combustion_chamber):
     path : str
         Path to existing fluid property table.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -2040,8 +2039,8 @@ class combustion_engine(combustion_chamber):
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - :func:`tespy.components.components.component.zeta_func`
-        - :func:`tespy.components.components.component.zeta2_func`
+        - loop 1 :func:`tespy.components.components.component.zeta_func`
+        - loop 2 :func:`tespy.components.components.component.zeta_func`
 
     Available fuels
 
@@ -2090,49 +2089,49 @@ class combustion_engine(combustion_chamber):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float/tespy.helpers.dc_cp
+    lamb : float/tespy.tools.data_containers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float/tespy.helpers.dc_cp
+    ti : float/tespy.tools.data_containers.dc_cp
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
-    P : str/float/tespy.helpers.dc_cp
+    P : str/float/tespy.tools.data_containers.dc_cp
         Power output, :math:`P/\text{W}`.
 
-    Q1 : str/float/tespy.helpers.dc_cp
+    Q1 : float/tespy.tools.data_containers.dc_cp
         Heat output 1, :math:`\dot Q/\text{W}`.
 
-    Q2 : str/float/tespy.helpers.dc_cp
+    Q2 : float/tespy.tools.data_containers.dc_cp
         Heat output 2, :math:`\dot Q/\text{W}`.
 
-    Qloss : str/float/tespy.helpers.dc_cp
+    Qloss : str/float/tespy.tools.data_containers.dc_cp
         Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
-    pr1 : str/float/tespy.helpers.dc_cp
+    pr1 : float/tespy.tools.data_containers.dc_cp
         Pressure ratio heat outlet 1, :math:`pr/1`.
 
-    pr2 : str/float/tespy.helpers.dc_cp
+    pr2 : float/tespy.tools.data_containers.dc_cp
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
-    zeta1 : str/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2,
+    zeta1 : float/tespy.tools.data_containers.dc_cp
+        Geometry independent friction coefficient heating loop 1,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str/float/tespy.helpers.dc_cp
-        Pressure ratio heat outlet 2,
+    zeta2 : float/tespy.tools.data_containers.dc_cp
+        Geometry independent friction coefficient heating loop 2,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    tiP_char : str/tespy.helpers.dc_cc
+    tiP_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking fuel input to power output.
 
-    Q1_char : str/tespy.helpers.dc_cc
+    Q1_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : str/tespy.helpers.dc_cc
+    Q2_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : str/tespy.helpers.dc_cc
+    Qloss_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat loss to power output.
 
     Note
@@ -2391,12 +2390,14 @@ class combustion_engine(combustion_chamber):
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func()
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
             if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta2_func()
+                self.vec_res[k] = self.zeta_func(
+                    zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
     def derivatives(self, vec_z):
@@ -2601,29 +2602,39 @@ class combustion_engine(combustion_chamber):
         if self.zeta1.is_set:
             f = self.zeta_func
             if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[4, 1]:
-                self.mat_deriv[k, 4, 1] = self.numeric_deriv(f, 'p', 4)
+                self.mat_deriv[k, 4, 1] = self.numeric_deriv(
+                    f, 'p', 4, zeta='zeta1', inconn=0, outconn=0)
             if not vec_z[4, 2]:
-                self.mat_deriv[k, 4, 2] = self.numeric_deriv(f, 'h', 4)
+                self.mat_deriv[k, 4, 2] = self.numeric_deriv(
+                    f, 'h', 4, zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
-            f = self.zeta2_func
+            f = self.zeta_func
             if not vec_z[1, 0]:
-                self.mat_deriv[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+                self.mat_deriv[k, 1, 0] = self.numeric_deriv(
+                    f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[5, 1]:
-                self.mat_deriv[k, 5, 1] = self.numeric_deriv(f, 'p', 5)
+                self.mat_deriv[k, 5, 1] = self.numeric_deriv(
+                    f, 'p', 5, zeta='zeta2', inconn=1, outconn=1)
             if not vec_z[5, 2]:
-                self.mat_deriv[k, 5, 2] = self.numeric_deriv(f, 'h', 5)
+                self.mat_deriv[k, 5, 2] = self.numeric_deriv(
+                    f, 'h', 5, zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
     def fluid_func(self):
@@ -2735,7 +2746,7 @@ class combustion_engine(combustion_chamber):
             .. math::
 
                 \begin{split}
-                0 = & \sum_i \dot{m}_{in,i} \cdot
+                res = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
                 & - \sum_j \dot{m}_{out,3} \cdot
                 \left( h_{out,3} - h_{out,3,ref} \right)\\

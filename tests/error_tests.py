@@ -375,6 +375,18 @@ def test_char_map_number_of_dimensions():
     char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
 
 
+@raises(ValueError)
+def test_char_map_y_z_dimension_mismatch():
+    char_map(x=[0, 1], y=[[1, 2, 3, 4], [1, 2, 3, 4]],
+             z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+             z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+
+
+@raises(KeyError)
+def test_char_map_get_attr():
+    char_map().get_attr('Stuff')
+
+
 @raises(FileNotFoundError)
 def test_missing_char_files():
     load_custom_char('stuff', char_line)

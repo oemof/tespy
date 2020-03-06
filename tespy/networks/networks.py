@@ -38,6 +38,7 @@ from tespy import connections as con
 from tespy.components.basics import (sink, source, subsystem_interface,
                                      cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
+from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
 from tespy.components.reactors import water_electrolyzer
@@ -508,6 +509,8 @@ class network:
                        'parameters.')
                 logging.error(msg)
                 raise TypeError(msg)
+
+            c.good_starting_values = False
 
             self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
             msg = ('Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' +
@@ -1160,12 +1163,7 @@ class network:
 
                 # if there is a starting value
                 elif fluid in tmp0.keys():
-                    if fluid in tmp_set.keys():
-                        if not tmp_set[fluid]:
-                            c.fluid.val[fluid] = tmp0[fluid]
-                            c.fluid.val0[fluid] = tmp0[fluid]
-                            c.fluid.val_set[fluid] = False
-                    else:
+                    if fluid not in tmp_set.keys():
                         c.fluid.val[fluid] = tmp0[fluid]
                         c.fluid.val0[fluid] = tmp0[fluid]
                         c.fluid.val_set[fluid] = False
@@ -1235,24 +1233,27 @@ class network:
         if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
                 not isinstance(c.t, cycle_closer)) or
                 isinstance(c.t, heat_exchanger) or
-                isinstance(c.t, subsystem_interface)):
+                isinstance(c.t, subsystem_interface) or
+                isinstance(c.t, orc_evaporator)):
 
             outc = pd.DataFrame()
             outc['s'] = self.conns.s == c.t
             outc['s_id'] = self.conns.s_id == c.t_id.replace('in', 'out')
             conn, cid = outc['s'] == True, outc['s_id'] == True
-            outc = outc.index[conn & cid][0]
+            outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if not outc.fluid.val_set[fluid]:
-                    outc.fluid.val[fluid] = x
+                if (outconn.fluid.val_set[fluid] is False and
+                        outconn.good_starting_values is False):
+                    outconn.fluid.val[fluid] = x
 
-            self.init_target(outc, start)
+            self.init_target(outconn, start)
 
         if isinstance(c.t, splitter):
             for outconn in self.comps.loc[c.t].o:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1262,13 +1263,15 @@ class network:
                 outconn = self.comps.loc[c.t].o[0]
 
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
         if isinstance(c.t, combustion_engine):
             for outconn in self.comps.loc[c.t].o[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1277,7 +1280,8 @@ class network:
             start = c.t
             for outconn in self.comps.loc[c.t].o:
                 for fluid, x in c.fluid.val.items():
-                    if not outconn.fluid.val_set[fluid]:
+                    if (outconn.fluid.val_set[fluid] is False and
+                            outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1304,24 +1308,27 @@ class network:
         if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
                 not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
-                isinstance(c.s, subsystem_interface)):
+                isinstance(c.s, subsystem_interface) or
+                isinstance(c.s, orc_evaporator)):
 
             inc = pd.DataFrame()
             inc['t'] = self.conns.t == c.s
             inc['t_id'] = self.conns.t_id == c.s_id.replace('out', 'in')
             conn, cid = inc['t'] == True, inc['t_id'] == True
-            inc = inc.index[conn & cid][0]
+            inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if not inc.fluid.val_set[fluid]:
-                    inc.fluid.val[fluid] = x
+                if (inconn.fluid.val_set[fluid] is False and
+                        inconn.good_starting_values is False):
+                    inconn.fluid.val[fluid] = x
 
-            self.init_source(inc, start)
+            self.init_source(inconn, start)
 
         if isinstance(c.s, splitter):
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1329,7 +1336,8 @@ class network:
         if isinstance(c.s, merge):
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1337,7 +1345,8 @@ class network:
         if isinstance(c.s, combustion_engine):
             for inconn in self.comps.loc[c.s].i[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1346,7 +1355,8 @@ class network:
             start = c.s
             for inconn in self.comps.loc[c.s].i:
                 for fluid, x in c.fluid.val.items():
-                    if not inconn.fluid.val_set[fluid]:
+                    if (inconn.fluid.val_set[fluid] is False and
+                            inconn.good_starting_values is False):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1363,7 +1373,8 @@ class network:
         """
         # fluid properties
         for c in self.conns.index:
-            c.init_csv = False
+            if self.init_previous is False:
+                c.good_starting_values = False
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
                 if c.get_attr(key).unit_set is False and key != 'x':
                     if key == 'Td_bp':
@@ -1372,7 +1383,8 @@ class network:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
                 if (key not in ['T', 'x', 'v', 'Td_bp'] and
                         c.get_attr(key).val_set is False):
-                    self.init_val0(c, key)
+                    if c.good_starting_values is False:
+                        self.init_val0(c, key)
                     c.get_attr(key).val_SI = (
                             c.get_attr(key).val0 * self.get_attr(key)[
                                     c.get_attr(key).unit])
@@ -1519,7 +1531,7 @@ class network:
                 c.p.val0 = c.p.val_SI / self.p[c.p.unit]
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
-                c.init_csv = True
+                c.good_starting_values = True
             else:
                 msg = ('Could not find connection ' + c.s.label + ' (' +
                        c.s_id + ') -> ' + c.t.label + ' (' + c.t_id +
@@ -1530,7 +1542,7 @@ class network:
         logging.debug(msg)
 
     def solve(self, mode, init_path=None, design_path=None,
-              max_iter=50, init_only=False):
+              max_iter=50, init_only=False, init_previous=True):
         r"""
         Solve the network.
 
@@ -1558,7 +1570,11 @@ class network:
             Maximum number of iterations before calculation stops, default: 50.
 
         init_only : boolean
-            Perform initialisation only? default: :code:`False`.
+            Perform initialisation only, default: :code:`False`.
+
+        init_previous : boolean
+            Initialise the calculation with values from the previous
+            calculation, default: :code:`True`.
 
         Note
         ----
@@ -1583,6 +1599,7 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be \'design\' or \'offdesign\'.'
@@ -1651,7 +1668,7 @@ class network:
             logging.error(msg)
             return
 
-        self.post_processing()
+        self.postprocessing()
         fp.memorise.del_memory(self.fluids)
 
         if not self.progress:
@@ -1872,14 +1889,14 @@ class network:
         i = 0
         for c in self.conns.index:
             # mass flow, pressure and enthalpy
-            if not c.m.val_set:
+            if c.m.val_set is False:
                 c.m.val_SI += self.vec_z[i * (self.num_conn_vars)]
-            if not c.p.val_set:
+            if c.p.val_set is False:
                 # this prevents negative pressures
                 relax = max(1, -self.vec_z[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
                 c.p.val_SI += self.vec_z[i * (self.num_conn_vars) + 1] / relax
-            if not c.h.val_set:
+            if c.h.val_set is False:
                 c.h.val_SI += self.vec_z[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
@@ -1887,7 +1904,7 @@ class network:
                 j = 0
                 for fluid in self.fluids:
                     # add increment
-                    if not c.fluid.val_set[fluid]:
+                    if c.fluid.val_set[fluid] is False:
                         c.fluid.val[fluid] += (
                                 self.vec_z[i * (self.num_conn_vars) + 3 + j])
 
@@ -1997,7 +2014,7 @@ class network:
                     c.h.val_SI = hmin * 1.05
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.9
+                c.h.val_SI = hmax * 0.95
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set is True or c.state.is_set is True) and
@@ -2015,7 +2032,7 @@ class network:
                         c.h.val_SI = h * 0.98
                         logging.debug(self.property_range_message(c, 'h'))
 
-        elif self.iter < 4 and c.init_csv is False:
+        elif self.iter < 4 and c.good_starting_values is False:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -2448,7 +2465,7 @@ class network:
 
                 row += 1
 
-    def post_processing(self):
+    def postprocessing(self):
         r"""Calculate bus, component parameters and connection parameters."""
         # components
         self.comps.apply(network.process_components, axis=1)
@@ -2468,6 +2485,7 @@ class network:
 
         # connections
         for c in self.conns.index:
+            c.good_starting_values = True
             c.T.val_SI = fp.T_mix_ph(c.to_flow(), T0=c.T.val_SI)
             c.v.val_SI = fp.v_mix_ph(c.to_flow(), T0=c.T.val_SI) * c.m.val_SI
             c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])
@@ -2870,7 +2888,7 @@ class network:
             df['id'] = df.apply(network.get_id, axis=1)
             df['type'] = df.apply(network.get_class_base, axis=1)
 
-            cols = ['x', 'y']
+            cols = ['x', 'y', 'extrapolate']
             for val in cols:
                 df[val] = df.apply(network.get_props, axis=1, args=(val,))
 

@@ -1,9 +1,9 @@
-.. image:: https://coveralls.io/repos/github/oemof/tespy/badge.svg?branch=dev
-    :target: https://coveralls.io/github/oemof/tespy?branch=dev
-.. image:: https://travis-ci.org/oemof/tespy.svg?branch=dev
+.. image:: https://coveralls.io/repos/github/oemof/tespy/badge.svg?branch=master
+    :target: https://coveralls.io/github/oemof/tespy?branch=master
+.. image:: https://travis-ci.org/oemof/tespy.svg?branch=master
     :target: https://travis-ci.org/oemof/tespy
-.. image:: https://readthedocs.org/projects/tespy/badge/?version=dev
-    :target: https://tespy.readthedocs.io/en/dev/
+.. image:: https://readthedocs.org/projects/tespy/badge/?version=master
+    :target: https://tespy.readthedocs.io/en/master/
 .. image:: https://badge.fury.io/py/TESPy.svg
     :target: https://badge.fury.io/py/TESPy
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg

@@ -9,8 +9,7 @@ tests/error_tests.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_, raises
+import pytest
 
 from tespy.connections import connection, bus, ref
 from tespy.components import (basics, combustion, components, heat_exchangers,
@@ -41,66 +40,66 @@ class specification_error_tests:
         self.bus = bus('mybus')
         self.sub = subsystems.subsystem('MySub')
 
-    @raises(ValueError)
     def cmp_instanciation_ValueError(self, label):
-        combustion.combustion_engine(label)
+        with pytest.raises(ValueError):
+            combustion.combustion_engine(label)
 
-    @raises(ValueError)
     def set_attr_ValueError(self, instance, **kwargs):
-        instance.set_attr(**kwargs)
+        with pytest.raises(ValueError):
+            instance.set_attr(**kwargs)
 
-    @raises(ValueError)
     def create_connection_ValueError(self, pos):
-        if pos == 'source':
-            connection(self.comp, 'out6', self.pipe, 'in1')
-        elif pos == 'target':
-            connection(self.comp, 'out1', self.pipe, 'in5')
+        with pytest.raises(ValueError):
+            if pos == 'source':
+                connection(self.comp, 'out6', self.pipe, 'in1')
+            elif pos == 'target':
+                connection(self.comp, 'out1', self.pipe, 'in5')
 
-    @raises(TypeError)
     def set_attr_TypeError(self, instance, **kwargs):
-        instance.set_attr(**kwargs)
+        with pytest.raises(TypeError):
+            instance.set_attr(**kwargs)
 
-    @raises(TypeError)
     def bus_add_comps_TypeError(self, c):
-        self.bus.add_comps(c)
+        with pytest.raises(TypeError):
+            self.bus.add_comps(c)
 
-    @raises(TypeError)
     def test_create_conn_TypeError(self):
-        connection(self.comp, 'out1', self.conn, 'in1')
+        with pytest.raises(TypeError):
+            connection(self.comp, 'out1', self.conn, 'in1')
 
-    @raises(TypeError)
     def create_ref_TypeError(self, params):
-        ref(params[0], params[1], params[2])
+        with pytest.raises(TypeError):
+            ref(params[0], params[1], params[2])
 
-    @raises(KeyError)
-    def set_attr_KeyError(self, instance, **kwargs):
-        instance.set_attr(**kwargs)
-
-    @raises(KeyError)
-    def get_attr_KeyError(self, instance, key):
-        instance.get_attr(key)
-
-    @raises(TESPyConnectionError)
-    def test_con_TESPyConnectionError(self):
-        connection(self.comp, 'out1', self.comp, 'in1')
-
-    @raises(TESPyConnectionError)
-    def test_bus_TESPyConnectionError(self):
-        self.bus.add_comps(self.comp)
-
-    @raises(TESPyNetworkError)
-    def test_network_bus_duplicate(self):
-        self.nw.add_busses(self.bus, self.bus)
-
-    @raises(TESPyNetworkError)
-    def test_network_buslabel_duplicate(self):
-        b = bus('mybus')
-        self.nw.add_busses(self.bus)
-        self.nw.add_busses(b)
-
-    @raises(TypeError)
     def test_network_bus_type(self):
-        self.nw.add_busses(self.conn)
+        with pytest.raises(TypeError):
+            self.nw.add_busses(self.conn)
+
+    def set_attr_KeyError(self, instance, **kwargs):
+        with pytest.raises(KeyError):
+            instance.set_attr(**kwargs)
+
+    def get_attr_KeyError(self, instance, key):
+        with pytest.raises(KeyError):
+            instance.get_attr(key)
+
+    def test_con_TESPyConnectionError(self):
+        with pytest.raises(TESPyConnectionError):
+            connection(self.comp, 'out1', self.comp, 'in1')
+
+    def test_bus_TESPyConnectionError(self):
+        with pytest.raises(TESPyConnectionError):
+            self.bus.add_comps(self.comp)
+
+    def test_network_bus_duplicate(self):
+        with pytest.raises(TESPyNetworkError):
+            self.nw.add_busses(self.bus, self.bus)
+
+    def test_network_buslabel_duplicate(self):
+        with pytest.raises(TESPyNetworkError):
+            b = bus('mybus')
+            self.nw.add_busses(self.bus)
+            self.nw.add_busses(b)
 
     def test_set_attr_errors(self):
         #
@@ -176,238 +175,7 @@ class specification_error_tests:
         self.get_attr_KeyError(self.sub, 'test')
         self.get_attr_KeyError(char_line(), 'test')
         self.get_attr_KeyError(data_container(), 'somekey')
-
-##############################################################################
-# networks
-
-
-@raises(TESPyNetworkError)
-def test_network_instanciation_no_fluids():
-    nw = network([])
-    so = basics.source('source')
-    si = basics.sink('sink')
-    conn = connection(so, 'out1', si, 'in1')
-    nw.add_conns(conn)
-    nw.solve('design', init_only=True)
-
-
-@raises(TypeError)
-def test_network_instanciation_single_fluid():
-    network('water')
-
-
-@raises(TypeError)
-def test_network_add_conns():
-    network(['water']).add_conns(components.component('test'))
-
-
-@raises(TESPyNetworkError)
-def test_network_no_connections_error():
-    nw = network(['water'])
-    nw.solve('design')
-
-
-@raises(TESPyNetworkError)
-def test_network_connection_error_source():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink1 = basics.sink('sink1')
-    sink2 = basics.sink('sink2')
-    a = connection(source, 'out1', sink1, 'in1')
-    b = connection(source, 'out1', sink2, 'in1')
-    nw.add_conns(a, b)
-    nw.check_network()
-
-
-@raises(TESPyNetworkError)
-def test_network_connection_error_target():
-    nw = network(['water'])
-    source1 = basics.source('source1')
-    source2 = basics.source('source2')
-    sink = basics.sink('sink')
-    a = connection(source1, 'out1', sink, 'in1')
-    b = connection(source2, 'out1', sink, 'in1')
-    nw.add_conns(a, b)
-    nw.check_network()
-
-
-@raises(TESPyNetworkError)
-def test_network_network_consistency_inlets():
-    nw = network(['water'])
-    merge = nodes.merge('merge')
-    sink = basics.sink('label')
-    a = connection(merge, 'out1', sink, 'in1')
-    nw.add_conns(a)
-    nw.check_network()
-
-
-@raises(TESPyNetworkError)
-def test_network_network_consistency_outlets():
-    nw = network(['water', 'air'])
-    source = basics.source('source')
-    splitter = nodes.splitter('splitter')
-    a = connection(source, 'out1', splitter, 'in1')
-    nw.add_conns(a)
-    nw.check_network()
-
-
-@raises(TESPyNetworkError)
-def test_network_component_labels():
-    nw = network(['water'])
-    source = basics.source('label')
-    sink = basics.sink('label')
-    a = connection(source, 'out1', sink, 'in1')
-    nw.add_conns(a)
-    nw.check_network()
-
-
-@raises(TESPyNetworkError)
-def test_network_offdesign_path():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', sink, 'in1')
-    nw.add_conns(a)
-    nw.solve('offdesign')
-
-
-@raises(ValueError)
-def test_network_mode():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', sink, 'in1')
-    nw.add_conns(a)
-    nw.solve('ofdesign')
-
-
-@raises(TESPyNetworkError)
-def test_network_underdetermination():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', sink, 'in1', m=1)
-    nw.add_conns(a)
-    nw.solve('design')
-
-
-@raises(TESPyNetworkError)
-def test_network_overdetermination():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', sink, 'in1', m=1, p=1e5, x=1, h=1e6,
-                   fluid={'water': 1}, fluid_balance=True)
-    nw.add_conns(a)
-    nw.solve('design')
-
-
-def test_network_linear_dependency():
-    nw = network(['water'])
-    source = basics.source('source')
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', sink, 'in1', m=1, p=1e5, h=1e6, x=1)
-    nw.add_conns(a)
-    nw.solve('design')
-    msg = ('This test must result in a linear dependency of the jacobian '
-           'matrix.')
-    eq_(nw.lin_dep, True, msg)
-
-
-def test_network_no_progress():
-    nw = network(['water'])
-    source = basics.source('source')
-    pipe = piping.pipe('pipe', pr=1, Q=-100e3)
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
-                   fluid={'water': 1})
-    b = connection(pipe, 'out1', sink, 'in1')
-    nw.add_conns(a, b)
-    nw.solve('design')
-    msg = ('This test must result in a calculation making no progress, as the '
-           'pipe\'s outlet enthalpy is below fluid property range.')
-    eq_(nw.progress, False, msg)
-
-
-def test_network_max_iter():
-    nw = network(['water'])
-    source = basics.source('source')
-    pipe = piping.pipe('pipe', pr=1, Q=100e3)
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
-                   fluid={'water': 1})
-    b = connection(pipe, 'out1', sink, 'in1')
-    nw.add_conns(a, b)
-    nw.solve('design', max_iter=2)
-    msg = ('This test must result in the itercount being equal to the max '
-           'iter statement.')
-    eq_(nw.max_iter, nw.iter + 1, msg)
-
-##############################################################################
-# subsystems
-
-
-@raises(ValueError)
-def test_subsys_label_str():
-    subsystems.subsystem(5)
-
-
-@raises(ValueError)
-def test_subsys_label_forbidden():
-    subsystems.subsystem('label;')
-
-##############################################################################
-# characteristics
-
-
-@raises(ValueError)
-def test_char_number_of_points():
-    char_line(x=[0, 1, 2], y=[1, 2, 3, 4])
-
-
-@raises(ValueError)
-def test_char_map_number_of_points():
-    char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3]])
-
-
-@raises(ValueError)
-def test_char_map_number_of_dimensions():
-    char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
-
-
-@raises(ValueError)
-def test_char_map_y_z_dimension_mismatch():
-    char_map(x=[0, 1], y=[[1, 2, 3, 4], [1, 2, 3, 4]],
-             z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
-             z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
-
-
-@raises(KeyError)
-def test_char_map_get_attr():
-    char_map().get_attr('Stuff')
-
-
-@raises(FileNotFoundError)
-def test_missing_char_files():
-    load_custom_char('stuff', char_line)
-
-
-@raises(FileNotFoundError)
-def test_missing_char_files():
-    load_custom_char('some other stuff', char_map)
-
-##############################################################################
-# tespy fluid
-
-
-@raises(TypeError)
-def test_tespy_fluid_alias_type():
-    tespy_fluid(5, {'water': 1}, [0, 1], [0, 1])
-
-
-@raises(ValueError)
-def test_tespy_fluid_alias_value():
-    tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
+        self.get_attr_KeyError(char_map(), 'Stuff')
 
 
 ##############################################################################
@@ -416,7 +184,6 @@ def test_tespy_fluid_alias_value():
 
 class combustion_chamber_error_tests:
 
-    @raises(TESPyComponentError)
     def test_combustion_chamber_missing_fuel(self):
         """
         Test no fuel in network.
@@ -427,7 +194,8 @@ class combustion_chamber_error_tests:
         c2 = connection(basics.source('fuel'), 'out1', instance, 'in2')
         c3 = connection(instance, 'out1', basics.sink('flue gas'), 'in1')
         nw.add_conns(c1, c2, c3)
-        nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            nw.solve('design', init_only=True)
 
 
 class combustion_chamber_stoich_error_tests:
@@ -441,47 +209,46 @@ class combustion_chamber_stoich_error_tests:
         c3 = connection(self.instance, 'out1', basics.sink('flue gas'), 'in1')
         self.nw.add_conns(c1, c2, c3)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_missing_fuel(self):
         """
         Test missing fuel composition.
         """
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_missing_fuel_alias(self):
         """
         Test missing fuel alias.
         """
         self.instance.set_attr(fuel={'CH4': 1})
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_bad_fuel_alias(self):
         """
         Test bad name for fuel alias.
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_missing_air(self):
         """
         Test missing air composition.
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel')
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_missing_air_alias(self):
         """
         Test missing air alias.
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24})
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_bad_air_alias(self):
         """
         Test bad name for air alias.
@@ -489,16 +256,17 @@ class combustion_chamber_stoich_error_tests:
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
                                air_alias='TESPy::air')
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
-    @raises(TESPyComponentError)
     def test_cc_stoich_missing_oxygen(self):
         """
         Test bad name for air alias.
         """
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 1}, air_alias='myair')
-        self.nw.solve('design', init_only=True)
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design', init_only=True)
 
 
 class combustion_engine_bus_error_tests:
@@ -509,14 +277,13 @@ class combustion_engine_bus_error_tests:
         self.bus = bus('power')
         self.bus.add_comps({'c': self.instance, 'p': 'Param'})
 
-    @raises(ValueError)
     def test_missing_bus_param_func(self):
         """
         Test missing bus parameter in bus function for combustion engine.
         """
-        self.instance.bus_func(self.bus.comps.loc[self.instance])
+        with pytest.raises(ValueError):
+            self.instance.bus_func(self.bus.comps.loc[self.instance])
 
-    @raises(ValueError)
     def test_missing_bus_param_deriv(self):
         """
         Test missing bus parameter in bus derivatives for combustion engine.
@@ -527,7 +294,8 @@ class combustion_engine_bus_error_tests:
         self.instance.inl = [connection(self.instance, 'out1',
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
-        self.instance.bus_deriv(self.bus.comps.loc[self.instance])
+        with pytest.raises(ValueError):
+            self.instance.bus_deriv(self.bus.comps.loc[self.instance])
 
 
 class water_electrolyzer_error_tests:
@@ -555,34 +323,33 @@ class water_electrolyzer_error_tests:
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
-    @raises(ValueError)
     def test_missing_hydrogen_in_network(self):
         """
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['H2O', 'O2'])
         self.setup_electrolyzer_network()
-        self.nw.solve('design')
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design')
 
-    @raises(ValueError)
     def test_missing_oxygen_in_network(self):
         """
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['H2O', 'H2'])
         self.setup_electrolyzer_network()
-        self.nw.solve('design')
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design')
 
-    @raises(ValueError)
     def test_missing_water_in_network(self):
         """
         Test missing hydrogen in network fluids with water electrolyzer.
         """
         self.nw = network(['O2', 'H2'])
         self.setup_electrolyzer_network()
-        self.nw.solve('design')
+        with pytest.raises(TESPyComponentError):
+            self.nw.solve('design')
 
-    @raises(ValueError)
     def test_wrong_bus_param_func(self):
         """
         Test missing/wrong bus parameter specification for water electrolyzer.
@@ -594,9 +361,9 @@ class water_electrolyzer_error_tests:
         some_bus = bus('some_bus')
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})
-        self.instance.bus_func(some_bus.comps.loc[self.instance])
+        with pytest.raises(ValueError):
+            self.instance.bus_func(some_bus.comps.loc[self.instance])
 
-    @raises(ValueError)
     def test_wrong_bus_param_func(self):
         """
         Test wrong bus parameter specification for water electrolyzer.
@@ -612,10 +379,249 @@ class water_electrolyzer_error_tests:
         some_bus = bus('some_bus')
         param = 'G'
         some_bus.add_comps({'c': self.instance, 'p': param})
-        self.instance.bus_deriv(some_bus.comps.loc[self.instance])
+        with pytest.raises(ValueError):
+            self.instance.bus_deriv(some_bus.comps.loc[self.instance])
+
+##############################################################################
+# networks
 
 
-@raises(ValueError)
+def test_network_instanciation_no_fluids():
+    nw = network([])
+    so = basics.source('source')
+    si = basics.sink('sink')
+    conn = connection(so, 'out1', si, 'in1')
+    nw.add_conns(conn)
+    with pytest.raises(TESPyNetworkError):
+        nw.solve('design', init_only=True)
+
+
+def test_network_instanciation_single_fluid():
+    with pytest.raises(TypeError):
+        network('water')
+
+
+def test_network_add_conns():
+    with pytest.raises(TypeError):
+        network(['water']).add_conns(components.component('test'))
+
+
+def test_network_no_connections_error():
+    nw = network(['water'])
+    with pytest.raises(TESPyNetworkError):
+        nw.solve('design')
+
+
+def test_network_connection_error_source():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink1 = basics.sink('sink1')
+    sink2 = basics.sink('sink2')
+    a = connection(source, 'out1', sink1, 'in1')
+    b = connection(source, 'out1', sink2, 'in1')
+    nw.add_conns(a, b)
+    with pytest.raises(TESPyNetworkError):
+        nw.check_network()
+
+
+def test_network_connection_error_target():
+    nw = network(['water'])
+    source1 = basics.source('source1')
+    source2 = basics.source('source2')
+    sink = basics.sink('sink')
+    a = connection(source1, 'out1', sink, 'in1')
+    b = connection(source2, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    with pytest.raises(TESPyNetworkError):
+        nw.check_network()
+
+
+def test_network_network_consistency_inlets():
+    nw = network(['water'])
+    merge = nodes.merge('merge')
+    sink = basics.sink('label')
+    a = connection(merge, 'out1', sink, 'in1')
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.check_network()
+
+
+def test_network_network_consistency_outlets():
+    nw = network(['water', 'air'])
+    source = basics.source('source')
+    splitter = nodes.splitter('splitter')
+    a = connection(source, 'out1', splitter, 'in1')
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.check_network()
+
+
+def test_network_component_labels():
+    nw = network(['water'])
+    source = basics.source('label')
+    sink = basics.sink('label')
+    a = connection(source, 'out1', sink, 'in1')
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.check_network()
+
+
+def test_network_offdesign_path():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', sink, 'in1')
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.solve('offdesign')
+
+
+def test_network_mode():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', sink, 'in1')
+    nw.add_conns(a)
+    with pytest.raises(ValueError):
+        nw.solve('ofdesign')
+
+
+def test_network_underdetermination():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', sink, 'in1', m=1)
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.solve('design')
+
+
+def test_network_overdetermination():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', sink, 'in1', m=1, p=1e5, x=1, h=1e6,
+                   fluid={'water': 1}, fluid_balance=True)
+    nw.add_conns(a)
+    with pytest.raises(TESPyNetworkError):
+        nw.solve('design')
+
+
+def test_network_linear_dependency():
+    nw = network(['water'])
+    source = basics.source('source')
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', sink, 'in1', m=1, p=1e5, h=1e6, x=1)
+    nw.add_conns(a)
+    nw.solve('design')
+    msg = ('This test must result in a linear dependency of the jacobian '
+           'matrix.')
+    assert nw.lin_dep is True, msg
+
+
+def test_network_no_progress():
+    nw = network(['water'])
+    source = basics.source('source')
+    pipe = piping.pipe('pipe', pr=1, Q=-100e3)
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
+                   fluid={'water': 1})
+    b = connection(pipe, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    nw.solve('design')
+    msg = ('This test must result in a calculation making no progress, as the '
+           'pipe\'s outlet enthalpy is below fluid property range.')
+    assert nw.progress is False, msg
+
+
+def test_network_max_iter():
+    nw = network(['water'])
+    source = basics.source('source')
+    pipe = piping.pipe('pipe', pr=1, Q=100e3)
+    sink = basics.sink('sink')
+    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=280,
+                   fluid={'water': 1})
+    b = connection(pipe, 'out1', sink, 'in1')
+    nw.add_conns(a, b)
+    nw.solve('design', max_iter=2)
+    msg = ('This test must result in the itercount being equal to the max '
+           'iter statement.')
+    assert nw.max_iter == nw.iter + 1, msg
+
+##############################################################################
+# subsystems
+
+
+def test_subsys_label_str():
+    with pytest.raises(ValueError):
+        subsystems.subsystem(5)
+
+
+def test_subsys_label_forbidden():
+    with pytest.raises(ValueError):
+        subsystems.subsystem('label;')
+
+##############################################################################
+# characteristics
+
+
+def test_char_number_of_points():
+    with pytest.raises(ValueError):
+        char_line(x=[0, 1, 2], y=[1, 2, 3, 4])
+
+
+def test_char_map_number_of_points():
+    with pytest.raises(ValueError):
+        char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3]])
+
+
+def test_char_map_number_of_dimensions():
+    with pytest.raises(ValueError):
+        char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
+
+
+def test_char_map_y_z_dimension_mismatch():
+    with pytest.raises(ValueError):
+        char_map(x=[0, 1], y=[[1, 2, 3, 4], [1, 2, 3, 4]],
+                 z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+                 z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+
+
+def test_missing_char_line_files():
+    """
+    This test might not work locally.
+
+    If you are using custom char_lines in your HOME/.tespy/data folder, this
+    test will throw a KeyError instead of a FileNotFoundError.
+    """
+    with pytest.raises(FileNotFoundError):
+        load_custom_char('stuff', char_line)
+
+
+def test_missing_char_map_files():
+    """
+    This test might not work locally.
+
+    If you are using custom char_maps in your HOME/.tespy/data folder, this
+    test will throw a KeyError instead of a FileNotFoundError.
+    """
+    with pytest.raises(FileNotFoundError):
+        load_custom_char('some other stuff', char_map)
+
+##############################################################################
+# tespy fluid
+
+
+def test_tespy_fluid_alias_type():
+    with pytest.raises(TypeError):
+        tespy_fluid(5, {'water': 1}, [0, 1], [0, 1])
+
+
+def test_tespy_fluid_alias_value():
+    with pytest.raises(ValueError):
+        tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
+
+
 def test_compressor_missing_char_parameter():
     """
     Compressor with invalid parameter for eta_s_char function.
@@ -630,10 +636,10 @@ def test_compressor_missing_char_parameter():
     instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
-    instance.eta_s_char_func()
+    with pytest.raises(ValueError):
+        instance.eta_s_char_func()
 
 
-@raises(ValueError)
 def test_turbine_missing_char_parameter():
     """
     Turbine with invalid parameter for eta_s_char function.
@@ -648,4 +654,5 @@ def test_turbine_missing_char_parameter():
     instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
-    instance.eta_s_char_func()
+    with pytest.raises(ValueError):
+        instance.eta_s_char_func()

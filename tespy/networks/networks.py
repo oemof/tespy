@@ -13,7 +13,6 @@ available from its original location tespy/networks/networks.py
 
 SPDX-License-Identifier: MIT
 """
-
 # reading .csv
 import ast
 # ordered dicts for fluid composition vector
@@ -827,7 +826,7 @@ class network:
             for cp in b.comps.index:
                 b.comps.loc[cp].P_ref = np.nan
 
-        series = pd.Series()
+        series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
             # read design point information of components with
             # local_offdesign activated from their respective design path

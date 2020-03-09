@@ -9,9 +9,6 @@ tests/heat_pump_test.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
-
 from tespy.components.basics import sink, source
 from tespy.components.heat_exchangers import (heat_exchanger,
                                               heat_exchanger_simple)
@@ -314,7 +311,7 @@ class test_heat_pump:
                 msg = ('The deviation in COP should be less than 0.065, is ' +
                        str(d_rel_COP) + ' at mass flow ' + str(m) +
                        ' and temperature ' + str(T) + '.')
-                eq_(d_rel_COP < 0.065, True, msg)
+                assert d_rel_COP < 0.065, msg
                 j += 1
             i += 1
         shutil.rmtree('./tmp', ignore_errors=True)

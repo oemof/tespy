@@ -31,7 +31,7 @@ install:
 
 # command to run tests
 script:
-  - python -m pytest
+  - python -m pytest --cov=tespy
 
 after_success:
   - coveralls

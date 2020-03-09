@@ -31,7 +31,7 @@ install:
 
 # command to run tests
 script:
-  - python -m pytest --cov=tespy
+  - python -m pytest --cov=tests --doctest-modules
 
 after_success:
   - coveralls

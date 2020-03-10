@@ -30,7 +30,7 @@ def convergence_check(lin_dep):
     assert lin_dep is False, msg
 
 
-class heat_exchanger_tests:
+class TestHeatExchangers:
 
     def setup(self):
 
@@ -59,9 +59,7 @@ class heat_exchanger_tests:
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
     def test_heat_ex_simple(self):
-        """
-        Test component properties of simple heat exchanger.
-        """
+        """Test component properties of simple heat exchanger."""
         instance = heat_exchanger_simple('heat exchanger')
         self.setup_heat_exchanger_simple_network(instance)
         fl = {'Ar': 0, 'H2O': 1}
@@ -136,9 +134,7 @@ class heat_exchanger_tests:
         assert Q == round(instance.Q.val, 0), msg
 
     def test_solar_collector(self):
-        """
-        Test component properties of solar collector.
-        """
+        """Test component properties of solar collector."""
         instance = solar_collector('solar collector')
         self.setup_heat_exchanger_simple_network(instance)
         fl = {'Ar': 0, 'H2O': 1}
@@ -202,9 +198,7 @@ class heat_exchanger_tests:
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
     def test_heat_ex(self):
-        """
-        Test component properties of heat exchanger.
-        """
+        """Test component properties of heat exchanger."""
         instance = heat_exchanger('heat exchanger')
         self.setup_heat_exchanger_network(instance)
 
@@ -293,9 +287,7 @@ class heat_exchanger_tests:
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_condenser(self):
-        """
-        Test component properties of condenser.
-        """
+        """Test component properties of condenser."""
         instance = condenser('condenser')
         self.setup_heat_exchanger_network(instance)
 

@@ -105,9 +105,7 @@ class TestCombustion:
         assert 0.0 == round(self.c3.fluid.val['O2'], 4), msg
 
     def test_combustion_engine(self):
-        """
-        Test component properties of combustion engine.
-        """
+        """Test component properties of combustion engine."""
         instance = combustion_engine('combustion engine')
         self.setup_combustion_engine_network(instance)
 

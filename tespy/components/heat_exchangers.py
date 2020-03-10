@@ -123,7 +123,7 @@ class heat_exchanger_simple(component):
         Length of the pipes, :math:`L/\text{m}`.
 
     ks : str/float/tespy.tools.data_containers.dc_cp
-        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : str/tespy.tools.data_containers.dc_gcp
@@ -877,7 +877,7 @@ class solar_collector(heat_exchanger_simple):
         Length of the pipes, :math:`L/\text{m}`.
 
     ks : str/float/tespy.tools.data_containers.dc_cp
-        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : str/tespy.tools.data_containers.dc_gcp

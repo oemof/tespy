@@ -111,7 +111,7 @@ class pipe(heat_exchanger_simple):
         Length of the pipes, :math:`L/\text{m}`.
 
     ks : str/float/tespy.tools.data_containers.dc_cp
-        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : String/tespy.helpers.dc_gcp

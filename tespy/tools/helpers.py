@@ -324,7 +324,7 @@ def lamb(re, ks, d):
 
         \lambda = \begin{cases}
         0.03164 \cdot re^{-0.25} & re \leq 10^5\\
-        \left(1.8 \cdot lg \left(re\right) -1.5 \right)^{-2} &
+        \left(1.8 \cdot \log \left(re\right) -1.5 \right)^{-2} &
         10^5 < re < 5 \cdot 10^6\\
         solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
         - \frac{1}{\sqrt{\lambda}}\right) & re \geq 5 \cdot 10^6\\

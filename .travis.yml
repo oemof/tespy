@@ -5,19 +5,9 @@ matrix:
     - name: "python 3.6 on xenial Linux"
       python: 3.6
       dist: xenial
-      sudo: true
     - name: "python 3.7 on xenial Linux"
       python: 3.7
       dist: xenial
-      sudo: true
-    - name: "python 3.8 on xenial Linux"
-      python: 3.8
-      dist: xenial
-      sudo: true
-    - name: "Python 3.7.2 on macOS"
-      os: osx
-      osx_image: xcode10.2
-      language: shell
 #    - name: "Python 3.7.3 on Windows"
 #      os: windows
 #      language: shell

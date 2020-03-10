@@ -42,14 +42,14 @@ Install the developer version
 -----------------------------
 
 It is recommenden to use
-`virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for 
+`virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for
 the development process. Fork the repository and clone your forked tespy github
 repository.
 
 .. code:: bash
-    
+
 	git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
-   
+
 In order to stay in synch with the oemof/tespy base repository, add the link to
 the oemof/tespy repository as remote to your local copy of tespy. We will call
 the link "upstream". Fetch branches available and after that, you can pull
@@ -61,7 +61,7 @@ the example below).
    git remote add upstream https://github.com/oemof/tespy.git
    git fetch upstream
    git pull upstream dev
-   
+
 If you want to make changes to tespy, checkout a new branch from your local dev
 branch. Make your changes, commit them and create a PR on the oemof/tespy dev
 branch.
@@ -145,10 +145,17 @@ The tests in TESPy are split up in two different parts:
 * doc-tests (also used as examples for classes and methods/functions)
 * software tests (defined in the tests folder).
 
-All tests will run automatically when you push changes to a branch that has a 
-pull request opened. The tests contain code examples that expect a certain
+The tests contain code examples that expect a certain
 outcome. If the outcome is as expected a test will pass, if the outcome is
-different, the test will fail.
+different, the test will fail. You can run the tests locally by navigating into
+your local github clone:
+
+.. code:: bash
+
+    python -m pytest ./tespy --doctest-modules ./tests
+
+Additionally, all tests will run automatically when you push changes to a
+branch that has a pull request opened.
 
 If you have further questions regarding the tests, do not bother to contact us.
 

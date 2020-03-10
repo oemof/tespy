@@ -26,6 +26,7 @@ from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_mix_pT, T_mix_ph, dT_mix_dph, dT_mix_pdh, v_mix_ph)
 from tespy.tools.global_vars import molar_masses, err
+from tespy.tools.helpers import TESPyComponentError
 
 # %%
 
@@ -255,7 +256,7 @@ class water_electrolyzer(component):
                    self.label + ' of type ' + self.component() +
                    ' requires oxygen in network fluids.')
             logging.error(msg)
-            raise ValueError(msg)
+            raise TESPyComponentError(msg)
         else:
             self.o2 = o2[0]
 
@@ -266,7 +267,7 @@ class water_electrolyzer(component):
                    self.label + ' of type ' + self.component() +
                    ' requires water in network fluids.')
             logging.error(msg)
-            raise ValueError(msg)
+            raise TESPyComponentError(msg)
         else:
             self.h2o = h2o[0]
 
@@ -277,7 +278,7 @@ class water_electrolyzer(component):
                    self.label + ' of type ' + self.component() +
                    ' requires hydrogen in network fluids.')
             logging.error(msg)
-            raise ValueError(msg)
+            raise TESPyComponentError(msg)
         else:
             self.h2 = h2[0]
 

@@ -5,12 +5,10 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/component_tests/reactors_tests.py
+tests/test_components/test_reactors.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
 
 from tespy.components.basics import sink, source
 from tespy.components.reactors import water_electrolyzer
@@ -24,15 +22,13 @@ import shutil
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    eq_(lin_dep, False, msg)
+    assert lin_dep is False, msg
 
 
-class reactors_tests:
+class TestReactors:
 
     def setup(self):
-        """
-        Set up network for electrolyzer tests.
-        """
+        """Set up network for electrolyzer tests."""
         self.nw = network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
         self.instance = water_electrolyzer('electrolyzer')
 
@@ -57,9 +53,7 @@ class reactors_tests:
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
     def test_water_electrolyzer(self):
-        """
-        Test component properties of water electrolyzer.
-        """
+        """Test component properties of water electrolyzer."""
         # check bus function:
         # power output on component and bus must be indentical
         power = bus('power')
@@ -71,7 +65,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be ' + str(power.P.val) + ', is ' +
                str(self.instance.P.val) + '.')
-        eq_(round(power.P.val, 1), round(self.instance.P.val), msg)
+        assert round(power.P.val, 1) == round(self.instance.P.val), msg
         power.set_attr(P=np.nan)
 
         # check bus function:
@@ -85,7 +79,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(heat.P.val) +
                ', is ' + str(self.instance.Q.val) + '.')
-        eq_(round(heat.P.val, 1), round(self.instance.Q.val), msg)
+        assert round(heat.P.val, 1) == round(self.instance.Q.val), msg
         self.nw.save('tmp')
 
         # check bus function:
@@ -96,7 +90,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(Q) +
                ', is ' + str(self.instance.Q.val) + '.')
-        eq_(round(Q, 1), round(self.instance.Q.val), msg)
+        assert round(Q, 1) == round(self.instance.Q.val), msg
 
         # delete both busses again
         self.nw.del_busses(heat, power)
@@ -107,9 +101,9 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of efficiency must be ' + str(self.instance.eta.val) +
                ', is ' + str(self.instance.e0 / self.instance.e.val) + '.')
-        eq_(round(self.instance.eta.val, 2),
-            round(self.instance.e0 / self.instance.e.val, 2),
-            msg)
+        eta = round(self.instance.eta.val, 2)
+        eta_calc = round(self.instance.e0 / self.instance.e.val, 2)
+        assert eta == eta_calc, msg
 
         # test efficiency value > 1
         e = 130e6
@@ -119,8 +113,9 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of efficiency must be ' + str(self.instance.e0 / e) +
                ', is ' + str(self.instance.eta.val) + '.')
-        eq_(round(self.instance.e0 / e, 2), round(self.instance.eta.val, 2),
-            msg)
+        eta = round(self.instance.e0 / e, 2)
+        eta_calc = round(self.instance.eta.val, 2)
+        assert eta == eta_calc, msg
 
         # test specific energy consumption
         e = 150e6
@@ -130,7 +125,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of specific energy consumption e must be ' + str(e) +
                ', is ' + str(self.instance.e.val) + '.')
-        eq_(round(e, 1), round(self.instance.e.val, 1), msg)
+        assert round(e, 1) == round(self.instance.e.val, 1), msg
 
         # test cooling loop pressure ratio, zeta as variable value
         pr = 0.95
@@ -142,7 +137,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr_c.val) + '.')
-        eq_(round(pr, 2), round(self.instance.pr_c.val, 2), msg)
+        assert round(pr, 2) == round(self.instance.pr_c.val, 2), msg
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
@@ -151,7 +146,7 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr_c.val) + '.')
-        eq_(round(pr, 2), round(self.instance.pr_c.val, 2), msg)
+        assert round(pr, 2) == round(self.instance.pr_c.val, 2), msg
 
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
@@ -160,5 +155,5 @@ class reactors_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat must be ' + str(Q) + ', is ' +
                str(self.instance.Q.val) + '.')
-        eq_(round(Q, 0), round(self.instance.Q.val, 0), msg)
+        assert round(Q, 0) == round(self.instance.Q.val, 0), msg
         shutil.rmtree('./tmp', ignore_errors=True)

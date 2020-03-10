@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/tools_tests/fluid_property_tests.py
+tests/test_tools/test_fluid_properties.py
 
 SPDX-License-Identifier: MIT
 """
@@ -18,7 +18,7 @@ from CoolProp.CoolProp import PropsSI as CP
 import numpy as np
 
 
-class fluid_property_tests:
+class TestFluidProperties:
 
     def setup(self):
         fluids = ['Air', 'N2', 'O2', 'Ar', 'CO2']

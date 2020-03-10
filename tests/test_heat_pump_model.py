@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/heat_pump_test.py
+tests/test_heat_pump_model.py
 
 SPDX-License-Identifier: MIT
 """
@@ -26,7 +26,7 @@ import shutil
 import logging
 
 
-class test_heat_pump:
+class TestHeatPump:
 
     def setup(self):
         # %% network
@@ -315,8 +315,3 @@ class test_heat_pump:
                 j += 1
             i += 1
         shutil.rmtree('./tmp', ignore_errors=True)
-
-
-a = test_heat_pump()
-a.setup()
-a.test_model()

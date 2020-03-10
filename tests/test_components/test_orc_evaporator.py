@@ -4,12 +4,9 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/component_tests/orc_evaporator_tests.py
+tests/test_components/test_orc_evaporator.py
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
-
 from tespy.components.basics import sink, source
 from tespy.components.customs import orc_evaporator
 from tespy.connections import connection, bus
@@ -25,13 +22,12 @@ import shutil
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    eq_(lin_dep, False, msg)
+    assert lin_dep is False, msg
 
 
-class orc_evaporator_tests:
+class TestOrcEvaporator:
 
     def setup(self):
-
         self.nw = network(['water', 'Isopentane'], T_unit='C', p_unit='bar',
                           h_unit='kJ / kg')
         self.inl1 = source('inlet 1')
@@ -43,29 +39,24 @@ class orc_evaporator_tests:
         self.inl3 = source('inlet 3')
         self.outl3 = sink('outlet 3')
 
-    def setup_orc_evaporator_network(self, instance):
+        self.instance = orc_evaporator('orc evaporator')
 
-        self.c1 = connection(self.inl1, 'out1', instance, 'in1')
-        self.c2 = connection(instance, 'out1', self.outl1, 'in1')
-        self.c3 = connection(self.inl2, 'out1', instance, 'in2')
-        self.c4 = connection(instance, 'out2', self.outl2, 'in1')
-        self.c5 = connection(self.inl3, 'out1', instance, 'in3')
-        self.c6 = connection(instance, 'out3', self.outl3, 'in1')
+        self.c1 = connection(self.inl1, 'out1', self.instance, 'in1')
+        self.c2 = connection(self.instance, 'out1', self.outl1, 'in1')
+        self.c3 = connection(self.inl2, 'out1', self.instance, 'in2')
+        self.c4 = connection(self.instance, 'out2', self.outl2, 'in1')
+        self.c5 = connection(self.inl3, 'out1', self.instance, 'in3')
+        self.c6 = connection(self.instance, 'out3', self.outl3, 'in1')
 
         self.nw.add_conns(self.c1, self.c2, self.c3,
                           self.c4, self.c5, self.c6)
 
     def test_orc_evap(self):
-        """
-        Test component properties of orc evaporator.
-        """
-        instance = orc_evaporator('orc evaporator')
-        self.setup_orc_evaporator_network(instance)
-
+        """Test component properties of orc evaporator."""
         # design specification
-        instance.set_attr(pr1=0.95, pr2=0.975, pr3=0.975,
-                          design=['pr1', 'pr2', 'pr3'],
-                          offdesign=['zeta1', 'zeta2', 'zeta3'])
+        self.instance.set_attr(pr1=0.95, pr2=0.975, pr3=0.975,
+                               design=['pr1', 'pr2', 'pr3'],
+                               offdesign=['zeta1', 'zeta2', 'zeta3'])
         self.c1.set_attr(T=146.6, p=4.34, m=20.4, state='g',
                          fluid={'water': 1, 'Isopentane': 0})
         self.c3.set_attr(T=146.6, p=10.2,
@@ -76,19 +67,19 @@ class orc_evaporator_tests:
 
         # test heat transfer
         Q = -6.64e+07
-        instance.set_attr(Q=Q)
+        self.instance.set_attr(Q=Q)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
-        eq_(round(Q, 0), round(Q_is, 0), msg)
+        assert round(Q, 0) == round(Q_is, 0), msg
 
         # test bus
-        instance.set_attr(Q=np.nan)
+        self.instance.set_attr(Q=np.nan)
         P = 6.64e+07
         b = bus('heat transfer', P=P)
-        b.add_comps({'c': instance})
+        b.add_comps({'c': self.instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -97,23 +88,23 @@ class orc_evaporator_tests:
         Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(P, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
-        eq_(round(P, 0), round(Q_is, 0), msg)
+        assert round(P, 0) == round(Q_is, 0), msg
 
         # Check the state of the steam and working fluid outlet:
         x_outl1_calc = self.c2.x.val
         x_outl3_calc = self.c6.x.val
-        zeta1 = instance.zeta1.val
-        zeta2 = instance.zeta2.val
-        zeta3 = instance.zeta3.val
+        zeta1 = self.instance.zeta1.val
+        zeta2 = self.instance.zeta2.val
+        zeta3 = self.instance.zeta3.val
         m = self.c5.m.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')
-        eq_(round(x_outl1_calc, 1), 0.0, msg)
+        assert round(x_outl1_calc, 1) == 0.0, msg
 
         msg = ('Vapor mass fraction of working fluid outlet must be 1.0, is ' +
                str(round(x_outl3_calc, 1)) + '.')
-        eq_(round(x_outl3_calc, 1), 1.0, msg)
+        assert round(x_outl3_calc, 1) == 1.0, msg
 
         # Check offdesign by zeta values
         # geometry independent friction coefficient
@@ -123,20 +114,20 @@ class orc_evaporator_tests:
         msg = ('Geometry independent friction coefficient '
                'at hot side 1 (steam) '
                'must be ' + str(round(zeta1, 1)) + ', is ' +
-               str(round(instance.zeta1.val, 1)) + '.')
-        eq_(round(instance.zeta1.val, 1), round(zeta1, 1), msg)
+               str(round(self.instance.zeta1.val, 1)) + '.')
+        assert round(self.instance.zeta1.val, 1) == round(zeta1, 1), msg
         msg = ('Geometry independent friction coefficient at '
                'hot side 2 (brine) '
                'must be ' + str(round(zeta2, 1)) + ', is ' +
-               str(round(instance.zeta2.val, 1)) + '.')
-        eq_(round(instance.zeta2.val, 1), round(zeta2, 1), msg)
+               str(round(self.instance.zeta2.val, 1)) + '.')
+        assert round(self.instance.zeta2.val, 1) == round(zeta2, 1), msg
         msg = ('Geometry independent friction coefficient at cold side '
                '(Isopentane) must be ' + str(round(zeta3, 1)) + ', is ' +
-               str(round(instance.zeta3.val, 1)) + '.')
-        eq_(round(instance.zeta3.val, 1), round(zeta3, 1), msg)
+               str(round(self.instance.zeta3.val, 1)) + '.')
+        assert round(self.instance.zeta3.val, 1) == round(zeta3, 1), msg
 
         # test parameters of 'subcooling' and 'overheating'
-        instance.set_attr(subcooling=True, overheating=True)
+        self.instance.set_attr(subcooling=True, overheating=True)
         dT = 0.5
         self.c2.set_attr(Td_bp=-dT)
         self.c6.set_attr(Td_bp=dT)
@@ -149,11 +140,11 @@ class orc_evaporator_tests:
         msg = ('Temperature of working fluid outlet must be ' +
                str(round(T_isop, 1)) + ', is ' +
                str(round(self.c6.T.val_SI, 1)) + '.')
-        eq_(round(T_isop, 1), round(self.c6.T.val_SI, 1), msg)
+        assert round(T_isop, 1) == round(self.c6.T.val_SI, 1), msg
 
         msg = ('Temperature of steam outlet must be ' +
                str(round(T_steam, 1)) + ', is ' +
                str(round(self.c2.T.val_SI, 1)) + '.')
-        eq_(round(T_steam, 1), round(self.c2.T.val_SI, 1), msg)
+        assert round(T_steam, 1) == round(self.c2.T.val_SI, 1), msg
 
         shutil.rmtree('./tmp', ignore_errors=True)

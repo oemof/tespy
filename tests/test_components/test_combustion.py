@@ -5,12 +5,10 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/component_tests/combustion_tests.py
+tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
 
 from tespy.components.basics import sink, source
 from tespy.components.combustion import (combustion_chamber, combustion_engine)
@@ -24,10 +22,10 @@ import shutil
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    eq_(lin_dep, False, msg)
+    assert lin_dep is False, msg
 
 
-class component_tests:
+class ComponentTests:
 
     def setup(self):
 
@@ -84,7 +82,7 @@ class component_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of thermal input must be ' + str(b.P.val) + ', is ' +
                str(instance.ti.val) + '.')
-        eq_(round(b.P.val, 1), round(instance.ti.val, 1), msg)
+        assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
         b.set_attr(P=np.nan)
 
         # test specified thermal input for combustion_chamber
@@ -95,7 +93,7 @@ class component_tests:
               instance.fuels['CH4']['LHV'])
         msg = ('Value of thermal input must be ' + str(instance.ti.val) +
                ', is ' + str(ti) + '.')
-        eq_(round(ti, 1), round(instance.ti.val, 1), msg)
+        assert round(ti, 1) == round(instance.ti.val, 1), msg
 
         # test specified lamb for combustion_chamber
         self.c3.set_attr(T=np.nan)
@@ -104,7 +102,7 @@ class component_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of oxygen in flue gas must be 0.0, is ' +
                str(round(self.c3.fluid.val['O2'], 4)) + '.')
-        eq_(0.0, round(self.c3.fluid.val['O2'], 4), msg)
+        assert 0.0 == round(self.c3.fluid.val['O2'], 4), msg
 
     def test_combustion_engine(self):
         """
@@ -153,7 +151,7 @@ class component_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of thermal input must be ' + str(TI.P.val) + ', is ' +
                str(instance.ti.val) + '.')
-        eq_(round(TI.P.val, 1), round(instance.ti.val, 1), msg)
+        assert round(TI.P.val, 1) == round(instance.ti.val, 1), msg
 
         # test specified thermal input in component
         TI.set_attr(P=np.nan)
@@ -162,7 +160,7 @@ class component_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
                str(instance.ti.val) + '.')
-        eq_(round(ti, 1), round(instance.ti.val, 1), msg)
+        assert round(ti, 1) == round(instance.ti.val, 1), msg
         instance.set_attr(ti=np.nan)
 
         # test specified heat output 1 bus value
@@ -173,13 +171,13 @@ class component_tests:
         # not have changed
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
                str(instance.ti.val) + '.')
-        eq_(round(ti, 1), round(instance.ti.val, 1), msg)
+        assert round(ti, 1) == round(instance.ti.val, 1), msg
 
         # calculate heat output over cooling loop
         heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
         msg = ('Value of thermal input must be ' + str(heat1) + ', is ' +
                str(instance.Q1.val) + '.')
-        eq_(round(heat1, 1), round(instance.Q1.val, 1), msg)
+        assert round(heat1, 1) == round(instance.Q1.val, 1), msg
         Q1.set_attr(P=np.nan)
 
         # test specified heat output 2 bus value
@@ -191,7 +189,7 @@ class component_tests:
         heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        eq_(round(heat2, 1), round(instance.Q2.val, 1), msg)
+        assert round(heat2, 1) == round(instance.Q2.val, 1), msg
 
         # test specified heat output 2 in component
         Q2.set_attr(P=np.nan)
@@ -201,7 +199,7 @@ class component_tests:
         heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        eq_(round(heat2, 1), round(instance.Q2.val, 1), msg)
+        assert round(heat2, 1) == round(instance.Q2.val, 1), msg
 
         # test total heat output bus value
         instance.set_attr(Q2=np.nan)
@@ -212,7 +210,7 @@ class component_tests:
                 self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
         msg = ('Value of total heat output must be ' + str(Q.P.val) +
                ', is ' + str(heat) + '.')
-        eq_(round(Q.P.val, 1), round(heat, 1), msg)
+        assert round(Q.P.val, 1) == round(heat, 1), msg
 
         # test specified heat loss bus value
         Q.set_attr(P=np.nan)
@@ -221,5 +219,5 @@ class component_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat loss must be ' + str(Qloss.P.val) + ', is ' +
                str(instance.Qloss.val) + '.')
-        eq_(round(Qloss.P.val, 1), round(instance.Qloss.val, 1), msg)
+        assert round(Qloss.P.val, 1) == round(instance.Qloss.val, 1), msg
         shutil.rmtree('./tmp', ignore_errors=True)

@@ -1370,30 +1370,36 @@ class combustion_chamber_stoich(combustion_chamber):
         self.mat_deriv[1:3] = self.pressure_deriv()
 
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
-            msg = 'Must specify fuel composition for combustion chamber.'
+            msg = ('You must specify the fuel composition for stoichimetric '
+                   'combustion chamber ' + self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
         if not self.fuel_alias.is_set:
-            msg = 'Must specify fuel alias for combustion chamber.'
+            msg = ('You must specify a fuel alias for stoichimetric '
+                   'combustion chamber ' + self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
         if 'TESPy::' in self.fuel_alias.val:
-            msg = 'Can not use \'TESPy::\' at this point.'
+            msg = ('\'TESPy::\' must not be in the fuel alias at ' +
+                   self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
         if not self.air.is_set or not isinstance(self.air.val, dict):
-            msg = 'Must specify air composition for combustion chamber.'
+            msg = ('You must specify the air composition for stoichimetric '
+                   'combustion chamber ' + self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
         if not self.air_alias.is_set:
-            msg = 'Must specify air alias for combustion chamber.'
+            msg = ('You must specify an air alias for stoichimetric '
+                   'combustion chamber ' + self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
         if 'TESPy::' in self.air_alias.val:
-            msg = 'Can not use \'TESPy::\' at this point.'
+            msg = ('\'TESPy::\' must not be in the air alias at ' +
+                   self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 

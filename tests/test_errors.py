@@ -18,11 +18,12 @@ from tespy.components import (basics, combustion, components, heat_exchangers,
 from tespy.networks.network_reader import load_network
 from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
-                                 TESPyNetworkError)
+                                 TESPyNetworkError, extend_basic_path)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
 from tespy.tools.fluid_properties import tespy_fluid
 from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
+import os
 import shutil
 import csv
 
@@ -603,25 +604,45 @@ def test_char_map_y_z_dimension_mismatch():
 
 
 def test_missing_char_line_files():
-    """
-    This test might not work locally.
+    """Test missing files."""
+    path = extend_basic_path('data')
+    tmp_path = extend_basic_path('tmp_dir_for_testing')
 
-    If you are using custom char_lines in your HOME/.tespy/data folder, this
-    test will throw a KeyError instead of a FileNotFoundError.
-    """
+    if os.path.exists(path):
+        for f in os.listdir(path):
+            shutil.copy(src=path + '/' + f, dst=tmp_path)
+
+        shutil.rmtree(path, ignore_errors=True)
+
     with raises(FileNotFoundError):
         load_custom_char('stuff', char_line)
 
+    if os.path.exists(tmp_path):
+        for f in os.listdir(tmp_path):
+            shutil.copy(src=tmp_path + '/' + f, dst=path)
+
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
 
 def test_missing_char_map_files():
-    """
-    This test might not work locally.
+    """Test missing files."""
+    path = extend_basic_path('data')
+    tmp_path = extend_basic_path('tmp_dir_for_testing')
 
-    If you are using custom char_maps in your HOME/.tespy/data folder, this
-    test will throw a KeyError instead of a FileNotFoundError.
-    """
+    if os.path.exists(path):
+        for f in os.listdir(path):
+            shutil.copy(src=path + '/' + f, dst=tmp_path)
+
+        shutil.rmtree(path, ignore_errors=True)
+
     with raises(FileNotFoundError):
         load_custom_char('some other stuff', char_map)
+
+    if os.path.exists(tmp_path):
+        for f in os.listdir(tmp_path):
+            shutil.copy(src=tmp_path + '/' + f, dst=path)
+
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
 ##############################################################################
 # test errors of tespy fluid class

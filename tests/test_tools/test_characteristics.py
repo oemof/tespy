@@ -19,6 +19,7 @@ import os
 import json
 import numpy as np
 import shutil
+import logging
 
 
 def test_custom_char_line_import():
@@ -27,6 +28,11 @@ def test_custom_char_line_import():
     # we need to write some data to the path first, using defaults
     data_path = resource_filename('tespy.data', 'char_lines.json')
     path = extend_basic_path('data')
+    tmp_path = extend_basic_path('tmp_dir_for_testing')
+
+    if os.path.exists(path):
+        for f in os.listdir(path):
+            shutil.copy(src=path + '/' + f, dst=tmp_path)
 
     with open(data_path) as f:
         raw_data = json.loads(f.read())
@@ -40,6 +46,13 @@ def test_custom_char_line_import():
     char_custom = load_custom_char('EVAPORATING FLUID', char_line)
 
     shutil.rmtree(path, ignore_errors=True)
+
+    if os.path.exists(tmp_path):
+        path = extend_basic_path('data')
+        for f in os.listdir(tmp_path):
+            shutil.copy(src=tmp_path + '/' + f, dst=path)
+
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
     x_cond = np.array_equal(char_original.x, char_custom.x)
     y_cond = np.array_equal(char_original.y, char_custom.y)
@@ -63,6 +76,11 @@ def test_custom_char_map_import():
     # we need to write some data to the path first, using defaults
     data_path = resource_filename('tespy.data', 'char_maps.json')
     path = extend_basic_path('data')
+    tmp_path = extend_basic_path('tmp_dir_for_testing')
+
+    if os.path.exists(path):
+        for f in os.listdir(path):
+            shutil.copy(src=path + '/' + f, dst=tmp_path)
 
     with open(data_path) as f:
         raw_data = json.loads(f.read())
@@ -81,6 +99,13 @@ def test_custom_char_map_import():
     z2_cond = np.array_equal(char_original.z2, char_custom.z2)
 
     shutil.rmtree(path, ignore_errors=True)
+
+    if os.path.exists(tmp_path):
+        path = extend_basic_path('data')
+        for f in os.listdir(tmp_path):
+            shutil.copy(src=tmp_path + '/' + f, dst=path)
+
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
     msg = ('The x values from the custom characteristic line ' +
            str(char_custom.x) + ' must be identical to the x values from '

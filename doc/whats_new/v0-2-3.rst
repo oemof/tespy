@@ -12,6 +12,8 @@ Parameter renaming
 
 Testing
 #######
+- Move from nose to pytest
+  (`PR #165 <https://github.com/oemof/tespy/pull/165>`_).
 
 Bug fixes
 #########
@@ -21,3 +23,4 @@ Other changes
 
 Contributors
 ############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

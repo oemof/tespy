@@ -233,7 +233,7 @@ class TestHeatExchangers:
                str(round(self.c1.T.val - self.c4.T.val, 1)) + '.')
         ttd_u_calc = round(self.c1.T.val - self.c4.T.val, 1)
         ttd_u = round(instance.ttd_u.val, 1)
-        assert ttd_u_calc = ttd_u, msg
+        assert ttd_u_calc == ttd_u, msg
 
         # check lower terminal temperature difference
         self.c2.set_attr(T=np.nan)
@@ -245,7 +245,7 @@ class TestHeatExchangers:
                str(self.c2.T.val - self.c3.T.val) + '.')
         ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
         ttd_l = round(instance.ttd_l.val, 1)
-        assert ttd_l_calc = ttd_l, msg
+        assert ttd_l_calc == ttd_l, msg
 
         # check specified kA value (by offdesign parameter), reset temperatures
         # to design state
@@ -327,7 +327,7 @@ class TestHeatExchangers:
                str(self.c2.T.val - self.c3.T.val) + '.')
         ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
         ttd_l = round(instance.ttd_l.val, 1)
-        assert ttd_l_calc = ttd_l, msg
+        assert ttd_l_calc == ttd_l, msg
 
         # check kA value with condensing pressure in offdesign mode:
         # no changes to design point means: identical pressure

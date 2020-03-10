@@ -880,7 +880,7 @@ class bus:
                 msg = ('Provide arguments as dicts. See the documentation of '
                        'bus.add_comps() for more information.')
                 logging.error(msg)
-                raise TESPyConnectionError(msg)
+                raise TypeError(msg)
 
             msg = ('Added component ' + c['c'].label + ' to bus ' +
                    self.label + '.')

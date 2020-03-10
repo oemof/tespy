@@ -205,6 +205,7 @@ def test_bus_add_comps_errors():
     bus_add_comps_TypeError(mybus, {'c': comb, 'char': 'Hi'})
     bus_add_comps_TypeError(mybus, {'c': comb, 'p': 5})
     bus_add_comps_TypeError(mybus, {'c': comb, 'P_ref': 'what'})
+    bus_add_comps_TypeError(mybus, comb)
 
 ##############################################################################
 # test errors of component classes
@@ -324,9 +325,7 @@ class TestCombustionEngineBusErrors:
 
 
 def test_compressor_missing_char_parameter():
-    """
-    Compressor with invalid parameter for eta_s_char function.
-    """
+    """Compressor with invalid parameter for eta_s_char function."""
     nw = network(['CH4'])
     so = basics.source('source')
     si = basics.sink('sink')
@@ -358,9 +357,7 @@ def test_subsys_label_forbidden():
 
 
 def test_turbine_missing_char_parameter():
-    """
-    Turbine with invalid parameter for eta_s_char function.
-    """
+    """Turbine with invalid parameter for eta_s_char function."""
     nw = network(['CH4'])
     so = basics.source('source')
     si = basics.sink('sink')

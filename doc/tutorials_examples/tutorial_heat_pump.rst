@@ -117,17 +117,17 @@ up the class documentation.
     cd_va = connection(cd, 'out1', va, 'in1')
 
     nw.add_conns(cd_va)
-    
+
 .. note::
 
     Instead of just connecting the consumers outlet to the pumps inlet, we must
     to make use of at least one auxiliary component: Closing a cycle without
     further adjustments will always result in a linear dependency in the fluid and
-    the mass flow equations. We therefore need to cut open the cycle. The 
+    the mass flow equations. We therefore need to cut open the cycle. The
     :py:class`tespy.components.basics.cycle_closer` component makes sure, the
     fluid properties pressure and enthalpy are identical at the inlet and the
     outlet. A different solution to this problem, is adding a merge and a splitter
-    at some point of your network and connect the second inlet/outlet to a 
+    at some point of your network and connect the second inlet/outlet to a
     source/sink. This causes residual mass flow and residual fluids to emerge/drain
     there. The cycle closer will give out a warning, if the mass flow or the fluid
     composition at its outlet are different to those at its inlet.
@@ -180,7 +180,7 @@ same needs to be done for the consumer cycle. We suggest to set the parameters
 at the pump's inlet. On top, we assume that the consumer requires a constant
 inlet temperature.
 
-The last step is to define the fluid's state after the consumer. This is 
+The last step is to define the fluid's state after the consumer. This is
 automatically performed by the :py:class:`tespy.components.basics.cycle_closer`
 component. This component makes sure pressure and enthalpy are at its inlet
 and its outlet. This way, the fluid properties at the consumer's outlet are
@@ -297,8 +297,9 @@ temperature difference as design parameteres and choose zeta as well as the
 area independet heat transition coefficient as its offdesign parameters.
 
 On top of that, the characteristic function of the evaporator should follow the
-default characteristic lines of 'EVAPORATING FLUID'. These lines are defined in
-the :py:mod:`tespy.data` module. If you want to learn more about handling
+default characteristic line of 'EVAPORATING FLUID' on the cold side and the
+default line 'DEFAULT' on the hot side. These lines are defined in the
+:py:mod:`tespy.data` module. If you want to learn more about handling
 characteristic functions you should have a glance at the
 :ref:`TESPy components section <using_tespy_components_label>`. The superheater
 will also use the pressure ratios on hot and cold side. Further we set a value
@@ -312,8 +313,8 @@ at a different operation point.
 .. code-block:: python
 
     # evaporator system
-    
-    kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
+
+    kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', char_line)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
 
     ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
@@ -375,7 +376,7 @@ Components
 
 This part contains two compressors with an intercooler between them. The cold
 side of the intercooler requires a source and a sink. Again, remember
-redefining the former sink "cp1" to a compressor. We will now replace the 
+redefining the former sink "cp1" to a compressor. We will now replace the
 source for the coolant :code:`c_in` at the condenser with another cycle closer
 :code:`cool_closer`, to make sure the fluid properties after the second
 compressor are identical to the fluid properties at the condenser inlet.
@@ -397,14 +398,14 @@ compressor are identical to the fluid properties at the condenser inlet.
 
 Connections
 +++++++++++
-    
+
 Consequently to the addition of the cycle closer we have to adjust the
 connection definition touching the new cycle closer. Replace
 
 .. code-block:: python
 
     c_in_cd = connection(c_in, 'out1', cd, 'in1')
-    
+
 with
 
 .. code-block:: python

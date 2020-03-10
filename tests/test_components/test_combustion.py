@@ -25,7 +25,7 @@ def convergence_check(lin_dep):
     assert lin_dep is False, msg
 
 
-class ComponentTests:
+class TestCombustion:
 
     def setup(self):
 

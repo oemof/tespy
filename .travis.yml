@@ -18,10 +18,15 @@ install:
   - pip install .
   - pip install pytest-cov
   - pip install coveralls
+  - pip install sphinx
+  - pip install sphinx_rtd_theme
+  - pip install sphinx_autoapi
 
 # command to run tests
 script:
   - python -m pytest ./tespy --doctest-modules ./tests --cov=tespy
+  - cd doc; make html linkcheck
+
 
 after_success:
   - coveralls

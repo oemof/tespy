@@ -25,7 +25,7 @@ install:
 # command to run tests
 script:
   - python -m pytest ./tespy --doctest-modules ./tests --cov=tespy
-  - cd doc; make html linkcheck
+  - ./linkcheck.sh
 
 
 after_success:

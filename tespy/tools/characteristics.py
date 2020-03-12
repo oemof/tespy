@@ -526,7 +526,8 @@ class compressor_map(char_map):
 
             \vec{y} = \vec{y} \cdot \left( 1 - \frac{igva}{100} \right)\\
             \vec{z1} = \vec{z1} \cdot \left( 1 - \frac{igva}{100} \right)\\
-            \vec{z2} = \vec{z2} \cdot \left( 1 - \frac{igva}{100}^2 \right)
+            \vec{z2} = \vec{z2} \cdot \left(
+            1 - \left(\frac{igva}{100}\right)^2 \right)
 
         Reference: :cite:`GasTurb2018`.
         """
@@ -579,7 +580,7 @@ def load_default_char(component, parameter, function_name, char_type):
         Name of the characteristics.
 
     char_type : class
-        Class to be generate the object of.
+        Class to generate an instance of.
 
     Returns
     -------

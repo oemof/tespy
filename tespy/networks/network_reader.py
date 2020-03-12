@@ -80,7 +80,7 @@ def load_network(path):
 
     Returns
     -------
-    nw : tespy.networks.network
+    nw : tespy.networks.networks.network
         TESPy networks object.
 
     Note
@@ -450,7 +450,7 @@ def construct_network(path):
 
     Returns
     -------
-    nw : tespy.networks.network
+    nw : tespy.networks.networks.network
         TESPy network object.
     """
     # read network .csv-file

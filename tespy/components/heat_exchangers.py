@@ -602,8 +602,10 @@ class heat_exchanger_simple(component):
 
                 T_{amb}: \text{ambient temperature}
 
-            for f\ :subscript:`1` \ see class
-            :func:`tespy.components.characteristics.char_line`
+        Note
+        ----
+        For standard function of f\ :subscript:`1` \ see module
+        :func:`tespy.data`.
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
@@ -1152,7 +1154,7 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
@@ -1994,7 +1996,7 @@ class condenser(heat_exchanger):
 
         **mandatory equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
         - :func:`tespy.components.heat_exchangers.condenser.energy_func`
 
@@ -2363,7 +2365,7 @@ class desuperheater(heat_exchanger):
 
         **mandatory equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
+        - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 

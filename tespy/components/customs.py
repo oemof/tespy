@@ -642,10 +642,10 @@ class orc_evaporator(component):
             return 10e5
         elif key == 'h':
             flow = c.to_flow()
-            if c.s_id == 'out1':
+            if c.source_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
-            elif c.s_id == 'out2':
+            elif c.source_id == 'out2':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
             else:
@@ -685,10 +685,10 @@ class orc_evaporator(component):
             return 10e5
         elif key == 'h':
             flow = c.to_flow()
-            if c.t_id == 'in1':
+            if c.target_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
-            elif c.t_id == 'in2':
+            elif c.target_id == 'in2':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
             else:

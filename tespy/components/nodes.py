@@ -801,7 +801,7 @@ class drum(component):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            if c.s_id == 'out1':
+            if c.source_id == 'out1':
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 1)
@@ -835,7 +835,7 @@ class drum(component):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            if c.t_id == 'in1':
+            if c.target_id == 'in1':
                 return h_mix_pQ(c.to_flow(), 0)
             else:
                 return h_mix_pQ(c.to_flow(), 0.7)

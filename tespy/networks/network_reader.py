@@ -297,8 +297,8 @@ def load_network(path):
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.s.label + ':' + c.s_id + '_'
-                     + c.t.label + ':' + c.t_id] = c
+        nw.imp_conns[c.source.label + ':' + c.source_id + '_'
+                     + c.target.label + ':' + c.target_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)

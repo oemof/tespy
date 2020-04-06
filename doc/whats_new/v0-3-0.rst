@@ -8,6 +8,18 @@ New Features
   be used, to return the full fluids state of a connection: Pressure,
   specific enthalpy, temperature, specific volume, specific entropy and
   vapour mass fraction (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
+- Connections, components and busses are now easily accessible on every
+  network. Connections now have a label, which can be specified individually,
+  the default value of the label is given by the following logic:
+
+  :code:`source:source_id_target:target_id`, where source and target are the
+  labels of the connected components.
+
+  Access the objects with:
+
+  - mynetwork.busses['mybuslabel']
+  - mynetwork.components['mycomponentlabel']
+  - mynetwork.connections['myconnectionlabel']
 
 Documentation
 #############

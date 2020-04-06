@@ -156,6 +156,10 @@ class network:
         # connection dataframe
         self.conns = pd.DataFrame(
             columns=['source', 'source_id', 'target', 'target_id'])
+        # connection dictionary for fast access
+        self.connections = {}
+        # component dictionary for fast access
+        self.components = {}
         # list for busses
         self.busses = OrderedDict()
         # default design_path value
@@ -514,10 +518,10 @@ class network:
             c.good_starting_values = False
 
             self.conns.loc[c] = [c.source, c.source_id, c.target, c.target_id]
-            msg = (
-                'Added connection ' + c.source.label + ' (' + c.source_id +
-                ') -> ' + c.target.label + ' (' + c.target_id + ') to network.'
-            )
+            # for fast access
+            self.connections[c.label] = c
+
+            msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
@@ -534,6 +538,7 @@ class network:
         """
         for c in args:
             self.conns = self.conns.drop(c)
+            del self.connections[c.label]
             msg = (
                 'Deleted connection ' + c.source.label + ' (' + c.source_id +
                 ') -> ' + c.target.label + ' (' + c.target_id +
@@ -702,6 +707,8 @@ class network:
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
+            # for fast access
+            self.components[comp.label] = comp
 
             # save the connection locations to the components
             comp.conn_loc = []

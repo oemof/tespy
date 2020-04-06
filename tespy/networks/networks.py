@@ -154,7 +154,8 @@ class network:
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
         # connection dataframe
-        self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
+        self.conns = pd.DataFrame(
+            columns=['source', 'source_id', 'target', 'target_id'])
         # list for busses
         self.busses = OrderedDict()
         # default design_path value
@@ -543,11 +544,13 @@ class network:
 
     def check_conns(self):
         r"""Check connections for multiple usage of inlets or outlets."""
-        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        dub = self.conns.loc[
+            self.conns.duplicated(['source', 'source_id']) == True]
         for c in dub.index:
             targets = ''
-            for conns in self.conns[(self.conns['s'] == c.source) &
-                                    (self.conns['s_id'] == c.source_id)].index:
+            for conns in self.conns[
+                    (self.conns['source'] == c.source) &
+                    (self.conns['source_id'] == c.source_id)].index:
                 targets += conns.target.label + ' (' + conns.target_id + '); '
 
             msg = (
@@ -558,11 +561,13 @@ class network:
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        dub = self.conns.loc[
+            self.conns.duplicated(['target', 'target_id']) == True]
         for c in dub.index:
             sources = ''
-            for conns in self.conns[(self.conns['t'] == c.target) &
-                                    (self.conns['t_id'] == c.target_id)].index:
+            for conns in self.conns[
+                    (self.conns['target'] == c.target) &
+                    (self.conns['target_id'] == c.target_id)].index:
                 sources += conns.source.label + ' (' + conns.source_id + '); '
 
             msg = (
@@ -638,14 +643,14 @@ class network:
         r"""Check if components are connected properly within the network."""
         self.check_conns()
         # get unique components in connections dataframe
-        comps = pd.unique(self.conns[['s', 't']].values.ravel())
+        comps = pd.unique(self.conns[['source', 'target']].values.ravel())
         # build the dataframe for components
         self.init_components(comps)
         # count number of incoming and outgoing connections and compare to
         # expected values
         for comp in self.comps.index:
-            num_o = (self.conns[['s', 't']] == comp).sum().s
-            num_i = (self.conns[['s', 't']] == comp).sum().t
+            num_o = (self.conns[['source', 'target']] == comp).sum().source
+            num_i = (self.conns[['source', 'target']] == comp).sum().target
             if num_o != comp.num_o:
                 msg = (comp.label + ' is missing ' + str(comp.num_o - num_o) +
                        ' outgoing connections. Make sure all outlets are '
@@ -680,20 +685,20 @@ class network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
+        self.comps = pd.DataFrame(index=comps, columns=['inlets', 'outlets'])
 
         labels = []
         for comp in self.comps.index:
             # get for incoming and outgoing connections of a component
-            s = self.conns[self.conns['s'] == comp]
-            s = s.s_id.sort_values().index
-            t = self.conns[self.conns['t'] == comp]
-            t = t.t_id.sort_values().index
-            self.comps.loc[comp] = [t, s]
+            sources = self.conns[self.conns['source'] == comp]
+            sources = sources['source_id'].sort_values().index
+            targets = self.conns[self.conns['target'] == comp]
+            targets = targets['target_id'].sort_values().index
+            self.comps.loc[comp] = [targets, sources]
             # save the incoming and outgoing as well as the number of
             # connections as component attribute
-            comp.inl = t.tolist()
-            comp.outl = s.tolist()
+            comp.inl = targets.tolist()
+            comp.outl = sources.tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
@@ -803,11 +808,12 @@ class network:
                     c.get_attr(var).set_attr(val_set=True)
 
                 # read design point information
-                path = hlp.modify_path_os(c.design_path + '/conn.csv')
-                msg = ('Reading individual design point information for '
-                       'connection ' + c.source.label + '(' + c.source_id + ') -> ' +
-                       c.target.label + '(' + c.target_id + ') from path ' +
-                       path + '.')
+                path = hlp.modify_path_os(c.design_path + '/connections.csv')
+                msg = (
+                    'Reading individual design point information for '
+                    'connection ' + c.source.label + '(' + c.source_id +
+                    ') -> ' + c.target.label + '(' + c.target_id +
+                    ') from path ' + path + '.')
                 logging.debug(msg)
                 df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
 
@@ -845,8 +851,8 @@ class network:
                     # get type of component (class name)
                     c = cp.__class__.__name__
                     # read design point information
-                    path = hlp.modify_path_os(cp.design_path + '/comps/' + c +
-                                              '.csv')
+                    path = hlp.modify_path_os(
+                        cp.design_path + '/components/' + c + '.csv')
                     df = pd.read_csv(path, sep=';', decimal='.',
                                      converters={
                                              'busses': ast.literal_eval,
@@ -927,8 +933,8 @@ class network:
         # iter through unique types of components (class names)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = hlp.modify_path_os(self.design_path +
-                                          '/comps/' + c + '.csv')
+                path = hlp.modify_path_os(
+                    self.design_path + '/components/' + c + '.csv')
                 msg = ('Reading design point information for components of '
                        'type ' + c + ' from path ' + path + '.')
                 logging.debug(msg)
@@ -943,8 +949,8 @@ class network:
                     comp = cp_sort.loc[c_label].comp
                     # read data of components with individual design_path
                     if comp.design_path is not None:
-                        path_c = hlp.modify_path_os(comp.design_path +
-                                                    '/comps/' + c + '.csv')
+                        path_c = hlp.modify_path_os(
+                            comp.design_path + '/components/' + c + '.csv')
                         df_c = pd.read_csv(path_c, sep=';', decimal='.',
                                            converters={
                                                  'busses': ast.literal_eval,
@@ -963,7 +969,7 @@ class network:
         logging.debug(msg)
 
         # read connection design point information
-        path = hlp.modify_path_os(self.design_path + '/conn.csv')
+        path = hlp.modify_path_os(self.design_path + '/connections.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         msg = ('Reading design point information for connections from path ' +
                path + '.')
@@ -974,7 +980,7 @@ class network:
 
             # read data of connections with individual design_path
             if c.design_path is not None:
-                path_c = hlp.modify_path_os(c.design_path + '/conn.csv')
+                path_c = hlp.modify_path_os(c.design_path + '/connections.csv')
                 msg = ('Reading individual design point information for '
                        'connection ' + c.source.label + '(' + c.source_id + ') -> ' +
                        c.target.label + '(' + c.target_id + ') from path ' +
@@ -1028,8 +1034,11 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        conn = (df.loc[df['s'].isin([c.source.label]) & df['t'].isin([c.target.label]) &
-                       df['s_id'].isin([c.source_id]) & df['t_id'].isin([c.target_id])])
+        conn = df.loc[
+            df['source'].isin([c.source.label]) &
+            df['target'].isin([c.target.label]) &
+            df['source_id'].isin([c.source_id]) &
+            df['target_id'].isin([c.target_id])]
 
         if len(conn.index) > 0:
             # read connection information
@@ -1202,19 +1211,19 @@ class network:
             # combustion chamber
             if isinstance(cp, combustion_chamber):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
+                for c in self.comps.loc[cp, 'outlets']:
                     self.init_target(c, c.target)
 
             # combustion chamber
             elif isinstance(cp, water_electrolyzer):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
+                for c in self.comps.loc[cp, 'outlets']:
                     self.init_target(c, c.target)
 
             # other components (node, merge)
             else:
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
+                for c in self.comps.loc[cp, 'outlets']:
                     self.init_target(c, c.target)
 
         msg = 'Fluid initialisation done.'
@@ -1247,9 +1256,10 @@ class network:
                 isinstance(c.target, orc_evaporator)):
 
             outc = pd.DataFrame()
-            outc['s'] = self.conns.s == c.target
-            outc['s_id'] = self.conns.s_id == c.target_id.replace('in', 'out')
-            conn, cid = outc['s'] == True, outc['s_id'] == True
+            outc['source'] = self.conns['source'] == c.target
+            outc['source_id'] = (
+                self.conns['source_id'] == c.target_id.replace('in', 'out'))
+            conn, cid = outc['source'] == True, outc['source_id'] == True
             outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
@@ -1260,7 +1270,7 @@ class network:
             self.init_target(outconn, start)
 
         if isinstance(c.target, splitter):
-            for outconn in self.comps.loc[c.target].o:
+            for outconn in self.comps.loc[c.target, 'outlets']:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1269,8 +1279,8 @@ class network:
                 self.init_target(outconn, start)
 
         if isinstance(c.target, water_electrolyzer):
-            if c == self.comps.loc[c.target].i[0]:
-                outconn = self.comps.loc[c.target].o[0]
+            if c == self.comps.loc[c.target, 'inlets'][0]:
+                outconn = self.comps.loc[c.target, 'outlets'][0]
 
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
@@ -1278,7 +1288,7 @@ class network:
                         outconn.fluid.val[fluid] = x
 
         if isinstance(c.target, combustion_engine):
-            for outconn in self.comps.loc[c.target].o[:2]:
+            for outconn in self.comps.loc[c.target, 'outlets'][:2]:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1288,7 +1298,7 @@ class network:
 
         if isinstance(c.target, drum) and c.target != start:
             start = c.target
-            for outconn in self.comps.loc[c.target].o:
+            for outconn in self.comps.loc[c.target, 'outlets']:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1322,9 +1332,10 @@ class network:
                 isinstance(c.source, orc_evaporator)):
 
             inc = pd.DataFrame()
-            inc['t'] = self.conns.t == c.source
-            inc['t_id'] = self.conns.t_id == c.source_id.replace('out', 'in')
-            conn, cid = inc['t'] == True, inc['t_id'] == True
+            inc['target'] = self.conns['target'] == c.source
+            inc['target_id'] = (
+                self.conns['target_id'] == c.source_id.replace('out', 'in'))
+            conn, cid = inc['target'] == True, inc['target_id'] == True
             inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
@@ -1335,7 +1346,7 @@ class network:
             self.init_source(inconn, start)
 
         if isinstance(c.source, splitter):
-            for inconn in self.comps.loc[c.source].i:
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1344,7 +1355,7 @@ class network:
                 self.init_source(inconn, start)
 
         if isinstance(c.source, merge):
-            for inconn in self.comps.loc[c.source].i:
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1353,7 +1364,7 @@ class network:
                 self.init_source(inconn, start)
 
         if isinstance(c.source, combustion_engine):
-            for inconn in self.comps.loc[c.source].i[:2]:
+            for inconn in self.comps.loc[c.source, 'inlets'][:2]:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1363,7 +1374,7 @@ class network:
 
         if isinstance(c.source, drum) and c.source != start:
             start = c.source
-            for inconn in self.comps.loc[c.source].i:
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1507,14 +1518,15 @@ class network:
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
 
-        path = hlp.modify_path_os(self.init_path + '/conn.csv')
+        path = hlp.modify_path_os(self.init_path + '/connections.csv')
 
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
-            conn = (df.loc[df['s'].isin([c.source.label]) &
-                           df['t'].isin([c.target.label]) &
-                           df['s_id'].isin([c.source_id]) &
-                           df['t_id'].isin([c.target_id])])
+            conn = df.loc[
+                df['source'].isin([c.source.label]) &
+                df['target'].isin([c.target.label]) &
+                df['source_id'].isin([c.source_id]) &
+                df['target_id'].isin([c.target_id])]
             if len(conn.index) > 0:
                 conn_id = conn.index[0]
                 # overwrite SI-values with values from init_file,
@@ -2449,8 +2461,8 @@ class network:
             if b.P.is_set is True:
                 P_res = 0
                 for cp in b.comps.index:
-                    i = self.comps.loc[cp].i.tolist()
-                    o = self.comps.loc[cp].o.tolist()
+                    i = self.comps.loc[cp, 'inlets'].tolist()
+                    o = self.comps.loc[cp, 'outlets'].tolist()
 
                     bus = b.comps.loc[cp]
 
@@ -2528,8 +2540,8 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
                                          args=('label',))
-        cp_sort.drop('i', axis=1, inplace=True)
-        cp_sort.drop('o', axis=1, inplace=True)
+        cp_sort.drop('inlets', axis=1, inplace=True)
+        cp_sort.drop('outlets', axis=1, inplace=True)
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2632,13 +2644,13 @@ class network:
             os.makedirs(path)
 
         # create path for component folder if non existent
-        path_comps = hlp.modify_path_os(path + 'comps/')
+        path_comps = hlp.modify_path_os(path + 'components/')
         if not os.path.exists(path_comps):
             os.makedirs(path_comps)
 
         # save all network information
-        self.save_network(path + 'netw.csv')
-        self.save_connections(path + 'conn.csv')
+        self.save_network(path + 'network.json')
+        self.save_connections(path + 'connections.csv')
         self.save_components(path_comps)
         self.save_busses(path_comps + 'bus.csv')
         self.save_characteristics(path_comps)
@@ -2692,11 +2704,11 @@ class network:
 
         # general connection parameters
         # source
-        df['s'] = self.conns.apply(f, axis=1, args=('source', 'label'))
-        df['s_id'] = self.conns.apply(f, axis=1, args=('source_id',))
+        df['source'] = self.conns.apply(f, axis=1, args=('source', 'label'))
+        df['source_id'] = self.conns.apply(f, axis=1, args=('source_id',))
         # target
-        df['t'] = self.conns.apply(f, axis=1, args=('target', 'label'))
-        df['t_id'] = self.conns.apply(f, axis=1, args=('target_id',))
+        df['target'] = self.conns.apply(f, axis=1, args=('target', 'label'))
+        df['target_id'] = self.conns.apply(f, axis=1, args=('target_id',))
 
         # design and offdesign properties
         cols = ['design', 'offdesign', 'design_path', 'local_design',
@@ -2833,8 +2845,8 @@ class network:
                     df[col] = df.apply(f, axis=1, args=(col, 'method'))
 
             df.set_index('label', inplace=True)
-            df.drop('i', axis=1, inplace=True)
-            df.drop('o', axis=1, inplace=True)
+            df.drop('inlets', axis=1, inplace=True)
+            df.drop('outlets', axis=1, inplace=True)
             fn = path + c + '.csv'
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
             logging.debug('Component information (' + c + ') saved to ' +

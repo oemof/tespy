@@ -2712,14 +2712,14 @@ class network:
         # general connection parameters
         # source
         df['source'] = self.conns.apply(f, axis=1, args=('source', 'label'))
-        df['source_id'] = self.conns.apply(f, axis=1, args=('source_id',))
+        df['source_id'] = self.conns['source_id']
         # target
         df['target'] = self.conns.apply(f, axis=1, args=('target', 'label'))
-        df['target_id'] = self.conns.apply(f, axis=1, args=('target_id',))
+        df['target_id'] = self.conns['target_id']
 
         # design and offdesign properties
         cols = ['design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign']
+                'local_offdesign', 'label']
         for key in cols:
             df[key] = self.conns.apply(f, axis=1, args=(key,))
 

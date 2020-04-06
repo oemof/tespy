@@ -92,6 +92,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
+    set_attr_TypeError(conn, label=5)
 
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)

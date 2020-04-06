@@ -100,8 +100,8 @@ def load_network(path):
         - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
 
-    - conns.csv
-    - netw.csv
+    - connections.csv
+    - network.json
 
     The imported network has the following additional features:
 
@@ -111,7 +111,7 @@ def load_network(path):
     - Components are accessible by label, e. g. for a component
       'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
     - Busses are accessible by label, e. g. for a bus 'power input'
-      :code:`myimportednetwork.imp_busses['power input']`.
+      :code:`myimportednetwork.busses['power input']`.
 
     Example
     -------
@@ -200,7 +200,7 @@ def load_network(path):
     ... init_path='exported_nwk')
     >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
     0.9
-    >>> imported_nwk.imp_busses['total power output'].set_attr(P=-0.75e6)
+    >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
     >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
     ... init_path='exported_nwk')
     >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3) == eta_s_t
@@ -316,7 +316,6 @@ def load_network(path):
         logging.debug(msg)
 
     # create busses
-    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -326,7 +325,6 @@ def load_network(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
-            nw.imp_busses[b.label] = b
 
         msg = 'Created busses.'
         logging.info(msg)

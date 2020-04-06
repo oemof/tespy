@@ -96,6 +96,10 @@ class connection:
     printout: boolean
         Include this connection in the network's results printout.
 
+    label : str
+        Label of the connection. The default value is:
+        :code:`'source:source_id_target:target_id'`.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -232,6 +236,9 @@ class connection:
             logging.error(msg)
             raise ValueError(msg)
 
+        self.label = (
+            comp1.label + ':' + outlet_id + '_' + comp2.label + ':' + inlet_id)
+
         # set specified values
         self.source = comp1
         self.source_id = outlet_id
@@ -327,6 +334,10 @@ class connection:
 
         printout: boolean
             Include this connection in the network's results printout.
+
+        label : str
+            Label of the connection. The default value is:
+            :code:`'source:source_id_target:target_id'`.
 
         Note
         ----

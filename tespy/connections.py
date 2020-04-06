@@ -512,6 +512,15 @@ class connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
+            elif key == 'label':
+                if isinstance(kwargs[key], str):
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = ('Please provide the ' + key + ' parameter as '
+                           'string.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'

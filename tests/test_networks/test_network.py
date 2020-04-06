@@ -116,15 +116,15 @@ class TestNetworks:
         self.nw.save('tmp')
         msg = ('The exported network does not contain any char_line, there '
                'must be no file char_line.csv!')
-        assert os.path.isfile('tmp/comps/char_line.csv') is False, msg
+        assert os.path.isfile('tmp/components/char_line.csv') is False, msg
 
         msg = ('The exported network does not contain any char_map, there '
                'must be no file char_map.csv!')
-        assert os.path.isfile('tmp/comps/char_map.csv') is False, msg
+        assert os.path.isfile('tmp/components/char_map.csv') is False, msg
 
         msg = ('The exported network does not contain any busses, there '
                'must be no file bus.csv!')
-        assert os.path.isfile('tmp/comps/bus.csv') is False, msg
+        assert os.path.isfile('tmp/components/bus.csv') is False, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_network_reader_no_chars_busses(self):
@@ -153,8 +153,8 @@ class TestNetworks:
         self.nw.save('tmp')
 
         # # remove char_line and char_map folders
-        os.unlink('tmp/comps/char_line.csv')
-        os.unlink('tmp/comps/char_map.csv')
+        os.unlink('tmp/components/char_line.csv')
+        os.unlink('tmp/components/char_map.csv')
 
         # import network with missing files
         imported_nwk = load_network('tmp')
@@ -177,12 +177,12 @@ class TestNetworks:
         self.nw.save('tmp')
         self.nw.save('tmp2')
 
-        inputs = open('./tmp/conn.csv')
+        inputs = open('./tmp/connections.csv')
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
 
-        with open('./tmp2/conn.csv', 'w') as out:
+        with open('./tmp2/connections.csv', 'w') as out:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 
@@ -204,12 +204,12 @@ class TestNetworks:
         self.nw.save('tmp')
         self.nw.save('tmp2')
 
-        inputs = open('./tmp/conn.csv')
+        inputs = open('./tmp/connections.csv')
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
 
-        with open('./tmp2/conn.csv', 'w') as out:
+        with open('./tmp2/connections.csv', 'w') as out:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 
@@ -230,12 +230,12 @@ class TestNetworks:
         self.nw.solve('design')
         self.nw.save('tmp')
 
-        inputs = open('./tmp/conn.csv')
+        inputs = open('./tmp/connections.csv')
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
 
-        with open('./tmp/conn.csv', 'w') as out:
+        with open('./tmp/connections.csv', 'w') as out:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 

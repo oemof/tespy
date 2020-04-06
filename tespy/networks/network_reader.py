@@ -119,11 +119,9 @@ def load_network(path):
     -------
     Create a network and export it. This is followed by loading the network
     with the network_reader module. All network information stored will be
-    passed to a new network object. Components and busses will be accessible
-    by label, connections by
-    :code:`'source.label:source.id_target.label:target.id'`. The following
-    example setup is simple gas turbine setup with compressor, combustion
-    chamber and turbine.
+    passed to a new network object. Components, connections and busses will
+    be accessible by label. The following example setup is simple gas turbine
+    setup with compressor, combustion chamber and turbine.
 
     >>> from tespy.components import (sink, source, combustion_chamber,
     ... compressor, turbine)

@@ -10,8 +10,7 @@ New Features
   vapour mass fraction (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
 - Connections, components and busses are now easily accessible on every
   network. Connections now have a label, which can be specified individually,
-  the default value of the label is given by the following logic:
-
+  the default value of the label is given by the following logic.
   :code:`source:source_id_target:target_id`, where source and target are the
   labels of the connected components.
 
@@ -21,8 +20,11 @@ New Features
   - mynetwork.components['mycomponentlabel']
   - mynetwork.connections['myconnectionlabel']
 
+  (`PR #173 <https://github.com/oemof/tespy/pull/173>`_).
+
 Documentation
 #############
+- Documentation has been updated according to the API-changes.
 
 Parameter renaming
 ##################

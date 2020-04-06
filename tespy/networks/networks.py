@@ -364,7 +364,7 @@ class network:
                     self.__dict__[unit] = kwargs[unit]
                     msg = ('Setting ' + self.props[prop] + ' unit: ' +
                            kwargs[unit] + '.')
-                    logging.error(msg)
+                    logging.debug(msg)
 
         # value ranges
         if 'm_range' in kwargs.keys():

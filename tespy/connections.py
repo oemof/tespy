@@ -525,9 +525,9 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
-    def get_plotting_props(self):
+    def get_fluid_properties(self):
         r"""
-        Get the connection's fluid properties for plotting.
+        Get the connection's fluid properties in user specified unit.
 
         Returns
         -------

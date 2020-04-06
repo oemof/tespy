@@ -93,15 +93,15 @@ def load_network(path):
     The structure of the path must be as follows:
 
     - Folder: path (e. g. 'mynetwork')
-    - Subfolder: comps (e. g. 'mynetwork/comps') containing
+    - Subfolder: components (e. g. 'mynetwork/components') containing
 
         - bus.csv*
         - char.csv*
         - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
 
-    - conns.csv
-    - netw.csv
+    - connections.csv
+    - network.json
 
     The imported network has the following additional features:
 
@@ -111,7 +111,7 @@ def load_network(path):
     - Components are accessible by label, e. g. for a component
       'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
     - Busses are accessible by label, e. g. for a bus 'power input'
-      :code:`myimportednetwork.imp_busses['power input']`.
+      :code:`myimportednetwork.busses['power input']`.
 
     Example
     -------
@@ -200,7 +200,7 @@ def load_network(path):
     ... init_path='exported_nwk')
     >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
     0.9
-    >>> imported_nwk.imp_busses['total power output'].set_attr(P=-0.75e6)
+    >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
     >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
     ... init_path='exported_nwk')
     >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3) == eta_s_t
@@ -212,7 +212,7 @@ def load_network(path):
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
-    path_comps = modify_path_os(path + 'comps/')
+    path_comps = modify_path_os(path + 'components/')
     path = modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
@@ -280,7 +280,7 @@ def load_network(path):
     nw.imp_comps = comps.to_dict()['instance']
 
     # load connections
-    fn = path + 'conn.csv'
+    fn = path + 'connections.csv'
     conns = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'design': ast.literal_eval,
                                     'offdesign': ast.literal_eval})
@@ -316,7 +316,6 @@ def load_network(path):
         logging.debug(msg)
 
     # create busses
-    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -326,7 +325,6 @@ def load_network(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
-            nw.imp_busses[b.label] = b
 
         msg = 'Created busses.'
         logging.info(msg)
@@ -454,7 +452,7 @@ def construct_network(path):
         TESPy network object.
     """
     # read network .csv-file
-    netw = pd.read_csv(path + 'netw.csv', sep=';', decimal='.',
+    netw = pd.read_csv(path + 'network.json', sep=';', decimal='.',
                        converters={'fluids': ast.literal_eval})
     f_list = netw['fluids'][0]
 
@@ -493,8 +491,8 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = connection(args[0].instance[c.s], c.s_id,
-                      args[0].instance[c.t], c.t_id)
+    conn = connection(args[0].instance[c.source], c.source_id,
+                      args[0].instance[c.target], c.target_id)
 
     kwargs = {}
     # read basic properties

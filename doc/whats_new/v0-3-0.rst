@@ -1,0 +1,84 @@
+v0.3.0 - Someversion (somemonth, someday, 2020)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- Make entropy and specific volume available after simulation. Additionally,
+  the method :py:meth:`tespy.connections.connection.get_fluid_properties` may
+  be used, to return the full fluids state of a connection: Pressure,
+  specific enthalpy, temperature, specific volume, specific entropy and
+  vapour mass fraction (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
+
+Documentation
+#############
+
+Parameter renaming
+##################
+
+Testing
+#######
+- Move from nose to pytest
+  (`PR #165 <https://github.com/oemof/tespy/pull/165>`_).
+
+Bug fixes
+#########
+
+Other changes
+#############
+- Improve naming in networks and connections modules. A connection's target is
+  now labeled :code:`target` instead of :code:`t`, for instance.
+
+Changes in the API
+##################
+The changes affect
+
+- reading design point information from the :code:`design_path`.
+- reading starting value information from the :code:`init_path`
+- and loading networks with the network reader's
+  :py:meth:`tespy.networks.network_reader.load_network` method.
+
+Data generated in older versions of TESPy can not be imported. In order to fix
+this follow the steps below.
+
+- rename the :codoe:`comps` folder to :code:`components`
+- rename the :code:`conns.csv` file to :code:`connections.csv`
+
+and within the file rename the columns
+
+- :code:`s` to :code:`source`
+- :code:`s_id` to :code:`source_id`
+- :code:`t` to :code:`target`
+- :code:`t_id` to :code:`target_id`
+
+If you want to use the network reader,
+
+- create a :code:`network.json` file.
+- add the desired contents as listed below.
+
+The fluids are represented in a dictionary containing the fluid's names as keys
+and the CoolProp backend as value. "HEOS" is the default backend, which has
+been used until version 0.2.x in TESPy.
+
+.. code-block:: json
+
+    {
+        "fluids":
+        {
+            "H2O": "IF97",
+            "CO2": "TTSE",
+            "O2": "HEOS",
+            "N2": "BICUBIC&HEOS",
+        },
+        "T_unit": "C",
+        "h_unit": "kJ / kg",
+        "m_unit": "kg / s",
+        "T_range": [150, 200]
+    }
+
+If you are having trouble applying these changes, you are welcome to open an
+issue on our `github repository <https://github.com/oemof/tespy/issues>`_
+(`PR #172 <https://github.com/oemof/tespy/pull/172>`_, ).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

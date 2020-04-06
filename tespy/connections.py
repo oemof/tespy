@@ -202,6 +202,9 @@ class connection:
     >>> so_si2.set_attr(state=np.nan)
     >>> so_si2.state.is_set
     False
+    >>> so_si2.set_attr(label='myconnection')
+    >>> so_si2.label
+    'myconnection'
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):

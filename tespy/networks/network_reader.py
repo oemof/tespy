@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
 """
 
 import pandas as pd
-
+import json
 
 from tespy.connections import connection, bus, ref
 
@@ -449,21 +449,18 @@ def construct_network(path):
         TESPy network object.
     """
     # read network .csv-file
-    netw = pd.read_csv(path + 'network.json', sep=';', decimal='.',
-                       converters={'fluids': ast.literal_eval})
-    f_list = netw['fluids'][0]
+    with open(path + 'network.json', 'r') as f:
+        data = json.loads(f.read())
 
-    kwargs = {}
-    kwargs['m_unit'] = netw['m_unit'][0]
-    kwargs['p_unit'] = netw['p_unit'][0]
-    kwargs['p_range'] = [netw['p_min'][0], netw['p_max'][0]]
-    kwargs['h_unit'] = netw['h_unit'][0]
-    kwargs['h_range'] = [netw['h_min'][0], netw['h_max'][0]]
-    kwargs['T_unit'] = netw['T_unit'][0]
-    kwargs['T_range'] = [netw['T_min'][0], netw['T_max'][0]]
+    # construct fluid list
+    fluid_list = [
+        backend + '::' + fluid for fluid, backend in data['fluids'].items()]
+
+    # delete fluids from data
+    del data['fluids']
 
     # create network object with its properties
-    nw = network(fluids=f_list, **kwargs)
+    nw = network(fluids=fluid_list, **data)
 
     return nw
 

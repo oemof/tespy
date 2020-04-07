@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 """
 # reading .csv
 import ast
+import json
 # ordered dicts for fluid composition vector
 from collections import Counter, OrderedDict
 # calculation of molar masses and gas constants
@@ -443,13 +444,6 @@ class network:
         self.h_range = self.h_range_SI / self.h[self.h_unit]
         self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
                         self.T[self.T_unit][0])
-
-        for f in self.fluids:
-            if 'TESPy::' in f:
-                fp.memorise.value_range[f][0] = self.p_range_SI[0]
-                fp.memorise.value_range[f][1] = self.p_range_SI[1]
-                fp.memorise.value_range[f][2] = self.T_range_SI[0]
-                fp.memorise.value_range[f][3] = self.T_range_SI[1]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
@@ -2690,20 +2684,21 @@ class network:
         """
         data = {}
         data['m_unit'] = self.m_unit
+        data['m_range'] = list(self.m_range)
         data['p_unit'] = self.p_unit
-        data['p_min'] = self.p_range[0]
-        data['p_max'] = self.p_range[1]
+        data['p_range'] = list(self.p_range)
         data['h_unit'] = self.h_unit
-        data['h_min'] = self.h_range[0]
-        data['h_max'] = self.h_range[1]
+        data['h_range'] = list(self.h_range)
         data['T_unit'] = self.T_unit
-        data['T_min'] = self.T_range[0]
-        data['T_max'] = self.T_range[1]
-        data['fluids'] = [self.fluids]
+        data['T_range'] = list(self.T_range)
+        data['x_unit'] = self.x_unit
+        data['v_unit'] = self.v_unit
+        data['s_unit'] = self.s_unit
+        data['fluids'] = self.fluids_backends
 
-        df = pd.DataFrame(data=data)
+        with open(fn, 'w') as f:
+            f.write(json.dumps(data, indent=4))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Network information saved to ' + fn + '.')
 
     def save_connections(self, fn):
@@ -3006,8 +3001,6 @@ class network:
                     return c.name.get_attr(args[0]).tolist()
             else:
                 return c.name.get_attr(args[0])
-        else:
-            return ''
 
     def get_busses(c, *args):
         """Return the list of busses a component is integrated in."""

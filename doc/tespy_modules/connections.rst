@@ -72,7 +72,12 @@ In order to create the connections we create the components to connect first.
     myconn.set_attr(p=np.nan)
     myconn.p.set_attr(val_set=False, ref_set=False)
 
-If you want to specify the fluid vector you can do it in the following way:
+If you want to specify the fluid vector you can do it in the following way.
+
+.. note::
+
+    If you specify a fluid, use the fluid's name and do not include the fluid
+    property back-end.
 
 .. code-block:: python
 

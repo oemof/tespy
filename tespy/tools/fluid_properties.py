@@ -880,9 +880,6 @@ def h_pT(p, T, fluid):
     h : float
         Specific enthalpy h / (J/kg).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
     if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
@@ -968,9 +965,6 @@ def h_ps(p, s, fluid):
     h : float
         Specific enthalpy h / (J/kg).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
     if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
@@ -1202,9 +1196,6 @@ def d_ph(p, h, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
     if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
@@ -1688,7 +1679,8 @@ def s_mix_pT(flow, T):
 
     fluid_comps = {}
 
-    tespy_fluids = [s for s in flow[3].keys() if "TESPy::" in s]
+    tespy_fluids = [
+        s for s in flow[3].keys() if s in tespy_fluid.fluids.keys()]
     for f in tespy_fluids:
         for it, x in tespy_fluid.fluids[f].fluid.items():
             if it in fluid_comps.keys():
@@ -1696,7 +1688,7 @@ def s_mix_pT(flow, T):
             else:
                 fluid_comps[it] = x * flow[3][f]
 
-    fluids = [s for s in flow[3].keys() if "TESPy::" not in s]
+    fluids = [s for s in flow[3].keys() if s not in tespy_fluid.fluids.keys()]
     for f in fluids:
         if f in fluid_comps.keys():
             fluid_comps[f] += flow[3][f]

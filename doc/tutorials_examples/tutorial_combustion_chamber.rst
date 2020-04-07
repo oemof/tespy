@@ -175,8 +175,7 @@ the `tespy_examples repository
 Again, the network must have the information, which fluids will be part of the
 fluid vector. In contrast to the normal combustion chamber, you will need the
 following fluids: **Air, Fuel and Flue Gas**. For this tutorial we will call
-them: **"TESPy::myAir", "TESPy::myFuel" and "TESPy::myFuel_fg"**, we will see,
-why we chose these names for the fluids later. Do not forget to specify the
+them: **"myAir", "myFuel" and "myFuel_fg"**. Do not forget to specify the
 ranges for pressure and temperature. This is a very important step for this
 specific component, we will explain later, why it is.
 
@@ -185,7 +184,7 @@ specific component, we will explain later, why it is.
     from tespy.networks import network
 
     # define full fluid list for the network's variable space
-    fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
+    fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
 
     # define unit systems and fluid property ranges
     nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -226,9 +225,9 @@ fuel composition, and additionally, aliases for the these fluids. Since air and
 fuel usually are mixtures of different gases, **TESPy will create lookup tables
 for the fluid properties of the specified air and fuel composition and a third
 lookup table for the flue gas**. TESPy will therefore calculate the
-stoichiometric flue gas composition. The fluids will then be accessable with
-the following aliases: **"TESPy::youraliasforair", "TESPy::youraliasforfuel"
-and "TESPy::youraliasforfuel_fg"**. The creation of the lookup tables will use
+stoichiometric flue gas composition. The fluids will then be accessible with
+the following aliases: **"youraliasforair", "youraliasforfuel"
+and "youraliasforfuel_fg"**. The creation of the lookup tables will use
 your network's settings: **The fluid properties will be calculated within the
 network's specified ranges for pressure and temperature.**
 
@@ -275,13 +274,13 @@ the same.
 
     # air from abient (ambient pressure and temperature), air composition must
     # be stated component wise.
-    amb_comb.set_attr(T=20, p=1, fluid={'TESPy::myAir': 1, 'TESPy::myFuel': 0,
-                                        'TESPy::myFuel_fg': 0})
+    amb_comb.set_attr(T=20, p=1, fluid={'myAir': 1, 'myFuel': 0,
+                                        'myFuel_fg': 0})
 
     # fuel, pressure must not be stated, as pressure is the same at all inlets
     # and outlets of the combustion chamber
-    sf_comb.set_attr(T=25, fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
-                                  'TESPy::myFuel_fg': 0})
+    sf_comb.set_attr(T=25, fluid={'myAir': 0, 'myFuel': 1,
+                                  'myFuel_fg': 0})
 
 Finally run the code:
 

@@ -46,7 +46,7 @@ from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 
-from tespy.tools.global_vars import molar_masses, gas_constants, err
+from tespy.tools.global_vars import err
 # calculation time
 from time import time
 
@@ -174,25 +174,32 @@ class network:
             logging.error(msg)
             raise TypeError(msg)
 
-        msg = 'Network fluids are: '
-        for f in self.fluids:
-            msg += f + ', '
-            if 'INCOMP::' in f:
-                # molar mass and gas constant not available for incompressibles
-                molar_masses[f] = 1
-                gas_constants[f] = 1
+        # this must be ordered as the fluid property memorisation calls
+        # the mass fractions of the different fluids as keys in a given order.
+        self.fluids_backends = OrderedDict()
 
-            elif 'TESPy::' not in f:
-                # calculating molar masses/gas constants for network's fluids
-                # tespy_fluid molar mass/gas constant are added on lut creation
-                molar_masses[f] = CPPSI('M', f)
-                gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+        msg = 'Network fluids are: '
+        i = 0
+        for f in self.fluids:
+            try:
+                data = f.split('::')
+                backend = data[0]
+                fluid = data[1]
+            except IndexError:
+                backend = 'HEOS'
+                fluid = f
+
+            self.fluids_backends[fluid] = backend
+            self.fluids[i] = fluid
+
+            msg += fluid + ', '
+            i += 1
 
         msg = msg[:-2] + '.'
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids)
+        fp.memorise.add_fluids(self.fluids_backends)
 
         # available unit systems
         # mass flow
@@ -439,10 +446,10 @@ class network:
 
         for f in self.fluids:
             if 'TESPy::' in f:
-                fp.memorise.vrange[f][0] = self.p_range_SI[0]
-                fp.memorise.vrange[f][1] = self.p_range_SI[1]
-                fp.memorise.vrange[f][2] = self.T_range_SI[0]
-                fp.memorise.vrange[f][3] = self.T_range_SI[1]
+                fp.memorise.value_range[f][0] = self.p_range_SI[0]
+                fp.memorise.value_range[f][1] = self.p_range_SI[1]
+                fp.memorise.value_range[f][2] = self.T_range_SI[0]
+                fp.memorise.value_range[f][3] = self.T_range_SI[1]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
@@ -763,7 +770,7 @@ class network:
             self.redesign = True
             if self.design_path is None:
                 # must provide design_path
-                msg = ('Please provide \'design_path\' for every offdesign '
+                msg = ('Please provide "design_path" for every offdesign '
                        'calculation.')
                 logging.error(msg)
                 raise hlp.TESPyNetworkError(msg)
@@ -1634,7 +1641,7 @@ class network:
         self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
-            msg = 'Mode must be \'design\' or \'offdesign\'.'
+            msg = 'Mode must be "design" or "offdesign".'
             logging.error(msg)
             raise ValueError(msg)
         else:
@@ -2023,22 +2030,25 @@ class network:
 
         if isinstance(fl, str):
             # pressure
-            if c.p.val_SI < fp.memorise.vrange[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][0] * 1.01
+            if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][0] * 1.01
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI > fp.memorise.vrange[fl][1] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][1] * 0.99
+            if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][1] * 0.99
                 logging.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
             f = 1.01
             try:
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
             except ValueError:
                 f = 1.1
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
 
-            hmax = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][3] * 0.99, fl)
+            hmax = fp.h_pT(
+                c.p.val_SI, fp.memorise.value_range[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
                     c.h.val_SI = hmin / 1.05

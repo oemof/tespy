@@ -31,6 +31,7 @@ import numpy as np
 from scipy import interpolate
 import pandas as pd
 import os
+from collections import OrderedDict
 
 import logging
 
@@ -63,9 +64,6 @@ class tespy_fluid:
     path : str
         Path to importing tespy fluid from.
 
-    plot : boolean
-        Plot the lookup tables after creation?
-
     Note
     ----
     Creates lookup tables for
@@ -89,9 +87,7 @@ class tespy_fluid:
     >>> from tespy.components.basics import sink, source
     >>> from tespy.tools.fluid_properties import (tespy_fluid, h_mix_pT,
     ... s_mix_pT, v_mix_pT, visc_mix_pT)
-    >>> from tespy.tools.global_vars import molar_masses
     >>> from tespy.networks.networks import network
-    >>> from CoolProp.CoolProp import PropsSI as CP
     >>> import shutil
     >>> fluidvec = {'N2': 0.7552, 'O2': 0.2314, 'CO2': 0.0005, 'Ar': 0.0129}
     >>> p_arr = np.array([0.1, 10]) * 1e5
@@ -106,9 +102,7 @@ class tespy_fluid:
     viscosity. Specific volume and viscosity are absolute values, thus no
     difference is calculated.
 
-    >>> molar_masses['air'] = CP('M', 'air')
-    >>> gas_constants['air'] = CP('GAS_CONSTANT', 'air')
-    >>> memorise.add_fluids(['air'])
+    >>> memorise.add_fluids({'air': 'HEOS'})
 
     >>> type(myfluid)
     <class 'tespy.tools.fluid_properties.tespy_fluid'>
@@ -149,23 +143,21 @@ class tespy_fluid:
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def __init__(self, alias, fluid, p_range, T_range, path=None, plot=False):
+    def __init__(self, alias, fluid, p_range, T_range, path=None):
 
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
             logging.error(msg)
             raise TypeError(msg)
 
-        if 'IDGAS::' in alias:
-            msg = 'You are not allowed to use "IDGAS::" within your alias.'
+        # process parameters
+        if '::' in alias:
+            msg = 'The sequence "::" is not allowed in your fluid alias.'
             logging.error(msg)
             raise ValueError(msg)
-
-        # process parameters
-        if 'TESPy::' in alias:
-            self.alias = alias
         else:
-            self.alias = 'TESPy::' + alias
+            self.alias = alias
+
         self.fluid = fluid
 
         # adjust value ranges according to specified unit system
@@ -176,24 +168,29 @@ class tespy_fluid:
         self.p = np.linspace(self.p_range[0], self.p_range[1])
         self.T = np.linspace(self.T_range[0], self.T_range[1])
 
-        # plotting
-        self.plot = plot
-
         # path for loading
         self.path = path
 
-        # calculate molar mass and gas constant
-        for f in self.fluid:
-            molar_masses[f] = CPPSI('M', f)
-            gas_constants[f] = CPPSI('GAS_CONSTANT', f)
-
-        molar_masses[self.alias] = 1 / molar_mass_flow(self.fluid)
-        gas_constants[self.alias] = (gas_constants['uni'] /
-                                     molar_masses[self.alias])
-
         # create look up tables
-        tespy_fluid.fluids[self.alias] = {}
-        memorise.add_fluids(self.fluid.keys())
+        tespy_fluid.fluids[self.alias] = self
+
+        self.fluids_backends = OrderedDict()
+
+        for f in sorted(list(self.fluid.keys()) + [self.alias]):
+            try:
+                data = f.split('::')
+                backend = data[0]
+                fluid = data[1]
+            except IndexError:
+                backend = 'HEOS'
+                fluid = f
+
+            if f != self.alias:
+                self.fluids_backends[f] = backend
+            else:
+                self.fluids_backends[f] = 'TESPy'
+
+        memorise.add_fluids(self.fluids_backends)
 
         params = {}
 
@@ -222,8 +219,6 @@ class tespy_fluid:
                 self.funcs[key] = self.load_lookup(key)
                 msg = 'Loading function values for function ' + key + '.'
                 logging.debug(msg)
-
-        tespy_fluid.fluids[self.alias] = self
 
         msg = ('Successfully created look-up-tables for custom fluid ' +
                self.alias + '.')
@@ -323,19 +318,20 @@ class memorise:
 
         Parameters
         ----------
-        fluids : list
-            List of fluid for fluid property memorization.
+        fluids : dict
+            Dict of fluid and corresponding CoolProp backend for fluid property
+            memorization.
 
         Note
         ----
         The memorise class creates globally accessible variables for different
         fluid property calls as dictionaries:
 
-            - T(p,h)
-            - T(p,s)
-            - v(p,h)
-            - visc(p,h)
-            - s(p,h)
+        - T(p,h)
+        - T(p,s)
+        - v(p,h)
+        - visc(p,h)
+        - s(p,h)
 
         Each dictionary uses the list of fluids passed to the memorise class as
         identifier for the fluid property memorisation. The fluid properties
@@ -350,13 +346,13 @@ class memorise:
         -------
         T(p,h) for set of fluids ('water', 'air'):
 
-            - row 1: [282.64527752319697, 10000, 40000, 1, 0]
-            - row 2: [284.3140698256616, 10000, 47000, 1, 0]
+        - row 1: [282.64527752319697, 10000, 40000, 1, 0]
+        - row 2: [284.3140698256616, 10000, 47000, 1, 0]
         """
         # number of fluids
         num_fl = len(fluids)
         if num_fl > 0:
-            fl = tuple(fluids)
+            fl = tuple(fluids.keys())
             # fluid property tables
             memorise.T_ph[fl] = np.empty((0, num_fl + 3), float)
             memorise.T_ps[fl] = np.empty((0, num_fl + 4), float)
@@ -375,46 +371,89 @@ class memorise:
             msg = 'Added fluids ' + str(fl) + ' to memorise lookup tables.'
             logging.debug(msg)
 
-        for f in fluids:
-            if 'TESPy::' in f:
-                if f in tespy_fluid.fluids.keys():
-                    pmin = tespy_fluid.fluids[f].p_range[0]
-                    pmax = tespy_fluid.fluids[f].p_range[1]
-                    Tmin = tespy_fluid.fluids[f].T_range[0]
-                    Tmax = tespy_fluid.fluids[f].T_range[1]
-                    msg = ('Loading fluid property ranges for TESPy-fluid ' +
-                           f + '.')
-                    logging.debug(msg)
-                    # value range for fluid properties
-                    memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
-                    msg = ('Specifying fluid property ranges for pressure and '
-                           'temperature for convergence check.')
-                    logging.debug(msg)
-                else:
-                    memorise.vrange[f] = [2000, 2000000, 300, 2000]
+        for f, backend in fluids.items():
+            if f not in memorise.state.keys() and backend != 'TESPy':
+                # create CoolProp.AbstractState object
+                try:
+                    memorise.state[f] = CP.AbstractState(backend, f)
+                except ValueError:
+                    msg = (
+                        'Could not find the fluid "' + f + '" in the fluid '
+                        'property database. If you are using a stoichimetric '
+                        'combustion chamber, this warning can be ignored in '
+                        'case the fluid is your fuel, your flue gas or your '
+                        'air.')
+                    logging.warning(msg)
+                    continue
 
-            elif 'INCOMP::' in f:
-                # temperature range available only for incompressibles
-                Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
-                memorise.vrange[f] = [2000, 2000000, Tmin, Tmax]
+                msg = (
+                    'Created CoolProp.AbstractState object for fluid ' +
+                    f + ' with backend ' + backend + '.')
+                logging.debug(msg)
+                # pressure range
+                try:
+                    pmin = memorise.state[f].trivial_keyed_output(CP.iP_min)
+                    pmax = memorise.state[f].trivial_keyed_output(CP.iP_max)
+                except ValueError:
+                    pmin = 1e4
+                    pmax = 1e8
+                    msg = (
+                        'Could not find values for maximum and minimum '
+                        'pressure.')
+                    logging.warning(msg)
 
-            else:
-                if f not in memorise.heos.keys():
-                    # abstractstate object
-                    memorise.heos[f] = CP.AbstractState('HEOS', f)
-                    msg = ('Created CoolProp.AbstractState object for fluid ' +
-                           f + ' in memorise class.')
-                    logging.debug(msg)
-                    # pressure range
-                    pmin, pmax = CPPSI('PMIN', f), CPPSI('PMAX', f)
-                    # temperature range
-                    Tmin, Tmax = CPPSI('TMIN', f), CPPSI('TMAX', f)
-                    # value range for fluid properties
-                    memorise.vrange[f] = [pmin, pmax, Tmin, Tmax]
-                    msg = ('Specifying fluid property ranges for pressure and '
-                           'temperature for convergence check of fluid ' +
-                           f + '.')
-                    logging.debug(msg)
+                # temperature range
+                try:
+                    Tmin = memorise.state[f].trivial_keyed_output(CP.iT_min)
+                    Tmax = memorise.state[f].trivial_keyed_output(CP.iT_max)
+                except ValueError:
+                    Tmin = 300
+                    Tmax = 1000
+                    msg = (
+                        'Could not find values for maximum and minimum '
+                        'temperature.')
+                    logging.warning(msg)
+
+                # value range for fluid properties
+                memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
+
+                try:
+                    molar_masses[f] = memorise.state[f].molar_mass()
+                    gas_constants[f] = memorise.state[f].gas_constant()
+                except ValueError:
+                    try:
+                        molar_masses[f] = CPPSI('M', f)
+                        gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+                    except ValueError:
+                        molar_masses[f] = 1
+                        gas_constants[f] = 1
+                        msg = (
+                            'Could not find values for molar mass and gas '
+                            'constant.')
+                        logging.warning(msg)
+
+                msg = (
+                    'Specifying fluid property ranges for pressure and '
+                    'temperature for convergence check of fluid ' + f + '.')
+                logging.debug(msg)
+
+            elif backend == 'TESPy':
+                pmin = tespy_fluid.fluids[f].p_range[0]
+                pmax = tespy_fluid.fluids[f].p_range[1]
+                Tmin = tespy_fluid.fluids[f].T_range[0]
+                Tmax = tespy_fluid.fluids[f].T_range[1]
+                msg = ('Loading fluid property ranges for TESPy-fluid ' +
+                       f + '.')
+                logging.debug(msg)
+                # value range for fluid properties
+                memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
+                molar_masses[f] = 1 / molar_mass_flow(
+                    tespy_fluid.fluids[f].fluid)
+                gas_constants[f] = (
+                    gas_constants['uni'] / molar_masses[f])
+                msg = ('Specifying fluid property ranges for pressure and '
+                       'temperature for convergence check.')
+                logging.debug(msg)
 
     def del_memory(fluids):
         r"""
@@ -456,7 +495,7 @@ class memorise:
 
 
 # create memorise dictionaries
-memorise.heos = {}
+memorise.state = {}
 memorise.T_ph = {}
 memorise.T_ph_f = {}
 memorise.T_ps = {}
@@ -467,7 +506,7 @@ memorise.visc_ph = {}
 memorise.visc_ph_f = {}
 memorise.s_ph = {}
 memorise.s_ph_f = {}
-memorise.vrange = {}
+memorise.value_range = {}
 
 # %%
 
@@ -502,7 +541,6 @@ def T_mix_ph(flow, T0=300):
 
         h_{i} = h \left(pp_{i}, T_{mix} \right)\\
         pp: \text{partial pressure}
-
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
@@ -561,17 +599,12 @@ def T_ph(p, h, fluid):
     T : float
         Temperature T / K.
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('T', 'P', p, 'H', h, fluid)
     else:
-        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
-        return memorise.heos[fluid].T()
+        memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.state[fluid].T()
 
 
 def dT_mix_dph(flow, T0=300):
@@ -782,8 +815,8 @@ def T_mix_ps(flow, s, T0=300):
 #    elif 'INCOMP::' in fluid:
 #        return CPPSI('T', 'P', p, 'H', s, fluid)
 #    else:
-#        memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
-#        return memorise.heos[fluid].T()
+#        memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+#        return memorise.state[fluid].T()
 
 # %%
 
@@ -850,13 +883,11 @@ def h_pT(p, T, fluid):
 #    if 'IDGAS::' in fluid:
 #        msg = 'Ideal gas calculation not available by now.'
 #        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('H', 'P', p, 'T', T, fluid)
     else:
-        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
-        return memorise.heos[fluid].hmass()
+        memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.state[fluid].hmass()
 
 
 def dh_mix_pdT(flow, T):
@@ -940,15 +971,13 @@ def h_ps(p, s, fluid):
 #    if 'IDGAS::' in fluid:
 #        msg = 'Ideal gas calculation not available by now.'
 #        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('H', 'P', p, 'S', s, fluid)
     else:
-        memorise.heos[fluid].update(CP.PSmass_INPUTS, p, s)
-        return memorise.heos[fluid].hmass()
+        memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+        return memorise.state[fluid].hmass()
 
 # %%
 
@@ -982,12 +1011,12 @@ def h_mix_pQ(flow, Q):
         raise ValueError(msg)
 
     try:
-        memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], Q)
+        memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], Q)
     except ValueError:
-        pcrit = CPPSI('Pcrit', fluid)
-        memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, Q)
+        pcrit = memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
+        memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, Q)
 
-    return memorise.heos[fluid].hmass()
+    return memorise.state[fluid].hmass()
 
 
 def dh_mix_dpQ(flow, Q):
@@ -1050,12 +1079,12 @@ def T_bp_p(flow):
     """
     for fluid, x in flow[3].items():
         if x > err:
-            pcrit = CPPSI('Pcrit', fluid)
+            pcrit = memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
             if flow[1] > pcrit:
-                memorise.heos[fluid].update(CP.PQ_INPUTS, pcrit * 0.95, 1)
+                memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, 1)
             else:
-                memorise.heos[fluid].update(CP.PQ_INPUTS, flow[1], 1)
-            return memorise.heos[fluid].T()
+                memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], 1)
+            return memorise.state[fluid].T()
 
 
 def dT_bp_dp(flow):
@@ -1176,22 +1205,20 @@ def d_ph(p, h, fluid):
 #    if 'IDGAS::' in fluid:
 #        msg = 'Ideal gas calculation not available by now.'
 #        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('D', 'P', p, 'H', h, fluid)
     else:
-        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
-        return memorise.heos[fluid].rhomass()
+        memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.state[fluid].rhomass()
 
 # %%
 
 
 def Q_ph(p, h, fluid):
     r"""
-    Calculate steam mass fraction from pressure and enthalpy for a pure fluid.
+    Calculate vapor mass fraction from pressure and enthalpy for a pure fluid.
 
     Parameters
     ----------
@@ -1206,24 +1233,14 @@ def Q_ph(p, h, fluid):
 
     Returns
     -------
-    d : float
-        Density d / (kg/:math:`\mathrm{m}^3`).
+    x : float
+        Vapor mass fraction.
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-#        return np.nan
-    if 'TESPy::' in fluid:
-        msg = 'TESPy fluid calculation not available by now.'
-        logging.warning(msg)
+    try:
+        memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.state[fluid].Q()
+    except KeyError, ValueError:
         return np.nan
-    elif 'INCOMP::' in fluid:
-        msg = 'No two-phase region for incrompressibles.'
-        logging.warning(msg)
-        return np.nan
-    else:
-        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
-        return memorise.heos[fluid].Q()
 
 # %%
 
@@ -1371,16 +1388,11 @@ def d_pT(p, T, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['d_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('D', 'P', p, 'T', T, fluid)
     else:
-        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
-        return memorise.heos[fluid].rhomass()
+        memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.state[fluid].rhomass()
 
 # %%
 
@@ -1465,18 +1477,13 @@ def visc_ph(p, h, fluid):
     visc : float
         Viscosity visc / Pa s.
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('V', 'P', p, 'H', h, fluid)
     else:
-        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
-        return memorise.heos[fluid].viscosity()
+        memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.state[fluid].viscosity()
 
 # %%
 
@@ -1547,16 +1554,11 @@ def visc_pT(p, T, fluid):
     visc : float
         Viscosity visc / Pa s.
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('V', 'P', p, 'T', T, fluid)
     else:
-        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
-        return memorise.heos[fluid].viscosity()
+        memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.state[fluid].viscosity()
 
 # %%
 
@@ -1641,18 +1643,13 @@ def s_ph(p, h, fluid):
     s : float
         Specific entropy s / (J/(kgK)).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         db = tespy_fluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('S', 'P', p, 'H', h, fluid)
     else:
-        memorise.heos[fluid].update(CP.HmassP_INPUTS, h, p)
-        return memorise.heos[fluid].smass()
+        memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+        return memorise.state[fluid].smass()
 
 # %%
 
@@ -1737,16 +1734,11 @@ def s_pT(p, T, fluid):
     s : float
         Specific entropy s / (J/(kgK)).
     """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#        logging.warning(msg)
-    if 'TESPy::' in fluid:
+    if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
-    elif 'INCOMP::' in fluid:
-        return CPPSI('S', 'P', p, 'T', T, fluid)
     else:
-        memorise.heos[fluid].update(CP.PT_INPUTS, p, T)
-        return memorise.heos[fluid].smass()
+        memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return memorise.state[fluid].smass()
 
 
 def ds_mix_pdT(flow, T):

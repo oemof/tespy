@@ -1866,7 +1866,7 @@ class heat_exchanger(component):
             return 50e5
         elif key == 'h':
             flow = c.to_flow()
-            if c.s_id == 'out1':
+            if c.source_id == 'out1':
                 T = 200 + 273.15
                 return h_mix_pT(flow, T)
             else:
@@ -1902,7 +1902,7 @@ class heat_exchanger(component):
             return 50e5
         elif key == 'h':
             flow = c.to_flow()
-            if c.t_id == 'in1':
+            if c.target_id == 'in1':
                 T = 300 + 273.15
                 return h_mix_pT(flow, T)
             else:

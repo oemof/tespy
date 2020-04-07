@@ -1033,7 +1033,7 @@ class combustion_chamber(component):
             if o.good_starting_values is False:
                 if o.m.val_SI < 0 and not o.m.val_set:
                     o.m.val_SI = 10
-                nw.init_target(o, o.t)
+                nw.init_target(o, o.target)
 
                 if o.h.val_SI < 7.5e5 and not o.h.val_set:
                     o.h.val_SI = 1e6
@@ -1906,7 +1906,7 @@ class combustion_chamber_stoich(combustion_chamber):
             air = 'TESPy::' + self.air_alias.val
         flue_gas = 'TESPy::' + self.fuel_alias.val + "_fg"
 
-        for c in nw.comps.loc[self].o:
+        for c in nw.comps.loc[self, 'outlets']:
             if not c.fluid.val_set[air]:
                 c.fluid.val[air] = 0.8
             if not c.fluid.val_set[flue_gas]:
@@ -1934,7 +1934,7 @@ class combustion_chamber_stoich(combustion_chamber):
         flue_gas = 'TESPy::' + self.fuel_alias.val + "_fg"
         fuel = 'TESPy::' + self.fuel_alias.val
 
-        for c in nw.comps.loc[self].o:
+        for c in nw.comps.loc[self, 'outlets']:
             if not c.fluid.val_set[air]:
                 if c.fluid.val[air] > 0.95:
                     c.fluid.val[air] = 0.95
@@ -1951,16 +1951,16 @@ class combustion_chamber_stoich(combustion_chamber):
                 if c.fluid.val[fuel] > 0:
                     c.fluid.val[fuel] = 0
 
-            nw.init_target(c, c.t)
+            nw.init_target(c, c.target)
 
-        for i in nw.comps.loc[self].i:
+        for i in nw.comps.loc[self, 'inlets']:
             if i.m.val_SI < 0 and not i.m.val_set:
                 i.m.val_SI = 0.01
 
-        for c in nw.comps.loc[self].o:
+        for c in nw.comps.loc[self, 'outlets']:
             if c.m.val_SI < 0 and not c.m.val_set:
                 c.m.val_SI = 10
-            nw.init_target(c, c.t)
+            nw.init_target(c, c.target)
 
         if self.lamb.val < 1 and not self.lamb.is_set:
             self.lamb.val = 2

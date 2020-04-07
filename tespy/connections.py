@@ -96,6 +96,10 @@ class connection:
     printout: boolean
         Include this connection in the network's results printout.
 
+    label : str
+        Label of the connection. The default value is:
+        :code:`'source:source_id_target:target_id'`.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -198,6 +202,9 @@ class connection:
     >>> so_si2.set_attr(state=np.nan)
     >>> so_si2.state.is_set
     False
+    >>> so_si2.set_attr(label='myconnection')
+    >>> so_si2.label
+    'myconnection'
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -232,11 +239,14 @@ class connection:
             logging.error(msg)
             raise ValueError(msg)
 
+        self.label = (
+            comp1.label + ':' + outlet_id + '_' + comp2.label + ':' + inlet_id)
+
         # set specified values
-        self.s = comp1
-        self.s_id = outlet_id
-        self.t = comp2
-        self.t_id = inlet_id
+        self.source = comp1
+        self.source_id = outlet_id
+        self.target = comp2
+        self.target_id = inlet_id
 
         # defaults
         self.new_design = True
@@ -255,8 +265,9 @@ class connection:
 
         self.set_attr(**kwargs)
 
-        msg = ('Created connection ' + self.s.label + ' (' + self.s_id +
-               ') -> ' + self.t.label + ' (' + self.t_id + ').')
+        msg = (
+            'Created connection ' + self.source.label + ' (' + self.source_id +
+            ') -> ' + self.target.label + ' (' + self.target_id + ').')
         logging.debug(msg)
 
     def set_attr(self, **kwargs):
@@ -326,6 +337,10 @@ class connection:
 
         printout: boolean
             Include this connection in the network's results printout.
+
+        label : str
+            Label of the connection. The default value is:
+            :code:`'source:source_id_target:target_id'`.
 
         Note
         ----
@@ -497,6 +512,15 @@ class connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
+            elif key == 'label':
+                if isinstance(kwargs[key], str):
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = ('Please provide the ' + key + ' parameter as '
+                           'string.')
+                    logging.error(msg)
+                    raise TypeError(msg)
+
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'
@@ -524,6 +548,24 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
+    def get_fluid_properties(self):
+        r"""
+        Get the connection's fluid properties in user specified unit.
+
+        Returns
+        -------
+        out : dict
+            Fluid properties of connection.
+        """
+        return {
+            'p': self.p.val,
+            'h': self.h.val,
+            'T': self.T.val,
+            's': self.s.val,
+            'v': self.vol.val,
+            'Q': self.x.val
+        }
+
     @staticmethod
     def attr():
         r"""
@@ -535,7 +577,8 @@ class connection:
             List of available attributes of a connection.
         """
         return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
-                'x': dc_prop(), 'v': dc_prop(),
+                'x': dc_prop(), 'v': dc_prop(), 'vol': dc_prop(),
+                's': dc_prop(),
                 'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()}
 
     def to_flow(self):
@@ -936,8 +979,8 @@ class ref:
 
         msg = ('Created reference object with factor ' + str(self.f) +
                ' and delta ' + str(self.d) + ' referring to connection ' +
-               ref_obj.s.label + ' (' + ref_obj.s_id + ') -> ' +
-               ref_obj.t.label + ' (' + ref_obj.t_id + ').')
+               ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
+               ref_obj.target.label + ' (' + ref_obj.target_id + ').')
         logging.debug(msg)
 
     def get_attr(self, key):

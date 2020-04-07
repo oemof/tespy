@@ -93,35 +93,35 @@ def load_network(path):
     The structure of the path must be as follows:
 
     - Folder: path (e. g. 'mynetwork')
-    - Subfolder: comps (e. g. 'mynetwork/comps') containing
+    - Subfolder: components (e. g. 'mynetwork/components') containing
 
         - bus.csv*
         - char.csv*
         - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
 
-    - conns.csv
-    - netw.csv
+    - connections.csv
+    - network.json
 
     The imported network has the following additional features:
 
-    - Connections are accessible by their target's label and id, e. g. for a
-      connection going to 'condenser' at inlet 'in2' use
-      :code:`myimportednetwork.imp_conns['condenser:in2']`.
-    - Components are accessible by label, e. g. for a component
-      'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
-    - Busses are accessible by label, e. g. for a bus 'power input'
-      :code:`myimportednetwork.imp_busses['power input']`.
+    - Connections are accessible by label, e. g.
+      :code:`myimportednetwork.connections['myconnection']`. The default label
+      logic is :code:`source:source_id_target:target_id`, where the source
+      means the label of the component the connection originates from and
+      target means the label of the component, the connections targets on.
+    - Components are accessible by label as well, e. g. for a component
+      'heat exchanger' :code:`myimportednetwork.components['heat exchanger']`.
+    - Busses are accessible by label, too, e. g. for a bus 'power input'
+      :code:`myimportednetwork.busses['power input']`.
 
     Example
     -------
     Create a network and export it. This is followed by loading the network
     with the network_reader module. All network information stored will be
-    passed to a new network object. Components and busses will be accessible
-    by label, connections by
-    :code:`'source.label:source.id_target.label:target.id'`. The following
-    example setup is simple gas turbine setup with compressor, combustion
-    chamber and turbine.
+    passed to a new network object. Components, connections and busses will
+    be accessible by label. The following example setup is simple gas turbine
+    setup with compressor, combustion chamber and turbine.
 
     >>> from tespy.components import (sink, source, combustion_chamber,
     ... compressor, turbine)
@@ -137,7 +137,7 @@ def load_network(path):
     >>> comb = combustion_chamber('combustion')
     >>> t = turbine('turbine')
     >>> si = sink('sink')
-    >>> inc = connection(air, 'out1', c, 'in1')
+    >>> inc = connection(air, 'out1', c, 'in1', label='ambient air')
     >>> cc = connection(c, 'out1', comb, 'in1')
     >>> fc = connection(f, 'out1', comb, 'in2')
     >>> ct = connection(comb, 'out1', t, 'in1')
@@ -170,6 +170,7 @@ def load_network(path):
     >>> power.add_comps({'c': c}, {'c': t})
     >>> nw.add_busses(power)
     >>> nw.solve('design')
+    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
     >>> nw.save('exported_nwk')
     >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='exported_nwk',
@@ -193,26 +194,28 @@ def load_network(path):
     >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
     >>> imported_nwk.solve('design')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
-    0.9
-    >>> imported_nwk.imp_comps['compressor'].set_attr(igva='var')
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
-    0.9
-    >>> imported_nwk.imp_busses['total power output'].set_attr(P=-0.75e6)
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3) == eta_s_t
+    >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
     True
-    >>> round(imported_nwk.imp_comps['compressor'].igva.val, 3) == igva
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    0.9
+    >>> imported_nwk.components['compressor'].set_attr(igva='var')
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
+    ... init_path='exported_nwk')
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    0.9
+    >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
+    ... init_path='exported_nwk')
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3) == eta_s_t
+    True
+    >>> round(imported_nwk.components['compressor'].igva.val, 3) == igva
     True
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     """
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
-    path_comps = modify_path_os(path + 'comps/')
+    path_comps = modify_path_os(path + 'components/')
     path = modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
@@ -276,11 +279,8 @@ def load_network(path):
     # create network
     nw = construct_network(path)
 
-    # make components accessible by labels
-    nw.imp_comps = comps.to_dict()['instance']
-
     # load connections
-    fn = path + 'conn.csv'
+    fn = path + 'connections.csv'
     conns = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'design': ast.literal_eval,
                                     'offdesign': ast.literal_eval})
@@ -293,12 +293,9 @@ def load_network(path):
     conns.apply(conns_set_ref, axis=1, args=(conns,))
     conns = conns.set_index('id')
 
-    nw.imp_conns = {}
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.s.label + ':' + c.s_id + '_'
-                     + c.t.label + ':' + c.t_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)
@@ -316,7 +313,6 @@ def load_network(path):
         logging.debug(msg)
 
     # create busses
-    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -326,7 +322,6 @@ def load_network(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
-            nw.imp_busses[b.label] = b
 
         msg = 'Created busses.'
         logging.info(msg)
@@ -454,7 +449,7 @@ def construct_network(path):
         TESPy network object.
     """
     # read network .csv-file
-    netw = pd.read_csv(path + 'netw.csv', sep=';', decimal='.',
+    netw = pd.read_csv(path + 'network.json', sep=';', decimal='.',
                        converters={'fluids': ast.literal_eval})
     f_list = netw['fluids'][0]
 
@@ -493,13 +488,13 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = connection(args[0].instance[c.s], c.s_id,
-                      args[0].instance[c.t], c.t_id)
+    conn = connection(args[0].instance[c.source], c.source_id,
+                      args[0].instance[c.target], c.target_id)
 
     kwargs = {}
     # read basic properties
     for key in ['design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign']:
+                'local_offdesign', 'label']:
         if key in c:
             kwargs[key] = c[key]
 

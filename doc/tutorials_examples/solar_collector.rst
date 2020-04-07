@@ -8,12 +8,12 @@ found at the `tespy_examples repository
 
 .. figure:: api/_images/solar_collector.svg
     :align: center
-	
+
     Figure: Topology of the solar collector.
 
 The solarthermal collector is used to transfer heat from the solar radiation to
-the collector fluid. The TESPy component :py:class:`solar_collector 
-<tespy.components.components.solar_collector>` inherits from the 
+the collector fluid. The TESPy component :py:class:`solar_collector
+<tespy.components.components.solar_collector>` inherits from the
 :py:class:`simple_heat_exchanger <tespy.components.components.simple_heat_exchanger>`
 component. An energy balance is applied according to the
 :py:class:`solar collector energy func <tespy.components.components.solar_collector.energy_func>`
@@ -34,10 +34,10 @@ constant mass flow through the collector, the outlet temperature and the
 pressure losses of the collector are calculated.
 
 E. g., if you want to calculate the performance of the collector within a
-specifc period of time, you could have the absorped energy and the ambient
-temperature as input time series and iterate over said series. As the absorped
+specific period of time, you could have the absorbed energy and the ambient
+temperature as input time series and iterate over said series. As the absorbed
 energy of the collector is a function of the global radiation on the inclined
-surface, datetime and location only (optiacal losses are not temperature
-dependet), you could calculate the absorption in a preprocessing script. If you
-are to create such a script, we would appreciate you sharing and adding it to
-TESPy!
+surface, datetime and location only (optical losses are not temperature
+dependent), you could calculate the absorption in a preprocessing script. If
+you are to create such a script, we would appreciate you sharing and adding it
+to TESPy!

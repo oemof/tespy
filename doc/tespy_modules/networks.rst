@@ -22,7 +22,7 @@ The solver will solve for these variables. As stated in the introduction the
 list of fluids is passed to your network on creation. If your **system**
 **includes fluid mixtures**, you should **always make use of the value ranges**
 for the system variables. This improves the stability of the algorithm. Try to
-fit the boundaries as tight as possible, for instance, if you kwow that the
+fit the boundaries as tight as possible, for instance, if you know that the
 maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
 .. note::
@@ -135,7 +135,7 @@ choose :code:`offdesign` as calculation mode the specification of a
 The usage of an initialisation path is always optional but highly recommended,
 as the convergence of the solution process will be improved, if you provide
 good starting values. If you do not specify an :code:`init_path`, the
-initialisation from priorly saved results will be skipped.
+initialisation from saved results will be skipped.
 :code:`init_only=True` usually is used for debugging. Or, you could use this
 feature to export a not solved network, if you want to do the parametrisation
 in .csv-files rather than your python script.
@@ -157,7 +157,7 @@ Specifying a value for the efficiency is of course possible.
 
 Offdesign mode
 ++++++++++++++
-The offdesign mode is used to **calulate the performance of your plant, if**
+The offdesign mode is used to **calculate the performance of your plant, if**
 **parameters deviate from the plant's design point**. This can be partload
 operation, operation at different temperature or pressure levels etc.. Thus,
 before starting an offdesing calculation you have to design your plant first.
@@ -217,7 +217,7 @@ variables n** is :math:`n = num_{conn} \cdot (3 + num_{fluids})`.
 The algorithm requires starting values for all variables of the system, thus an
 initialisation of the system is run prior to calculating the solution. **High**
 **quality initial values are crutial for convergence speed and stability**, bad
-starting values might lead to instabilty and diverging calculation can be the
+starting values might lead to instability and diverging calculation can be the
 result. There are different levels for the initialisation.
 
 Initialisation
@@ -241,7 +241,7 @@ The initialisation is performed in the following steps.
    argument).
 
 The network check is used to find errors in the network topology, the
-calulation can not start without a successful check. For components, a
+calculation can not start without a successful check. For components, a
 preprocessing of some parameters is necessary. It is performed by the
 :code:`comp_init` method of the components. You will find the methods in the
 :py:mod:`components module <tespy.components>`. The design/offdesign switch is
@@ -288,9 +288,9 @@ file.
     The files do not need to contain all connections of your network. You can
     build your network step by step and initialise the existing parts of your
     network from the :code:`init_path`. Be aware that a change within the fluid
-    vector does not alow this practice! If you plan to use additional fluids in
-    parts of the network you have not touched until now, you will need to state
-    all fluids from the beginning.
+    vector does not allow this practice! If you plan to use additional fluids
+    in parts of the network you have not touched until now, you will need to
+    state all fluids from the beginning.
 
 
 Algorithm
@@ -301,7 +301,7 @@ implemented.
 Newton–Raphson method
 +++++++++++++++++++++
 The Newton–Raphson method requires the calculation of residual values for the
-equations and of the partial derivatives to all system variables (jacobian
+equations and of the partial derivatives to all system variables (Jacobian
 matrix). In the next step the matrix is inverted and multiplied with the
 residual vector to calculate the increment for the system variables. This
 process is repeated until every equation's result in the system is "correct",
@@ -383,7 +383,7 @@ applied:
 
  * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
    mass fraction of a single fluid components never exceeds these boundaries.
- * Check, wheather the fluid properties of pure fluids are within the available
+ * Check, whether the fluid properties of pure fluids are within the available
    ranges of CoolProp and readjust the values if not.
 
 The next two steps are applied, if the user did not specify an
@@ -444,7 +444,8 @@ these equations and derivatives.
 .. note::
 
     In order to make sure, that every equations is evaluated at least twice,
-    the minimum amout of iterations before convergence can be accepted is at 4.
+    the minimum amount of iterations before convergence can be accepted is at
+    4.
 
 Troubleshooting
 +++++++++++++++
@@ -471,7 +472,7 @@ When using multiple fluids in your network, e. g.
 water only, you still need to specify the mass fractions for both air and
 methane (although beeing zero) at that point
 :code:`fluid={'water': 1, 'air': 0, 'methane': 0}`. Also, setting
-:code:`fluid={water: 1}, fluid_balance=True` will still not be sufficent, as
+:code:`fluid={water: 1}, fluid_balance=True` will still not be sufficient, as
 the fluid_balance parameter adds only one equation to your system.
 
 If you are modeling a cycle, e. g. the clausius rankine cylce, you need to make
@@ -493,18 +494,18 @@ frequent reasons for that:
  * A linear dependency in the jacobian matrix due to bad parameter settings
    stops the calculation (overdetermining one variable, while missing out on
    another).
- * A linear dependency in the jacobian matrix due to bad starting values stops
+ * A linear dependency in the Jacobian matrix due to bad starting values stops
    the calculation.
 
-The first reason can be eleminated by carefully choosing the parametrisation.
-**A linear dependendy due to bad starting values is often more difficult to**
+The first reason can be eliminated by carefully choosing the parametrization.
+**A linear dependency due to bad starting values is often more difficult to**
 **resolve and it may require some experience.** In many cases, the linear
 dependency is caused by equations, that require the **calculation of a**
 **temperature**, e. g. specifying a temperature at some point of the network,
 terminal temperature differences at heat exchangers, etc.. In this case,
 **the starting enthalpy and pressure should be adjusted in a way, that the**
 **fluid state is not within the two-phase region:** The specification of
-temperature and pressure in a two-phase region does not yield a distict value
+temperature and pressure in a two-phase region does not yield a distinct value
 for the enthalpy. Even if this specific case appears after some iterations,
 better starting values often do the trick.
 
@@ -516,11 +517,11 @@ in this case.
 .. note::
 
     If you experience slow convergence or instability within the convergence
-    process, it is sometimes helpful to have a look at the iterinformation.
-    This is printed by default and provides information on the residuals of
-    your systems' equations and on the increments of the systems' variables.
-    Maybe it is only one variable causing the instability, its increment is
-    much larger than the incerement of the other variables?
+    process, it is sometimes helpful to have a look at the iteration
+    information. This is printed by default and provides information on the
+    residuals of your systems' equations and on the increments of the systems'
+    variables. Maybe it is only one variable causing the instability, its
+    increment is much larger than the increment of the other variables?
 
 Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
@@ -594,7 +595,7 @@ characteristics) holding the parametrization of that network. You can reimport
 the network using following code with the path to the saved documents. The
 generated network object contains the same information as a TESPy network
 created by a python script. Thus, it is possible to set your parameters in the
-.csv-files, too. The imported network is handeled identically as a manually
+.csv-files, too. The imported network is handled identically as a manually
 created network.
 
 .. code:: python
@@ -605,10 +606,11 @@ created network.
 
 .. note::
 
-    - Imported connections are accessible by the connections' source and source
-      id as well as target and target id following this principle:
-      :code:`imported_plant.imp_conns['source-label:source-id_target-label:target-id']`,
-      e. g. :code:`imported_plant.imp_conns['condenser:out1_condensate pump:in1']`.
-    - Imported components and busses are accessible by their label, e. g.
-      :code:`imported_plant.imp_comps['condenser']` and
-      :code:`imported_plant.imp_busses['total heat output']` respectively.
+    Imported busses, components and connections are accessible by their label,
+    e. g. :code:`imported_plant.busses['total heat output']`,
+    :code:`imported_plant.components['condenser']` and
+    :code:`imported_plant.connections['myconnectionlabel']` respectively. If
+    you did not provide labels for your connections, by default, the
+    connection's label will be according to this principle:
+    :code:`'source-label:source-id_target-label:target-id'`, where source and
+    target are the labels of the connected components.

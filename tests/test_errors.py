@@ -92,6 +92,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
+    set_attr_TypeError(conn, label=5)
 
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)
@@ -466,6 +467,16 @@ class TestNetworkErrors:
     def test_no_connections_error(self):
         with raises(TESPyNetworkError):
             self.nw.solve('design')
+
+    def test_duplicate_connection_labels(self):
+        source1 = basics.source('source1')
+        source2 = basics.source('source2')
+        sink1 = basics.sink('sink1')
+        sink2 = basics.sink('sink2')
+        a = connection(source1, 'out1', sink1, 'in1', label='myconn')
+        b = connection(source2, 'out1', sink2, 'in1', label='myconn')
+        with raises(ValueError):
+            self.nw.add_conns(a, b)
 
     def test_connection_error_source(self):
         source = basics.source('source')

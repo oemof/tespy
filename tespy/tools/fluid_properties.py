@@ -1239,7 +1239,7 @@ def Q_ph(p, h, fluid):
     try:
         memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.state[fluid].Q()
-    except KeyError, ValueError:
+    except (KeyError, ValueError) as e:
         return np.nan
 
 # %%

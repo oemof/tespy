@@ -15,13 +15,13 @@ following parameters:
  * pressure* (p),
  * enthalpy* (h),
  * temperature* (T),
- * vapour mass fraction for pure fluids (x),
+ * vapor mass fraction for pure fluids (x),
  * a fluid vector (fluid) and
  * a balance closer for the fluid vector (fluid_balance).
 
 It is possible to specify values, starting values, references and data
 containers. The data containers for connections are dc_prop for fluid
-properties (mass flow, pressure, enthalpy, temperature and vapour mass
+properties (mass flow, pressure, enthalpy, temperature and vapor mass
 fraction) and dc_flu for fluid composition. If you want to specify
 data_containers, you need to import them from the :code:`tespy.tools` module.
 
@@ -43,12 +43,12 @@ In order to create the connections we create the components to connect first.
     myconn = connection(source1, 'out1', sink1, 'in1')
     myotherconn = connection(source2, 'out1', sink2, 'in1')
 
-    # set pressure and vapour mass fraction by value, temperature and enthalpy
+    # set pressure and vapor mass fraction by value, temperature and enthalpy
     # analogously
     myconn.set_attr(p=7, x=0.5)
 
     # set starting values for mass flow, pressure and enthalpy (has no effect
-    # on temperature and vapour mass fraction!)
+    # on temperature and vapor mass fraction!)
     myconn.set_attr(m0=10, p0=15, h0=100)
 
     # do the same with a data container
@@ -134,7 +134,7 @@ case, the ratio will always be 1.
     There are different specification possibilites:
 
     - If you specify the component only, the parameter will be default
-      (not working with cogeneration unit) and the conversion factor of the
+      (not working with combustion engine) and the conversion factor of the
       characteristic line will be 1 for every load.
     - If you specify a numeric value for char, the conversion factor will be
       equal to that value for every load.
@@ -192,7 +192,7 @@ generator for power conversion an specify the total power output.
 
 .. code:: python
 
-    # bus for cogeneration unit power
+    # bus for combustion engine power
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
     # createa characteristic line for a generator

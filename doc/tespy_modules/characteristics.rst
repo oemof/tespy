@@ -25,7 +25,7 @@ It is possible to specify an :code:`extrapolate` parameter. If the value is
 minimum value of the characteristic line the y-value corresponding to the the
 maximum/minimum value is returned instead. If the :code:`extrapolate` is
 :code:`True` linear extrapolation is performed using the two lower most or
-upper moste value pairs respectively.
+upper most value pairs respectively.
 
 Characteristic maps
 -------------------
@@ -34,7 +34,7 @@ The characteristic maps use linear interpolation as well. First step is
 interpolation on the x-dimension similar to the characteristic line
 functionality. As the y, z1 and z2 data are two-dimensional, **each row of**
 **the data corresponds to one x value**. Thus, the result of the first step is
-a vector for each dimesion (y, z1 and z2).
+a vector for each dimension (y, z1 and z2).
 
 .. math::
 

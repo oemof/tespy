@@ -7,7 +7,7 @@ Examples and Tutorials
 Examples
 ========
 
-In the example section we provide a variety of TESPy applications, amongst
+In the example section we provide a variety of TESPy applications, among
 others:
 
 * a very basic model of the clausius rankine process,
@@ -31,7 +31,7 @@ on github. Additional small examples can be found in the API-documentation.
     :depth: 1
     :local:
     :backlinks: top
-	
+
 .. _basic_example_label:
 .. include:: tutorials_examples/clausius_rankine.rst
 .. _combined_cycle_example_label:
@@ -53,16 +53,16 @@ Tutorials
 
 We provide two different tutorials for you to better understand how to work
 with TESPy. You will learn how to create basic models and get the idea of
-designing a plant and simulating the offdesign behaviour in the heat pump
+designing a plant and simulating the offdesign behavior in the heat pump
 tutorial. On top of that, we created a tutorial for the usage of the combustion
-chamber: It is an important component for thermal power plants while beeing a
+chamber: It is an important component for thermal power plants while being a
 source for many errors in the calculation.
 
 .. contents:: `Tutorials`
     :depth: 1
     :local:
     :backlinks: top
-	
+
 .. _heat_pump_tutorial_label:
 .. include:: tutorials_examples/tutorial_heat_pump.rst
 .. _combustion_chamber_tutorial_label:

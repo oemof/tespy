@@ -12,8 +12,8 @@ can be used as a standalone package.
 
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of your plant. From that point it is possible to
-predict the offdesign behaviour of your plant using underlying characteristics
-for each of the plants components. For now, the package inlcudes basic
+predict the offdesign behavior of your plant using underlying characteristics
+for each of the plants components. For now, the package includes basic
 components, such as turbines, pumps, compressors, heat exchangers, pipes,
 mixers and splitters as well as some advanced components
 (derivatives of heat exchangers, drum).
@@ -61,7 +61,7 @@ with all important information on the different modules of TESPy.
 License
 =======
 
-Copyright (c) 2019 oemof developer group
+Copyright (c) 2020 oemof developer group
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

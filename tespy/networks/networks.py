@@ -515,6 +515,13 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
 
+            elif c.label in self.connections.keys():
+                msg = (
+                    'There is already a connection with the label ' +
+                    c.label + '. The connection labels must be unique!')
+                logging.error(msg)
+                raise ValueError(msg)
+
             c.good_starting_values = False
 
             self.conns.loc[c] = [c.source, c.source_id, c.target, c.target_id]

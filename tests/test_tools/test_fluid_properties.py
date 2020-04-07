@@ -22,8 +22,9 @@ class TestFluidProperties:
 
     def setup(self):
         fluids = ['Air', 'N2', 'O2', 'Ar', 'CO2']
-        fp.memorise.add_fluids(['Air'])
-        fp.memorise.add_fluids(['N2', 'O2', 'Ar', 'CO2'])
+        fp.memorise.add_fluids({'Air': 'HEOS'})
+        fp.memorise.add_fluids({
+            'N2': 'HEOS', 'O2': 'HEOS', 'Ar': 'HEOS', 'CO2': 'HEOS'})
 
         mix = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         pure = {'Air': 1}

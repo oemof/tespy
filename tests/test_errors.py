@@ -234,7 +234,9 @@ def test_combustion_chamber_missing_fuel():
 class TestCombustionChamberStoichErrors:
 
     def setup_combustion_chamber_stoich_error_tests(self):
-        self.nw = network(['TESPy::fuel', 'TESPy::fuel_fg', 'Air'])
+        self.nw = network(
+            ['fuel', 'fuel_fg', 'Air'],
+            p_range=[1e4, 1e6], T_range=[300, 1500])
         label = 'combustion chamber'
         self.instance = combustion.combustion_chamber_stoich(label)
         c1 = connection(basics.source('air'), 'out1', self.instance, 'in1')
@@ -258,8 +260,11 @@ class TestCombustionChamberStoichErrors:
     def test_cc_stoich_bad_fuel_alias(self):
         """Test bad name for fuel alias."""
         self.setup_combustion_chamber_stoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
-        with raises(TESPyComponentError):
+        self.instance.set_attr(fuel={'CH4': 1},
+                               air={'N2': 0.76, 'O2': 0.24},
+                               fuel_alias='TESPy::fuel',
+                               air_alias='myair')
+        with raises(ValueError):
             self.nw.solve('design', init_only=True)
 
     def test_cc_stoich_missing_air(self):
@@ -283,7 +288,7 @@ class TestCombustionChamberStoichErrors:
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
                                air_alias='TESPy::air')
-        with raises(TESPyComponentError):
+        with raises(ValueError):
             self.nw.solve('design', init_only=True)
 
     def test_cc_stoich_missing_oxygen(self):

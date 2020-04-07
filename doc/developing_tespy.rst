@@ -12,7 +12,7 @@ equations, basically what ever you can think of.
 We want to invite you to join the developing process and share your ideas. Your
 solutions may help other users as well. Contributing to the development of
 TESPy may help other people and it improves the quality of your code as it will
-be reviewd by other developers.
+be reviewed by other developers.
 
 The easiest way of joining the developing process is by improving the
 documentation. If you spot mistakes or think, the documentation could be more
@@ -50,7 +50,7 @@ repository.
 
 	git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
 
-In order to stay in synch with the oemof/tespy base repository, add the link to
+In order to stay in sync with the oemof/tespy base repository, add the link to
 the oemof/tespy repository as remote to your local copy of tespy. We will call
 the link "upstream". Fetch branches available and after that, you can pull
 changes from a specific branch of the oemof/tespy repository (branch "dev" in
@@ -81,7 +81,7 @@ and create a pull request for the dev branch. We appreciate your contribution!
 Improve or add new equations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The components equations represent the behaviour of each component. Are we
+The components equations represent the behavior of each component. Are we
 missing any equations? Or do you see possibilities to improve the formulation?
 Add them to your code and create a pull request on the dev branch.
 
@@ -101,7 +101,7 @@ Add component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The component characteristics represent large added value for your calculation.
-If you have detailed information on components offdesign behaviour - even for
+If you have detailed information on components offdesign behavior - even for
 specific cases - it will improve the results. Every user can benefit from this
 knowlegde and thus we are very happy to discuss about the implementation of new
 characteristics.

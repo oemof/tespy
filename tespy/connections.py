@@ -96,6 +96,10 @@ class connection:
     printout: boolean
         Include this connection in the network's results printout.
 
+    label : str
+        Label of the connection. The default value is:
+        :code:`'source:source_id_target:target_id'`.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -198,6 +202,9 @@ class connection:
     >>> so_si2.set_attr(state=np.nan)
     >>> so_si2.state.is_set
     False
+    >>> so_si2.set_attr(label='myconnection')
+    >>> so_si2.label
+    'myconnection'
     """
 
     def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
@@ -231,6 +238,9 @@ class connection:
                    str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
+
+        self.label = (
+            comp1.label + ':' + outlet_id + '_' + comp2.label + ':' + inlet_id)
 
         # set specified values
         self.source = comp1
@@ -327,6 +337,10 @@ class connection:
 
         printout: boolean
             Include this connection in the network's results printout.
+
+        label : str
+            Label of the connection. The default value is:
+            :code:`'source:source_id_target:target_id'`.
 
         Note
         ----
@@ -497,6 +511,15 @@ class connection:
                     raise TypeError(msg)
                 else:
                     self.__dict__.update({key: kwargs[key]})
+
+            elif key == 'label':
+                if isinstance(kwargs[key], str):
+                    self.__dict__.update({key: kwargs[key]})
+                else:
+                    msg = ('Please provide the ' + key + ' parameter as '
+                           'string.')
+                    logging.error(msg)
+                    raise TypeError(msg)
 
             # invalid keyword
             else:

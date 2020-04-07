@@ -79,7 +79,7 @@ or a virtual environment e. g. in :ref:`Anaconda <anaconda_label>`.
 
 TESPy requires the CoolProp python package, which will be installed
 automatically. As it is build from C++, you need to have Microsoft Visual
-Stuido C++ Build Tools 14.0 installed. Try installing TESPy with the following
+Studio C++ Build Tools 14.0 installed. Try installing TESPy with the following
 code in the command window of your python environment:
 
 .. code:: console

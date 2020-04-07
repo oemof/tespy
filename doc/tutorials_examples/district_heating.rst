@@ -11,10 +11,10 @@ structures for the consumers and this is, where the subsystems come in place.
 
 .. figure:: api/_images/dhs.svg
     :align: center
-	
+
     Figure: Topology of the heating system.
-	
-The single consumers are connected to the main grid with a controle valve at
+
+The single consumers are connected to the main grid with a control valve at
 the outlet and each fork is connected with a pipe to the next fork. Also, the
 main grid may have a dead end (e. g. in the housing areas, see subsystem
 closed) or is open to connect to another part of the grid (industrial area,
@@ -23,17 +23,17 @@ the upstream part with the fork subsystem (Ki, see subsystem fork).
 
 .. figure:: api/_images/dhs_closed.svg
     :align: center
-	
+
     Figure: Generic topology of the dead end subsystem.
 
 .. figure:: api/_images/dhs_open.svg
     :align: center
-	
+
     Figure: Generic topology of the open subsystem.
 
 .. figure:: api/_images/dhs_forks.svg
     :align: center
-	
+
     Figure: Generic topology of the forks (variable number of branches).
 
 After the system has been set up, we designed the pipes' insulation in a way,

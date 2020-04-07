@@ -8,18 +8,18 @@ found at the `tespy_examples repository
 
 .. figure:: api/_images/basic.svg
     :align: center
-	
+
     Figure: Topology of the basic clausius rankine cycle.
 
 The basic clausius rankine cycle is built up of a steam turbine, a condenser,
 the feed water pump and the steam generator. The ideal process' isentropic
 efficiencies of the steam turbine and the pump are at a value of 100 %, and
 pressure losses in the condenser and the steam generator are non-existent,
-which would result in the thermal efficiency beeing equal to the carnot 
+which would result in the thermal efficiency being equal to the Carnot
 efficiency. For this example realistic figures have been chosen.
 After the plant design an offdesign calculation with 90 % rated power is
 performed. The inline-comments give you hints which and why offdesign
-parameters have been choosen. Additionally we added a calculation of thermal
+parameters have been chosen. Additionally we added a calculation of thermal
 efficiency with the standard method as well as with the entropy method:
 
 .. math::
@@ -38,15 +38,15 @@ efficiency with the standard method as well as with the entropy method:
     {\sum \dot{Q}_{in}}
 
     \text{indices: in = input, out = output}
-    
+
 .. figure:: api/_images/basic_efficiency.svg
     :align: center
-	
-    Figure: Efficiency of the basic clausius rankine cycle in design case.    
-    
+
+    Figure: Efficiency of the basic clausius rankine cycle in design case.
+
 For a good start you can try to modify or exchange parameters. E. g. adjust the
 value of the upper terminal temperature difference at the condenser, or replace
-this parameter with a pressure at the turbine's outlet. In oder to get more
+this parameter with a pressure at the turbine's outlet. In order to get more
 familiar with how TESPy works you could try to insert more components, maybe
 add an extraction of the steam turbine for preheating the feed water. It is
 strongly recommended to add new components bit per bit, troubleshooting is much

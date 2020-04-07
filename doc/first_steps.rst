@@ -68,8 +68,8 @@ exchanger. The definition of the parameters available can be found here:
 
 .. code-block:: python
 
-    from tespy.components import (sink, source, pipe, valve,
-                                  heat_excanger_simple)
+    from tespy.components import (
+        sink, source, pipe, valve, heat_exchanger_simple)
 
     # sources & sinks (central heating plant)
     so = source('heat source output')

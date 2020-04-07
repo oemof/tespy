@@ -21,7 +21,7 @@ two-phase region.
 Incompressible fluids
 ---------------------
 
-If you are looking for heat transer fluids, the list of incompressible
+If you are looking for heat transfer fluids, the list of incompressible
 `fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`_
 might be interesting for you. In contrast to the pure fluids, the properties
 cover liquid state only.

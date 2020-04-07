@@ -125,14 +125,14 @@ within the same folder as your script.
     fg_sg.set_attr(fluid={'air': 1, 'water': 0}, T=650, m=100)
 
     sg_ls.set_attr(p=130)
-    sg_ch.set_attr(p=1, T=150, design=['T'])
+    sg_ch.set_attr(p=1)
 
     sg.conns['eva_dr'].set_attr(x=0.6)
 
     # %% component parameters
 
-    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97,
-                             design=['pr1', 'pr2'],
+    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97, ttd_u=25,
+                             design=['pr1', 'pr2', 'ttd_u'],
                              offdesign=['zeta1', 'zeta2', 'kA'])
 
     sg.comps['eva'].set_attr(pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
@@ -153,7 +153,7 @@ within the same folder as your script.
     nw.solve('offdesign', design_path='tmp')
 
 
-Add more felxibility
+Add more flexibility
 --------------------
 
 If you want to add even more flexibility, you might need to manipulate the
@@ -167,7 +167,7 @@ code between the label declaration and the components and connection creation.
 For example, if you want a variable number of inlets and outlets because you
 have a variable number of components groups within your subsystem, you may
 introduce an attribute which is set on initialisation and lets you create and
-parametrize components and connections generically. This might be very
+parameterize components and connections generically. This might be very
 interesting for district heating systems, turbines with several sections of
 equal topology, etc.. For a good start, you can have a look at the
 :code:`sub_consumer.py` of the district heating network in the

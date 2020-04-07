@@ -54,7 +54,7 @@ The changes affect
 Data generated in older versions of TESPy can not be imported. In order to fix
 this follow the steps below.
 
-- rename the :codoe:`comps` folder to :code:`components`
+- rename the :code:`comps` folder to :code:`components`
 - rename the :code:`conns.csv` file to :code:`connections.csv`
 
 and within the file rename the columns

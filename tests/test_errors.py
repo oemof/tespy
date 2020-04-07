@@ -468,6 +468,16 @@ class TestNetworkErrors:
         with raises(TESPyNetworkError):
             self.nw.solve('design')
 
+    def test_duplicate_connection_labels(self):
+        source1 = basics.source('source1')
+        source2 = basics.source('source2')
+        sink1 = basics.sink('sink1')
+        sink2 = basics.sink('sink2')
+        a = connection(source1, 'out1', sink1, 'in1', label='myconn')
+        b = connection(source2, 'out1', sink2, 'in1', label='myconn')
+        with raises(ValueError):
+            self.nw.add_conns(a, b)
+
     def test_connection_error_source(self):
         source = basics.source('source')
         sink1 = basics.sink('sink1')

@@ -49,9 +49,18 @@ Testing
 #######
 - Move from nose to pytest
   (`PR #165 <https://github.com/oemof/tespy/pull/165>`_).
+- Add fluid property test for a mixture of a tespy_fluid with a third
+  fluid and a mixture of the same individual fluids
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
+- Add a gasturbine model test for comparison of the stoichiometric combustion
+  chamber with the standard combustion chamber
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 
 Bug fixes
 #########
+- Increase the number of support points for tespy_fluid tabular data creation
+  in order to lift accuracy to a more acceptable value
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 
 Other changes
 #############

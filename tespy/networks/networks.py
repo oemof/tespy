@@ -1915,7 +1915,8 @@ class network:
                 # this prevents negative pressures
                 relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
-                c.p.val_SI += self.increment[i * (self.num_conn_vars) + 1] / relax
+                c.p.val_SI += self.increment[
+                    i * (self.num_conn_vars) + 1] / relax
             if c.h.val_set is False:
                 c.h.val_SI += self.increment[i * (self.num_conn_vars) + 2]
 
@@ -1926,7 +1927,8 @@ class network:
                     # add increment
                     if c.fluid.val_set[fluid] is False:
                         c.fluid.val[fluid] += (
-                                self.increment[i * (self.num_conn_vars) + 3 + j])
+                                self.increment[
+                                    i * (self.num_conn_vars) + 3 + j])
 
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < err:

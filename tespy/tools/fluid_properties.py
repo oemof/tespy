@@ -176,21 +176,7 @@ class tespy_fluid:
 
         self.fluids_backends = OrderedDict()
 
-        for f in sorted(list(self.fluid.keys()) + [self.alias]):
-            try:
-                data = f.split('::')
-                backend = data[0]
-                fluid = data[1]
-            except IndexError:
-                backend = 'HEOS'
-                fluid = f
-
-            if f != self.alias:
-                self.fluids_backends[f] = backend
-            else:
-                self.fluids_backends[f] = 'TESPy'
-
-        memorise.add_fluids(self.fluids_backends)
+        memorise.add_fluids({self.alias: 'TESPy'})
 
         params = {}
 
@@ -544,39 +530,36 @@ def T_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    a = memorise.T_ph[fl][:, 0:-1]
-    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+    memorisation = fl in memorise.T_ph.keys()
+    if memorisation is True:
+        a = memorise.T_ph[fl][:, :-1]
+        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
 
-    if ix.size == 1:
-        # known fluid properties
-        T = memorise.T_ph[fl][ix, -1][0]
-        memorise.T_ph_f[fl] += [T]
-        return T
+        if ix.size == 1:
+            # known fluid properties
+            T = memorise.T_ph[fl][ix, -1][0]
+            memorise.T_ph_f[fl] += [T]
+            return T
+
+    # unknown fluid properties
+    fluid = single_fluid(flow[3])
+    if fluid is None:
+        # calculate the fluid properties for fluid mixtures
+        if T0 < 70:
+            T0 = 300
+        val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
+                     valmin=70, valmax=3000, imax=10)
     else:
-        # unknown fluid properties
-        if num_fluids(flow[3]) > 1:
-            # calculate the fluid properties for fluid mixtures
-            if T0 < 70:
-                T0 = 300
-            val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
-                         valmin=70, valmax=3000, imax=10)
-            new = np.array([[flow[1], flow[2]] +
-                            list(flow[3].values()) + [val]])
-            # memorise the newly calculated value
-            memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
-            return val
-        else:
-            # calculate fluid property for pure fluids
-            for fluid, x in flow[3].items():
-                if x > err:
-                    val = T_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
-                    # memorise the newly calculated value
-                    memorise.T_ph[fl] = np.append(
-                            memorise.T_ph[fl], new, axis=0)
-                    return val
+        # calculate fluid property for pure fluids
+        val = T_ph(flow[1], flow[2], fluid)
+
+    if memorisation is True:
+        # memorise the newly calculated value
+        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
+
+    return val
 
 
 def T_ph(p, h, fluid):
@@ -693,8 +676,8 @@ def dT_mix_ph_dfluid(flow, T0=300):
         if x > err:
             up[3][fluid] += d
             lo[3][fluid] -= d
-            vec_deriv += [(T_mix_ph(up, T0=T0) -
-                           T_mix_ph(lo, T0=T0)) / (2 * d)]
+            vec_deriv += [
+                (T_mix_ph(up, T0=T0) - T_mix_ph(lo, T0=T0)) / (2 * d)]
             up[3][fluid] -= d
             lo[3][fluid] += d
         else:
@@ -742,37 +725,42 @@ def T_mix_ps(flow, s, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    a = memorise.T_ps[fl][:, 0:-1]
-    b = np.array([flow[1], flow[2]] + list(flow[3].values()) + [s])
-    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
-    if ix.size == 1:
-        # known fluid properties
-        T = memorise.T_ps[fl][ix, -1][0]
-        memorise.T_ps_f[fl] += [T]
-        return T
-    else:
-        # unknown fluid properties
-        if num_fluids(flow[3]) > 1:
-            # calculate the fluid properties for fluid mixtures
-            if T0 < 70:
-                T0 = 300
-            val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
-                         valmin=70, valmax=3000, imax=10)
-            new = np.array([[flow[1], flow[2]] +
-                            list(flow[3].values()) + [s, val]])
+    memorisation = fl in memorise.T_ps.keys()
+    if memorisation is True:
+        a = memorise.T_ps[fl][:, :-1]
+        b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
+        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        if ix.size == 1:
+            # known fluid properties
+            T = memorise.T_ps[fl][ix, -1][0]
+            memorise.T_ps_f[fl] += [T]
+            return T
+
+    # unknown fluid properties
+    fluid = single_fluid(flow[3])
+    if fluid is None:
+        # calculate the fluid properties for fluid mixtures
+        if T0 < 70:
+            T0 = 300
+        val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
+                     valmin=70, valmax=3000, imax=10)
+        if memorisation is True:
+            new = np.asarray(
+                [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
             # memorise the newly calculated value
             memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
-            return val
-        else:
-            # calculate fluid property for pure fluids
-            msg = ('The calculation of temperature from pressure and entropy '
-                   'for pure fluids should not be required, as the '
-                   'calculation is always possible from pressure and '
-                   'enthalpy. If there is a case, where you need to calculate '
-                   'temperature from these properties, please inform us: '
-                   'https://github.com/oemof/tespy.')
-            logging.error(msg)
-            raise ValueError(msg)
+
+        return val
+    else:
+        # calculate fluid property for pure fluids
+        msg = ('The calculation of temperature from pressure and entropy '
+               'for pure fluids should not be required, as the '
+               'calculation is always possible from pressure and '
+               'enthalpy. If there is a case, where you need to calculate '
+               'temperature from these properties, please inform us: '
+               'https://github.com/oemof/tespy.')
+        logging.error(msg)
+        raise ValueError(msg)
 
 # %% deprecated
 #            for fluid, x in flow[3].items():
@@ -1145,35 +1133,32 @@ def v_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    a = memorise.v_ph[fl][:, 0:-1]
-    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
-    if ix.size == 1:
-        # known fluid properties
-        v = memorise.v_ph[fl][ix, -1][0]
-        memorise.v_ph_f[fl] += [v]
-        return v
+    memorisation = fl in memorise.v_ph.keys()
+    if memorisation is True:
+        a = memorise.v_ph[fl][:, :-1]
+        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        if ix.size == 1:
+            # known fluid properties
+            v = memorise.v_ph[fl][ix, -1][0]
+            memorise.v_ph_f[fl] += [v]
+            return v
+
+    # unknown fluid properties
+    fluid = single_fluid(flow[3])
+    if fluid is None:
+        # calculate the fluid properties for fluid mixtures
+        val = v_mix_pT(flow, T_mix_ph(flow, T0=T0))
     else:
-        # unknown fluid properties
-        if num_fluids(flow[3]) > 1:
-            # calculate the fluid properties for fluid mixtures
-            val = v_mix_pT(flow, T_mix_ph(flow, T0=T0))
-            new = np.array([[flow[1], flow[2]] +
-                            list(flow[3].values()) + [val]])
-            # memorise the newly calculated value
-            memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
-            return val
-        else:
-            # calculate fluid property for pure fluids
-            for fluid, x in flow[3].items():
-                if x > err:
-                    val = 1 / d_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
-                    # memorise the newly calculated value
-                    memorise.v_ph[fl] = np.append(
-                            memorise.v_ph[fl], new, axis=0)
-                    return val
+        # calculate fluid property for pure fluids
+        val = 1 / d_ph(flow[1], flow[2], fluid)
+
+    if memorisation is True:
+        # memorise the newly calculated value
+        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
+
+    return val
 
 
 def d_ph(p, h, fluid):
@@ -1417,35 +1402,31 @@ def visc_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    a = memorise.visc_ph[fl][:, 0:-1]
-    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
-    if ix.size == 1:
-        # known fluid properties
-        visc = memorise.visc_ph[fl][ix, -1][0]
-        memorise.visc_ph_f[fl] += [visc]
-        return visc
+    memorisation = fl in memorise.visc_ph.keys()
+    if memorisation is True:
+        a = memorise.visc_ph[fl][:, :-1]
+        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        if ix.size == 1:
+            # known fluid properties
+            visc = memorise.visc_ph[fl][ix, -1][0]
+            memorise.visc_ph_f[fl] += [visc]
+            return visc
+
+    # unknown fluid properties
+    fluid = single_fluid(flow[3])
+    if fluid is None:
+        # calculate the fluid properties for fluid mixtures
+        val = visc_mix_pT(flow, T_mix_ph(flow, T0=T0))
     else:
-        # unknown fluid properties
-        if num_fluids(flow[3]) > 1:
-            # calculate the fluid properties for fluid mixtures
-            val = visc_mix_pT(flow, T_mix_ph(flow, T0=T0))
-            new = np.array([[flow[1], flow[2]] +
-                            list(flow[3].values()) + [val]])
-            # memorise the newly calculated value
-            memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
-            return val
-        else:
-            # calculate fluid property for pure fluids
-            for fluid, x in flow[3].items():
-                if x > err:
-                    val = visc_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
-                    # memorise the newly calculated value
-                    memorise.visc_ph[fl] = np.append(
-                            memorise.visc_ph[fl], new, axis=0)
-                    return val
+        # calculate the fluid properties for pure fluids
+        val = visc_ph(flow[1], flow[2], fluid)
+
+    if memorisation is True:
+        # memorise the newly calculated value
+        new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
+    return val
 
 
 def visc_ph(p, h, fluid):
@@ -1583,35 +1564,32 @@ def s_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    a = memorise.s_ph[fl][:, 0:-1]
-    b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-    ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
-    if ix.size == 1:
-        # known fluid properties
-        s = memorise.s_ph[fl][ix, -1][0]
-        memorise.s_ph_f[fl] += [s]
-        return s
+    memorisation = fl in memorise.s_ph.keys()
+    if memorisation is True:
+        a = memorise.s_ph[fl][:, :-1]
+        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        if ix.size == 1:
+            # known fluid properties
+            s = memorise.s_ph[fl][ix, -1][0]
+            memorise.s_ph_f[fl] += [s]
+            return s
+
+    # unknown fluid properties
+    fluid = single_fluid(flow[3])
+    if fluid is None:
+        # calculate the fluid properties for fluid mixtures
+        val = s_mix_pT(flow, T_mix_ph(flow, T0=T0))
     else:
-        # unknown fluid properties
-        if num_fluids(flow[3]) > 1:
-            # calculate the fluid properties for fluid mixtures
-            val = s_mix_pT(flow, T_mix_ph(flow, T0=T0))
-            new = np.array([[flow[1], flow[2]] +
-                            list(flow[3].values()) + [val]])
-            # memorise the newly calculated value
-            memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
-            return val
-        else:
-            # calculate fluid property for pure fluids
-            for fluid, x in flow[3].items():
-                if x > err:
-                    val = s_ph(flow[1], flow[2], fluid)
-                    new = np.array([[flow[1], flow[2]] +
-                                    list(flow[3].values()) + [val]])
-                    # memorise the newly calculated value
-                    memorise.s_ph[fl] = np.append(
-                            memorise.s_ph[fl], new, axis=0)
-                    return val
+        # calculate fluid property for pure fluids
+        val = s_ph(flow[1], flow[2], fluid)
+
+    if memorisation is True:
+        # memorise the newly calculated value
+        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
+
+    return val
 
 
 def s_ph(p, h, fluid):

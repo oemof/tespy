@@ -547,10 +547,7 @@ class network:
         for c in args:
             self.conns = self.conns.drop(c)
             del self.connections[c.label]
-            msg = (
-                'Deleted connection ' + c.source.label + ' (' + c.source_id +
-                ') -> ' + c.target.label + ' (' + c.target_id +
-                ') from network.')
+            msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
@@ -808,10 +805,8 @@ class network:
                 if c.design_path is None:
                     msg = (
                         'The parameter local_offdesign is True for the '
-                        'connection ' + c.source.label + '(' + c.source_id +
-                        ') -> ' + c.target.label + '(' + c.target_id +
-                        '), an individual design_path must be specified in '
-                        'this case!')
+                        'connection ' + c.label + ', an individual '
+                        'design_path must be specified in this case!')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
 
@@ -826,9 +821,7 @@ class network:
                 path = hlp.modify_path_os(c.design_path + '/connections.csv')
                 msg = (
                     'Reading individual design point information for '
-                    'connection ' + c.source.label + '(' + c.source_id +
-                    ') -> ' + c.target.label + '(' + c.target_id +
-                    ') from path ' + path + '.')
+                    'connection ' + c.label + ' from path ' + path + '.')
                 logging.debug(msg)
                 df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
 
@@ -986,8 +979,9 @@ class network:
         # read connection design point information
         path = hlp.modify_path_os(self.design_path + '/connections.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
-        msg = ('Reading design point information for connections from path ' +
-               path + '.')
+        msg = (
+            'Reading design point information for connections from path ' +
+            path + '.')
         logging.debug(msg)
 
         # iter through connections
@@ -996,10 +990,9 @@ class network:
             # read data of connections with individual design_path
             if c.design_path is not None:
                 path_c = hlp.modify_path_os(c.design_path + '/connections.csv')
-                msg = ('Reading individual design point information for '
-                       'connection ' + c.source.label + '(' + c.source_id + ') -> ' +
-                       c.target.label + '(' + c.target_id + ') from path ' +
-                       path_c + '.')
+                msg = (
+                    'Reading individual design point information for '
+                    'connection ' + c.label + ' from path ' + path_c + '.')
                 logging.debug(msg)
                 df_c = pd.read_csv(path_c, index_col=0,
                                    delimiter=';', decimal='.')
@@ -1072,11 +1065,11 @@ class network:
                 c.fluid.design[fluid] = df.loc[conn_id][fluid]
         else:
             # no matches in the connections of the network and the design files
-            msg = ('Could not find connection ' + c.source.label + '(' + c.source_id +
-                   ') -> ' + c.target.label + '(' + c.target_id + ') in design case. '
-                   'Please, make sure no connections have been modified '
-                   'or components have been relabeled for your offdesign '
-                   'calculation.')
+            msg = (
+                'Could not find connection ' + c.label + ' in design case. '
+                'Please, make sure no connections have been modified or '
+                'components have been relabeled for your offdesign '
+                'calculation.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1566,9 +1559,9 @@ class network:
                 c.fluid.val0 = c.fluid.val.copy()
                 c.good_starting_values = True
             else:
-                msg = ('Could not find connection ' + c.source.label + ' (' +
-                       c.source_id + ') -> ' + c.target.label + ' (' + c.target_id +
-                       ') in .csv-file.')
+                msg = (
+                    'Could not find connection ' + c.label + ' in '
+                    'connections.csv of init_path ' + self.init_path + '.')
                 logging.debug(msg)
 
         msg = 'Specified starting values from init_path.'
@@ -2003,12 +1996,10 @@ class network:
             msg = 'Enthalpy '
         elif prop == 'm':
             msg = 'Mass flow '
-        else:
-            msg = 'Unspecified '
-        msg += ('out of fluid property range at connection ' +
-                c.source.label + ' (' + c.source_id + ') -> ' + c.target.label + ' (' +
-                c.target_id + ') adjusting value to ' +
-                str(c.get_attr(prop).val_SI) + ' ' + self.SI_units[prop] + '.')
+        msg += (
+            'out of fluid property range at connection ' + c.label +
+            ' adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' +
+            self.SI_units[prop] + '.')
         return msg
 
     def solve_check_props(self, c):

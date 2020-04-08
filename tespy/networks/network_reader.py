@@ -383,10 +383,9 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
+                    extrapolate = False
                     if 'extrapolate' in args[0].columns:
                         extrapolate = args[0][values].extrapolate.values[0]
-                    else:
-                        extrapolate = False
                     char = char_line(x=x, y=y, extrapolate=extrapolate)
 
                 except IndexError:

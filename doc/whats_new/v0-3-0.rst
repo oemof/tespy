@@ -107,8 +107,8 @@ which has been used until version 0.2.x in TESPy.
     }
 
 Due to the addition of the CoolProp back-end selection the
-:py:class`tespy.components.combustion.combustion_chamber_stoich` API changed as
-well. Please refer to the
+:py:class:`tespy.components.combustion.combustion_chamber_stoich` API changed
+as well. Please refer to the
 :ref:`combustion chamber tutorial<combustion_chamber_tutorial_label>` for the
 new implementation.
 

@@ -14,11 +14,8 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-
 import numpy as np
-
 from tespy.components.components import component
-
 from tespy.tools.data_containers import dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
         h_mix_pT, s_mix_ph, v_mix_ph, visc_mix_ph, T_mix_ph,
@@ -263,46 +260,39 @@ class orc_evaporator(component):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids * 3
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 3] = self.mass_flow_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 3] = self.mass_flow_deriv()
 
     def equations(self):
-        r"""
-        Calculate vector vec_res with results of equations for this component.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+        r"""Calculate residual vector with results of equations."""
         k = 0
 
         ######################################################################
         # equations for fluid balance
-        self.vec_res[k:k + self.num_nw_fluids * 3] = self.fluid_func()
+        self.residual[k:k + self.num_nw_fluids * 3] = self.fluid_func()
         k += self.num_nw_fluids * 3
 
         ######################################################################
         # equations for mass flow balance
-        self.vec_res[k:k + 3] = self.mass_flow_func()
+        self.residual[k:k + 3] = self.mass_flow_func()
         k += 3
 
         ######################################################################
         # equations for energy balance
-        self.vec_res[k] = self.energy_func()
+        self.residual[k] = self.energy_func()
         k += 1
 
         ######################################################################
         # equations for specified heat transfer
         if self.Q.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                 self.inl[2].m.val_SI * (
                     self.outl[2].h.val_SI - self.inl[2].h.val_SI) - self.Q.val)
             k += 1
@@ -310,7 +300,7 @@ class orc_evaporator(component):
         ######################################################################
         # equations for specified pressure ratio at hot side 1
         if self.pr1.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                     self.pr1.val * self.inl[0].p.val_SI -
                     self.outl[0].p.val_SI)
             k += 1
@@ -318,7 +308,7 @@ class orc_evaporator(component):
         ######################################################################
         # equations for specified pressure ratio at hot side 2
         if self.pr2.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                     self.pr2.val * self.inl[1].p.val_SI -
                     self.outl[1].p.val_SI)
             k += 1
@@ -326,7 +316,7 @@ class orc_evaporator(component):
         ######################################################################
         # equations for specified pressure ratio at cold side
         if self.pr3.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                     self.pr3.val * self.inl[2].p.val_SI -
                     self.outl[2].p.val_SI)
             k += 1
@@ -334,44 +324,40 @@ class orc_evaporator(component):
         ######################################################################
         # equations for specified zeta at hot side 1
         if self.zeta1.is_set:
-            self.vec_res[k] = self.zeta_func(zeta='zeta1', inconn=0, outconn=0)
+            self.residual[k] = self.zeta_func(
+                zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         ######################################################################
         # equations for specified zeta at hot side 2
         if self.zeta2.is_set:
-            self.vec_res[k] = self.zeta_func(zeta='zeta2', inconn=1, outconn=1)
+            self.residual[k] = self.zeta_func(
+                zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta3.is_set:
-            self.vec_res[k] = self.zeta_func(zeta='zeta3', inconn=2, outconn=2)
+            self.residual[k] = self.zeta_func(
+                zeta='zeta3', inconn=2, outconn=2)
             k += 1
 
         ######################################################################
         # equation for saturated liquid at hot side 1 outlet
         if self.subcooling.val is False:
             o1 = self.outl[0].to_flow()
-            self.vec_res[k] = o1[2] - h_mix_pQ(o1, 0)
+            self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
 
         ######################################################################
         # equation for saturated gas at cold side outlet
         if self.overheating.val is False:
             o3 = self.outl[2].to_flow()
-            self.vec_res[k] = o3[2] - h_mix_pQ(o3, 1)
+            self.residual[k] = o3[2] - h_mix_pQ(o3, 1)
             k += 1
 
-    def derivatives(self, vec_z):
-        r"""
-        Calculate matrix of partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, increment_filter):
+        r"""Calculate matrix of partial derivatives for given equations."""
 
         ######################################################################
         # derivatives fluid and mass balance are static
@@ -381,61 +367,61 @@ class orc_evaporator(component):
         # derivatives for energy balance equation
         # mat_deriv += self.energy_deriv()
         for i in range(3):
-            self.mat_deriv[k, i, 0] = (
+            self.jacobian[k, i, 0] = (
                     self.outl[i].h.val_SI - self.inl[i].h.val_SI)
-            self.mat_deriv[k, i, 2] = -self.inl[i].m.val_SI
+            self.jacobian[k, i, 2] = -self.inl[i].m.val_SI
 
-            self.mat_deriv[k, i + 3, 2] = self.inl[i].m.val_SI
+            self.jacobian[k, i + 3, 2] = self.inl[i].m.val_SI
         k += 1
 
         ######################################################################
         # derivatives for specified heat transfer
         if self.Q.is_set:
-            self.mat_deriv[k, 2, 0] = (
+            self.jacobian[k, 2, 0] = (
                     self.outl[2].h.val_SI - self.inl[2].h.val_SI)
-            self.mat_deriv[k, 2, 2] = -self.inl[2].m.val_SI
-            self.mat_deriv[k, 5, 2] = self.inl[2].m.val_SI
+            self.jacobian[k, 2, 2] = -self.inl[2].m.val_SI
+            self.jacobian[k, 5, 2] = self.inl[2].m.val_SI
             k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio at hot side 1
         if self.pr1.is_set:
-            self.mat_deriv[k, 0, 1] = self.pr1.val
-            self.mat_deriv[k, 3, 1] = -1
+            self.jacobian[k, 0, 1] = self.pr1.val
+            self.jacobian[k, 3, 1] = -1
             k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio at hot side 2
         if self.pr2.is_set:
-            self.mat_deriv[k, 1, 1] = self.pr2.val
-            self.mat_deriv[k, 4, 1] = -1
+            self.jacobian[k, 1, 1] = self.pr2.val
+            self.jacobian[k, 4, 1] = -1
             k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio at cold side
         if self.pr3.is_set:
-            self.mat_deriv[k, 2, 1] = self.pr3.val
-            self.mat_deriv[k, 5, 1] = -1
+            self.jacobian[k, 2, 1] = self.pr3.val
+            self.jacobian[k, 5, 1] = -1
             k += 1
 
         ######################################################################
         # derivatives for specified zeta at hot side 1
         if self.zeta1.is_set:
             f = self.zeta_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(
                     f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(
                     f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(
                     f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not vec_z[3, 1]:
-                self.mat_deriv[k, 3, 1] = self.numeric_deriv(
+            if not increment_filter[3, 1]:
+                self.jacobian[k, 3, 1] = self.numeric_deriv(
                     f, 'p', 3, zeta='zeta1', inconn=0, outconn=0)
-            if not vec_z[3, 2]:
-                self.mat_deriv[k, 3, 2] = self.numeric_deriv(
+            if not increment_filter[3, 2]:
+                self.jacobian[k, 3, 2] = self.numeric_deriv(
                     f, 'h', 3, zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
@@ -443,20 +429,20 @@ class orc_evaporator(component):
         # derivatives for specified zeta at hot side 2
         if self.zeta2.is_set:
             f = self.zeta_func
-            if not vec_z[1, 0]:
-                self.mat_deriv[k, 1, 0] = self.numeric_deriv(
+            if not increment_filter[1, 0]:
+                self.jacobian[k, 1, 0] = self.numeric_deriv(
                     f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(
                     f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(
                     f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not vec_z[4, 1]:
-                self.mat_deriv[k, 4, 1] = self.numeric_deriv(
+            if not increment_filter[4, 1]:
+                self.jacobian[k, 4, 1] = self.numeric_deriv(
                     f, 'p', 4, zeta='zeta2', inconn=1, outconn=1)
-            if not vec_z[4, 2]:
-                self.mat_deriv[k, 4, 2] = self.numeric_deriv(
+            if not increment_filter[4, 2]:
+                self.jacobian[k, 4, 2] = self.numeric_deriv(
                     f, 'h', 4, zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
@@ -464,20 +450,20 @@ class orc_evaporator(component):
         # derivatives for specified zeta at cold side
         if self.zeta3.is_set:
             f = self.zeta_func
-            if not vec_z[2, 0]:
-                self.mat_deriv[k, 2, 0] = self.numeric_deriv(
+            if not increment_filter[2, 0]:
+                self.jacobian[k, 2, 0] = self.numeric_deriv(
                     f, 'm', 2, zeta='zeta3', inconn=2, outconn=2)
-            if not vec_z[2, 1]:
-                self.mat_deriv[k, 2, 1] = self.numeric_deriv(
+            if not increment_filter[2, 1]:
+                self.jacobian[k, 2, 1] = self.numeric_deriv(
                     f, 'p', 2, zeta='zeta3', inconn=2, outconn=2)
-            if not vec_z[2, 2]:
-                self.mat_deriv[k, 2, 2] = self.numeric_deriv(
+            if not increment_filter[2, 2]:
+                self.jacobian[k, 2, 2] = self.numeric_deriv(
                     f, 'h', 2, zeta='zeta3', inconn=2, outconn=2)
-            if not vec_z[5, 1]:
-                self.mat_deriv[k, 5, 1] = self.numeric_deriv(
+            if not increment_filter[5, 1]:
+                self.jacobian[k, 5, 1] = self.numeric_deriv(
                     f, 'p', 5, zeta='zeta3', inconn=2, outconn=2)
-            if not vec_z[5, 2]:
-                self.mat_deriv[k, 5, 2] = self.numeric_deriv(
+            if not increment_filter[5, 2]:
+                self.jacobian[k, 5, 2] = self.numeric_deriv(
                     f, 'h', 5, zeta='zeta3', inconn=2, outconn=2)
             k += 1
 
@@ -485,16 +471,16 @@ class orc_evaporator(component):
         # derivatives for saturated liquid at hot side 1 outlet equation
         if self.subcooling.val is False:
             o1 = self.outl[0].to_flow()
-            self.mat_deriv[k, 3, 1] = -dh_mix_dpQ(o1, 0)
-            self.mat_deriv[k, 3, 2] = 1
+            self.jacobian[k, 3, 1] = -dh_mix_dpQ(o1, 0)
+            self.jacobian[k, 3, 2] = 1
             k += 1
 
         ######################################################################
         # derivatives for saturated gas at cold side outlet 3 equation
         if self.overheating.val is False:
             o3 = self.outl[2].to_flow()
-            self.mat_deriv[k, 5, 1] = -dh_mix_dpQ(o3, 1)
-            self.mat_deriv[k, 5, 2] = 1
+            self.jacobian[k, 5, 1] = -dh_mix_dpQ(o3, 1)
+            self.jacobian[k, 5, 2] = 1
             k += 1
 
     def mass_flow_func(self):
@@ -503,7 +489,7 @@ class orc_evaporator(component):
 
         Returns
         -------
-        vec_res : list
+        residual : list
             Vector with residual value for component's mass flow balance.
 
             .. math::
@@ -511,10 +497,10 @@ class orc_evaporator(component):
                 0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
                 \forall i \in inlets/outlets
         """
-        vec_res = []
+        residual = []
         for i in range(self.num_i):
-            vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-        return vec_res
+            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+        return residual
 
     def mass_flow_deriv(self):
         r"""

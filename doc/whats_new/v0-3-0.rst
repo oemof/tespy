@@ -55,9 +55,9 @@ Bug fixes
 
 Other changes
 #############
-- Improve naming in networks and connections modules. A connection's target is
-  now labeled :code:`target` instead of :code:`t`, for instance
-  (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
+- Improve naming in networks, components and connections modules
+  (`PR #172 <https://github.com/oemof/tespy/pull/172>`_,
+   `PR #175 <https://github.com/oemof/tespy/pull/175>`_).
 
 Changes in the API
 ##################

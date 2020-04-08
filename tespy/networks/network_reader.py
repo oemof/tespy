@@ -13,23 +13,20 @@ available from its original location tespy/networks/network_reader.py
 SPDX-License-Identifier: MIT
 """
 
-import pandas as pd
-import json
-
-from tespy.connections import connection, bus, ref
-
-from tespy.components import (basics, combustion, heat_exchangers, nodes,
-                              piping, reactors, turbomachinery)
-
-from tespy.networks.networks import network
-
-from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp,
-                                         dc_prop, dc_simple)
-from tespy.tools.characteristics import char_line, char_map, compressor_map
-from tespy.tools.helpers import modify_path_os
-import os
 import ast
 import logging
+import os
+import pandas as pd
+import json
+from tespy.connections import connection, bus, ref
+from tespy.components import (
+    basics, combustion, customs, heat_exchangers, nodes, piping, reactors,
+    turbomachinery)
+from tespy.networks.networks import network
+from tespy.tools.data_containers import (
+    dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp, dc_prop, dc_simple)
+from tespy.tools.characteristics import char_line, char_map, compressor_map
+from tespy.tools.helpers import modify_path_os
 
 
 global comp_target_classes
@@ -41,6 +38,7 @@ comp_target_classes = {
     'combustion_chamber': combustion.combustion_chamber,
     'combustion_chamber_stoich': combustion.combustion_chamber_stoich,
     'combustion_engine': combustion.combustion_engine,
+    'orc_evaporator': customs.orc_evaporator,
     'condenser': heat_exchangers.condenser,
     'desuperheater': heat_exchangers.desuperheater,
     'heat_exchanger': heat_exchangers.heat_exchanger,

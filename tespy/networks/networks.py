@@ -13,41 +13,28 @@ available from its original location tespy/networks/networks.py
 
 SPDX-License-Identifier: MIT
 """
-# reading .csv
 import ast
 import json
-# ordered dicts for fluid composition vector
 from collections import Counter, OrderedDict
-# calculation of molar masses and gas constants
-# logging messages
 import logging
-# numpy functions
 import numpy as np
 from numpy.linalg import inv
 from numpy.linalg import norm
-# checking/creating folders
 import os
-# DataFrames for connections and components
 import pandas as pd
-# printing results
 from tabulate import tabulate
-
-from tespy import connections as con
-
-from tespy.components.basics import (sink, source, subsystem_interface,
-                                     cycle_closer)
+from tespy.components.basics import (
+    sink, source, subsystem_interface, cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
 from tespy.components.reactors import water_electrolyzer
-
+from tespy import connections as con
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
-
 from tespy.tools.global_vars import err
-# calculation time
 from time import time
 
 
@@ -1672,7 +1659,7 @@ class network:
         if not self.progress:
             msg = ('The solver does not seem to make any progress, aborting '
                    'calculation. Residual value is '
-                   '{:.2e}'.format(norm(self.vec_res)) + '. This frequently '
+                   '{:.2e}'.format(norm(self.residual)) + '. This frequently '
                    'happens, if the solver pushes the fluid properties out of '
                    'their feasible range.')
             logging.warning(msg)
@@ -1712,9 +1699,9 @@ class network:
 
         for self.iter in range(self.max_iter):
 
-            self.vec_z_filter = np.absolute(self.vec_z) < err ** 2
+            self.increment_filter = np.absolute(self.increment) < err ** 2
             self.solve_control()
-            self.res = np.append(self.res, norm(self.vec_res))
+            self.res = np.append(self.res, norm(self.residual))
 
             if self.iterinfo:
                 self.print_iterinfo('solving')
@@ -1736,7 +1723,7 @@ class network:
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
                    '), calculation stopped. Residual value is '
-                   '{:.2e}'.format(norm(self.vec_res)))
+                   '{:.2e}'.format(norm(self.residual)))
             logging.warning(msg)
 
     def solve_determination(self):
@@ -1779,9 +1766,9 @@ class network:
         self.num_vars = (self.num_conn_vars * len(self.conns.index) +
                          self.num_comp_vars)
 
-        self.vec_res = np.zeros([self.num_vars])
-        self.vec_z = np.ones([self.num_vars])
-        self.mat_deriv = np.zeros((self.num_vars, self.num_vars))
+        self.residual = np.zeros([self.num_vars])
+        self.increment = np.ones([self.num_vars])
+        self.jacobian = np.zeros((self.num_vars, self.num_vars))
 
         msg = 'Total number of variables: ' + str(self.num_vars) + '.'
         logging.debug(msg)
@@ -1825,10 +1812,10 @@ class network:
             print(msg)
 
         elif position == 'solving':
-            vec = self.vec_z[0:-(self.num_comp_vars + 1)]
+            vec = self.increment[0:-(self.num_comp_vars + 1)]
             msg = (str(self.iter + 1))
-            if not self.lin_dep and not np.isnan(norm(self.vec_res)):
-                msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+            if not self.lin_dep and not np.isnan(norm(self.residual)):
+                msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
                 msg += ' | ' + '{:.2e}'.format(
                         norm(vec[0::self.num_conn_vars]))
                 msg += ' | ' + '{:.2e}'.format(
@@ -1842,13 +1829,13 @@ class network:
                 msg += ' | ' + '{:.2e}'.format(norm(ls))
                 if self.num_comp_vars > 0:
                     msg += ' | ' + '{:.2e}'.format(norm(
-                            self.vec_z[-self.num_comp_vars:]))
+                            self.increment[-self.num_comp_vars:]))
 
             else:
-                if np.isnan(norm(self.vec_res)):
-                    msg += '\t|      nan'.format(norm(self.vec_res))
+                if np.isnan(norm(self.residual)):
+                    msg += '\t|      nan'.format(norm(self.residual))
                 else:
-                    msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+                    msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
                 msg += ' |      nan'
                 msg += ' |      nan'
                 msg += ' |      nan'
@@ -1885,10 +1872,10 @@ class network:
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
         try:
-            self.vec_z = inv(self.mat_deriv).dot(-self.vec_res)
+            self.increment = inv(self.jacobian).dot(-self.residual)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
-            self.vec_z = self.vec_res * 0
+            self.increment = self.residual * 0
             pass
 
     def solve_control(self):
@@ -1915,14 +1902,15 @@ class network:
         for c in self.conns.index:
             # mass flow, pressure and enthalpy
             if c.m.val_set is False:
-                c.m.val_SI += self.vec_z[i * (self.num_conn_vars)]
+                c.m.val_SI += self.increment[i * (self.num_conn_vars)]
             if c.p.val_set is False:
                 # this prevents negative pressures
-                relax = max(1, -self.vec_z[i * (self.num_conn_vars) + 1] /
+                relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
-                c.p.val_SI += self.vec_z[i * (self.num_conn_vars) + 1] / relax
+                c.p.val_SI += self.increment[
+                    i * (self.num_conn_vars) + 1] / relax
             if c.h.val_set is False:
-                c.h.val_SI += self.vec_z[i * (self.num_conn_vars) + 2]
+                c.h.val_SI += self.increment[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
             if len(self.fluids) > 1:
@@ -1931,7 +1919,8 @@ class network:
                     # add increment
                     if c.fluid.val_set[fluid] is False:
                         c.fluid.val[fluid] += (
-                                self.vec_z[i * (self.num_conn_vars) + 3 + j])
+                                self.increment[
+                                    i * (self.num_conn_vars) + 3 + j])
 
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < err:
@@ -1947,14 +1936,14 @@ class network:
 
         # increment for the custom variables
         if self.num_comp_vars > 0:
-            c_vars = 0
+            sum_c_var = 0
             for cp in self.comps.index:
                 for var in cp.vars.keys():
                     pos = var.var_pos
 
                     # add increment
-                    var.val += self.vec_z[
-                        self.num_conn_vars * len(self.conns) + c_vars + pos]
+                    var.val += self.increment[
+                        self.num_conn_vars * len(self.conns) + sum_c_var + pos]
 
                     # keep value within specified value range
                     if var.val < var.min_val:
@@ -1962,7 +1951,7 @@ class network:
                     if var.val > var.max_val:
                         var.val = var.max_val
 
-                c_vars += cp.num_vars
+                sum_c_var += cp.num_vars
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
@@ -2120,22 +2109,21 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
-        vec_res = []
         sum_eq = 0
-        c_var = 0
+        sum_c_var = 0
         for cp in self.comps.index:
 
-            indexes = []
+            indices = []
             for c in cp.conn_loc:
                 start = c * self.num_conn_vars
                 end = (c + 1) * self.num_conn_vars
-                indexes += [np.arange(start, end)]
+                indices += [np.arange(start, end)]
 
             cp.equations()
-            cp.derivatives(self.vec_z_filter[np.array(indexes)])
+            cp.derivatives(self.increment_filter[np.array(indices)])
 
-            self.vec_res[sum_eq:sum_eq + cp.num_eq] = cp.vec_res
-            deriv = cp.mat_deriv
+            self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
+            deriv = cp.jacobian
 
             if deriv is not None:
                 i = 0
@@ -2143,16 +2131,16 @@ class network:
                 for loc in cp.conn_loc:
                     coll_s = loc * self.num_conn_vars
                     coll_e = (loc + 1) * self.num_conn_vars
-                    self.mat_deriv[
+                    self.jacobian[
                         sum_eq:sum_eq + cp.num_eq, coll_s:coll_e] = deriv[:, i]
                     i += 1
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
-                    coll = self.num_vars - self.num_comp_vars + c_var
-                    self.mat_deriv[sum_eq:sum_eq + cp.num_eq, coll] = (
+                    coll = self.num_vars - self.num_comp_vars + sum_c_var
+                    self.jacobian[sum_eq:sum_eq + cp.num_eq, coll] = (
                         deriv[:, i + j, :1].transpose()[0])
-                    c_var += 1
+                    sum_c_var += 1
 
                 sum_eq += cp.num_eq
             cp.it += 1
@@ -2314,31 +2302,27 @@ class network:
                 if c.get_attr(var).ref_set is True:
                     ref = c.get_attr(var).ref
                     ref_col = ref.obj.conn_loc * self.num_conn_vars
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         c.get_attr(var).val_SI - (
                             ref.obj.get_attr(var).val_SI * ref.f + ref.d))
-                    self.mat_deriv[k, col + pos] = 1
-                    self.mat_deriv[k, ref_col + pos] = -c.get_attr(var).ref.f
+                    self.jacobian[k, col + pos] = 1
+                    self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.f
                     k += 1
 
             # temperature
             if c.T.val_set is True:
-                # if (np.absolute(self.vec_res[k]) > err ** 2 or
-                #         self.iter % 2 == 0):
-                self.vec_res[k] = c.T.val_SI - fp.T_mix_ph(
+                self.residual[k] = c.T.val_SI - fp.T_mix_ph(
                     flow, T0=c.T.val_SI)
 
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 1] = (
+                self.jacobian[k, col + 1] = (
                     -fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                # if not self.vec_z_filter[col + 2]:
-                self.mat_deriv[k, col + 2] = (
+                self.jacobian[k, col + 2] = (
                     -fp.dT_mix_pdh(flow, T0=c.T.val_SI))
                 if len(self.fluids) != 1:
                     col_s = c.conn_loc * self.num_conn_vars + 3
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
-                    if not all(self.vec_z_filter[col_s:col_e]):
-                        self.mat_deriv[k, col_s:col_e] = -fp.dT_mix_ph_dfluid(
+                    if not all(self.increment_filter[col_s:col_e]):
+                        self.jacobian[k, col_s:col_e] = -fp.dT_mix_ph_dfluid(
                             flow, T0=c.T.val_SI)
                 k += 1
 
@@ -2347,24 +2331,18 @@ class network:
                 ref = c.T.ref
                 flow_ref = ref.obj.to_flow()
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
-                # if (np.absolute(self.vec_res[k]) > err ** 2 or
-                #         self.iter % 2 == 0):
-                self.vec_res[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
+                self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
                     fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
                     ref.f + ref.d)
 
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 1] = (
+                self.jacobian[k, col + 1] = (
                     fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 2] = (
+                self.jacobian[k, col + 2] = (
                     fp.dT_mix_pdh(flow, T0=c.T.val_SI))
 
-                # if not self.vec_z_filter[ref_col + 1]:
-                self.mat_deriv[k, ref_col + 1] = -(
+                self.jacobian[k, ref_col + 1] = -(
                     fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
-                # if not self.vec_z_filter[ref_col + 2]:
-                self.mat_deriv[k, ref_col + 2] = -(
+                self.jacobian[k, ref_col + 2] = -(
                     fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
 
                 # dT / dFluid
@@ -2373,52 +2351,52 @@ class network:
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
                     ref_col_s = ref.obj.conn_loc * self.num_conn_vars + 3
                     ref_col_e = (ref.obj.conn_loc + 1) * self.num_conn_vars
-                    if not all(self.vec_z_filter[col_s:col_e]):
-                        self.mat_deriv[k, col_s:col_e] = (
+                    if not all(self.increment_filter[col_s:col_e]):
+                        self.jacobian[k, col_s:col_e] = (
                             fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
-                    if not all(self.vec_z_filter[ref_col_s:ref_col_e]):
-                        self.mat_deriv[k, ref_col_s:ref_col_e] = -(
+                    if not all(self.increment_filter[ref_col_s:ref_col_e]):
+                        self.jacobian[k, ref_col_s:ref_col_e] = -(
                             fp.dT_mix_ph_dfluid(flow_ref, T0=ref.obj.T.val_SI))
                 k += 1
 
             # saturated steam fraction
             if c.x.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = c.h.val_SI - (
+                    self.residual[k] = c.h.val_SI - (
                         fp.h_mix_pQ(flow, c.x.val_SI))
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = -(
+                if not self.increment_filter[col + 1]:
+                    self.jacobian[k, col + 1] = -(
                         fp.dh_mix_dpQ(flow, c.x.val_SI))
-                self.mat_deriv[k, col + 2] = 1
+                self.jacobian[k, col + 2] = 1
                 k += 1
 
             # volumetric flow
             if c.v.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
                         c.m.val_SI)
-                self.mat_deriv[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
-                self.mat_deriv[k, col + 1] = -(
+                self.jacobian[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
+                self.jacobian[k, col + 1] = -(
                     fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
-                self.mat_deriv[k, col + 2] = -(
+                self.jacobian[k, col + 2] = -(
                     fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
                 k += 1
 
             # temperature difference to boiling point
             if c.Td_bp.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         fp.T_mix_ph(flow, T0=c.T.val_SI) - c.Td_bp.val_SI -
                         fp.T_bp_p(flow))
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = (
+                if not self.increment_filter[col + 1]:
+                    self.jacobian[k, col + 1] = (
                         fp.dT_mix_dph(flow, T0=c.T.val_SI) - fp.dT_bp_dp(flow))
-                if not self.vec_z_filter[col + 2]:
-                    self.mat_deriv[k, col + 2] = fp.dT_mix_pdh(
+                if not self.increment_filter[col + 2]:
+                    self.jacobian[k, col + 2] = fp.dT_mix_pdh(
                         flow, T0=c.T.val_SI)
                 k += 1
 
@@ -2428,10 +2406,10 @@ class network:
                 res = 1
                 for f in self.fluids:
                     res -= c.fluid.val[f]
-                    self.mat_deriv[k, c.conn_loc + 3 + j] = -1
+                    self.jacobian[k, c.conn_loc + 3 + j] = -1
                     j += 1
 
-                self.vec_res[k] = res
+                self.residual[k] = res
                 k += 1
 
         # equations and derivatives for specified primary variables are static
@@ -2443,8 +2421,8 @@ class network:
                 # specified mass flow, pressure and enthalpy
                 for var, pos in primary_vars.items():
                     if c.get_attr(var).val_set is True:
-                        self.vec_res[k] = 0
-                        self.mat_deriv[
+                        self.residual[k] = 0
+                        self.jacobian[
                             k, col + pos] = 1
                         k += 1
 
@@ -2452,7 +2430,7 @@ class network:
                 # specified fluid mass fraction
                 for f in self.fluids:
                     if c.fluid.val_set[f]:
-                        self.mat_deriv[k, col + 3 + j] = 1
+                        self.jacobian[k, col + 3 + j] = 1
                         k += 1
                     j += 1
 
@@ -2484,10 +2462,10 @@ class network:
                         coll_s = loc * self.num_conn_vars
                         # end collumn index
                         coll_e = (loc + 1) * self.num_conn_vars
-                        self.mat_deriv[row, coll_s:coll_e] = deriv[:, j]
+                        self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.vec_res[row] = b.P.val - P_res
+                self.residual[row] = b.P.val - P_res
 
                 row += 1
 
@@ -2565,8 +2543,8 @@ class network:
             # are there any parameters to print?
             if len(cols) > 0:
                 for col in cols:
-                    df[col] = df.apply(network.print_components, axis=1,
-                                       args=(col,))
+                    df[col] = df.apply(
+                        network.print_components, axis=1, args=(col,))
 
                 df.set_index('label', inplace=True)
                 df.drop('cp', axis=1, inplace=True)
@@ -2579,10 +2557,11 @@ class network:
                                    floatfmt='.2e'))
 
         # connection properties
-        df = pd.DataFrame(columns=['m / (' + self.m_unit + ')',
-                                   'p / (' + self.p_unit + ')',
-                                   'h / (' + self.h_unit + ')',
-                                   'T / (' + self.T_unit + ')'])
+        df = pd.DataFrame(columns=[
+            'm / (' + self.m_unit + ')',
+            'p / (' + self.p_unit + ')',
+            'h / (' + self.h_unit + ')',
+            'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
             if c.printout is True:
                 row = (c.source.label + ':' + c.source_id + ' -> ' +

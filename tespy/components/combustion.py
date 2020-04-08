@@ -1295,7 +1295,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1204.7
+    1207.9
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 

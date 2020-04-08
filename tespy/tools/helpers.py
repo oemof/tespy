@@ -240,14 +240,14 @@ def single_fluid(fluids):
     Returns
     -------
     fluid : str
-        Name of the single fluid.
+        Name of the single fluid or None in case of mixtures.
     """
     if num_fluids(fluids) == 1:
         for fluid, x in fluids.items():
             if x > err:
                 return fluid
     else:
-        return []
+        return None
 
 # %%
 

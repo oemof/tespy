@@ -176,7 +176,20 @@ class tespy_fluid:
 
         self.fluids_backends = OrderedDict()
 
-        memorise.add_fluids({self.alias: 'TESPy'})
+        for f in sorted(list(self.fluid.keys()) + [self.alias]):
+            try:
+                data = f.split('::')
+                backend = data[0]
+                fluid = data[1]
+            except IndexError:
+                backend = 'HEOS'
+                fluid = f
+            if f != self.alias:
+                self.fluids_backends[f] = backend
+            else:
+                self.fluids_backends[f] = 'TESPy'
+
+        memorise.add_fluids(self.fluids_backends)
 
         params = {}
 

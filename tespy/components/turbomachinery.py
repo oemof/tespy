@@ -18,17 +18,14 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-
 import numpy as np
-
 from tespy.components.components import component
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
-
 from tespy.tools.data_containers import dc_cc, dc_cm, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
-        h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
-        num_fluids, err)
+    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
+    num_fluids, err)
 from tespy.tools.helpers import TESPyComponentError
 
 # %%
@@ -139,42 +136,35 @@ class turbomachine(component):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
     def equations(self):
-        r"""
-        Calculate vector vec_res with results of equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # eqations for fluids
-        if (any(np.absolute(self.vec_res[k:self.num_nw_fluids])) > err ** 2 or
+        if (any(np.absolute(self.residual[k:self.num_nw_fluids])) > err ** 2 or
                 self.it % 4 == 0):
-            self.vec_res[k:self.num_nw_fluids] = self.fluid_func()
+            self.residual[k:self.num_nw_fluids] = self.fluid_func()
         k += self.num_nw_fluids
 
         ######################################################################
         # eqations for mass flow balance
-        self.vec_res[k] = self.mass_flow_func()
+        self.residual[k] = self.mass_flow_func()
         k += 1
 
         ######################################################################
         # eqations for specified power
         if self.P.is_set:
-            self.vec_res[k] = self.inl[0].m.val_SI * (
+            self.residual[k] = self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
 
             k += 1
@@ -182,7 +172,7 @@ class turbomachine(component):
         ######################################################################
         # eqations for specified pressure ratio
         if self.pr.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                 self.pr.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
             k += 1
 
@@ -191,12 +181,11 @@ class turbomachine(component):
         self.additional_equations(k)
 
     def additional_equations(self, k):
-        r"""Calculate vector vec_res with results of additional equations."""
+        r"""Calculate results of additional equations."""
         return
 
-    def derivatives(self, vec_z):
+    def derivatives(self, increment_filter):
         r"""Calculate partial derivatives for given equations."""
-        # print(np.where(abs(vec_z) < err))
         ######################################################################
         # derivatives fluid and mass balance are static
         k = self.num_nw_fluids + 1
@@ -204,24 +193,24 @@ class turbomachine(component):
         ######################################################################
         # derivatives for specified power
         if self.P.is_set:
-            self.mat_deriv[k, 0, 0] = (
+            self.jacobian[k, 0, 0] = (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.mat_deriv[k, 0, 2] = -self.inl[0].m.val_SI
-            self.mat_deriv[k, 1, 2] = self.inl[0].m.val_SI
+            self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+            self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
             k += 1
 
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            self.mat_deriv[k, 0, 1] = self.pr.val
-            self.mat_deriv[k, 1, 1] = -1
+            self.jacobian[k, 0, 1] = self.pr.val
+            self.jacobian[k, 1, 1] = -1
             k += 1
 
         ######################################################################
         # derivatives for additional equations
-        self.additional_derivatives(vec_z, k)
+        self.additional_derivatives(increment_filter, k)
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         return
 
@@ -303,7 +292,7 @@ class turbomachine(component):
 
         Returns
         -------
-        mat_deriv : ndarray
+        deriv : ndarray
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, self.num_nw_vars))
@@ -492,24 +481,23 @@ class compressor(turbomachine):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
             **optional equations**
-
 
             - :func:`tespy.components.turbomachinery.compressor.eta_s_func`
             - :func:`tespy.components.turbomachinery.compressor.eta_s_char_func`
@@ -518,87 +506,87 @@ class compressor(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equations for specified characteristic map
         if self.char_map.is_set:
-            if (any(np.absolute(self.vec_res[k:k + 2])) > err ** 2 or
+            if (any(np.absolute(self.residual[k:k + 2])) > err ** 2 or
                     self.it % 4 == 0):
-                self.vec_res[k:k + 2] = self.char_map_func()
+                self.residual[k:k + 2] = self.char_map_func()
             k += 2
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
             f = self.eta_s_func
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 1, 2] = -self.eta_s.val
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.jacobian[k, 1, 2] = -self.eta_s.val
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             f = self.eta_s_char_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
         ######################################################################
         # derivatives for specified characteristic map
         if self.char_map.is_set:
             f = self.char_map_func
-            if not vec_z[0, 0]:
+            if not increment_filter[0, 0]:
                 m11 = self.numeric_deriv(f, 'm', 0)
-                self.mat_deriv[k, 0, 0] = m11[0]
-                self.mat_deriv[k + 1, 0, 0] = m11[1]
-            if not vec_z[0, 1]:
+                self.jacobian[k, 0, 0] = m11[0]
+                self.jacobian[k + 1, 0, 0] = m11[1]
+            if not increment_filter[0, 1]:
                 p11 = self.numeric_deriv(f, 'p', 0)
-                self.mat_deriv[k, 0, 1] = p11[0]
-                self.mat_deriv[k + 1, 0, 1] = p11[1]
-            if not vec_z[0, 2]:
+                self.jacobian[k, 0, 1] = p11[0]
+                self.jacobian[k + 1, 0, 1] = p11[1]
+            if not increment_filter[0, 2]:
                 h11 = self.numeric_deriv(f, 'h', 0)
-                self.mat_deriv[k, 0, 2] = h11[0]
-                self.mat_deriv[k + 1, 0, 2] = h11[1]
+                self.jacobian[k, 0, 2] = h11[0]
+                self.jacobian[k + 1, 0, 2] = h11[1]
 
-            if not vec_z[1, 1]:
+            if not increment_filter[1, 1]:
                 p21 = self.numeric_deriv(f, 'p', 1)
-                self.mat_deriv[k, 1, 1] = p21[0]
-                self.mat_deriv[k + 1, 1, 1] = p21[1]
-            if not vec_z[1, 2]:
+                self.jacobian[k, 1, 1] = p21[0]
+                self.jacobian[k + 1, 1, 1] = p21[1]
+            if not increment_filter[1, 2]:
                 h21 = self.numeric_deriv(f, 'h', 1)
-                self.mat_deriv[k, 1, 2] = h21[0]
-                self.mat_deriv[k + 1, 1, 2] = h21[1]
+                self.jacobian[k, 1, 2] = h21[0]
+                self.jacobian[k + 1, 1, 2] = h21[1]
 
             if self.igva.is_var:
                 igva = self.numeric_deriv(f, 'igva', 1)
                 if self.igva.is_var:
-                    self.mat_deriv[k, 2 + self.igva.var_pos, 0] = igva[0]
-                    self.mat_deriv[k + 1, 2 + self.igva.var_pos, 0] = igva[1]
+                    self.jacobian[k, 2 + self.igva.var_pos, 0] = igva[0]
+                    self.jacobian[k + 1, 2 + self.igva.var_pos, 0] = igva[1]
             k += 2
 
     def eta_s_func(self):
@@ -994,19 +982,19 @@ class pump(turbomachine):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
@@ -1019,66 +1007,66 @@ class pump(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # equations for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equations for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.flow_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.flow_char_func()
             k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
             f = self.eta_s_func
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 1, 2] = -self.eta_s.val
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.jacobian[k, 1, 2] = -self.eta_s.val
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             f = self.eta_s_char_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
         ######################################################################
         # derivatives for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
             f = self.flow_char_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
             for i in range(2):
-                if not vec_z[i, 1]:
-                    self.mat_deriv[k, i, 1] = self.numeric_deriv(f, 'p', i)
+                if not increment_filter[i, 1]:
+                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
             k += 1
 
     def eta_s_func(self):
@@ -1427,19 +1415,19 @@ class turbine(turbomachine):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
@@ -1451,66 +1439,66 @@ class turbine(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equation for specified cone law
         if self.cone.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.cone_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.cone_func()
             k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for specified isentropic efficiency
         if self.eta_s.is_set:
             f = self.eta_s_func
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.mat_deriv[k, 1, 2] = -1
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            self.jacobian[k, 1, 2] = -1
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             f = self.eta_s_char_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             k += 1
 
         ######################################################################
         # derivatives for specified cone law
         if self.cone.is_set:
             f = self.cone_func
-            self.mat_deriv[k, 0, 0] = -1
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
+            self.jacobian[k, 0, 0] = -1
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
             k += 1
 
         return

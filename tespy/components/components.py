@@ -13,9 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-
 import logging
-
 from tespy.tools.characteristics import char_line, char_map, compressor_map
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import (
@@ -319,8 +317,8 @@ class component:
         self.nw_fluids = nw.fluids
         self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
-        self.vec_res = []
-        self.mat_deriv = None
+        self.residual = []
+        self.jacobian = None
         self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
@@ -372,7 +370,7 @@ class component:
     def equations(self):
         return
 
-    def derivatives(self, vec_z):
+    def derivatives(self, increment_filter):
         return
 
     def initialise_source(self, c, key):
@@ -488,7 +486,7 @@ class component:
 
         Returns
         -------
-        vec_res : list
+        residual : list
             Vector of residual values for component's fluid balance.
 
             .. math::
@@ -496,12 +494,12 @@ class component:
                 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
                 \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
         """
-        vec_res = []
+        residual = []
 
         for i in range(self.num_i):
             for fluid, x in self.inl[0].fluid.val.items():
-                vec_res += [x - self.outl[0].fluid.val[fluid]]
-        return vec_res
+                residual += [x - self.outl[0].fluid.val[fluid]]
+        return residual
 
     def fluid_deriv(self):
         r"""
@@ -529,7 +527,7 @@ class component:
 
         Returns
         -------
-        vec_res : list
+        residual : list
             Vector with residual value for component's mass flow balance.
 
             .. math::

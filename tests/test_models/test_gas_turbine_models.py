@@ -24,7 +24,6 @@ class TestGasturbine:
 
     def setup_combustion_chamber_model(self):
         """Set up the model using the combustion chamber."""
-
         # %% network setup
         fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
         self.nw1 = network(
@@ -69,7 +68,6 @@ class TestGasturbine:
 
     def setup_combustion_chamber_stoich_model(self):
         """Set up the model using the stoichimetric combustion chamber."""
-
         # %% network setup
         fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
         self.nw2 = network(
@@ -112,11 +110,7 @@ class TestGasturbine:
         self.nw2.solve(mode='design')
 
     def test_models(self):
-        """
-        Tests the operating points of the heat pump against a different model.
-        By now, not all characteristic functions of the original model are
-        available in detail, thus perfect matching is not possible!
-        """
+        """Tests the results of both gas turbine models."""
         self.setup_combustion_chamber_model()
         self.setup_combustion_chamber_stoich_model()
         m1 = round(self.nw1.connections['flue gas after cc'].m.val, 6)

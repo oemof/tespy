@@ -19,7 +19,6 @@ import json
 # ordered dicts for fluid composition vector
 from collections import Counter, OrderedDict
 # calculation of molar masses and gas constants
-from CoolProp.CoolProp import PropsSI as CPPSI
 # logging messages
 import logging
 # numpy functions

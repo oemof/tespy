@@ -9,10 +9,10 @@ tests/test_tools/test_fluid_properties.py
 
 SPDX-License-Identifier: MIT
 """
+import numpy as np
+import shutil
 from tespy.tools import fluid_properties as fp
 from tespy.tools.global_vars import molar_masses, gas_constants
-from CoolProp.CoolProp import PropsSI as CP
-import numpy as np
 
 
 class TestFluidProperties:

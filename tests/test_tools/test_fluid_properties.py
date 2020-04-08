@@ -197,3 +197,5 @@ def test_tespy_fluid_mixture():
                     str(round(T, 0)) + ' for function ' + name +
                     ', should be < 1e-4.')
                 assert d_rel < 1e-4, msg
+
+    shutil.rmtree('LUT', ignore_errors=True)

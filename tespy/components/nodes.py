@@ -17,16 +17,14 @@ available from its original location tespy/components/nodes.py
 SPDX-License-Identifier: MIT
 """
 
+import logging
 import numpy as np
-
 from tespy.components.components import component
-
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
     T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
     h_mix_pQ, dh_mix_dpQ)
-import logging
 
 # %%
 
@@ -200,21 +198,21 @@ class node(component):
         # number of enthalpy equations
         self.num_eq += self.num_o
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
-        self.mat_deriv[0:1] = self.mass_flow_deriv()
-        self.mat_deriv[1:self.num_i + self.num_o] = self.pressure_deriv()
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian[0:1] = self.mass_flow_deriv()
+        self.jacobian[1:self.num_i + self.num_o] = self.pressure_deriv()
 
     def equations(self):
-        r"""Calculate vector vec_res with results of equations."""
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # eqation for mass flow balance
-        self.vec_res[k] = self.mass_flow_func()
+        self.residual[k] = self.mass_flow_func()
         k += 1
 
         ######################################################################
@@ -223,21 +221,21 @@ class node(component):
         if self.num_i > 1:
             inl = self.inl[1:]
         for c in inl + self.outl:
-            self.vec_res[k] = self.inl[0].p.val_SI - c.p.val_SI
+            self.residual[k] = self.inl[0].p.val_SI - c.p.val_SI
             k += 1
 
         ######################################################################
         # additional eqations
         self.additional_equations(k)
 
-    def derivatives(self, vec_z):
+    def derivatives(self, increment_filter):
         r"""Calculate partial derivatives for given equations."""
         ######################################################################
         # derivatives for mass and pressure are static
         k = self.num_i + self.num_o
         ######################################################################
         # additional derivatives
-        self.additional_derivatives(vec_z, k)
+        self.additional_derivatives(increment_filter, k)
 
     def additional_equations(self, k):
         r"""
@@ -294,8 +292,8 @@ class node(component):
                 self.outg += [[c, loc]]
             loc += 1
 
-        self.mat_deriv = self.mat_deriv[0:k]
-        self.mat_deriv = np.append(self.mat_deriv, np.zeros((
+        self.jacobian = self.jacobian[0:k]
+        self.jacobian = np.append(self.jacobian, np.zeros((
             len(self.outg) * (self.num_nw_fluids + 1),
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars)), axis=0)
@@ -308,39 +306,39 @@ class node(component):
             for i in self.inc:
                 m += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
             for o in self.outg:
-                self.vec_res[k] = m - o[0].fluid.val[fluid] * self.m_inc
+                self.residual[k] = m - o[0].fluid.val[fluid] * self.m_inc
                 k += 1
 
         ######################################################################
         # equations for energy balance
         for o in self.outg:
-            self.vec_res[k] = h - o[0].h.val_SI * self.m_inc
+            self.residual[k] = h - o[0].h.val_SI * self.m_inc
             k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for fluid balance equations
         j = 0
         for fluid in self.nw_fluids:
             for o in self.outg:
-                self.mat_deriv[k, o[1], j + 3] = -self.m_inc
+                self.jacobian[k, o[1], j + 3] = -self.m_inc
                 for i in self.inc:
-                    self.mat_deriv[k, i[1], 0] = -i[0].fluid.val[fluid]
-                    self.mat_deriv[k, i[1], j + 3] = -abs(i[0].m.val_SI)
+                    self.jacobian[k, i[1], 0] = -i[0].fluid.val[fluid]
+                    self.jacobian[k, i[1], j + 3] = -abs(i[0].m.val_SI)
                 k += 1
             j += 1
 
         ######################################################################
         # derivatives for energy balance equations
         for o in self.outg:
-            self.mat_deriv[k, o[1], 2] = -self.m_inc
+            self.jacobian[k, o[1], 2] = -self.m_inc
             for i in self.inc:
-                self.mat_deriv[k, i[1], 0] = i[0].h.val_SI - o[0].h.val_SI
-                self.mat_deriv[k, i[1], 2] = abs(i[0].m.val_SI)
+                self.jacobian[k, i[1], 0] = i[0].h.val_SI - o[0].h.val_SI
+                self.jacobian[k, i[1], 2] = abs(i[0].m.val_SI)
             k += 1
 
-        logging.info(str(self.mat_deriv))
+        logging.info(str(self.jacobian))
 
     def pressure_deriv(self):
         r"""
@@ -633,35 +631,35 @@ class drum(component):
         # saturated gas outlet: 1
         self.num_eq = self.num_nw_fluids * 2 + 7
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids * 2
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
-        self.mat_deriv[pos + 1:pos + 4] = self.pressure_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[pos + 1:pos + 4] = self.pressure_deriv()
 
     def equations(self):
-        r"""Calculate vector vec_res with results of equations."""
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # eqations for fluid balance
-        self.vec_res[k:k + self.num_nw_fluids * 2] = self.fluid_func()
+        self.residual[k:k + self.num_nw_fluids * 2] = self.fluid_func()
         k += self.num_nw_fluids * 2
 
         ######################################################################
         # eqations for mass flow balance
-        self.vec_res[k] = self.mass_flow_func()
+        self.residual[k] = self.mass_flow_func()
         k += 1
 
         ######################################################################
         # eqations for pressure
         p = self.inl[0].p.val_SI
         for c in [self.inl[1]] + self.outl:
-            self.vec_res[k] = p - c.p.val_SI
+            self.residual[k] = p - c.p.val_SI
             k += 1
 
         ######################################################################
@@ -671,27 +669,20 @@ class drum(component):
             val += i.m.val_SI * i.h.val_SI
         for o in self.outl:
             val -= o.m.val_SI * o.h.val_SI
-        self.vec_res[k] = val
+        self.residual[k] = val
         k += 1
 
         ######################################################################
         # eqations for staturated fluid state at outlets
-        self.vec_res[k] = h_mix_pQ(
+        self.residual[k] = h_mix_pQ(
             self.outl[0].to_flow(), 0) - self.outl[0].h.val_SI
         k += 1
-        self.vec_res[k] = h_mix_pQ(
+        self.residual[k] = h_mix_pQ(
             self.outl[1].to_flow(), 1) - self.outl[1].h.val_SI
         k += 1
 
-    def derivatives(self, vec_z):
-        r"""
-        Calculate partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, increment_filter):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
         # derivatives fluid, mass flow and pressure balance are static
         k = self.num_nw_fluids * 2 + 4
@@ -700,23 +691,23 @@ class drum(component):
         # derivatives for energy balance equation
         i = 0
         for inl in self.inl:
-            self.mat_deriv[k, i, 0] = inl.h.val_SI
-            self.mat_deriv[k, i, 2] = inl.m.val_SI
+            self.jacobian[k, i, 0] = inl.h.val_SI
+            self.jacobian[k, i, 2] = inl.m.val_SI
             i += 1
         j = 0
         for outl in self.outl:
-            self.mat_deriv[k, j + i, 0] = -outl.h.val_SI
-            self.mat_deriv[k, j + i, 2] = -outl.m.val_SI
+            self.jacobian[k, j + i, 0] = -outl.h.val_SI
+            self.jacobian[k, j + i, 2] = -outl.m.val_SI
             j += 1
         k += 1
 
         ######################################################################
         # derivatives of equations for saturated states at outlets
-        self.mat_deriv[k, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
-        self.mat_deriv[k, 2, 2] = -1
+        self.jacobian[k, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, 2, 2] = -1
         k += 1
-        self.mat_deriv[k, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
-        self.mat_deriv[k, 3, 2] = -1
+        self.jacobian[k, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
+        self.jacobian[k, 3, 2] = -1
         k += 1
 
     def fluid_func(self):
@@ -725,7 +716,7 @@ class drum(component):
 
         Returns
         -------
-        vec_res : list
+        residual : list
             Vector of residual values for component's fluid balance.
 
             .. math::
@@ -734,12 +725,12 @@ class drum(component):
                 \forall i \in \mathrm{fluid}, \; \forall j \in inlets
 
         """
-        vec_res = []
+        residual = []
 
         for o in self.outl:
             for fluid, x in self.inl[0].fluid.val.items():
-                vec_res += [x - o.fluid.val[fluid]]
-        return vec_res
+                residual += [x - o.fluid.val[fluid]]
+        return residual
 
     def fluid_deriv(self):
         r"""
@@ -988,19 +979,19 @@ class merge(node):
 
         self.num_eq = self.num_i + self.num_o + self.num_nw_fluids + 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
-        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian[0:1] = self.mass_flow_deriv()
         end = self.num_i + self.num_o
-        self.mat_deriv[1:end] = self.pressure_deriv()
+        self.jacobian[1:end] = self.pressure_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
@@ -1023,7 +1014,7 @@ class merge(node):
             res = -x * self.outl[0].m.val_SI
             for i in self.inl:
                 res += i.fluid.val[fluid] * i.m.val_SI
-            self.vec_res[k] = res
+            self.residual[k] = res
             k += 1
 
         ######################################################################
@@ -1031,10 +1022,10 @@ class merge(node):
         h_res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
         for i in self.inl:
             h_res += i.m.val_SI * i.h.val_SI
-        self.vec_res[k] = h_res
+        self.residual[k] = h_res
         k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for fluid balance equations
@@ -1042,22 +1033,22 @@ class merge(node):
         for fluid, x in self.outl[0].fluid.val.items():
             j = 0
             for inl in self.inl:
-                self.mat_deriv[k, j, 0] = inl.fluid.val[fluid]
-                self.mat_deriv[k, j, i + 3] = inl.m.val_SI
+                self.jacobian[k, j, 0] = inl.fluid.val[fluid]
+                self.jacobian[k, j, i + 3] = inl.m.val_SI
                 j += 1
-            self.mat_deriv[k, j, 0] = -x
-            self.mat_deriv[k, j, i + 3] = -self.outl[0].m.val_SI
+            self.jacobian[k, j, 0] = -x
+            self.jacobian[k, j, i + 3] = -self.outl[0].m.val_SI
             i += 1
             k += 1
 
         ######################################################################
         # derivatives for energy balance equations
-        self.mat_deriv[k, self.num_i, 0] = -self.outl[0].h.val_SI
-        self.mat_deriv[k, self.num_i, 2] = -self.outl[0].m.val_SI
+        self.jacobian[k, self.num_i, 0] = -self.outl[0].h.val_SI
+        self.jacobian[k, self.num_i, 2] = -self.outl[0].m.val_SI
         j = 0
         for i in self.inl:
-            self.mat_deriv[k, j, 0] = i.h.val_SI
-            self.mat_deriv[k, j, 2] = i.m.val_SI
+            self.jacobian[k, j, 0] = i.h.val_SI
+            self.jacobian[k, j, 2] = i.m.val_SI
             j += 1
         k += 1
 
@@ -1213,19 +1204,19 @@ class separator(node):
 
         self.num_eq = self.num_i + self.num_o * 2 + self.num_nw_fluids
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
-        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian[0:1] = self.mass_flow_deriv()
         end = self.num_i + self.num_o
-        self.mat_deriv[1:end] = self.pressure_deriv()
+        self.jacobian[1:end] = self.pressure_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
@@ -1245,18 +1236,18 @@ class separator(node):
             res = x * self.inl[0].m.val_SI
             for o in self.outl:
                 res -= o.fluid.val[fluid] * o.m.val_SI
-            self.vec_res[k] = res
+            self.residual[k] = res
             k += 1
 
         ######################################################################
         # equations for energy balance
         for o in self.outl:
-            self.vec_res[k] = (
+            self.residual[k] = (
                 T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI) -
                 T_mix_ph(o.to_flow(), T0=o.T.val_SI))
             k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for fluid balance equations
@@ -1264,11 +1255,11 @@ class separator(node):
         for fluid in self.nw_fluids:
             j = 0
             for o in self.outl:
-                self.mat_deriv[k, j + 1, 0] = -o.fluid.val[fluid]
-                self.mat_deriv[k, j + 1, i + 3] = -o.m.val_SI
+                self.jacobian[k, j + 1, 0] = -o.fluid.val[fluid]
+                self.jacobian[k, j + 1, i + 3] = -o.m.val_SI
                 j += 1
-            self.mat_deriv[k, 0, 0] = self.inl[0].fluid.val[fluid]
-            self.mat_deriv[k, 0, i + 3] = self.inl[0].m.val_SI
+            self.jacobian[k, 0, 0] = self.inl[0].fluid.val[fluid]
+            self.jacobian[k, 0, i + 3] = self.inl[0].m.val_SI
             k += 1
             i += 1
 
@@ -1278,12 +1269,12 @@ class separator(node):
         j = 0
         for o in self.outl:
             o = o.to_flow()
-            self.mat_deriv[k, 0, 1] = dT_mix_dph(i)
-            self.mat_deriv[k, 0, 2] = dT_mix_pdh(i)
-            self.mat_deriv[k, 0, 3:] = dT_mix_ph_dfluid(i)
-            self.mat_deriv[k, j + 1, 1] = -dT_mix_dph(o)
-            self.mat_deriv[k, j + 1, 2] = -dT_mix_pdh(o)
-            self.mat_deriv[k, j + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            self.jacobian[k, 0, 1] = dT_mix_dph(i)
+            self.jacobian[k, 0, 2] = dT_mix_pdh(i)
+            self.jacobian[k, 0, 3:] = dT_mix_ph_dfluid(i)
+            self.jacobian[k, j + 1, 1] = -dT_mix_dph(o)
+            self.jacobian[k, j + 1, 2] = -dT_mix_pdh(o)
+            self.jacobian[k, j + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
             j += 1
             k += 1
 
@@ -1437,25 +1428,25 @@ class splitter(node):
 
         self.num_eq = self.num_i + self.num_o * (2 + self.num_nw_fluids)
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
-        self.mat_deriv[0:1] = self.mass_flow_deriv()
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian[0:1] = self.mass_flow_deriv()
         end = self.num_i + self.num_o
-        self.mat_deriv[1:end] = self.pressure_deriv()
+        self.jacobian[1:end] = self.pressure_deriv()
         start = end
         end = start + self.num_o * self.num_nw_fluids
-        self.mat_deriv[start:end] = self.fluid_deriv()
+        self.jacobian[start:end] = self.fluid_deriv()
         start = end
         end = start + self.num_o
-        self.mat_deriv[start:end] = self.enthalpy_deriv()
+        self.jacobian[start:end] = self.enthalpy_deriv()
 
     def additional_equations(self, k):
         r"""
-        Calculate vector vec_res with results of additional equations.
+        Calculate results of additional equations.
 
         Equations
 
@@ -1472,16 +1463,16 @@ class splitter(node):
         # equations for fluid balance
         for o in self.outl:
             for fluid, x in self.inl[0].fluid.val.items():
-                self.vec_res[k] = x - o.fluid.val[fluid]
+                self.residual[k] = x - o.fluid.val[fluid]
                 k += 1
 
         ######################################################################
         # equations for energy balance
         for o in self.outl:
-            self.vec_res[k] = self.inl[0].h.val_SI - o.h.val_SI
+            self.residual[k] = self.inl[0].h.val_SI - o.h.val_SI
             k += 1
 
-    def additional_derivatives(self, vec_z, k):
+    def additional_derivatives(self, increment_filter, k):
         r"""Calculate partial derivatives for given additional equations."""
         return
 

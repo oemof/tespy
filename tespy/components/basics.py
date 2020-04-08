@@ -18,9 +18,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-
 from tespy.components.components import component
-
 from tespy.tools.data_containers import dc_simple, dc_cp
 
 # %%
@@ -131,37 +129,30 @@ class cycle_closer(component):
         # enthalpy: 1
         self.num_eq = 2
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.residual = np.ones(self.num_eq)
         # derivatives for pressure
-        self.mat_deriv[0, 0, 1] = 1
-        self.mat_deriv[0, 1, 1] = -1
+        self.jacobian[0, 0, 1] = 1
+        self.jacobian[0, 1, 1] = -1
         # derivatives for enthalpy
-        self.mat_deriv[1, 0, 2] = 1
-        self.mat_deriv[1, 1, 2] = -1
+        self.jacobian[1, 0, 2] = 1
+        self.jacobian[1, 1, 2] = -1
 
     def equations(self):
-        r"""
-        Calculate vector vec_res with results of equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # equation for pressure
-        self.vec_res[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.residual[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
         k += 1
 
         ######################################################################
         # equation for enthalpy
-        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        self.residual[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
         k += 1
 
     def derivatives(self, vek_z):
@@ -434,57 +425,50 @@ class subsystem_interface(component):
         # enthalpy: num_inter
         self.num_eq = (self.num_nw_fluids + 3) * self.num_i
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             2 * self.num_i,
             self.num_nw_vars))
 
-        self.vec_res = np.ones(self.num_eq)
+        self.residual = np.ones(self.num_eq)
         stop = self.num_nw_fluids * self.num_i
-        self.mat_deriv[0:stop] = self.fluid_deriv()
+        self.jacobian[0:stop] = self.fluid_deriv()
         start = stop
         stop = start + self.num_i
-        self.mat_deriv[start:stop] = self.inout_deriv(0)
+        self.jacobian[start:stop] = self.inout_deriv(0)
         start = stop
         stop = start + self.num_i
-        self.mat_deriv[start:stop] = self.inout_deriv(1)
+        self.jacobian[start:stop] = self.inout_deriv(1)
         start = stop
         stop = start + self.num_i
-        self.mat_deriv[start:stop] = self.inout_deriv(2)
+        self.jacobian[start:stop] = self.inout_deriv(2)
 
     def equations(self):
-        r"""
-        Calculate vector vec_res with results of equations.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # eqations for fluids
         for i in range(self.num_i):
             for fluid, x in self.inl[i].fluid.val.items():
-                self.vec_res[k] = x - self.outl[i].fluid.val[fluid]
+                self.residual[k] = x - self.outl[i].fluid.val[fluid]
                 k += 1
 
         ######################################################################
         # equations for mass flow
         for i in range(self.num_i):
-            self.vec_res[k] = self.inl[i].m.val_SI - self.outl[i].m.val_SI
+            self.residual[k] = self.inl[i].m.val_SI - self.outl[i].m.val_SI
             k += 1
 
         ######################################################################
         # equations for pressure
         for i in range(self.num_i):
-            self.vec_res[k] = self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            self.residual[k] = self.inl[i].p.val_SI - self.outl[i].p.val_SI
             k += 1
 
         ######################################################################
         # equations for enthalpy
         for i in range(self.num_i):
-            self.vec_res[k] = self.inl[i].h.val_SI - self.outl[i].h.val_SI
+            self.residual[k] = self.inl[i].h.val_SI - self.outl[i].h.val_SI
             k += 1
 
         ######################################################################

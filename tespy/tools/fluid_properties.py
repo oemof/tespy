@@ -161,12 +161,12 @@ class tespy_fluid:
         self.fluid = fluid
 
         # adjust value ranges according to specified unit system
-        self.p_range = np.array(p_range)
-        self.T_range = np.array(T_range)
+        self.p_range = np.asarray(p_range)
+        self.T_range = np.asarray(T_range)
 
         # set up grid
-        self.p = np.linspace(self.p_range[0], self.p_range[1])
-        self.T = np.linspace(self.T_range[0], self.T_range[1])
+        self.p = np.geomspace(self.p_range[0], self.p_range[1], 100)
+        self.T = np.linspace(self.T_range[0], self.T_range[1], 100)
 
         # path for loading
         self.path = path
@@ -1149,7 +1149,7 @@ def v_mix_ph(flow, T0=300):
     memorisation = fl in memorise.v_ph.keys()
     if memorisation is True:
         a = memorise.v_ph[fl][:, :-1]
-        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
@@ -1418,7 +1418,7 @@ def visc_mix_ph(flow, T0=300):
     memorisation = fl in memorise.visc_ph.keys()
     if memorisation is True:
         a = memorise.visc_ph[fl][:, :-1]
-        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
@@ -1437,7 +1437,7 @@ def visc_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.array([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
         memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
     return val
 
@@ -1580,7 +1580,7 @@ def s_mix_ph(flow, T0=300):
     memorisation = fl in memorise.s_ph.keys()
     if memorisation is True:
         a = memorise.s_ph[fl][:, :-1]
-        b = np.array([flow[1], flow[2]] + list(flow[3].values()))
+        b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
@@ -1685,6 +1685,8 @@ def s_mix_pT(flow, T):
             fluid_comps[f] += flow[3][f]
         else:
             fluid_comps[f] = flow[3][f]
+
+    # print(fluid_comps)
 
     s = 0
     for fluid, x in fluid_comps.items():

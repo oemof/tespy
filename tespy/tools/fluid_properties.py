@@ -174,22 +174,22 @@ class tespy_fluid:
         # create look up tables
         tespy_fluid.fluids[self.alias] = self
 
-        self.fluids_backends = OrderedDict()
+        self.fluids_back_ends = OrderedDict()
 
         for f in sorted(list(self.fluid.keys()) + [self.alias]):
             try:
                 data = f.split('::')
-                backend = data[0]
+                back_end = data[0]
                 fluid = data[1]
             except IndexError:
-                backend = 'HEOS'
+                back_end = 'HEOS'
                 fluid = f
             if f != self.alias:
-                self.fluids_backends[f] = backend
+                self.fluids_back_ends[f] = back_end
             else:
-                self.fluids_backends[f] = 'TESPy'
+                self.fluids_back_ends[f] = 'TESPy'
 
-        memorise.add_fluids(self.fluids_backends)
+        memorise.add_fluids(self.fluids_back_ends)
 
         params = {}
 
@@ -318,8 +318,8 @@ class memorise:
         Parameters
         ----------
         fluids : dict
-            Dict of fluid and corresponding CoolProp backend for fluid property
-            memorization.
+            Dict of fluid and corresponding CoolProp back end for fluid
+            property memorization.
 
         Note
         ----
@@ -370,11 +370,12 @@ class memorise:
             msg = 'Added fluids ' + str(fl) + ' to memorise lookup tables.'
             logging.debug(msg)
 
-        for f, backend in fluids.items():
-            if f not in memorise.state.keys() and backend != 'TESPy':
+        for f, back_end in fluids.items():
+            if f not in memorise.state.keys() and back_end != 'TESPy':
                 # create CoolProp.AbstractState object
                 try:
-                    memorise.state[f] = CP.AbstractState(backend, f)
+                    memorise.state[f] = CP.AbstractState(back_end, f)
+                    print(f, memorise.state[f], back_end)
                 except ValueError:
                     msg = (
                         'Could not find the fluid "' + f + '" in the fluid '
@@ -387,7 +388,7 @@ class memorise:
 
                 msg = (
                     'Created CoolProp.AbstractState object for fluid ' +
-                    f + ' with backend ' + backend + '.')
+                    f + ' with back end ' + back_end + '.')
                 logging.debug(msg)
                 # pressure range
                 try:
@@ -415,6 +416,7 @@ class memorise:
 
                 # value range for fluid properties
                 memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
+                print(memorise.value_range[f])
 
                 try:
                     molar_masses[f] = memorise.state[f].molar_mass()
@@ -436,7 +438,7 @@ class memorise:
                     'temperature for convergence check of fluid ' + f + '.')
                 logging.debug(msg)
 
-            elif backend == 'TESPy':
+            elif back_end == 'TESPy':
                 pmin = tespy_fluid.fluids[f].p_range[0]
                 pmax = tespy_fluid.fluids[f].p_range[1]
                 Tmin = tespy_fluid.fluids[f].T_range[0]

@@ -212,8 +212,8 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
         dp = 775000.0
         msg = ('Value of pressure rise must be ' + str(dp) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == dp, msg
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == dp, msg
 
         # test value of isentropic efficiency
         eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(
@@ -230,16 +230,16 @@ class TestTurbomachinery:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be ' + str(14e5) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == 14e5, msg
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 14e5, msg
 
         # upper boundary
         self.c1.set_attr(v=1.5)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        msg = ('Value of power must be ' + str(0) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == 0, msg
+        msg = ('Value of power must be 0, is ' +
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 0, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_turbine(self):

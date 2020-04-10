@@ -448,7 +448,7 @@ class compressor(turbomachine):
         return {'P': dc_cp(min_val=0),
                 'eta_s': dc_cp(min_val=0, max_val=1),
                 'pr': dc_cp(min_val=1),
-                'igva': dc_cp(min_val=-45, max_val=45, d=1e-2, val=0),
+                'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
                 'char_map': dc_cm(),
                 'eta_s_char': dc_cc(param='m'),
                 'Sirr': dc_simple()}

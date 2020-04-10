@@ -121,6 +121,7 @@ def load_network(path):
     be accessible by label. The following example setup is simple gas turbine
     setup with compressor, combustion chamber and turbine.
 
+    >>> import numpy as np
     >>> from tespy.components import (sink, source, combustion_chamber,
     ... compressor, turbine)
     >>> from tespy.connections import connection, ref, bus
@@ -158,26 +159,31 @@ def load_network(path):
     ... 'CO2': 0.04}, T=25)
     >>> ct.set_attr(T=1100)
     >>> outg.set_attr(p=ref(inc, 1, 0))
+    >>> power = bus('total power output')
+    >>> power.add_comps({'c': c}, {'c': t})
+    >>> nw.add_busses(power)
+
+    For a stable start, we specify the fresh air mass flow.
+
+    >>> inc.set_attr(m=3)
+    >>> nw.solve('design')
 
     The total power output is set to 1 MW, electrical or mechanical
     efficiencies are not considered in this example. The documentation
     example in class :func:`tespy.connections.bus` provides more information
     on efficiencies of generators, for instance.
 
-    >>> power = bus('total power output', P=-1e6)
-    >>> power.add_comps({'c': c}, {'c': t})
-    >>> nw.add_busses(power)
+    >>> inc.set_attr(m=np.nan)
+    >>> power.set_attr(P=-1e6)
     >>> nw.solve('design')
     >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
     >>> nw.save('exported_nwk')
     >>> c.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> round(t.eta_s.val, 1)
     0.9
     >>> power.set_attr(P=-0.75e6)
-    >>> nw.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> eta_s_t = round(t.eta_s.val, 3)
     >>> igva = round(c.igva.val, 3)
     >>> eta_s_t
@@ -191,19 +197,17 @@ def load_network(path):
 
     >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
-    >>> imported_nwk.solve('design')
+    >>> imported_nwk.solve('design', init_path='exported_nwk')
     >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
     True
     >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
     0.9
     >>> imported_nwk.components['compressor'].set_attr(igva='var')
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
     >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
     0.9
     >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
     >>> round(imported_nwk.components['turbine'].eta_s.val, 3) == eta_s_t
     True
     >>> round(imported_nwk.components['compressor'].igva.val, 3) == igva

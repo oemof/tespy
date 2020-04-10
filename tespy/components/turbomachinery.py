@@ -24,8 +24,8 @@ from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
 from tespy.tools.data_containers import dc_cc, dc_cm, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
-    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph,
-    num_fluids, err)
+    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph, single_fluid)
+from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyComponentError
 
 # %%
@@ -244,10 +244,9 @@ class turbomachine(component):
             i = self.inl[0].to_flow()
             o = self.outl[0].to_flow()
 
-        if num_fluids(i[3]) == 1:
-            for fluid, x in i[3].items():
-                if x > err:
-                    return h_ps(o[1], s_ph(i[1], i[2], fluid), fluid)
+        fluid = single_fluid(i[3])
+        if fluid is not None:
+            return h_ps(o[1], s_ph(i[1], i[2], fluid), fluid)
         else:
             T_mix = T_mix_ph(i, T0=self.inl[0].T.val_SI)
             s_mix = s_mix_pT(i, T_mix)

@@ -1041,7 +1041,7 @@ class network:
             c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
             c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
             c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
-            c.x.design = df.loc[conn_id].x
+            c.x.design = df.loc[conn_id].x * self.x[df.loc[conn_id].x_unit]
             c.T.design = ((df.loc[conn_id]['T'] +
                            self.T[df.loc[conn_id].T_unit][0]) *
                           self.T[df.loc[conn_id].T_unit][1])
@@ -2504,7 +2504,7 @@ class network:
             fluid = hlp.single_fluid(c.fluid.val)
             if isinstance(fluid, str) and not c.x.val_set:
                 c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
-                c.x.val = c.x.val_SI
+                c.x.val = c.x.val_SI / self.x[c.x.unit]
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val

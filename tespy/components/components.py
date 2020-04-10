@@ -592,9 +592,9 @@ class component:
         if dx == 'm':
             dm = 1e-4
         elif dx == 'p':
-            dp = 1e-3
+            dp = 1
         elif dx == 'h':
-            dh = 1e-3
+            dh = 1
         else:
             df = 1e-5
 

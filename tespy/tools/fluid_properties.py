@@ -375,7 +375,6 @@ class memorise:
                 # create CoolProp.AbstractState object
                 try:
                     memorise.state[f] = CP.AbstractState(back_end, f)
-                    print(f, memorise.state[f], back_end)
                 except ValueError:
                     msg = (
                         'Could not find the fluid "' + f + '" in the fluid '
@@ -416,7 +415,6 @@ class memorise:
 
                 # value range for fluid properties
                 memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
-                print(memorise.value_range[f])
 
                 try:
                     molar_masses[f] = memorise.state[f].molar_mass()

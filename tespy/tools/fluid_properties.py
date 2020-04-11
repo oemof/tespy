@@ -371,7 +371,15 @@ class memorise:
             logging.debug(msg)
 
         for f, back_end in fluids.items():
-            if f not in memorise.state.keys() and back_end != 'TESPy':
+            if back_end == 'IF97':
+                msg = (
+                    'Due to a bug in the IF97 CoolProp back end, it is not '
+                    'possible to use this back end at the moment. For more '
+                    'information see '
+                    'https://github.com/CoolProp/CoolProp/issues/1918.')
+                logging.error(msg)
+                raise ValueError(msg)
+            elif f not in memorise.state.keys() and back_end != 'TESPy':
                 # create CoolProp.AbstractState object
                 try:
                     memorise.state[f] = CP.AbstractState(back_end, f)

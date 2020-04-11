@@ -104,7 +104,6 @@ which has been used until version 0.2.x in TESPy.
     {
         "fluids":
         {
-            "H2O": "IF97",
             "CO2": "TTSE",
             "O2": "HEOS",
             "N2": "BICUBIC",

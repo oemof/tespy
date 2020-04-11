@@ -9,6 +9,7 @@ tests/test_tools/test_fluid_properties.py
 
 SPDX-License-Identifier: MIT
 """
+import CoolProp as CP
 import numpy as np
 import shutil
 from tespy.components import (
@@ -273,7 +274,7 @@ class TestFluidPropertyBackEnds:
         for back_end in back_ends:
             # delete the fluid from the memorisation class
             if fluid in fp.memorise.state.keys():
-                del fp.memorise.state[fluid]
+                fp.memorise.state[fluid] = CP.AbstractState(back_end, fluid)
             self.setup_clausius_rankine([back_end + '::' + fluid])
             results[back_end] = (
                 1 - abs(self.nw.components['condenser'].Q.val) /

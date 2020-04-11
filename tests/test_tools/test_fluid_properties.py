@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
 import CoolProp as CP
 import numpy as np
 import shutil
+import os
+import pytest
 from tespy.components import (
     pump, turbine, condenser, source, sink,
     cycle_closer, heat_exchanger_simple)
@@ -136,7 +138,6 @@ class TestFluidProperties:
                                ' for function ' + name + ', should be < ' +
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
-
 
 def test_tespy_fluid_mixture():
     """
@@ -263,6 +264,10 @@ class TestFluidPropertyBackEnds:
     def setup_pipeline_network(self, fluid_list):
         """Setup a pipeline network."""
 
+    @pytest.mark.skipif(
+        os.environ.get('TRAVIS') is True,
+        reason='Travis CI cannot handle the tabular CoolProp back ends, '
+        'skipping this test. The test should run on your local machine.')
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -274,7 +279,7 @@ class TestFluidPropertyBackEnds:
         for back_end in back_ends:
             # delete the fluid from the memorisation class
             if fluid in fp.memorise.state.keys():
-                fp.memorise.state[fluid] = CP.AbstractState(back_end, fluid)
+                del fp.memorise.state[fluid]
             self.setup_clausius_rankine([back_end + '::' + fluid])
             results[back_end] = (
                 1 - abs(self.nw.components['condenser'].Q.val) /

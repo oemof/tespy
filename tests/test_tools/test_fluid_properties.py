@@ -265,7 +265,7 @@ class TestFluidPropertyBackEnds:
         """Setup a pipeline network."""
 
     @pytest.mark.skipif(
-        os.environ.get('TRAVIS') is True,
+        'TRAVIS' in os.environ,
         reason='Travis CI cannot handle the tabular CoolProp back ends, '
         'skipping this test. The test should run on your local machine.')
     def test_clausius_rankine(self):

@@ -124,7 +124,7 @@ class TestGasturbine:
 
         T1 = self.nw1.connections['flue gas after cc'].T.val_SI
         T2 = self.nw2.connections['flue gas after cc'].T.val_SI
-        d_rel = round(abs(T2 - T1) / T1, 5)
+        d_rel = abs(T2 - T1) / T1
         msg = (
             'The relative deviation in temperature after combustion is ' +
             str(d_rel) + ' with a maximum allowed value of 1e-3.')
@@ -133,7 +133,7 @@ class TestGasturbine:
 
         T1 = self.nw1.connections['flue gas after gt'].T.val_SI
         T2 = self.nw2.connections['flue gas after gt'].T.val_SI
-        d_rel = round(abs(T2 - T1) / T1, 5)
+        d_rel = abs(T2 - T1) / T1
         msg = (
             'The relative deviation in temperature after the turbine is ' +
             str(d_rel) + ' with a maximum allowed value of 1e-3.')

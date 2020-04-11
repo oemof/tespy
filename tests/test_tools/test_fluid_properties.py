@@ -11,6 +11,11 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 import shutil
+from tespy.components import (
+    pump, turbine, condenser, source, sink,
+    cycle_closer, heat_exchanger_simple)
+from tespy.connections import connection
+from tespy.networks import network
 from tespy.tools import fluid_properties as fp
 from tespy.tools.global_vars import molar_masses, gas_constants
 
@@ -199,3 +204,93 @@ def test_tespy_fluid_mixture():
                 assert d_rel < 1e-4, msg
 
     shutil.rmtree('LUT', ignore_errors=True)
+
+
+class TestFluidPropertyBackEnds:
+    """Testing full models with different fluid property back ends."""
+
+    def setup_clausius_rankine(self, fluid_list):
+        """Setup a Clausius-Rankine cycle."""
+        self.nw = network(fluids=fluid_list)
+        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+
+        # %% components
+
+        # main components
+        turb = turbine('turbine')
+        con = condenser('condenser')
+        pu = pump('pump')
+        steam_generator = heat_exchanger_simple('steam generator')
+        closer = cycle_closer('cycle closer')
+
+        # cooling water
+        so_cw = source('cooling water inlet')
+        si_cw = sink('cooling water outlet')
+
+        # %% connections
+
+        # main cycle
+        fs_in = connection(closer, 'out1', turb, 'in1', label='livesteam')
+        ws = connection(turb, 'out1', con, 'in1', label='wastesteam')
+        cond = connection(con, 'out1', pu, 'in1', label='condensate')
+        fw = connection(pu, 'out1', steam_generator, 'in1', label='feedwater')
+        fs_out = connection(steam_generator, 'out1', closer, 'in1')
+        self.nw.add_conns(fs_in, ws, cond, fw, fs_out)
+
+        # cooling water
+        cw_in = connection(so_cw, 'out1', con, 'in2')
+        cw_out = connection(con, 'out2', si_cw, 'in1')
+        self.nw.add_conns(cw_in, cw_out)
+
+        # %% parametrization of components
+
+        turb.set_attr(eta_s=0.9)
+        con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
+        pu.set_attr(eta_s=0.7)
+        steam_generator.set_attr(pr=0.9)
+
+        # %% parametrization of connections
+
+        fs_in.set_attr(p=100, T=500, m=100, fluid={self.nw.fluids[0]: 1})
+
+        cw_in.set_attr(T=20, p=5, fluid={self.nw.fluids[0]: 1})
+        cw_out.set_attr(T=30)
+
+        # %% solving
+        self.nw.solve('design')
+
+    def setup_pipeline_network(self, fluid_list):
+        """Setup a pipeline network."""
+
+    def test_clausius_rankine(self):
+        """Test the Clausius-Rankine cycle with different back ends."""
+        fluid = 'water'
+        back_ends = ['HEOS', 'BICUBIC', 'TTSE']
+        # the IF97 back end is buggy on the CoolProp side, therefore not
+        # supported at the moment
+        # back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
+        results = {}
+        for back_end in back_ends:
+            # delete the fluid from the memorisation class
+            if fluid in fp.memorise.state.keys():
+                del fp.memorise.state[fluid]
+            self.setup_clausius_rankine([back_end + '::' + fluid])
+            results[back_end] = (
+                1 - abs(self.nw.components['condenser'].Q.val) /
+                self.nw.components['steam generator'].Q.val)
+
+        efficiency = results['HEOS']
+
+        for back_end in back_ends:
+            if back_end == 'HEOS':
+                continue
+
+            d_rel = (
+                abs(results[back_end] - efficiency) /
+                efficiency)
+
+            msg = (
+                'The deviation in thermal efficiency of the Clausius-Rankine '
+                'cycle calculated with ' + back_end + ' back end is ' +
+                str(d_rel) + ' but should not be larger than 1e-6.')
+            assert d_rel <= 1e-6, msg

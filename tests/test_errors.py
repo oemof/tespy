@@ -20,7 +20,7 @@ from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError, extend_basic_path)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid, memorise
+from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
 from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import os
@@ -298,6 +298,8 @@ class TestCombustionChamberStoichErrors:
                                air={'N2': 1}, air_alias='myair')
         with raises(TESPyComponentError):
             self.nw.solve('design', init_only=True)
+
+        shutil.rmtree('LUT', ignore_errors=True)
 
 ##############################################################################
 # combustion_engine
@@ -675,7 +677,7 @@ def test_tespy_fluid_alias_value():
 
 
 ##############################################################################
-# test errors in fluid porperty back end specification
+# test errors in fluid porperty functions
 
 
 def test_IF97_back_end():
@@ -683,3 +685,8 @@ def test_IF97_back_end():
         del memorise.state['water']
     with raises(ValueError):
         memorise.add_fluids({'water': 'IF97'})
+
+
+def test_h_mix_pQ_on_mixtures():
+    with raises(ValueError):
+        h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)

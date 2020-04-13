@@ -218,7 +218,7 @@ class connection:
             raise TypeError(msg)
 
         if comp1 == comp2:
-            msg = ('Error creating connection. Can\'t connect component ' +
+            msg = ('Error creating connection. Cannot connect component ' +
                    comp1.label + ' to itself.')
             logging.error(msg)
             raise TESPyConnectionError(msg)
@@ -415,7 +415,7 @@ class connection:
                                 raise TypeError(msg)
                         else:
                             msg = ('Keyword argument ' + key +
-                                   ' must be \'l\' or \'g\'.')
+                                   ' must be "l" or "g".')
                             logging.error(msg)
                             raise ValueError(msg)
 

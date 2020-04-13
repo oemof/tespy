@@ -14,8 +14,8 @@ available from its original location tespy/networks/networks.py
 SPDX-License-Identifier: MIT
 """
 import ast
+import json
 from collections import Counter, OrderedDict
-from CoolProp.CoolProp import PropsSI as CPPSI
 import logging
 import numpy as np
 from numpy.linalg import inv
@@ -34,8 +34,7 @@ from tespy import connections as con
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
-from tespy.tools.global_vars import molar_masses, gas_constants, err
-# calculation time
+from tespy.tools.global_vars import err
 from time import time
 
 
@@ -162,25 +161,32 @@ class network:
             logging.error(msg)
             raise TypeError(msg)
 
-        msg = 'Network fluids are: '
-        for f in self.fluids:
-            msg += f + ', '
-            if 'INCOMP::' in f:
-                # molar mass and gas constant not available for incompressibles
-                molar_masses[f] = 1
-                gas_constants[f] = 1
+        # this must be ordered as the fluid property memorisation calls
+        # the mass fractions of the different fluids as keys in a given order.
+        self.fluids_backends = OrderedDict()
 
-            elif 'TESPy::' not in f:
-                # calculating molar masses/gas constants for network's fluids
-                # tespy_fluid molar mass/gas constant are added on lut creation
-                molar_masses[f] = CPPSI('M', f)
-                gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+        msg = 'Network fluids are: '
+        i = 0
+        for f in self.fluids:
+            try:
+                data = f.split('::')
+                backend = data[0]
+                fluid = data[1]
+            except IndexError:
+                backend = 'HEOS'
+                fluid = f
+
+            self.fluids_backends[fluid] = backend
+            self.fluids[i] = fluid
+
+            msg += fluid + ', '
+            i += 1
 
         msg = msg[:-2] + '.'
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids)
+        fp.memorise.add_fluids(self.fluids_backends)
 
         # available unit systems
         # mass flow
@@ -425,13 +431,6 @@ class network:
         self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
                         self.T[self.T_unit][0])
 
-        for f in self.fluids:
-            if 'TESPy::' in f:
-                fp.memorise.vrange[f][0] = self.p_range_SI[0]
-                fp.memorise.vrange[f][1] = self.p_range_SI[1]
-                fp.memorise.vrange[f][2] = self.T_range_SI[0]
-                fp.memorise.vrange[f][3] = self.T_range_SI[1]
-
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
         if not isinstance(self.iterinfo, bool):
@@ -534,10 +533,7 @@ class network:
         for c in args:
             self.conns = self.conns.drop(c)
             del self.connections[c.label]
-            msg = (
-                'Deleted connection ' + c.source.label + ' (' + c.source_id +
-                ') -> ' + c.target.label + ' (' + c.target_id +
-                ') from network.')
+            msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
@@ -751,7 +747,7 @@ class network:
             self.redesign = True
             if self.design_path is None:
                 # must provide design_path
-                msg = ('Please provide \'design_path\' for every offdesign '
+                msg = ('Please provide "design_path" for every offdesign '
                        'calculation.')
                 logging.error(msg)
                 raise hlp.TESPyNetworkError(msg)
@@ -795,10 +791,8 @@ class network:
                 if c.design_path is None:
                     msg = (
                         'The parameter local_offdesign is True for the '
-                        'connection ' + c.source.label + '(' + c.source_id +
-                        ') -> ' + c.target.label + '(' + c.target_id +
-                        '), an individual design_path must be specified in '
-                        'this case!')
+                        'connection ' + c.label + ', an individual '
+                        'design_path must be specified in this case!')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
 
@@ -813,9 +807,7 @@ class network:
                 path = hlp.modify_path_os(c.design_path + '/connections.csv')
                 msg = (
                     'Reading individual design point information for '
-                    'connection ' + c.source.label + '(' + c.source_id +
-                    ') -> ' + c.target.label + '(' + c.target_id +
-                    ') from path ' + path + '.')
+                    'connection ' + c.label + ' from path ' + path + '.')
                 logging.debug(msg)
                 df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
 
@@ -973,8 +965,9 @@ class network:
         # read connection design point information
         path = hlp.modify_path_os(self.design_path + '/connections.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
-        msg = ('Reading design point information for connections from path ' +
-               path + '.')
+        msg = (
+            'Reading design point information for connections from path ' +
+            path + '.')
         logging.debug(msg)
 
         # iter through connections
@@ -983,10 +976,9 @@ class network:
             # read data of connections with individual design_path
             if c.design_path is not None:
                 path_c = hlp.modify_path_os(c.design_path + '/connections.csv')
-                msg = ('Reading individual design point information for '
-                       'connection ' + c.source.label + '(' + c.source_id + ') -> ' +
-                       c.target.label + '(' + c.target_id + ') from path ' +
-                       path_c + '.')
+                msg = (
+                    'Reading individual design point information for '
+                    'connection ' + c.label + ' from path ' + path_c + '.')
                 logging.debug(msg)
                 df_c = pd.read_csv(path_c, index_col=0,
                                    delimiter=';', decimal='.')
@@ -1049,7 +1041,7 @@ class network:
             c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
             c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
             c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
-            c.x.design = df.loc[conn_id].x
+            c.x.design = df.loc[conn_id].x * self.x[df.loc[conn_id].x_unit]
             c.T.design = ((df.loc[conn_id]['T'] +
                            self.T[df.loc[conn_id].T_unit][0]) *
                           self.T[df.loc[conn_id].T_unit][1])
@@ -1059,11 +1051,11 @@ class network:
                 c.fluid.design[fluid] = df.loc[conn_id][fluid]
         else:
             # no matches in the connections of the network and the design files
-            msg = ('Could not find connection ' + c.source.label + '(' + c.source_id +
-                   ') -> ' + c.target.label + '(' + c.target_id + ') in design case. '
-                   'Please, make sure no connections have been modified '
-                   'or components have been relabeled for your offdesign '
-                   'calculation.')
+            msg = (
+                'Could not find connection ' + c.label + ' in design case. '
+                'Please, make sure no connections have been modified or '
+                'components have been relabeled for your offdesign '
+                'calculation.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1553,9 +1545,9 @@ class network:
                 c.fluid.val0 = c.fluid.val.copy()
                 c.good_starting_values = True
             else:
-                msg = ('Could not find connection ' + c.source.label + ' (' +
-                       c.source_id + ') -> ' + c.target.label + ' (' + c.target_id +
-                       ') in .csv-file.')
+                msg = (
+                    'Could not find connection ' + c.label + ' in '
+                    'connections.csv of init_path ' + self.init_path + '.')
                 logging.debug(msg)
 
         msg = 'Specified starting values from init_path.'
@@ -1622,7 +1614,7 @@ class network:
         self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
-            msg = 'Mode must be \'design\' or \'offdesign\'.'
+            msg = 'Mode must be "design" or "offdesign".'
             logging.error(msg)
             raise ValueError(msg)
         else:
@@ -1992,12 +1984,10 @@ class network:
             msg = 'Enthalpy '
         elif prop == 'm':
             msg = 'Mass flow '
-        else:
-            msg = 'Unspecified '
-        msg += ('out of fluid property range at connection ' +
-                c.source.label + ' (' + c.source_id + ') -> ' + c.target.label + ' (' +
-                c.target_id + ') adjusting value to ' +
-                str(c.get_attr(prop).val_SI) + ' ' + self.SI_units[prop] + '.')
+        msg += (
+            'out of fluid property range at connection ' + c.label +
+            ' adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' +
+            self.SI_units[prop] + '.')
         return msg
 
     def solve_check_props(self, c):
@@ -2011,24 +2001,27 @@ class network:
         """
         fl = hlp.single_fluid(c.fluid.val)
 
-        if isinstance(fl, str):
+        if fluid is not None:
             # pressure
-            if c.p.val_SI < fp.memorise.vrange[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][0] * 1.01
+            if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][0] * 1.01
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI > fp.memorise.vrange[fl][1] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][1] * 0.99
+            if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][1] * 0.99
                 logging.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
             f = 1.01
             try:
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
             except ValueError:
                 f = 1.1
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
 
-            hmax = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][3] * 0.99, fl)
+            hmax = fp.h_pT(
+                c.p.val_SI, fp.memorise.value_range[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
                     c.h.val_SI = hmin / 1.05
@@ -2509,9 +2502,9 @@ class network:
             c.vol.val = c.vol.val_SI / self.vol[c.vol.unit]
             c.s.val = c.s.val_SI / self.s[c.s.unit]
             fluid = hlp.single_fluid(c.fluid.val)
-            if isinstance(fluid, str) and not c.x.val_set:
+            if fluid is not None and not c.x.val_set:
                 c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
-                c.x.val = c.x.val_SI
+                c.x.val = c.x.val_SI / self.x[c.x.unit]
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val
@@ -2660,20 +2653,21 @@ class network:
         """
         data = {}
         data['m_unit'] = self.m_unit
+        data['m_range'] = list(self.m_range)
         data['p_unit'] = self.p_unit
-        data['p_min'] = self.p_range[0]
-        data['p_max'] = self.p_range[1]
+        data['p_range'] = list(self.p_range)
         data['h_unit'] = self.h_unit
-        data['h_min'] = self.h_range[0]
-        data['h_max'] = self.h_range[1]
+        data['h_range'] = list(self.h_range)
         data['T_unit'] = self.T_unit
-        data['T_min'] = self.T_range[0]
-        data['T_max'] = self.T_range[1]
-        data['fluids'] = [self.fluids]
+        data['T_range'] = list(self.T_range)
+        data['x_unit'] = self.x_unit
+        data['v_unit'] = self.v_unit
+        data['s_unit'] = self.s_unit
+        data['fluids'] = self.fluids_backends
 
-        df = pd.DataFrame(data=data)
+        with open(fn, 'w') as f:
+            f.write(json.dumps(data, indent=4))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Network information saved to ' + fn + '.')
 
     def save_connections(self, fn):
@@ -2976,8 +2970,6 @@ class network:
                     return c.name.get_attr(args[0]).tolist()
             else:
                 return c.name.get_attr(args[0])
-        else:
-            return ''
 
     def get_busses(c, *args):
         """Return the list of busses a component is integrated in."""

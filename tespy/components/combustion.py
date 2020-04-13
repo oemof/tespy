@@ -382,9 +382,8 @@ class combustion_chamber(component):
         if self.ti.is_set:
             # stoichiometric combustion chamber
             if isinstance(self, combustion_chamber_stoich):
-                pos = 3 + self.nw_fluids.index(
-                    'TESPy::' + self.fuel_alias.val)
-                fuel = 'TESPy::' + self.fuel_alias.val
+                fuel = self.fuel_alias.val
+                pos = 3 + self.nw_fluids.index(fuel)
 
                 for i in range(2):
                     self.jacobian[k, i, 0] = -self.inl[i].fluid.val[fuel]
@@ -1203,16 +1202,14 @@ class combustion_chamber_stoich(combustion_chamber):
         Fuel composition, e. g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
 
     fuel_alias : str
-        Alias for the fuel, name of fuel for usage in network will be
-        TESPy::fuel_alias.
+        Alias for the fuel.
 
     air : dict
         Fresh air composition,
         e. g. :code:`{'N2': 0.76, 'O2': 0.23, 'Ar': 0.01}`.
 
     air_alias : str
-        Alias for the fresh air, name of air for usage in network will be
-        TESPy::air_alias.
+        Alias for the fresh air.
 
     path : str
         Path to existing fluid property table.
@@ -1237,14 +1234,14 @@ class combustion_chamber_stoich(combustion_chamber):
 
     If you choose 'Air' or 'air' as alias for the fresh air, TESPy will use
     the fluid properties from CoolProp's air. Else, a custom fluid
-    'TESPy::yourairalias' will be created.
+    'yourairalias' will be created.
 
-    The name of the flue gas will be: 'TESPy::yourfuelalias_fg'. It is also
+    The name of the flue gas will be: 'yourfuelalias_fg'. It is also
     possible to use fluid mixtures for the fuel, e. g.
     :code:`fuel={CH4: 0.9, 'CO2': 0.1}`. If you specify a fluid mixture for
-    the fuel, TESPy will automatically create a custom fluid called:
-    'TESPy::yourfuelalias'. For more information see the examples section
-    or look for the combustion chamber tutorials at tespy.readthedocs.io.
+    the fuel, TESPy will automatically create a custom fluid called. For more
+    information see the examples section or look for the combustion chamber
+    tutorials at tespy.readthedocs.io.
 
     Example
     -------
@@ -1263,7 +1260,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import numpy as np
     >>> import shutil
-    >>> fluid_list = ['TESPy::myAir', 'TESPy::myFuel', 'TESPy::myFuel_fg']
+    >>> fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ... p_range=[0.001, 10], T_range=[10, 2000], iterinfo=False)
     >>> amb = source('ambient air')
@@ -1286,19 +1283,19 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.03, 'H2': 0.01},
     ... air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0, 'CO2': 0.0004,
     ... 'O2': 0.2314}, fuel_alias='myFuel', air_alias='myAir', ti=500000)
-    >>> amb_comb.set_attr(T=20, p=1, fluid={'TESPy::myAir': 1,
-    ... 'TESPy::myFuel': 0,'TESPy::myFuel_fg': 0})
-    >>> sf_comb.set_attr(T=25, fluid={'TESPy::myAir': 0, 'TESPy::myFuel': 1,
-    ... 'TESPy::myFuel_fg': 0})
+    >>> amb_comb.set_attr(T=20, p=1, fluid={'myAir': 1,
+    ... 'myFuel': 0,'myFuel_fg': 0})
+    >>> sf_comb.set_attr(T=25, fluid={'myAir': 0, 'myFuel': 1,
+    ... 'myFuel_fg': 0})
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.01
+    2.016
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1204.7
+    1207.9
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
@@ -1362,11 +1359,6 @@ class combustion_chamber_stoich(combustion_chamber):
                    'combustion chamber ' + self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
-        if 'TESPy::' in self.fuel_alias.val:
-            msg = ('\'TESPy::\' must not be in the fuel alias at ' +
-                   self.label + '.')
-            logging.error(msg)
-            raise TESPyComponentError(msg)
 
         if not self.air.is_set or not isinstance(self.air.val, dict):
             msg = ('You must specify the air composition for stoichimetric '
@@ -1377,11 +1369,6 @@ class combustion_chamber_stoich(combustion_chamber):
         if not self.air_alias.is_set:
             msg = ('You must specify an air alias for stoichimetric '
                    'combustion chamber ' + self.label + '.')
-            logging.error(msg)
-            raise TESPyComponentError(msg)
-        if 'TESPy::' in self.air_alias.val:
-            msg = ('\'TESPy::\' must not be in the air alias at ' +
-                   self.label + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
@@ -1428,9 +1415,6 @@ class combustion_chamber_stoich(combustion_chamber):
             self.h2o = 'H2O'
         else:
             self.h2o = self.h2o[0]
-
-        for f in fluids:
-            memorise.heos[f] = CP.AbstractState('HEOS', f)
 
         # calculate lower heating value of specified fuel
         self.lhv = self.calc_lhv()
@@ -1704,12 +1688,9 @@ class combustion_chamber_stoich(combustion_chamber):
         res : float
             Residual value of equation.
         """
-        if self.air_alias.val in ['air', 'Air']:
-            air = self.air_alias.val
-        else:
-            air = 'TESPy::' + self.air_alias.val
-        fuel = 'TESPy::' + self.fuel_alias.val
-        flue_gas = 'TESPy::' + self.fuel_alias.val + '_fg'
+        air = self.air_alias.val
+        fuel = self.fuel_alias.val
+        flue_gas = self.fuel_alias.val + '_fg'
 
         ######################################################################
         # calculate fuel and air mass flow
@@ -1817,11 +1798,8 @@ class combustion_chamber_stoich(combustion_chamber):
 
                 val = \lambda - \frac{\dot{m}_{air}}{\dot{m}_{air,min}}
         """
-        if self.air_alias.val in ['air', 'Air']:
-            air = self.air_alias.val
-        else:
-            air = 'TESPy::' + self.air_alias.val
-        fuel = 'TESPy::' + self.fuel_alias.val
+        air = self.air_alias.val
+        fuel = self.fuel_alias.val
 
         m_air = 0
         m_fuel = 0
@@ -1862,14 +1840,12 @@ class combustion_chamber_stoich(combustion_chamber):
                 \right) - \dot{m}_{out,1} \cdot x_{f,1} \right]
                 \; \forall i \in [1,2]
         """
-        fuel = 'TESPy::' + self.fuel_alias.val
-
         m = 0
         for i in self.inl:
-            m += i.m.val_SI * i.fluid.val[fuel]
+            m += i.m.val_SI * i.fluid.val[self.fuel_alias.val]
 
         for o in self.outl:
-            m -= o.m.val_SI * o.fluid.val[fuel]
+            m -= o.m.val_SI * o.fluid.val[self.fuel_alias.val]
 
         return m * self.lhv
 
@@ -1882,11 +1858,8 @@ class combustion_chamber_stoich(combustion_chamber):
         nw : tespy.networks.network
             Network using this component object.
         """
-        if self.air_alias.val in ['air', 'Air']:
-            air = self.air_alias.val
-        else:
-            air = 'TESPy::' + self.air_alias.val
-        flue_gas = 'TESPy::' + self.fuel_alias.val + "_fg"
+        air = self.air_alias.val
+        flue_gas = self.fuel_alias.val + '_fg'
 
         for c in nw.comps.loc[self, 'outlets']:
             if not c.fluid.val_set[air]:
@@ -1909,12 +1882,9 @@ class combustion_chamber_stoich(combustion_chamber):
         user to match physically feasible constraints, keep fluid composition
         within feasible range and then propagates it towards the outlet.
         """
-        if self.air_alias.val in ['air', 'Air']:
-            air = self.air_alias.val
-        else:
-            air = 'TESPy::' + self.air_alias.val
-        flue_gas = 'TESPy::' + self.fuel_alias.val + "_fg"
-        fuel = 'TESPy::' + self.fuel_alias.val
+        air = self.air_alias.val
+        flue_gas = self.fuel_alias.val + '_fg'
+        fuel = self.fuel_alias.val
 
         for c in nw.comps.loc[self, 'outlets']:
             if not c.fluid.val_set[air]:
@@ -1949,11 +1919,8 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        if self.air_alias.val in ['air', 'Air']:
-            air = self.air_alias.val
-        else:
-            air = 'TESPy::' + self.air_alias.val
-        fuel = 'TESPy::' + self.fuel_alias.val
+        air = self.air_alias.val
+        fuel = self.fuel_alias.val
 
         m_fuel = 0
         for i in self.inl:

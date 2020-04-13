@@ -48,7 +48,7 @@ class TestTurbomachinery:
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'N2': 1, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 0, 'NH3': 0}
+        fl = {'N2': 1, 'O2': 0, 'Ar': 0, 'DowQ': 0, 'NH3': 0}
         self.c1.set_attr(fluid=fl, v=1, p=1, T=5)
         self.c2.set_attr(p=6)
         instance.set_attr(eta_s=0.8)
@@ -156,7 +156,7 @@ class TestTurbomachinery:
         """Test component properties of pumps."""
         instance = pump('pump')
         self.setup_network(instance)
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'INCOMP::DowQ': 1, 'NH3': 0}
+        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'DowQ': 1, 'NH3': 0}
         self.c1.set_attr(fluid=fl, v=1, p=5, T=50)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
@@ -212,8 +212,8 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
         dp = 775000.0
         msg = ('Value of pressure rise must be ' + str(dp) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == dp, msg
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == dp, msg
 
         # test value of isentropic efficiency
         eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(
@@ -230,23 +230,23 @@ class TestTurbomachinery:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be ' + str(14e5) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == 14e5, msg
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 14e5, msg
 
         # upper boundary
         self.c1.set_attr(v=1.5)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        msg = ('Value of power must be ' + str(0) + ', is ' +
-               str(self.c2.p.val_SI - self.c1.p.val_SI) + '.')
-        assert self.c2.p.val_SI - self.c1.p.val_SI == 0, msg
+        msg = ('Value of power must be 0, is ' +
+               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
+        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 0, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_turbine(self):
         """Test component properties of turbines."""
         instance = turbine('turbine')
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
               'NH3': 0}
         self.c1.set_attr(fluid=fl, m=15, p=10)
         self.c2.set_attr(p=1, T=20)
@@ -344,7 +344,7 @@ class TestTurbomachinery:
                instance.component() + '.')
         assert 'turbomachine' == instance.component(), msg
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'INCOMP::DowQ': 0,
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
               'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
         self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
         self.c2.set_attr(p=3, h=2e5)

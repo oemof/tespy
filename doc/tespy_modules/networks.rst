@@ -39,6 +39,28 @@ maximum pressure in the system will be at 10 bar, use it as upper boundary.
     my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
     my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
 
+.. note::
+
+    It is possible to specify the fluid property back-end of the network fluids
+    by adding the name of the back-end in front of the fluid's name within the
+    list of fluids of your network. For example:
+
+    .. code-block:: python
+
+        from tespy.networks import network
+
+        fluid_list = ['CO2', 'BICUBIC::H2O', 'INCOMP::DowQ']
+        network(fluids=fluid_list)
+
+    If you do not specify a back-end, the **default back-end** :code:`HEOS`
+    will be used (as for :code:`CO2`). In this example, :code:`H2O` will be
+    using the :code:`BICUBIC` back-end and :code:`DowQ` the back-end for
+    incompressible fluids :code:`INCOMP`. For an overview of the back-ends
+    available please refer to the
+    :ref:`fluid property section <tespy_fluid_properties_label>`.
+
+    **It is not possible to use the same fluid in different back-ends!**
+
 .. _printout_logging_label:
 
 Printouts and logging

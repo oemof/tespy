@@ -7,7 +7,7 @@ New Features
   the method :py:meth:`tespy.connections.connection.get_fluid_properties` may
   be used, to return the full fluids state of a connection: Pressure,
   specific enthalpy, temperature, specific volume, specific entropy and
-  vapour mass fraction (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
+  vapor mass fraction (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
 - Connections, components and busses are now easily accessible on every
   network. Connections now have a label, which can be specified individually,
   the default value of the label is given by the following logic.
@@ -20,7 +20,23 @@ New Features
   - mynetwork.components['mycomponentlabel']
   - mynetwork.connections['myconnectionlabel']
 
-  (`PR #173 <https://github.com/oemof/tespy/pull/173>`_).
+  (`PR #173 <https://github.com/oemof/tespy/pull/173>`_)
+- Specification of the CoolProp back-end is now possible. You can specify the
+  back-end by adding it in front of the fluid's name on creating a network, for
+  example:
+
+  .. code-block:: python
+
+      from tespy.networks import network
+      fluid_list = ['air', 'BICUBIC::water', 'INCOMP::DowQ']
+      network(fluids=fluid_list)
+
+  If you do not specify a back-end :code:`HEOS` will be applied (as for
+  :code:`air` in this example). This has been the case until now as well, thus
+  no further changes are required to match an 0.2.x application to the
+  0.3.x API. For all back-ends available please refer to the
+  :ref:`fluid properties section <tespy_fluid_properties_label>`
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 
 Documentation
 #############
@@ -33,9 +49,18 @@ Testing
 #######
 - Move from nose to pytest
   (`PR #165 <https://github.com/oemof/tespy/pull/165>`_).
+- Add fluid property test for a mixture of a tespy_fluid with a third
+  fluid and a mixture of the same individual fluids
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
+- Add a gasturbine model test for comparison of the stoichiometric combustion
+  chamber with the standard combustion chamber
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 
 Bug fixes
 #########
+- Increase the number of support points for tespy_fluid tabular data creation
+  in order to lift accuracy to a more acceptable value
+  (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 
 Other changes
 #############
@@ -71,18 +96,17 @@ If you want to use the network reader,
 - add the desired contents as listed below.
 
 The fluids are represented in a dictionary containing the fluid's names as keys
-and the CoolProp backend as value. "HEOS" is the default backend, which has
-been used until version 0.2.x in TESPy.
+and the CoolProp back-end as value. :code:`"HEOS"` is the default back-end,
+which has been used until version 0.2.x in TESPy.
 
 .. code-block:: json
 
     {
         "fluids":
         {
-            "H2O": "IF97",
             "CO2": "TTSE",
             "O2": "HEOS",
-            "N2": "BICUBIC&HEOS",
+            "N2": "BICUBIC",
         },
         "T_unit": "C",
         "h_unit": "kJ / kg",
@@ -90,9 +114,14 @@ been used until version 0.2.x in TESPy.
         "T_range": [150, 200]
     }
 
+Due to the addition of the CoolProp back-end selection the
+:py:class:`tespy.components.combustion.combustion_chamber_stoich` API changed
+as well. Please refer to the
+:ref:`combustion chamber tutorial<combustion_chamber_tutorial_label>` for the
+new implementation.
+
 If you are having trouble applying these changes, you are welcome to open an
-issue on our `github repository <https://github.com/oemof/tespy/issues>`_
-(`PR #172 <https://github.com/oemof/tespy/pull/172>`_, ).
+issue on our `github repository <https://github.com/oemof/tespy/issues>`_.
 
 Contributors
 ############

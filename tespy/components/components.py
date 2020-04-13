@@ -87,7 +87,7 @@ class component:
             raise ValueError(msg)
 
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
-            msg = ('Can\'t use ' + str([';', ',', '.']) + ' in label (' +
+            msg = ('You must not use ' + str([';', ',', '.']) + ' in label (' +
                    str(self.component()) + ').')
             logging.error(msg)
             raise ValueError(msg)
@@ -592,9 +592,9 @@ class component:
         if dx == 'm':
             dm = 1e-4
         elif dx == 'p':
-            dp = 1
+            dp = 1e-1
         elif dx == 'h':
-            dh = 1
+            dh = 1e-1
         else:
             df = 1e-5
 

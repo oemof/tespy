@@ -20,7 +20,7 @@ from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError, extend_basic_path)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid
+from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
 from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import os
@@ -234,7 +234,9 @@ def test_combustion_chamber_missing_fuel():
 class TestCombustionChamberStoichErrors:
 
     def setup_combustion_chamber_stoich_error_tests(self):
-        self.nw = network(['TESPy::fuel', 'TESPy::fuel_fg', 'Air'])
+        self.nw = network(
+            ['fuel', 'fuel_fg', 'Air'],
+            p_range=[1e4, 1e6], T_range=[300, 1500])
         label = 'combustion chamber'
         self.instance = combustion.combustion_chamber_stoich(label)
         c1 = connection(basics.source('air'), 'out1', self.instance, 'in1')
@@ -258,8 +260,11 @@ class TestCombustionChamberStoichErrors:
     def test_cc_stoich_bad_fuel_alias(self):
         """Test bad name for fuel alias."""
         self.setup_combustion_chamber_stoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='TESPy::fuel')
-        with raises(TESPyComponentError):
+        self.instance.set_attr(fuel={'CH4': 1},
+                               air={'N2': 0.76, 'O2': 0.24},
+                               fuel_alias='TESPy::fuel',
+                               air_alias='myair')
+        with raises(ValueError):
             self.nw.solve('design', init_only=True)
 
     def test_cc_stoich_missing_air(self):
@@ -283,7 +288,7 @@ class TestCombustionChamberStoichErrors:
         self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
                                air={'N2': 0.76, 'O2': 0.24},
                                air_alias='TESPy::air')
-        with raises(TESPyComponentError):
+        with raises(ValueError):
             self.nw.solve('design', init_only=True)
 
     def test_cc_stoich_missing_oxygen(self):
@@ -293,6 +298,8 @@ class TestCombustionChamberStoichErrors:
                                air={'N2': 1}, air_alias='myair')
         with raises(TESPyComponentError):
             self.nw.solve('design', init_only=True)
+
+        shutil.rmtree('LUT', ignore_errors=True)
 
 ##############################################################################
 # combustion_engine
@@ -667,3 +674,19 @@ def test_tespy_fluid_alias_type():
 def test_tespy_fluid_alias_value():
     with raises(ValueError):
         tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
+
+
+##############################################################################
+# test errors in fluid porperty functions
+
+
+def test_IF97_back_end():
+    if 'water' in memorise.state.keys():
+        del memorise.state['water']
+    with raises(ValueError):
+        memorise.add_fluids({'water': 'IF97'})
+
+
+def test_h_mix_pQ_on_mixtures():
+    with raises(ValueError):
+        h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)

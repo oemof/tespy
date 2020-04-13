@@ -1790,11 +1790,11 @@ class heat_exchanger(component):
 
         if self.ttd_l.is_set:
             if isinstance(fl_o1, str):
-                T_min_o1 = memorise.vrange[fl_o1][2] * 1.1
+                T_min_o1 = memorise.value_range[fl_o1][2] * 1.1
             else:
                 T_min_o1 = nw.T_range_SI[0] * 1.1
             if isinstance(fl_i2, str):
-                T_min_i2 = memorise.vrange[fl_i2][2] * 1.1
+                T_min_i2 = memorise.value_range[fl_i2][2] * 1.1
             else:
                 T_min_i2 = nw.T_range_SI[0] * 1.1
             h_min_o1 = h_mix_pT(o[0].to_flow(), T_min_o1)
@@ -1806,11 +1806,11 @@ class heat_exchanger(component):
 
         if self.ttd_u.is_set:
             if isinstance(fl_i1, str):
-                T_min_i1 = memorise.vrange[fl_i1][2] * 1.1
+                T_min_i1 = memorise.value_range[fl_i1][2] * 1.1
             else:
                 T_min_i1 = nw.T_range_SI[0] * 1.1
             if isinstance(fl_o2, str):
-                T_min_o2 = memorise.vrange[fl_o2][2] * 1.1
+                T_min_o2 = memorise.value_range[fl_o2][2] * 1.1
             else:
                 T_min_o2 = nw.T_range_SI[0] * 1.1
             h_min_i1 = h_mix_pT(i[0].to_flow(), T_min_i1)

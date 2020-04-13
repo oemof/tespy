@@ -16,11 +16,17 @@ import os
 import pytest
 from tespy.components import (
     pump, turbine, condenser, source, sink,
-    cycle_closer, heat_exchanger_simple)
+    cycle_closer, heat_exchanger_simple, pipe, valve)
 from tespy.connections import connection
 from tespy.networks import network
 from tespy.tools import fluid_properties as fp
 from tespy.tools.global_vars import molar_masses, gas_constants
+
+
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    assert lin_dep is False, msg
 
 
 class TestFluidProperties:
@@ -138,6 +144,7 @@ class TestFluidProperties:
                                ' for function ' + name + ', should be < ' +
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
+
 
 def test_tespy_fluid_mixture():
     """
@@ -263,6 +270,37 @@ class TestFluidPropertyBackEnds:
 
     def setup_pipeline_network(self, fluid_list):
         """Setup a pipeline network."""
+        self.nw = network(fluids=fluid_list)
+        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+
+        # %% components
+
+        # main components
+        pu = pump('pump')
+        pi = pipe('pipeline')
+        va = valve('valve')
+        es = heat_exchanger_simple('energy balance closing')
+
+        closer = cycle_closer('cycle closer')
+
+        pu_pi = connection(pu, 'out1', pi, 'in1')
+        pi_es = connection(pi, 'out1', es, 'in1')
+        es_closer = connection(es, 'out1', closer, 'in1')
+        closer_pu = connection(closer, 'out1', pu, 'in1')
+        self.nw.add_conns(pu_pi, pi_es, es_closer, closer_pu)
+
+        # %% parametrization of components
+
+        pu.set_attr(eta_s=0.7)
+        pi.set_attr(pr=0.95, L=100, ks=1e-5, D='var', Q=0)
+        es.set_attr(pr=1)
+
+        # %% parametrization of connections
+
+        pu_pi.set_attr(p=20, T=100, m=10, fluid={self.nw.fluids[0]: 1})
+
+        # %% solving
+        self.nw.solve('design')
 
     @pytest.mark.skipif(
         os.environ.get('TRAVIS') == 'true',
@@ -300,3 +338,27 @@ class TestFluidPropertyBackEnds:
                 'cycle calculated with ' + back_end + ' back end is ' +
                 str(d_rel) + ' but should not be larger than 1e-6.')
             assert d_rel <= 1e-6, msg
+
+    def test_pipeline_network(self):
+        """Test a pipeline network with fluids from different back ends."""
+        fluids_back_ends = {'DowJ': 'INCOMP', 'water': 'HEOS'}
+
+        results = {}
+        for fluid, back_end in fluids_back_ends.items():
+            # delete the fluid from the memorisation class
+            if fluid in fp.memorise.state.keys():
+                del fp.memorise.state[fluid]
+            self.setup_pipeline_network([back_end + '::' + fluid])
+            convergence_check(self.nw.lin_dep)
+
+            value = round(self.nw.components['pipeline'].pr.val, 5)
+            msg = (
+                'The pressure ratio of the pipeline must be at 0.95, but '
+                'is at ' + str(value) + ' for the fluid ' + fluid + '.')
+            assert value == 0.95, msg
+            value = round(self.nw.components['pump'].pr.val, 5)
+            msg = (
+                'The pressure ratio of the pipeline must be at ' +
+                str(round(1 / 0.95, 5)) + ', but is at ' + str(value) +
+                ' for the fluid ' + fluid + '.')
+            assert value == round(1 / 0.95, 5), msg

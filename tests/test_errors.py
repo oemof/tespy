@@ -20,7 +20,7 @@ from tespy.networks.networks import network
 from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
                                  TESPyNetworkError, extend_basic_path)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid
+from tespy.tools.fluid_properties import tespy_fluid, memorise
 from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import os
@@ -672,3 +672,14 @@ def test_tespy_fluid_alias_type():
 def test_tespy_fluid_alias_value():
     with raises(ValueError):
         tespy_fluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
+
+
+##############################################################################
+# test errors in fluid porperty back end specification
+
+
+def test_IF97_back_end():
+    if 'water' in memorise.state.keys():
+        del memorise.state['water']
+    with raises(ValueError):
+        memorise.add_fluids({'water': 'IF97'})

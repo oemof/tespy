@@ -2001,7 +2001,7 @@ class network:
         """
         fl = hlp.single_fluid(c.fluid.val)
 
-        if isinstance(fl, str):
+        if fluid is not None:
             # pressure
             if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
                 c.p.val_SI = fp.memorise.value_range[fl][0] * 1.01
@@ -2502,7 +2502,7 @@ class network:
             c.vol.val = c.vol.val_SI / self.vol[c.vol.unit]
             c.s.val = c.s.val_SI / self.s[c.s.unit]
             fluid = hlp.single_fluid(c.fluid.val)
-            if isinstance(fluid, str) and not c.x.val_set:
+            if fluid is not None and not c.x.val_set:
                 c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
                 c.x.val = c.x.val_SI / self.x[c.x.unit]
             c.T.val0 = c.T.val

@@ -1000,7 +1000,7 @@ def h_mix_pQ(flow, Q):
     This function works for pure fluids only!
     """
     fluid = single_fluid(flow[3])
-    if not isinstance(fluid, str):
+    if fluid is None:
         msg = 'The function h_mix_pQ can only be used for pure fluids.'
         logging.error(msg)
         raise ValueError(msg)

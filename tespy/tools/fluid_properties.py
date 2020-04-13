@@ -410,16 +410,8 @@ class memorise:
                     logging.warning(msg)
 
                 # temperature range
-                try:
-                    Tmin = memorise.state[f].trivial_keyed_output(CP.iT_min)
-                    Tmax = memorise.state[f].trivial_keyed_output(CP.iT_max)
-                except ValueError:
-                    Tmin = 300
-                    Tmax = 1000
-                    msg = (
-                        'Could not find values for maximum and minimum '
-                        'temperature.')
-                    logging.warning(msg)
+                Tmin = memorise.state[f].trivial_keyed_output(CP.iT_min)
+                Tmax = memorise.state[f].trivial_keyed_output(CP.iT_max)
 
                 # value range for fluid properties
                 memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]

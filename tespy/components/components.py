@@ -164,7 +164,8 @@ class component:
                         logging.error(msg)
                         raise TypeError(msg)
 
-                elif isinstance(self.get_attr(key), dc_cp):
+                elif (isinstance(self.get_attr(key), dc_cp) or
+                      isinstance(self.get_attr(key), dc_simple)):
                     # value specification for component properties
                     if (isinstance(kwargs[key], float) or
                             isinstance(kwargs[key], np.float64) or
@@ -172,14 +173,17 @@ class component:
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
-                            self.get_attr(key).set_attr(is_var=False)
+                            if isinstance(self.get_attr(key), dc_cp):
+                                self.get_attr(key).set_attr(is_var=False)
 
                         else:
                             self.get_attr(key).set_attr(val=kwargs[key])
                             self.get_attr(key).set_attr(is_set=True)
-                            self.get_attr(key).set_attr(is_var=False)
+                            isinstance(self.get_attr(key), dc_cp):
+                                self.get_attr(key).set_attr(is_var=False)
 
-                    elif kwargs[key] == 'var':
+                    elif (kwargs[key] == 'var' and
+                          isinstance(self.get_attr(key), dc_cp)):
                         self.get_attr(key).set_attr(is_set=True)
                         self.get_attr(key).set_attr(is_var=True)
 
@@ -219,22 +223,6 @@ class component:
                             ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
-
-                elif isinstance(self.get_attr(key), dc_simple):
-                    if (isinstance(kwargs[key], float) or
-                            isinstance(kwargs[key], np.float64) or
-                            isinstance(kwargs[key], np.int64) or
-                            isinstance(kwargs[key], int)):
-                        if np.isnan(kwargs[key]):
-                            self.get_attr(key).set_attr(is_set=False)
-
-                        else:
-                            self.get_attr(key).set_attr(
-                                    val=kwargs[key], is_set=True)
-
-                    else:
-                        self.get_attr(key).set_attr(
-                                val=kwargs[key], is_set=True)
 
             elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):

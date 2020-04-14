@@ -21,8 +21,8 @@ New Features
   - mynetwork.connections['myconnectionlabel']
 
   (`PR #173 <https://github.com/oemof/tespy/pull/173>`_)
-- Specification of the CoolProp back-end is now possible. You can specify the
-  back-end by adding it in front of the fluid's name on creating a network, for
+- Specification of the CoolProp back end is now possible. You can specify the
+  back end by adding it in front of the fluid's name on creating a network, for
   example:
 
   .. code-block:: python
@@ -31,16 +31,28 @@ New Features
       fluid_list = ['air', 'BICUBIC::water', 'INCOMP::DowQ']
       network(fluids=fluid_list)
 
-  If you do not specify a back-end :code:`HEOS` will be applied (as for
+  If you do not specify a back end :code:`HEOS` will be applied (as for
   :code:`air` in this example). This has been the case until now as well, thus
   no further changes are required to match an 0.2.x application to the
-  0.3.x API. For all back-ends available please refer to the
-  :ref:`fluid properties section <tespy_fluid_properties_label>`
+  0.3.x API. For all back ends available please refer to the
+  :ref:`fluid properties section <tespy_fluid_properties_label>`. To specify
+  the fluid vector on a connection leave out the back end specification, e. g.:
+
+  .. code-block:: python3
+
+      myconnection.set_attr(fluid={'DowQ': 1, 'water': 0, 'air': 0})
+
   (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
+
+- Unsetting a value is now also possible using :code:`None` instead of
+  :code:`np.nan` (`PR #178 <https://github.com/oemof/tespy/pull/178>`_).
+
+
 
 Documentation
 #############
 - Documentation has been updated according to the API-changes.
+- Fixed many typos on the online-documentation.
 
 Parameter renaming
 ##################
@@ -96,7 +108,7 @@ If you want to use the network reader,
 - add the desired contents as listed below.
 
 The fluids are represented in a dictionary containing the fluid's names as keys
-and the CoolProp back-end as value. :code:`"HEOS"` is the default back-end,
+and the CoolProp back end as value. :code:`"HEOS"` is the default back end,
 which has been used until version 0.2.x in TESPy.
 
 .. code-block:: json
@@ -114,7 +126,7 @@ which has been used until version 0.2.x in TESPy.
         "T_range": [150, 200]
     }
 
-Due to the addition of the CoolProp back-end selection the
+Due to the addition of the CoolProp back end selection the
 :py:class:`tespy.components.combustion.combustion_chamber_stoich` API changed
 as well. Please refer to the
 :ref:`combustion chamber tutorial<combustion_chamber_tutorial_label>` for the

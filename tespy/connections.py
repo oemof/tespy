@@ -694,7 +694,8 @@ class bus:
 
     >>> load = np.array([0.2, 0.4, 0.6, 0.8, 1, 1.2])
     >>> gen_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
-    >>> mot_efficiency = 1 / (np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98)
+    >>> mot_efficiency = 1 / (
+    ... np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98)
     >>> gen = char_line(x=load, y=gen_efficiency)
     >>> mot = char_line(x=load, y=mot_efficiency)
     >>> power_bus = bus('total power output', P=10e6)

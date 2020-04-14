@@ -358,7 +358,6 @@ class orc_evaporator(component):
 
     def derivatives(self, increment_filter):
         r"""Calculate matrix of partial derivatives for given equations."""
-
         ######################################################################
         # derivatives fluid and mass balance are static
         k = self.num_nw_fluids * 3 + 3
@@ -537,13 +536,13 @@ class orc_evaporator(component):
                 &+ \dot{m}_{3,in} \cdot \left(h_{3,out} - h_{3,in} \right)
                 \end{split}
         """
-
-        return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                        self.inl[0].h.val_SI) +
-                self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
-                                        self.inl[1].h.val_SI) +
-                self.inl[2].m.val_SI * (self.outl[2].h.val_SI -
-                                        self.inl[2].h.val_SI))
+        return (
+            self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
+            self.inl[1].m.val_SI * (
+                self.outl[1].h.val_SI - self.inl[1].h.val_SI) +
+            self.inl[2].m.val_SI * (
+                self.outl[2].h.val_SI - self.inl[2].h.val_SI))
 
     def bus_func(self, bus):
         r"""

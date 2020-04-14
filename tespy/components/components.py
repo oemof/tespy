@@ -136,7 +136,6 @@ class component:
         components share the
         :func:`tespy.components.components.component.set_attr` method.
         """
-
         # set specified values
         for key in kwargs:
             if key in self.variables.keys():
@@ -338,11 +337,11 @@ class component:
                         msg = (
                             'Created characteristic line for parameter ' +
                             key + ' at component ' + self.label + ' from '
-                           'default data.\nYou can specify your own data '
-                           'using component.' + key +
-                           '.set_attr(func=custom_char).\nIf you want to '
-                           'disable these warnings use '
-                           'component.char_warnings=False.')
+                            'default data.\nYou can specify your own data '
+                            'using component.' + key +
+                            '.set_attr(func=custom_char).\nIf you want to '
+                            'disable these warnings use '
+                            'component.char_warnings=False.')
                         logging.warning(msg)
 
         msg = (

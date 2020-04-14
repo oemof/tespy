@@ -366,7 +366,7 @@ def construct_comps(c, *args):
         if key in c:
             kwargs[key] = c[key]
 
-    for key, value in instance.attr().items():
+    for key, value in instance.variables.items():
         if key in c:
             # component parameters
             if isinstance(value, dc_cp):

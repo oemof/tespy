@@ -2535,7 +2535,7 @@ class network:
 
             # gather parameters to print for components of type c
             cols = []
-            for col, val in df.index[0].attr().items():
+            for col, val in df.index[0].variables.items():
                 if isinstance(val, dc.dc_cp):
                     if val.get_attr('printout'):
                         cols += [col]
@@ -2792,7 +2792,7 @@ class network:
                 df[col] = df.apply(f, axis=1, args=(col,))
 
             # attributes
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 # component characteristics container
                 if isinstance(data, dc.dc_cc):
                     df[col] = df.apply(f, axis=1,
@@ -2880,7 +2880,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cc):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()
@@ -2913,7 +2913,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cm):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()

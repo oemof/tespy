@@ -335,18 +335,19 @@ class component:
                         self.get_attr(key).func = char_line(x=[0, 1], y=[1, 1])
 
                     if self.char_warnings is True:
-                        msg = ('Created characteristic line for parameter ' +
-                               key + ' at component ' + self.label + ' from '
-                               'default data.\n'
-                               'You can specify your own data using '
-                               'component.' + key +
-                               '.set_attr(func=custom_char).\n'
-                               'If you want to disable these warnings use '
-                               'component.char_warnings=False.')
+                        msg = (
+                            'Created characteristic line for parameter ' +
+                            key + ' at component ' + self.label + ' from '
+                           'default data.\nYou can specify your own data '
+                           'using component.' + key +
+                           '.set_attr(func=custom_char).\nIf you want to '
+                           'disable these warnings use '
+                           'component.char_warnings=False.')
                         logging.warning(msg)
 
-        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
-               ' custom variables.')
+        msg = (
+            'The component ' + self.label + ' has ' + str(self.num_vars) +
+            ' custom variables.')
         logging.debug(msg)
 
     @staticmethod
@@ -435,7 +436,7 @@ class component:
         if mode == 'design' or self.local_design is True:
             self.new_design = True
 
-        for key, dc in self.attr().items():
+        for key, dc in self.variables.items():
             if isinstance(dc, dc_cp):
                 if ((mode == 'offdesign' and self.local_design is False) or
                         (mode == 'design' and self.local_offdesign is True)):
@@ -449,7 +450,7 @@ class component:
         return
 
     def check_parameter_bounds(self):
-        for p, data in self.attr().items():
+        for p, data in self.variables.items():
             if isinstance(data, dc_cp):
                 val = self.get_attr(p).val
                 if val > data.max_val:

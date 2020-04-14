@@ -751,15 +751,7 @@ class water_electrolyzer(component):
             logging.error(msg)
             raise ValueError(msg)
 
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-
-        if calc_efficiency is True:
-            return bus.char.evaluate(expr)
-        else:
-            return val * bus.char.evaluate(expr)
+        return self.bus_func_handler(val, bus, calc_efficiency)
 
     def bus_deriv(self, bus):
         r"""

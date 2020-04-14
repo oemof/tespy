@@ -544,7 +544,7 @@ class orc_evaporator(component):
             self.inl[2].m.val_SI * (
                 self.outl[2].h.val_SI - self.inl[2].h.val_SI))
 
-    def bus_func(self, bus):
+    def bus_func(self, bus, calc_efficiency=False):
         r"""
         Calculate the residual value of the bus function.
 
@@ -552,6 +552,9 @@ class orc_evaporator(component):
         ----------
         bus : tespy.connections.bus
             TESPy bus object.
+
+        calc_efficiency : boolean
+            Calculate bus base value without applying characteristcs.
 
         Returns
         -------
@@ -566,13 +569,9 @@ class orc_evaporator(component):
         """
         i = self.inl[2].to_flow()
         o = self.outl[2].to_flow()
-
         val = i[0] * (o[2] - i[2])
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        return self.bus_func_handler(val, bus, calc_efficiency)
 
     def bus_deriv(self, bus):
         r"""

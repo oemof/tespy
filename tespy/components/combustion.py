@@ -859,15 +859,8 @@ class combustion_chamber(component):
                 f_{char}\left( \frac{\dot{m}_{f}}{\dot{m}_{f,ref}}\right)
         """
         val = self.calc_ti()
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
 
-        if calc_efficiency is True:
-            return bus.char.evaluate(expr)
-        else:
-            return val * bus.char.evaluate(expr)
+        return self.bus_func_handler(val, bus, calc_efficiency)
 
     def bus_deriv(self, bus):
         r"""
@@ -2839,15 +2832,7 @@ class combustion_engine(combustion_chamber):
             logging.error(msg)
             raise ValueError(msg)
 
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-
-        if calc_efficiency is True:
-            return bus.char.evaluate(expr)
-        else:
-            return val * bus.char.evaluate(expr)
+        return self.bus_func_handler(val, bus, calc_efficiency)
 
     def bus_deriv(self, bus):
         r"""

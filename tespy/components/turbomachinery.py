@@ -271,21 +271,21 @@ class turbomachine(component):
 
             .. math::
 
-                P = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)\\
-                val = P \cdot f_{char}\left( \frac{P}{P_{ref}}\right)
+                \dot{E}_\mathrm{component} = \dot{m}_{in} \cdot \left(
+                h_{out} - h_{in} \right)\\
+
+                \begin{cases}
+                \dot{E}_\mathrm{bus} = \dot{E}_\mathrm{component} \cdot
+                f_{char}\left( \frac{\dot{E}_\mathrm{component}}
+                {\dot{E}_\mathrm{component, ref}}\right)\\
+                \eta = P \cdot f_{char}\left( \frac{P}{P_{ref}}\right)
+                \end{cases}
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         val = i[0] * (o[2] - i[2])
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
 
-        if calc_efficiency is True:
-            return bus.char.evaluate(expr)
-        else:
-            return val * bus.char.evaluate(expr)
+        return self.bus_func_handler(val, bus, calc_efficiency)
 
     def bus_deriv(self, bus):
         r"""

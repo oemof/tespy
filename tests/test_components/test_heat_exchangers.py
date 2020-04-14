@@ -81,7 +81,7 @@ class TestHeatExchangers:
         instance.set_attr(hydro_group='HW', D='var', L=100,
                           ks=100, pr=0.99, Tamb=20)
         b = bus('heat', P=-1e5)
-        b.add_comps({'c': instance})
+        b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -210,7 +210,7 @@ class TestHeatExchangers:
         self.c2.set_attr(T=70)
         self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0})
         b = bus('heat transfer', P=-80e3)
-        b.add_comps({'c': instance})
+        b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

@@ -31,8 +31,18 @@ import csv
 # test errors of set_attr and get_attr methods
 
 
-def set_attr_ValueError(instance, **kwargs):
-    with raises(ValueError):
+def get_attr_KeyError(instance, key):
+    with raises(KeyError):
+        instance.get_attr(key)
+
+
+def set_attr_KeyError(instance, **kwargs):
+    with raises(KeyError):
+        instance.set_attr(**kwargs)
+
+
+def set_attr_NotImplementedError(instance, **kwargs):
+    with raises(NotImplementedError):
         instance.set_attr(**kwargs)
 
 
@@ -41,14 +51,9 @@ def set_attr_TypeError(instance, **kwargs):
         instance.set_attr(**kwargs)
 
 
-def set_attr_KeyError(instance, **kwargs):
-    with raises(KeyError):
+def set_attr_ValueError(instance, **kwargs):
+    with raises(ValueError):
         instance.set_attr(**kwargs)
-
-
-def get_attr_KeyError(instance, key):
-    with raises(KeyError):
-        instance.get_attr(key)
 
 
 def test_set_attr_errors():
@@ -107,6 +112,9 @@ def test_set_attr_errors():
     set_attr_KeyError(comb, wow=5)
     set_attr_KeyError(conn, jey=5)
     set_attr_KeyError(mybus, power_output=100000)
+
+    # NotImplementedError
+    set_attr_NotImplementedError(conn, Td_bp=ref(conn, 1, 0))
 
 
 def test_get_attr_errors():

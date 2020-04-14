@@ -17,9 +17,10 @@ import logging
 from tespy.tools.characteristics import char_line, char_map, compressor_map
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import (
-        data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
-        )
+    data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple)
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.helpers import (
+    bus_char_derivative, bus_char_evaluation, newton)
 
 # %%
 
@@ -363,6 +364,28 @@ class component:
 
     def equations(self):
         return
+
+    def bus_func_handler(self, val, bus, calc_efficiency):
+        if np.isnan(bus['P_ref']):
+            expr = 1
+        else:
+            if bus['base'] == 'component':
+                expr = abs(val / bus['P_ref'])
+            else:
+                bus_value = newton(
+                    bus_char_evaluation,
+                    bus_char_derivative,
+                    [val, bus['P_ref'], bus['char']], 0,
+                    val0=bus['P_ref'], valmin=-1e15, valmax=1e15)
+                expr = bus_value / bus['P_ref']
+
+        if calc_efficiency is True:
+            return bus['char'].evaluate(expr)
+        else:
+            if bus['base'] == 'component':
+                return val * bus['char'].evaluate(expr)
+            else:
+                return val / bus['char'].evaluate(expr)
 
     def derivatives(self, increment_filter):
         return

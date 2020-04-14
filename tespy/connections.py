@@ -715,13 +715,13 @@ class bus:
     Unsetting is possible using :code:`np.nan` or :code:`None`. For
     demonstration we will specify a value for the heat bus and unset it again.
 
-    >>> heat_bus.P.val_set
+    >>> heat_bus.P.is_set
     False
     >>> heat_bus.set_attr(P=1e5)
-    >>> heat_bus.P.val_set
+    >>> heat_bus.P.is_set
     True
     >>> heat_bus.set_attr(P=None)
-    >>> heat_bus.P.val_set
+    >>> heat_bus.P.is_set
     False
 
     >>> power_bus.add_comps({'c': chp, 'char': gen, 'p': 'P'},

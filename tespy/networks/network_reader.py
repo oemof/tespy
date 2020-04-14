@@ -14,10 +14,10 @@ SPDX-License-Identifier: MIT
 """
 
 import ast
+import json
 import logging
 import os
 import pandas as pd
-import json
 from tespy.connections import connection, bus, ref
 from tespy.components import (
     basics, combustion, customs, heat_exchangers, nodes, piping, reactors,
@@ -27,6 +27,11 @@ from tespy.tools.data_containers import (
     dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp, dc_prop, dc_simple)
 from tespy.tools.characteristics import char_line, char_map, compressor_map
 from tespy.tools.helpers import modify_path_os
+import warnings
+
+
+# pass the warning messages to the logger
+logging.captureWarnings(True)
 
 
 global comp_target_classes
@@ -160,7 +165,7 @@ def load_network(path):
     >>> ct.set_attr(T=1100)
     >>> outg.set_attr(p=ref(inc, 1, 0))
     >>> power = bus('total power output')
-    >>> power.add_comps({'c': c}, {'c': t})
+    >>> power.add_comps({'comp': c}, {'comp': t})
     >>> nw.add_busses(power)
 
     For a stable start, we specify the fresh air mass flow.
@@ -262,14 +267,28 @@ def load_network(path):
                                          'busses': ast.literal_eval,
                                          'bus_param': ast.literal_eval,
                                          'bus_P_ref': ast.literal_eval,
-                                         'bus_char': ast.literal_eval})
+                                         'bus_char': ast.literal_eval,
+                                         'bus_base': ast.literal_eval})
 
             # create components
-            df['instance'] = df.apply(construct_comps, axis=1,
-                                      args=(char_lines, char_maps, ))
-            comps = pd.concat((comps, df[['instance', 'label', 'busses',
-                                          'bus_param', 'bus_P_ref',
-                                          'bus_char']]), axis=0)
+            df['instance'] = df.apply(
+                construct_comps, axis=1,  args=(char_lines, char_maps))
+
+            cols = [
+                'instance', 'label', 'busses', 'bus_param', 'bus_P_ref',
+                'bus_char']
+            if 'bus_base' in df.columns:
+                cols += ['bus_base']
+            else:
+                msg = (
+                    'The base value of the bus must be part of the exported '
+                    'component data for component of type ' + f[:-4] + '. '
+                    'Please make sure to add the column bus_base to your data '
+                    'or recreate the network export with the TESPy 0.3.x API. '
+                    'This warning will be removed in TESPy version 0.3.2.')
+                warnings.warn(msg, FutureWarning, stacklevel=2)
+
+            comps = pd.concat((comps, df[cols]), axis=0)
 
             msg = 'Reading component data (' + f[:-4] + ') from ' + fn + '.'
             logging.debug(msg)
@@ -600,13 +619,20 @@ def busses_add_comps(c, *args):
     """
     i = 0
     for b in c.busses:
-        p, P_ref, char = c.bus_param[i], c.bus_P_ref[i], c.bus_char[i]
+        param = c.bus_param[i]
+        P_ref = c.bus_P_ref[i]
+        char = c.bus_char[i]
+        base = c.bus_base[i]
 
         values = char == args[1]['id']
         char = char_line(x=args[1][values].x.values[0],
                          y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
-        args[0].instance[b == args[0]['label']].values[0].add_comps(
-                {'c': c.instance, 'p': p, 'P_ref': P_ref, 'char': char})
+        args[0].instance[b == args[0]['label']].values[0].add_comps({
+            'comp': c.instance,
+            'param': param,
+            'P_ref': P_ref,
+            'char': char,
+            'base': base})
         i += 1

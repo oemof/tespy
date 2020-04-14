@@ -64,17 +64,17 @@ def test_set_attr_errors():
     set_attr_ValueError(comb, offdesign=['Q'])
 
     set_attr_ValueError(conn, offdesign=['f'])
-    set_attr_ValueError(conn, state='f')
 
     set_attr_ValueError(nw, m_unit='kg')
     set_attr_ValueError(nw, h_unit='kg')
     set_attr_ValueError(nw, p_unit='kg')
     set_attr_ValueError(nw, T_unit='kg')
     set_attr_ValueError(nw, v_unit='kg')
+    set_attr_ValueError(conn, state=5)
 
     # TypeErrors
     set_attr_TypeError(comb, P=[5])
-    set_attr_TypeError(comb, tiP_char=None)
+    set_attr_TypeError(comb, tiP_char=7)
     set_attr_TypeError(comb, design='f')
     set_attr_TypeError(comb, lamb=dc_cc())
     set_attr_TypeError(comb, design_path=7)
@@ -87,12 +87,12 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, fluid_balance=1)
     set_attr_TypeError(conn, h0=[4])
     set_attr_TypeError(conn, fluid=5)
-    set_attr_TypeError(conn, state=5)
     set_attr_TypeError(conn, design_path=5)
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
     set_attr_TypeError(conn, label=5)
+    set_attr_TypeError(conn, state='f')
 
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)

@@ -232,10 +232,10 @@ class connection:
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
-            msg = ('Error creating connection. Specified inlet_id (' +
-                   inlet_id + ') is not valid for component ' +
-                   comp2.component() + '. Valid ids are: ' +
-                   str(comp2.inlets()) + '.')
+            msg = (
+                'Error creating connection. Specified inlet_id (' + inlet_id +
+                ') is not valid for component ' + comp2.component() +
+                '. Valid ids are: ' + str(comp2.inlets()) + '.')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -258,11 +258,9 @@ class connection:
         self.printout = True
 
         # set default values for kwargs
-        var = self.attr()
-
-        for key in self.attr().keys():
-            self.__dict__.update({key: var[key]})
-
+        self.variables = self.attr()
+        self.variables0 = [x + '0' for x in self.variables.keys()]
+        self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
         msg = (
@@ -362,26 +360,20 @@ class connection:
           adjust the enthalpy values of that connection for the first
           iterations in order to meet the state requirement.
         """
-        var = self.attr()
-        var0 = [x + '0' for x in var.keys()]
-
         # set specified values
         for key in kwargs:
-            if key in var.keys() or key in var0:
+            if key in self.variables.keys() or key in self.variables0:
+                # fluid specification
                 if 'fluid' in key:
-                    # fluid specification
                     if isinstance(kwargs[key], dict):
                         # starting values
-                        if key in var0:
-                            self.get_attr(key.replace('0', '')).set_attr(
-                                    val0=kwargs[key]
-                                    )
+                        if key in self.variables0:
+                            self.fluid.set_attr(val0=kwargs[key])
                         # specified parameters
                         else:
-                            self.get_attr(key).set_attr(val=kwargs[key].copy())
-                            for f in kwargs[key]:
-                                kwargs[key][f] = True
-                            self.get_attr(key).set_attr(val_set=kwargs[key])
+                            self.fluid.set_attr(val=kwargs[key])
+                            self.fluid.set_attr(
+                                val_set={f: True for f in kwargs[key].keys()})
 
                     elif isinstance(kwargs[key], dc_flu):
                         # data container for fluids
@@ -389,8 +381,9 @@ class connection:
 
                     else:
                         # bad datatype
-                        msg = ('Bad datatype for connection keyword ' + key +
-                               '.')
+                        msg = (
+                            'Datatype for fluid vector specification must be '
+                            'tespy.tools.data_containers.dc_flu or dict.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -399,53 +392,58 @@ class connection:
                         self.state.set_attr(val=kwargs[key], is_set=True)
                     elif isinstance(kwargs[key], dc_simple):
                         self.state = kwargs[key]
-                    else:
-                        if (isinstance(kwargs[key], float) or
-                                isinstance(kwargs[key], np.float64) or
-                                isinstance(kwargs[key], np.int64) or
-                                isinstance(kwargs[key], int)):
-                            if np.isnan(kwargs[key]):
-                                self.state.set_attr(
-                                        val=kwargs[key], is_set=False
-                                        )
-                            else:
-                                msg = ('Datatype for keyword argument ' +
-                                       key + ' must be str.')
-                                logging.error(msg)
-                                raise TypeError(msg)
+                    elif kwargs[key] is None:
+                        self.get_attr(key).set_attr(is_set=False)
+                    elif (isinstance(kwargs[key], float) or
+                          isinstance(kwargs[key], np.float64) or
+                          isinstance(kwargs[key], np.int64) or
+                          isinstance(kwargs[key], int)):
+                        if np.isnan(kwargs[key]):
+                            self.get_attr(key).set_attr(is_set=False)
                         else:
-                            msg = ('Keyword argument ' + key +
-                                   ' must be "l" or "g".')
+                            msg = (
+                                'To unset the state specification either use '
+                                'np.nan or None.')
                             logging.error(msg)
                             raise ValueError(msg)
+                    else:
+                        msg = (
+                            'Keyword argument "state" must either be '
+                            '"l" or "g" or be None or np.nan.')
+                        logging.error(msg)
+                        raise TypeError(msg)
+
+                elif kwargs[key] is None:
+                    self.get_attr(key).set_attr(val_set=False)
+                    self.get_attr(key).set_attr(ref_set=False)
 
                 elif (isinstance(kwargs[key], float) or
-                        isinstance(kwargs[key], np.float64) or
-                        isinstance(kwargs[key], np.int64) or
-                        isinstance(kwargs[key], int)):
-                    # unset
-                    if np.isnan(kwargs[key]) and key not in var0:
-                        self.get_attr(key).set_attr(
-                                val_set=False, ref_set=False
-                                )
-                    # starting value
-                    elif key in var0:
-                        self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key]
-                                )
-                    # set/reset
+                      isinstance(kwargs[key], np.float64) or
+                      isinstance(kwargs[key], np.int64) or
+                      isinstance(kwargs[key], int)):
+                    if np.isnan(kwargs[key]):
+                        self.get_attr(key).set_attr(val_set=False)
+                        self.get_attr(key).set_attr(ref_set=False)
                     else:
-                        self.get_attr(key).set_attr(
-                                val_set=True, val=kwargs[key], val0=kwargs[key]
-                                )
+                        # value specification
+                        if key in self.variables:
+                            self.get_attr(key).set_attr(
+                                val_set=True,
+                                val=kwargs[key])
+                        # starting value specification
+                        else:
+                            self.get_attr(key.replace('0', '')).set_attr(
+                                val0=kwargs[key])
 
                 # reference object
                 elif isinstance(kwargs[key], ref):
-                    if key == 'x' or key == 'v' or key == 'Td_bp':
-                        msg = ('References for volumetric flow, vapour mass '
-                               'fraction and subcooling/superheating not '
-                               'implemented.')
-                        logging.warning(msg)
+                    if key in ['x', 'v', 'Td_bp']:
+                        msg = (
+                            'References for volumetric flow, vapor mass '
+                            'fraction and subcooling/superheating are not '
+                            'implemented.')
+                        logging.error(msg)
+                        raise NotImplementedError(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
@@ -465,46 +463,44 @@ class connection:
                 if isinstance(kwargs[key], bool):
                     self.get_attr('fluid').set_attr(balance=kwargs[key])
                 else:
-                    msg = ('Datatype for keyword argument ' + key +
-                           ' must be boolean.')
+                    msg = (
+                        'Datatype for keyword argument fluid_balance must be '
+                        'boolean.')
                     logging.error(msg)
                     raise TypeError(msg)
 
+            # design/offdesign parameter list
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
                     msg = 'Please provide the ' + key + ' parameters as list!'
                     logging.error(msg)
                     raise TypeError(msg)
-                if set(kwargs[key]).issubset(var.keys()):
+                elif set(kwargs[key]).issubset(self.variables.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Available parameters for (off-)design '
-                           'specification are: ' + str(var.keys()) + '.')
+                    msg = (
+                        'Available parameters for (off-)design specification '
+                        'are: ' + str(self.variables.keys()) + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
-            elif key == 'local_design' or key == 'local_offdesign':
-                if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
-                    logging.error(msg)
-                    raise TypeError(msg)
-                else:
-                    self.__dict__.update({key: kwargs[key]})
-
+            # design path
             elif key == 'design_path':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
-                    self.new_design = True
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
-                    self.new_design = True
                 else:
-                    msg = ('Please provide the ' + key + ' parameter as '
-                           'string or as nan.')
+                    msg = (
+                        'Please provide the design_path parameter as string '
+                        'or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
 
-            elif key == 'printout':
+                self.new_design = True
+
+            # other boolean keywords
+            elif key in ['printout', 'local_design', 'local_offdesign']:
                 if not isinstance(kwargs[key], bool):
                     msg = ('Please provide the ' + key + ' as boolean.')
                     logging.error(msg)
@@ -512,12 +508,12 @@ class connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
+            # label
             elif key == 'label':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    msg = ('Please provide the ' + key + ' parameter as '
-                           'string.')
+                    msg = 'Please provide the label as string.'
                     logging.error(msg)
                     raise TypeError(msg)
 

@@ -143,17 +143,24 @@ class component:
         # set specified values
         for key in kwargs:
             if key in var:
+                if kwargs[key] is None:
+                    self.get_attr(key).set_attr(is_set=False)
+                    try:
+                        self.get_attr(key).set_attr(is_var=False)
+                    except KeyError:
+                        pass
+
                 # data container specification
-                if isinstance(kwargs[key], data_container):
+                elif isinstance(kwargs[key], data_container):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
 
                     else:
-                        msg = ('The keyword ' + key + ' expects a '
-                               'data_container of type ' +
-                               str(type(self.get_attr(key))) +
-                               ', a data_container of type ' +
-                               str(type(kwargs[key])) + ' was supplied.')
+                        msg = (
+                            'The keyword ' + key + ' expects a data_container '
+                            'of type ' + str(type(self.get_attr(key))) +
+                            ', a data_container of type ' +
+                            str(type(kwargs[key])) + ' was supplied.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -178,8 +185,9 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -193,8 +201,9 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -205,8 +214,9 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -226,26 +236,28 @@ class component:
                         self.get_attr(key).set_attr(
                                 val=kwargs[key], is_set=True)
 
-            elif key == 'design' or key == 'offdesign':
+            elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the ' + key + ' parameters as list '
-                           'at ' + self.label + '.')
+                    msg = (
+                        'Please provide the ' + key + ' parameters as list '
+                        'at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(var)):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
-                    msg = ('Available parameters for (off-)design '
-                           'specification are: ' + str(list(var)) + ' at '
-                           + self.label + '.')
+                    msg = (
+                        'Available parameters for (off-)design specification '
+                        'are: ' + str(list(var)) + ' at ' + self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
-            elif key == 'local_design' or key == 'local_offdesign':
+            elif key in ['local_design', 'local_offdesign', 'printout']:
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the parameter ' + key +
-                           ' as boolean at component ' + self.label + '.')
+                    msg = (
+                        'Please provide the parameter ' + key + ' as boolean '
+                        'at component ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -255,30 +267,24 @@ class component:
             elif key == 'design_path':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
-                    self.new_design = True
-
+                elif kwargs[key] is None:
+                    self.design_path = None
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
-                    self.new_design = True
-
                 else:
-                    msg = ('Please provide the ' + key + ' parameter as '
-                           'string or as nan.')
+                    msg = (
+                        'Please provide the design_path parameter as string '
+                        'or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
 
-            elif key == 'printout':
-                if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
-                    logging.error(msg)
-                    raise TypeError(msg)
-                else:
-                    self.__dict__.update({key: kwargs[key]})
+                self.new_design = True
 
             # invalid keyword
             else:
-                msg = ('Component ' + self.label + ' has no attribute ' +
-                       str(key) + '.')
+                msg = (
+                    'Component ' + self.label + ' has no attribute ' +
+                    str(key) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 

@@ -252,6 +252,17 @@ class TestCombustionChamberStoichErrors:
         c3 = connection(self.instance, 'out1', basics.sink('flue gas'), 'in1')
         self.nw.add_conns(c1, c2, c3)
 
+    def test_cc_stoich_unset_alias(self):
+        """This test unsets the alias."""
+        self.setup_combustion_chamber_stoich_error_tests()
+        self.instance.set_attr(air_alias='some alias')
+        msg = 'The air_alias has been set, is_set should be True.'
+        assert self.instance.air_alias.is_set is True, msg
+
+        self.instance.set_attr(air_alias=None)
+        msg = 'The air_alias has been unset, is_set should be False.'
+        assert self.instance.air_alias.is_set is False, msg
+
     def test_cc_stoich_missing_fuel(self):
         """Test missing fuel composition."""
         self.setup_combustion_chamber_stoich_error_tests()

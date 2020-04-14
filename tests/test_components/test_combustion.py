@@ -159,7 +159,7 @@ class TestCombustion:
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
                str(instance.ti.val) + '.')
         assert round(ti, 1) == round(instance.ti.val, 1), msg
-        instance.set_attr(ti=np.nan)
+        instance.set_attr(ti=None)
 
         # test specified heat output 1 bus value
         Q1.set_attr(P=instance.Q1.val)

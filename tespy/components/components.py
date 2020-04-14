@@ -87,8 +87,9 @@ class component:
             raise ValueError(msg)
 
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
-            msg = ('You must not use ' + str([';', ',', '.']) + ' in label (' +
-                   str(self.component()) + ').')
+            msg = (
+                'You must not use ' + str([';', ',', '.']) + ' in label (' +
+                str(self.component()) + ').')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -106,11 +107,8 @@ class component:
         self.printout = True
 
         # add container for components attributes
-        var = self.attr()
-
-        for key in var.keys():
-            self.__dict__.update({key: var[key]})
-
+        self.variables = self.attr()
+        self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
@@ -138,26 +136,32 @@ class component:
         components share the
         :func:`tespy.components.components.component.set_attr` method.
         """
-        var = self.attr().keys()
-
         # set specified values
         for key in kwargs:
-            if key in var:
+            if key in self.variables.keys():
+                if kwargs[key] is None:
+                    self.get_attr(key).set_attr(is_set=False)
+                    try:
+                        self.get_attr(key).set_attr(is_var=False)
+                    except KeyError:
+                        pass
+
                 # data container specification
-                if isinstance(kwargs[key], data_container):
+                elif isinstance(kwargs[key], data_container):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
 
                     else:
-                        msg = ('The keyword ' + key + ' expects a '
-                               'data_container of type ' +
-                               str(type(self.get_attr(key))) +
-                               ', a data_container of type ' +
-                               str(type(kwargs[key])) + ' was supplied.')
+                        msg = (
+                            'The keyword ' + key + ' expects a data_container '
+                            'of type ' + str(type(self.get_attr(key))) +
+                            ', a data_container of type ' +
+                            str(type(kwargs[key])) + ' was supplied.')
                         logging.error(msg)
                         raise TypeError(msg)
 
-                elif isinstance(self.get_attr(key), dc_cp):
+                elif (isinstance(self.get_attr(key), dc_cp) or
+                      isinstance(self.get_attr(key), dc_simple)):
                     # value specification for component properties
                     if (isinstance(kwargs[key], float) or
                             isinstance(kwargs[key], np.float64) or
@@ -165,21 +169,28 @@ class component:
                             isinstance(kwargs[key], int)):
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
-                            self.get_attr(key).set_attr(is_var=False)
+                            if isinstance(self.get_attr(key), dc_cp):
+                                self.get_attr(key).set_attr(is_var=False)
 
                         else:
-                            self.get_attr(key).set_attr(val=kwargs[key])
-                            self.get_attr(key).set_attr(is_set=True)
-                            self.get_attr(key).set_attr(is_var=False)
+                            self.get_attr(key).set_attr(
+                                val=kwargs[key], is_set=True)
+                            if isinstance(self.get_attr(key), dc_cp):
+                                self.get_attr(key).set_attr(is_var=False)
 
-                    elif kwargs[key] == 'var':
-                        self.get_attr(key).set_attr(is_set=True)
-                        self.get_attr(key).set_attr(is_var=True)
+                    elif (kwargs[key] == 'var' and
+                          isinstance(self.get_attr(key), dc_cp)):
+                        self.get_attr(key).set_attr(is_set=True, is_var=True)
+
+                    elif isinstance(self.get_attr(key), dc_simple):
+                        self.get_attr(key).set_attr(
+                            val=kwargs[key], is_set=True)
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -193,8 +204,9 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -205,47 +217,35 @@ class component:
 
                     # invalid datatype for keyword
                     else:
-                        msg = ('Bad datatype for keyword argument ' + key +
-                               ' at ' + self.label + '.')
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logging.error(msg)
                         raise TypeError(msg)
 
-                elif isinstance(self.get_attr(key), dc_simple):
-                    if (isinstance(kwargs[key], float) or
-                            isinstance(kwargs[key], np.float64) or
-                            isinstance(kwargs[key], np.int64) or
-                            isinstance(kwargs[key], int)):
-                        if np.isnan(kwargs[key]):
-                            self.get_attr(key).set_attr(is_set=False)
-
-                        else:
-                            self.get_attr(key).set_attr(
-                                    val=kwargs[key], is_set=True)
-
-                    else:
-                        self.get_attr(key).set_attr(
-                                val=kwargs[key], is_set=True)
-
-            elif key == 'design' or key == 'offdesign':
+            elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):
-                    msg = ('Please provide the ' + key + ' parameters as list '
-                           'at ' + self.label + '.')
+                    msg = (
+                        'Please provide the ' + key + ' parameters as list '
+                        'at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(var)):
+                if set(kwargs[key]).issubset(list(self.variables.keys())):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
-                    msg = ('Available parameters for (off-)design '
-                           'specification are: ' + str(list(var)) + ' at '
-                           + self.label + '.')
+                    msg = (
+                        'Available parameters for (off-)design specification '
+                        'are: ' + str(list(self.variables.keys())) + ' at ' +
+                        self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
-            elif key == 'local_design' or key == 'local_offdesign':
+            elif key in ['local_design', 'local_offdesign', 'printout']:
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the parameter ' + key +
-                           ' as boolean at component ' + self.label + '.')
+                    msg = (
+                        'Please provide the parameter ' + key + ' as boolean '
+                        'at component ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -255,30 +255,24 @@ class component:
             elif key == 'design_path':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
-                    self.new_design = True
-
+                elif kwargs[key] is None:
+                    self.design_path = None
                 elif np.isnan(kwargs[key]):
                     self.design_path = None
-                    self.new_design = True
-
                 else:
-                    msg = ('Please provide the ' + key + ' parameter as '
-                           'string or as nan.')
+                    msg = (
+                        'Please provide the design_path parameter as string '
+                        'or as nan.')
                     logging.error(msg)
                     raise TypeError(msg)
 
-            elif key == 'printout':
-                if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
-                    logging.error(msg)
-                    raise TypeError(msg)
-                else:
-                    self.__dict__.update({key: kwargs[key]})
+                self.new_design = True
 
             # invalid keyword
             else:
-                msg = ('Component ' + self.label + ' has no attribute ' +
-                       str(key) + '.')
+                msg = (
+                    'Component ' + self.label + ' has no attribute ' +
+                    str(key) + '.')
                 logging.error(msg)
                 raise KeyError(msg)
 
@@ -323,8 +317,7 @@ class component:
         self.vars = {}
         self.num_vars = 0
 
-        var = self.attr()
-        for key, val in var.items():
+        for key, val in self.variables.items():
             if isinstance(val, dc_cp):
                 if self.get_attr(key).is_var:
                     self.get_attr(key).var_pos = self.num_vars
@@ -341,18 +334,19 @@ class component:
                         self.get_attr(key).func = char_line(x=[0, 1], y=[1, 1])
 
                     if self.char_warnings is True:
-                        msg = ('Created characteristic line for parameter ' +
-                               key + ' at component ' + self.label + ' from '
-                               'default data.\n'
-                               'You can specify your own data using '
-                               'component.' + key +
-                               '.set_attr(func=custom_char).\n'
-                               'If you want to disable these warnings use '
-                               'component.char_warnings=False.')
+                        msg = (
+                            'Created characteristic line for parameter ' +
+                            key + ' at component ' + self.label + ' from '
+                            'default data.\nYou can specify your own data '
+                            'using component.' + key +
+                            '.set_attr(func=custom_char).\nIf you want to '
+                            'disable these warnings use '
+                            'component.char_warnings=False.')
                         logging.warning(msg)
 
-        msg = ('The component ' + self.label + ' has ' + str(self.num_vars) +
-               ' custom variables.')
+        msg = (
+            'The component ' + self.label + ' has ' + str(self.num_vars) +
+            ' custom variables.')
         logging.debug(msg)
 
     @staticmethod
@@ -441,7 +435,7 @@ class component:
         if mode == 'design' or self.local_design is True:
             self.new_design = True
 
-        for key, dc in self.attr().items():
+        for key, dc in self.variables.items():
             if isinstance(dc, dc_cp):
                 if ((mode == 'offdesign' and self.local_design is False) or
                         (mode == 'design' and self.local_offdesign is True)):
@@ -455,7 +449,7 @@ class component:
         return
 
     def check_parameter_bounds(self):
-        for p, data in self.attr().items():
+        for p, data in self.variables.items():
             if isinstance(data, dc_cp):
                 val = self.get_attr(p).val
                 if val > data.max_val:

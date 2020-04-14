@@ -87,8 +87,9 @@ class component:
             raise ValueError(msg)
 
         elif len([x for x in [';', ',', '.'] if x in label]) > 0:
-            msg = ('You must not use ' + str([';', ',', '.']) + ' in label (' +
-                   str(self.component()) + ').')
+            msg = (
+                'You must not use ' + str([';', ',', '.']) + ' in label (' +
+                str(self.component()) + ').')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -106,11 +107,8 @@ class component:
         self.printout = True
 
         # add container for components attributes
-        var = self.attr()
-
-        for key in var.keys():
-            self.__dict__.update({key: var[key]})
-
+        self.variables = self.attr()
+        self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
@@ -177,15 +175,18 @@ class component:
                                 self.get_attr(key).set_attr(is_var=False)
 
                         else:
-                            self.get_attr(key).set_attr(val=kwargs[key])
-                            self.get_attr(key).set_attr(is_set=True)
-                            isinstance(self.get_attr(key), dc_cp):
+                            self.get_attr(key).set_attr(
+                                val=kwargs[key], is_set=True)
+                            if isinstance(self.get_attr(key), dc_cp):
                                 self.get_attr(key).set_attr(is_var=False)
 
                     elif (kwargs[key] == 'var' and
                           isinstance(self.get_attr(key), dc_cp)):
-                        self.get_attr(key).set_attr(is_set=True)
-                        self.get_attr(key).set_attr(is_var=True)
+                        self.get_attr(key).set_attr(is_set=True, is_var=True)
+
+                    elif isinstance(self.get_attr(key), dc_simple):
+                        self.get_attr(key).set_attr(
+                            val=kwargs[key], is_set=True)
 
                     # invalid datatype for keyword
                     else:

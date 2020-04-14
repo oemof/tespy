@@ -165,6 +165,52 @@ def reverse_2d_deriv(params, y):
     func, x1 = params[0], params[1]
     return - func.ev(x1, y, dy=1)
 
+
+def bus_char_evaluation(params, bus_value):
+    r"""
+    Calculate the value of a bus.
+
+    Parameters
+    ----------
+    comp_value : float
+        Value of the energy transfer at the component.
+
+    reference_value : float
+        Value of the bus in reference state.
+
+    char_func : tespy.tools.characteristics.char_line
+        Characteristic function of the bus.
+
+    Returns
+    -------
+    residual : float
+        Residual of the equation.
+
+        .. math::
+
+            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
+            {f\left(\frac{\dot{E}_\mathrm{bus}}
+            {\dot{E}_\mathrm{bus,ref}}\right)}
+    """
+    comp_value = params[0]
+    reference_value = params[1]
+    char_func = params[2]
+    return bus_value - comp_value / char_func.evaluate(
+        bus_value / reference_value)
+
+
+def bus_char_derivative(params, bus_value):
+    """Calculate derivative for bus char evaluation."""
+    comp_value = params[0]
+    reference_value = params[1]
+    char_func = params[2]
+    d = 1e-3
+    return (1 - (
+        1 / char_func.evaluate(
+            (bus_value + d) / reference_value) -
+        1 / char_func.evaluate(
+            (bus_value - d) / reference_value)) / 2 * d)
+
 # %%
 
 

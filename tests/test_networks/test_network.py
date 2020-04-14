@@ -1,6 +1,16 @@
 # -*- coding: utf-8
 
-from nose.tools import eq_, raises
+"""Module for testing network properties.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/test_networks/test_network.py
+
+SPDX-License-Identifier: MIT
+"""
+
+from pytest import raises
 
 from tespy.connections import connection
 from tespy.components import (basics, heat_exchangers, nodes, piping,
@@ -15,40 +25,77 @@ import shutil
 import os
 
 
-class network_tests:
-
-    def setup(self):
-        self.nw = network(['CH4'],
-                          T_unit='C', p_unit='bar', v_unit='m3 / s')
+class TestNetworks:
+    def setup_network_tests(self):
+        self.nw = network(['water'], p_unit='bar', v_unit='m3 / s')
         self.source = basics.source('source')
         self.sink = basics.sink('sink')
 
+    def offdesign_TESPyNetworkError(self, **kwargs):
+        with raises(TESPyNetworkError):
+            self.nw.solve('offdesign', **kwargs)
+
+    def test_network_linear_dependency(self):
+        """Test network linear dependency."""
+        self.setup_network_tests()
+        a = connection(self.source, 'out1', self.sink, 'in1', m=1, p=1, x=1,
+                       T=280)
+        self.nw.add_conns(a)
+        self.nw.solve('design')
+        msg = ('This test must result in a linear dependency of the jacobian '
+               'matrix.')
+        assert self.nw.lin_dep is True, msg
+
+    def test_network_no_progress(self):
+        """Test no convergence progress."""
+        self.setup_network_tests()
+        pipe = piping.pipe('pipe', pr=1, Q=-100e3)
+        a = connection(self.source, 'out1', pipe, 'in1', m=1, p=1, T=280,
+                       fluid={'water': 1})
+        b = connection(pipe, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        msg = ('This test must result in a calculation making no progress, as '
+               'the pipe\'s outlet enthalpy is below fluid property range.')
+        assert self.nw.progress is False, msg
+
+    def test_network_max_iter(self):
+        """Test reaching maximum iteration count."""
+        self.setup_network_tests()
+        pipe = piping.pipe('pipe', pr=1, Q=100e3)
+        a = connection(self.source, 'out1', pipe, 'in1', m=1, p=1, T=280,
+                       fluid={'water': 1})
+        b = connection(pipe, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design', max_iter=2)
+        msg = ('This test must result in the itercount being equal to the max '
+               'iter statement.')
+        assert self.nw.max_iter == self.nw.iter + 1, msg
+
     def test_network_delete_conns(self):
-        """
-        Test deleting a network's connection.
-        """
+        """Test deleting a network's connection."""
+        self.setup_network_tests()
         a = connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.check_network()
         msg = ('After the network check, the .checked-property must be True.')
-        eq_(self.nw.checked, True, msg)
+        assert self.nw.checked is True, msg
 
         self.nw.del_conns(a)
         msg = ('A connection has been deleted, the network consistency check '
                'must be repeated (.checked-property must be False).')
-        eq_(self.nw.checked, False, msg)
+        assert self.nw.checked is False, msg
 
     def test_network_missing_connection_in_init_path(self):
-        """
-        Test debug message for missing connection in init_path.
-        """
+        """Test debug message for missing connection in init_path."""
+        self.setup_network_tests()
         IF = basics.subsystem_interface('IF')
         a = connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
         self.nw.save('tmp')
         msg = ('After the network check, the .checked-property must be True.')
-        eq_(self.nw.checked, True, msg)
+        assert self.nw.checked is True, msg
 
         self.nw.del_conns(a)
         a = connection(self.source, 'out1', IF, 'in1')
@@ -56,35 +103,33 @@ class network_tests:
         self.nw.add_conns(a, b)
         self.nw.solve('design', init_path='tmp', init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
-        eq_(self.nw.checked, True, msg)
+        assert self.nw.checked is True, msg
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_network_export_no_chars_busses(self):
-        """
-        Test export of network without characteristics or busses.
-        """
+        """Test export of network without characteristics or busses."""
+        self.setup_network_tests()
         a = connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
         self.nw.save('tmp')
         msg = ('The exported network does not contain any char_line, there '
                'must be no file char_line.csv!')
-        eq_(os.path.isfile('tmp/comps/char_line.csv'), False, msg)
+        assert os.path.isfile('tmp/components/char_line.csv') is False, msg
 
         msg = ('The exported network does not contain any char_map, there '
                'must be no file char_map.csv!')
-        eq_(os.path.isfile('tmp/comps/char_map.csv'), False, msg)
+        assert os.path.isfile('tmp/components/char_map.csv') is False, msg
 
         msg = ('The exported network does not contain any busses, there '
                'must be no file bus.csv!')
-        eq_(os.path.isfile('tmp/comps/bus.csv'), False, msg)
+        assert os.path.isfile('tmp/components/bus.csv') is False, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_network_reader_no_chars_busses(self):
-        """
-        Test import of network without characteristics or busses.
-        """
+        """Test import of network without characteristics or busses."""
+        self.setup_network_tests()
         a = connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
@@ -94,13 +139,12 @@ class network_tests:
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
-        eq_(imported_nwk.checked, True, msg)
+        assert imported_nwk.checked is True, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_network_reader_deleted_chars(self):
-        """
-        Test import of network with missing characteristics.
-        """
+        """Test import of network with missing characteristics."""
+        self.setup_network_tests()
         comp = turbomachinery.compressor('compressor')
         a = connection(self.source, 'out1', comp, 'in1')
         b = connection(comp, 'out1', self.sink, 'in1')
@@ -109,120 +153,101 @@ class network_tests:
         self.nw.save('tmp')
 
         # # remove char_line and char_map folders
-        os.unlink('tmp/comps/char_line.csv')
-        os.unlink('tmp/comps/char_map.csv')
+        os.unlink('tmp/components/char_line.csv')
+        os.unlink('tmp/components/char_map.csv')
 
         # import network with missing files
         imported_nwk = load_network('tmp')
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
-        eq_(imported_nwk.checked, True, msg)
+        assert imported_nwk.checked is True, msg
+        shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_network_missing_data_in_design_case_files(self):
+        """Test for missing data in design case files."""
+        self.setup_network_tests()
+        pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'],
+                           offdesign=['zeta'])
+        a = connection(self.source, 'out1', pipe, 'in1', m=1, p=1, T=293.15,
+                       fluid={'water': 1})
+        b = connection(pipe, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+        self.nw.save('tmp2')
+
+        inputs = open('./tmp/connections.csv')
+        all_lines = inputs.readlines()
+        all_lines.pop(len(all_lines) - 1)
+        inputs.close()
+
+        with open('./tmp2/connections.csv', 'w') as out:
+            for line in all_lines:
+                out.write(line.strip() + '\n')
+
+        self.offdesign_TESPyNetworkError(design_path='tmp2', init_only=True)
+
+        shutil.rmtree('./tmp', ignore_errors=True)
+        shutil.rmtree('./tmp2', ignore_errors=True)
+
+    def test_network_missing_data_in_individual_design_case_file(self):
+        """Test for missing data in individual design case files."""
+        self.setup_network_tests()
+        pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'],
+                           offdesign=['zeta'])
+        a = connection(self.source, 'out1', pipe, 'in1', m=1, p=1, T=293.15,
+                       fluid={'water': 1})
+        b = connection(pipe, 'out1', self.sink, 'in1', design_path='tmp2')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+        self.nw.save('tmp2')
+
+        inputs = open('./tmp/connections.csv')
+        all_lines = inputs.readlines()
+        all_lines.pop(len(all_lines) - 1)
+        inputs.close()
+
+        with open('./tmp2/connections.csv', 'w') as out:
+            for line in all_lines:
+                out.write(line.strip() + '\n')
+
+        self.offdesign_TESPyNetworkError(design_path='tmp', init_only=True)
+
+        shutil.rmtree('./tmp', ignore_errors=True)
+        shutil.rmtree('./tmp2', ignore_errors=True)
+
+    def test_network_missing_connection_in_design_path(self):
+        """Test for missing connection data in design case files."""
+        self.setup_network_tests()
+        pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'],
+                           offdesign=['zeta'])
+        a = connection(self.source, 'out1', pipe, 'in1', m=1, p=1, T=293.15,
+                       fluid={'water': 1})
+        b = connection(pipe, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        self.nw.save('tmp')
+
+        inputs = open('./tmp/connections.csv')
+        all_lines = inputs.readlines()
+        all_lines.pop(len(all_lines) - 1)
+        inputs.close()
+
+        with open('./tmp/connections.csv', 'w') as out:
+            for line in all_lines:
+                out.write(line.strip() + '\n')
+
+        self.offdesign_TESPyNetworkError(design_path='tmp')
+
         shutil.rmtree('./tmp', ignore_errors=True)
 
 
-@raises(TESPyNetworkError)
-def offdesign_TESPyNetworkError(nw, **kwargs):
-    nw.solve('offdesign', **kwargs)
-
-
-def test_network_missing_data_in_design_case_files():
-    """
-    Test for missing data in design case files.
-    """
-    nw = network(['water'])
-    source = basics.source('source')
-    pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
-                   fluid={'water': 1})
-    b = connection(pipe, 'out1', sink, 'in1')
-    nw.add_conns(a, b)
-    nw.solve('design')
-    nw.save('tmp')
-    nw.save('tmp2')
-
-    inputs = open('./tmp/conn.csv')
-    all_lines = inputs.readlines()
-    all_lines.pop(len(all_lines) - 1)
-    inputs.close()
-
-    with open('./tmp2/conn.csv', 'w') as out:
-        for line in all_lines:
-            out.write(line.strip() + '\n')
-
-    offdesign_TESPyNetworkError(nw, design_path='tmp2', init_only=True)
-
-    shutil.rmtree('./tmp', ignore_errors=True)
-    shutil.rmtree('./tmp2', ignore_errors=True)
-
-
-def test_network_missing_data_in_individual_design_case_file():
-    """
-    Test for missing data in individual design case files.
-    """
-    nw = network(['water'])
-    source = basics.source('source')
-    pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
-                   fluid={'water': 1})
-    b = connection(pipe, 'out1', sink, 'in1', design_path='tmp2')
-    nw.add_conns(a, b)
-    nw.solve('design')
-    nw.save('tmp')
-    nw.save('tmp2')
-
-    inputs = open('./tmp/conn.csv')
-    all_lines = inputs.readlines()
-    all_lines.pop(len(all_lines) - 1)
-    inputs.close()
-
-    with open('./tmp2/conn.csv', 'w') as out:
-        for line in all_lines:
-            out.write(line.strip() + '\n')
-
-    offdesign_TESPyNetworkError(nw, design_path='tmp', init_only=True)
-
-    shutil.rmtree('./tmp', ignore_errors=True)
-    shutil.rmtree('./tmp2', ignore_errors=True)
-
-
-def test_network_missing_connection_in_design_path():
-    """
-    Test for missing connection data in design case files.
-    """
-    nw = network(['water'])
-    source = basics.source('source')
-    pipe = piping.pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-    sink = basics.sink('sink')
-    a = connection(source, 'out1', pipe, 'in1', m=1, p=1e5, T=293.15,
-                   fluid={'water': 1})
-    b = connection(pipe, 'out1', sink, 'in1')
-    nw.add_conns(a, b)
-    nw.solve('design')
-    nw.save('tmp')
-
-    inputs = open('./tmp/conn.csv')
-    all_lines = inputs.readlines()
-    all_lines.pop(len(all_lines) - 1)
-    inputs.close()
-
-    with open('./tmp/conn.csv', 'w') as out:
-        for line in all_lines:
-            out.write(line.strip() + '\n')
-
-    offdesign_TESPyNetworkError(nw, design_path='tmp')
-
-    shutil.rmtree('./tmp', ignore_errors=True)
-
-
-class test_network_individual_offdesign:
+class TestNetworkIndividualOffdesign:
 
     def setup_network_individual_offdesign(self):
-        """
-        Set up network for individual offdesign tests.
-        """
+        """Set up network for individual offdesign tests."""
         self.nw = network(['H2O'], T_unit='C', p_unit='bar', v_unit='m3 / s')
 
         so = basics.source('source')
@@ -265,9 +290,7 @@ class test_network_individual_offdesign:
                           v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
 
     def test_individual_design_path_on_connections_and_components(self):
-        """
-        Test individual design path specification.
-        """
+        """Test individual design path specification."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
         self.sc2_v2.set_attr(m=0)
@@ -303,33 +326,31 @@ class test_network_individual_offdesign:
         # volumetric flow comparison
         msg = ('Design path was set to None, is ' +
                str(self.sc2_v2.design_path) + '.')
-        eq_(None, self.sc2_v2.design_path, msg)
+        assert self.sc2_v2.design_path is None, msg
 
         # volumetric flow comparison
         msg = ('Value of volumetric flow must be ' + str(v1_design) + ', is ' +
                str(self.sc1_v1.v.val_SI) + '.')
-        eq_(round(v1_design, 5), round(self.sc1_v1.v.val_SI, 5), msg)
+        assert round(v1_design, 5) == round(self.sc1_v1.v.val_SI, 5), msg
 
         msg = ('Value of volumetric flow must be ' + str(v2_design) + ', is ' +
                str(self.sc2_v2.v.val_SI) + '.')
-        eq_(round(v2_design, 5), round(self.sc2_v2.v.val_SI, 5), msg)
+        assert round(v2_design, 5) == round(self.sc2_v2.v.val_SI, 5), msg
 
         # zeta value of solar collector comparison
         msg = ('Value of zeta must be ' + str(zeta_sc1_design) + ', is ' +
                str(self.sc1.zeta.val) + '.')
-        eq_(round(zeta_sc1_design, 0), round(self.sc1.zeta.val, 0), msg)
+        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
 
         msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
                str(self.sc2.zeta.val) + '.')
-        eq_(round(zeta_sc2_design, 0), round(self.sc2.zeta.val, 0), msg)
+        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)
 
     def test_local_offdesign_on_connections_and_components(self):
-        """
-        Test local offdesign feature.
-        """
+        """Test local offdesign feature."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
         self.sc2_v2.set_attr(m=0)
@@ -357,24 +378,20 @@ class test_network_individual_offdesign:
         msg = ('Solar collector outlet temperature must be different from ' +
                'design value ' + str(round(self.sc1_v1.T.design - 273.15, 1)) +
                ', is ' + str(round(self.sc1_v1.T.val, 1)) + '.')
-        eq_(round(self.sc1_v1.T.design, 1) > round(self.sc1_v1.T.val, 1),
-            True, msg)
+        assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
 
         msg = ('Parameter eta_s_char must be set for pump one.')
-        eq_(self.pump1.eta_s_char.is_set, True, msg)
+        assert self.pump1.eta_s_char.is_set is True, msg
 
         msg = ('Parameter v must be set for connection from solar collector1 '
                'to pump1.')
-        eq_(self.sc1_v1.v.val_set, True, msg)
+        assert self.sc1_v1.v.val_set is True, msg
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)
 
     def test_missing_design_path_local_offdesign_on_connections(self):
-        """
-        Test missing design path specification on connections in local
-        offdesign mode.
-        """
+        """Test missing design path on connections in local offdesign mode."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
         self.sc2_v2.set_attr(m=0)

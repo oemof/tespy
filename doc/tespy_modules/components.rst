@@ -7,9 +7,8 @@ show you, how to create custom components.
 
 List of components
 ------------------
-
 More information on the components can be gathered from the code documentation.
-We have linked the base class containing a figure and basic informations as
+We have linked the base class containing a figure and basic information as
 well as the equations.
 
 - Basics
@@ -19,10 +18,10 @@ well as the equations.
     * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface>`
 - Combustion
     * :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber>`
-    * :py:class:`Combustion chamber stoichiometric <tespy.components.combustion.combustion_chamber_stoich>`
+    * :py:class:`Stoichiometric Combustion chamber <tespy.components.combustion.combustion_chamber_stoich>`
     * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>`
 - Heat exchangers
-    * :py:class:`Heat exchanger simple <tespy.components.heat_exchangers.heat_exchanger_simple>`
+    * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.heat_exchanger_simple>`
     * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>`
     * :py:class:`Condenser <tespy.components.heat_exchangers.condenser>`
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
@@ -41,6 +40,13 @@ well as the equations.
     * :py:class:`Compressor <tespy.components.turbomachinery.compressor>`
     * :py:class:`Pump <tespy.components.turbomachinery.pump>`
     * :py:class:`Turbine <tespy.components.turbomachinery.turbine>`
+
+List of custom components
+-------------------------
+Here we list the components integrated in the
+:py:mod:`customs <tespy.components.customs>` module.
+
+- :py:class:`Evaporator for geothermal organic rankine cycle <tespy.components.customs.orc_evaporator>`
 
 .. _using_tespy_components_parametrisation_label:
 
@@ -76,8 +82,9 @@ evaporator and how to unset the parameter again.
     # set data container parameters
     he.kA.set_attr(val=1e5, is_set=True)
 
-    # unset value
+    # possibilities to unset a value
     he.set_attr(kA=np.nan)
+    he.set_attr(kA=None)    
     he.kA.set_attr(is_set=False)
 
 
@@ -116,12 +123,13 @@ There are three components using parameter groups:
 
 Custom variables
 ^^^^^^^^^^^^^^^^
-
 It is possible to use component parameters as variables of your system of
-equations. For example, give a pressure ratio :code:`pr`, length :code:`L` and
-roughness :code:`ks` of a pipe you want to calculate the pipe's diameter
-:code:`D` required to achieve the specified pressure ratio. In this case you
-need to specify the diameter the following way.
+equations. In the component parameter list, if a parameter can be a string, it
+is possible to specify this parameter as custom variable. For example, given
+the pressure ratio :code:`pr`, length :code:`L` and roughness :code:`ks` of a
+pipe you may want to calculate the pipe's diameter :code:`D` required to
+achieve the specified pressure ratio. In this case you need to specify the
+diameter the following way.
 
 .. code-block:: python
 
@@ -151,6 +159,8 @@ specified range.
     # benefit: specification of bounds will increase stability
     my_pipe.set_attr(D=dc_cp(val=0.2, is_set=True, is_var=True,
                              min_val=0.1, max_val=0.3))
+
+.. _component_characteristic_specification_label:
 
 Component characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -197,7 +207,7 @@ For example, :code:`kA` specification for heat exchangers:
     he = heat_exchanger('evaporator', kA=1e5)
 
     # use a characteristic line from the defaults: specify the component, the
-    # parameter and the name of the characteristc function. Also, specify, what
+    # parameter and the name of the characteristic function. Also, specify, what
     # type of characteristic function you want to use.
     kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
@@ -253,6 +263,21 @@ from there. For additional information on formatting and usage, look into
     eta_s_char = dc_cc(func=lcc('my_custom_char', char_line), is_set=True)
     pu.set_attr(eta_s_char=eta_s_char)
 
+It is possible to allow value extrapolation at the lower and upper limit of the
+value range at the creation of characteristic lines. If you are using default
+lines, you need to set the extrapolation to :code:`True` manually.
+
+.. code-block:: python
+
+    # use custom specification parameters
+    x = np.array([0, 0.5, 1, 2])
+    y = np.array([0, 0.8, 1, 1.2])
+    kA_char1 = char_line(x, y, extrapolate=True)
+    he.set_attr(kA_char1=kA_char1)
+
+    # manually set extrapolation to True, e. g.
+    he.kA_char1.func.extrapolate = True
+    pu.eta_s_char.func.extrapolate = True
 
 Characteristics are available for the following components and parameters:
 
@@ -278,7 +303,7 @@ Characteristics are available for the following components and parameters:
 - water electrolyzer
     * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
-For more information to how the characteristic functions work
+For more information on how the characteristic functions work
 :ref:`click here <using_tespy_characteristics_label>`.
 
 Custom components
@@ -286,9 +311,11 @@ Custom components
 
 You can add own components. The class should inherit from the
 :py:class:`component <tespy.components.components.component>` class or its
-children. In order to do that, create a python file in your working directory
-and import the base class for your custom component. Now create a class for
-your component and at least add the following methods.
+children. In order to do that, use the
+:py:mod:`customs <tespy.components.customs>` module or create a
+python file in your working directory and import the base class for your
+custom component. Now create a class for your component and at least add the
+following methods.
 
 - :code:`component(self)`,
 - :code:`attr(self)`,
@@ -367,8 +394,8 @@ an attribute :code:`'num_in'` your code could look like this:
 Component initialisation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 In the component initialisation you need to determine the total number of
-equations and set up the residual value vector as well as the matrix of patial
-derivates. The method
+equations and set up the residual value vector as well as the matrix of partial
+derivatives. The method
 :py:meth:`tespy.components.components.component.comp_init` already handles
 counting the custom variables and setting up default characteristic lines for
 you. The :code:`comp_init()` method of your new component should use call that
@@ -376,7 +403,7 @@ method. In order to determine the total number of equations, determine
 the number of mandatory equations and the number of optional equations applied.
 
 Then set up the residual value vector and the matrix of partial derivatives.
-If the component delivers derivates that are constant, you can paste those
+If the component delivers derivatives that are constant, you can paste those
 values into the matrix already. The code example shows the implementation of
 the :py:meth:`tespy.components.turbomachinery.turbine.comp_init` method.
 
@@ -423,7 +450,7 @@ at the outlet :math:`p_{out}` is smaller than the pressure at the inlet
 
 The connections connected to your component are available as a list in
 :code:`self.inl` and :code:`self.outl` respectively. Optional equations should
-only be applied, if the paramter has been specified by the user.
+only be applied, if the parameter has been specified by the user.
 
 .. code:: python
 
@@ -444,7 +471,7 @@ Derivatives
 You need to calculate the partial derivatives of the equations to all variables
 of the network. This means, that you have to calculate the partial derivatives
 to mass flow, pressure, enthalpy and all fluids in the fluid vector on each
-incomming or outgoing connection of the component.
+incoming or outgoing connection of the component.
 
 Add all derivatives to the matrix (*in the same order as the equations!*).
 The derivatives can be calculated analytically or numerically by using the

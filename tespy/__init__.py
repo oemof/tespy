@@ -1,18 +1,18 @@
 # -*- coding: utf-8
 
-__version__ = '0.2.2 - dev'
+__version__ = '0.3.0 - dev'
 
 # tespy networks imports
-from tespy.networks import (
+from .networks import (
     network_reader,
     networks
     )
 
 # tespy connection imports
-from tespy import connections
+from . import connections
 
 # tespy components imports
-from tespy.components import (
+from .components import (
     basics,
     combustion,
     components,
@@ -25,10 +25,10 @@ from tespy.components import (
     )
 
 # tespy data
-from tespy import data
+from . import data
 
 # tespy tools imports
-from tespy.tools import (
+from .tools import (
     characteristics,
     data_containers,
     fluid_properties,

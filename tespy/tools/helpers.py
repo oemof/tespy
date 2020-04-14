@@ -14,7 +14,7 @@ from tespy.tools.global_vars import (
 
 import CoolProp as CP
 
-import math
+import numpy as np
 
 import os
 import logging
@@ -240,14 +240,14 @@ def single_fluid(fluids):
     Returns
     -------
     fluid : str
-        Name of the single fluid.
+        Name of the single fluid or None in case of mixtures.
     """
     if num_fluids(fluids) == 1:
         for fluid, x in fluids.items():
             if x > err:
                 return fluid
     else:
-        return []
+        return None
 
 # %%
 
@@ -290,7 +290,7 @@ def fluid_structure(fluid):
 
 def lamb(re, ks, d):
     r"""
-    Calculate the darcy friction factor from the moody diagram.
+    Calculate the Darcy friction factor.
 
     Parameters
     ----------
@@ -313,6 +313,7 @@ def lamb(re, ks, d):
     **Laminar flow** (:math:`re \leq 2320`)
 
     .. math::
+
         \lambda = \frac{64}{re}
 
     **turbulent flow** (:math:`re > 2320`)
@@ -320,30 +321,28 @@ def lamb(re, ks, d):
     *hydraulically smooth:* :math:`\frac{re \cdot k_{s}}{d} < 65`
 
     .. math::
+
         \lambda = \begin{cases}
         0.03164 \cdot re^{-0.25} & re \leq 10^5\\
-        0.0032 + 0.221 \cdot re^{-0.237} & 10^5 < re < 5 \cdot 10^6\\
+        \left(1.8 \cdot \log \left(re\right) -1.5 \right)^{-2} &
+        10^5 < re < 5 \cdot 10^6\\
         solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
-        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 5 \cdot 10^6 \\
+        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 5 \cdot 10^6\\
         \end{cases}
 
-    *transition zone:* :math:`65 \leq \frac{re \cdot k_{s}}{d} \leq 1300`
+    *transition zone and hydraulically rough:*
 
     .. math::
+
         \lambda = solve \left( 0 = 2 \cdot \log \left( \frac{2.51}{re \cdot
-        \sqrt{\lambda}} + \frac{k_{s}}{d} \cdot 0.269 \right) -
+        \sqrt{\lambda}} + \frac{k_{s}}{d \cdot 3.71} \right) -
         \frac{1}{\sqrt{\lambda}} \right)
 
-    *hydraulically rough:* :math:`\frac{re \cdot k_{s}}{d} > 1300`
-
-    .. math::
-        \lambda = \frac{1}{\left( 2\cdot \log \left( \frac{3.71 \cdot d}{k_{s}}
-        \right) \right)}
+    Reference: :cite:`Nirschl2018`.
 
     Example
     -------
-    Calculate the friction coefficient used in the Darcy-Weisbach-equation at
-    different hydraulic states.
+    Calculate the Darcy friction factor at different hydraulic states.
 
     >>> from tespy.tools.helpers import lamb
     >>> ks = 5e-5
@@ -374,47 +373,120 @@ def lamb(re, ks, d):
         return 64 / re
     else:
         if re * ks / d < 65:
-            if re <= 1e5:
-                return 0.3164 * re ** (-0.25)
-            elif re > 1e5 and re < 5e6:
-                return 0.0032 + 0.221 * re ** (-0.237)
+            if re <= 5e4:
+                return lamb_blasius(re)
+            elif re > 5e4 and re < 1e6:
+                return lamb_hanakov(re)
             else:
-                l0 = 0.0001
-                return newton(lamb_smooth, dlamb_smooth_dlamb, [re],
-                              0, val0=l0, valmin=0.00001, valmax=0.2)
-
-        elif re * ks / d > 1300:
-            return 1 / (2 * math.log(3.71 * d / ks, 10)) ** 2
+                l0 = 0.02
+                return newton(
+                    lamb_prandtl_karman, lamb_prandtl_karman_derivative, [re],
+                    0, val0=l0, valmin=0.00001, valmax=0.2)
 
         else:
             l0 = 0.002
-            return newton(lamb_trans, dlamb_trans_dlamb, [re, ks, d], 0,
-                          val0=l0, valmin=0.0001, valmax=0.2)
+            return newton(
+                lamb_colebrook, lamb_colebrook_derivative, [re, ks, d], 0,
+                val0=l0, valmin=0.0001, valmax=0.2)
 
 
-def lamb_smooth(params, lamb):
-    """Calculate lambda in smooth conditions."""
+def lamb_blasius(re):
+    """
+    Calculate friction coefficient according to Blasius.
+
+    Parameters
+    ----------
+    re : float
+        Reynolds number.
+
+    Returns
+    -------
+    lamb : float
+        Darcy friction factor.
+    """
+    return 0.3164 * re ** (-0.25)
+
+
+def lamb_hanakov(re):
+    """
+    Calculate friction coefficient according to Hanakov.
+
+    Parameters
+    ----------
+    re : float
+        Reynolds number.
+
+    Returns
+    -------
+    lamb : float
+        Darcy friction factor.
+    """
+    return (1.8 * np.log10(re) - 1.5) ** (-2)
+
+
+def lamb_prandtl_karman(params, lamb):
+    """
+    Calculate friction coefficient according to Prandtl and v. Kármán.
+
+    Applied in smooth conditions.
+
+    Parameters
+    ----------
+    re : float
+        Reynolds number.
+
+    lamb : float
+        Darcy friction factor.
+
+    Returns
+    -------
+    lamb : float
+        Darcy friction factor.
+    """
     re = params[0]
-    return 2 * math.log(re * math.sqrt(lamb), 10) - 0.8 - 1 / math.sqrt(lamb)
+    return 2 * np.log10(re * lamb ** 0.5) - 0.8 - 1 / lamb ** 0.5
 
 
-def dlamb_smooth_dlamb(params, lamb):
-    """Calculate derivative of lambda in smooth conditions."""
-    return 1 / (lamb * math.log(10)) + 1 / 2 * lamb ** (-1.5)
+def lamb_prandtl_karman_derivative(params, lamb):
+    """Calculate derivative for Prandtl and v. Kármán equation."""
+    return 1 / (lamb * np.log(10)) + 1 / 2 * lamb ** (-1.5)
 
 
-def lamb_trans(params, lamb):
-    """Calculate lambda in transition region (smooth to rough)."""
+def lamb_colebrook(params, lamb):
+    """
+    Calculate friction coefficient accroding to Colebrook-White equation.
+
+    Applied in transition zone and rough conditions.
+
+    Parameters
+    ----------
+    re : float
+        Reynolds number.
+
+    ks : float
+        Equivalent sand roughness.
+
+    d : float
+        Pipe's diameter.
+
+    lamb : float
+        Darcy friction factor.
+
+    Returns
+    -------
+    lamb : float
+        Darcy friction factor.
+    """
     re, ks, d = params[0], params[1], params[2]
-    return (2 * math.log(2.51 / (re * math.sqrt(lamb)) + ks / d * 0.269, 10) +
-            1 / math.sqrt(lamb))
+    return (2 * np.log10(2.51 / (re * lamb ** 0.5) + ks / (3.71 * d)) +
+            1 / lamb ** 0.5)
 
 
-def dlamb_trans_dlamb(params, lamb):
-    """Calculate derivative for lambda in transition region."""
+def lamb_colebrook_derivative(params, lamb):
+    """Calculate derivative for Colebrook-White equation."""
     d = 0.001
-    return (lamb_trans(params, lamb + d) -
-            lamb_trans(params, lamb - d)) / (2 * d)
+    return (lamb_colebrook(params, lamb + d) -
+            lamb_colebrook(params, lamb - d)) / (2 * d)
 
 # %%
 

@@ -22,7 +22,7 @@ The main purpose of the heat pump is to deliver heat e. g. for the consumers of
 a heating system. Thus, the heat pump's parameters will be set in a way, which
 supports this target.
 Generally, if systems are getting more complex, it is highly recommended to set
-up your plant in incremental steps. This tuturial divides the plant in three
+up your plant in incremental steps. This tutorial divides the plant in three
 sections: The consumer part, the valve and the evaporator and the compressor as
 last element. Each new section will be appended to the existing ones.
 
@@ -62,10 +62,9 @@ Additionally we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment
 
-We label the sink for the coolant "valve", as for our
-next calculation the valve (labeled "valve") will be attached there. In this
-way, the fluid properties can be initialised by csv at the
-interface-connection, too.
+We label the sink for the coolant "valve", as for our next calculation the
+valve (labeled "valve") will be attached there. In this way, the fluid
+properties can be initialised by .csv at the interface-connection, too.
 
 .. code-block:: python
 
@@ -117,20 +116,21 @@ up the class documentation.
     cd_va = connection(cd, 'out1', va, 'in1')
 
     nw.add_conns(cd_va)
-    
+
 .. note::
 
     Instead of just connecting the consumers outlet to the pumps inlet, we must
     to make use of at least one auxiliary component: Closing a cycle without
-    further adjustments will always result in a linear dependency in the fluid and
-    the mass flow equations. We therefore need to cut open the cycle. The 
+    further adjustments will always result in a linear dependency in the fluid
+    and the mass flow equations. We therefore need to cut open the cycle. The
     :py:class`tespy.components.basics.cycle_closer` component makes sure, the
     fluid properties pressure and enthalpy are identical at the inlet and the
-    outlet. A different solution to this problem, is adding a merge and a splitter
-    at some point of your network and connect the second inlet/outlet to a 
-    source/sink. This causes residual mass flow and residual fluids to emerge/drain
-    there. The cycle closer will give out a warning, if the mass flow or the fluid
-    composition at its outlet are different to those at its inlet.
+    outlet. A different solution to this problem, is adding a merge and a
+    splitter at some point of your network and connect the second inlet/outlet
+    to a source/sink. This causes residual mass flow and residual fluids to
+    emerge/drain there. The cycle closer will give out a warning, if the mass
+    flow or the fluid composition at its outlet are different to those at its
+    inlet.
 
 Parametrization
 +++++++++++++++
@@ -160,27 +160,27 @@ consumers heat demand. We marked this setting as key parameter.
     a component or connection, will be unset in a offdesign calculation, all
     parameters specified in the offdesign attribute of a component or
     connection will be set for the offdesign calculation. The value for these
-    parameters is the value deriven from the design-calculation.
+    parameters is the value derived from the design-calculation.
 
     Generally, the design calculation is used for designing your system in the
     way you want it to look like. This means, that you might want to specify a
     design point isentropic efficiency, pressure loss or terminal temperature
     difference. After you have designed your system, you are able to make
     offdesign calculations with TESPy. The offdesign calculation is used to
-    predict the system's behaviour at different points of operation. For this
+    predict the system's behavior at different points of operation. For this
     case, this might be different ambient temperature, different feed flow
     temperature, or partial load.
 
 In order to calculate this network further parametrization is necessary, as e.
-g. the fluids are not determined yet: At the hot inlet of the condensator we
+g. the fluids are not determined yet: At the hot inlet of the condenser we
 define the temperature and the fluid vector. In order to fully determine the
 fluid's state at this point, an information on the pressure is required. This
-is archieved by setting the terminal temperature difference (see above). The
+is achieved by setting the terminal temperature difference (see above). The
 same needs to be done for the consumer cycle. We suggest to set the parameters
 at the pump's inlet. On top, we assume that the consumer requires a constant
 inlet temperature.
 
-The last step is to define the fluid's state after the consumer. This is 
+The last step is to define the fluid's state after the consumer. This is
 automatically performed by the :py:class:`tespy.components.basics.cycle_closer`
 component. This component makes sure pressure and enthalpy are at its inlet
 and its outlet. This way, the fluid properties at the consumer's outlet are
@@ -293,12 +293,13 @@ Parametrization
 Previous parametrization stays untouched. Regarding the evaporator, we specify
 pressure ratios on hot and cold side as well as the lower terminal temperature
 difference. We use the hot side pressure ratio and the lower terminal
-temperature difference as design parameteres and choose zeta as well as the
-area independet heat transition coefficient as its offdesign parameters.
+temperature difference as design parameters and choose zeta as well as the
+area independent heat transition coefficient as its offdesign parameters.
 
 On top of that, the characteristic function of the evaporator should follow the
-default characteristic lines of 'EVAPORATING FLUID'. These lines are defined in
-the :py:mod:`tespy.data` module. If you want to learn more about handling
+default characteristic line of 'EVAPORATING FLUID' on the cold side and the
+default line 'DEFAULT' on the hot side. These lines are defined in the
+:py:mod:`tespy.data` module. If you want to learn more about handling
 characteristic functions you should have a glance at the
 :ref:`TESPy components section <using_tespy_components_label>`. The superheater
 will also use the pressure ratios on hot and cold side. Further we set a value
@@ -312,8 +313,8 @@ at a different operation point.
 .. code-block:: python
 
     # evaporator system
-    
-    kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
+
+    kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', char_line)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
 
     ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
@@ -323,15 +324,15 @@ at a different operation point.
                 offdesign=['zeta1', 'zeta2', 'kA'])
     pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
-Next step is the connetion parametrization: The pressure in the drum and the
+Next step is the connection parametrization: The pressure in the drum and the
 enthalpy of the wet steam reentering the drum need to be determined. For the
 enthalpy we can specify a reference of the circulating mass flow to the main
-cycle mass flow. The pressure is archieved through the given lower terminal
+cycle mass flow. The pressure is achieved through the given lower terminal
 temperature difference of the evaporator and its hot side outlet temperature.
 As we have specified a terminal temperature difference at the evaporator's cold
 side inlet (:code:`ttd_l`), it might be necessary to state a starting value for
 the pressure, as we are near to the two-phase region. On the hot side inlet of
-the superheater we definde the temperature, pressure and the fluid. Since the
+the superheater we define the temperature, pressure and the fluid. Since the
 pressure between superheater and first compressor will be a result of the
 pressure losses in the superheater and we set the terminal temperature
 difference there, bad starting values will lead to a linear dependency, as a
@@ -360,7 +361,7 @@ Again, you should calculate your network after you added these parts. As we
 have already calculated one part of our network, this time we can use the
 :code:`init_path` for the design calculation and load the results from the
 previous network. This step is not required, but in larger, more complex
-networks, it might help, to archieve better convergence. For the offdesign
+networks, it might help, to achieve better convergence. For the offdesign
 calculation see part 3.1.4.
 
 
@@ -375,10 +376,13 @@ Components
 
 This part contains two compressors with an intercooler between them. The cold
 side of the intercooler requires a source and a sink. Again, remember
-redefining the former sink "cp1" to a compressor. We will now replace the 
+redefining the former sink "cp1" to a compressor. We will now replace the
 source for the coolant :code:`c_in` at the condenser with another cycle closer
 :code:`cool_closer`, to make sure the fluid properties after the second
-compressor are identical to the fluid properties at the condenser inlet.
+compressor are identical to the fluid properties at the condenser inlet. The
+intercooling leads to a lower COP but may be necessary depending on your
+temperature level requirement on the consumer's side. In a single stage
+compression, the outlet temperature of the coolant might be very high.
 
 .. code-block:: python
 
@@ -397,14 +401,14 @@ compressor are identical to the fluid properties at the condenser inlet.
 
 Connections
 +++++++++++
-    
+
 Consequently to the addition of the cycle closer we have to adjust the
 connection definition touching the new cycle closer. Replace
 
 .. code-block:: python
 
     c_in_cd = connection(c_in, 'out1', cd, 'in1')
-    
+
 with
 
 .. code-block:: python
@@ -429,12 +433,12 @@ Of course, do not forget to add the new connections to the script.
 Parametrization
 +++++++++++++++
 
-For the two compressor we defined an isentropic efficency and for the offdesign
-calculation a generic characteristic line for the isentropic efficiency will be
-applied. The first compressor has a fixed pressure ratio, the seconds
-compressor pressure ratio will result from the required pressure at the
-condenser. The heat exchanger comes with pressure ratios on both sides. The
-parametrization of all other components remains identical.
+For the two compressor we defined an isentropic efficiency and for the
+offdesign calculation a generic characteristic line for the isentropic
+efficiency will be applied. The first compressor has a fixed pressure ratio,
+the seconds compressor pressure ratio will result from the required pressure
+at the condenser. The heat exchanger comes with pressure ratios on both sides.
+The parametrization of all other components remains identical.
 
 .. code-block:: python
 
@@ -473,7 +477,7 @@ Solve
 +++++
 
 Here again, using the saved results from previous calculations is always
-favourable, but with the manually adjusted starting values, the calculation
+favorable, but with the manually adjusted starting values, the calculation
 should still converge. Also see section 3.2.4. If you want to use the previous
 part to initialise start the solver with
 

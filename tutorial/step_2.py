@@ -95,7 +95,7 @@ cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
 # evaporator system
 
-kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', char_line)
+kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', char_line)
 kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
 
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,

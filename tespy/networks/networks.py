@@ -13,41 +13,28 @@ available from its original location tespy/networks/networks.py
 
 SPDX-License-Identifier: MIT
 """
-
-# reading .csv
 import ast
-# ordered dicts for fluid composition vector
+import json
 from collections import Counter, OrderedDict
-# calculation of molar masses and gas constants
-from CoolProp.CoolProp import PropsSI as CPPSI
-# logging messages
 import logging
-# numpy functions
 import numpy as np
 from numpy.linalg import inv
 from numpy.linalg import norm
-# checking/creating folders
 import os
-# DataFrames for connections and components
 import pandas as pd
-# printing results
 from tabulate import tabulate
-
-from tespy import connections as con
-
-from tespy.components.basics import (sink, source, subsystem_interface,
-                                     cycle_closer)
+from tespy.components.basics import (
+    sink, source, subsystem_interface, cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
+from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
 from tespy.components.reactors import water_electrolyzer
-
+from tespy import connections as con
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
-
-from tespy.tools.global_vars import molar_masses, gas_constants, err
-# calculation time
+from tespy.tools.global_vars import err
 from time import time
 
 
@@ -154,7 +141,12 @@ class network:
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
         # connection dataframe
-        self.conns = pd.DataFrame(columns=['s', 's_id', 't', 't_id'])
+        self.conns = pd.DataFrame(
+            columns=['source', 'source_id', 'target', 'target_id'])
+        # connection dictionary for fast access
+        self.connections = {}
+        # component dictionary for fast access
+        self.components = {}
         # list for busses
         self.busses = OrderedDict()
         # default design_path value
@@ -169,25 +161,32 @@ class network:
             logging.error(msg)
             raise TypeError(msg)
 
-        msg = 'Network fluids are: '
-        for f in self.fluids:
-            msg += f + ', '
-            if 'INCOMP::' in f:
-                # molar mass and gas constant not available for incompressibles
-                molar_masses[f] = 1
-                gas_constants[f] = 1
+        # this must be ordered as the fluid property memorisation calls
+        # the mass fractions of the different fluids as keys in a given order.
+        self.fluids_backends = OrderedDict()
 
-            elif 'TESPy::' not in f:
-                # calculating molar masses/gas constants for network's fluids
-                # tespy_fluid molar mass/gas constant are added on lut creation
-                molar_masses[f] = CPPSI('M', f)
-                gas_constants[f] = CPPSI('GAS_CONSTANT', f)
+        msg = 'Network fluids are: '
+        i = 0
+        for f in self.fluids:
+            try:
+                data = f.split('::')
+                backend = data[0]
+                fluid = data[1]
+            except IndexError:
+                backend = 'HEOS'
+                fluid = f
+
+            self.fluids_backends[fluid] = backend
+            self.fluids[i] = fluid
+
+            msg += fluid + ', '
+            i += 1
 
         msg = msg[:-2] + '.'
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids)
+        fp.memorise.add_fluids(self.fluids_backends)
 
         # available unit systems
         # mass flow
@@ -208,11 +207,23 @@ class network:
             'kJ / kg': 1e3,
             'MJ / kg': 1e6
         }
+        # specific volume
+        self.vol = {
+            'm3 / kg': 1,
+            'l / kg': 1e-3
+        }
+        # entropy
+        self.s = {
+            'J / kgK': 1,
+            'kJ / kgK': 1e3,
+            'MJ / kgK': 1e6
+        }
         # temperature
         self.T = {
             'C': [273.15, 1],
             'F': [459.67, 5 / 9],
-            'K': [0, 1]
+            'K': [0, 1],
+            'R': [0, 5 / 9]
         }
         # volumetric flow
         self.v = {
@@ -221,14 +232,34 @@ class network:
             'm3 / h': 1 / 3600,
             'l / h': 1 / 3.6
         }
+        # vapor mass fraction
+        self.x = {
+            '-': 1,
+            '%': 1e-2
+        }
         # SI unit specification
         self.SI_units = {
               'm': 'kg / s',
+              'v': 'm3 / s',
               'p': 'Pa',
               'h': 'J / kg',
               'T': 'K',
-              'v': 'm3 / s'
+              'vol': 'm3 / kg',
+              'x': '-',
+              's': 'J / kgK'
               }
+
+        # written propteries
+        self.props = {
+            'm': 'mass flow',
+            'v': 'volumetric flow',
+            'p': 'pressure',
+            'h': 'enthalpy',
+            'T': 'temperature',
+            'vol': 'specific volume',
+            'x': 'vapour mass fraction',
+            's': 'entropy'
+        }
 
         # iterinfo
         self.iterinfo = True
@@ -239,12 +270,18 @@ class network:
         self.h_unit = self.SI_units['h']
         self.T_unit = self.SI_units['T']
         self.v_unit = self.SI_units['v']
+        self.vol_unit = self.SI_units['vol']
+        self.s_unit = self.SI_units['s']
+        self.x_unit = self.SI_units['x']
 
         msg = ('Default unit specifications: '
                'mass flow: ' + self.m_unit + ', ' +
                'pressure: ' + self.p_unit + ', ' +
                'enthalpy: ' + self.h_unit + ', ' +
                'temperature: ' + self.T_unit + ', ' +
+               'specific volume: ' + self.vol_unit + ', ' +
+               'entropy: ' + self.s_unit + ', ' +
+               'vapour mass fraction: ' + self.x_unit + ', ' +
                'volumetric flow: ' + self.v_unit + '.')
         logging.debug(msg)
 
@@ -314,56 +351,19 @@ class network:
             Print convergence progress to console.
         """
         # unit sets
-        if 'm_unit' in kwargs.keys():
-            if kwargs['m_unit'] not in self.m.keys():
-                msg = ('Allowed units for mass flow are: ' +
-                       str(self.m.keys()))
-                logging.error(msg)
-                raise ValueError(msg)
-            else:
-                self.m_unit = kwargs['m_unit']
-                msg = 'Setting mass flow unit: ' + self.m_unit
-                logging.debug(msg)
-
-        if 'p_unit' in kwargs.keys():
-            if kwargs['p_unit'] not in self.p.keys():
-                msg = ('Allowed units for pressure are: ' + str(self.p.keys()))
-                logging.error(msg)
-                raise ValueError(msg)
-            else:
-                self.p_unit = kwargs['p_unit']
-                msg = 'Setting pressure unit: ' + self.p_unit
-                logging.debug(msg)
-
-        if 'h_unit' in kwargs.keys():
-            if kwargs['h_unit'] not in self.h.keys():
-                msg = ('Allowed units for pressure are: ' + str(self.h.keys()))
-                logging.error(msg)
-                raise ValueError(msg)
-            else:
-                self.h_unit = kwargs['h_unit']
-                msg = 'Setting enthalpy unit: ' + self.h_unit
-                logging.debug(msg)
-
-        if 'T_unit' in kwargs.keys():
-            if kwargs['T_unit'] not in self.T.keys():
-                msg = ('Allowed units for pressure are: ' + str(self.T.keys()))
-                logging.error(msg)
-                raise ValueError(msg)
-            else:
-                self.T_unit = kwargs['T_unit']
-                msg = 'Setting temperature unit: ' + self.T_unit
-                logging.debug(msg)
-
-        if 'v_unit' in kwargs.keys():
-            if kwargs['v_unit'] not in self.v.keys():
-                msg = ('Allowed units for pressure are: ' + str(self.v.keys()))
-                logging.error(msg)
-                raise ValueError(msg)
-            else:
-                self.v_unit = kwargs['v_unit']
-                msg = 'Setting volumetric flow unit: ' + self.v_unit
-                logging.debug(msg)
+        for prop in self.SI_units.keys():
+            unit = prop + '_unit'
+            if unit in kwargs.keys():
+                if kwargs[unit] not in self.get_attr(prop).keys():
+                    msg = ('Allowed units for ' + self.props[prop] + ' are: ' +
+                           str(self.get_attr(prop).keys()))
+                    logging.error(msg)
+                    raise ValueError(msg)
+                else:
+                    self.__dict__[unit] = kwargs[unit]
+                    msg = ('Setting ' + self.props[prop] + ' unit: ' +
+                           kwargs[unit] + '.')
+                    logging.debug(msg)
 
         # value ranges
         if 'm_range' in kwargs.keys():
@@ -430,13 +430,6 @@ class network:
         self.h_range = self.h_range_SI / self.h[self.h_unit]
         self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
                         self.T[self.T_unit][0])
-
-        for f in self.fluids:
-            if 'TESPy::' in f:
-                fp.memorise.vrange[f][0] = self.p_range_SI[0]
-                fp.memorise.vrange[f][1] = self.p_range_SI[1]
-                fp.memorise.vrange[f][2] = self.T_range_SI[0]
-                fp.memorise.vrange[f][3] = self.T_range_SI[1]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
@@ -509,11 +502,20 @@ class network:
                 logging.error(msg)
                 raise TypeError(msg)
 
+            elif c.label in self.connections.keys():
+                msg = (
+                    'There is already a connection with the label ' +
+                    c.label + '. The connection labels must be unique!')
+                logging.error(msg)
+                raise ValueError(msg)
+
             c.good_starting_values = False
 
-            self.conns.loc[c] = [c.s, c.s_id, c.t, c.t_id]
-            msg = ('Added connection ' + c.s.label + ' (' + c.s_id + ') -> ' +
-                   c.t.label + ' (' + c.t_id + ') to network.')
+            self.conns.loc[c] = [c.source, c.source_id, c.target, c.target_id]
+            # for fast access
+            self.connections[c.label] = c
+
+            msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)
             # set status "checked" to false, if conneciton is added to network.
             self.checked = False
@@ -530,37 +532,44 @@ class network:
         """
         for c in args:
             self.conns = self.conns.drop(c)
-            msg = ('Deleted connection ' + c.s.label + ' (' + c.s_id +
-                   ') -> ' + c.t.label + ' (' + c.t_id + ') from network.')
+            del self.connections[c.label]
+            msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
         self.checked = False
 
     def check_conns(self):
         r"""Check connections for multiple usage of inlets or outlets."""
-        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        dub = self.conns.loc[
+            self.conns.duplicated(['source', 'source_id']) == True]
         for c in dub.index:
             targets = ''
-            for conns in self.conns[(self.conns.s == c.s) &
-                                    (self.conns.s_id == c.s_id)].index:
-                targets += conns.t.label + ' (' + conns.t_id + '); '
+            for conns in self.conns[
+                    (self.conns['source'] == c.source) &
+                    (self.conns['source_id'] == c.source_id)].index:
+                targets += conns.target.label + ' (' + conns.target_id + '); '
 
-            msg = ('The source ' + c.s.label + ' (' + c.s_id + ') is attached '
-                   'to more than one target: ' + targets[:-2] + '. '
-                   'Please check your network.')
+            msg = (
+                'The source ' + c.source.label + ' (' + c.source_id +
+                ') is attached '
+                'to more than one target: ' + targets[:-2] + '. '
+                'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        dub = self.conns.loc[
+            self.conns.duplicated(['target', 'target_id']) == True]
         for c in dub.index:
             sources = ''
-            for conns in self.conns[(self.conns.t == c.t) &
-                                    (self.conns.t_id == c.t_id)].index:
-                sources += conns.s.label + ' (' + conns.s_id + '); '
+            for conns in self.conns[
+                    (self.conns['target'] == c.target) &
+                    (self.conns['target_id'] == c.target_id)].index:
+                sources += conns.source.label + ' (' + conns.source_id + '); '
 
-            msg = ('The target ' + c.t.label + ' (' + c.t_id + ') is attached '
-                   'to more than one source: ' + sources[:-2] + '. '
-                   'Please check your network.')
+            msg = (
+                'The target ' + c.target.label + ' (' + c.target_id +
+                ') is attached to more than one source: ' + sources[:-2] + '. '
+                'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -630,14 +639,14 @@ class network:
         r"""Check if components are connected properly within the network."""
         self.check_conns()
         # get unique components in connections dataframe
-        comps = pd.unique(self.conns[['s', 't']].values.ravel())
+        comps = pd.unique(self.conns[['source', 'target']].values.ravel())
         # build the dataframe for components
         self.init_components(comps)
         # count number of incoming and outgoing connections and compare to
         # expected values
         for comp in self.comps.index:
-            num_o = (self.conns[['s', 't']] == comp).sum().s
-            num_i = (self.conns[['s', 't']] == comp).sum().t
+            num_o = (self.conns[['source', 'target']] == comp).sum().source
+            num_i = (self.conns[['source', 'target']] == comp).sum().target
             if num_o != comp.num_o:
                 msg = (comp.label + ' is missing ' + str(comp.num_o - num_o) +
                        ' outgoing connections. Make sure all outlets are '
@@ -672,23 +681,25 @@ class network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame(index=comps, columns=['i', 'o'])
+        self.comps = pd.DataFrame(index=comps, columns=['inlets', 'outlets'])
 
         labels = []
         for comp in self.comps.index:
             # get for incoming and outgoing connections of a component
-            s = self.conns[self.conns.s == comp]
-            s = s.s_id.sort_values().index
-            t = self.conns[self.conns.t == comp]
-            t = t.t_id.sort_values().index
-            self.comps.loc[comp] = [t, s]
+            sources = self.conns[self.conns['source'] == comp]
+            sources = sources['source_id'].sort_values().index
+            targets = self.conns[self.conns['target'] == comp]
+            targets = targets['target_id'].sort_values().index
+            self.comps.loc[comp] = [targets, sources]
             # save the incoming and outgoing as well as the number of
             # connections as component attribute
-            comp.inl = t.tolist()
-            comp.outl = s.tolist()
+            comp.inl = targets.tolist()
+            comp.outl = sources.tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
+            # for fast access
+            self.components[comp.label] = comp
 
             # save the connection locations to the components
             comp.conn_loc = []
@@ -736,7 +747,7 @@ class network:
             self.redesign = True
             if self.design_path is None:
                 # must provide design_path
-                msg = ('Please provide \'design_path\' for every offdesign '
+                msg = ('Please provide "design_path" for every offdesign '
                        'calculation.')
                 logging.error(msg)
                 raise hlp.TESPyNetworkError(msg)
@@ -778,10 +789,10 @@ class network:
             # local_offdesign activated from their respective design path
             if c.local_offdesign is True:
                 if c.design_path is None:
-                    msg = ('The parameter local_offdesign is True for the '
-                           'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
-                           c.t.label + '(' + c.t_id + '), an individual '
-                           'design_path must be specified in this case!')
+                    msg = (
+                        'The parameter local_offdesign is True for the '
+                        'connection ' + c.label + ', an individual '
+                        'design_path must be specified in this case!')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
 
@@ -793,11 +804,10 @@ class network:
                     c.get_attr(var).set_attr(val_set=True)
 
                 # read design point information
-                path = hlp.modify_path_os(c.design_path + '/conn.csv')
-                msg = ('Reading individual design point information for '
-                       'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
-                       c.t.label + '(' + c.t_id + ') from path ' +
-                       path + '.')
+                path = hlp.modify_path_os(c.design_path + '/connections.csv')
+                msg = (
+                    'Reading individual design point information for '
+                    'connection ' + c.label + ' from path ' + path + '.')
                 logging.debug(msg)
                 df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
 
@@ -826,7 +836,7 @@ class network:
             for cp in b.comps.index:
                 b.comps.loc[cp].P_ref = np.nan
 
-        series = pd.Series()
+        series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
             # read design point information of components with
             # local_offdesign activated from their respective design path
@@ -835,8 +845,8 @@ class network:
                     # get type of component (class name)
                     c = cp.__class__.__name__
                     # read design point information
-                    path = hlp.modify_path_os(cp.design_path + '/comps/' + c +
-                                              '.csv')
+                    path = hlp.modify_path_os(
+                        cp.design_path + '/components/' + c + '.csv')
                     df = pd.read_csv(path, sep=';', decimal='.',
                                      converters={
                                              'busses': ast.literal_eval,
@@ -897,8 +907,9 @@ class network:
         Note
         ----
         The methods
-        :func:`tespy.networks.network.init_comp_design_params` (components) and
-        the :func:`tespy.networks.network.init_conn_design_params`
+        :func:`tespy.networks.networks.network.init_comp_design_params`
+        (components) and the
+        :func:`tespy.networks.networks.network.init_conn_design_params`
         (connections) handle the parameter specification.
         """
         # components without any parameters
@@ -916,8 +927,8 @@ class network:
         # iter through unique types of components (class names)
         for c in cp_sort.cp.unique():
             if c not in not_required:
-                path = hlp.modify_path_os(self.design_path +
-                                          '/comps/' + c + '.csv')
+                path = hlp.modify_path_os(
+                    self.design_path + '/components/' + c + '.csv')
                 msg = ('Reading design point information for components of '
                        'type ' + c + ' from path ' + path + '.')
                 logging.debug(msg)
@@ -932,8 +943,8 @@ class network:
                     comp = cp_sort.loc[c_label].comp
                     # read data of components with individual design_path
                     if comp.design_path is not None:
-                        path_c = hlp.modify_path_os(comp.design_path +
-                                                    '/comps/' + c + '.csv')
+                        path_c = hlp.modify_path_os(
+                            comp.design_path + '/components/' + c + '.csv')
                         df_c = pd.read_csv(path_c, sep=';', decimal='.',
                                            converters={
                                                  'busses': ast.literal_eval,
@@ -952,10 +963,11 @@ class network:
         logging.debug(msg)
 
         # read connection design point information
-        path = hlp.modify_path_os(self.design_path + '/conn.csv')
+        path = hlp.modify_path_os(self.design_path + '/connections.csv')
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
-        msg = ('Reading design point information for connections from path ' +
-               path + '.')
+        msg = (
+            'Reading design point information for connections from path ' +
+            path + '.')
         logging.debug(msg)
 
         # iter through connections
@@ -963,11 +975,10 @@ class network:
 
             # read data of connections with individual design_path
             if c.design_path is not None:
-                path_c = hlp.modify_path_os(c.design_path + '/conn.csv')
-                msg = ('Reading individual design point information for '
-                       'connection ' + c.s.label + '(' + c.s_id + ') -> ' +
-                       c.t.label + '(' + c.t_id + ') from path ' +
-                       path_c + '.')
+                path_c = hlp.modify_path_os(c.design_path + '/connections.csv')
+                msg = (
+                    'Reading individual design point information for '
+                    'connection ' + c.label + ' from path ' + path_c + '.')
                 logging.debug(msg)
                 df_c = pd.read_csv(path_c, index_col=0,
                                    delimiter=';', decimal='.')
@@ -1017,8 +1028,11 @@ class network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        conn = (df.loc[df['s'].isin([c.s.label]) & df['t'].isin([c.t.label]) &
-                       df['s_id'].isin([c.s_id]) & df['t_id'].isin([c.t_id])])
+        conn = df.loc[
+            df['source'].isin([c.source.label]) &
+            df['target'].isin([c.target.label]) &
+            df['source_id'].isin([c.source_id]) &
+            df['target_id'].isin([c.target_id])]
 
         if len(conn.index) > 0:
             # read connection information
@@ -1027,7 +1041,7 @@ class network:
             c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
             c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
             c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
-            c.x.design = df.loc[conn_id].x
+            c.x.design = df.loc[conn_id].x * self.x[df.loc[conn_id].x_unit]
             c.T.design = ((df.loc[conn_id]['T'] +
                            self.T[df.loc[conn_id].T_unit][0]) *
                           self.T[df.loc[conn_id].T_unit][1])
@@ -1037,11 +1051,11 @@ class network:
                 c.fluid.design[fluid] = df.loc[conn_id][fluid]
         else:
             # no matches in the connections of the network and the design files
-            msg = ('Could not find connection ' + c.s.label + '(' + c.s_id +
-                   ') -> ' + c.t.label + '(' + c.t_id + ') in design case. '
-                   'Please, make sure no connections have been modified '
-                   'or components have been relabeled for your offdesign '
-                   'calculation.')
+            msg = (
+                'Could not find connection ' + c.label + ' in design case. '
+                'Please, make sure no connections have been modified or '
+                'components have been relabeled for your offdesign '
+                'calculation.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1183,28 +1197,28 @@ class network:
         # fluid propagation from set values
         for c in self.conns.index:
             if any(c.fluid.val_set.values()):
-                self.init_target(c, c.t)
-                self.init_source(c, c.s)
+                self.init_target(c, c.target)
+                self.init_source(c, c.source)
 
         # fluid propagation for components
         for cp in self.comps.index:
             # combustion chamber
             if isinstance(cp, combustion_chamber):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
-                    self.init_target(c, c.t)
+                for c in self.comps.loc[cp, 'outlets']:
+                    self.init_target(c, c.target)
 
             # combustion chamber
             elif isinstance(cp, water_electrolyzer):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
-                    self.init_target(c, c.t)
+                for c in self.comps.loc[cp, 'outlets']:
+                    self.init_target(c, c.target)
 
             # other components (node, merge)
             else:
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp].o:
-                    self.init_target(c, c.t)
+                for c in self.comps.loc[cp, 'outlets']:
+                    self.init_target(c, c.target)
 
         msg = 'Fluid initialisation done.'
         logging.debug(msg)
@@ -1229,15 +1243,17 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
-                not isinstance(c.t, cycle_closer)) or
-                isinstance(c.t, heat_exchanger) or
-                isinstance(c.t, subsystem_interface)):
+        if ((len(c.target.inlets()) == 1 and len(c.target.outlets()) == 1 and
+                not isinstance(c.target, cycle_closer)) or
+                isinstance(c.target, heat_exchanger) or
+                isinstance(c.target, subsystem_interface) or
+                isinstance(c.target, orc_evaporator)):
 
             outc = pd.DataFrame()
-            outc['s'] = self.conns.s == c.t
-            outc['s_id'] = self.conns.s_id == c.t_id.replace('in', 'out')
-            conn, cid = outc['s'] == True, outc['s_id'] == True
+            outc['source'] = self.conns['source'] == c.target
+            outc['source_id'] = (
+                self.conns['source_id'] == c.target_id.replace('in', 'out'))
+            conn, cid = outc['source'] == True, outc['source_id'] == True
             outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
@@ -1247,8 +1263,8 @@ class network:
 
             self.init_target(outconn, start)
 
-        if isinstance(c.t, splitter):
-            for outconn in self.comps.loc[c.t].o:
+        if isinstance(c.target, splitter):
+            for outconn in self.comps.loc[c.target, 'outlets']:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1256,17 +1272,17 @@ class network:
 
                 self.init_target(outconn, start)
 
-        if isinstance(c.t, water_electrolyzer):
-            if c == self.comps.loc[c.t].i[0]:
-                outconn = self.comps.loc[c.t].o[0]
+        if isinstance(c.target, water_electrolyzer):
+            if c == self.comps.loc[c.target, 'inlets'][0]:
+                outconn = self.comps.loc[c.target, 'outlets'][0]
 
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
                         outconn.fluid.val[fluid] = x
 
-        if isinstance(c.t, combustion_engine):
-            for outconn in self.comps.loc[c.t].o[:2]:
+        if isinstance(c.target, combustion_engine):
+            for outconn in self.comps.loc[c.target, 'outlets'][:2]:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1274,9 +1290,9 @@ class network:
 
                 self.init_target(outconn, start)
 
-        if isinstance(c.t, drum) and c.t != start:
-            start = c.t
-            for outconn in self.comps.loc[c.t].o:
+        if isinstance(c.target, drum) and c.target != start:
+            start = c.target
+            for outconn in self.comps.loc[c.target, 'outlets']:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1303,15 +1319,17 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
-                not isinstance(c.s, cycle_closer)) or
-                isinstance(c.s, heat_exchanger) or
-                isinstance(c.s, subsystem_interface)):
+        if ((len(c.source.inlets()) == 1 and len(c.source.outlets()) == 1 and
+                not isinstance(c.source, cycle_closer)) or
+                isinstance(c.source, heat_exchanger) or
+                isinstance(c.source, subsystem_interface) or
+                isinstance(c.source, orc_evaporator)):
 
             inc = pd.DataFrame()
-            inc['t'] = self.conns.t == c.s
-            inc['t_id'] = self.conns.t_id == c.s_id.replace('out', 'in')
-            conn, cid = inc['t'] == True, inc['t_id'] == True
+            inc['target'] = self.conns['target'] == c.source
+            inc['target_id'] = (
+                self.conns['target_id'] == c.source_id.replace('out', 'in'))
+            conn, cid = inc['target'] == True, inc['target_id'] == True
             inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
@@ -1321,8 +1339,8 @@ class network:
 
             self.init_source(inconn, start)
 
-        if isinstance(c.s, splitter):
-            for inconn in self.comps.loc[c.s].i:
+        if isinstance(c.source, splitter):
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1330,8 +1348,8 @@ class network:
 
                 self.init_source(inconn, start)
 
-        if isinstance(c.s, merge):
-            for inconn in self.comps.loc[c.s].i:
+        if isinstance(c.source, merge):
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1339,8 +1357,8 @@ class network:
 
                 self.init_source(inconn, start)
 
-        if isinstance(c.s, combustion_engine):
-            for inconn in self.comps.loc[c.s].i[:2]:
+        if isinstance(c.source, combustion_engine):
+            for inconn in self.comps.loc[c.source, 'inlets'][:2]:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1348,9 +1366,9 @@ class network:
 
                 self.init_source(inconn, start)
 
-        if isinstance(c.s, drum) and c.s != start:
-            start = c.s
-            for inconn in self.comps.loc[c.s].i:
+        if isinstance(c.source, drum) and c.source != start:
+            start = c.source
+            for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1372,13 +1390,13 @@ class network:
         for c in self.conns.index:
             if self.init_previous is False:
                 c.good_starting_values = False
-            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
-                if c.get_attr(key).unit_set is False and key != 'x':
+            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
+                if c.get_attr(key).unit_set is False:
                     if key == 'Td_bp':
                         c.get_attr(key).unit = self.get_attr('T_unit')
                     else:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if (key not in ['T', 'x', 'v', 'Td_bp'] and
+                if (key not in ['T', 'x', 'v', 's', 'vol', 'Td_bp'] and
                         c.get_attr(key).val_set is False):
                     if c.good_starting_values is False:
                         self.init_val0(c, key)
@@ -1386,7 +1404,7 @@ class network:
                             c.get_attr(key).val0 * self.get_attr(key)[
                                     c.get_attr(key).unit])
                 elif key not in c.offdesign:
-                    if (key not in ['T', 'x', 'v', 'Td_bp'] and
+                    if (key not in ['T', 'Td_bp'] and
                             c.get_attr(key).val_set is True):
                         c.get_attr(key).val_SI = (
                                 c.get_attr(key).val * self.get_attr(key)[
@@ -1396,10 +1414,6 @@ class network:
                                       self.T[c.T.unit][1])
                     elif key == 'Td_bp' and c.Td_bp.val_set is True:
                         c.Td_bp.val_SI = c.Td_bp.val * self.T[c.T.unit][1]
-                    elif key == 'x' and c.x.val_set is True:
-                        c.x.val_SI = c.x.val
-                    elif key == 'v' and c.v.val_set is True:
-                        c.v.val_SI = c.v.val * self.v[c.v.unit]
 
         msg = ('Retrieved generic starting values and specified SI-values of '
                'connection parameters.')
@@ -1465,8 +1479,8 @@ class network:
             # generic starting values for pressure and enthalpy
             else:
                 # retrieve starting values from component information
-                val_s = c.s.initialise_source(c, key)
-                val_t = c.t.initialise_target(c, key)
+                val_s = c.source.initialise_source(c, key)
+                val_t = c.target.initialise_target(c, key)
 
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
@@ -1498,14 +1512,15 @@ class network:
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
 
-        path = hlp.modify_path_os(self.init_path + '/conn.csv')
+        path = hlp.modify_path_os(self.init_path + '/connections.csv')
 
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         for c in self.conns.index:
-            conn = (df.loc[df['s'].isin([c.s.label]) &
-                           df['t'].isin([c.t.label]) &
-                           df['s_id'].isin([c.s_id]) &
-                           df['t_id'].isin([c.t_id])])
+            conn = df.loc[
+                df['source'].isin([c.source.label]) &
+                df['target'].isin([c.target.label]) &
+                df['source_id'].isin([c.source_id]) &
+                df['target_id'].isin([c.target_id])]
             if len(conn.index) > 0:
                 conn_id = conn.index[0]
                 # overwrite SI-values with values from init_file,
@@ -1530,9 +1545,9 @@ class network:
                 c.fluid.val0 = c.fluid.val.copy()
                 c.good_starting_values = True
             else:
-                msg = ('Could not find connection ' + c.s.label + ' (' +
-                       c.s_id + ') -> ' + c.t.label + ' (' + c.t_id +
-                       ') in .csv-file.')
+                msg = (
+                    'Could not find connection ' + c.label + ' in '
+                    'connections.csv of init_path ' + self.init_path + '.')
                 logging.debug(msg)
 
         msg = 'Specified starting values from init_path.'
@@ -1599,7 +1614,7 @@ class network:
         self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
-            msg = 'Mode must be \'design\' or \'offdesign\'.'
+            msg = 'Mode must be "design" or "offdesign".'
             logging.error(msg)
             raise ValueError(msg)
         else:
@@ -1644,7 +1659,7 @@ class network:
         if not self.progress:
             msg = ('The solver does not seem to make any progress, aborting '
                    'calculation. Residual value is '
-                   '{:.2e}'.format(norm(self.vec_res)) + '. This frequently '
+                   '{:.2e}'.format(norm(self.residual)) + '. This frequently '
                    'happens, if the solver pushes the fluid properties out of '
                    'their feasible range.')
             logging.warning(msg)
@@ -1684,9 +1699,9 @@ class network:
 
         for self.iter in range(self.max_iter):
 
-            self.vec_z_filter = np.absolute(self.vec_z) < err ** 2
+            self.increment_filter = np.absolute(self.increment) < err ** 2
             self.solve_control()
-            self.res = np.append(self.res, norm(self.vec_res))
+            self.res = np.append(self.res, norm(self.residual))
 
             if self.iterinfo:
                 self.print_iterinfo('solving')
@@ -1708,7 +1723,7 @@ class network:
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
                    '), calculation stopped. Residual value is '
-                   '{:.2e}'.format(norm(self.vec_res)))
+                   '{:.2e}'.format(norm(self.residual)))
             logging.warning(msg)
 
     def solve_determination(self):
@@ -1751,9 +1766,9 @@ class network:
         self.num_vars = (self.num_conn_vars * len(self.conns.index) +
                          self.num_comp_vars)
 
-        self.vec_res = np.zeros([self.num_vars])
-        self.vec_z = np.ones([self.num_vars])
-        self.mat_deriv = np.zeros((self.num_vars, self.num_vars))
+        self.residual = np.zeros([self.num_vars])
+        self.increment = np.ones([self.num_vars])
+        self.jacobian = np.zeros((self.num_vars, self.num_vars))
 
         msg = 'Total number of variables: ' + str(self.num_vars) + '.'
         logging.debug(msg)
@@ -1797,10 +1812,10 @@ class network:
             print(msg)
 
         elif position == 'solving':
-            vec = self.vec_z[0:-(self.num_comp_vars + 1)]
+            vec = self.increment[0:-(self.num_comp_vars + 1)]
             msg = (str(self.iter + 1))
-            if not self.lin_dep and not np.isnan(norm(self.vec_res)):
-                msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+            if not self.lin_dep and not np.isnan(norm(self.residual)):
+                msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
                 msg += ' | ' + '{:.2e}'.format(
                         norm(vec[0::self.num_conn_vars]))
                 msg += ' | ' + '{:.2e}'.format(
@@ -1814,13 +1829,13 @@ class network:
                 msg += ' | ' + '{:.2e}'.format(norm(ls))
                 if self.num_comp_vars > 0:
                     msg += ' | ' + '{:.2e}'.format(norm(
-                            self.vec_z[-self.num_comp_vars:]))
+                            self.increment[-self.num_comp_vars:]))
 
             else:
-                if np.isnan(norm(self.vec_res)):
-                    msg += '\t|      nan'.format(norm(self.vec_res))
+                if np.isnan(norm(self.residual)):
+                    msg += '\t|      nan'.format(norm(self.residual))
                 else:
-                    msg += '\t| ' + '{:.2e}'.format(norm(self.vec_res))
+                    msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
                 msg += ' |      nan'
                 msg += ' |      nan'
                 msg += ' |      nan'
@@ -1857,10 +1872,10 @@ class network:
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
         try:
-            self.vec_z = inv(self.mat_deriv).dot(-self.vec_res)
+            self.increment = inv(self.jacobian).dot(-self.residual)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
-            self.vec_z = self.vec_res * 0
+            self.increment = self.residual * 0
             pass
 
     def solve_control(self):
@@ -1887,14 +1902,15 @@ class network:
         for c in self.conns.index:
             # mass flow, pressure and enthalpy
             if c.m.val_set is False:
-                c.m.val_SI += self.vec_z[i * (self.num_conn_vars)]
+                c.m.val_SI += self.increment[i * (self.num_conn_vars)]
             if c.p.val_set is False:
                 # this prevents negative pressures
-                relax = max(1, -self.vec_z[i * (self.num_conn_vars) + 1] /
+                relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
-                c.p.val_SI += self.vec_z[i * (self.num_conn_vars) + 1] / relax
+                c.p.val_SI += self.increment[
+                    i * (self.num_conn_vars) + 1] / relax
             if c.h.val_set is False:
-                c.h.val_SI += self.vec_z[i * (self.num_conn_vars) + 2]
+                c.h.val_SI += self.increment[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
             if len(self.fluids) > 1:
@@ -1903,7 +1919,8 @@ class network:
                     # add increment
                     if c.fluid.val_set[fluid] is False:
                         c.fluid.val[fluid] += (
-                                self.vec_z[i * (self.num_conn_vars) + 3 + j])
+                                self.increment[
+                                    i * (self.num_conn_vars) + 3 + j])
 
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < err:
@@ -1919,14 +1936,14 @@ class network:
 
         # increment for the custom variables
         if self.num_comp_vars > 0:
-            c_vars = 0
+            sum_c_var = 0
             for cp in self.comps.index:
                 for var in cp.vars.keys():
                     pos = var.var_pos
 
                     # add increment
-                    var.val += self.vec_z[
-                        self.num_conn_vars * len(self.conns) + c_vars + pos]
+                    var.val += self.increment[
+                        self.num_conn_vars * len(self.conns) + sum_c_var + pos]
 
                     # keep value within specified value range
                     if var.val < var.min_val:
@@ -1934,7 +1951,7 @@ class network:
                     if var.val > var.max_val:
                         var.val = var.max_val
 
-                c_vars += cp.num_vars
+                sum_c_var += cp.num_vars
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
@@ -1967,12 +1984,10 @@ class network:
             msg = 'Enthalpy '
         elif prop == 'm':
             msg = 'Mass flow '
-        else:
-            msg = 'Unspecified '
-        msg += ('out of fluid property range at connection ' +
-                c.s.label + ' (' + c.s_id + ') -> ' + c.t.label + ' (' +
-                c.t_id + ') adjusting value to ' +
-                str(c.get_attr(prop).val_SI) + ' ' + self.SI_units[prop] + '.')
+        msg += (
+            'out of fluid property range at connection ' + c.label +
+            ' adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' +
+            self.SI_units[prop] + '.')
         return msg
 
     def solve_check_props(self, c):
@@ -1986,24 +2001,27 @@ class network:
         """
         fl = hlp.single_fluid(c.fluid.val)
 
-        if isinstance(fl, str):
+        if fl is not None:
             # pressure
-            if c.p.val_SI < fp.memorise.vrange[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][0] * 1.01
+            if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][0] * 1.01
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI > fp.memorise.vrange[fl][1] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.vrange[fl][1] * 0.99
+            if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
+                c.p.val_SI = fp.memorise.value_range[fl][1] * 0.99
                 logging.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
             f = 1.01
             try:
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
             except ValueError:
                 f = 1.1
-                hmin = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][2] * f, fl)
+                hmin = fp.h_pT(
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
 
-            hmax = fp.h_pT(c.p.val_SI, fp.memorise.vrange[fl][3] * 0.99, fl)
+            hmax = fp.h_pT(
+                c.p.val_SI, fp.memorise.value_range[fl][3] * 0.99, fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
                     c.h.val_SI = hmin / 1.05
@@ -2091,22 +2109,21 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
-        vec_res = []
         sum_eq = 0
-        c_var = 0
+        sum_c_var = 0
         for cp in self.comps.index:
 
-            indexes = []
+            indices = []
             for c in cp.conn_loc:
                 start = c * self.num_conn_vars
                 end = (c + 1) * self.num_conn_vars
-                indexes += [np.arange(start, end)]
+                indices += [np.arange(start, end)]
 
             cp.equations()
-            cp.derivatives(self.vec_z_filter[np.array(indexes)])
+            cp.derivatives(self.increment_filter[np.array(indices)])
 
-            self.vec_res[sum_eq:sum_eq + cp.num_eq] = cp.vec_res
-            deriv = cp.mat_deriv
+            self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
+            deriv = cp.jacobian
 
             if deriv is not None:
                 i = 0
@@ -2114,16 +2131,16 @@ class network:
                 for loc in cp.conn_loc:
                     coll_s = loc * self.num_conn_vars
                     coll_e = (loc + 1) * self.num_conn_vars
-                    self.mat_deriv[
+                    self.jacobian[
                         sum_eq:sum_eq + cp.num_eq, coll_s:coll_e] = deriv[:, i]
                     i += 1
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
-                    coll = self.num_vars - self.num_comp_vars + c_var
-                    self.mat_deriv[sum_eq:sum_eq + cp.num_eq, coll] = (
+                    coll = self.num_vars - self.num_comp_vars + sum_c_var
+                    self.jacobian[sum_eq:sum_eq + cp.num_eq, coll] = (
                         deriv[:, i + j, :1].transpose()[0])
-                    c_var += 1
+                    sum_c_var += 1
 
                 sum_eq += cp.num_eq
             cp.it += 1
@@ -2285,31 +2302,27 @@ class network:
                 if c.get_attr(var).ref_set is True:
                     ref = c.get_attr(var).ref
                     ref_col = ref.obj.conn_loc * self.num_conn_vars
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         c.get_attr(var).val_SI - (
                             ref.obj.get_attr(var).val_SI * ref.f + ref.d))
-                    self.mat_deriv[k, col + pos] = 1
-                    self.mat_deriv[k, ref_col + pos] = -c.get_attr(var).ref.f
+                    self.jacobian[k, col + pos] = 1
+                    self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.f
                     k += 1
 
             # temperature
             if c.T.val_set is True:
-                # if (np.absolute(self.vec_res[k]) > err ** 2 or
-                #         self.iter % 2 == 0):
-                self.vec_res[k] = c.T.val_SI - fp.T_mix_ph(
+                self.residual[k] = c.T.val_SI - fp.T_mix_ph(
                     flow, T0=c.T.val_SI)
 
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 1] = (
+                self.jacobian[k, col + 1] = (
                     -fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                # if not self.vec_z_filter[col + 2]:
-                self.mat_deriv[k, col + 2] = (
+                self.jacobian[k, col + 2] = (
                     -fp.dT_mix_pdh(flow, T0=c.T.val_SI))
                 if len(self.fluids) != 1:
                     col_s = c.conn_loc * self.num_conn_vars + 3
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
-                    if not all(self.vec_z_filter[col_s:col_e]):
-                        self.mat_deriv[k, col_s:col_e] = -fp.dT_mix_ph_dfluid(
+                    if not all(self.increment_filter[col_s:col_e]):
+                        self.jacobian[k, col_s:col_e] = -fp.dT_mix_ph_dfluid(
                             flow, T0=c.T.val_SI)
                 k += 1
 
@@ -2318,24 +2331,18 @@ class network:
                 ref = c.T.ref
                 flow_ref = ref.obj.to_flow()
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
-                # if (np.absolute(self.vec_res[k]) > err ** 2 or
-                #         self.iter % 2 == 0):
-                self.vec_res[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
+                self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
                     fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
                     ref.f + ref.d)
 
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 1] = (
+                self.jacobian[k, col + 1] = (
                     fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                # if not self.vec_z_filter[col + 1]:
-                self.mat_deriv[k, col + 2] = (
+                self.jacobian[k, col + 2] = (
                     fp.dT_mix_pdh(flow, T0=c.T.val_SI))
 
-                # if not self.vec_z_filter[ref_col + 1]:
-                self.mat_deriv[k, ref_col + 1] = -(
+                self.jacobian[k, ref_col + 1] = -(
                     fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
-                # if not self.vec_z_filter[ref_col + 2]:
-                self.mat_deriv[k, ref_col + 2] = -(
+                self.jacobian[k, ref_col + 2] = -(
                     fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
 
                 # dT / dFluid
@@ -2344,52 +2351,52 @@ class network:
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
                     ref_col_s = ref.obj.conn_loc * self.num_conn_vars + 3
                     ref_col_e = (ref.obj.conn_loc + 1) * self.num_conn_vars
-                    if not all(self.vec_z_filter[col_s:col_e]):
-                        self.mat_deriv[k, col_s:col_e] = (
+                    if not all(self.increment_filter[col_s:col_e]):
+                        self.jacobian[k, col_s:col_e] = (
                             fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
-                    if not all(self.vec_z_filter[ref_col_s:ref_col_e]):
-                        self.mat_deriv[k, ref_col_s:ref_col_e] = -(
+                    if not all(self.increment_filter[ref_col_s:ref_col_e]):
+                        self.jacobian[k, ref_col_s:ref_col_e] = -(
                             fp.dT_mix_ph_dfluid(flow_ref, T0=ref.obj.T.val_SI))
                 k += 1
 
             # saturated steam fraction
             if c.x.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = c.h.val_SI - (
+                    self.residual[k] = c.h.val_SI - (
                         fp.h_mix_pQ(flow, c.x.val_SI))
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = -(
+                if not self.increment_filter[col + 1]:
+                    self.jacobian[k, col + 1] = -(
                         fp.dh_mix_dpQ(flow, c.x.val_SI))
-                self.mat_deriv[k, col + 2] = 1
+                self.jacobian[k, col + 2] = 1
                 k += 1
 
             # volumetric flow
             if c.v.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
                         c.m.val_SI)
-                self.mat_deriv[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
-                self.mat_deriv[k, col + 1] = -(
+                self.jacobian[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
+                self.jacobian[k, col + 1] = -(
                     fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
-                self.mat_deriv[k, col + 2] = -(
+                self.jacobian[k, col + 2] = -(
                     fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
                 k += 1
 
             # temperature difference to boiling point
             if c.Td_bp.val_set is True:
-                if (np.absolute(self.vec_res[k]) > err ** 2 or
+                if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0):
-                    self.vec_res[k] = (
+                    self.residual[k] = (
                         fp.T_mix_ph(flow, T0=c.T.val_SI) - c.Td_bp.val_SI -
                         fp.T_bp_p(flow))
-                if not self.vec_z_filter[col + 1]:
-                    self.mat_deriv[k, col + 1] = (
+                if not self.increment_filter[col + 1]:
+                    self.jacobian[k, col + 1] = (
                         fp.dT_mix_dph(flow, T0=c.T.val_SI) - fp.dT_bp_dp(flow))
-                if not self.vec_z_filter[col + 2]:
-                    self.mat_deriv[k, col + 2] = fp.dT_mix_pdh(
+                if not self.increment_filter[col + 2]:
+                    self.jacobian[k, col + 2] = fp.dT_mix_pdh(
                         flow, T0=c.T.val_SI)
                 k += 1
 
@@ -2399,10 +2406,10 @@ class network:
                 res = 1
                 for f in self.fluids:
                     res -= c.fluid.val[f]
-                    self.mat_deriv[k, c.conn_loc + 3 + j] = -1
+                    self.jacobian[k, c.conn_loc + 3 + j] = -1
                     j += 1
 
-                self.vec_res[k] = res
+                self.residual[k] = res
                 k += 1
 
         # equations and derivatives for specified primary variables are static
@@ -2414,8 +2421,8 @@ class network:
                 # specified mass flow, pressure and enthalpy
                 for var, pos in primary_vars.items():
                     if c.get_attr(var).val_set is True:
-                        self.vec_res[k] = 0
-                        self.mat_deriv[
+                        self.residual[k] = 0
+                        self.jacobian[
                             k, col + pos] = 1
                         k += 1
 
@@ -2423,7 +2430,7 @@ class network:
                 # specified fluid mass fraction
                 for f in self.fluids:
                     if c.fluid.val_set[f]:
-                        self.mat_deriv[k, col + 3 + j] = 1
+                        self.jacobian[k, col + 3 + j] = 1
                         k += 1
                     j += 1
 
@@ -2440,8 +2447,8 @@ class network:
             if b.P.is_set is True:
                 P_res = 0
                 for cp in b.comps.index:
-                    i = self.comps.loc[cp].i.tolist()
-                    o = self.comps.loc[cp].o.tolist()
+                    i = self.comps.loc[cp, 'inlets'].tolist()
+                    o = self.comps.loc[cp, 'outlets'].tolist()
 
                     bus = b.comps.loc[cp]
 
@@ -2455,10 +2462,10 @@ class network:
                         coll_s = loc * self.num_conn_vars
                         # end collumn index
                         coll_e = (loc + 1) * self.num_conn_vars
-                        self.mat_deriv[row, coll_s:coll_e] = deriv[:, j]
+                        self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.vec_res[row] = b.P.val - P_res
+                self.residual[row] = b.P.val - P_res
 
                 row += 1
 
@@ -2484,16 +2491,20 @@ class network:
         for c in self.conns.index:
             c.good_starting_values = True
             c.T.val_SI = fp.T_mix_ph(c.to_flow(), T0=c.T.val_SI)
-            c.v.val_SI = fp.v_mix_ph(c.to_flow(), T0=c.T.val_SI) * c.m.val_SI
+            c.vol.val_SI = fp.v_mix_ph(c.to_flow(), T0=c.T.val_SI)
+            c.v.val_SI = c.vol.val_SI * c.m.val_SI
+            c.s.val_SI = fp.s_mix_ph(c.to_flow(), T0=c.T.val_SI)
             c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])
             c.m.val = c.m.val_SI / self.m[c.m.unit]
             c.p.val = c.p.val_SI / self.p[c.p.unit]
             c.h.val = c.h.val_SI / self.h[c.h.unit]
             c.v.val = c.v.val_SI / self.v[c.v.unit]
+            c.vol.val = c.vol.val_SI / self.vol[c.vol.unit]
+            c.s.val = c.s.val_SI / self.s[c.s.unit]
             fluid = hlp.single_fluid(c.fluid.val)
-            if isinstance(fluid, str) and not c.x.val_set:
+            if fluid is not None and not c.x.val_set:
                 c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
-                c.x.val = c.x.val_SI
+                c.x.val = c.x.val_SI / self.x[c.x.unit]
             c.T.val0 = c.T.val
             c.m.val0 = c.m.val
             c.p.val0 = c.p.val
@@ -2515,8 +2526,8 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
         cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
                                          args=('label',))
-        cp_sort.drop('i', axis=1, inplace=True)
-        cp_sort.drop('o', axis=1, inplace=True)
+        cp_sort.drop('inlets', axis=1, inplace=True)
+        cp_sort.drop('outlets', axis=1, inplace=True)
 
         pd.options.mode.chained_assignment = None
         for c in cp_sort.cp.unique():
@@ -2524,7 +2535,7 @@ class network:
 
             # gather parameters to print for components of type c
             cols = []
-            for col, val in df.index[0].attr().items():
+            for col, val in df.index[0].variables.items():
                 if isinstance(val, dc.dc_cp):
                     if val.get_attr('printout'):
                         cols += [col]
@@ -2532,8 +2543,8 @@ class network:
             # are there any parameters to print?
             if len(cols) > 0:
                 for col in cols:
-                    df[col] = df.apply(network.print_components, axis=1,
-                                       args=(col,))
+                    df[col] = df.apply(
+                        network.print_components, axis=1, args=(col,))
 
                 df.set_index('label', inplace=True)
                 df.drop('cp', axis=1, inplace=True)
@@ -2546,14 +2557,15 @@ class network:
                                    floatfmt='.2e'))
 
         # connection properties
-        df = pd.DataFrame(columns=['m / (' + self.m_unit + ')',
-                                   'p / (' + self.p_unit + ')',
-                                   'h / (' + self.h_unit + ')',
-                                   'T / (' + self.T_unit + ')'])
+        df = pd.DataFrame(columns=[
+            'm / (' + self.m_unit + ')',
+            'p / (' + self.p_unit + ')',
+            'h / (' + self.h_unit + ')',
+            'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
             if c.printout is True:
-                row = (c.s.label + ':' + c.s_id + ' -> ' +
-                       c.t.label + ':' + c.t_id)
+                row = (c.source.label + ':' + c.source_id + ' -> ' +
+                       c.target.label + ':' + c.target_id)
                 df.loc[row] = (
                         [c.m.val_SI / self.m[self.m_unit],
                          c.p.val_SI / self.p[self.p_unit],
@@ -2622,13 +2634,13 @@ class network:
             os.makedirs(path)
 
         # create path for component folder if non existent
-        path_comps = hlp.modify_path_os(path + 'comps/')
+        path_comps = hlp.modify_path_os(path + 'components/')
         if not os.path.exists(path_comps):
             os.makedirs(path_comps)
 
         # save all network information
-        self.save_network(path + 'netw.csv')
-        self.save_connections(path + 'conn.csv')
+        self.save_network(path + 'network.json')
+        self.save_connections(path + 'connections.csv')
         self.save_components(path_comps)
         self.save_busses(path_comps + 'bus.csv')
         self.save_characteristics(path_comps)
@@ -2644,20 +2656,21 @@ class network:
         """
         data = {}
         data['m_unit'] = self.m_unit
+        data['m_range'] = list(self.m_range)
         data['p_unit'] = self.p_unit
-        data['p_min'] = self.p_range[0]
-        data['p_max'] = self.p_range[1]
+        data['p_range'] = list(self.p_range)
         data['h_unit'] = self.h_unit
-        data['h_min'] = self.h_range[0]
-        data['h_max'] = self.h_range[1]
+        data['h_range'] = list(self.h_range)
         data['T_unit'] = self.T_unit
-        data['T_min'] = self.T_range[0]
-        data['T_max'] = self.T_range[1]
-        data['fluids'] = [self.fluids]
+        data['T_range'] = list(self.T_range)
+        data['x_unit'] = self.x_unit
+        data['v_unit'] = self.v_unit
+        data['s_unit'] = self.s_unit
+        data['fluids'] = self.fluids_backends
 
-        df = pd.DataFrame(data=data)
+        with open(fn, 'w') as f:
+            f.write(json.dumps(data, indent=4))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Network information saved to ' + fn + '.')
 
     def save_connections(self, fn):
@@ -2682,15 +2695,15 @@ class network:
 
         # general connection parameters
         # source
-        df['s'] = self.conns.apply(f, axis=1, args=('s', 'label'))
-        df['s_id'] = self.conns.apply(f, axis=1, args=('s_id',))
+        df['source'] = self.conns.apply(f, axis=1, args=('source', 'label'))
+        df['source_id'] = self.conns['source_id']
         # target
-        df['t'] = self.conns.apply(f, axis=1, args=('t', 'label'))
-        df['t_id'] = self.conns.apply(f, axis=1, args=('t_id',))
+        df['target'] = self.conns.apply(f, axis=1, args=('target', 'label'))
+        df['target_id'] = self.conns['target_id']
 
         # design and offdesign properties
         cols = ['design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign']
+                'local_offdesign', 'label']
         for key in cols:
             df[key] = self.conns.apply(f, axis=1, args=(key,))
 
@@ -2782,7 +2795,7 @@ class network:
                 df[col] = df.apply(f, axis=1, args=(col,))
 
             # attributes
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 # component characteristics container
                 if isinstance(data, dc.dc_cc):
                     df[col] = df.apply(f, axis=1,
@@ -2823,8 +2836,8 @@ class network:
                     df[col] = df.apply(f, axis=1, args=(col, 'method'))
 
             df.set_index('label', inplace=True)
-            df.drop('i', axis=1, inplace=True)
-            df.drop('o', axis=1, inplace=True)
+            df.drop('inlets', axis=1, inplace=True)
+            df.drop('outlets', axis=1, inplace=True)
             fn = path + c + '.csv'
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
             logging.debug('Component information (' + c + ') saved to ' +
@@ -2870,7 +2883,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cc):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()
@@ -2888,7 +2901,7 @@ class network:
             df['id'] = df.apply(network.get_id, axis=1)
             df['type'] = df.apply(network.get_class_base, axis=1)
 
-            cols = ['x', 'y']
+            cols = ['x', 'y', 'extrapolate']
             for val in cols:
                 df[val] = df.apply(network.get_props, axis=1, args=(val,))
 
@@ -2903,7 +2916,7 @@ class network:
         for c in cp_sort.cp.unique():
             df = cp_sort[cp_sort['cp'] == c]
 
-            for col, data in df.index[0].attr().items():
+            for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cm):
                     chars += df.apply(network.get_props, axis=1,
                                       args=(col, 'func')).tolist()
@@ -2960,8 +2973,6 @@ class network:
                     return c.name.get_attr(args[0]).tolist()
             else:
                 return c.name.get_attr(args[0])
-        else:
-            return ''
 
     def get_busses(c, *args):
         """Return the list of busses a component is integrated in."""

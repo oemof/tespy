@@ -16,10 +16,8 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
-
 from tespy.components.components import component
 from tespy.components.heat_exchangers import heat_exchanger_simple
-
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
 from tespy.tools.global_vars import err
@@ -41,9 +39,10 @@ class pipe(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
-
         .. math::
+
+            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
+            \dot{Q}
 
             0 = p_{in} \cdot pr - p_{out}
 
@@ -94,24 +93,24 @@ class pipe(heat_exchanger_simple):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.helpers.dc_cp
+    Q : str/float/tespy.tools.data_containers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.helpers.dc_cp
+    D : str/float/tespy.tools.data_containers.dc_cp
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.helpers.dc_cp
+    L : str/float/tespy.tools.data_containers.dc_cp
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.helpers.dc_cp
-        Pipes roughness, :math:`ks/\text{m}` for darcy friction,
+    ks : str/float/tespy.tools.data_containers.dc_cp
+        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
     hydro_group : String/tespy.helpers.dc_gcp
@@ -119,22 +118,16 @@ class pipe(heat_exchanger_simple):
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    kA : str/float/tespy.helpers.dc_cp
+    kA : str/float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide x and y
-        values or use generic values (e. g. calculated from design case).
-        Standard parameter 'm'.
+    kA_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
+        Characteristic line for heat transfer coefficient.
 
-    Tamb : float/tespy.helpers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_cp
         Ambient temperature, provide parameter in network's temperature
         unit.
-
-    Tamb_ref : float/tespy.helpers.dc_cp
-         Ambient temperature for reference in offdesign case, provide
-         parameter in network's temperature unit.
 
     kA_group : tespy.helpers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
@@ -250,14 +243,14 @@ class valve(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    pr : str/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : str/float/tespy.helpers.dc_cp
+    zeta : str/float/tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : str/tespy.helpers.dc_cc
+    dp_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for difference pressure to mass flow.
 
     Example
@@ -337,72 +330,58 @@ class valve(component):
             if var.is_set is True:
                 self.num_eq += 1
 
-        self.mat_deriv = np.zeros((
+        self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
 
-        self.vec_res = np.zeros(self.num_eq)
+        self.residual = np.zeros(self.num_eq)
         pos = self.num_nw_fluids
-        self.mat_deriv[0:pos] = self.fluid_deriv()
-        self.mat_deriv[pos:pos + 1] = self.mass_flow_deriv()
-        self.mat_deriv[pos + 1:pos + 2] = self.enthalpy_deriv()
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[pos + 1:pos + 2] = self.enthalpy_deriv()
 
     def equations(self):
-        r"""
-        Calculate vector vec_res with results of equations for this component.
-
-        Returns
-        -------
-        vec_res : list
-            Vector of residual values.
-        """
+        r"""Calculate residual vector with results of equations."""
         k = 0
         ######################################################################
         # eqations for fluids
-        self.vec_res[k:k + self.num_nw_fluids] = self.fluid_func()
+        self.residual[k:k + self.num_nw_fluids] = self.fluid_func()
         k += self.num_nw_fluids
 
         ######################################################################
         # eqation for mass flow
-        self.vec_res[k] = self.mass_flow_func()
+        self.residual[k] = self.mass_flow_func()
         k += 1
 
         ######################################################################
         # eqation for enthalpy
-        self.vec_res[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        self.residual[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
         k += 1
 
         ######################################################################
         # eqation for specified pressure ratio
         if self.pr.is_set:
-            self.vec_res[k] = (
+            self.residual[k] = (
                 self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI)
             k += 1
 
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.zeta_func(zeta='zeta', conn=0)
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            if np.absolute(self.vec_res[k]) > err ** 2 or self.it % 4 == 0:
-                self.vec_res[k] = self.dp_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.dp_char_func()
             k += 1
 
-    def derivatives(self, vec_z):
-        r"""
-        Calculate matrix of partial derivatives for given equations.
-
-        Returns
-        -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
-        """
+    def derivatives(self, increment_filter):
+        r"""Calculate partial derivatives for given equations."""
         ######################################################################
         # derivatives fluid, mass flow and enthalpy balance are static
         k = self.num_nw_fluids + 2
@@ -410,10 +389,10 @@ class valve(component):
         ######################################################################
         # derivatives for specified pressure ratio
         if self.pr.is_set:
-            self.mat_deriv[k, 0, 1] = self.pr.val
-            self.mat_deriv[k, 1, 1] = -1
+            self.jacobian[k, 0, 1] = self.pr.val
+            self.jacobian[k, 1, 1] = -1
             if self.pr.is_var:
-                self.mat_deriv[k, 2 + self.pr.var_pos, 0] = (
+                self.jacobian[k, 2 + self.pr.var_pos, 0] = (
                     self.inl[0].p.val_SI)
             k += 1
 
@@ -421,34 +400,34 @@ class valve(component):
         # derivatives for specified zeta
         if self.zeta.is_set:
             f = self.zeta_func
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta', conn=0)
-            if not vec_z[0, 1]:
-                self.mat_deriv[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta', conn=0)
-            if not vec_z[0, 2]:
-                self.mat_deriv[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta', conn=0)
-            if not vec_z[1, 1]:
-                self.mat_deriv[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta', conn=0)
-            if not vec_z[1, 2]:
-                self.mat_deriv[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta', conn=0)
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(
+                    f, 'm', 0, zeta='zeta')
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(
+                    f, 'p', 0, zeta='zeta')
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(
+                    f, 'h', 0, zeta='zeta')
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(
+                    f, 'p', 1, zeta='zeta')
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(
+                    f, 'h', 1, zeta='zeta')
             if self.zeta.is_var:
-                self.mat_deriv[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta', conn=0))
+                self.jacobian[k, 2 + self.zeta.var_pos, 0] = (
+                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta'))
             k += 1
 
         ######################################################################
         # derivatives for specified difference pressure
         if self.dp_char.is_set:
-            if not vec_z[0, 0]:
-                self.mat_deriv[k, 0, 0] = self.numeric_deriv(
+            if not increment_filter[0, 0]:
+                self.jacobian[k, 0, 0] = self.numeric_deriv(
                     self.dp_char_func, 'm', 0)
-            self.mat_deriv[k, 0, 1] = 1
-            self.mat_deriv[k, 1, 1] = -1
+            self.jacobian[k, 0, 1] = 1
+            self.jacobian[k, 1, 1] = -1
             k += 1
 
     def enthalpy_deriv(self):

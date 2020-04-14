@@ -5,12 +5,10 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/component_tests/heat_exchanger_tests.py
+tests/test_components/test_heat_exchangers.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
 
 from tespy.components.basics import sink, source
 from tespy.components.heat_exchangers import (heat_exchanger_simple,
@@ -29,10 +27,10 @@ import shutil
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    eq_(lin_dep, False, msg)
+    assert lin_dep is False, msg
 
 
-class heat_exchanger_tests:
+class TestHeatExchangers:
 
     def setup(self):
 
@@ -61,9 +59,7 @@ class heat_exchanger_tests:
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
     def test_heat_ex_simple(self):
-        """
-        Test component properties of simple heat exchanger.
-        """
+        """Test component properties of simple heat exchanger."""
         instance = heat_exchanger_simple('heat exchanger')
         self.setup_heat_exchanger_simple_network(instance)
         fl = {'Ar': 0, 'H2O': 1}
@@ -76,9 +72,9 @@ class heat_exchanger_tests:
         instance.kA_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
-        eq_(instance.hydro_group.is_set, False, msg)
+        assert instance.hydro_group.is_set is False, msg
         msg = ('kA group must no be set, if one parameter is missing!')
-        eq_(instance.kA_group.is_set, False, msg)
+        assert instance.kA_group.is_set is False, msg
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
@@ -92,7 +88,7 @@ class heat_exchanger_tests:
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 3)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(instance.pr.val) + '.')
-        eq_(pr, round(instance.pr.val, 3), msg)
+        assert pr == round(instance.pr.val, 3), msg
 
         # make zeta system variable and use previously calculated diameter
         # to calculate zeta. The value for zeta must not change
@@ -103,7 +99,7 @@ class heat_exchanger_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of zeta must be ' + str(zeta) + ', is ' +
                str(round(instance.zeta.val, 0)) + '.')
-        eq_(zeta, round(instance.zeta.val, 0), msg)
+        assert zeta == round(instance.zeta.val, 0), msg
 
         # same test with pressure ratio as sytem variable
         pr = round(instance.pr.val, 3)
@@ -112,7 +108,7 @@ class heat_exchanger_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of pressure ratio must be ' + str(pr) +
                ', is ' + str(round(instance.pr.val, 3)) + '.')
-        eq_(pr, round(instance.pr.val, 3), msg)
+        assert pr == round(instance.pr.val, 3), msg
 
         # test heat transfer coefficient as variable of the system (ambient
         # temperature required)
@@ -125,7 +121,7 @@ class heat_exchanger_tests:
         # somewhere near to that (actual value is 677)
         msg = ('Value of heat transfer coefficient must be 667, is ' +
                str(instance.kA.val) + '.')
-        eq_(677, round(instance.kA.val, 0), msg)
+        assert 677 == round(instance.kA.val, 0), msg
 
         # test heat transfer as variable of the system
         instance.set_attr(Q='var', kA=np.nan)
@@ -135,12 +131,10 @@ class heat_exchanger_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat transfer must be ' + str(Q) +
                ', is ' + str(instance.Q.val) + '.')
-        eq_(Q, round(instance.Q.val, 0), msg)
+        assert Q == round(instance.Q.val, 0), msg
 
     def test_solar_collector(self):
-        """
-        Test component properties of solar collector.
-        """
+        """Test component properties of solar collector."""
         instance = solar_collector('solar collector')
         self.setup_heat_exchanger_simple_network(instance)
         fl = {'Ar': 0, 'H2O': 1}
@@ -152,9 +146,9 @@ class heat_exchanger_tests:
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
-        eq_(instance.hydro_group.is_set, False, msg)
+        assert instance.hydro_group.is_set is False, msg
         msg = ('Energy group must no be set, if one parameter is missing!')
-        eq_(instance.energy_group.is_set, False, msg)
+        assert instance.energy_group.is_set is False, msg
 
         # test solar collector params as system variables
         instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
@@ -171,42 +165,40 @@ class heat_exchanger_tests:
         msg = ('Value for heat loss of solar collector must be '
                + str(Q_loss) + ', is ' + str(round(instance.Q_loss.val, 0)) +
                '.')
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: E
         instance.set_attr(A=instance.A.val, E='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: eta_opt
         instance.set_attr(E=instance.E.val, eta_opt='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: lkf_lin
         instance.set_attr(eta_opt=instance.eta_opt.val, lkf_lin='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: lkf_quad
         instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: Tamb
         instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eq_(Q_loss, round(instance.Q_loss.val, 0), msg)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
 
     def test_heat_ex(self):
-        """
-        Test component properties of heat exchanger.
-        """
+        """Test component properties of heat exchanger."""
         instance = heat_exchanger('heat exchanger')
         self.setup_heat_exchanger_network(instance)
 
@@ -233,14 +225,15 @@ class heat_exchanger_tests:
         kA = round(-Q / td_log, 0)
         msg = ('Value of heat transfer must be ' + str(round(Q, 0)) + ', is ' +
                str(round(instance.Q.val, 0)) + '.')
-        eq_(round(Q, 0), round(instance.Q.val, 0), msg)
+        assert round(Q, 0) == round(instance.Q.val, 0), msg
 
         # check upper terminal temperature difference
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +
                str(round(self.c1.T.val - self.c4.T.val, 1)) + '.')
-        eq_(round(instance.ttd_u.val, 1),
-            round(self.c1.T.val - self.c4.T.val, 1), msg)
+        ttd_u_calc = round(self.c1.T.val - self.c4.T.val, 1)
+        ttd_u = round(instance.ttd_u.val, 1)
+        assert ttd_u_calc == ttd_u, msg
 
         # check lower terminal temperature difference
         self.c2.set_attr(T=np.nan)
@@ -250,8 +243,9 @@ class heat_exchanger_tests:
         msg = ('Value of terminal temperature difference must be ' +
                str(instance.ttd_l.val) + ', is ' +
                str(self.c2.T.val - self.c3.T.val) + '.')
-        eq_(round(self.c2.T.val - self.c3.T.val, 1),
-            round(instance.ttd_l.val, 1), msg)
+        ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
+        ttd_l = round(instance.ttd_l.val, 1)
+        assert ttd_l_calc == ttd_l, msg
 
         # check specified kA value (by offdesign parameter), reset temperatures
         # to design state
@@ -261,10 +255,10 @@ class heat_exchanger_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
                str(round(Q, 0)) + '.')
-        eq_(round(Q, 0), round(instance.Q.val, 0), msg)
+        assert round(Q, 0) == round(instance.Q.val, 0), msg
         msg = ('Value of heat transfer coefficient must be ' + str(kA) +
                ', is ' + str(round(instance.kA.val, 0)) + '.')
-        eq_(kA, round(instance.kA.val, 0), msg)
+        assert kA == round(instance.kA.val, 0), msg
 
         # trigger negative lower terminal temperature difference as result
         self.c4.set_attr(T=np.nan)
@@ -274,7 +268,7 @@ class heat_exchanger_tests:
         msg = ('Value of upper terminal temperature differences must be '
                'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) +
                '.')
-        eq_(True, instance.ttd_l.val < 0, msg)
+        assert instance.ttd_l.val < 0, msg
 
         # trigger negative upper terminal temperature difference as result
         self.c4.set_attr(T=100)
@@ -288,14 +282,12 @@ class heat_exchanger_tests:
         msg = ('Value of upper terminal temperature differences must be '
                'smaller than zero, is ' + str(round(instance.ttd_u.val, 1)) +
                '.')
-        eq_(True, instance.ttd_u.val < 0, msg)
+        assert instance.ttd_u.val < 0, msg
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_condenser(self):
-        """
-        Test component properties of condenser.
-        """
+        """Test component properties of condenser."""
         instance = condenser('condenser')
         self.setup_heat_exchanger_network(instance)
 
@@ -314,7 +306,7 @@ class heat_exchanger_tests:
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         msg = ('Value ofheat flow be ' + str(round(instance.Q.val, 0)) +
                ', is ' + str(round(Q, 0)) + '.')
-        eq_(round(Q, 1), round(instance.Q.val, 1), msg)
+        assert round(Q, 1) == round(instance.Q.val, 1), msg
 
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
@@ -324,7 +316,7 @@ class heat_exchanger_tests:
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +
                str(ttd_u) + '.')
-        eq_(ttd_u, round(instance.ttd_u.val, 1), msg)
+        assert ttd_u == round(instance.ttd_u.val, 1), msg
 
         # test lower terminal temperature difference
         instance.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
@@ -333,8 +325,9 @@ class heat_exchanger_tests:
         msg = ('Value of terminal temperature difference must be ' +
                str(instance.ttd_l.val) + ', is ' +
                str(self.c2.T.val - self.c3.T.val) + '.')
-        eq_(round(self.c2.T.val - self.c3.T.val, 1),
-            round(instance.ttd_l.val, 1), msg)
+        ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
+        ttd_l = round(instance.ttd_l.val, 1)
+        assert ttd_l_calc == ttd_l, msg
 
         # check kA value with condensing pressure in offdesign mode:
         # no changes to design point means: identical pressure
@@ -342,5 +335,5 @@ class heat_exchanger_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
                str(round(self.c1.p.val_SI, 5)) + '.')
-        eq_(p, round(self.c1.p.val_SI, 5), msg)
+        assert p == round(self.c1.p.val_SI, 5), msg
         shutil.rmtree('./tmp', ignore_errors=True)

@@ -5,12 +5,10 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/component_tests/piping_tests.py
+tests/test_components/test_piping.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
 
 from tespy.components.basics import sink, source
 from tespy.components.piping import valve, pipe
@@ -26,10 +24,10 @@ import shutil
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    eq_(lin_dep, False, msg)
+    assert lin_dep is False, msg
 
 
-class piping_tests:
+class TestPiping:
 
     def setup_piping_network(self, instance):
         self.nw = network(['CH4'], T_unit='C', p_unit='bar')
@@ -40,9 +38,7 @@ class piping_tests:
         self.nw.add_conns(self.c1, self.c2)
 
     def test_valve(self):
-        """
-        Test component properties of valves.
-        """
+        """Test component properties of valves."""
         instance = valve('valve')
         self.setup_piping_network(instance)
 
@@ -57,7 +53,7 @@ class piping_tests:
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(round(instance.pr.val, 2)) + '.')
-        eq_(pr, round(instance.pr.val, 2), msg)
+        assert pr == round(instance.pr.val, 2), msg
 
         # test variable zeta value
         zeta = round(instance.zeta.val, 0)
@@ -66,7 +62,7 @@ class piping_tests:
         convergence_check(self.nw.lin_dep)
         msg = ('Value of dimension independent zeta value must be ' +
                str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
-        eq_(zeta, round(instance.zeta.val, 0), msg)
+        assert zeta == round(instance.zeta.val, 0), msg
 
         # dp char
         x = np.array([8, 9, 10, 11, 12])
@@ -84,12 +80,10 @@ class piping_tests:
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)
         msg = ('The pressure drop at the valve should be ' + str(dp) + ' but '
                'is ' + str(dp_act) + '.')
-        eq_(dp, dp_act, msg)
+        assert dp == dp_act, msg
 
     def test_pipe(self):
-        """
-        Test component properties of pipe.
-        """
+        """Test component properties of pipe."""
         instance = pipe('pipe')
         self.setup_piping_network(instance)
 

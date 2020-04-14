@@ -13,23 +13,20 @@ available from its original location tespy/networks/network_reader.py
 SPDX-License-Identifier: MIT
 """
 
-import pandas as pd
-
-
-from tespy.connections import connection, bus, ref
-
-from tespy.components import (basics, combustion, heat_exchangers, nodes,
-                              piping, reactors, turbomachinery)
-
-from tespy.networks.networks import network
-
-from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp,
-                                         dc_prop, dc_simple)
-from tespy.tools.characteristics import char_line, char_map, compressor_map
-from tespy.tools.helpers import modify_path_os
-import os
 import ast
 import logging
+import os
+import pandas as pd
+import json
+from tespy.connections import connection, bus, ref
+from tespy.components import (
+    basics, combustion, customs, heat_exchangers, nodes, piping, reactors,
+    turbomachinery)
+from tespy.networks.networks import network
+from tespy.tools.data_containers import (
+    dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp, dc_prop, dc_simple)
+from tespy.tools.characteristics import char_line, char_map, compressor_map
+from tespy.tools.helpers import modify_path_os
 
 
 global comp_target_classes
@@ -41,6 +38,7 @@ comp_target_classes = {
     'combustion_chamber': combustion.combustion_chamber,
     'combustion_chamber_stoich': combustion.combustion_chamber_stoich,
     'combustion_engine': combustion.combustion_engine,
+    'orc_evaporator': customs.orc_evaporator,
     'condenser': heat_exchangers.condenser,
     'desuperheater': heat_exchangers.desuperheater,
     'heat_exchanger': heat_exchangers.heat_exchanger,
@@ -80,7 +78,7 @@ def load_network(path):
 
     Returns
     -------
-    nw : tespy.networks.network
+    nw : tespy.networks.networks.network
         TESPy networks object.
 
     Note
@@ -93,36 +91,37 @@ def load_network(path):
     The structure of the path must be as follows:
 
     - Folder: path (e. g. 'mynetwork')
-    - Subfolder: comps (e. g. 'mynetwork/comps') containing
+    - Subfolder: components (e. g. 'mynetwork/components') containing
 
         - bus.csv*
         - char.csv*
         - char_map.csv*
         - component_class_name.csv (e. g. heat_exchanger.csv)
 
-    - conns.csv
-    - netw.csv
+    - connections.csv
+    - network.json
 
     The imported network has the following additional features:
 
-    - Connections are accessible by their target's label and id, e. g. for a
-      connection going to 'condenser' at inlet 'in2' use
-      :code:`myimportednetwork.imp_conns['condenser:in2']`.
-    - Components are accessible by label, e. g. for a component
-      'heat exchanger' :code:`myimportednetwork.imp_comps['heat exchanger']`.
-    - Busses are accessible by label, e. g. for a bus 'power input'
-      :code:`myimportednetwork.imp_busses['power input']`.
+    - Connections are accessible by label, e. g.
+      :code:`myimportednetwork.connections['myconnection']`. The default label
+      logic is :code:`source:source_id_target:target_id`, where the source
+      means the label of the component the connection originates from and
+      target means the label of the component, the connections targets on.
+    - Components are accessible by label as well, e. g. for a component
+      'heat exchanger' :code:`myimportednetwork.components['heat exchanger']`.
+    - Busses are accessible by label, too, e. g. for a bus 'power input'
+      :code:`myimportednetwork.busses['power input']`.
 
     Example
     -------
     Create a network and export it. This is followed by loading the network
     with the network_reader module. All network information stored will be
-    passed to a new network object. Components and busses will be accessible
-    by label, connections by
-    :code:`'source.label:source.id_target.label:target.id'`. The following
-    example setup is simple gas turbine setup with compressor, combustion
-    chamber and turbine.
+    passed to a new network object. Components, connections and busses will
+    be accessible by label. The following example setup is simple gas turbine
+    setup with compressor, combustion chamber and turbine.
 
+    >>> import numpy as np
     >>> from tespy.components import (sink, source, combustion_chamber,
     ... compressor, turbine)
     >>> from tespy.connections import connection, ref, bus
@@ -137,7 +136,7 @@ def load_network(path):
     >>> comb = combustion_chamber('combustion')
     >>> t = turbine('turbine')
     >>> si = sink('sink')
-    >>> inc = connection(air, 'out1', c, 'in1')
+    >>> inc = connection(air, 'out1', c, 'in1', label='ambient air')
     >>> cc = connection(c, 'out1', comb, 'in1')
     >>> fc = connection(f, 'out1', comb, 'in2')
     >>> ct = connection(comb, 'out1', t, 'in1')
@@ -160,25 +159,31 @@ def load_network(path):
     ... 'CO2': 0.04}, T=25)
     >>> ct.set_attr(T=1100)
     >>> outg.set_attr(p=ref(inc, 1, 0))
+    >>> power = bus('total power output')
+    >>> power.add_comps({'c': c}, {'c': t})
+    >>> nw.add_busses(power)
+
+    For a stable start, we specify the fresh air mass flow.
+
+    >>> inc.set_attr(m=3)
+    >>> nw.solve('design')
 
     The total power output is set to 1 MW, electrical or mechanical
     efficiencies are not considered in this example. The documentation
     example in class :func:`tespy.connections.bus` provides more information
     on efficiencies of generators, for instance.
 
-    >>> power = bus('total power output', P=-1e6)
-    >>> power.add_comps({'c': c}, {'c': t})
-    >>> nw.add_busses(power)
+    >>> inc.set_attr(m=np.nan)
+    >>> power.set_attr(P=-1e6)
     >>> nw.solve('design')
+    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
     >>> nw.save('exported_nwk')
     >>> c.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> round(t.eta_s.val, 1)
     0.9
     >>> power.set_attr(P=-0.75e6)
-    >>> nw.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
+    >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> eta_s_t = round(t.eta_s.val, 3)
     >>> igva = round(c.igva.val, 3)
     >>> eta_s_t
@@ -192,27 +197,27 @@ def load_network(path):
 
     >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
-    >>> imported_nwk.solve('design')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
-    0.9
-    >>> imported_nwk.imp_comps['compressor'].set_attr(igva='var')
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3)
-    0.9
-    >>> imported_nwk.imp_busses['total power output'].set_attr(P=-0.75e6)
-    >>> imported_nwk.solve('offdesign', design_path='exported_nwk',
-    ... init_path='exported_nwk')
-    >>> round(imported_nwk.imp_comps['turbine'].eta_s.val, 3) == eta_s_t
+    >>> imported_nwk.solve('design', init_path='exported_nwk')
+    >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
     True
-    >>> round(imported_nwk.imp_comps['compressor'].igva.val, 3) == igva
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    0.9
+    >>> imported_nwk.components['compressor'].set_attr(igva='var')
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    0.9
+    >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
+    >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
+    >>> round(imported_nwk.components['turbine'].eta_s.val, 3) == eta_s_t
+    True
+    >>> round(imported_nwk.components['compressor'].igva.val, 3) == igva
     True
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     """
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
 
-    path_comps = modify_path_os(path + 'comps/')
+    path_comps = modify_path_os(path + 'components/')
     path = modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
@@ -276,11 +281,8 @@ def load_network(path):
     # create network
     nw = construct_network(path)
 
-    # make components accessible by labels
-    nw.imp_comps = comps.to_dict()['instance']
-
     # load connections
-    fn = path + 'conn.csv'
+    fn = path + 'connections.csv'
     conns = pd.read_csv(fn, sep=';', decimal='.',
                         converters={'design': ast.literal_eval,
                                     'offdesign': ast.literal_eval})
@@ -293,12 +295,9 @@ def load_network(path):
     conns.apply(conns_set_ref, axis=1, args=(conns,))
     conns = conns.set_index('id')
 
-    nw.imp_conns = {}
     # add connections to network
     for c in conns['instance']:
         nw.add_conns(c)
-        nw.imp_conns[c.s.label + ':' + c.s_id + '_'
-                     + c.t.label + ':' + c.t_id] = c
 
     msg = 'Created connections.'
     logging.info(msg)
@@ -316,7 +315,6 @@ def load_network(path):
         logging.debug(msg)
 
     # create busses
-    nw.imp_busses = {}
     if len(busses) > 0:
         busses['instance'] = busses.apply(construct_busses, axis=1)
 
@@ -326,7 +324,6 @@ def load_network(path):
         # add busses to network
         for b in busses['instance']:
             nw.add_busses(b)
-            nw.imp_busses[b.label] = b
 
         msg = 'Created busses.'
         logging.info(msg)
@@ -349,10 +346,10 @@ def construct_comps(c, *args):
         Component information from .csv-file.
 
     args[0] : pandas.core.frame.DataFrame
-        DataFrame containing the x and y data of characteristic functions.
+        DataFrame containing the data of characteristic lines.
 
     args[1] : pandas.core.frame.DataFrame
-        DataFrame containing the x, y, z1 and z2 data of characteristic maps.
+        DataFrame containing the data of characteristic maps.
 
     Returns
     -------
@@ -369,7 +366,7 @@ def construct_comps(c, *args):
         if key in c:
             kwargs[key] = c[key]
 
-    for key, value in instance.attr().items():
+    for key, value in instance.variables.items():
         if key in c:
             # component parameters
             if isinstance(value, dc_cp):
@@ -388,7 +385,10 @@ def construct_comps(c, *args):
                 try:
                     x = args[0][values].x.values[0]
                     y = args[0][values].y.values[0]
-                    char = char_line(x=x, y=y)
+                    extrapolate = False
+                    if 'extrapolate' in args[0].columns:
+                        extrapolate = args[0][values].extrapolate.values[0]
+                    char = char_line(x=x, y=y, extrapolate=extrapolate)
 
                 except IndexError:
 
@@ -446,25 +446,22 @@ def construct_network(path):
 
     Returns
     -------
-    nw : tespy.networks.network
+    nw : tespy.networks.networks.network
         TESPy network object.
     """
     # read network .csv-file
-    netw = pd.read_csv(path + 'netw.csv', sep=';', decimal='.',
-                       converters={'fluids': ast.literal_eval})
-    f_list = netw['fluids'][0]
+    with open(path + 'network.json', 'r') as f:
+        data = json.loads(f.read())
 
-    kwargs = {}
-    kwargs['m_unit'] = netw['m_unit'][0]
-    kwargs['p_unit'] = netw['p_unit'][0]
-    kwargs['p_range'] = [netw['p_min'][0], netw['p_max'][0]]
-    kwargs['h_unit'] = netw['h_unit'][0]
-    kwargs['h_range'] = [netw['h_min'][0], netw['h_max'][0]]
-    kwargs['T_unit'] = netw['T_unit'][0]
-    kwargs['T_range'] = [netw['T_min'][0], netw['T_max'][0]]
+    # construct fluid list
+    fluid_list = [
+        backend + '::' + fluid for fluid, backend in data['fluids'].items()]
+
+    # delete fluids from data
+    del data['fluids']
 
     # create network object with its properties
-    nw = network(fluids=f_list, **kwargs)
+    nw = network(fluids=fluid_list, **data)
 
     return nw
 
@@ -489,13 +486,13 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = connection(args[0].instance[c.s], c.s_id,
-                      args[0].instance[c.t], c.t_id)
+    conn = connection(args[0].instance[c.source], c.source_id,
+                      args[0].instance[c.target], c.target_id)
 
     kwargs = {}
     # read basic properties
     for key in ['design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign']:
+                'local_offdesign', 'label']:
         if key in c:
             kwargs[key] = c[key]
 

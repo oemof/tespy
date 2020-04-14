@@ -1,7 +1,7 @@
 Characteristics
 ===============
 
-In this part we give an introduction on the TESPy characteritics
+In this part we give an introduction on the TESPy characteristics
 implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`char_line <tespy.tools.characteristics.char_line>`)
 and maps (:py:class:`char_map <tespy.tools.characteristics.char_map>`).
@@ -19,39 +19,58 @@ the corresponding y-values.
 .. math::
 
     y = y_0 + \frac{x-x_0}{x_1-x_0} \cdot \left(y_1-y_0 \right)
-	
-If the x value is above the maximum x value or below the minium x value of the
-characteristic line the y value corresponding to the the maximum/minimum value
-is returned instead.
+
+It is possible to specify an :code:`extrapolate` parameter. If the value is
+:code:`False` (default state) and the x-value is above the maximum or below the
+minimum value of the characteristic line the y-value corresponding to the the
+maximum/minimum value is returned instead. If the :code:`extrapolate` is
+:code:`True` linear extrapolation is performed using the two lower most or
+upper most value pairs respectively.
 
 Characteristic maps
 -------------------
 
 The characteristic maps use linear interpolation as well. First step is
-interpolation on the x-dimension similar to the characteristic line 
+interpolation on the x-dimension similar to the characteristic line
 functionality. As the y, z1 and z2 data are two-dimensional, **each row of**
 **the data corresponds to one x value**. Thus, the result of the first step is
-a vector for each dimesion (y, z1 and z2).
+a vector for each dimension (y, z1 and z2).
 
 .. math::
 
     \vec{y} = \vec{y_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{y_1}-
     \vec{y_0} \right)
-    
+
     \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z1_1}-
     \vec{z1_0} \right)
-    
+
     \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x1-x_0} \cdot \left(\vec{z2_1}-
     \vec{z2_0}\right)
-    
+
 Using the y value as second input dimension the corresponding z1 and z2 values
 are calculated, again using linear interpolation.
 
 .. math::
 
     z1 = z1_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z1_1-z1_0 \right)
-    
+
     z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
+
+.. note::
+
+    Using compressor maps :math:`\vec{y}`, :math:`\vec{z1}` and
+    :math:`\vec{z2}` are manipulated with by the value of the inlet guide vane
+    angle:
+
+    .. math::
+
+        \vec{y} = \vec{y} \cdot \left(1-\frac{igva}{100}\right)\\
+        \vec{z1} = \vec{z1} \cdot \left(1-\frac{igva}{100}\right)\\
+        \vec{z2} = \vec{z2} \cdot \left(1-\frac{igva}{100}^2\right)
+
+    Also see the corresponding
+    :py:class:`section <tespy.tools.characteristics.compressor_map>` in the
+    API documentation.
 
 .. _import_custom_characteristics_label:
 
@@ -64,7 +83,7 @@ writing the x, y (z1 and z2) data into your python script, for example:
 .. code-block:: python
 
     from tespy.tools.characteristics import load_custom_char, char_line
-    
+
     gen_char = load_custom_char('generator', char_line)
 
 
@@ -103,7 +122,7 @@ stated as list.
     }
 
 The :code:`char_maps.json` should also have names for identification of the
-characteristic lines on the first level. On the second level we aditionally
+characteristic lines on the first level. On the second level we additionally
 need z1 and z2 data. The x data are a list of values, the y, z1 and z2 data
 are arrays with a list of values for each dimension of the x data. The example
 below has 3 x values, thus the y, z1 and z2 data must contain 3 sets of values.

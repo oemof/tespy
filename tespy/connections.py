@@ -710,6 +710,20 @@ class bus:
     >>> power_bus = bus('total power output', P=10e6)
     >>> heat_bus = bus('total heat input')
     >>> fuel_bus = bus('thermal input')
+
+    You can check, if the bus value is set or not identically to connections.
+    Unsetting is possible using :code:`np.nan` or :code:`None`. For
+    demonstration we will specify a value for the heat bus and unset it again.
+
+    >>> heat_bus.P.val_set
+    False
+    >>> heat_bus.set_attr(P=1e5)
+    >>> heat_bus.P.val_set
+    True
+    >>> heat_bus.set_attr(P=None)
+    >>> heat_bus.P.val_set
+    False
+
     >>> power_bus.add_comps({'c': chp, 'char': gen, 'p': 'P'},
     ... {'c': pu, 'char': mot})
     >>> heat_bus.add_comps({'c': chp, 'p': 'Q'},
@@ -797,6 +811,8 @@ class bus:
                         self.P.set_attr(is_set=False)
                     else:
                         self.P.set_attr(val=kwargs[key], is_set=True)
+                elif kwargs[key] is None:
+                    self.P.set_attr(is_set=False)
                 else:
                     msg = ('Keyword argument ' + key + ' must be numeric.')
                     logging.error(msg)

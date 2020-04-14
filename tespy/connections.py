@@ -142,7 +142,7 @@ class connection:
         - a referenced value (mass flow, pressure, temperature, enthalpy).
         - a data_container (for attributes fluid and fluid0 dc_flu, for other
           fluid propertie attributes dc_prop).
-        - numpy.nan (unsetting a value).
+        - numpy.nan or None (unsetting a value).
         - a string (for attributes design_paht and state).
         - a list (for attributes design and offdesign).
 
@@ -192,6 +192,9 @@ class connection:
     False
     >>> so_si2.Td_bp.val
     5
+    >>> so_si2.set_attr(Td_bp=None)
+    >>> so_si2.Td_bp.val_set
+    False
 
     Specify the state keyword: The fluid will be forced to liquid or gaseous
     state in this case.
@@ -200,6 +203,12 @@ class connection:
     >>> so_si2.state.is_set
     True
     >>> so_si2.set_attr(state=np.nan)
+    >>> so_si2.state.is_set
+    False
+    >>> so_si2.set_attr(state='g')
+    >>> so_si2.state.is_set
+    True
+    >>> so_si2.set_attr(state=None)
     >>> so_si2.state.is_set
     False
     >>> so_si2.set_attr(label='myconnection')

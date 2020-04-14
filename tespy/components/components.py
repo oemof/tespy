@@ -136,11 +136,10 @@ class component:
         components share the
         :func:`tespy.components.components.component.set_attr` method.
         """
-        var = self.attr().keys()
 
         # set specified values
         for key in kwargs:
-            if key in var:
+            if key in self.variables.keys():
                 if kwargs[key] is None:
                     self.get_attr(key).set_attr(is_set=False)
                     try:
@@ -232,13 +231,14 @@ class component:
                         'at ' + self.label + '.')
                     logging.error(msg)
                     raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(var)):
+                if set(kwargs[key]).issubset(list(self.variables.keys())):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
                     msg = (
                         'Available parameters for (off-)design specification '
-                        'are: ' + str(list(var)) + ' at ' + self.label + '.')
+                        'are: ' + str(list(self.variables.keys())) + ' at ' +
+                        self.label + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -318,8 +318,7 @@ class component:
         self.vars = {}
         self.num_vars = 0
 
-        var = self.attr()
-        for key, val in var.items():
+        for key, val in self.variables.items():
             if isinstance(val, dc_cp):
                 if self.get_attr(key).is_var:
                     self.get_attr(key).var_pos = self.num_vars

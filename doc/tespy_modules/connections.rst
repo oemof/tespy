@@ -39,7 +39,7 @@ In order to create the connections we create the components to connect first.
     sink1 = sink('sink 1')
     sink2 = sink('sink 2')
 
-    # creat connections
+    # create connections
     myconn = connection(source1, 'out1', sink1, 'in1')
     myotherconn = connection(source2, 'out1', sink2, 'in1')
 
@@ -68,8 +68,9 @@ In order to create the connections we create the components to connect first.
     myconn.set_attr(p=dc_prop(val=7, val_set=True,
                     ref=ref(myotherconn, 1.2, -5), ref_set=True))
 
-    # unset value and reference
+    # possibilities to unset values
     myconn.set_attr(p=np.nan)
+    myconn.set_attr(p=None)
     myconn.p.set_attr(val_set=False, ref_set=False)
 
 If you want to specify the fluid vector you can do it in the following way.
@@ -77,7 +78,7 @@ If you want to specify the fluid vector you can do it in the following way.
 .. note::
 
     If you specify a fluid, use the fluid's name and do not include the fluid
-    property back-end.
+    property back end.
 
 .. code-block:: python
 
@@ -94,8 +95,10 @@ If you want to specify the fluid vector you can do it in the following way.
     # same thing, but using data container
     myconn.set_attr(fluid=dc_flu(val0={'water': 1, 'air': 0}))
 
-    # unset values
-    myconn.fluid.set_attr(val_set={'water': False, 'air': False})
+    # unset full fluid vector
+    myconn.set_attr(fluid=None)
+    # unset part of fluid vector
+    myconn.fluid.set_attr(val_set={'water': False})
 
 .. note::
 
@@ -159,7 +162,7 @@ case, the ratio will always be 1.
     - 'P_ref' for the reference value of the component.
     - 'char' for the characteristic line.
 
-    There are different specification possibilites:
+    There are different specification possibilities:
 
     - If you specify the component only, the parameter will be default
       (not working with combustion engine) and the conversion factor of the
@@ -209,7 +212,7 @@ of a generator.
     power_bus = bus('power output')
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-    # createa characteristic line for a generator
+    # create a characteristic line for a generator
     gen1 = char_line(x=x, y=y)
     gen2 = char_line(x=x, y=y)
     power.add_comps({'c': turbine_hp, 'char': gen1}, {'c': turbine_lp, 'char': gen2})
@@ -223,7 +226,7 @@ generator for power conversion an specify the total power output.
     # bus for combustion engine power
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-    # createa characteristic line for a generator
+    # create a characteristic line for a generator
     gen = char_line(x=x, y=y)
     el_power_bus = bus('combustion engine power', P=10e6)
     el_power_bus.add_comps({'c': comb_engine, 'p': 'P', 'char': gen})

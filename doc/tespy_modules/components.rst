@@ -82,8 +82,9 @@ evaporator and how to unset the parameter again.
     # set data container parameters
     he.kA.set_attr(val=1e5, is_set=True)
 
-    # unset value
+    # possibilities to unset a value
     he.set_attr(kA=np.nan)
+    he.set_attr(kA=None)    
     he.kA.set_attr(is_set=False)
 
 

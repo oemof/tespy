@@ -414,7 +414,7 @@ class component:
 
         return b['char'].evaluate(expr)
 
-    def bus_func_evaluation(self, bus):
+    def calc_bus_value(self, bus):
         r"""
         Return the busses' value of the component's energy transfer.
 

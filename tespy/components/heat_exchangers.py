@@ -624,7 +624,7 @@ class heat_exchanger_simple(component):
         -------
         val : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            :py:meth:`tespy.components.components.component.calc_bus_value`
             for value manipulation according to the specified characteristic
             line of the bus.
 
@@ -653,9 +653,10 @@ class heat_exchanger_simple(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, self.num_nw_vars))
-        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 1, 2] = self.numeric_deriv(self.bus_func, 'h', 1, bus=bus)
+        f = self.calc_bus_value
+        deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+        deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
         return deriv
 
     def initialise_source(self, c, key):
@@ -1725,7 +1726,7 @@ class heat_exchanger(component):
         -------
         val : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            :py:meth:`tespy.components.components.component.calc_bus_value`
             for value manipulation according to the specified characteristic
             line of the bus.
 
@@ -1755,9 +1756,10 @@ class heat_exchanger(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 4, self.num_nw_vars))
-        deriv[0, 0, 0] = self.numeric_deriv(self.bus_func, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.numeric_deriv(self.bus_func, 'h', 0, bus=bus)
-        deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
+        f = self.calc_bus_value
+        deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
+        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+        deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
         return deriv
 
     def convergence_check(self, nw):

@@ -713,7 +713,7 @@ class water_electrolyzer(component):
         -------
         val : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            :py:meth:`tespy.components.components.component.calc_bus_value`
             for value manipulation according to the specified characteristic
             line of the bus.
 
@@ -765,7 +765,7 @@ class water_electrolyzer(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 5 + self.num_vars, self.num_nw_vars))
-        f = self.bus_func_evaluation
+        f = self.calc_bus_value
         b = bus.comps.loc[self]
 
         ######################################################################

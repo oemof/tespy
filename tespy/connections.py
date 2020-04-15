@@ -555,24 +555,6 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
-    def get_fluid_properties(self):
-        r"""
-        Get the connection's fluid properties in user specified unit.
-
-        Returns
-        -------
-        out : dict
-            Fluid properties of connection.
-        """
-        return {
-            'p': self.p.val,
-            'h': self.h.val,
-            'T': self.T.val,
-            's': self.s.val,
-            'v': self.vol.val,
-            'Q': self.x.val
-        }
-
     @staticmethod
     def attr():
         r"""

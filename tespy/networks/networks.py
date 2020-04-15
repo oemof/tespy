@@ -2456,7 +2456,7 @@ class network:
                     i = self.comps.loc[cp, 'inlets'].tolist()
                     o = self.comps.loc[cp, 'outlets'].tolist()
 
-                    P_res += cp.bus_func_evaluation(bus)
+                    P_res += cp.calc_bus_value(bus)
                     deriv = -cp.bus_deriv(bus)
 
                     j = 0
@@ -2483,7 +2483,7 @@ class network:
             b.P.val = 0
             for cp in b.comps.index:
                 # get components bus func value
-                val = cp.bus_func_evaluation(b)
+                val = cp.calc_bus_value(b)
                 b.P.val += val
                 # save as reference value
                 if self.mode == 'design':
@@ -2592,7 +2592,7 @@ class network:
                 df['base'] = b.comps['base'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
                 df['bus value'] = df['cp'].apply(
-                    lambda x: x.bus_func_evaluation(b))
+                    lambda x: x.calc_bus_value(b))
                 df['efficiency'] = df['cp'].apply(
                     lambda x: x.calc_bus_efficiency(b))
                 df.loc[df['base'] == 'component', 'comp value'] = (

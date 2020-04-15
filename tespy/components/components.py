@@ -431,12 +431,12 @@ class component:
             .. math::
 
                 \dot{E}_\mathrm{bus} = \begin{cases}
-                \dot{E}_\mathrm{component} \cdot \eta\left(
-                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
+                \frac{\dot{E}_\mathrm{component}}{f\left(
+                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
                 \text{bus base = 'bus'}\\
-                \frac{\dot{E}_\mathrm{component}}{\eta\left(
+                \dot{E}_\mathrm{component} \cdot f\left(
                 \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component,ref}}\right)} &
+                {\dot{E}_\mathrm{component,ref}}\right) &
                 \text{bus base = 'component'}
                 \end{cases}
 

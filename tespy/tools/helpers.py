@@ -209,7 +209,7 @@ def bus_char_derivative(params, bus_value):
         1 / char_func.evaluate(
             (bus_value + d) / reference_value) -
         1 / char_func.evaluate(
-            (bus_value - d) / reference_value)) / 2 * d)
+            (bus_value - d) / reference_value)) / (2 * d))
 
 # %%
 

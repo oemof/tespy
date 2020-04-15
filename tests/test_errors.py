@@ -349,7 +349,7 @@ class TestCombustionEngineBusErrors:
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
         with raises(ValueError):
-            self.instance.bus_deriv(self.bus.comps.loc[self.instance])
+            self.instance.bus_deriv(self.bus)
 
 ##############################################################################
 # compressor
@@ -478,7 +478,7 @@ def test_wrong_bus_param_deriv():
     param = 'G'
     some_bus.add_comps({'comp': instance, 'param': param})
     with raises(ValueError):
-        instance.bus_deriv(some_bus.comps.loc[instance])
+        instance.bus_deriv(some_bus)
 
 
 ##############################################################################

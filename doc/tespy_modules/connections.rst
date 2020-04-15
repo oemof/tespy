@@ -233,8 +233,8 @@ power output.
     my_network.add_busses(turbine_bus)
 
 Create a bus for post-processing purpose only. Include a characteristic line
-of a generator. Add a two turbines :code:`turbine_hp` and :code:`turbine_lp` to
-the bus.
+for a generator and add two turbines :code:`turbine_hp` and :code:`turbine_lp`
+to the bus.
 
 .. code:: python
 

@@ -129,13 +129,27 @@ class TestBusses:
             'on the bus ' + cpi.label + ' (' + str(eta_cpi) + ').')
         assert eta_cp_tpo == eta_cpi, msg
 
-        P_cp_bus = cp.bus_func_evaluation(tpo)
+        P_cp_tpo = cp.calc_bus_value(tpo)
         eta_cp_tpo = cp.calc_bus_efficiency(tpo)
-        P_cp = round(P_cp_bus * eta_cp_tpo, 0)
+        P_cp = round(P_cp_tpo * eta_cp_tpo, 0)
         msg = (
             'The compressor power must be ' + str(round(cp.P.val, 0)) + ' on '
             'the bus ' + tpo.label + ' but is ' + str(P_cp) + ').')
         assert round(cp.P.val, 0) == P_cp, msg
+
+        P_cp_tpo = round(
+            cp.calc_bus_value(tpo) * cp.calc_bus_efficiency(tpo), 0)
+        P_cp_cpi = round(
+            cp.calc_bus_value(cpi) / cp.calc_bus_efficiency(cpi), 0)
+        P_cp_cpibb = round(
+            cp.calc_bus_value(cpibb) * cp.calc_bus_efficiency(cpibb), 0)
+        msg = (
+            'The busses\' component power value for the compressor on bus ' +
+            tpo.label + ' (' + str(P_cp_tpo) + ') must be equal to the '
+            'component power on all other busses. Bus ' + cpi.label + ' (' +
+            str(P_cp_cpi) + ') and bus ' + cpibb.label + ' (' +
+            str(P_cp_cpibb) + ').')
+        assert P_cp_tpo == P_cp_cpi and P_cp_tpo == P_cp_cpibb, msg
 
         eta_gt_tpo = gt.calc_bus_efficiency(tpo)
         msg = (
@@ -171,6 +185,20 @@ class TestBusses:
             ' (' + str(eta_gt_tpo) + ') must be equal to 0.975.')
         assert eta_gt_tpo == 0.975, msg
 
+        P_cp_tpo = round(
+            cp.calc_bus_value(tpo) * cp.calc_bus_efficiency(tpo), 0)
+        P_cp_cpi = round(
+            cp.calc_bus_value(cpi) / cp.calc_bus_efficiency(cpi), 0)
+        P_cp_cpibb = round(
+            cp.calc_bus_value(cpibb) * cp.calc_bus_efficiency(cpibb), 0)
+        msg = (
+            'The busses\' component power value for the compressor on bus ' +
+            tpo.label + ' (' + str(P_cp_tpo) + ') must be equal to the '
+            'component power on all other busses. Bus ' + cpi.label + ' (' +
+            str(P_cp_cpi) + ') and bus ' + cpibb.label + ' (' +
+            str(P_cp_cpibb) + ').')
+        assert P_cp_tpo == P_cp_cpi and P_cp_tpo == P_cp_cpibb, msg
+
         # 60 % load
         load = 0.6
         cpibb.set_attr(P=P_design * load)
@@ -185,7 +213,7 @@ class TestBusses:
         assert eta_cp_tpo == eta_cp_char, msg
 
         load_frac = round(
-            cp.bus_func_evaluation(tpo) / tpo.comps.loc[cp, 'P_ref'], 6)
+            cp.calc_bus_value(tpo) / tpo.comps.loc[cp, 'P_ref'], 6)
         msg = (
             'The load fraction value of the compressor on the bus ' +
             tpo.label + ' (' + str(load_frac) + ') must be identical to the '
@@ -200,5 +228,19 @@ class TestBusses:
             ' (' + str(eta_cp_tpo) + ') must be higher than the efficiency '
             'on the bus ' + cpi.label + ' (' + str(eta_cpi) + ').')
         assert eta_cp_tpo > eta_cpi, msg
+
+        P_cp_tpo = round(
+            cp.calc_bus_value(tpo) * cp.calc_bus_efficiency(tpo), 0)
+        P_cp_cpi = round(
+            cp.calc_bus_value(cpi) / cp.calc_bus_efficiency(cpi), 0)
+        P_cp_cpibb = round(
+            cp.calc_bus_value(cpibb) * cp.calc_bus_efficiency(cpibb), 0)
+        msg = (
+            'The busses\' component power value for the compressor on bus ' +
+            tpo.label + ' (' + str(P_cp_tpo) + ') must be equal to the '
+            'component power on all other busses. Bus ' + cpi.label + ' (' +
+            str(P_cp_cpi) + ') and bus ' + cpibb.label + ' (' +
+            str(P_cp_cpibb) + ').')
+        assert P_cp_tpo == P_cp_cpi and P_cp_tpo == P_cp_cpibb, msg
 
         shutil.rmtree('tmp', ignore_errors=True)

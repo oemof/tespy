@@ -754,7 +754,7 @@ class bus:
     12553049.0
     >>> round(heat_bus.P.val, 0)
     12553049.0
-    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 2)
+    >>> round(1 / pu.calc_bus_efficiency(power_bus), 2)
     0.98
     >>> power_bus.set_attr(P=7.5e6)
     >>> mode = 'offdesign'
@@ -763,7 +763,7 @@ class bus:
     21187528.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
-    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 3)
+    >>> round(1 / pu.calc_bus_efficiency(power_bus), 3)
     0.967
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """

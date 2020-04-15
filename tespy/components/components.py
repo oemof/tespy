@@ -365,27 +365,106 @@ class component:
     def equations(self):
         return
 
-    def bus_func_handler(self, val, bus, calc_efficiency):
-        if np.isnan(bus['P_ref']):
+    def calc_bus_efficiency(self, bus):
+        r"""
+        Return the busses' efficiency.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            Bus to calculate the efficiency value on.
+
+        Returns
+        -------
+        efficiency : float
+            Efficiency value of the bus.
+
+            .. math::
+
+                \eta_\mathrm{bus} = \begin{cases}
+                \eta\left(
+                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
+                \text{bus base = 'bus'}\\
+                \eta\left(
+                \frac{\dot{E}_\mathrm{component}}
+                {\dot{E}_\mathrm{component,ref}}\right) &
+                \text{bus base = 'component'}
+                \end{cases}
+
+        Note
+        ----
+        If the base value of the bus is the bus value itself, a newton
+        iteration is used to find the bus value satisfying the corresponding
+        equation (case 1).
+        """
+        b = bus.comps.loc[self]
+        comp_val = self.bus_func(b)
+        if np.isnan(b['P_ref']):
             expr = 1
         else:
-            if bus['base'] == 'component':
-                expr = abs(val / bus['P_ref'])
+            if b['base'] == 'component':
+                expr = abs(comp_val / b['P_ref'])
             else:
                 bus_value = newton(
                     bus_char_evaluation,
                     bus_char_derivative,
-                    [val, bus['P_ref'], bus['char']], 0,
-                    val0=bus['P_ref'], valmin=-1e15, valmax=1e15)
-                expr = bus_value / bus['P_ref']
+                    [comp_val, b['P_ref'], b['char']], 0,
+                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                expr = bus_value / b['P_ref']
 
-        if calc_efficiency is True:
-            return bus['char'].evaluate(expr)
+        return b['char'].evaluate(expr)
+
+    def bus_func_evaluation(self, bus):
+        r"""
+        Return the busses' value of the component's energy transfer.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            Bus to calculate bus value on.
+
+        Returns
+        -------
+        bus_value : float
+            Value of the energy transfer.
+
+            .. math::
+
+                \dot{E}_\mathrm{bus} = \begin{cases}
+                \dot{E}_\mathrm{component} \cdot \eta\left(
+                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
+                \text{bus base = 'bus'}\\
+                \frac{\dot{E}_\mathrm{component}}{\eta\left(
+                \frac{\dot{E}_\mathrm{component}}
+                {\dot{E}_\mathrm{component,ref}}\right)} &
+                \text{bus base = 'component'}
+                \end{cases}
+
+        Note
+        ----
+        If the base value of the bus is the bus value itself, a newton
+        iteration is used to find the bus value satisfying the corresponding
+        equation (case 1).
+        """
+        b = bus.comps.loc[self]
+        comp_val = self.bus_func(b)
+        if np.isnan(b['P_ref']):
+            expr = 1
         else:
-            if bus['base'] == 'component':
-                return val * bus['char'].evaluate(expr)
+            if b['base'] == 'component':
+                expr = abs(comp_val / b['P_ref'])
             else:
-                return val / bus['char'].evaluate(expr)
+                bus_value = newton(
+                    bus_char_evaluation,
+                    bus_char_derivative,
+                    [comp_val, b['P_ref'], b['char']], 0,
+                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                return bus_value
+
+        if b['base'] == 'component':
+            return comp_val * b['char'].evaluate(expr)
+        else:
+            return comp_val / b['char'].evaluate(expr)
 
     def derivatives(self, increment_filter):
         return

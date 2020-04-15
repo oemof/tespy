@@ -4,7 +4,7 @@ v0.3.0 - Someversion (somemonth, someday, 2020)
 New Features
 ############
 - Make entropy :code:`myconn.s.val` or :code:`myconn.s.val_SI` and specific
-  volume :code:`myconn.vol.val` or :code:`myconn.s.val_SI` respectively
+  volume :code:`myconn.vol.val` or :code:`myconn.vol.val_SI` respectively
   available after simulation
   (`PR #172 <https://github.com/oemof/tespy/pull/172>`_).
 - Connections, components and busses are now easily accessible on every

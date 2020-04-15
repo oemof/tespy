@@ -132,20 +132,20 @@ Busses
 ------
 
 Busses are energy flow connectors. You can sum the energy flow of different
-components and create relations between components regarding mass free energy
-transport.
+components and create relations between components regarding mass independent
+energy transport.
 
 Different use-cases for busses could be:
 
-- Easy post-processing.
-- Introduce motor or generator efficiencies.
-- Create relations of different components.
+- post-processing
+- introduce motor or generator efficiencies
+- create relations of different components
 
 The handling of busses is very similar to connections and components. You need
 to add components to your busses as a dictionary containing at least the
 instance of your component. Additionally you may provide a characteristic line,
-linking the ratio of actual value to referenced value (design case value) to a
-factor the actual value of the component is multiplied with on the bus. For
+linking the ratio of actual value to a referenced value (design case value) to
+an efficiency factor the component value of the bus is multiplied with. For
 instance, you can provide a characteristic line of an electrical generator or
 motor for a variable conversion efficiency. The referenced value is retrieved
 by the design point of your system. Offdesign calculations use the referenced
@@ -156,27 +156,56 @@ case, the ratio will always be 1.
 
     The available keywords for the dictionary are:
 
-    - 'c' for the component instance.
-    - 'p' for the parameter (the combustion engine has various parameters,
-      have a look at the :ref:`combustion engine example <combustion_engine_label>`).
-    - 'P_ref' for the reference value of the component.
-    - 'char' for the characteristic line.
+    - 'comp' for the component instance.
+    - 'param' for the parameter (e. g. the combustion engine has various
+      parameters, have a look at the
+      :ref:`combustion engine example <combustion_engine_label>`)
+    - 'char' for the characteristic line
+    - 'base' the base for efficiency definition
+    - 'P_ref' for the reference value of the component
 
     There are different specification possibilities:
 
-    - If you specify the component only, the parameter will be default
-      (not working with combustion engine) and the conversion factor of the
-      characteristic line will be 1 for every load.
-    - If you specify a numeric value for char, the conversion factor will be
-      equal to that value for every load.
+    - If you specify the component only, the parameter will be default and the
+      efficiency factor of the characteristic line will be 1 independent of
+      the load.
+    - If you specify a numeric value for char, the efficiency factor will be
+      equal to that value independet of the load.
     - If you want to specify a characteristic line, provide
       a :py:class:`char_line <tespy.tools.characteristics.char_line>`
       object.
+    - Specify :code:`'base': 'bus'` if you want to change from the default base
+      to the bus as base. This means, that the definition of the efficiency
+      factor will change according to your specification.
 
-The examples below shows the implementation of busses in your TESPy simulation.
+      .. math ::
 
-Create a pump that is powered by a turbine. The turbine's power output must
-therefore be equal to the pump's power consumption.
+          \eta = \begin{cases}
+          \frac{\dot{E}_\mathrm{component}}{\dot{E}_\mathrm{bus}} &
+          \text{'base': 'bus'}\\
+          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{component}} &
+          \text{'base': 'component'}
+          \end{cases}
+
+      This applies to the calculation of the bus value analogously.
+
+      .. math::
+
+          \dot{E}_\mathrm{bus} = \begin{cases}
+          \frac{\dot{E}_\mathrm{component}}{f\left(
+          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
+          \text{'base': 'bus'}\\
+          \dot{E}_\mathrm{component} \cdot f\left(
+          \frac{\dot{E}_\mathrm{component}}
+          {\dot{E}_\mathrm{component,ref}}\right) &
+          \text{'base': 'component'}
+          \end{cases}
+
+The examples below show the implementation of busses in your TESPy simulation.
+
+Create a pump that is powered by a turbine. The turbine's :code:`turbine_fwp`
+power output must therefore be equal to the pump's :code:`fwp` power
+consumption.
 
 .. code-block:: python
 
@@ -188,10 +217,11 @@ therefore be equal to the pump's power consumption.
     # this way we can make sure the power of the turbine has the same value as
     # the pump's power but with negative sign
     fwp_bus = bus('feed water pump bus', P=0)
-    fwp_bus.add_comps({'c': turbine_fwp}, {'c': fwp})
+    fwp_bus.add_comps({'comp': turbine_fwp}, {'comp': fwp})
     my_network.add_busses(fwp_bus)
 
-Create two turbines which have the same power output.
+Create two turbines :code:`turbine1` and :code:`turbine2` which have the same
+power output.
 
 .. code:: python
 
@@ -199,11 +229,12 @@ Create two turbines which have the same power output.
     # we make sure the two turbines yield the same power output by adding the char
     # parameter for the second turbine and using -1 as char
     turbine_bus = bus('turbines', P=0)
-    turbine_bus.add_comps({'c': turbine_1}, {'c': turbine_2, 'char': -1})
+    turbine_bus.add_comps({'comp': turbine_1}, {'comp': turbine_2, 'char': -1})
     my_network.add_busses(turbine_bus)
 
 Create a bus for post-processing purpose only. Include a characteristic line
-of a generator.
+of a generator. Add a two turbines :code:`turbine_hp` and :code:`turbine_lp` to
+the bus.
 
 .. code:: python
 
@@ -215,11 +246,14 @@ of a generator.
     # create a characteristic line for a generator
     gen1 = char_line(x=x, y=y)
     gen2 = char_line(x=x, y=y)
-    power.add_comps({'c': turbine_hp, 'char': gen1}, {'c': turbine_lp, 'char': gen2})
+    power.add_comps(
+        {'comp': turbine_hp, 'char': gen1},
+        {'comp': turbine_lp, 'char': gen2})
     my_network.add_busses(power_bus)
 
-Create a bus for the electrical power output of a combustion engine. Use a
-generator for power conversion an specify the total power output.
+Create a bus for the electrical power output of a combustion engine
+:code:`comb_engine`. Use a generator for power conversion and specify the total
+power output.
 
 .. code:: python
 
@@ -229,7 +263,65 @@ generator for power conversion an specify the total power output.
     # create a characteristic line for a generator
     gen = char_line(x=x, y=y)
     el_power_bus = bus('combustion engine power', P=10e6)
-    el_power_bus.add_comps({'c': comb_engine, 'p': 'P', 'char': gen})
+    el_power_bus.add_comps({'comp': comb_engine, 'param': 'P', 'char': gen})
+
+Create a bus for the electrical power input of a pump :code:`pu` with
+:code:`'bus'` and with :code:`'component'` as base. In both cases. the value of
+the component power will be identical. Due to the different efficiency
+definitions the value of the bus power will differ in partload.
+
+.. code:: python
+
+    import numpy as np
+    from tespy.components import pump, sink, source
+    from tespy.connections import bus, connection
+    from tespy.networks import network
+    from tespy.tools.characteristics import char_line
+
+    nw = network(fluids=['H2O'], p_unit='bar', T_unit='C')
+
+    si = sink('sink')
+    so = source('source')
+    pu = pump('pump')
+
+    so_pu = connection(so, 'out1', pu, 'in1')
+    pu_si = connection(pu, 'out1', si, 'in1')
+
+    nw.add_conns(so_pu, pu_si)
+
+    # bus for combustion engine power
+    x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
+    y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+    # create a characteristic line for a generator
+    mot_bus_based = char_line(x=x, y=y)
+    mot_comp_based = char_line(x=x, y=1 / y)
+    bus1 = bus('pump power bus based')
+    bus1.add_comps({'comp': pu, 'char': mot_bus_based, 'base': 'bus'})
+    # the keyword 'base': 'component' is the default value, therefore it does
+    # not need to be passed
+    bus2 = bus('pump power component based')
+    bus2.add_comps({'comp': pu, 'char': mot_comp_based})
+
+    nw.add_busses(bus1, bus2)
+
+    so_pu.set_attr(fluid={'H2O': 1}, m=10, p=5, T=20)
+    pu_si.set_attr(p=10)
+
+    pu.set_attr(eta_s=0.75)
+
+    nw.solve('design')
+    nw.save('tmp')
+    print('Bus based efficiency:', pu.calc_bus_efficiency(bus1))
+    print('Component based efficiency:', 1 / pu.calc_bus_efficiency(bus2))
+    print('Bus based bus power:', pu.calc_bus_value(bus1))
+    print('Component based bus power:', pu.calc_bus_value(bus2))
+
+    so_pu.set_attr(m=9)
+    nw.solve('offdesign', design_path='tmp')
+    print('Bus based efficiency:', pu.calc_bus_efficiency(bus1))
+    print('Component based efficiency:', 1 / pu.calc_bus_efficiency(bus2))
+    print('Bus based bus power:', pu.calc_bus_value(bus1))
+    print('Component based bus power:', pu.calc_bus_value(bus2))
 
 
 .. note::

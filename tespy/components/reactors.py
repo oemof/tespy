@@ -700,7 +700,7 @@ class water_electrolyzer(component):
 
         return deriv
 
-    def bus_func(self, bus, calc_efficiency=False):
+    def bus_func(self, bus):
         r"""
         Calculate the residual value of the bus function.
 
@@ -730,13 +730,13 @@ class water_electrolyzer(component):
         """
         ######################################################################
         # equations for power on bus
-        if bus.param == 'P':
+        if bus['param'] == 'P':
             val = - self.energy_balance()
 
         ######################################################################
         # equations for heat on bus
 
-        elif bus.param == 'Q':
+        elif bus['param'] == 'Q':
             val = - self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
@@ -744,14 +744,14 @@ class water_electrolyzer(component):
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + str(bus.param) + ' is not a valid '
+            msg = ('The parameter ' + str(bus['param']) + ' is not a valid '
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
 
-        return self.bus_func_handler(val, bus, calc_efficiency)
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -768,11 +768,12 @@ class water_electrolyzer(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 5 + self.num_vars, self.num_nw_vars))
-        f = self.bus_func
+        f = self.bus_func_evaluation
+        b = bus.comps.loc[self]
 
         ######################################################################
         # derivatives for power on bus
-        if bus.param == 'P':
+        if b['param'] == 'P':
             deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
 
@@ -793,7 +794,7 @@ class water_electrolyzer(component):
 
         ######################################################################
         # derivatives for heat on bus
-        elif bus.param == 'Q':
+        elif b['param'] == 'Q':
 
             deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
@@ -803,7 +804,7 @@ class water_electrolyzer(component):
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + str(bus.param) + ' is not a valid '
+            msg = ('The parameter ' + str(b['param']) + ' is not a valid '
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')

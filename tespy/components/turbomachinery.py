@@ -252,7 +252,7 @@ class turbomachine(component):
             s_mix = s_mix_pT(i, T_mix)
             return h_mix_ps(o, s_mix, T0=self.outl[0].T.val_SI)
 
-    def bus_func(self, bus, calc_efficiency=False):
+    def bus_func(self, bus):
         r"""
         Calculate the residual value of the bus function.
 
@@ -260,9 +260,6 @@ class turbomachine(component):
         ----------
         bus : tespy.connections.bus
             TESPy bus object.
-
-        calc_efficiency : boolean
-            Calculate bus base value without applying characteristcs.
 
         Returns
         -------
@@ -285,7 +282,7 @@ class turbomachine(component):
         o = self.outl[0].to_flow()
         val = i[0] * (o[2] - i[2])
 
-        return self.bus_func_handler(val, bus, calc_efficiency)
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -302,7 +299,7 @@ class turbomachine(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, self.num_nw_vars))
-        f = self.bus_func
+        f = self.bus_func_evaluation
         deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
         deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
         deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)

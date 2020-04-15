@@ -929,14 +929,16 @@ class network:
             if c not in not_required:
                 path = hlp.modify_path_os(
                     self.design_path + '/components/' + c + '.csv')
-                msg = ('Reading design point information for components of '
-                       'type ' + c + ' from path ' + path + '.')
+                msg = (
+                    'Reading design point information for components of type '
+                    + c + ' from path ' + path + '.')
                 logging.debug(msg)
 
                 # read data
-                df = pd.read_csv(path, sep=';', decimal='.',
-                                 converters={'busses': ast.literal_eval,
-                                             'bus_P_ref': ast.literal_eval})
+                df = pd.read_csv(
+                    path, sep=';', decimal='.', converters={
+                        'busses': ast.literal_eval,
+                        'bus_P_ref': ast.literal_eval})
                 df.set_index('label', inplace=True)
                 # iter through all components of this type and set data
                 for c_label in df.index:
@@ -945,11 +947,10 @@ class network:
                     if comp.design_path is not None:
                         path_c = hlp.modify_path_os(
                             comp.design_path + '/components/' + c + '.csv')
-                        df_c = pd.read_csv(path_c, sep=';', decimal='.',
-                                           converters={
-                                                 'busses': ast.literal_eval,
-                                                 'bus_P_ref': ast.literal_eval
-                                                 })
+                        df_c = pd.read_csv(
+                            path_c, sep=';', decimal='.', converters={
+                                 'busses': ast.literal_eval,
+                                 'bus_P_ref': ast.literal_eval})
                         df_c.set_index('label', inplace=True)
                         data = df_c.loc[comp.label]
 
@@ -1011,7 +1012,7 @@ class network:
         i = 0
         for b in data.busses:
             bus = self.busses[b].comps
-            bus.loc[component, 'P_ref'] = data.bus_P_ref[i]
+            bus.loc[component, 'P_ref'] = data['bus_P_ref'][i]
             i += 1
 
     def init_conn_design_params(self, c, df):
@@ -2448,16 +2449,14 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq
-        for b in self.busses.values():
-            if b.P.is_set is True:
+        for bus in self.busses.values():
+            if bus.P.is_set is True:
                 P_res = 0
-                for cp in b.comps.index:
+                for cp in bus.comps.index:
                     i = self.comps.loc[cp, 'inlets'].tolist()
                     o = self.comps.loc[cp, 'outlets'].tolist()
 
-                    bus = b.comps.loc[cp]
-
-                    P_res += cp.bus_func(bus)
+                    P_res += cp.bus_func_evaluation(bus)
                     deriv = -cp.bus_deriv(bus)
 
                     j = 0
@@ -2470,7 +2469,7 @@ class network:
                         self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.residual[row] = b.P.val - P_res
+                self.residual[row] = bus.P.val - P_res
 
                 row += 1
 
@@ -2484,19 +2483,15 @@ class network:
             b.P.val = 0
             for cp in b.comps.index:
                 # get components bus func value
-                val = cp.bus_func(b.comps.loc[cp])
+                val = cp.bus_func_evaluation(b)
+                b.P.val += val
                 # save as reference value
                 if self.mode == 'design':
                     if b.comps.loc[cp, 'base'] == 'component':
                         b.comps.loc[cp, 'P_ref'] = (
-                            cp.bus_func(b.comps.loc[cp]) /
-                            abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
                     else:
-                        b.comps.loc[cp, 'P_ref'] = (
-                            cp.bus_func(b.comps.loc[cp]) *
-                            abs(b.comps.loc[cp, 'char'].evaluate(1)))
-
-                b.P.val += val
+                        b.comps.loc[cp, 'P_ref'] = val
 
         # connections
         for c in self.conns.index:
@@ -2586,8 +2581,8 @@ class network:
                         )
         if len(df) > 0:
             print('##### RESULTS (connections) #####')
-            print(tabulate(df, headers='keys', tablefmt='psql',
-                           floatfmt='.3e'))
+            print(
+                tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
         for b in self.busses.values():
             df = pd.DataFrame(columns=[
@@ -2597,9 +2592,9 @@ class network:
                 df['base'] = b.comps['base'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
                 df['bus value'] = df['cp'].apply(
-                    lambda x: x.bus_func(b.comps.loc[x]))
+                    lambda x: x.bus_func_evaluation(b))
                 df['efficiency'] = df['cp'].apply(
-                    lambda x: x.bus_func(b.comps.loc[x], calc_efficiency=True))
+                    lambda x: x.calc_bus_efficiency(b))
                 df.loc[df['base'] == 'component', 'comp value'] = (
                     df['bus value'] / df['efficiency'])
                 df.loc[df['base'] == 'bus', 'comp value'] = (

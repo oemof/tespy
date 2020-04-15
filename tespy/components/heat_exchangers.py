@@ -638,7 +638,7 @@ class heat_exchanger_simple(component):
         o = self.outl[0].to_flow()
         val = i[0] * (o[2] - i[2])
 
-        return self.bus_func_handler(val, bus, calc_efficiency)
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -1741,7 +1741,7 @@ class heat_exchanger(component):
         o = self.outl[0].to_flow()
         val = i[0] * (o[2] - i[2])
 
-        return self.bus_func_handler(val, bus, calc_efficiency)
+        return val
 
     def bus_deriv(self, bus):
         r"""

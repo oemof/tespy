@@ -254,7 +254,7 @@ class turbomachine(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -264,19 +264,14 @@ class turbomachine(component):
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                \dot{E}_\mathrm{component} = \dot{m}_{in} \cdot \left(
-                h_{out} - h_{in} \right)\\
-
-                \begin{cases}
-                \dot{E}_\mathrm{bus} = \dot{E}_\mathrm{component} \cdot
-                f_{char}\left( \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component, ref}}\right)\\
-                \eta = P \cdot f_{char}\left( \frac{P}{P_{ref}}\right)
-                \end{cases}
+                \dot{E} = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

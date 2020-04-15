@@ -702,31 +702,28 @@ class water_electrolyzer(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_efficiency : boolean
-            Calculate bus base value without applying characteristcs.
-
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = \begin{cases}
-                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) &
-                \text{key = 'P'}\\
-                \dot{Q} \cdot f_{char}\left( \frac{\dot{Q}}
-                {\dot{Q}_{ref}}\right) & \text{key = 'Q'}\\
-                \end{cases}\\
-                \dot{Q} = - \dot{m}_{1,in} \cdot
-                \left(h_{out,1} - h_{in,1} \right)\\
+                \dot{E} = \begin{cases}
+                P & \text{key = 'P'}\\
+                - \dot{m}_{1,in} \cdot \left(h_{out,1} - h_{in,1} \right) &
+                \text{key = 'Q'}\\
+                \end{cases}
         """
         ######################################################################
         # equations for power on bus

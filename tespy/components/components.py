@@ -421,12 +421,12 @@ class component:
         Parameters
         ----------
         bus : tespy.connections.bus
-            Bus to calculate bus value on.
+            Bus to calculate energy transfer on.
 
         Returns
         -------
         bus_value : float
-            Value of the energy transfer.
+            Value of the energy transfer on the specified bus.
 
             .. math::
 

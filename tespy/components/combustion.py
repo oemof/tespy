@@ -838,7 +838,7 @@ class combustion_chamber(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -848,12 +848,14 @@ class combustion_chamber(component):
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = LHV \cdot \dot{m}_{f} \cdot
-                f_{char}\left( \frac{\dot{m}_{f}}{\dot{m}_{f,ref}}\right)
+                \dot{E} = LHV \cdot \dot{m}_{f}
         """
         return self.calc_ti()
 
@@ -2751,31 +2753,27 @@ class combustion_engine(combustion_chamber):
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_efficiency : boolean
-            Calculate bus base value without applying characteristcs.
-
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = \begin{cases}
-                LHV \cdot \dot{m}_{f} \cdot f_{char}\left( \frac{LHV \cdot
-                \dot{m}_{f}}{LHV \cdot \dot{m}_{f, ref}}\right) &
-                \text{key = 'TI'}\\
-                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) &
-                \text{key = 'P'}\\
-                \left(\dot{Q}_1 + \dot{Q}_2\right) \cdot
-                f_{char}\left( \frac{\dot{Q}_1 + \dot{Q}_2}{\dot{Q}_{1,ref} +
-                \dot{Q}_{2,ref}}\right) & \text{key = 'Q'}\\
-                \dot{Q}_1 \cdot f_{char}\left( \frac{\dot{Q}_1}
-                {\dot{Q}_{1,ref}}\right) & \text{key = 'Q1'}\\
-                \dot{Q}_2 \cdot f_{char}\left( \frac{\dot{Q}_2}
-                {\dot{Q}_{2,ref}}\right) & \text{key = 'Q2'}\\
-                \dot{Q}_{loss} \cdot f_{char}\left( \frac{\dot{Q}_{loss}}
-                {\dot{Q}_{loss,ref}}\right) & \text{key = 'Qloss'}
+                \dot{E} = \begin{cases}
+                LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
+                P & \text{key = 'P'}\\
+                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} +
+                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                \text{key = 'Q'}\\
+                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
+                \text{key = 'Q1'}\\
+                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                \text{key = 'Q2'}\\
+                \dot{Q}_{loss} & \text{key = 'Qloss'}
                 \end{cases}
 
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\

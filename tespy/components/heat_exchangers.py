@@ -611,28 +611,26 @@ class heat_exchanger_simple(component):
 
         return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
 
-    def bus_func(self, bus, calc_efficiency=False):
+    def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_efficiency : boolean
-            Calculate bus base value without applying characteristcs.
-
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = P \cdot f\left( \frac{P}{P_{ref}}\right)
-
-                P = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
+                \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -1714,28 +1712,27 @@ class heat_exchanger(component):
         return (self.ttd_l.val - T_mix_ph(o1, T0=self.outl[0].T.val_SI) +
                 T_mix_ph(i2, T0=self.inl[1].T.val_SI))
 
-    def bus_func(self, bus, calc_efficiency=False):
+    def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
         bus : tespy.connections.bus
             TESPy bus object.
 
-        calc_efficiency : boolean
-            Calculate bus base value without applying characteristcs.
-
         Returns
         -------
         val : float
-            Value of energy transfer.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.bus_func_evaluation`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = P \cdot f\left( \frac{P}{P_{ref}}\right)
-
-                P = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in} \right)
+                \dot{E} = \dot{m}_{1,in} \cdot \left(
+                h_{1,out} - h_{1,in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

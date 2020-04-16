@@ -152,6 +152,12 @@ by the design point of your system. Offdesign calculations use the referenced
 value from your system's design point for the characteristic line. In design
 case, the ratio will always be 1.
 
+After a simulation, it is possible to output the efficiency of a component on
+a bus and to output the bus value of the component using
+
+- :code:`mycomponent.calc_bus_efficiency(mybus)`
+- :code:`mycomponent.calc_bus_value(mybus)`
+
 .. note::
 
     The available keywords for the dictionary are:
@@ -170,7 +176,7 @@ case, the ratio will always be 1.
       efficiency factor of the characteristic line will be 1 independent of
       the load.
     - If you specify a numeric value for char, the efficiency factor will be
-      equal to that value independet of the load.
+      equal to that value independent of the load.
     - If you want to specify a characteristic line, provide
       a :py:class:`char_line <tespy.tools.characteristics.char_line>`
       object.
@@ -268,7 +274,7 @@ power output.
 Create a bus for the electrical power input of a pump :code:`pu` with
 :code:`'bus'` and with :code:`'component'` as base. In both cases. the value of
 the component power will be identical. Due to the different efficiency
-definitions the value of the bus power will differ in partload.
+definitions the value of the bus power will differ in part load.
 
 .. code:: python
 

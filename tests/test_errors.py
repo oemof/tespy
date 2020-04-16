@@ -210,12 +210,15 @@ def test_bus_add_comps_errors():
     comb = combustion.combustion_engine('combustion engine')
     pipeline = piping.pipe('pipeline')
     conn = connection(comb, 'out1', pipeline, 'in1')
-    bus_add_comps_TypeError(mybus, {'c': conn})
+    bus_add_comps_TypeError(mybus, {'comp': conn})
     bus_add_comps_TypeError(mybus, {'f': comb})
-    bus_add_comps_TypeError(mybus, {'c': comb, 'char': 'Hi'})
-    bus_add_comps_TypeError(mybus, {'c': comb, 'p': 5})
-    bus_add_comps_TypeError(mybus, {'c': comb, 'P_ref': 'what'})
+    bus_add_comps_TypeError(mybus, {'comp': comb, 'char': 'Hi'})
+    bus_add_comps_TypeError(mybus, {'comp': comb, 'param': 5})
+    bus_add_comps_TypeError(mybus, {'comp': comb, 'P_ref': 'what'})
     bus_add_comps_TypeError(mybus, comb)
+
+    with raises(ValueError):
+        mybus.add_comps({'comp': comb, 'base': 5})
 
 ##############################################################################
 # test errors of component classes
@@ -330,7 +333,7 @@ class TestCombustionEngineBusErrors:
         self.nw = network(['water', 'air'])
         self.instance = combustion.combustion_engine('combustion engine')
         self.bus = bus('power')
-        self.bus.add_comps({'c': self.instance, 'p': 'Param'})
+        self.bus.add_comps({'comp': self.instance, 'param': 'Param'})
 
     def test_missing_bus_param_func(self):
         """Test wrong/missing bus parameter in bus function."""
@@ -346,7 +349,7 @@ class TestCombustionEngineBusErrors:
                                         basics.sink('sink'), 'in1')]
         self.instance.inl[0].fluid = dc_flu(val={'water': 1})
         with raises(ValueError):
-            self.instance.bus_deriv(self.bus.comps.loc[self.instance])
+            self.instance.bus_deriv(self.bus)
 
 ##############################################################################
 # compressor
@@ -456,7 +459,7 @@ def test_wrong_bus_param_func():
     instance = reactors.water_electrolyzer('electrolyzer')
     some_bus = bus('some_bus')
     param = 'G'
-    some_bus.add_comps({'c': instance, 'p': param})
+    some_bus.add_comps({'comp': instance, 'param': param})
     with raises(ValueError):
         instance.bus_func(some_bus.comps.loc[instance])
 
@@ -473,9 +476,9 @@ def test_wrong_bus_param_deriv():
     instance.num_nw_vars = 1
     some_bus = bus('some_bus')
     param = 'G'
-    some_bus.add_comps({'c': instance, 'p': param})
+    some_bus.add_comps({'comp': instance, 'param': param})
     with raises(ValueError):
-        instance.bus_deriv(some_bus.comps.loc[instance])
+        instance.bus_deriv(some_bus)
 
 
 ##############################################################################

@@ -546,7 +546,7 @@ class orc_evaporator(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -556,23 +556,21 @@ class orc_evaporator(component):
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.calc_bus_value`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = P \cdot f\left( \frac{P}{P_{ref}}\right)
-
-                P = \dot{m}_{3,in} \cdot \left( h_{3,out} - h_{3,in} \right)
+                \dot{E} = \dot{m}_{3,in} \cdot \left(
+                h_{3,out} - h_{3,in} \right)
         """
         i = self.inl[2].to_flow()
         o = self.outl[2].to_flow()
-
         val = i[0] * (o[2] - i[2])
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -589,9 +587,10 @@ class orc_evaporator(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 6, self.num_nw_vars))
-        deriv[0, 2, 0] = self.numeric_deriv(self.bus_func, 'm', 2, bus=bus)
-        deriv[0, 2, 2] = self.numeric_deriv(self.bus_func, 'h', 2, bus=bus)
-        deriv[0, 5, 2] = self.numeric_deriv(self.bus_func, 'h', 5, bus=bus)
+        f = self.calc_bus_value
+        deriv[0, 2, 0] = self.numeric_deriv(f, 'm', 2, bus=bus)
+        deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
+        deriv[0, 5, 2] = self.numeric_deriv(f, 'h', 5, bus=bus)
         return deriv
 
     def initialise_source(self, c, key):

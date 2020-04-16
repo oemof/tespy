@@ -838,7 +838,7 @@ class combustion_chamber(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -848,19 +848,16 @@ class combustion_chamber(component):
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.calc_bus_value`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = LHV \cdot \dot{m}_{f} \cdot
-                f_{char}\left( \frac{\dot{m}_{f}}{\dot{m}_{f,ref}}\right)
+                \dot{E} = LHV \cdot \dot{m}_{f}
         """
-        val = self.calc_ti()
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+        return self.calc_ti()
 
     def bus_deriv(self, bus):
         r"""
@@ -877,7 +874,7 @@ class combustion_chamber(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 3, self.num_nw_vars))
-        f = self.bus_func
+        f = self.calc_bus_value
         for i in range(3):
             deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
             deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
@@ -2759,25 +2756,24 @@ class combustion_engine(combustion_chamber):
         Returns
         -------
         val : float
-            Residual value of bus function.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.calc_bus_value`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                val = \begin{cases}
-                LHV \cdot \dot{m}_{f} \cdot f_{char}\left( \frac{LHV \cdot
-                \dot{m}_{f}}{LHV \cdot \dot{m}_{f, ref}}\right) &
-                \text{key = 'TI'}\\
-                P \cdot f_{char}\left( \frac{P}{P_{ref}}\right) &
-                \text{key = 'P'}\\
-                \left(\dot{Q}_1 + \dot{Q}_2\right) \cdot
-                f_{char}\left( \frac{\dot{Q}_1 + \dot{Q}_2}{\dot{Q}_{1,ref} +
-                \dot{Q}_{2,ref}}\right) & \text{key = 'Q'}\\
-                \dot{Q}_1 \cdot f_{char}\left( \frac{\dot{Q}_1}
-                {\dot{Q}_{1,ref}}\right) & \text{key = 'Q1'}\\
-                \dot{Q}_2 \cdot f_{char}\left( \frac{\dot{Q}_2}
-                {\dot{Q}_{2,ref}}\right) & \text{key = 'Q2'}\\
-                \dot{Q}_{loss} \cdot f_{char}\left( \frac{\dot{Q}_{loss}}
-                {\dot{Q}_{loss,ref}}\right) & \text{key = 'Qloss'}
+                \dot{E} = \begin{cases}
+                LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
+                P & \text{key = 'P'}\\
+                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} +
+                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                \text{key = 'Q'}\\
+                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
+                \text{key = 'Q1'}\\
+                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                \text{key = 'Q2'}\\
+                \dot{Q}_{loss} & \text{key = 'Qloss'}
                 \end{cases}
 
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
@@ -2785,82 +2781,51 @@ class combustion_engine(combustion_chamber):
         """
         ######################################################################
         # value for bus parameter of thermal input (TI)
-        if bus.param == 'TI':
-            ti = self.calc_ti()
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(ti / bus.P_ref)
-            return ti * bus.char.evaluate(expr)
+        if bus['param'] == 'TI':
+            val = self.calc_ti()
 
         ######################################################################
         # value for bus parameter of power output (P)
-        elif bus.param == 'P':
-            P = self.calc_P()
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(P / bus.P_ref)
-            return P * bus.char.evaluate(expr)
+        elif bus['param'] == 'P':
+            val = self.calc_P()
 
         ######################################################################
         # value for bus parameter of total heat production (Q)
-        elif bus.param == 'Q':
+        elif bus['param'] == 'Q':
             val = 0
             for j in range(2):
                 i = self.inl[j]
                 o = self.outl[j]
                 val += i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(val / bus.P_ref)
-            return val * bus.char.evaluate(expr)
-
         ######################################################################
         # value for bus parameter of heat production 1 (Q1)
-        elif bus.param == 'Q1':
+        elif bus['param'] == 'Q1':
             i = self.inl[0]
             o = self.outl[0]
             val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(val / bus.P_ref)
-            return val * bus.char.evaluate(expr)
-
         ######################################################################
         # value for bus parameter of heat production 2 (Q2)
-        elif bus.param == 'Q2':
+        elif bus['param'] == 'Q2':
             i = self.inl[1]
             o = self.outl[1]
             val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(val / bus.P_ref)
-            return val * bus.char.evaluate(expr)
-
         ######################################################################
         # value for bus parameter of heat loss (Qloss)
-        elif bus.param == 'Qloss':
-            Q = self.calc_Qloss()
-            if np.isnan(bus.P_ref):
-                expr = 1
-            else:
-                expr = abs(Q / bus.P_ref)
-            return Q * bus.char.evaluate(expr)
+        elif bus['param'] == 'Qloss':
+            val = self.calc_Qloss()
 
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = ('The parameter ' + str(bus.param) +
+            msg = ('The parameter ' + str(bus['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
             logging.error(msg)
             raise ValueError(msg)
+
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -2877,18 +2842,20 @@ class combustion_engine(combustion_chamber):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 7 + self.num_vars, self.num_nw_vars))
-        f = self.bus_func
+        f = self.calc_bus_value
+        b = bus.comps.loc[self]
 
         ######################################################################
         # derivatives for bus parameter of thermal input (TI)
-        if bus.param == 'TI':
+        if b['param'] == 'TI':
             for i in [2, 3, 6]:
                 deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
                 deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
 
         ######################################################################
-        # derivatives for bus parameter of power production (P)
-        elif bus.param == 'P':
+        # derivatives for bus parameter of power production (P) or
+        # heat loss (Qloss)
+        elif b['param'] == 'P' or b['param'] == 'Qloss':
             for i in [2, 3, 6]:
                 deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
                 deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
@@ -2900,7 +2867,7 @@ class combustion_engine(combustion_chamber):
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)
-        elif bus.param == 'Q':
+        elif b['param'] == 'Q':
             for i in range(2):
                 deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
                 deriv[0, i, 2] = self.numeric_deriv(f, 'h', i, bus=bus)
@@ -2908,34 +2875,22 @@ class combustion_engine(combustion_chamber):
 
         ######################################################################
         # derivatives for bus parameter of heat production 1 (Q1)
-        elif bus.param == 'Q1':
+        elif b['param'] == 'Q1':
             deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
             deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
             deriv[0, 4, 2] = self.numeric_deriv(f, 'h', 4, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 2 (Q2)
-        elif bus.param == 'Q2':
+        elif b['param'] == 'Q2':
             deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
             deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
             deriv[0, 5, 2] = self.numeric_deriv(f, 'h', 5, bus=bus)
 
         ######################################################################
-        # derivatives for bus parameter of heat loss (Qloss)
-        elif bus.param == 'Qloss':
-            for i in [2, 3, 6]:
-                deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
-                deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
-
-            # variable power
-            if self.P.is_var:
-                deriv[0, 7 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(f, 'P', 7, bus=bus))
-
-        ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = ('The parameter ' + str(bus.param) +
+            msg = ('The parameter ' + str(b['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
             logging.error(msg)
             raise ValueError(msg)

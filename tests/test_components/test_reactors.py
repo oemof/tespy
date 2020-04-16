@@ -57,7 +57,7 @@ class TestReactors:
         # check bus function:
         # power output on component and bus must be indentical
         power = bus('power')
-        power.add_comps({'c': self.instance, 'p': 'P'})
+        power.add_comps({'comp': self.instance, 'param': 'P'})
         power.set_attr(P=2.5e6)
         self.nw.add_busses(power)
 
@@ -71,7 +71,7 @@ class TestReactors:
         # check bus function:
         # heat output on component and bus must be indentical
         heat = bus('heat')
-        heat.add_comps({'c': self.instance, 'p': 'Q'})
+        heat.add_comps({'comp': self.instance, 'param': 'Q'})
         heat.set_attr(P=-8e5)
         self.nw.add_busses(heat)
 

@@ -834,7 +834,7 @@ class network:
         # unset design values for busses
         for b in self.busses.values():
             for cp in b.comps.index:
-                b.comps.loc[cp].P_ref = np.nan
+                b.comps.loc[cp, 'P_ref'] = np.nan
 
         series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
@@ -929,27 +929,28 @@ class network:
             if c not in not_required:
                 path = hlp.modify_path_os(
                     self.design_path + '/components/' + c + '.csv')
-                msg = ('Reading design point information for components of '
-                       'type ' + c + ' from path ' + path + '.')
+                msg = (
+                    'Reading design point information for components of type '
+                    + c + ' from path ' + path + '.')
                 logging.debug(msg)
 
                 # read data
-                df = pd.read_csv(path, sep=';', decimal='.',
-                                 converters={'busses': ast.literal_eval,
-                                             'bus_P_ref': ast.literal_eval})
+                df = pd.read_csv(
+                    path, sep=';', decimal='.', converters={
+                        'busses': ast.literal_eval,
+                        'bus_P_ref': ast.literal_eval})
                 df.set_index('label', inplace=True)
                 # iter through all components of this type and set data
                 for c_label in df.index:
-                    comp = cp_sort.loc[c_label].comp
+                    comp = cp_sort.loc[c_label, 'comp']
                     # read data of components with individual design_path
                     if comp.design_path is not None:
                         path_c = hlp.modify_path_os(
                             comp.design_path + '/components/' + c + '.csv')
-                        df_c = pd.read_csv(path_c, sep=';', decimal='.',
-                                           converters={
-                                                 'busses': ast.literal_eval,
-                                                 'bus_P_ref': ast.literal_eval
-                                                 })
+                        df_c = pd.read_csv(
+                            path_c, sep=';', decimal='.', converters={
+                                 'busses': ast.literal_eval,
+                                 'bus_P_ref': ast.literal_eval})
                         df_c.set_index('label', inplace=True)
                         data = df_c.loc[comp.label]
 
@@ -1011,7 +1012,7 @@ class network:
         i = 0
         for b in data.busses:
             bus = self.busses[b].comps
-            bus.loc[component].P_ref = data.bus_P_ref[i]
+            bus.loc[component, 'P_ref'] = data['bus_P_ref'][i]
             i += 1
 
     def init_conn_design_params(self, c, df):
@@ -1037,18 +1038,23 @@ class network:
         if len(conn.index) > 0:
             # read connection information
             conn_id = conn.index[0]
-            c.m.design = df.loc[conn_id].m * self.m[df.loc[conn_id].m_unit]
-            c.p.design = df.loc[conn_id].p * self.p[df.loc[conn_id].p_unit]
-            c.h.design = df.loc[conn_id].h * self.h[df.loc[conn_id].h_unit]
-            c.v.design = df.loc[conn_id].v * self.v[df.loc[conn_id].v_unit]
-            c.x.design = df.loc[conn_id].x * self.x[df.loc[conn_id].x_unit]
-            c.T.design = ((df.loc[conn_id]['T'] +
-                           self.T[df.loc[conn_id].T_unit][0]) *
-                          self.T[df.loc[conn_id].T_unit][1])
-            c.Td_bp.design = (df.loc[conn_id].Td_bp *
-                              self.T[df.loc[conn_id].T_unit][1])
+            c.m.design = (
+                df.loc[conn_id, 'm'] * self.m[df.loc[conn_id, 'm_unit']])
+            c.p.design = (
+                df.loc[conn_id, 'p'] * self.p[df.loc[conn_id, 'p_unit']])
+            c.h.design = (
+                df.loc[conn_id, 'h'] * self.h[df.loc[conn_id, 'h_unit']])
+            c.v.design = (
+                df.loc[conn_id, 'v'] * self.v[df.loc[conn_id, 'v_unit']])
+            c.x.design = (
+                df.loc[conn_id, 'x'] * self.x[df.loc[conn_id, 'x_unit']])
+            c.T.design = ((df.loc[conn_id, 'T'] +
+                           self.T[df.loc[conn_id, 'T_unit']][0]) *
+                          self.T[df.loc[conn_id, 'T_unit']][1])
+            c.Td_bp.design = (df.loc[conn_id, 'Td_bp'] *
+                              self.T[df.loc[conn_id, 'T_unit']][1])
             for fluid in self.fluids:
-                c.fluid.design[fluid] = df.loc[conn_id][fluid]
+                c.fluid.design[fluid] = df.loc[conn_id, fluid]
         else:
             # no matches in the connections of the network and the design files
             msg = (
@@ -1526,17 +1532,17 @@ class network:
                 # overwrite SI-values with values from init_file,
                 # except user specified values
                 if c.m.val_set is False:
-                    c.m.val_SI = (df.loc[conn_id].m *
-                                  self.m[df.loc[conn_id].m_unit])
+                    c.m.val_SI = (df.loc[conn_id, 'm'] *
+                                  self.m[df.loc[conn_id, 'm_unit']])
                 if c.p.val_set is False:
-                    c.p.val_SI = (df.loc[conn_id].p *
-                                  self.p[df.loc[conn_id].p_unit])
+                    c.p.val_SI = (df.loc[conn_id, 'p'] *
+                                  self.p[df.loc[conn_id, 'p_unit']])
                 if c.h.val_set is False:
-                    c.h.val_SI = (df.loc[conn_id].h *
-                                  self.h[df.loc[conn_id].h_unit])
+                    c.h.val_SI = (df.loc[conn_id, 'h'] *
+                                  self.h[df.loc[conn_id, 'h_unit']])
                 for fluid in self.fluids:
                     if c.fluid.val_set[fluid] is False:
-                        c.fluid.val[fluid] = df.loc[conn_id][fluid]
+                        c.fluid.val[fluid] = df.loc[conn_id, fluid]
 
                 # overwrite starting values
                 c.m.val0 = c.m.val_SI / self.m[c.m.unit]
@@ -1710,7 +1716,7 @@ class network:
                     self.lin_dep):
                 break
 
-            if self.iter > 20:
+            if self.iter > 40:
                 if (all(self.res[(self.iter - 3):] >= self.res[-2] * 0.95) and
                         self.res[-1] >= self.res[-2] * 0.95):
                     self.progress = False
@@ -2443,16 +2449,14 @@ class network:
         - Place partial derivatives in jacobian matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq
-        for b in self.busses.values():
-            if b.P.is_set is True:
+        for bus in self.busses.values():
+            if bus.P.is_set is True:
                 P_res = 0
-                for cp in b.comps.index:
+                for cp in bus.comps.index:
                     i = self.comps.loc[cp, 'inlets'].tolist()
                     o = self.comps.loc[cp, 'outlets'].tolist()
 
-                    bus = b.comps.loc[cp]
-
-                    P_res += cp.bus_func(bus)
+                    P_res += cp.calc_bus_value(bus)
                     deriv = -cp.bus_deriv(bus)
 
                     j = 0
@@ -2465,7 +2469,7 @@ class network:
                         self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.residual[row] = b.P.val - P_res
+                self.residual[row] = bus.P.val - P_res
 
                 row += 1
 
@@ -2479,13 +2483,15 @@ class network:
             b.P.val = 0
             for cp in b.comps.index:
                 # get components bus func value
-                val = cp.bus_func(b.comps.loc[cp])
+                val = cp.calc_bus_value(b)
+                b.P.val += val
                 # save as reference value
                 if self.mode == 'design':
-                    b.comps.loc[cp].P_ref = (
-                        cp.bus_func(b.comps.loc[cp]) /
-                        abs(b.comps.loc[cp].char.evaluate(1)))
-                b.P.val += val
+                    if b.comps.loc[cp, 'base'] == 'component':
+                        b.comps.loc[cp, 'P_ref'] = (
+                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                    else:
+                        b.comps.loc[cp, 'P_ref'] = val
 
         # connections
         for c in self.conns.index:
@@ -2575,21 +2581,29 @@ class network:
                         )
         if len(df) > 0:
             print('##### RESULTS (connections) #####')
-            print(tabulate(df, headers='keys', tablefmt='psql',
-                           floatfmt='.3e'))
+            print(
+                tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
         for b in self.busses.values():
-            df = pd.DataFrame(columns=['component', 'value'])
+            df = pd.DataFrame(columns=[
+                'component', 'comp value', 'bus value', 'efficiency'])
             if b.printout is True:
                 df['cp'] = b.comps.index
-                df['ref'] = b.comps['P_ref'].values
+                df['base'] = b.comps['base'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
-                df['value'] = df['cp'].apply(
-                    lambda x: x.bus_func(b.comps.loc[x]))
+                df['bus value'] = df['cp'].apply(
+                    lambda x: x.calc_bus_value(b))
+                df['efficiency'] = df['cp'].apply(
+                    lambda x: x.calc_bus_efficiency(b))
+                df.loc[df['base'] == 'component', 'comp value'] = (
+                    df['bus value'] / df['efficiency'])
+                df.loc[df['base'] == 'bus', 'comp value'] = (
+                    df['bus value'] * df['efficiency'])
+                df.drop(['cp', 'base'], axis=1, inplace=True)
                 df.loc['total'] = df.sum()
+                df.loc['total', 'efficiency'] = np.nan
                 df.loc['total', 'component'] = 'total'
                 df.set_index('component', inplace=True)
-                df.drop('cp', axis=1, inplace=True)
                 print('##### RESULTS (' + b.label + ') #####')
                 print(tabulate(df, headers='keys', tablefmt='psql',
                                floatfmt='.3e'))
@@ -2773,12 +2787,12 @@ class network:
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
 
         # busses
-        cp_sort['busses'] = cp_sort.apply(network.get_busses, axis=1,
-                                          args=(busses,))
+        cp_sort['busses'] = cp_sort.apply(
+            network.get_busses, axis=1, args=(busses,))
 
-        for var in ['param', 'P_ref', 'char']:
-            cp_sort['bus_' + var] = cp_sort.apply(network.get_bus_data, axis=1,
-                                                  args=(busses, var))
+        for var in ['param', 'P_ref', 'char', 'base']:
+            cp_sort['bus_' + var] = cp_sort.apply(
+                network.get_bus_data, axis=1, args=(busses, var))
 
         pd.options.mode.chained_assignment = None
         f = network.get_props
@@ -2795,38 +2809,37 @@ class network:
             for col, data in df.index[0].variables.items():
                 # component characteristics container
                 if isinstance(data, dc.dc_cc):
-                    df[col] = df.apply(f, axis=1,
-                                       args=(col, 'func')).astype(str)
+                    df[col] = df.apply(
+                        f, axis=1, args=(col, 'func')).astype(str)
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
-                    df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'is_set'))
-                    df[col + '_param'] = df.apply(f, axis=1,
-                                                  args=(col, 'param'))
+                    df[col + '_set'] = df.apply(
+                        f, axis=1, args=(col, 'is_set'))
+                    df[col + '_param'] = df.apply(
+                        f, axis=1, args=(col, 'param'))
 
                 # component characteristic map container
                 elif isinstance(data, dc.dc_cm):
-                    df[col] = df.apply(f, axis=1,
-                                       args=(col, 'func')).astype(str)
-                    df[col] = df[col].str.extract(r' at (.*?)>',
-                                                  expand=False)
-                    df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'is_set'))
-                    df[col + '_param'] = df.apply(f, axis=1,
-                                                  args=(col, 'param'))
+                    df[col] = df.apply(
+                        f, axis=1, args=(col, 'func')).astype(str)
+                    df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
+                    df[col + '_set'] = df.apply(
+                        f, axis=1, args=(col, 'is_set'))
+                    df[col + '_param'] = df.apply(
+                        f, axis=1, args=(col, 'param'))
 
                 # component property container
                 elif isinstance(data, dc.dc_cp):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
-                    df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'is_set'))
-                    df[col + '_var'] = df.apply(f, axis=1,
-                                                args=(col, 'is_var'))
+                    df[col + '_set'] = df.apply(
+                        f, axis=1, args=(col, 'is_set'))
+                    df[col + '_var'] = df.apply(
+                        f, axis=1, args=(col, 'is_var'))
 
                 # component property container
                 elif isinstance(data, dc.dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
-                    df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'is_set'))
+                    df[col + '_set'] = df.apply(
+                        f, axis=1, args=(col, 'is_set'))
 
                 # component property container
                 elif isinstance(data, dc.dc_gcp):
@@ -2837,8 +2850,8 @@ class network:
             df.drop('outlets', axis=1, inplace=True)
             fn = path + c + '.csv'
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-            logging.debug('Component information (' + c + ') saved to ' +
-                          fn + '.')
+            logging.debug(
+                'Component information (' + c + ') saved to ' + fn + '.')
 
     def save_busses(self, fn):
         r"""
@@ -2850,8 +2863,8 @@ class network:
             Path/filename for the file.
         """
         if len(self.busses) > 0:
-            df = pd.DataFrame({'id': self.busses.values()},
-                              index=self.busses.values())
+            df = pd.DataFrame(
+                {'id': self.busses.values()}, index=self.busses.values())
             df['label'] = df.apply(network.get_props, axis=1, args=('label',))
             df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
             df['P_set'] = df.apply(network.get_props, axis=1,
@@ -2882,13 +2895,13 @@ class network:
 
             for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cc):
-                    chars += df.apply(network.get_props, axis=1,
-                                      args=(col, 'func')).tolist()
+                    chars += df.apply(
+                        network.get_props, axis=1, args=(col, 'func')).tolist()
 
         # characteristic lines in busses
         for bus in self.busses.values():
             for c in bus.comps.index:
-                ch = bus.comps.loc[c].char
+                ch = bus.comps.loc[c, 'char']
                 if ch not in chars:
                     chars += [ch]
 
@@ -2905,8 +2918,8 @@ class network:
             # write to char.csv
             fn = path + 'char_line.csv'
             df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logging.debug('Characteristic line information saved to ' + fn +
-                          '.')
+            logging.debug(
+                'Characteristic line information saved to ' + fn + '.')
 
         # characteristic maps in components
         chars = []
@@ -2931,8 +2944,8 @@ class network:
             # write to char_map.csv
             fn = path + 'char_map.csv'
             df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logging.debug('Characteristic map information saved to ' + fn +
-                          '.')
+            logging.debug(
+                'Characteristic map information saved to ' + fn + '.')
 
     def get_id(c):
         """Return the id of the python object."""
@@ -2985,12 +2998,12 @@ class network:
         if args[1] == 'char':
             for bus in args[0]:
                 if c.name in bus.comps.index:
-                    val = bus.comps.loc[c.name][args[1]]
+                    val = bus.comps.loc[c.name, args[1]]
                     items += [str(val)[str(val).find(' at ') + 4:-1]]
 
         else:
             for bus in args[0]:
                 if c.name in bus.comps.index:
-                    items += [bus.comps.loc[c.name][args[1]]]
+                    items += [bus.comps.loc[c.name, args[1]]]
 
         return items

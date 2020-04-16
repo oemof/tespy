@@ -17,9 +17,10 @@ import logging
 from tespy.tools.characteristics import char_line, char_map, compressor_map
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import (
-        data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple
-        )
+    data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple)
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.helpers import (
+    bus_char_derivative, bus_char_evaluation, newton)
 
 # %%
 
@@ -363,6 +364,107 @@ class component:
 
     def equations(self):
         return
+
+    def calc_bus_efficiency(self, bus):
+        r"""
+        Return the busses' efficiency.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            Bus to calculate the efficiency value on.
+
+        Returns
+        -------
+        efficiency : float
+            Efficiency value of the bus.
+
+            .. math::
+
+                \eta_\mathrm{bus} = \begin{cases}
+                \eta\left(
+                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
+                \text{bus base = 'bus'}\\
+                \eta\left(
+                \frac{\dot{E}_\mathrm{component}}
+                {\dot{E}_\mathrm{component,ref}}\right) &
+                \text{bus base = 'component'}
+                \end{cases}
+
+        Note
+        ----
+        If the base value of the bus is the bus value itself, a newton
+        iteration is used to find the bus value satisfying the corresponding
+        equation (case 1).
+        """
+        b = bus.comps.loc[self]
+        comp_val = self.bus_func(b)
+        if np.isnan(b['P_ref']):
+            expr = 1
+        else:
+            if b['base'] == 'component':
+                expr = abs(comp_val / b['P_ref'])
+            else:
+                bus_value = newton(
+                    bus_char_evaluation,
+                    bus_char_derivative,
+                    [comp_val, b['P_ref'], b['char']], 0,
+                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                expr = bus_value / b['P_ref']
+
+        return b['char'].evaluate(expr)
+
+    def calc_bus_value(self, bus):
+        r"""
+        Return the busses' value of the component's energy transfer.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            Bus to calculate energy transfer on.
+
+        Returns
+        -------
+        bus_value : float
+            Value of the energy transfer on the specified bus.
+
+            .. math::
+
+                \dot{E}_\mathrm{bus} = \begin{cases}
+                \frac{\dot{E}_\mathrm{component}}{f\left(
+                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
+                \text{bus base = 'bus'}\\
+                \dot{E}_\mathrm{component} \cdot f\left(
+                \frac{\dot{E}_\mathrm{component}}
+                {\dot{E}_\mathrm{component,ref}}\right) &
+                \text{bus base = 'component'}
+                \end{cases}
+
+        Note
+        ----
+        If the base value of the bus is the bus value itself, a newton
+        iteration is used to find the bus value satisfying the corresponding
+        equation (case 1).
+        """
+        b = bus.comps.loc[self]
+        comp_val = self.bus_func(b)
+        if np.isnan(b['P_ref']):
+            expr = 1
+        else:
+            if b['base'] == 'component':
+                expr = abs(comp_val / b['P_ref'])
+            else:
+                bus_value = newton(
+                    bus_char_evaluation,
+                    bus_char_derivative,
+                    [comp_val, b['P_ref'], b['char']], 0,
+                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                return bus_value
+
+        if b['base'] == 'component':
+            return comp_val * b['char'].evaluate(expr)
+        else:
+            return comp_val / b['char'].evaluate(expr)
 
     def derivatives(self, increment_filter):
         return

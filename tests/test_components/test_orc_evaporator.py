@@ -79,7 +79,7 @@ class TestOrcEvaporator:
         self.instance.set_attr(Q=np.nan)
         P = 6.64e+07
         b = bus('heat transfer', P=P)
-        b.add_comps({'c': self.instance})
+        b.add_comps({'comp': self.instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

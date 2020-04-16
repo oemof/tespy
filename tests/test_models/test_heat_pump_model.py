@@ -64,9 +64,9 @@ class TestHeatPump:
 
         # busses
         self.power = bus('total compressor power')
-        self.power.add_comps({'c': cp1}, {'c': cp2})
+        self.power.add_comps({'comp': cp1}, {'comp': cp2})
         self.heat = bus('total delivered heat')
-        self.heat.add_comps({'c': cd, 'char': -1})
+        self.heat.add_comps({'comp': cd, 'char': -1})
         self.nw.add_busses(self.power, self.heat)
 
         # %% connections
@@ -259,6 +259,8 @@ class TestHeatPump:
         """
         self.nw.solve('design')
         self.nw.save('tmp')
+        self.nw.print_results()
+
         self.nw.print_results()
 
         # input values from ebsilon

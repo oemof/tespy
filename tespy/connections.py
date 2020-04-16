@@ -18,14 +18,16 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 import pandas as pd
-
 import logging
-
+from tespy.components.components import component
 from tespy.tools.characteristics import char_line
 from tespy.tools.data_containers import dc_cp, dc_flu, dc_prop, dc_simple
 from tespy.tools.helpers import TESPyConnectionError
+import warnings
 
-from tespy.components.components import component
+
+# pass the warning messages to the logger
+logging.captureWarnings(True)
 
 
 class connection:
@@ -553,24 +555,6 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
-    def get_fluid_properties(self):
-        r"""
-        Get the connection's fluid properties in user specified unit.
-
-        Returns
-        -------
-        out : dict
-            Fluid properties of connection.
-        """
-        return {
-            'p': self.p.val,
-            'h': self.h.val,
-            'T': self.T.val,
-            's': self.s.val,
-            'v': self.vol.val,
-            'Q': self.x.val
-        }
-
     @staticmethod
     def attr():
         r"""
@@ -724,12 +708,12 @@ class bus:
     >>> heat_bus.P.is_set
     False
 
-    >>> power_bus.add_comps({'c': chp, 'char': gen, 'p': 'P'},
-    ... {'c': pu, 'char': mot})
-    >>> heat_bus.add_comps({'c': chp, 'p': 'Q'},
-    ... {'c': fgc, 'char': -1})
-    >>> fuel_bus.add_comps({'c': chp, 'p': 'TI'},
-    ... {'c': pu, 'char': mot})
+    >>> power_bus.add_comps({'comp': chp, 'char': gen, 'param': 'P'},
+    ... {'comp': pu, 'char': mot})
+    >>> heat_bus.add_comps({'comp': chp, 'param': 'Q'},
+    ... {'comp': fgc, 'char': -1})
+    >>> fuel_bus.add_comps({'comp': chp, 'param': 'TI'},
+    ... {'comp': pu, 'char': mot})
     >>> nw.add_busses(power_bus, heat_bus, fuel_bus)
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
@@ -752,7 +736,7 @@ class bus:
     12553049.0
     >>> round(heat_bus.P.val, 0)
     12553049.0
-    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 2)
+    >>> round(1 / pu.calc_bus_efficiency(power_bus), 2)
     0.98
     >>> power_bus.set_attr(P=7.5e6)
     >>> mode = 'offdesign'
@@ -761,14 +745,15 @@ class bus:
     21187528.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
-    >>> round(pu.P.val / pu.bus_func(power_bus.comps.loc[pu]), 3)
+    >>> round(1 / pu.calc_bus_efficiency(power_bus), 3)
     0.967
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     def __init__(self, label, **kwargs):
 
-        self.comps = pd.DataFrame(columns=['param', 'P_ref', 'char'])
+        self.comps = pd.DataFrame(
+            columns=['param', 'P_ref', 'char', 'efficiency', 'base'])
 
         self.label = label
         self.P = dc_cp(val=np.nan, is_set=False)
@@ -859,17 +844,20 @@ class bus:
 
         Parameters
         ----------
-        c : dict
-            Dictionary containing the component information to be added to the
-            bus. These information are described in the notes!
+        *args : dict
+            Dictionaries containing the component information to be added to
+            the bus. The information are described below.
 
         Note
         ----
-        Keys for the dictionary c:
+        **Required Key**
 
-        - c (tespy.components.components.component): Component you want to add
-          to the bus.
-        - p (str): Bus parameter, optional.
+        - comp (tespy.components.components.component): Component you want to
+          add to the bus.
+
+        **Optional Keys**
+
+        - param (str): Bus parameter, optional.
 
             - You do not need to provide a parameter, if the component only has
               one option for the bus (turbomachines, heat exchangers,
@@ -890,44 +878,75 @@ class bus:
 
         - P_ref (float): Energy flow specification for reference case,
           :math:`P \text{/W}`, optional.
+        - base (str): Base value for characteristic line and efficiency
+          calculation. The base can either be :code:`'component'` (default) or
+          :code:`'bus'`.
+
+            - In case you choose :code:`'component'`, the characteristic line
+              input will follow the value of the component's bus function and
+              the efficiency definition is
+              :math:`\eta=\frac{P_\mathrm{bus}}{P_\mathrm{component}}`.
+            - In case you choose :code:`'bus'`, the characteristic line
+              input will follow the bus value of the component and the
+              efficiency definition is
+              :math:`\eta=\frac{P_\mathrm{component}}{P_\mathrm{bus}}`.
         """
         for c in args:
             if isinstance(c, dict):
-                if 'c' in c.keys():
-                    if isinstance(c['c'], component):
-                        self.comps.loc[c['c']] = [None, np.nan, self.char]
+                if 'comp' in c.keys() or 'c' in c.keys():
+                    if 'c' in c.keys():
+                        comp = c['c']
+                        msg = (
+                            'The dictionary keyword "c" will be removed in '
+                            'TESPy version 0.3.2. Please use "comp" instead.')
+                        warnings.warn(msg, FutureWarning, stacklevel=2)
                     else:
-                        msg = ('Keyword c must hold a TESPy component.')
+                        comp = c['comp']
+                    # default values
+                    if isinstance(comp, component):
+                        self.comps.loc[comp] = [
+                            None, np.nan, self.char, np.nan, 'component']
+                    else:
+                        msg = 'Keyword "comp" must hold a TESPy component.'
                         logging.error(msg)
                         raise TypeError(msg)
                 else:
-                    msg = ('You must provide the component c.')
+                    msg = 'You must provide the component "comp".'
                     logging.error(msg)
                     raise TypeError(msg)
 
                 for k, v in c.items():
-                    if k == 'p':
+                    if k == 'param' or k == 'p':
+                        if k == 'p':
+                            msg = (
+                                'The dictionary keyword "p" will be removed '
+                                'TESPy version 0.3.2. Please use "param" '
+                                'instead.')
+                            warnings.warn(msg, FutureWarning, stacklevel=2)
                         if isinstance(v, str) or v is None:
-                            self.comps.loc[c['c']]['param'] = v
+                            self.comps.loc[comp, 'param'] = v
                         else:
-                            msg = ('Parameter p must be a string.')
+                            msg = (
+                                'The bus parameter selection must be a '
+                                'string (at bus ' + self.label + ').')
                             logging.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'char':
                         if isinstance(v, char_line):
-                            self.comps.loc[c['c']]['char'] = v
+                            self.comps.loc[comp, 'char'] = v
                         elif (isinstance(v, float) or
                               isinstance(v, np.float64) or
                               isinstance(v, np.int64) or
                               isinstance(v, int)):
                             x = np.array([0, 3])
                             y = np.array([1, 1]) * v
-                            self.comps.loc[c['c']]['char'] = (
+                            self.comps.loc[comp, 'char'] = (
                                     char_line(x=x, y=y))
                         else:
-                            msg = ('Char must be a number or a TESPy '
-                                   'characteristics.')
+                            msg = (
+                                'Char must be a number or a TESPy '
+                                'characteristics.')
                             logging.error(msg)
                             raise TypeError(msg)
 
@@ -936,19 +955,30 @@ class bus:
                                 isinstance(v, np.float64) or
                                 isinstance(v, np.int64) or
                                 isinstance(v, int)):
-                            self.comps.loc[c['c']]['P_ref'] = v
+                            self.comps.loc[comp, 'P_ref'] = v
                         else:
-                            msg = ('Reference value must be numeric.')
+                            msg = 'Reference value must be numeric.'
                             logging.error(msg)
                             raise TypeError(msg)
+
+                    elif k == 'base':
+                        if v in ['bus', 'component']:
+                            self.comps.loc[comp, 'base'] = v
+                        else:
+                            msg = (
+                                'The base value must be "bus" or "component".')
+                            logging.error(msg)
+                            raise ValueError(msg)
+
             else:
                 msg = ('Provide arguments as dicts. See the documentation of '
                        'bus.add_comps() for more information.')
                 logging.error(msg)
                 raise TypeError(msg)
 
-            msg = ('Added component ' + c['c'].label + ' to bus ' +
-                   self.label + '.')
+            msg = (
+                'Added component ' + comp.label + ' to bus ' +
+                self.label + '.')
             logging.debug(msg)
 
 

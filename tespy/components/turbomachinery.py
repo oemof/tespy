@@ -254,7 +254,7 @@ class turbomachine(component):
 
     def bus_func(self, bus):
         r"""
-        Calculate the residual value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -264,21 +264,20 @@ class turbomachine(component):
         Returns
         -------
         val : float
-            Residual value of equation.
+            Value of energy transfer :math:`\dot{E}`. This value is passed to
+            :py:meth:`tespy.components.components.component.calc_bus_value`
+            for value manipulation according to the specified characteristic
+            line of the bus.
 
             .. math::
 
-                P = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)\\
-                val = P \cdot f_{char}\left( \frac{P}{P_{ref}}\right)
+                \dot{E} = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         val = i[0] * (o[2] - i[2])
-        if np.isnan(bus.P_ref):
-            expr = 1
-        else:
-            expr = abs(val / bus.P_ref)
-        return val * bus.char.evaluate(expr)
+
+        return val
 
     def bus_deriv(self, bus):
         r"""
@@ -295,7 +294,7 @@ class turbomachine(component):
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2, self.num_nw_vars))
-        f = self.bus_func
+        f = self.calc_bus_value
         deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
         deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
         deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)

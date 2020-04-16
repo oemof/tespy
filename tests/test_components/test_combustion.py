@@ -76,7 +76,7 @@ class TestCombustion:
 
         # test specified bus value on combustion_chamber (must be equal to ti)
         b = bus('thermal input', P=1e6)
-        b.add_comps({'c': instance})
+        b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -130,11 +130,11 @@ class TestCombustion:
         Q = bus('heat output')
         Qloss = bus('thermal heat loss')
 
-        TI.add_comps({'c': instance, 'p': 'TI'})
-        Q1.add_comps({'c': instance, 'p': 'Q1'})
-        Q2.add_comps({'c': instance, 'p': 'Q2'})
-        Q.add_comps({'c': instance, 'p': 'Q'})
-        Qloss.add_comps({'c': instance, 'p': 'Qloss'})
+        TI.add_comps({'comp': instance, 'param': 'TI'})
+        Q1.add_comps({'comp': instance, 'param': 'Q1'})
+        Q2.add_comps({'comp': instance, 'param': 'Q2'})
+        Q.add_comps({'comp': instance, 'param': 'Q'})
+        Qloss.add_comps({'comp': instance, 'param': 'Qloss'})
 
         self.nw.add_busses(TI, Q1, Q2, Q, Qloss)
 

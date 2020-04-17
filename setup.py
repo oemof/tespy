@@ -41,8 +41,8 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     include_package_data=True,
     zip_safe=False,
-    data_files=[('tespy/data', [
-        'tespy/data/char_lines.json', 'tespy/data/char_maps.json'])],
+    data_files=[('src/tespy/data', [
+        'src/tespy/data/char_lines.json', 'src/tespy/data/char_maps.json'])],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

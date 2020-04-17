@@ -29,7 +29,9 @@ setup(
     license='MIT',
     description='Thermal Engineering Systems in Python',
     long_description='%s\n%s' % (
-        re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
+        re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub(
+            '', read('README.rst')
+        ),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
     ),
     author='Francesco Witte',
@@ -41,7 +43,6 @@ setup(
     include_package_data=True,
     zip_safe=False,
     classifiers=[
-        # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
@@ -73,5 +74,4 @@ setup(
     ],
     extras_require={'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme', ],
                     'dummy': ['tespy']}
-    }
 )

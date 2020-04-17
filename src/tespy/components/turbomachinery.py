@@ -687,7 +687,7 @@ class compressor(turbomachine):
         x = np.sqrt(T_mix_ph(i_d) / T_i)
         y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
 
-        pr, eta = self.char_map.func.evaluate(x, y, self.igva.val)
+        pr, eta = self.char_map.func.evaluate(x, y, igva=self.igva.val)
 
         z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
         z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2]) /

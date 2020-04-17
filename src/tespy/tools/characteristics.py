@@ -313,7 +313,7 @@ class char_map:
             z2 = z2arr[ypos - 1] + zfrac * (z2arr[ypos] - z2arr[ypos - 1])
             return z1, z2
 
-    def evaluate(self, x, y):
+    def evaluate(self, x, y, **kwargs):
         r"""
         Evaluate char_map for x and y inputs.
 
@@ -491,7 +491,7 @@ class compressor_map(char_map):
     :code:`igva`.
     """
 
-    def evaluate(self, x, y, igva):
+    def evaluate(self, x, y, **kwargs):
         r"""
         Evaluate compressor_map for x and y inputs.
 
@@ -532,6 +532,7 @@ class compressor_map(char_map):
         Reference: :cite:`GasTurb2018`.
         """
         yarr, z1arr, z2arr = self.evaluate_x(x)
+        igva = kwargs.get('igva', 0)
 
         yarr *= (1 - igva / 100)
         z1arr *= (1 - igva / 100)

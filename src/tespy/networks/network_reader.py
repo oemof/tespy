@@ -34,7 +34,6 @@ import warnings
 logging.captureWarnings(True)
 
 
-global comp_target_classes
 comp_target_classes = {
     'cycle_closer': basics.cycle_closer,
     'sink': basics.sink,
@@ -63,7 +62,6 @@ comp_target_classes = {
 }
 
 
-global map_target_classes
 map_target_classes = {
     'char_map': char_map,
     'compressor_map': compressor_map

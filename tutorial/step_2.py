@@ -28,14 +28,6 @@ cd = condenser('condenser')
 rp = pump('recirculation pump')
 cons = heat_exchanger_simple('consumer')
 
-cp1 = sink('compressor 1')
-
-# consumer system
-
-cd = condenser('condenser')
-rp = pump('recirculation pump')
-cons = heat_exchanger_simple('consumer')
-
 # evaporator system
 
 va = valve('valve')
@@ -43,6 +35,8 @@ dr = drum('drum')
 ev = heat_exchanger('evaporator')
 su = heat_exchanger('superheater')
 pu = pump('pump evaporator')
+
+cp1 = sink('compressor 1')
 
 # %% connections
 

@@ -177,10 +177,10 @@ class tespy_fluid:
             except IndexError:
                 back_end = 'HEOS'
                 fluid = f
-            if f != self.alias:
-                self.fluids_back_ends[f] = back_end
+            if fluid != self.alias:
+                self.fluids_back_ends[fluid] = back_end
             else:
-                self.fluids_back_ends[f] = 'TESPy'
+                self.fluids_back_ends[fluid] = 'TESPy'
 
         memorise.add_fluids(self.fluids_back_ends)
 
@@ -301,6 +301,7 @@ tespy_fluid.fluids = {}
 class memorise:
     r"""Memorization of fluid properties."""
 
+    @staticmethod
     def add_fluids(fluids):
         r"""
         Add list of fluids to fluid memorisation class.
@@ -447,6 +448,7 @@ class memorise:
                        'temperature for convergence check.')
                 logging.debug(msg)
 
+    @staticmethod
     def del_memory(fluids):
         r"""
         Delete non frequently used fluid property values from memorise class.

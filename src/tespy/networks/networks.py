@@ -1887,9 +1887,6 @@ class network:
             if self.iterinfo:
                 print(msg)
 
-        else:
-            pass
-
     def matrix_inversion(self):
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
@@ -1898,7 +1895,6 @@ class network:
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0
-            pass
 
     def solve_control(self):
         r"""
@@ -2437,15 +2433,13 @@ class network:
         # equations and derivatives for specified primary variables are static
         if self.iter == 0:
             for c in self.conns.index:
-                flow = c.to_flow()
                 col = c.conn_loc * self.num_conn_vars
 
                 # specified mass flow, pressure and enthalpy
                 for var, pos in primary_vars.items():
                     if c.get_attr(var).val_set is True:
                         self.residual[k] = 0
-                        self.jacobian[
-                            k, col + pos] = 1
+                        self.jacobian[k, col + pos] = 1
                         k += 1
 
                 j = 0
@@ -2536,6 +2530,7 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
+    @staticmethod
     def process_components(cols):
         cols.name.calc_parameters()
 
@@ -2963,14 +2958,17 @@ class network:
             logging.debug(
                 'Characteristic map information saved to ' + fn + '.')
 
+    @staticmethod
     def get_id(c):
         """Return the id of the python object."""
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
 
+    @staticmethod
     def get_class_base(c):
         """Return the class name."""
         return c.name.__class__.__name__
 
+    @staticmethod
     def get_props(c, *args):
         """Return properties."""
         if hasattr(c.name, args[0]):
@@ -3000,6 +2998,7 @@ class network:
             else:
                 return c.name.get_attr(args[0])
 
+    @staticmethod
     def get_busses(c, *args):
         """Return the list of busses a component is integrated in."""
         busses = []
@@ -3008,6 +3007,7 @@ class network:
                 busses += [bus.label]
         return busses
 
+    @staticmethod
     def get_bus_data(c, *args):
         """Return bus information of a component."""
         items = []

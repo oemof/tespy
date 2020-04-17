@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 
 import os
 import logging
+from logging import handlers
 import sys
 import tespy
 
@@ -124,7 +125,7 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     if timed_rotating is not None:
         timed_rotating_p.update(timed_rotating)
 
-    fh = logging.handlers.TimedRotatingFileHandler(file, **timed_rotating_p)
+    fh = handlers.TimedRotatingFileHandler(file, **timed_rotating_p)
     fh.setFormatter(tmp_formatter)
     fh.setLevel(file_level)
     log.addHandler(fh)

@@ -12,13 +12,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-import tespy
-import sphinx_rtd_theme
 import json
-from pkg_resources import resource_filename
 from matplotlib import pyplot as plt
+import os
+from pkg_resources import resource_filename
+import sphinx_rtd_theme
+import sys
+import tespy
 
 
 def get_char_data(filename):

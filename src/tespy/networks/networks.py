@@ -557,7 +557,7 @@ class network:
     def check_conns(self):
         r"""Check connections for multiple usage of inlets or outlets."""
         dub = self.conns.loc[
-            self.conns.duplicated(['source', 'source_id']) == True]
+            self.conns.duplicated(['source', 'source_id']) == True]  # noqa: F712
         for c in dub.index:
             targets = ''
             for conns in self.conns[
@@ -574,7 +574,7 @@ class network:
             raise hlp.TESPyNetworkError(msg)
 
         dub = self.conns.loc[
-            self.conns.duplicated(['target', 'target_id']) == True]
+            self.conns.duplicated(['target', 'target_id']) == True]  # noqa: F712
         for c in dub.index:
             sources = ''
             for conns in self.conns[
@@ -1275,7 +1275,7 @@ class network:
             outc['source'] = self.conns['source'] == c.target
             outc['source_id'] = (
                 self.conns['source_id'] == c.target_id.replace('in', 'out'))
-            conn, cid = outc['source'] == True, outc['source_id'] == True
+            conn, cid = outc['source'] == True, outc['source_id'] == True  # noqa: F712
             outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
@@ -1351,7 +1351,7 @@ class network:
             inc['target'] = self.conns['target'] == c.source
             inc['target_id'] = (
                 self.conns['target_id'] == c.source_id.replace('out', 'in'))
-            conn, cid = inc['target'] == True, inc['target_id'] == True
+            conn, cid = inc['target'] == True, inc['target_id'] == True  # noqa: F712
             inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():

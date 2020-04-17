@@ -6,10 +6,10 @@ __version__ = '0.3.0 - dev'
 from .networks import (
     network_reader,
     networks
-    )
+)  # noqa: F401
 
 # tespy connection imports
-from . import connections
+from . import connections  # noqa: F401
 
 # tespy components imports
 from .components import (
@@ -22,10 +22,10 @@ from .components import (
     reactors,
     subsystems,
     turbomachinery
-    )
+)  # noqa: F401
 
 # tespy data
-from . import data
+from . import data  # noqa: F401
 
 # tespy tools imports
 from .tools import (
@@ -35,4 +35,4 @@ from .tools import (
     global_vars,
     helpers,
     logger
-    )
+)  # noqa: F401

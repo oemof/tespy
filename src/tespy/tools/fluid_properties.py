@@ -780,37 +780,37 @@ def T_mix_ps(flow, s, T0=300):
 #                    return val
 #
 #
-#def T_ps(p, s, fluid):
-#    r"""
-#    Calculate the temperature from pressure and entropy for a pure fluid.
+# def T_ps(p, s, fluid):
+#     r"""
+#     Calculate the temperature from pressure and entropy for a pure fluid.
 #
-#    Parameters
-#    ----------
-#    p : float
+#     Parameters
+#     ----------
+#     p : float
 #        Pressure p / Pa.
 #
-#    s : float
+#     s : float
 #        Specific entropy h / (J/(kgK)).
 #
-#    fluid : str
+#     fluid : str
 #        Fluid name.
 #
-#    Returns
-#    -------
-#    T : float
+#     Returns
+#     -------
+#     T : float
 #        Temperature T / K.
-#    """
-#    if 'IDGAS::' in fluid:
-#        msg = 'Ideal gas calculation not available by now.'
-#       logging.warning(msg)
-#    if 'TESPy::' in fluid:
-#        db = tespy_fluid.fluids[fluid].funcs['s_pT']
-#        return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
-#    elif 'INCOMP::' in fluid:
-#        return CPPSI('T', 'P', p, 'H', s, fluid)
-#    else:
-#        memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
-#        return memorise.state[fluid].T()
+#     """
+#     if 'IDGAS::' in fluid:
+#         msg = 'Ideal gas calculation not available by now.'
+#         logging.warning(msg)
+#     if 'TESPy::' in fluid:
+#         db = tespy_fluid.fluids[fluid].funcs['s_pT']
+#         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+#     elif 'INCOMP::' in fluid:
+#         return CPPSI('T', 'P', p, 'H', s, fluid)
+#     else:
+#         memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+#         return memorise.state[fluid].T()
 
 # %%
 
@@ -1221,7 +1221,7 @@ def Q_ph(p, h, fluid):
     try:
         memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return memorise.state[fluid].Q()
-    except (KeyError, ValueError) as e:
+    except (KeyError, ValueError):
         return np.nan
 
 # %%

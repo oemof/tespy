@@ -60,7 +60,7 @@ install TESPy to a virtual Python environment.
 
  1. Install virtualenv using the package management of your Linux distribution,
     pip install or install it from source
-    (`see virtualenv documentation <https://virtualenv.pypa.io/en/stable/installation/>`_)
+    (`see virtualenv documentation <https://virtualenv.pypa.io/en/latest/installation.html>`_)
  2. Open terminal to create and activate a virtual environment by typing:
 
     .. code-block:: console
@@ -104,7 +104,7 @@ not part of your python environment, you have to install the pypi package.
 Using Anaconda
 --------------
 
- 1. Download latest `Anaconda <https://www.continuum.io/downloads#windows>`_
+ 1. Download latest `Anaconda <https://www.anaconda.com/distribution/>`_
     for Python 3.x (64 or 32 bit).
  2. Install Anaconda
  3. Open 'Anaconda Prompt' to create and activate a virtual environment by

@@ -43,5 +43,5 @@ your code could look like this:
 	bus.add_comps({'c': chp, 'p': 'P'})
 
 Enjoy fiddling around with the source code of the
-`combustion engine <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_engine>`_
+`combustion engine <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_engine.py>`_
 in the examples repository!

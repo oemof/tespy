@@ -25,8 +25,8 @@ The combustion chamber is an important component within thermal power plants,
 but unfortunately is the reason for many issues, as the solving algorithm is
 very sensitive to small changes e. g. the fluid composition. We will
 demonstrate how to handle the combustion chamber in a very small, simple
-example. You can download the full code from the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber>`_.
+example. You can download the full code from the
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber.py>`_.
 
 First of all you need to define the network containing all fluid components
 used for the combustion chamber. **These are at least the fuel, oxygen,
@@ -169,8 +169,8 @@ Stoichiometric combustion chamber
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The example for the stoichiometric combustion chamber can as well be taken from
-the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion_chamber>`_.
+the
+`tespy_examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber_stoich.py>`_.
 
 Again, the network must have the information, which fluids will be part of the
 fluid vector. In contrast to the normal combustion chamber, you will need the

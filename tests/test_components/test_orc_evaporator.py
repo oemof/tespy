@@ -7,16 +7,13 @@ available from its original location
 tests/test_components/test_orc_evaporator.py
 SPDX-License-Identifier: MIT
 """
+import numpy as np
+import shutil
 from tespy.components.basics import sink, source
 from tespy.components.customs import orc_evaporator
 from tespy.connections import connection, bus
 from tespy.networks.networks import network
 from tespy.tools.fluid_properties import T_bp_p
-
-import logging
-
-import numpy as np
-import shutil
 
 
 def convergence_check(lin_dep):

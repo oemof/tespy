@@ -9,23 +9,23 @@ tests/test_errors.py
 
 SPDX-License-Identifier: MIT
 """
-from pytest import raises
-
-from tespy.connections import connection, bus, ref
-from tespy.components import (basics, combustion, components, heat_exchangers,
-                              nodes, piping, reactors, subsystems,
-                              turbomachinery)
-from tespy.networks.network_reader import load_network
-from tespy.networks.networks import network
-from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
-                                 TESPyNetworkError, extend_basic_path)
-from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
-from tespy.tools.characteristics import char_map, char_line, load_custom_char
-
 import os
+from pytest import raises
 import shutil
-import csv
+from tespy.components import (
+    basics, combustion, components, nodes, piping, reactors, subsystems,
+    turbomachinery
+)
+from tespy.connections import connection, bus, ref
+from tespy.networks.networks import network
+from tespy.tools.characteristics import char_map, char_line, load_custom_char
+from tespy.tools.data_containers import data_container, dc_cc, dc_flu
+from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
+from tespy.tools.helpers import (
+    TESPyComponentError, TESPyConnectionError, TESPyNetworkError,
+    extend_basic_path
+)
+
 
 ##############################################################################
 # test errors of set_attr and get_attr methods
@@ -63,7 +63,6 @@ def test_set_attr_errors():
     pipeline = piping.pipe('pipeline')
     conn = connection(comb, 'out1', pipeline, 'in1')
     mybus = bus('mybus')
-    sub = subsystems.subsystem('MySub')
 
     # ValueErrors
     set_attr_ValueError(comb, offdesign=['Q'])
@@ -455,7 +454,6 @@ def test_wrong_bus_param_func():
     """Test missing/wrong bus parameter specification in equations."""
     # this test does not need setup, since the function is called without
     # network initialisation
-    nw = network(['H2O', 'O2', 'H2'])
     instance = reactors.water_electrolyzer('electrolyzer')
     some_bus = bus('some_bus')
     param = 'G'
@@ -468,7 +466,6 @@ def test_wrong_bus_param_deriv():
     """Test missing/wrong bus parameter specification in derivatives."""
     # this test does not need setup, since the function is called without
     # network initialisation
-    nw = network(['H2O', 'O2', 'H2'])
     instance = reactors.water_electrolyzer('electrolyzer')
     # required for calling bus_deriv method without network initialisation
     instance.num_vars = 1

@@ -9,7 +9,6 @@ tests/test_tools/test_fluid_properties.py
 
 SPDX-License-Identifier: MIT
 """
-import CoolProp as CP
 import numpy as np
 import shutil
 import os
@@ -20,7 +19,6 @@ from tespy.components import (
 from tespy.connections import connection
 from tespy.networks import network
 from tespy.tools import fluid_properties as fp
-from tespy.tools.global_vars import molar_masses, gas_constants
 
 
 def convergence_check(lin_dep):
@@ -32,7 +30,6 @@ def convergence_check(lin_dep):
 class TestFluidProperties:
 
     def setup(self):
-        fluids = ['Air', 'N2', 'O2', 'Ar', 'CO2']
         fp.memorise.add_fluids({'Air': 'HEOS'})
         fp.memorise.add_fluids({
             'N2': 'HEOS', 'O2': 'HEOS', 'Ar': 'HEOS', 'CO2': 'HEOS'})
@@ -164,7 +161,7 @@ def test_tespy_fluid_mixture():
     pmin = 1e4
     pmax = 1e7
 
-    myfluid = fp.tespy_fluid(
+    fp.tespy_fluid(
         alias='partial', fluid=partial_mix,
         p_range=[pmin, pmax], T_range=[Tmin, Tmax])
 
@@ -278,7 +275,6 @@ class TestFluidPropertyBackEnds:
         # main components
         pu = pump('pump')
         pi = pipe('pipeline')
-        va = valve('valve')
         es = heat_exchanger_simple('energy balance closing')
 
         closer = cycle_closer('cycle closer')
@@ -343,7 +339,6 @@ class TestFluidPropertyBackEnds:
         """Test a pipeline network with fluids from different back ends."""
         fluids_back_ends = {'DowJ': 'INCOMP', 'water': 'HEOS'}
 
-        results = {}
         for fluid, back_end in fluids_back_ends.items():
             # delete the fluid from the memorisation class
             if fluid in fp.memorise.state.keys():

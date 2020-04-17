@@ -24,9 +24,9 @@ from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
 from tespy.tools.data_containers import dc_cc, dc_cm, dc_cp, dc_simple
 from tespy.tools.fluid_properties import (
-    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph, single_fluid)
+    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph, single_fluid
+)
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import TESPyComponentError
 
 # %%
 

@@ -356,8 +356,6 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.save('design1')
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -397,8 +395,6 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.save('design1')
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')

@@ -9,7 +9,6 @@ tests/test_busses.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
 import numpy as np
 import shutil
 from tespy.components.basics import sink, source

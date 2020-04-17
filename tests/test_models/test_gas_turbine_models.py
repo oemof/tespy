@@ -9,8 +9,6 @@ tests/test_models/test_gasturbine_model.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
-import numpy as np
 import shutil
 from tespy.components.basics import sink, source
 from tespy.components.combustion import (

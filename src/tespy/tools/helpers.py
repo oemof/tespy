@@ -8,16 +8,11 @@ available from its original location tespy/tools/helpers.py
 
 SPDX-License-Identifier: MIT
 """
-from tespy.tools.global_vars import (
-        err, molar_masses
-        )
-
 import CoolProp as CP
-
-import numpy as np
-
-import os
 import logging
+import numpy as np
+import os
+from tespy.tools.global_vars import err, molar_masses
 
 
 # %%
@@ -201,7 +196,6 @@ def bus_char_evaluation(params, bus_value):
 
 def bus_char_derivative(params, bus_value):
     """Calculate derivative for bus char evaluation."""
-    comp_value = params[0]
     reference_value = params[1]
     char_func = params[2]
     d = 1e-3

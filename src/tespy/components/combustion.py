@@ -22,11 +22,12 @@ import numpy as np
 from tespy.components.components import component
 from tespy.tools.data_containers import (dc_cc, dc_cp, dc_simple)
 from tespy.tools.fluid_properties import (
-    h_mix_pQ, h_mix_pT, h_pT, memorise, s_mix_ph, s_mix_pT, tespy_fluid,
-    v_mix_ph)
+    h_mix_pQ, h_mix_pT, h_pT, s_mix_ph, s_mix_pT, tespy_fluid, v_mix_ph
+)
 from tespy.tools.global_vars import molar_masses, err
 from tespy.tools.helpers import (
-    fluid_structure, molar_mass_flow, TESPyComponentError)
+    fluid_structure, molar_mass_flow, TESPyComponentError
+)
 
 # %%
 
@@ -2614,7 +2615,7 @@ class combustion_engine(combustion_chamber):
         for i in range(2):
             residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
         residual += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
-                    self.outl[2].m.val_SI]
+                     self.outl[2].m.val_SI]
         return residual
 
     def fluid_deriv(self):

@@ -23,8 +23,7 @@ from numpy.linalg import norm
 import os
 import pandas as pd
 from tabulate import tabulate
-from tespy.components.basics import (
-    sink, source, subsystem_interface, cycle_closer)
+from tespy.components.basics import subsystem_interface, cycle_closer
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger

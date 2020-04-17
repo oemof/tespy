@@ -9,17 +9,15 @@ tests/test_tools/test_characteristics.py
 
 SPDX-License-Identifier: MIT
 """
-
-from tespy.tools.characteristics import (char_line, char_map, compressor_map,
-                                         load_default_char, load_custom_char)
-
-from tespy.tools.helpers import extend_basic_path
-from pkg_resources import resource_filename
-import os
 import json
 import numpy as np
+import os
+from pkg_resources import resource_filename
 import shutil
-import logging
+from tespy.tools.characteristics import (
+    char_line, char_map, compressor_map, load_default_char, load_custom_char
+)
+from tespy.tools.helpers import extend_basic_path
 
 
 def test_custom_char_line_import():

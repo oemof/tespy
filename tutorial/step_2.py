@@ -1,7 +1,8 @@
 from tespy.networks import network
-from tespy.components import (source, sink, cycle_closer,
-                              valve, drum, pump, compressor,
-                              condenser, heat_exchanger_simple, heat_exchanger)
+from tespy.components import (
+    source, sink, cycle_closer, valve, drum, pump, condenser,
+    heat_exchanger_simple, heat_exchanger
+)
 from tespy.connections import connection, ref
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import char_line

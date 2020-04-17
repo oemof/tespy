@@ -14,7 +14,7 @@ import shutil
 from tespy.components.basics import sink, source
 from tespy.components.turbomachinery import (
     turbomachine, compressor, pump, turbine)
-from tespy.connections import connection, bus, ref
+from tespy.connections import connection, ref
 from tespy.networks.networks import network
 from tespy.tools.data_containers import dc_cc, dc_cm
 from tespy.tools.fluid_properties import s_mix_ph

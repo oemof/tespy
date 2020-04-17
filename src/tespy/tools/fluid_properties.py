@@ -14,19 +14,25 @@ available from its original location tespy/tools/fluid_properties.py
 SPDX-License-Identifier: MIT
 """
 
-from collections import OrderedDict
-import CoolProp as CP
-from CoolProp.CoolProp import PropsSI as CPPSI
-import math
-import numpy as np
-import os
-import pandas as pd
-from scipy import interpolate
 import logging
-from tespy.tools.global_vars import err, molar_masses, gas_constants
-from tespy.tools.helpers import (
-    molar_mass_flow, single_fluid, newton, reverse_2d, reverse_2d_deriv
-)
+import math
+import os
+from collections import OrderedDict
+
+import CoolProp as CP
+import numpy as np
+import pandas as pd
+from CoolProp.CoolProp import PropsSI as CPPSI
+from scipy import interpolate
+
+from tespy.tools.global_vars import err
+from tespy.tools.global_vars import gas_constants
+from tespy.tools.global_vars import molar_masses
+from tespy.tools.helpers import molar_mass_flow
+from tespy.tools.helpers import newton
+from tespy.tools.helpers import reverse_2d
+from tespy.tools.helpers import reverse_2d_deriv
+from tespy.tools.helpers import single_fluid
 
 # %%
 

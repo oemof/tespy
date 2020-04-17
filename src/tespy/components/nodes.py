@@ -18,13 +18,18 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
+
 import numpy as np
+
 from tespy.components.components import component
 from tespy.tools.data_containers import dc_simple
+from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import dh_mix_dpQ
+from tespy.tools.fluid_properties import dT_mix_dph
+from tespy.tools.fluid_properties import dT_mix_pdh
+from tespy.tools.fluid_properties import dT_mix_ph_dfluid
+from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import num_fluids
-from tespy.tools.fluid_properties import (
-    T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-    h_mix_pQ, dh_mix_dpQ)
 
 # %%
 

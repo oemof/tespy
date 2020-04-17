@@ -10,19 +10,21 @@ tests/test_networks/test_network.py
 SPDX-License-Identifier: MIT
 """
 
-from pytest import raises
-
-from tespy.connections import connection
-from tespy.components import (basics, heat_exchangers, nodes, piping,
-                              turbomachinery)
-
-from tespy.networks.networks import network
-from tespy.networks.network_reader import load_network
-from tespy.tools.helpers import TESPyNetworkError
+import os
+import shutil
 
 import numpy as np
-import shutil
-import os
+from pytest import raises
+
+from tespy.components import basics
+from tespy.components import heat_exchangers
+from tespy.components import nodes
+from tespy.components import piping
+from tespy.components import turbomachinery
+from tespy.connections import connection
+from tespy.networks.network_reader import load_network
+from tespy.networks.networks import network
+from tespy.tools.helpers import TESPyNetworkError
 
 
 class TestNetworks:

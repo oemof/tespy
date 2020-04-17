@@ -2,37 +2,27 @@
 
 __version__ = '0.3.0 - dev'
 
-# tespy networks imports
-from .networks import (  # noqa: F401
-    network_reader,
-    networks
-)
-
+# tespy data
 # tespy connection imports
 from . import connections  # noqa: F401
-
-# tespy components imports
-from .components import (  # noqa: F401
-    basics,
-    combustion,
-    components,
-    heat_exchangers,
-    nodes,
-    piping,
-    reactors,
-    subsystems,
-    turbomachinery
-)
-
-# tespy data
 from . import data  # noqa: F401
-
+# tespy components imports
+from .components import basics  # noqa: F401
+from .components import combustion  # noqa: F401
+from .components import components  # noqa: F401
+from .components import heat_exchangers  # noqa: F401
+from .components import nodes  # noqa: F401
+from .components import piping  # noqa: F401
+from .components import reactors  # noqa: F401
+from .components import subsystems  # noqa: F401
+from .components import turbomachinery  # noqa: F401
+# tespy networks imports
+from .networks import network_reader  # noqa: F401
+from .networks import networks  # noqa: F401
 # tespy tools imports
-from .tools import (  # noqa: F401
-    characteristics,
-    data_containers,
-    fluid_properties,
-    global_vars,
-    helpers,
-    logger
-)
+from .tools import characteristics  # noqa: F401
+from .tools import data_containers  # noqa: F401
+from .tools import fluid_properties  # noqa: F401
+from .tools import global_vars  # noqa: F401
+from .tools import helpers  # noqa: F401
+from .tools import logger  # noqa: F401

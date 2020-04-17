@@ -18,8 +18,10 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+
 from tespy.components.components import component
-from tespy.tools.data_containers import dc_simple, dc_cp
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_simple
 
 # %%
 

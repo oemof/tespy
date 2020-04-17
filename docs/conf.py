@@ -13,11 +13,13 @@
 # serve to show the default.
 
 import json
-from matplotlib import pyplot as plt
 import os
-from pkg_resources import resource_filename
-import sphinx_rtd_theme
 import sys
+
+import sphinx_rtd_theme
+from matplotlib import pyplot as plt
+from pkg_resources import resource_filename
+
 import tespy
 
 

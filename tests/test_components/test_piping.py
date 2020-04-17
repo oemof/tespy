@@ -10,8 +10,11 @@ tests/test_components/test_piping.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
-from tespy.components.basics import sink, source
-from tespy.components.piping import valve, pipe
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.piping import pipe
+from tespy.components.piping import valve
 from tespy.connections import connection
 from tespy.networks.networks import network
 from tespy.tools.characteristics import char_line

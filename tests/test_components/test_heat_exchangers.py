@@ -9,13 +9,18 @@ tests/test_components/test_heat_exchangers.py
 
 SPDX-License-Identifier: MIT
 """
-import numpy as np
 import shutil
-from tespy.components.basics import sink, source
-from tespy.components.heat_exchangers import (
-    heat_exchanger_simple, solar_collector, heat_exchanger, condenser
-)
-from tespy.connections import connection, bus
+
+import numpy as np
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.heat_exchangers import condenser
+from tespy.components.heat_exchangers import heat_exchanger
+from tespy.components.heat_exchangers import heat_exchanger_simple
+from tespy.components.heat_exchangers import solar_collector
+from tespy.connections import bus
+from tespy.connections import connection
 from tespy.networks.networks import network
 from tespy.tools.fluid_properties import T_bp_p
 

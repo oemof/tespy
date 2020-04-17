@@ -8,12 +8,14 @@ available from its original location tespy/tools/helpers.py
 
 SPDX-License-Identifier: MIT
 """
-import CoolProp as CP
 import logging
-import numpy as np
 import os
-from tespy.tools.global_vars import err, molar_masses
 
+import CoolProp as CP
+import numpy as np
+
+from tespy.tools.global_vars import err
+from tespy.tools.global_vars import molar_masses
 
 # %%
 
@@ -415,7 +417,7 @@ def lamb(re, ks, d):
         if re * ks / d < 65:
             if re <= 5e4:
                 return lamb_blasius(re)
-            elif re > 5e4 and re < 1e6:
+            elif re < 1e6:
                 return lamb_hanakov(re)
             else:
                 l0 = 0.02

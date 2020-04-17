@@ -17,18 +17,33 @@ import ast
 import json
 import logging
 import os
-import pandas as pd
-from tespy.connections import connection, bus, ref
-from tespy.components import (
-    basics, combustion, customs, heat_exchangers, nodes, piping, reactors,
-    turbomachinery)
-from tespy.networks.networks import network
-from tespy.tools.data_containers import (
-    dc_cc, dc_cm, dc_cp, dc_flu, dc_gcp, dc_prop, dc_simple)
-from tespy.tools.characteristics import char_line, char_map, compressor_map
-from tespy.tools.helpers import modify_path_os
 import warnings
 
+import pandas as pd
+
+from tespy.components import basics
+from tespy.components import combustion
+from tespy.components import customs
+from tespy.components import heat_exchangers
+from tespy.components import nodes
+from tespy.components import piping
+from tespy.components import reactors
+from tespy.components import turbomachinery
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.connections import ref
+from tespy.networks.networks import network
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import char_map
+from tespy.tools.characteristics import compressor_map
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_cm
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_flu
+from tespy.tools.data_containers import dc_gcp
+from tespy.tools.data_containers import dc_prop
+from tespy.tools.data_containers import dc_simple
+from tespy.tools.helpers import modify_path_os
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)

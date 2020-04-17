@@ -9,16 +9,21 @@ tests/test_models/test_heat_pump_model.py
 
 SPDX-License-Identifier: MIT
 """
-import numpy as np
 import shutil
-from tespy.components.basics import sink, source
-from tespy.components.heat_exchangers import (
-    heat_exchanger, heat_exchanger_simple
-)
+
+import numpy as np
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.heat_exchangers import heat_exchanger
+from tespy.components.heat_exchangers import heat_exchanger_simple
 from tespy.components.nodes import drum
 from tespy.components.piping import valve
-from tespy.components.turbomachinery import compressor, pump
-from tespy.connections import connection, bus, ref
+from tespy.components.turbomachinery import compressor
+from tespy.components.turbomachinery import pump
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.connections import ref
 from tespy.networks.networks import network
 from tespy.tools.characteristics import char_line
 from tespy.tools.data_containers import dc_cc

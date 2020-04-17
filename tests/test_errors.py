@@ -10,22 +10,35 @@ tests/test_errors.py
 SPDX-License-Identifier: MIT
 """
 import os
-from pytest import raises
 import shutil
-from tespy.components import (
-    basics, combustion, components, nodes, piping, reactors, subsystems,
-    turbomachinery
-)
-from tespy.connections import connection, bus, ref
-from tespy.networks.networks import network
-from tespy.tools.characteristics import char_map, char_line, load_custom_char
-from tespy.tools.data_containers import data_container, dc_cc, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
-from tespy.tools.helpers import (
-    TESPyComponentError, TESPyConnectionError, TESPyNetworkError,
-    extend_basic_path
-)
 
+from pytest import raises
+
+from tespy.components import basics
+from tespy.components import combustion
+from tespy.components import components
+from tespy.components import nodes
+from tespy.components import piping
+from tespy.components import reactors
+from tespy.components import subsystems
+from tespy.components import turbomachinery
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.connections import ref
+from tespy.networks.networks import network
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import char_map
+from tespy.tools.characteristics import load_custom_char
+from tespy.tools.data_containers import data_container
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_flu
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import memorise
+from tespy.tools.fluid_properties import tespy_fluid
+from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import TESPyConnectionError
+from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import extend_basic_path
 
 ##############################################################################
 # test errors of set_attr and get_attr methods

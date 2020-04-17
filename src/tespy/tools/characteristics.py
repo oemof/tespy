@@ -14,13 +14,14 @@ available from its original location tespy/tools/characteristics.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import json
 import logging
-from pkg_resources import resource_filename
 import os
-from tespy.tools.helpers import extend_basic_path
 
+import numpy as np
+from pkg_resources import resource_filename
+
+from tespy.tools.helpers import extend_basic_path
 
 # %%
 

@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 
 import collections
 import logging
+
 import numpy as np
 
 # %%

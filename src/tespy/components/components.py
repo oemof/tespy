@@ -12,15 +12,24 @@ available from its original location tespy/components/components.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import logging
-from tespy.tools.characteristics import char_line, char_map, compressor_map
+
+import numpy as np
+
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import char_map
+from tespy.tools.characteristics import compressor_map
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import (
-    data_container, dc_cc, dc_cm, dc_cp, dc_gcp, dc_simple)
+from tespy.tools.data_containers import data_container
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_cm
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_gcp
+from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.helpers import (
-    bus_char_derivative, bus_char_evaluation, newton)
+from tespy.tools.helpers import bus_char_derivative
+from tespy.tools.helpers import bus_char_evaluation
+from tespy.tools.helpers import newton
 
 # %%
 

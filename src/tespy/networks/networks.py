@@ -15,26 +15,33 @@ SPDX-License-Identifier: MIT
 """
 import ast
 import json
-from collections import Counter, OrderedDict
 import logging
+import os
+from collections import Counter
+from collections import OrderedDict
+from time import time
+
 import numpy as np
+import pandas as pd
 from numpy.linalg import inv
 from numpy.linalg import norm
-import os
-import pandas as pd
 from tabulate import tabulate
-from tespy.components.basics import subsystem_interface, cycle_closer
-from tespy.components.combustion import combustion_chamber, combustion_engine
+
+from tespy import connections as con
+from tespy.components.basics import cycle_closer
+from tespy.components.basics import subsystem_interface
+from tespy.components.combustion import combustion_chamber
+from tespy.components.combustion import combustion_engine
 from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
-from tespy.components.nodes import drum, merge, splitter
+from tespy.components.nodes import drum
+from tespy.components.nodes import merge
+from tespy.components.nodes import splitter
 from tespy.components.reactors import water_electrolyzer
-from tespy import connections as con
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
-from time import time
 
 
 class network:

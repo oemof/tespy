@@ -9,11 +9,11 @@ available from its original location tespy/tools/logger.py
 SPDX-License-Identifier: MIT
 """
 
-
-import os
 import logging
-from logging import handlers
+import os
 import sys
+from logging import handlers
+
 import tespy
 
 

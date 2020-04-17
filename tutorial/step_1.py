@@ -1,8 +1,11 @@
-from tespy.networks import network
-from tespy.components import (
-    source, sink, condenser, pump, heat_exchanger_simple, cycle_closer
-)
+from tespy.components import condenser
+from tespy.components import cycle_closer
+from tespy.components import heat_exchanger_simple
+from tespy.components import pump
+from tespy.components import sink
+from tespy.components import source
 from tespy.connections import connection
+from tespy.networks import network
 
 # %% network
 

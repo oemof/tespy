@@ -16,15 +16,19 @@ available from its original location tespy/connections.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-import pandas as pd
 import logging
-from tespy.components.components import component
-from tespy.tools.characteristics import char_line
-from tespy.tools.data_containers import dc_cp, dc_flu, dc_prop, dc_simple
-from tespy.tools.helpers import TESPyConnectionError
 import warnings
 
+import numpy as np
+import pandas as pd
+
+from tespy.components.components import component
+from tespy.tools.characteristics import char_line
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_flu
+from tespy.tools.data_containers import dc_prop
+from tespy.tools.data_containers import dc_simple
+from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)

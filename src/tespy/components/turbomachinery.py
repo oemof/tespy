@@ -18,14 +18,24 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
+
 import numpy as np
+
 from tespy.components.components import component
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import compressor_map
-from tespy.tools.data_containers import dc_cc, dc_cm, dc_cp, dc_simple
-from tespy.tools.fluid_properties import (
-    h_ps, s_ph, T_mix_ph, h_mix_ps, s_mix_ph, s_mix_pT, v_mix_ph, single_fluid
-)
+from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_cm
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_simple
+from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import h_mix_ps
+from tespy.tools.fluid_properties import h_ps
+from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.fluid_properties import s_ph
+from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
 # %%

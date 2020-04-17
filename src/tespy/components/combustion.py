@@ -16,18 +16,27 @@ available from its original location tespy/components/combustion.py
 SPDX-License-Identifier: MIT
 """
 
-import CoolProp.CoolProp as CP
 import logging
+
+import CoolProp.CoolProp as CP
 import numpy as np
+
 from tespy.components.components import component
-from tespy.tools.data_containers import (dc_cc, dc_cp, dc_simple)
-from tespy.tools.fluid_properties import (
-    h_mix_pQ, h_mix_pT, h_pT, s_mix_ph, s_mix_pT, tespy_fluid, v_mix_ph
-)
-from tespy.tools.global_vars import molar_masses, err
-from tespy.tools.helpers import (
-    fluid_structure, molar_mass_flow, TESPyComponentError
-)
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import dc_simple
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties import h_pT
+from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.fluid_properties import tespy_fluid
+from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.global_vars import err
+from tespy.tools.global_vars import molar_masses
+from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import fluid_structure
+from tespy.tools.helpers import molar_mass_flow
 
 # %%
 

@@ -28,11 +28,10 @@ setup(
     version='0.3.0dev',
     license='MIT',
     description='Thermal Engineering Systems in Python',
-    long_description='%s\n%s' % (
+    long_description='%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub(
             '', read('README.rst')
-        ),
-        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
+        )
     ),
     author='Francesco Witte',
     author_email='francesco.witte@hs-flensburg.de',

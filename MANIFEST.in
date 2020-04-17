@@ -13,7 +13,11 @@ include CHANGELOG.rst
 include CONTRIBUTING.rst
 include LICENSE
 include README.rst
+include *.md
+include *.yml
+include *.bib
+recursive-include tutorial *.py
 
-include tox.ini .travis.yml .appveyor.yml .readthedocs.yml .pre-commit-config.yaml
+include tox.ini
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib

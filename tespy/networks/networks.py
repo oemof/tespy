@@ -47,33 +47,43 @@ class network:
     fluids : list
         A list of all fluids within the network container.
 
+    h_range : list
+        List with minimum and maximum values for enthalpy value range.
+
+    h_unit : str
+        Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
+
+    iterinfo : boolean
+        Print convergence progress to console.
+
+    m_range : list
+        List with minimum and maximum values for mass flow value range.
+
     m_unit : str
         Specify the unit for mass flow: 'kg / s', 't / h'.
+
+    p_range : list
+        List with minimum and maximum values for pressure value range.
+
+    p_unit : str
+        Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
+
+    s_unit : str
+        Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
+        'MJ / kgK'.
+
+    T_range : list
+        List with minimum and maximum values for temperature value range.
+
+    T_unit : str
+        Specify the unit for temperature: 'K', 'C', 'F', 'R'.
 
     v_unit : str
         Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
         'l / h'.
 
-    p_unit : str
-        Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-    h_unit : str
-        Specify the unit for mass flow: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
-    T_unit : str
-        Specify the unit for mass flow: 'K', 'C', 'F'.
-
-    p_range : list
-        List with minimum and maximum values for pressure value range.
-
-    h_range : list
-        List with minimum and maximum values for enthalpy value range.
-
-    T_range : list
-        List with minimum and maximum values for temperature value range.
-
-    iterinfo : boolean
-        Print convergence progress to console.
+    vol_unit : str
+        Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
 
     Note
     ----
@@ -319,36 +329,43 @@ class network:
 
         Parameters
         ----------
+        h_range : list
+            List with minimum and maximum values for enthalpy value range.
+
+        h_unit : str
+            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
+
+        iterinfo : boolean
+            Print convergence progress to console.
+
+        m_range : list
+            List with minimum and maximum values for mass flow value range.
+
         m_unit : str
             Specify the unit for mass flow: 'kg / s', 't / h'.
+
+        p_range : list
+            List with minimum and maximum values for pressure value range.
+
+        p_unit : str
+            Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
+
+        s_unit : str
+            Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
+            'MJ / kgK'.
+
+        T_range : list
+            List with minimum and maximum values for temperature value range.
+
+        T_unit : str
+            Specify the unit for temperature: 'K', 'C', 'F', 'R'.
 
         v_unit : str
             Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
             'l / h'.
 
-        p_unit : str
-            Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-        h_unit : str
-            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
-        T_unit : str
-            Specify the unit for temperature: 'K', 'C', 'F'.
-
-        m_range : list
-            List with minimum and maximum values for mass flow value range.
-
-        p_range : list
-            List with minimum and maximum values for pressure value range.
-
-        h_range : list
-            List with minimum and maximum values for enthalpy value range.
-
-        T_range : list
-            List with minimum and maximum values for temperature value range.
-
-        iterinfo : boolean
-            Print convergence progress to console.
+        vol_unit : str
+            Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
         """
         # unit sets
         for prop in self.SI_units.keys():

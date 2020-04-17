@@ -42,6 +42,8 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     include_package_data=True,
     zip_safe=False,
+    data_files=[('tespy/data', [
+        'tespy/data/char_lines.json', 'tespy/data/char_maps.json'])],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -58,7 +60,7 @@ setup(
     ],
     project_urls={
         'Documentation': 'https://tespy.readthedocs.io/',
-        'Changelog': 'https://tespy.readthedocs.io/en/latest/changelog.html',
+        'Changelog': 'https://tespy.readthedocs.io/en/latest/whats_new.html',
         'Issue Tracker': 'https://github.com/oemof/tespy/issues',
     },
     keywords=[

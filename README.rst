@@ -1,93 +1,116 @@
-.. image:: https://coveralls.io/repos/github/oemof/tespy/badge.svg?branch=dev
-    :target: https://coveralls.io/github/oemof/tespy?branch=dev
-.. image:: https://travis-ci.org/oemof/tespy.svg?branch=dev
+========
+Overview
+========
+
+.. start-badges
+
+.. list-table::
+    :stub-columns: 1
+
+    * - docs
+      - |docs|
+    * - tests
+      - | |travis| |appveyor|
+        | |coveralls| |codecov|
+        | |codacy| |codeclimate|
+    * - package
+      - | |version| |wheel| |supported-versions| |supported-implementations|
+        | |commits-since|
+.. |docs| image:: https://readthedocs.org/projects/tespy/badge/?style=flat
+    :target: https://readthedocs.org/projects/tespy
+    :alt: Documentation Status
+
+.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=master
+    :alt: Travis-CI Build Status
     :target: https://travis-ci.org/oemof/tespy
-.. image:: https://readthedocs.org/projects/tespy/badge/?version=dev
-    :target: https://tespy.readthedocs.io/en/dev/
-.. image:: https://badge.fury.io/py/TESPy.svg
-    :target: https://badge.fury.io/py/TESPy
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
-   :target: https://doi.org/10.5281/zenodo.2555866
 
-TESPy stands for "Thermal Engineering Systems in Python" and provides a
-powerful simulation toolkit for thermal engineering plants such as power
-plants, district heating systems or heat pumps. It is an external extension
-module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
-can be used as a standalone package.
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/oemof/tespy?branch=master&svg=true
+    :alt: AppVeyor Build Status
+    :target: https://ci.appveyor.com/project/oemof/tespy
 
-With the TESPy package you are able to calculate stationary operation in order
-to design the process of thermal energy systems. From that point it is possible
-to simulate the offdesign behaviour of your plant using underlying
-characteristics for each of the plants components. The package inlcudes basic
-components, such as turbines, pumps, compressors, heat exchangers, pipes,
-mixers and splitters as well as some advanced components (derivatives of heat
-exchangers, drum).
+.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=master&service=github
+    :alt: Coverage Status
+    :target: https://coveralls.io/r/oemof/tespy
 
-Everybody is welcome to use and/or develop TESPy. Contribution is already
-possible on a low level by simply fixing typos in TESPy's documentation or
-rephrasing sections which are unclear. If you want to support us that way
-please fork the TESPy repository to your own github account and make changes
-as described in the github guidelines:
-https://guides.github.com/activities/hello-world/
+.. |codecov| image:: https://codecov.io/gh/oemof/tespy/branch/master/graphs/badge.svg?branch=master
+    :alt: Coverage Status
+    :target: https://codecov.io/github/oemof/tespy
+
+.. |codacy| image:: https://img.shields.io/codacy/grade/CODACY_TOKEN.svg
+    :target: https://www.codacy.com/app/oemof/tespy
+    :alt: Codacy Code Quality Status
+
+.. |codeclimate| image:: https://codeclimate.com/github/oemof/tespy/badges/gpa.svg
+   :target: https://codeclimate.com/github/oemof/tespy
+   :alt: CodeClimate Quality Status
+
+.. |version| image:: https://img.shields.io/pypi/v/tespy.svg
+    :alt: PyPI Package latest release
+    :target: https://pypi.org/project/tespy
+
+.. |wheel| image:: https://img.shields.io/pypi/wheel/tespy.svg
+    :alt: PyPI Wheel
+    :target: https://pypi.org/project/tespy
+
+.. |supported-versions| image:: https://img.shields.io/pypi/pyversions/tespy.svg
+    :alt: Supported versions
+    :target: https://pypi.org/project/tespy
+
+.. |supported-implementations| image:: https://img.shields.io/pypi/implementation/tespy.svg
+    :alt: Supported implementations
+    :target: https://pypi.org/project/tespy
+
+.. |commits-since| image:: https://img.shields.io/github/commits-since/oemof/tespy/v0.3.0 dev.svg
+    :alt: Commits since latest release
+    :target: https://github.com/oemof/tespy/compare/v0.3.0 dev...master
+
+
+
+.. end-badges
+
+Thermal Engineering Systems in Python
+
+* Free software: MIT license
+
+Installation
+============
+
+::
+
+    pip install tespy
+
+You can also install the in-development version with::
+
+    pip install https://github.com/oemof/tespy/archive/master.zip
+
 
 Documentation
 =============
 
-You can find the full documentation at
-`readthedocs <http://tespy.readthedocs.org>`_. Use the
-`project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to
-choose the version of the documentation. Go to the
-`download page <http://readthedocs.org/projects/tespy/downloads/>`_ to
-download different versions and formats (pdf, html, epub) of the documentation.
 
-To get the latest news visit and follow our `website <https://www.oemof.org>`_.
+https://tespy.readthedocs.io/
 
-Installing TESPy
-================
 
-If you have a working Python3 environment, use pypi to install the latest
-tespy version:
+Development
+===========
 
-.. code:: bash
+To run the all tests run::
 
-  pip install tespy
+    tox
 
-If you want to use the latest features, you might want to install the
-**developer version**. See section
-`Developing TESPy <http://tespy.readthedocs.io/en/dev/developing_tespy.html>`_
-for more information. The developer version is not recommended for productive
-use.
+Note, to combine the coverage data from all the tox environments run:
 
-Examples
-========
+.. list-table::
+    :widths: 10 90
+    :stub-columns: 1
 
-For a short introduction on how TESPy works and how you can use it, we provide
-some
-`examples and tutorials <https://tespy.readthedocs.io/en/master/tutorials_examples.html>`_,
-go and check them out. You can download the python scripts of all example plants
-from the
-`tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
-repository.
+    - - Windows
+      - ::
 
-License
-=======
+            set PYTEST_ADDOPTS=--cov-append
+            tox
 
-Copyright (c) 2019 oemof developer group
+    - - Other
+      - ::
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+            PYTEST_ADDOPTS=--cov-append tox

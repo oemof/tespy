@@ -93,7 +93,6 @@ class TestOrcEvaporator:
         zeta1 = self.instance.zeta1.val
         zeta2 = self.instance.zeta2.val
         zeta3 = self.instance.zeta3.val
-        m = self.c5.m.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')

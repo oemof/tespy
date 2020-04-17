@@ -15,7 +15,7 @@ import os
 import pytest
 from tespy.components import (
     pump, turbine, condenser, source, sink,
-    cycle_closer, heat_exchanger_simple, pipe, valve)
+    cycle_closer, heat_exchanger_simple, pipe)
 from tespy.connections import connection
 from tespy.networks import network
 from tespy.tools import fluid_properties as fp

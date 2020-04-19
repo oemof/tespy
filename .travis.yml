@@ -14,14 +14,14 @@ matrix:
       env:
         - TOXENV=docs
     - env:
-        - TOXENV=py36
+        - TOXENV=py36,codecov,coveralls
       python: '3.6'
     - os: osx
       language: generic
       env:
-        - TOXENV=py37
+        - TOXENV=py37,codecov,coveralls
     - env:
-        - TOXENV=py37
+        - TOXENV=py37,codecov,coveralls
       python: '3.7'
 before_install:
   - python --version

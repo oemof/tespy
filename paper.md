@@ -152,7 +152,7 @@ For other components it is possible to specify the pressure ratio $pr$
 0=p_\mathrm{out}-p_\mathrm{in} +
 \frac{\rho \cdot c^2 \cdot \lambda\left(re,k_\mathrm{s},D\right) \cdot L}
 {2 \cdot D} \label{eq:6}\\
-0=$pr$ - \frac{p_\mathrm{out}}{p_\mathrm{in}} \label{eq:7}
+0=pr - \frac{p_\mathrm{out}}{p_\mathrm{in}} \label{eq:7}
 \end{align}
 
 After designing a specific plant, part-load performance can be determined. For
@@ -162,8 +162,10 @@ exchangers. The heat transfer at a different operation point is calculated from
 the $kA$ value and the logarithmic temperature difference
 $\Delta\vartheta_{\mathrm{log}$ in equation \ref{eg:8}.
 
- \begin{equation}0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}
- \label{eq:8}\end{equation}
+ \begin{equation}
+ 0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}
+ \label{eq:8}
+ \end{equation}
 
 In general, the design parameters ($kA$ in case of the heat exchanger) can be
 adjusted using lookup table functions to match the model behavior to measured

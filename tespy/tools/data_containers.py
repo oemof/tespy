@@ -40,7 +40,7 @@ class data_container:
     composition (dc_flu), fluid properties (dc_prop).
 
     Grouped component properties are used, if more than one component property
-    has to be specified in order to apply one equation, e. g. pressure drop in
+    has to be specified in order to apply one equation, e.g. pressure drop in
     pipes by specified length, diameter and roughness. If you specify all three
     of these properties, the data_container for the group will be created
     automatically!

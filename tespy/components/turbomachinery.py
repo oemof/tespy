@@ -398,7 +398,7 @@ class compressor(turbomachine):
     -------
     Create an air compressor model and calculate the power required for
     compression of 50 l/s of ambient air to 5 bars. Using a generic compressor
-    map how does the efficiency change in different operation mode (e. g. 90 %
+    map how does the efficiency change in different operation mode (e.g. 90 %
     of nominal volumetric flow)?
 
     >>> from tespy.components import sink, source, compressor
@@ -902,7 +902,7 @@ class pump(turbomachine):
     Example
     -------
     A pump with a known pump curve (difference pressure as function of
-    volumetric flow) pumps 1,5 l/s of water in design conditions. E. g. for a
+    volumetric flow) pumps 1,5 l/s of water in design conditions. E.g. for a
     given isentropic efficiency it is possible to calculate power consumption
     and pressure at the pump.
 

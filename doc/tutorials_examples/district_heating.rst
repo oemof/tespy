@@ -16,7 +16,7 @@ structures for the consumers and this is, where the subsystems come in place.
 
 The single consumers are connected to the main grid with a control valve at
 the outlet and each fork is connected with a pipe to the next fork. Also, the
-main grid may have a dead end (e. g. in the housing areas, see subsystem
+main grid may have a dead end (e.g. in the housing areas, see subsystem
 closed) or is open to connect to another part of the grid (industrial area,
 see subsystem open). Additionally, each branch of the main grid is connected to
 the upstream part with the fork subsystem (Ki, see subsystem fork).

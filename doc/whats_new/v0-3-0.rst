@@ -35,7 +35,7 @@ New Features
   no further changes are required to match an 0.2.x application to the
   0.3.x API. For all back ends available please refer to the
   :ref:`fluid properties section <tespy_fluid_properties_label>`. To specify
-  the fluid vector on a connection leave out the back end specification, e. g.:
+  the fluid vector on a connection leave out the back end specification, e.g.:
 
   .. code-block:: python3
 

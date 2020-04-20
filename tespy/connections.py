@@ -113,7 +113,7 @@ class connection:
 
     - The specification of values for design and/or offdesign is used for
       automatic switch from design to offdesign calculation: All parameters
-      given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+      given in 'design', e.g. :code:`design=['T', 'p']`, are unset in any
       offdesign calculation, parameters given in 'offdesign' are set for
       offdesign calculation.
 
@@ -362,7 +362,7 @@ class connection:
 
         - The specification of values for design and/or offdesign is used for
           automatic switch from design to offdesign calculation: All parameters
-          given in 'design', e. g. :code:`design=['T', 'p']`, are unset in any
+          given in 'design', e.g. :code:`design=['T', 'p']`, are unset in any
           offdesign calculation, parameters given in 'offdesign' are set for
           offdesign calculation.
 
@@ -613,7 +613,7 @@ class bus:
     Example
     -------
     Busses are used to connect energy flow of different components. They can
-    also be used to introduce efficiencies of energy conversion, e. g. in
+    also be used to introduce efficiencies of energy conversion, e.g. in
     motors, generator or boilers. This example takes the combustion engine
     example at :func:`tespy.components.combustion.combustion_engine` and adds
     a flue gas cooler and a circulation pump for the cooling water. Then

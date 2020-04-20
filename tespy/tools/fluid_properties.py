@@ -74,7 +74,7 @@ class tespy_fluid:
     - viscoity (visc)
 
     from pressure and temperature. Additionally molar mass and gas constant
-    will be calculated. Inverse functions, e. g. entropy from pressure and
+    will be calculated. Inverse functions, e.g. entropy from pressure and
     enthalpy are calculated via newton algorithm from these tables.
 
     Example

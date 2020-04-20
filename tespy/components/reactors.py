@@ -163,7 +163,7 @@ class water_electrolyzer(component):
 
     Example
     -------
-    Create a water electrolyzer and compress the hydrogen, e. g. for a hydrogen
+    Create a water electrolyzer and compress the hydrogen, e.g. for a hydrogen
     storage.
 
     >>> from tespy.components import (sink, source, compressor,

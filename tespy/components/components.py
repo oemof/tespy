@@ -753,7 +753,7 @@ class component:
         Parameters
         ----------
         zeta : str
-            Component parameter to evaluate the zeta_func on, e. g.
+            Component parameter to evaluate the zeta_func on, e.g.
             :code:`zeta1`.
 
         inconn : int

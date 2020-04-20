@@ -44,7 +44,7 @@ efficiency with the standard method as well as with the entropy method:
 
     Figure: Efficiency of the basic clausius rankine cycle in design case.
 
-For a good start you can try to modify or exchange parameters. E. g. adjust the
+For a good start you can try to modify or exchange parameters. E.g. adjust the
 value of the upper terminal temperature difference at the condenser, or replace
 this parameter with a pressure at the turbine's outlet. In order to get more
 familiar with how TESPy works you could try to insert more components, maybe

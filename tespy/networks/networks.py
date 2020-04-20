@@ -1592,13 +1592,13 @@ class network:
             Choose from 'design' and 'offdesign'.
 
         init_path : str
-            Path to the folder, where your network was saved to, e. g.
+            Path to the folder, where your network was saved to, e.g.
             saving to :code:`nw.save('myplant/tests')` would require loading
             from :code:`init_path='myplant/tests'`.
 
         design_path : str
             Path to the folder, where your network's design case was saved to,
-            e. g. saving to :code:`nw.save('myplant/tests')` would require
+            e.g. saving to :code:`nw.save('myplant/tests')` would require
             loading from :code:`design_path='myplant/tests'`.
 
         max_iter : int

@@ -39,7 +39,7 @@ as seen in the figure below.
 
     Figure: Topology of the waste heat steam generator.
 
-Create a file, e. g. :code:`mysubsystems.py` and add the following lines:
+Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
 - Imports of the necessary classes from tespy.
 - Class definition of the subsystem (inheriting from subsystem class).
@@ -158,7 +158,7 @@ Add more flexibility
 
 If you want to add even more flexibility, you might need to manipulate the
 :code:`__init__` method of your custom subsystem class. Usually, you do not
-need to override this method. However, if you need additional parameters, e. g.
+need to override this method. However, if you need additional parameters, e.g.
 in order to alter the subsystem's topology or specify additional information,
 take a look at the standard
 :py:meth:`__init__ <tespy.components.subsystems.subsystem>` method and add your

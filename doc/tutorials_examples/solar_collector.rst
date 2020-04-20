@@ -33,7 +33,7 @@ absorption and ambient temperatures is calculated subsequently. Assuming a
 constant mass flow through the collector, the outlet temperature and the
 pressure losses of the collector are calculated.
 
-E. g., if you want to calculate the performance of the collector within a
+E.g., if you want to calculate the performance of the collector within a
 specific period of time, you could have the absorbed energy and the ambient
 temperature as input time series and iterate over said series. As the absorbed
 energy of the collector is a function of the global radiation on the inclined

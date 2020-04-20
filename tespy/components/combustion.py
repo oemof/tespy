@@ -1196,14 +1196,14 @@ class combustion_chamber_stoich(combustion_chamber):
         Include this component in the network's results printout.
 
     fuel : dict
-        Fuel composition, e. g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
+        Fuel composition, e.g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
 
     fuel_alias : str
         Alias for the fuel.
 
     air : dict
         Fresh air composition,
-        e. g. :code:`{'N2': 0.76, 'O2': 0.23, 'Ar': 0.01}`.
+        e.g. :code:`{'N2': 0.76, 'O2': 0.23, 'Ar': 0.01}`.
 
     air_alias : str
         Alias for the fresh air.
@@ -1234,7 +1234,7 @@ class combustion_chamber_stoich(combustion_chamber):
     'yourairalias' will be created.
 
     The name of the flue gas will be: 'yourfuelalias_fg'. It is also
-    possible to use fluid mixtures for the fuel, e. g.
+    possible to use fluid mixtures for the fuel, e.g.
     :code:`fuel={CH4: 0.9, 'CO2': 0.1}`. If you specify a fluid mixture for
     the fuel, TESPy will automatically create a custom fluid called. For more
     information see the examples section or look for the combustion chamber
@@ -1512,7 +1512,7 @@ class combustion_chamber_stoich(combustion_chamber):
             .. math::
 
                 m_{fg,j} = x_{j} \cdot m_{fuel}\\
-                \forall j \in \text{non fuels in fuel vecotr, e. g. } CO_2,\\
+                \forall j \in \text{non fuels in fuel vecotr, e.g. } CO_2,\\
                 m_{fg,j} = \text{mass of fluid component j in flue gas}
 
         Non-reactive components in air

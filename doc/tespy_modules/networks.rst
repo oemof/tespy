@@ -67,7 +67,7 @@ Printouts and logging
 +++++++++++++++++++++
 TESPy comes with an inbuilt logger. If you want to keep track of
 debugging-messages, general information, warnings or errors you should enable
-the logger. At the beginning of your python script e. g. add the following
+the logger. At the beginning of your python script e.g. add the following
 lines:
 
 .. code-block:: python
@@ -114,7 +114,7 @@ or via subsystems and networks holding them by using the appropriate methods:
 
 Busses: power connections
 +++++++++++++++++++++++++
-Another type of connection is the bus: Busses are power connections for e. g.
+Another type of connection is the bus: Busses are power connections for e.g.
 turbomachines or heat exchangers. They can be used to model motors or
 generators, too. Add them to your network with the following method:
 
@@ -206,13 +206,13 @@ with zeta values.
 .. note::
 
     Some parameters come with characteristic functions based on the design case
-    properties. This means, that e. g. the isentropic efficiency of a turbine
+    properties. This means, that e.g. the isentropic efficiency of a turbine
     is calculated as function of the actual mass flow to design mass flow
     ratio. You can provide your own (measured) data or use the already existing
     data from TESPy. All standard characteristic functions are available at
     :py:mod:`tespy.data`.
 
-For connections it works in the same way, e. g. write
+For connections it works in the same way, e.g. write
 
 .. code-block:: python
 
@@ -377,7 +377,7 @@ while
 
 For example, consider a pump: Total mass flow as well as the fluid mass
 fractions of the mixture entering the pump will be identical at the outlet. The
-pump delivers two mandatory equations. If you additionally specify, e. g. the
+pump delivers two mandatory equations. If you additionally specify, e.g. the
 power :math:`P` to be 1000 W, the set of equations will look like this:
 
 .. math::
@@ -395,7 +395,7 @@ stepwidth is very large and that it does not know physical boundaries, for
 example mass fractions smaller than 0 and larger than 1 or negative pressure.
 Also, the large stepwidth can adjust enthalpy or pressure to quantities that
 are not covered by the fluid property databases. This would cause an inability
-e. g. to calculate a temperature from pressure and enthalpy in the next
+e.g. to calculate a temperature from pressure and enthalpy in the next
 iteration of the algorithm. In order to improve convergence stability, we have
 added a convergence check.
 
@@ -418,13 +418,13 @@ check is skipped.
    are within the user specified boundaries (:code:`p_range, h_range, T_range`)
    and if not, cut off higher/lower values.
  * Check the fluid properties of the connections based on the components they
-   are connecting. E. g. check if the pressure at the outlet of a turbine is
-   lower than the pressure at the inlet or if the flue gas composition at a
-   combustion chamber's outlet is within the range of a "typical" flue gas
-   composition. If there are any violations, the corresponding variables are
-   manipulated. If you want to look up, what exactly the convergence check for
-   a specific component does, look out for the :code:`convergence_check`
-   methods in the
+   are connecting. For example, check if the pressure at the outlet of a
+   turbine is lower than the pressure at the inlet or if the flue gas
+   composition at a combustion chamber's outlet is within the range of a
+   "typical" flue gas composition. If there are any violations, the
+   corresponding variables are manipulated. If you want to look up, what
+   exactly the convergence check for a specific component does, look out for
+   the :code:`convergence_check` methods in the
    :py:mod:`tespy.components module <tespy.components>`.
 
 In a lot of different tests the algorithm has found a near enough solution

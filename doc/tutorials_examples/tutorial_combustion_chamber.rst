@@ -8,7 +8,7 @@ Combustion Chamber Tutorial
 
 There are two different types of combustion chambers available. The combustion
 chamber can handle varying fluid compositions for the air and the fuel and
-calculates the fluid composition of the flue gas. Thus, it is possible to e. g.
+calculates the fluid composition of the flue gas. Thus, it is possible to e.g.
 specify the oxygen mass fraction in the flue gas in a calculation. In
 contrast, the stoichiometric combustion chamber uses fuel and air as pseudo
 pure gases for the input at calculates a mixture of stoichiometric flue gas
@@ -23,7 +23,7 @@ Combustion chamber
 
 The combustion chamber is an important component within thermal power plants,
 but unfortunately is the reason for many issues, as the solving algorithm is
-very sensitive to small changes e. g. the fluid composition. We will
+very sensitive to small changes e.g. the fluid composition. We will
 demonstrate how to handle the combustion chamber in a very small, simple
 example. You can download the full code from the `tespy_examples repository
 <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber>`_.

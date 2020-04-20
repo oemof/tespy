@@ -925,7 +925,7 @@ class merge(node):
     mixing effects are not considered, the outlet temperature should thus be
     similar to the three inlet temperatures (difference might occur due to
     rounding in fluid property functions, let's check it for two different
-    temperatures). It is e. g. possible to find the required mass flow of pure
+    temperatures). It is e.g. possible to find the required mass flow of pure
     nitrogen given the nitrogen mass fraction in the outlet.
 
     >>> T = 293.15

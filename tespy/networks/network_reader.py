@@ -95,27 +95,27 @@ def load_network(path):
 
     The structure of the path must be as follows:
 
-    - Folder: path (e. g. 'mynetwork')
-    - Subfolder: components (e. g. 'mynetwork/components') containing
+    - Folder: path (e.g. 'mynetwork')
+    - Subfolder: components ('mynetwork/components') containing
 
         - bus.csv*
         - char.csv*
         - char_map.csv*
-        - component_class_name.csv (e. g. heat_exchanger.csv)
+        - component_class_name.csv (e.g. heat_exchanger.csv)
 
     - connections.csv
     - network.json
 
     The imported network has the following additional features:
 
-    - Connections are accessible by label, e. g.
+    - Connections are accessible by label, e.g.
       :code:`myimportednetwork.connections['myconnection']`. The default label
       logic is :code:`source:source_id_target:target_id`, where the source
       means the label of the component the connection originates from and
       target means the label of the component, the connections targets on.
-    - Components are accessible by label as well, e. g. for a component
+    - Components are accessible by label as well, e.g. for a component
       'heat exchanger' :code:`myimportednetwork.components['heat exchanger']`.
-    - Busses are accessible by label, too, e. g. for a bus 'power input'
+    - Busses are accessible by label, too, e.g. for a bus 'power input'
       :code:`myimportednetwork.busses['power input']`.
 
     Example

@@ -65,7 +65,7 @@ Other mixtures
 ^^^^^^^^^^^^^^
 It is **not possible** to use mixtures of liquid and other liquid or gaseous
 fluids **at the moment**! If you try to use a mixture of two liquid or gaseous
-fluids and liquid fluids, e. g. water and methanol or liquid water and air, the
+fluids and liquid fluids, e.g. water and methanol or liquid water and air, the
 equations will still be applied, but obviously return bad values. If you have
 ideas for the implementation of new kinds of mixtures we appreciate you
 contacting us.

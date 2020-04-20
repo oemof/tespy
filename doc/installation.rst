@@ -84,7 +84,7 @@ Having Python 3 installed
 If you already have a working Python 3 environment you can install TESPy by
 using pip. We recommend you installing the package in a virtual environment.
 You can use virtualenv (:ref:`see here for instructions <virtualenv_label>`)
-or a virtual environment e. g. in :ref:`Anaconda <anaconda_label>`.
+or a virtual environment e.g. in :ref:`Anaconda <anaconda_label>`.
 
 TESPy requires the CoolProp python package, which will be installed
 automatically. As it is build from C++, you need to have Microsoft Visual

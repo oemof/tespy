@@ -84,7 +84,7 @@ evaporator and how to unset the parameter again.
 
     # possibilities to unset a value
     he.set_attr(kA=np.nan)
-    he.set_attr(kA=None)    
+    he.set_attr(kA=None)
     he.kA.set_attr(is_set=False)
 
 
@@ -189,10 +189,10 @@ your own characteristic functions.
     **What does this mean?**
 
     For the auxiliary functionality the main parameter,
-    e. g. :code:`kA` of a heat exchanger must be set :code:`.kA.is_set=True`.
+    e.g. :code:`kA` of a heat exchanger must be set :code:`.kA.is_set=True`.
 
     For the other functionality the characteristics parameter must be
-    set e. g. :code:`.eta_s_char.is_set=True`.
+    set e.g. :code:`.eta_s_char.is_set=True`.
 
 For example, :code:`kA` specification for heat exchangers:
 
@@ -275,7 +275,7 @@ lines, you need to set the extrapolation to :code:`True` manually.
     kA_char1 = char_line(x, y, extrapolate=True)
     he.set_attr(kA_char1=kA_char1)
 
-    # manually set extrapolation to True, e. g.
+    # manually set extrapolation to True, e.g.
     he.kA_char1.func.extrapolate = True
     pu.eta_s_char.func.extrapolate = True
 
@@ -379,7 +379,7 @@ of strings. The list may look like this:
     def outlets(self):
         return ['out1', 'out2']
 
-The number of inlets and outlets might even be generic, e. g. if you have added
+The number of inlets and outlets might even be generic, e.g. if you have added
 an attribute :code:`'num_in'` your code could look like this:
 
 .. code:: python
@@ -438,7 +438,7 @@ Equations
 
 The equations contain the information on the changes to the fluid properties
 within the component. Each equation must be defined in a way, that the correct
-result is zero, e. g. if the mass flow at the inlet :math:`\dot{m}_{in}` should
+result is zero, e.g. if the mass flow at the inlet :math:`\dot{m}_{in}` should
 be equal to the mass flow at the outlet :math:`\dot{m}_{out}` and the pressure
 at the outlet :math:`p_{out}` is smaller than the pressure at the inlet
 :math:`p_{in}` by a specified pressure difference :math:`\Delta p`.
@@ -480,7 +480,7 @@ inbuilt function :code:`numeric_deriv(self, func, dx, pos, **kwargs)`.
 - :code:`func` is the function you want to calculate the derivatives for,
 - :code:`dx` is the variable you want to calculate the derivative to and
 - :code:`pos` indicates the connection you want to calculate the derivative
-  for, e. g. :code:`pos=1` means, that counting your inlets and outlets from
+  for, e.g. :code:`pos=1` means, that counting your inlets and outlets from
   low index to high index (first inlets, then outlets), the connection to be
   used is the second connection in that list.
 - :code:`kwargs` are additional keyword arguments required for the function.

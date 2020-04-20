@@ -18,7 +18,7 @@ the last chapter of this tutorial.
 
     Figure: Topology of the heat pump.
 
-The main purpose of the heat pump is to deliver heat e. g. for the consumers of
+The main purpose of the heat pump is to deliver heat e.g. for the consumers of
 a heating system. Thus, the heat pump's parameters will be set in a way, which
 supports this target.
 Generally, if systems are getting more complex, it is highly recommended to set
@@ -490,7 +490,7 @@ Further tasks
 ^^^^^^^^^^^^^
 
 After successfully modeling the heat pump in design and offdesign cases, you
-can now start using your model for further calculations. E. g., if you have a
+can now start using your model for further calculations. E.g., if you have a
 time series of required heat flow of your consumer, you can loop over the
 series and perform offdesign calculation adjusting the heat flow every time. Of
 course, this is possible with every offdesign parameter. We provide the scripts

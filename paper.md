@@ -101,22 +101,31 @@ are relatively small compared to change in enthalpy, subsequently the equation
 can be simplified (eq. \ref{eq:4}).
 
 \begin{align}
-0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}-\underset{o}{\sum}
-\dot{m}_{\mathrm{out,}o} \label{eq:1}\\
-0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
+\begin{split}
+0 &=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}-\underset{o}{\sum}
+\dot{m}_{\mathrm{out,}o} \label{eq:1}
+\end{split}
+\\[2ex]
+\begin{split}
+0 &=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
 \underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot x_{fl\mathrm{,out,}o}
-\ \forall fl\in\mathrm{network\ fluids} \label{eq:2}\\
+\ \forall fl\in\mathrm{network\ fluids} \label{eq:2}
+\end{split}
+\\[2ex]
 \begin{split}
 0 & =\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot \left(
 h_{\mathrm{out,}o} + \mathrm{g} \cdot z_{\mathrm{out,}o} +
-\frac{c_{\mathrm{out,}o}^2}{2}\right) &-
+\frac{c_{\mathrm{out,}o}^2}{2}\right)\\ &-
 \underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot \left(
 h_{\mathrm{in,}i} + \mathrm{g} \cdot z_{\mathrm{in,}i} +
-\frac{c_{\mathrm{in,}i}^2}{2}\right)-P-\dot{Q} \label{eq:3}\\
+\frac{c_{\mathrm{in,}i}^2}{2}\right)-P-\dot{Q} \label{eq:3}
 \end{split}
-0=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
+\\[2ex]
+\begin{split}
+0 &=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
 \underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}-P-\dot{Q}
 \label{eq:4}
+\end{split}
 \end{align}
 
 The values of heat $\dot{Q}$ and power $P$ transferred, depend on

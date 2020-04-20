@@ -56,15 +56,15 @@ implemented in a widespread programming language like Python, is very promising.
 
 TESPy is built up in modular structure with three main modules:
 
-• networks: The networks module represents the container for every simulation.
+* networks: The networks module represents the container for every simulation.
   The solution process, pre- and postprocessing are handled by the network
   class.
-• components: All components are part of the components module. The package
+* components: All components are part of the components module. The package
   provides basic components, for example different types of turbomachinery, heat
   exchangers, pipes, valves and mixers or splitters. On top of that, advanced
   components like a drum, an internal combustion engine or a combustion chamber
   are available. The individual properties of each component are defined in the respective class.
-• connections: Connections are used to connect components and hold the fluid
+* connections: Connections are used to connect components and hold the fluid
   property information. Thus, they represent the plant's topology and its state.
 
 # Method
@@ -86,8 +86,8 @@ as hydraulic state of the plant.
 To achieve this, TESPy implements balance equations (based on standard
 literature, for example [@Baehr; @Epple]) for every component regarding
 
-• mass flow and fluid composition as well as
-• energy (covering thermal and hydraulic properties).
+* mass flow and fluid composition as well as
+* energy (covering thermal and hydraulic properties).
 
 In steady state, the total mass flow into a component must be equal to the total
 mass flow leaving the component (eq. \ref{eq:1}). Additionally, the mass balance
@@ -131,9 +131,9 @@ h_{\mathrm{in,}i} + \mathrm{g} \cdot z_{\mathrm{in,}i} +
 The values of heat $\dot{Q}$ and power $P$ transferred, depend on
 the individual component properties. For example,
 
-• A pipe does not transfer power ($P=0$), thus only heat may be transferred.
-• In contrast, turbomachinery is considered adiabatic, thus it only transfers
-  power ($\dot{Q}=0$).
+* a pipe does not transfer power, thus only heat may be transferred ($P=0$).
+* turbomachinery is considered adiabatic, thus it only transfers power
+  ($\dot{Q}=0$).
 
 If chemical reactions take place, the corresponding chemical mass balance is
 taken into account instead of equation \ref{eq:2}. On top of that, the energy

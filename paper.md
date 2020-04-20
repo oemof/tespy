@@ -160,10 +160,10 @@ this, design specific component parameters are calculated in the design case,
 for example: the area independent heat transfer coefficient $kA$ of heat
 exchangers. The heat transfer at a different operation point is calculated from
 the $kA$ value and the logarithmic temperature difference
-$\Delta\vartheta_{\mathrm{log}$ in equation \ref{eg:8}.
+$\Delta\vartheta_\mathrm{log}$ in equation \ref{eg:8}.
 
  \begin{equation}
- 0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}
+ 0=\dot{Q}-kA\cdot\Delta\vartheta_\mathrm{log}
  \label{eq:8}
  \end{equation}
 

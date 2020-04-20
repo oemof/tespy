@@ -96,9 +96,9 @@ components is derived from the stationary energy balance of open systems with
 multiple inlets and outlets (eq. \ref{eq:3}).
 
 In thermal engineering applications the change in kinetic and potential energy
-due to differences in flow velocity and height are usually neglected as these
-are relatively small compared to change in enthalpy, subsequently the equation
-can be simplified (eq. \ref{eq:4}).
+due to differences in flow velocity $c$ and height $z$ are usually neglected as
+these are relatively small compared to change in enthalpy, subsequently the
+equation can be simplified (eq. \ref{eq:4}).
 
 \begin{align}
 \begin{split}
@@ -152,11 +152,12 @@ h_{\mathrm{in,ref}}\right)_{i}-
 \dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j} \label{eq:5}
 \end{equation}
 
-With respect to hydraulic state, the pressure drop in a pipe can be calculated
+With respect to hydraulic state, the pressure drop
+$p_\mathrm{out}-p_\mathrm{in}$ in a pipe can be calculated
 by the Darcy-Weisbach equation \ref{eq:6} from its dimensions (length $L$,
 diameter $D$) and the Darcy friction factor $\lambda$ calculated from the
 pipe's roughness $k_\mathrm{s}$, its diameter and the Reynolds number $re$.
-For other components it is possible to specify the pressure ratio $pr$
+Another much more simple approach is to specify the pressure ratio $pr$
 \ref{eq:7}.
 
 \begin{align}

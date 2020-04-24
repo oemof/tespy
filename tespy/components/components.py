@@ -554,14 +554,14 @@ class component:
         for p, data in self.variables.items():
             if isinstance(data, dc_cp):
                 val = self.get_attr(p).val
-                if val > data.max_val:
+                if round(val, 6) > data.max_val:
                     msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
                            str(val) + ' above maximum value (' +
                            str(data.max_val) + ') at component ' +
                            self.label + '.')
                     logging.warning(msg)
 
-                elif val < data.min_val:
+                elif round(val, 6) < data.min_val:
                     msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
                            str(val) + ' below minimum value (' +
                            str(data.min_val) + ') at component ' +

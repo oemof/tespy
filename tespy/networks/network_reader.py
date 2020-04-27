@@ -622,7 +622,9 @@ def busses_add_comps(c, *args):
         param = c.bus_param[i]
         P_ref = c.bus_P_ref[i]
         char = c.bus_char[i]
-        base = c.bus_base[i]
+        base = 'component'
+        if 'bus_base' in c.index:
+            base = c.bus_base[i]
 
         values = char == args[1]['id']
         char = char_line(x=args[1][values].x.values[0],

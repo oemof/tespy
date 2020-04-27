@@ -1,4 +1,4 @@
-e.g.First steps
+First steps
 ===========
 
 In this section we provide you with a very simple example as firsts steps in

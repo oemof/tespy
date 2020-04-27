@@ -157,7 +157,8 @@ your local github clone:
 Additionally, all tests will run automatically when you push changes to a
 branch that has a pull request opened.
 
-If you have further questions regarding the tests, do not bother to contact us.
+If you have further questions regarding the tests, we are looking forward to
+your inquiry.
 
 .. _style_guidlines_label:
 

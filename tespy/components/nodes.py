@@ -537,7 +537,7 @@ class droplet_separator(component):
     >>> from tespy.components import sink, source, droplet_separator
     >>> from tespy.connections import connection
     >>> from tespy.networks import network
-    >>> from tespy.tools.fluid_properties import Q_ph
+    >>> from tespy.tools.fluid_properties import Q_ph, T_bp_p
     >>> import shutil
     >>> nw = network(fluids=['water'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', iterinfo=False)
@@ -588,6 +588,9 @@ class droplet_separator(component):
     >>> nw.solve('design')
     >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
     0.95
+    >>> T_boil = T_bp_p(so_ds.to_flow())
+    >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
+    True
     """
 
     @staticmethod

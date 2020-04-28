@@ -28,7 +28,7 @@ from tespy.components.basics import (
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.customs import orc_evaporator
 from tespy.components.heat_exchangers import heat_exchanger
-from tespy.components.nodes import drum, merge, splitter
+from tespy.components.nodes import drum, merge, splitter, droplet_separator
 from tespy.components.reactors import water_electrolyzer
 from tespy import connections as con
 from tespy.tools import data_containers as dc
@@ -692,6 +692,12 @@ class network:
 
         Additionally, check, if all components have unique labels.
 
+        Parameters
+        ----------
+        comps : pandas.core.frame.DataFrame
+            DataFrame containing all components of the network gathered from
+            the network's connection information.
+
         Note
         ----
         The dataframe for the components is derived from the network's
@@ -1286,7 +1292,8 @@ class network:
 
             self.init_target(outconn, start)
 
-        if isinstance(c.target, splitter):
+        if (isinstance(c.target, splitter) or
+                isinstance(c.target, droplet_separator)):
             for outconn in self.comps.loc[c.target, 'outlets']:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
@@ -1362,7 +1369,8 @@ class network:
 
             self.init_source(inconn, start)
 
-        if isinstance(c.source, splitter):
+        if (isinstance(c.source, splitter) or
+                isinstance(c.source, droplet_separator)):
             for inconn in self.comps.loc[c.source, 'inlets']:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
@@ -2027,32 +2035,31 @@ class network:
         if fl is not None:
             # pressure
             if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.value_range[fl][0] * 1.01
+                c.p.val_SI = fp.memorise.value_range[fl][0]
                 logging.debug(self.property_range_message(c, 'p'))
             if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.value_range[fl][1] * 0.99
+                c.p.val_SI = fp.memorise.value_range[fl][1]
                 logging.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
-            f = 1.01
             try:
                 hmin = fp.h_pT(
-                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
+                    c.p.val_SI, fp.memorise.value_range[fl][2] * 1.001, fl)
             except ValueError:
-                f = 1.1
+                f = 1.05
                 hmin = fp.h_pT(
                     c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
 
             hmax = fp.h_pT(
-                c.p.val_SI, fp.memorise.value_range[fl][3] * 0.99, fl)
+                c.p.val_SI, fp.memorise.value_range[fl][3], fl)
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
-                    c.h.val_SI = hmin / 1.05
+                    c.h.val_SI = hmin * 0.9999
                 else:
-                    c.h.val_SI = hmin * 1.05
+                    c.h.val_SI = hmin * 1.0001
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.95
+                c.h.val_SI = hmax
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set is True or c.state.is_set is True) and
@@ -2061,13 +2068,13 @@ class network:
                         (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.02
+                        c.h.val_SI = h * 1.01
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
                       (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.98
+                        c.h.val_SI = h * 0.99
                         logging.debug(self.property_range_message(c, 'h'))
 
         elif self.iter < 4 and c.good_starting_values is False:

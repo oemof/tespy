@@ -1072,14 +1072,13 @@ def T_bp_p(flow):
     ----
     This function works for pure fluids only!
     """
-    for fluid, x in flow[3].items():
-        if x > err:
-            pcrit = memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
-            if flow[1] > pcrit:
-                memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, 1)
-            else:
-                memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], 1)
-            return memorise.state[fluid].T()
+    fluid = single_fluid(flow[3])
+    pcrit = memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
+    if flow[1] > pcrit:
+        memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, 1)
+    else:
+        memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], 1)
+    return memorise.state[fluid].T()
 
 
 def dT_bp_dp(flow):

@@ -74,6 +74,10 @@ New Features
   where :code:`mycomp` is a component object and :code:`mybus` is a bus the
   component has been added to
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
+- New component :py:class:`tespy.components.nodes.droplet_separator` for
+  separation of a single fluid in two phase state into saturated gas and
+  saturated liquid phase. An example is given in the docstrings of the class
+  documentation (`PR #186 <https://github.com/oemof/tespy/pull/186>`_).
 
 Documentation
 #############

@@ -345,7 +345,7 @@ class char_map:
             \left(\vec{y_1}-\vec{y_0} \right)\\
             \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot
             \left(\vec{z1_1}-\vec{z1_0} \right)\\
-            \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x1-x_0} \cdot
+            \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x_1-x_0} \cdot
             \left(\vec{z2_1}-\vec{z2_0}\right)
 
         The index :math:`x_0` represents the lower and :math:`x_1` the

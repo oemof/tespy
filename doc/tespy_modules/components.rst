@@ -22,12 +22,15 @@ well as the equations.
     * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>`
 - Heat exchangers
     * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.heat_exchanger_simple>`
+    * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector>`
+    * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough>`
     * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>`
     * :py:class:`Condenser <tespy.components.heat_exchangers.condenser>`
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
 - Nodes
     * :py:class:`Node <tespy.components.nodes.node>`
     * :py:class:`Drum <tespy.components.nodes.drum>`
+    * :py:class:`Drum <tespy.components.nodes.droplet_separator>`
     * :py:class:`Merge <tespy.components.nodes.merge>`
     * :py:class:`Separator <tespy.components.nodes.separator>`
     * :py:class:`Splitter <tespy.components.nodes.splitter>`
@@ -84,7 +87,7 @@ evaporator and how to unset the parameter again.
 
     # possibilities to unset a value
     he.set_attr(kA=np.nan)
-    he.set_attr(kA=None)    
+    he.set_attr(kA=None)
     he.kA.set_attr(is_set=False)
 
 

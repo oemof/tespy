@@ -912,10 +912,11 @@ class parabolic_trough(heat_exchanger_simple):
     -------
     A parabolic trough is installed using S800 as thermo-fluid.
     First, the operation conditions from :cite:`Janotte2014` are reproduced.
-    Therefore, the direct normal irradiance is at 1000
-    :math:`\frac{\text{W}}{\text{m}^2}` at an incidence angle of 20 °. This
-    means, the direct irradiance to the parabolic trough :math:`E` is at
-    :math:`\unit[1000]{W} \cdot cos\left(20^\circ\right)`.
+    Therefore, the direct normal irradiance :math:`\dot{E}_\mathrm{DNI}` is at
+    1000 :math:`\frac{\text{W}}{\text{m}^2}` at an angle of incidence
+    :math:`aoi` at 20 °. This means, the direct irradiance to the parabolic
+    trough :math:`E` is at
+    :math:`\dot{E}_{DNI} \cdot cos\left(20^\circ\right)`.
 
     >>> from tespy.components import sink, source, parabolic_trough
     >>> from tespy.connections import connection
@@ -936,10 +937,12 @@ class parabolic_trough(heat_exchanger_simple):
 
     The pressure ratio is at a constant level of 1. However, it is possible to
     specify the pressure losses from the absorber tube length, roughness and
-    diameter, too. The aperture surface is specified to :math:`\unit[1]{m^2}`
-    for simplicity reasons. Unfortunately, the degree of cleanliness is not
-    specified in the source. Therefore we are reverse engineering this value
-    from the given conditions (:math:`\Delta T=\unit[220]{K}`).
+    diameter, too. The aperture surface :math:`A` is specified to 1
+    :math:`\text{m}^2` for simplicity reasons. Unfortunately, the degree of
+    cleanliness is not specified in the source. But it is possible to reverse
+    engineer this value from the given conditions by specifying the desired
+    heat output and irradiance with a variable degree of cleanliness
+    :math:`doc`.
 
     >>> aoi = 20
     >>> E = 1000 * np.cos(aoi / 180 * np.pi)
@@ -967,17 +970,16 @@ class parabolic_trough(heat_exchanger_simple):
     Given this design, it is possible to calculate the outlet temperature as
     well as the heat transfer at different operating points.
 
-    aoi = 30
+    >>> aoi = 30
     >>> E = 800 * np.cos(aoi / 180 * np.pi)
     >>> pt.set_attr(A=pt.A.val, aoi=aoi, Q=None, E=E)
     >>> inc.set_attr(T=150)
     >>> outg.set_attr(T=None)
     >>> nw.solve('design')
     >>> round(outg.T.val)
-    256.0
+    253.0
     >>> round(pt.Q.val)
-    4052962.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    4959375.0
     """
 
     @staticmethod
@@ -1137,7 +1139,7 @@ class parabolic_trough(heat_exchanger_simple):
             \left(T_m - T_{amb}\right)^2 \right]
             \end{split}
 
-        Reference: :cite:`:cite:`Janotte2014``.
+        Reference: :cite:`Janotte2014`.
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()

@@ -44,7 +44,7 @@ a vector for each dimension (y, z1 and z2).
     \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z1_1}-
     \vec{z1_0} \right)
 
-    \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x1-x_0} \cdot \left(\vec{z2_1}-
+    \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z2_1}-
     \vec{z2_0}\right)
 
 Using the y value as second input dimension the corresponding z1 and z2 values

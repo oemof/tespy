@@ -4,8 +4,8 @@
 
 Components in this module:
 
-    - :func:`tespy.components.piping.pipe`
-    - :func:`tespy.components.piping.valve`
+- :func:`tespy.components.piping.pipe`
+- :func:`tespy.components.piping.valve`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

@@ -4,10 +4,10 @@
 
 Components in this module:
 
-    - :func:`tespy.components.turbomachinery.turbomachine` (parent class)
-    - :func:`tespy.components.turbomachinery.compressor`
-    - :func:`tespy.components.turbomachinery.pump`
-    - :func:`tespy.components.turbomachinery.turbine`
+- :func:`tespy.components.turbomachinery.compressor`
+- :func:`tespy.components.turbomachinery.pump`
+- :func:`tespy.components.turbomachinery.turbine`
+- :func:`tespy.components.turbomachinery.turbomachine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

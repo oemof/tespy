@@ -11,9 +11,9 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.basics import sink, source
-from tespy.components.heat_exchangers import (heat_exchanger_simple,
-                                              solar_collector,
-                                              heat_exchanger, condenser)
+from tespy.components.heat_exchangers import (
+    heat_exchanger_simple, solar_collector, heat_exchanger, condenser,
+    parabolic_trough)
 from tespy.connections import connection, bus
 from tespy.networks.networks import network
 from tespy.tools.fluid_properties import T_bp_p
@@ -34,8 +34,9 @@ class TestHeatExchangers:
 
     def setup(self):
 
-        self.nw = network(['H2O', 'Ar'], T_unit='C', p_unit='bar',
-                          v_unit='m3 / s')
+        self.nw = network(
+            ['H2O', 'Ar', 'INCOMP::S800'], T_unit='C', p_unit='bar',
+            v_unit='m3 / s')
         self.inl1 = source('inlet 1')
         self.outl1 = sink('outlet 1')
 
@@ -62,7 +63,7 @@ class TestHeatExchangers:
         """Test component properties of simple heat exchanger."""
         instance = heat_exchanger_simple('heat exchanger')
         self.setup_heat_exchanger_simple_network(instance)
-        fl = {'Ar': 0, 'H2O': 1}
+        fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, m=1, p=10, T=100)
         # trigger heat exchanger parameter groups
         instance.set_attr(hydro_group='HW', L=100, ks=100, pr=0.99, Tamb=20)
@@ -133,11 +134,116 @@ class TestHeatExchangers:
                ', is ' + str(instance.Q.val) + '.')
         assert Q == round(instance.Q.val, 0), msg
 
+    def test_parabolic_trough(self):
+        """Test component properties of parabolic trough."""
+        instance = parabolic_trough('parabolic trough')
+        self.setup_heat_exchanger_simple_network(instance)
+        fl = {'Ar': 0, 'H2O': 0, 'S800': 1}
+        self.c1.set_attr(fluid=fl, p=2, T=200)
+        self.c2.set_attr(T=350)
+
+        # test grouped parameter settings with missing parameters
+        instance.hydro_group.is_set = True
+        instance.energy_group.is_set = True
+        self.nw.solve('design', init_only=True)
+        msg = ('Hydro group must no be set, if one parameter is missing!')
+        assert instance.hydro_group.is_set is False, msg
+        msg = ('Energy group must no be set, if one parameter is missing!')
+        assert instance.energy_group.is_set is False, msg
+
+        # test solar collector params as system variables
+        instance.set_attr(
+            pr=1, aoi=10, doc=0.95, Q=1e6, Tamb=25, A='var', eta_opt=0.816,
+            c_1=0.0622, c_2=0.00023, E=8e2, iam_1=-1.59e-3, iam_2=9.77e-5)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        # heat loss must be identical to E * A - Q (internal heat loss
+        # calculation)
+        T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
+        iam = (
+            1 - instance.iam_1.val * abs(instance.aoi.val) -
+            instance.iam_2.val * instance.aoi.val ** 2)
+
+        Q_loss = round(instance.A.val * (
+            instance.E.val * (
+                1 - instance.eta_opt.val * instance.doc.val ** 1.5 * iam
+            ) + T_diff * instance.c_1.val + T_diff ** 2 * instance.c_2.val), 0)
+        msg = (
+            'Value for heat loss of parabolic trough must be ' + str(Q_loss) +
+            ', is ' + str(round(instance.Q_loss.val, 0)) + '.')
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: E
+        # going to a different operating point first
+        area = instance.A.val
+        instance.set_attr(A=area * 1.2, E='var')
+        self.nw.solve('design')
+        instance.set_attr(A=area)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: eta_opt
+        instance.set_attr(E=5e2, eta_opt='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: c_1
+        instance.set_attr(E=5e2, eta_opt=instance.eta_opt.val, c_1='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: c_2
+        instance.set_attr(E=5e2, c_1=instance.c_1.val, c_2='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: iam_1
+        instance.set_attr(E=5e2, c_2=instance.c_2.val, iam_1='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: iam_2
+        instance.set_attr(E=5e2, iam_1=instance.iam_1.val, iam_2='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: aoi
+        instance.set_attr(E=5e2, iam_2=instance.iam_2.val, aoi='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
+        # test all parameters of the energy group: doc
+        instance.set_attr(E=5e2, aoi=instance.aoi.val, doc='var')
+        self.nw.solve('design')
+        instance.set_attr(E=8e2)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        assert Q_loss == round(instance.Q_loss.val, 0), msg
+
     def test_solar_collector(self):
         """Test component properties of solar collector."""
         instance = solar_collector('solar collector')
         self.setup_heat_exchanger_simple_network(instance)
-        fl = {'Ar': 0, 'H2O': 1}
+        fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, p=10, T=30)
         self.c2.set_attr(T=70)
 
@@ -155,7 +261,7 @@ class TestHeatExchangers:
                           eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        # heat loss must be identical to Q - E * A (internal heat loss
+        # heat loss must be identical to E * A - Q (internal heat loss
         # calculation)
         T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
         Q_loss = round(instance.A.val * (
@@ -168,31 +274,42 @@ class TestHeatExchangers:
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: E
-        instance.set_attr(A=instance.A.val, E='var')
+        area = instance.A.val
+        instance.set_attr(A=area * 1.2, E='var')
+        self.nw.solve('design')
+        instance.set_attr(A=area)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: eta_opt
-        instance.set_attr(E=instance.E.val, eta_opt='var')
+        instance.set_attr(E=8e2, eta_opt='var')
+        self.nw.solve('design')
+        instance.set_attr(E=1e3)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: lkf_lin
-        instance.set_attr(eta_opt=instance.eta_opt.val, lkf_lin='var')
+        instance.set_attr(E=8e2, eta_opt=instance.eta_opt.val, lkf_lin='var')
+        self.nw.solve('design')
+        instance.set_attr(E=1e3)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: lkf_quad
-        instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        self.nw.solve('design')
+        instance.set_attr(E=1e3)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: Tamb
-        instance.set_attr(lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
+        self.nw.solve('design')
+        instance.set_attr(E=1e3)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
@@ -206,9 +323,9 @@ class TestHeatExchangers:
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
                           design=['pr1', 'pr2', 'ttd_u'],
                           offdesign=['zeta1', 'zeta2', 'kA'])
-        self.c1.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1})
+        self.c1.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c2.set_attr(T=70)
-        self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0})
+        self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0, 'S800': 0})
         b = bus('heat transfer', P=-80e3)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
@@ -294,8 +411,8 @@ class TestHeatExchangers:
         # design specification
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
                           offdesign=['zeta2', 'kA'])
-        self.c1.set_attr(T=100, p0=0.5, fluid={'Ar': 0, 'H2O': 1})
-        self.c3.set_attr(T=30, p=5, fluid={'Ar': 0, 'H2O': 1})
+        self.c1.set_attr(T=100, p0=0.5, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
+        self.c3.set_attr(T=30, p=5, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c4.set_attr(T=40)
         instance.set_attr(Q=-80e3)
         self.nw.solve('design')

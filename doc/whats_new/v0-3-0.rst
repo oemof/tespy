@@ -78,6 +78,10 @@ New Features
   separation of a single fluid in two phase state into saturated gas and
   saturated liquid phase. An example is given in the docstrings of the class
   documentation (`PR #186 <https://github.com/oemof/tespy/pull/186>`_).
+- New component :py:class:`tespy.components.heat_exchangers.parabolic_trough`
+  for concentrated solar power simulation. An example is given in the
+  docstrings of the class documentation
+  (`PR #191 <https://github.com/oemof/tespy/pull/191>`_).
 
 Documentation
 #############

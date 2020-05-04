@@ -49,6 +49,7 @@ comp_target_classes = {
     'heat_exchanger': heat_exchangers.heat_exchanger,
     'heat_exchanger_simple': heat_exchangers.heat_exchanger_simple,
     'solar_collector': heat_exchangers.solar_collector,
+    'parabolic_trough': heat_exchangers.parabolic_trough,
     'droplet_separator': nodes.droplet_separator,
     'drum': nodes.drum,
     'merge': nodes.merge,

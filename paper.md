@@ -211,7 +211,8 @@ in this field, too. Additionally, TESPy has been coupled with OpenGeoSys
 
 This work is supported by University of Applied Sciences and the Center for
 Sustainable Energy Systems in Flensburg. It is part of the open energy modeling
-framework (oemof) [@oemof]. Many thanks to all
+framework (oemof), most known for its software package solph [@oemof]. Many
+thanks to all
 [contributors](https://github.com/oemof/tespy/graphs/contributors).
 
 Key parts of TESPy require the following scientific software packages: CoolProp

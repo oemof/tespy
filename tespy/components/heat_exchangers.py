@@ -938,34 +938,30 @@ class parabolic_trough(heat_exchanger_simple):
     The pressure ratio is at a constant level of 1. However, it is possible to
     specify the pressure losses from the absorber tube length, roughness and
     diameter, too. The aperture surface :math:`A` is specified to 1
-    :math:`\text{m}^2` for simplicity reasons. Unfortunately, the degree of
-    cleanliness is not specified in the source. But it is possible to reverse
-    engineer this value from the given conditions by specifying the desired
-    heat output and irradiance with a variable degree of cleanliness
-    :math:`doc`.
+    :math:`\text{m}^2` for simplicity reasons.
 
     >>> aoi = 20
     >>> E = 1000 * np.cos(aoi / 180 * np.pi)
-    >>> pt.set_attr(pr=1, aoi=aoi, doc='var', Q=736,
+    >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
     ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
     ... iam_1=-1.59e-3, iam_2=9.77e-5)
     >>> inc.set_attr(fluid={'S800': 1}, T=220, p=2)
     >>> outg.set_attr(T=260)
     >>> nw.solve('design')
-    >>> round(pt.doc.val, 3)
-    0.95
+    >>> round(pt.Q.val, 0)
+    736.0
 
     For example, it is possible to calculate the aperture area of the parabolic
     trough given the total heat production, outflow temperature and mass flow.
 
-    >>> pt.set_attr(doc=pt.doc.val, A='var', Q=5e6, Tamb=25)
+    >>> pt.set_attr(A='var', Q=5e6, Tamb=25)
     >>> inc.set_attr(T=None)
     >>> outg.set_attr(T=350, m=20)
     >>> nw.solve('design')
     >>> round(inc.T.val)
     229.0
     >>> round(pt.A.val)
-    6866.0
+    6862.0
 
     Given this design, it is possible to calculate the outlet temperature as
     well as the heat transfer at different operating points.
@@ -977,9 +973,9 @@ class parabolic_trough(heat_exchanger_simple):
     >>> outg.set_attr(T=None)
     >>> nw.solve('design')
     >>> round(outg.T.val)
-    253.0
+    244.0
     >>> round(pt.Q.val)
-    3959375.0
+    3603027.0
     """
 
     @staticmethod
@@ -1147,8 +1143,8 @@ class parabolic_trough(heat_exchanger_simple):
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        iam = 1 - (
-            self.iam_1.val * abs(self.aoi.val) -
+        iam = (
+            1 -  self.iam_1.val * abs(self.aoi.val) -
             self.iam_2.val * self.aoi.val ** 2)
 
         return (i[0] * (o[2] - i[2]) -

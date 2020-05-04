@@ -979,7 +979,7 @@ class parabolic_trough(heat_exchanger_simple):
     >>> round(outg.T.val)
     253.0
     >>> round(pt.Q.val)
-    4959375.0
+    3959375.0
     """
 
     @staticmethod

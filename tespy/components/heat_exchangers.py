@@ -4,12 +4,12 @@
 
 Components in this module:
 
-- :func:`tespy.components.heat_exchangers.heat_exchanger`
-- :func:`tespy.components.heat_exchangers.heat_exchanger_simple`
 - :func:`tespy.components.heat_exchangers.condenser`
 - :func:`tespy.components.heat_exchangers.desuperheater`
+- :func:`tespy.components.heat_exchangers.heat_exchanger`
+- :func:`tespy.components.heat_exchangers.heat_exchanger_simple`
+- :func:`tespy.components.heat_exchangers.parabolic_trough`
 - :func:`tespy.components.heat_exchangers.solar_collector`
-- :func:`tespy.components.heat_exchangers.concentrating_solar`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

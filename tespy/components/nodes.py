@@ -4,10 +4,12 @@
 
 Components in this module:
 
-    - :func:`tespy.components.nodes.node`
-    - :func:`tespy.components.nodes.merge`
-    - :func:`tespy.components.nodes.splitter`
-    - :func:`tespy.components.nodes.separator`
+- :func:`tespy.components.nodes.droplet_separator`
+- :func:`tespy.components.nodes.drum`
+- :func:`tespy.components.nodes.node`
+- :func:`tespy.components.nodes.merge`
+- :func:`tespy.components.nodes.splitter`
+- :func:`tespy.components.nodes.separator`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

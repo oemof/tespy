@@ -4,7 +4,7 @@
 
 Components in this module:
 
-    - :func:`tespy.components.customs.orc_evaporator`
+- :func:`tespy.components.customs.orc_evaporator`
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,

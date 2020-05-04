@@ -1906,6 +1906,21 @@ class network:
             self.increment = inv(self.jacobian).dot(-self.residual)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
+
+            for i in range(self.jacobian.shape[1]):
+                for j in range(self.jacobian.shape[1]):
+                    if i != j:
+                        inner_product = np.inner(self.jacobian[i], self.jacobian[j])
+                        norm_i = norm(self.jacobian[i])
+                        norm_j = norm(self.jacobian[j])
+                        if np.abs(inner_product - norm_j * norm_i) < 1E-5:
+                            print('Dependent')
+                            print('I (' + str(i) + '):', self.jacobian[i])
+                            print('J (' + str(j) + '):', self.jacobian[j])
+                            print('Prod:', inner_product)
+                            print('Norm i:', norm_i)
+                            print('Norm j:', norm_j)
+
             self.increment = self.residual * 0
             pass
 

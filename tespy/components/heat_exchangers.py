@@ -1128,14 +1128,12 @@ class parabolic_trough(heat_exchanger_simple):
         ----
         .. math::
 
-            T_m = \frac{T_{out} + T_{in}}{2}\\
-
-            iam = 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2
-
             \begin{split}
+            T_m = & \frac{T_{out} + T_{in}}{2}\\
+            iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\
             0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-            & - A \cdot \left[E \cdot \eta_{opt} \cdot doc^1.5 \cdot iam -
-            c_1 \cdot \left(T_m - T_{amb} \right) - c_2 \cdot
+            & - A \cdot \left[E \cdot \eta_{opt} \cdot doc^1.5 \cdot iam\\
+            & - c_1 \cdot \left(T_m - T_{amb} \right) - c_2 \cdot
             \left(T_m - T_{amb}\right)^2 \right]
             \end{split}
 
@@ -1482,9 +1480,8 @@ class solar_collector(heat_exchanger_simple):
         ----
         .. math::
 
-            T_m = \frac{T_{out} + T_{in}}{2}\\
-
             \begin{split}
+            T_m = & \frac{T_{out} + T_{in}}{2}\\
             0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
             & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
             \left(T_m - T_{amb} \right) - \alpha_2 \cdot

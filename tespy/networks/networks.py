@@ -2059,7 +2059,7 @@ class network:
                     c.h.val_SI = hmin * 1.0001
                 logging.debug(self.property_range_message(c, 'h'))
             if c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax
+                c.h.val_SI = hmax * 0.9999
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set is True or c.state.is_set is True) and

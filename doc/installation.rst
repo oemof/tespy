@@ -15,7 +15,7 @@ operation systems.
 
 .. note::
 
-    Due to Python 3.8 incompability of the fluid property software (CoolProp)
+    Due to Python 3.8 incompatibility of the fluid property software (CoolProp)
     in version 6.3.0, we have implemented a Python version restriction to
     Python lower than 3.8. If you build CoolProp manually, it is possible
     to use Python 3.8. For more information on the manual CoolProp installation
@@ -116,7 +116,7 @@ Using Anaconda
        activate yourenvname
 
  4. In the active Anaconda Prompt type: :code:`pip install tespy`
- 5. If the installation of CoolProp fails, make shure, you have
+ 5. If the installation of CoolProp fails, make sure, you have
     Microsoft Visual Stuido C++ Build Tools 14.0 installed on your computer.
 
 
@@ -124,5 +124,5 @@ Mac OSX
 =======
 
 Installation instructions for Mac OSX are not available, yet. If you want to
-share your knwolegde on the installation and fill this gap, feel free to
+share your knowledge on the installation and fill this gap, feel free to
 contact us.

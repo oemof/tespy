@@ -1889,9 +1889,12 @@ class network:
             msg = ('Total iterations: ' + str(self.iter + 1) + ', '
                    'Calculation time: ' +
                    str(round(self.end_time - self.start_time, 1)) + ' s, '
-                   'Iterations per second: ' +
-                   str(round((self.iter + 1) /
-                             (self.end_time - self.start_time), 2)))
+                   'Iterations per second: ')
+            ips = 'inf'
+            if self.end_time != self.start_time:
+                ips = str(round(
+                    (self.iter + 1) / (self.end_time - self.start_time), 2))
+            msg += ips
             logging.debug(msg)
             if self.iterinfo:
                 print(msg)

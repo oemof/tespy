@@ -1886,7 +1886,7 @@ class network:
                            '+----------+----------+---------')
                 print(msg)
 
-            msg = (('Total iterations: ' + str(self.iter + 1) + ', '
+            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
                    'Calculation time: ' +
                    str(round(self.end_time - self.start_time, 1)) + ' s, '
                    'Iterations per second: ')

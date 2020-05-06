@@ -600,6 +600,30 @@ Use this code for connection parameters:
     mass_flow = myconn.m.val  # value in specified network unit
     mass_flow_SI = myconn.m.val_SI  # value in SI unit
     mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
+    specific_volume = myconn.vol.val  # value in specified network unit
+    specific_entropy = myconn.s.val  # value in specified network unit
+
+Creating fluid property diagrams
+--------------------------------
+
+.. figure:: ../api/_images/logph_diagram_states.svg
+    :align: center
+
+    Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+CoolProp has an inbuilt feature for creating fluid property diagrams.
+Unfortunately, the handling is not very easy at the moment. We recommend using
+fluprodia (Fluid Property Diagram) instead. You can create and customize
+different types of diagrams for all pure and pseudo-pure fluids available in
+CoolProp. In order to plot your process data into a diagram, simply extract
+the corresponding values from the connections. For more information on
+fluprodia have a look at the
+`online documentation <https://fluprodia.readthedocs.io/en/latest/>`_. You can
+install the package with pip.
+
+.. code-block:: bash
+
+    pip install fluprodia
 
 Network reader
 ==============

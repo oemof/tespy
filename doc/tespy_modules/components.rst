@@ -29,8 +29,8 @@ well as the equations.
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
 - Nodes
     * :py:class:`Node <tespy.components.nodes.node>`
+    * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator>`
     * :py:class:`Drum <tespy.components.nodes.drum>`
-    * :py:class:`Drum <tespy.components.nodes.droplet_separator>`
     * :py:class:`Merge <tespy.components.nodes.merge>`
     * :py:class:`Separator <tespy.components.nodes.separator>`
     * :py:class:`Splitter <tespy.components.nodes.splitter>`

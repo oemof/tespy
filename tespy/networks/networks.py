@@ -1585,7 +1585,7 @@ class network:
         logging.debug(msg)
 
     def solve(self, mode, init_path=None, design_path=None,
-              max_iter=50, init_only=False, init_previous=True):
+              max_iter=50, min_iter=4, init_only=False, init_previous=True):
         r"""
         Solve the network.
 
@@ -1611,6 +1611,9 @@ class network:
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
+
+        min_iter : int
+            Minimum number of iterations before calculation stops, default: 4.
 
         init_only : boolean
             Perform initialisation only, default: :code:`False`.
@@ -1642,6 +1645,7 @@ class network:
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
+        self.min_iter = min_iter
         self.init_previous = init_previous
 
         if mode != 'offdesign' and mode != 'design':
@@ -1737,7 +1741,7 @@ class network:
             if self.iterinfo:
                 self.print_iterinfo('solving')
 
-            if ((self.iter > 3 and self.res[-1] < err ** 0.5) or
+            if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
                 break
 

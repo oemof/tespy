@@ -379,10 +379,10 @@ class connection:
                     if isinstance(kwargs[key], dict):
                         # starting values
                         if key in self.variables0:
-                            self.fluid.set_attr(val0=kwargs[key])
+                            self.fluid.set_attr(val0=kwargs[key].copy())
                         # specified parameters
                         else:
-                            self.fluid.set_attr(val=kwargs[key])
+                            self.fluid.set_attr(val=kwargs[key].copy())
                             self.fluid.set_attr(
                                 val_set={f: True for f in kwargs[key].keys()})
 
@@ -946,7 +946,7 @@ class bus:
                         else:
                             msg = (
                                 'Char must be a number or a TESPy '
-                                'characteristics.')
+                                'characteristics char line.')
                             logging.error(msg)
                             raise TypeError(msg)
 
@@ -971,8 +971,9 @@ class bus:
                             raise ValueError(msg)
 
             else:
-                msg = ('Provide arguments as dicts. See the documentation of '
-                       'bus.add_comps() for more information.')
+                msg = (
+                    'Provide arguments as dictionaries. See the documentation '
+                    'of bus.add_comps() for more information.')
                 logging.error(msg)
                 raise TypeError(msg)
 

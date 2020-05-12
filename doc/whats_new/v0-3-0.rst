@@ -82,6 +82,10 @@ New Features
   for concentrated solar power simulation. An example is given in the
   docstrings of the class documentation
   (`PR #191 <https://github.com/oemof/tespy/pull/191>`_).
+- New property :code:`min_iter` of the
+  :py:class:`tespy.networks.networks.network` class, allowing to specify the
+  minimum amount of iterations before a solution is accepted
+  (`PR #197 <https://github.com/oemof/tespy/pull/197>`_).
 
 Documentation
 #############

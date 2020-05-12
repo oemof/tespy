@@ -145,6 +145,8 @@ available keywords:
    information of your plant's design point.
  * :code:`max_iter` is the maximum amount of iterations performed by the
    solver.
+ * :code:`min_iter` is the minimum amount of iterations before a solution can
+   be accepted (given the convergence criterion is satisfied).
  * :code:`init_only` stop after initialisation (True/False).
  * :code:`init_previous` use starting values from previous simulation
    (True/False).

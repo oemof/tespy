@@ -112,6 +112,9 @@ Bug fixes
 - Increase the number of support points for tespy_fluid tabular data creation
   in order to lift accuracy to a more acceptable value
   (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
+- Fix the default characteristic line for compressor isentropic efficiency: The
+  line did not have an intersection with the point 1/1
+  (`PR #196 <https://github.com/oemof/tespy/pull/196>`_).
 
 Other changes
 #############

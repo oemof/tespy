@@ -322,7 +322,7 @@ class TestHeatExchangers:
         # design specification
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
                           design=['pr1', 'pr2', 'ttd_u'],
-                          offdesign=['zeta1', 'zeta2', 'kA'])
+                          offdesign=['zeta1', 'zeta2', 'kA_char'])
         self.c1.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c2.set_attr(T=70)
         self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0, 'S800': 0})
@@ -410,7 +410,7 @@ class TestHeatExchangers:
 
         # design specification
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-                          offdesign=['zeta2', 'kA'])
+                          offdesign=['zeta2', 'kA_char'])
         self.c1.set_attr(T=100, p0=0.5, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c3.set_attr(T=30, p=5, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c4.set_attr(T=40)

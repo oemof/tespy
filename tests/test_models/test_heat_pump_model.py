@@ -148,7 +148,7 @@ class TestHeatPump:
              0.9983, 0.9988, 0.9992, 0.9996, 0.9998, 1.0000, 1.0008, 1.0014])
         kA_char2 = dc_cc(func=char_line(x, y), param='m')
         ev.set_attr(
-            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA'],
+            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
             kA_char1=kA_char1, kA_char2=kA_char2)
 
         # no kA modification for hot side!
@@ -163,7 +163,7 @@ class TestHeatPump:
             [0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07])
         kA_char2 = dc_cc(func=char_line(x, y), param='m')
         su.set_attr(kA_char1=kA_char1, kA_char2=kA_char2,
-                    offdesign=['zeta1', 'zeta2', 'kA'])
+                    offdesign=['zeta1', 'zeta2', 'kA_char'])
 
         x = np.array(
             [0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
@@ -202,7 +202,7 @@ class TestHeatPump:
         kA_char2 = dc_cc(func=char_line(x, y), param='m')
 
         he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2,
-                    offdesign=['zeta1', 'zeta2', 'kA'])
+                    offdesign=['zeta1', 'zeta2', 'kA_char'])
 
         # characteristic line for condenser kA
         x = np.linspace(0, 2.5, 26)
@@ -221,7 +221,7 @@ class TestHeatPump:
         kA_char2 = dc_cc(func=char_line(x, y), param='m')
 
         cd.set_attr(kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
-                    design=['pr2'], offdesign=['zeta2', 'kA'])
+                    design=['pr2'], offdesign=['zeta2', 'kA_char'])
 
         # %% connection parametrization
         # condenser system

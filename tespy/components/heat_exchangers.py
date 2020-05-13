@@ -653,7 +653,7 @@ class heat_exchanger_simple(component):
                 \end{cases}
 
                 0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
+                kA_{ref} \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
                 {\ln{\frac{ttd_u}{ttd_l}}}
 
                 f_{kA} = \frac{2}{1 + \frac{1}

@@ -71,11 +71,14 @@ class TestHeatExchangers:
         # test grouped parameter settings with missing parameters
         instance.hydro_group.is_set = True
         instance.kA_group.is_set = True
+        instance.kA_char_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
         assert instance.hydro_group.is_set is False, msg
         msg = ('kA group must no be set, if one parameter is missing!')
         assert instance.kA_group.is_set is False, msg
+        msg = ('kA char group must no be set, if one parameter is missing!')
+        assert instance.kA_char_group.is_set is False, msg
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
@@ -120,7 +123,7 @@ class TestHeatExchangers:
 
         # due to heat output being half of reference (for Tamb) kA should be
         # somewhere near to that (actual value is 677)
-        msg = ('Value of heat transfer coefficient must be 667, is ' +
+        msg = ('Value of heat transfer coefficient must be 677, is ' +
                str(instance.kA.val) + '.')
         assert 677 == round(instance.kA.val, 0), msg
 
@@ -332,6 +335,26 @@ class TestHeatExchangers:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
+        Q_design = instance.Q.val
+
+        # test specified kA value
+        instance.set_attr(kA=instance.kA.val * 2 / 3)
+        b.set_attr(P=None)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+        # test heat transfer
+        Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        msg = (
+            'Value of heat flow must be ' + str(round(Q_design * 2 / 3, 0)) +
+            ', is ' + str(round(Q, 0)) + '.')
+        assert round(Q, 1) == round(Q_design * 2 / 3, 1), msg
+
+        # back to design case
+        instance.set_attr(kA=None)
+        b.set_attr(P=Q_design)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
 
         # check heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
@@ -418,10 +441,28 @@ class TestHeatExchangers:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
+        Q_design = instance.Q.val
+
+        # test specified kA value
+        instance.set_attr(kA=instance.kA.val * 2 / 3, Q=None)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
 
         # test heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        msg = ('Value ofheat flow be ' + str(round(instance.Q.val, 0)) +
+        msg = (
+            'Value of heat flow must be ' + str(round(Q_design * 2 / 3, 0)) +
+            ', is ' + str(round(Q, 0)) + '.')
+        assert round(Q, 1) == round(Q_design * 2 / 3, 1), msg
+
+        # back to design case
+        instance.set_attr(kA=None, Q=Q_design)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+        # test heat transfer
+        Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
+        msg = ('Value of heat flow must be ' + str(round(instance.Q.val, 0)) +
                ', is ' + str(round(Q, 0)) + '.')
         assert round(Q, 1) == round(instance.Q.val, 1), msg
 

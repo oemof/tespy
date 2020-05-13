@@ -232,8 +232,6 @@ class heat_exchanger_simple(component):
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
-        self.Tamb.design = ((self.Tamb.design + nw.T[nw.T_unit][0]) *
-                            nw.T[nw.T_unit][1])
 
         # parameters for hydro group
         self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])

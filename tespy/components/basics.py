@@ -109,8 +109,10 @@ class cycle_closer(component):
 
     @staticmethod
     def attr():
-        return {'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
-                'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)}
+        return {
+            'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
+            'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)
+        }
 
     @staticmethod
     def inlets():

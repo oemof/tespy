@@ -167,8 +167,7 @@ class node(component):
 
     @staticmethod
     def attr():
-        return {'num_in': dc_simple(),
-                'num_out': dc_simple()}
+        return {'num_in': dc_simple(), 'num_out': dc_simple()}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -1313,8 +1312,7 @@ class merge(node):
 
     @staticmethod
     def attr():
-        return {'num_in': dc_simple(),
-                'zero_flag': dc_simple()}
+        return {'num_in': dc_simple()}
 
     def inlets(self):
         if self.num_in.is_set:

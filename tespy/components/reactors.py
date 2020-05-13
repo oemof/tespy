@@ -232,14 +232,13 @@ class water_electrolyzer(component):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(min_val=0),
-                'Q': dc_cp(max_val=0),
-                'eta': dc_cp(min_val=0, max_val=1),
-                'e': dc_cp(),
-                'pr_c': dc_cp(max_val=1),
-                'zeta': dc_cp(min_val=0),
-                'eta_char': dc_cc(),
-                'S': dc_simple()}
+        return {
+            'P': dc_cp(min_val=0), 'Q': dc_cp(max_val=0),
+            'pr_c': dc_cp(max_val=1), 'zeta': dc_cp(min_val=0),
+            'eta': dc_cp(min_val=0, max_val=1), 'eta_char': dc_cc(),
+            'e': dc_cp(),
+            'S': dc_simple()
+        }
 
     @staticmethod
     def inlets():

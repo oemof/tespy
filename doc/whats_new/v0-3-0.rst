@@ -130,10 +130,6 @@ Other changes
 - Improve naming in networks, components and connections modules
   (`PR #172 <https://github.com/oemof/tespy/pull/172>`_,
   `PR #175 <https://github.com/oemof/tespy/pull/175>`_).
-- Adjust the Python requirements to :code:`<3.8` as CoolProp does not build on
-  Python 3.8 at the moment, see
-  https://github.com/CoolProp/CoolProp/issues/1876
-  (`PR #177 <https://github.com/oemof/tespy/pull/177>`_).
 
 Changes in the API
 ##################

@@ -13,15 +13,6 @@ Installation and setup
 Following you find guidelines for the installation process for different
 operation systems.
 
-.. note::
-
-    Due to Python 3.8 incompability of the fluid property software (CoolProp)
-    in version 6.3.0, we have implemented a Python version restriction to
-    Python lower than 3.8. If you build CoolProp manually, it is possible
-    to use Python 3.8. For more information on the manual CoolProp installation
-    refer to these instructions:
-    http://www.coolprop.org/coolprop/wrappers/Python/index.html#python.
-
 Linux
 =====
 

@@ -949,11 +949,11 @@ class drum(component):
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
-    320.2
+    322.7
     >>> round(dr_erp.h.val, 1)
-    362.4
+    364.9
     >>> round(ev_dr.h.val, 1)
-    684.7
+    687.2
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)

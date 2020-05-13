@@ -302,6 +302,16 @@ class heat_exchanger_simple(component):
             if var.is_set is True:
                 self.num_eq += 1
 
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -1803,6 +1813,16 @@ class heat_exchanger(component):
             if var.is_set is True:
                 self.num_eq += 1
 
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -2725,6 +2745,16 @@ class condenser(heat_exchanger):
             if var.is_set is True:
                 self.num_eq += 1
 
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
@@ -3082,6 +3112,16 @@ class desuperheater(heat_exchanger):
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
             if var.is_set is True:
                 self.num_eq += 1
+
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
             self.num_eq,

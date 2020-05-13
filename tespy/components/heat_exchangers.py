@@ -2123,13 +2123,9 @@ class heat_exchanger(component):
             .. math::
 
                 res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+                kA \cdot \frac{T_{1,out} -
                 T_{2,in} - T_{1,in} + T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
-
-                f_{kA} = \frac{2}{
-                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
-                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
 
         Note
         ----
@@ -2198,6 +2194,9 @@ class heat_exchanger(component):
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
 
+        i1_d = self.inl[0].to_flow_design()
+        i2_d = self.inl[1].to_flow_design()
+
         T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
@@ -2214,15 +2213,11 @@ class heat_exchanger(component):
 
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            if not np.isnan(i1_d[0]):
-                if not i1[0] == 0:
-                    fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            if not np.isnan(i2_d[0]):
-                if not i2[0] == 0:
-                    fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
@@ -2787,7 +2782,7 @@ class condenser(heat_exchanger):
             .. math::
 
                 res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot \cdot \frac{T_{1,out} -
+                kA \cdot \frac{T_{1,out} -
                 T_{2,in} - T_s \left(p_{1,in}\right) +
                 T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}
@@ -2798,9 +2793,6 @@ class condenser(heat_exchanger):
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
-
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
 
         T_i1 = T_bp_p(i1)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
@@ -2834,7 +2826,7 @@ class condenser(heat_exchanger):
             .. math::
 
                 res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+                kA_{ref} \cdot f_{kA} \cdot \frac{T_{1,out} -
                 T_{2,in} - T_s \left(p_{1,in}\right) +
                 T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}
@@ -2879,13 +2871,11 @@ class condenser(heat_exchanger):
 
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            if not np.isnan(i1_d[0]):
-                fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            if not np.isnan(i2_d[0]):
-                fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 

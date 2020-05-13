@@ -2145,9 +2145,6 @@ class heat_exchanger(component):
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
 
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
-
         T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
@@ -2200,9 +2197,6 @@ class heat_exchanger(component):
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
-
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
 
         T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)

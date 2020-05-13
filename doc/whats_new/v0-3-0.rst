@@ -97,6 +97,11 @@ Parameter renaming
 - Adding components to a bus now requires :code:`'comp'` instead of :code:`'c'`
   and :code:`'param'` instead of :code:`'p'`
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
+- The former parameter :code:`kA` has been renamed to :code:`kA_char` as the
+  behavior in offdesign was following a characteristic instead of a constant
+  value. Additionally a new parameter :code:`kA` has been implemented, which
+  represents a specified constant value for :code:`kA` in both design and
+  offdesign cases (`PR #199 <https://github.com/oemof/tespy/pull/199>`_).
 
 Testing
 #######

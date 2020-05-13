@@ -1181,6 +1181,8 @@ class parabolic_trough(heat_exchanger_simple):
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variables for the energy-group
             for var in self.energy_group.elements:
+                if var == self.Tamb:
+                    continue
                 if var.is_var:
                     self.jacobian[k, 2 + var.var_pos, 0] = (
                         self.numeric_deriv(f, self.vars[var], 2))
@@ -1533,6 +1535,8 @@ class solar_collector(heat_exchanger_simple):
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variables for the energy-group
             for var in self.energy_group.elements:
+                if var == self.Tamb:
+                    continue
                 if var.is_var:
                     self.jacobian[k, 2 + var.var_pos, 0] = (
                         self.numeric_deriv(f, self.vars[var], 2))

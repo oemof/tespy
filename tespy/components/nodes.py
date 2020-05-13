@@ -937,7 +937,7 @@ class drum(component):
     ... char_line)
     >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
     ...     kA_char2=char2, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA'])
+    ...     offdesign=['zeta1', 'kA_char'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)

@@ -113,8 +113,7 @@ class turbomachine(component):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(), 'pr': dc_cp(),
-                'Sirr': dc_simple()}
+        return {'P': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_simple()}
 
     @staticmethod
     def inlets():
@@ -444,13 +443,15 @@ class compressor(turbomachine):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(min_val=0),
-                'eta_s': dc_cp(min_val=0, max_val=1),
-                'pr': dc_cp(min_val=1),
-                'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
-                'char_map': dc_cm(),
-                'eta_s_char': dc_cc(param='m'),
-                'Sirr': dc_simple()}
+        return {
+            'P': dc_cp(min_val=0),
+            'eta_s': dc_cp(min_val=0, max_val=1),
+            'eta_s_char': dc_cc(param='m'),
+            'pr': dc_cp(min_val=1),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
+            'char_map': dc_cm(),
+            'Sirr': dc_simple()
+        }
 
     def comp_init(self, nw):
 
@@ -960,12 +961,13 @@ class pump(turbomachine):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(min_val=0),
-                'eta_s': dc_cp(min_val=0, max_val=1),
-                'pr': dc_cp(min_val=1),
-                'eta_s_char': dc_cc(),
-                'flow_char': dc_cc(),
-                'Sirr': dc_simple()}
+        return {
+            'P': dc_cp(min_val=0),
+            'eta_s': dc_cp(min_val=0, max_val=1), 'eta_s_char': dc_cc(),
+            'pr': dc_cp(min_val=1),
+            'flow_char': dc_cc(),
+            'Sirr': dc_simple()
+        }
 
     def comp_init(self, nw):
 
@@ -1390,12 +1392,14 @@ class turbine(turbomachine):
 
     @staticmethod
     def attr():
-        return {'P': dc_cp(max_val=0),
-                'eta_s': dc_cp(min_val=0, max_val=1),
-                'pr': dc_cp(min_val=0, max_val=1),
-                'eta_s_char': dc_cc(param='m'),
-                'cone': dc_simple(),
-                'Sirr': dc_simple()}
+        return {
+            'P': dc_cp(max_val=0),
+            'eta_s': dc_cp(min_val=0, max_val=1),
+            'eta_s_char': dc_cc(param='m'),
+            'pr': dc_cp(min_val=0, max_val=1),
+            'cone': dc_simple(),
+            'Sirr': dc_simple()
+        }
 
     def comp_init(self, nw):
 

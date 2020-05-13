@@ -168,9 +168,11 @@ class combustion_chamber(component):
 
     @staticmethod
     def attr():
-        return {'lamb': dc_cp(min_val=1),
-                'ti': dc_cp(min_val=0),
-                'S': dc_simple()}
+        return {
+            'lamb': dc_cp(min_val=1),
+            'ti': dc_cp(min_val=0),
+            'S': dc_simple()
+        }
 
     @staticmethod
     def inlets():

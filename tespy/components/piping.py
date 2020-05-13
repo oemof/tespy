@@ -304,10 +304,11 @@ class valve(component):
 
     @staticmethod
     def attr():
-        return {'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=0),
-                'dp_char': dc_cc(param='m'),
-                'Sirr': dc_simple()}
+        return {
+            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'dp_char': dc_cc(param='m'),
+            'Sirr': dc_simple()
+        }
 
     @staticmethod
     def inlets():

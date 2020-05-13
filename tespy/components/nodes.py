@@ -167,8 +167,7 @@ class node(component):
 
     @staticmethod
     def attr():
-        return {'num_in': dc_simple(),
-                'num_out': dc_simple()}
+        return {'num_in': dc_simple(), 'num_out': dc_simple()}
 
     def inlets(self):
         if self.num_in.is_set:
@@ -938,7 +937,7 @@ class drum(component):
     ... char_line)
     >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
     ...     kA_char2=char2, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA'])
+    ...     offdesign=['zeta1', 'kA_char'])
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)
@@ -950,11 +949,11 @@ class drum(component):
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
-    320.2
+    322.7
     >>> round(dr_erp.h.val, 1)
-    362.4
+    364.9
     >>> round(ev_dr.h.val, 1)
-    684.7
+    687.2
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
@@ -1313,8 +1312,7 @@ class merge(node):
 
     @staticmethod
     def attr():
-        return {'num_in': dc_simple(),
-                'zero_flag': dc_simple()}
+        return {'num_in': dc_simple()}
 
     def inlets(self):
         if self.num_in.is_set:

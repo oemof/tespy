@@ -657,7 +657,7 @@ class bus:
     >>> chp.set_attr(pr1=0.99, lamb=1.0,
     ... design=['pr1'], offdesign=['zeta1'])
     >>> fgc.set_attr(pr1=0.999, pr2=0.98, design=['pr1', 'pr2'],
-    ... offdesign=['zeta1', 'zeta2', 'kA'])
+    ... offdesign=['zeta1', 'zeta2', 'kA_char'])
     >>> pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})

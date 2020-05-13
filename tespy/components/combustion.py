@@ -1380,7 +1380,7 @@ class combustion_chamber_stoich(combustion_chamber):
                 self.air.val[alias[0]] = self.air.val.pop(f)
 
         # fuel
-        for f in self.fuel.val.keys():
+        for f in list(self.fuel.val.keys()):
             alias = [x for x in self.air.val.keys() if x in [
                 a.replace(' ', '') for a in CP.get_aliases(f)]]
             if len(alias) > 0:

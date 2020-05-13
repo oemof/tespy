@@ -135,9 +135,8 @@ class heat_exchanger_simple(component):
     kA_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for heat transfer coefficient.
 
-    Tamb : str/float/tespy.tools.data_containers.dc_cp
-        Ambient temperature, provide parameter in network's temperature
-        unit.
+    Tamb : float/tespy.tools.data_containers.dc_simple
+        Ambient temperature, provide parameter in network's temperature unit.
 
     kA_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
@@ -213,7 +212,7 @@ class heat_exchanger_simple(component):
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
             'kA': dc_cp(min_val=0, d=1),
-            'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
+            'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
             'hydro_group': dc_gcp(), 'kA_group': dc_gcp(),
             'kA_char_group': dc_gcp()
@@ -239,10 +238,7 @@ class heat_exchanger_simple(component):
         # parameters for hydro group
         self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
 
-        is_set = True
-        for e in self.hydro_group.elements:
-            if not e.is_set:
-                is_set = False
+        is_set = self.L.is_set and self.ks.is_set and self.D.is_set
 
         if is_set:
             self.hydro_group.set_attr(is_set=True)
@@ -495,11 +491,9 @@ class heat_exchanger_simple(component):
                 self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
             if not increment_filter[1, 2]:
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            # variable Tamb or kA
-            for var in self.kA_group.elements:
-                if var.is_var:
-                    self.jacobian[k, 2 + var.var_pos, 0] = (
-                        self.numeric_deriv(f, self.vars[var], 2))
+            if self.kA.is_var:
+                self.jacobian[k, 2 + self.kA.var_pos, 0] = (
+                    self.numeric_deriv(f, self.vars[self.kA], 2))
             k += 1
 
         ######################################################################
@@ -517,9 +511,6 @@ class heat_exchanger_simple(component):
                 self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
             if not increment_filter[1, 2]:
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            if self.Tamb.is_var:
-                self.jacobian[k, 2 + self.Tamb.var_pos, 0] = (
-                    self.numeric_deriv(f, self.vars[self.Tamb], 2))
             k += 1
 
     def darcy_func(self):
@@ -637,6 +628,8 @@ class heat_exchanger_simple(component):
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
             td_log = 0
+
+        print(ttd_1, ttd_2)
 
         return i[0] * (o[2] - i[2]) + self.kA.val * td_log
 
@@ -987,7 +980,7 @@ class parabolic_trough(heat_exchanger_simple):
     A : str/float/tespy.tools.data_containers.dc_cp
         Collector aperture surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.tools.data_containers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_simple
         Ambient temperature, provide parameter in network's temperature unit.
 
     energy_group : tespy.tools.data_containers.dc_gcp
@@ -1081,7 +1074,7 @@ class parabolic_trough(heat_exchanger_simple):
             'iam_1': dc_cp(), 'iam_2': dc_cp(),
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
-            'Tamb': dc_cp(),
+            'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
@@ -1366,7 +1359,7 @@ class solar_collector(heat_exchanger_simple):
     A : str/float/tespy.tools.data_containers.dc_cp
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.tools.data_containers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_simple
         Ambient temperature, provide parameter in network's temperature unit.
 
     energy_group : tespy.tools.data_containers.dc_gcp
@@ -1435,7 +1428,7 @@ class solar_collector(heat_exchanger_simple):
             'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
-            'Tamb': dc_cp(),
+            'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }

@@ -2531,7 +2531,9 @@ class network:
             c.T.val_SI = fp.T_mix_ph(flow, T0=c.T.val_SI)
             fluid = hlp.single_fluid(c.fluid.val)
             if (fluid is None and
-                    abs(fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI) > err):
+                    abs(
+                        fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI
+                    ) > err ** .5):
                 c.T.val_SI = np.nan
                 c.vol.val_SI = np.nan
                 c.v.val_SI = np.nan

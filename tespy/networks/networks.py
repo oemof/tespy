@@ -2526,11 +2526,28 @@ class network:
 
         # connections
         for c in self.conns.index:
+            flow = c.to_flow()
             c.good_starting_values = True
-            c.T.val_SI = fp.T_mix_ph(c.to_flow(), T0=c.T.val_SI)
-            c.vol.val_SI = fp.v_mix_ph(c.to_flow(), T0=c.T.val_SI)
-            c.v.val_SI = c.vol.val_SI * c.m.val_SI
-            c.s.val_SI = fp.s_mix_ph(c.to_flow(), T0=c.T.val_SI)
+            c.T.val_SI = fp.T_mix_ph(flow, T0=c.T.val_SI)
+            fluid = hlp.single_fluid(c.fluid.val)
+            if (fluid is None and
+                    abs(fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI) > err):
+                c.T.val_SI = np.nan
+                c.vol.val_SI = np.nan
+                c.v.val_SI = np.nan
+                c.s.val_SI = np.nan
+                msg = (
+                    'Could not find a feasible value for mixture temperature '
+                    'at connection ' + c.label + '. The values for '
+                    'temperature, specific volume, volumetric flow and '
+                    'entropy are set to nan.')
+                logging.warning(msg)
+
+            else:
+                c.vol.val_SI = fp.v_mix_ph(flow, T0=c.T.val_SI)
+                c.v.val_SI = c.vol.val_SI * c.m.val_SI
+                c.s.val_SI = fp.s_mix_ph(flow, T0=c.T.val_SI)
+
             c.T.val = (c.T.val_SI / self.T[c.T.unit][1] - self.T[c.T.unit][0])
             c.m.val = c.m.val_SI / self.m[c.m.unit]
             c.p.val = c.p.val_SI / self.p[c.p.unit]
@@ -2538,7 +2555,6 @@ class network:
             c.v.val = c.v.val_SI / self.v[c.v.unit]
             c.vol.val = c.vol.val_SI / self.vol[c.vol.unit]
             c.s.val = c.s.val_SI / self.s[c.s.unit]
-            fluid = hlp.single_fluid(c.fluid.val)
             if fluid is not None and not c.x.val_set:
                 c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
                 c.x.val = c.x.val_SI / self.x[c.x.unit]

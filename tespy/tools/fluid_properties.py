@@ -563,7 +563,7 @@ def T_mix_ph(flow, T0=300):
             valmin = max(
                 [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
             ) + 0.1
-            if T0 < valmin:
+            if T0 < valmin or np.isnan(T0):
                 T0 = valmin * 1.1
         else:
             valmin = 70
@@ -763,7 +763,7 @@ def T_mix_ps(flow, s, T0=300):
             valmin = max(
                 [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
             ) + 0.1
-            if T0 < valmin:
+            if T0 < valmin or np.isnan(T0):
                 T0 = valmin * 1.1
         else:
             valmin = 70

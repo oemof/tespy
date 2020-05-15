@@ -559,10 +559,16 @@ def T_mix_ph(flow, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if T0 < 70:
-            T0 = 300
+        if memorisation is True:
+            valmin = max(
+                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            ) + 0.1
+            if T0 < valmin:
+                T0 = valmin * 1.1
+        else:
+            valmin = 70
         val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
-                     valmin=70, valmax=3000, imax=10)
+                     valmin=valmin, valmax=3000, imax=10)
     else:
         # calculate fluid property for pure fluids
         val = T_ph(flow[1], flow[2], fluid)
@@ -753,10 +759,17 @@ def T_mix_ps(flow, s, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if T0 < 70:
-            T0 = 300
+        if memorisation is True:
+            valmin = max(
+                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            ) + 0.1
+            if T0 < valmin:
+                T0 = valmin * 1.1
+        else:
+            valmin = 70
+
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
-                     valmin=70, valmax=3000, imax=10)
+                     valmin=valmin, valmax=3000, imax=10)
         if memorisation is True:
             new = np.asarray(
                 [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
@@ -911,7 +924,7 @@ def dh_mix_pdT(flow, T):
             \frac{\partial h_{mix}}{\partial T} =
             \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
-    d = 2
+    d = 0.1
     return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
 
 # %%
@@ -1749,5 +1762,5 @@ def ds_mix_pdT(flow, T):
             \frac{\partial s_{mix}}{\partial T} =
             \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
-    d = 2
+    d = 0.1
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)

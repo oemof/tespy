@@ -124,12 +124,22 @@ Bug fixes
 - Fix the default characteristic line for compressor isentropic efficiency: The
   line did not have an intersection with the point 1/1
   (`PR #196 <https://github.com/oemof/tespy/pull/196>`_).
+- If a temperature value of a mixture was not found within the maximum number
+  of newton iterations in the :py:mod:`tespy.tools.fluid_properties` module,
+  the wrong value was still displayed in the output without a warning. In this
+  case, the value will be :code:`nan` in the future and a warning message is
+  displayed (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
 
 Other changes
 #############
 - Improve naming in networks, components and connections modules
   (`PR #172 <https://github.com/oemof/tespy/pull/172>`_,
   `PR #175 <https://github.com/oemof/tespy/pull/175>`_).
+- The Parameter :code:`T_range` of networks is deprecated. The fluid property
+  calls for mixtures have been modified to prevent errors when the temperature
+  of the mixture is below the minimum or above the maximum temperature limit of
+  a component of the mixture
+  (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
 
 Changes in the API
 ##################

@@ -2325,61 +2325,6 @@ class heat_exchanger(component):
         deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
         return deriv
 
-    def convergence_check(self, nw):
-        r"""
-        Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
-
-        Note
-        ----
-        Manipulate enthalpies/pressure at inlet and outlet if not specified by
-        user to match physically feasible constraints, keep fluid composition
-        within feasible range and then propagates it towards the outlet.
-        """
-        i, o = self.inl, self.outl
-
-        if self.ttd_l.is_set or self.ttd_u.is_set:
-            fl_i1 = single_fluid(i[0].fluid.val)
-            fl_i2 = single_fluid(i[1].fluid.val)
-            fl_o1 = single_fluid(o[0].fluid.val)
-            fl_o2 = single_fluid(o[1].fluid.val)
-
-        if self.ttd_l.is_set:
-            if isinstance(fl_o1, str):
-                T_min_o1 = memorise.value_range[fl_o1][2] * 1.1
-            else:
-                T_min_o1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_i2, str):
-                T_min_i2 = memorise.value_range[fl_i2][2] * 1.1
-            else:
-                T_min_i2 = nw.T_range_SI[0] * 1.1
-            h_min_o1 = h_mix_pT(o[0].to_flow(), T_min_o1)
-            h_min_i2 = h_mix_pT(i[1].to_flow(), T_min_i2)
-            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
-                o[0].h.val_SI = h_min_o1 * 2
-            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
-                i[1].h.val_SI = h_min_i2 * 1.1
-
-        if self.ttd_u.is_set:
-            if isinstance(fl_i1, str):
-                T_min_i1 = memorise.value_range[fl_i1][2] * 1.1
-            else:
-                T_min_i1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_o2, str):
-                T_min_o2 = memorise.value_range[fl_o2][2] * 1.1
-            else:
-                T_min_o2 = nw.T_range_SI[0] * 1.1
-            h_min_i1 = h_mix_pT(i[0].to_flow(), T_min_i1)
-            h_min_o2 = h_mix_pT(o[1].to_flow(), T_min_o2)
-            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
-                i[0].h.val_SI = h_min_i1 * 2
-            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
-                o[1].h.val_SI = h_min_o2 * 1.1
-
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.

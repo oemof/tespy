@@ -72,9 +72,6 @@ class network:
         Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
         'MJ / kgK'.
 
-    T_range : list
-        List with minimum and maximum values for temperature value range.
-
     T_unit : str
         Specify the unit for temperature: 'K', 'C', 'F', 'R'.
 
@@ -299,7 +296,6 @@ class network:
         self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
         self.h_range_SI = np.array([1e3, 7e6])
-        self.T_range_SI = np.array([273.16, 1773.15])
 
         msg = ('Default mass flow limits, '
                'min: ' + str(self.m_range_SI[0]) + ' ' + self.m_unit +
@@ -314,11 +310,6 @@ class network:
         msg = ('Default enthalpy limits, '
                'min: ' + str(self.h_range_SI[0]) + ' ' + self.h_unit +
                ', max: ' + str(self.h_range_SI[1]) + ' ' + self.h_unit + ', ')
-        logging.debug(msg)
-
-        msg = ('Default temperature limits, '
-               'min: ' + str(self.T_range_SI[0]) + ' ' + self.T_unit +
-               ', max: ' + str(self.T_range_SI[1]) + ' ' + self.T_unit + ', ')
         logging.debug(msg)
 
         self.set_attr(**kwargs)
@@ -353,9 +344,6 @@ class network:
         s_unit : str
             Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
             'MJ / kgK'.
-
-        T_range : list
-            List with minimum and maximum values for temperature value range.
 
         T_unit : str
             Specify the unit for temperature: 'K', 'C', 'F', 'R'.
@@ -426,27 +414,10 @@ class network:
                    self.SI_units['h'] + '.')
             logging.debug(msg)
 
-        if 'T_range' in kwargs.keys():
-            if not isinstance(kwargs['T_range'], list):
-                msg = ('Specify the value range as list: [T_min, T_max]')
-                logging.error(msg)
-                raise TypeError(msg)
-            else:
-                self.T_range_SI = ((np.array(kwargs['T_range']) +
-                                    self.T[self.T_unit][0]) *
-                                   self.T[self.T_unit][1])
-            msg = ('Setting temperature limits, min: ' +
-                   str(self.T_range_SI[0]) + ' ' + self.SI_units['T'] +
-                   ', max: ' + str(self.T_range_SI[1]) + ' ' +
-                   self.SI_units['T'] + '.')
-            logging.debug(msg)
-
         # update non SI value ranges
         self.m_range = self.m_range_SI / self.m[self.m_unit]
         self.p_range = self.p_range_SI / self.p[self.p_unit]
         self.h_range = self.h_range_SI / self.h[self.h_unit]
-        self.T_range = (self.T_range_SI / self.T[self.T_unit][1] -
-                        self.T[self.T_unit][0])
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
@@ -2122,18 +2093,22 @@ class network:
         c : tespy.connections.connection
             Connection to check fluid properties.
         """
-        hmin = fp.h_mix_pT(c.to_flow(), self.T_range_SI[0])
-        hmax = fp.h_mix_pT(c.to_flow(), self.T_range_SI[1])
+        flow = c.to_flow()
+        Tmin = max(
+            [fp.memorise.value_range[f][2] for f in flow[3].keys() if flow[3][f] > err]
+        ) + 100
+        Tmax = min(
+            [fp.memorise.value_range[f][3] for f in flow[3].keys() if flow[3][f] > err]
+        ) - 100
+        hmin = fp.h_mix_pT(flow, Tmin)
+        hmax = fp.h_mix_pT(flow, Tmax)
 
         if c.h.val_SI < hmin:
-            if c.h.val_SI < 0:
-                c.h.val_SI = hmin * 0.9
-            else:
-                c.h.val_SI = hmin * 1.1
+            c.h.val_SI = hmin
             logging.debug(self.property_range_message(c, 'h'))
 
         if c.h.val_SI > hmax:
-            c.h.val_SI = hmax * 0.95
+            c.h.val_SI = hmax
             logging.debug(self.property_range_message(c, 'h'))
 
     def solve_components(self):
@@ -2722,7 +2697,6 @@ class network:
         data['h_unit'] = self.h_unit
         data['h_range'] = list(self.h_range)
         data['T_unit'] = self.T_unit
-        data['T_range'] = list(self.T_range)
         data['x_unit'] = self.x_unit
         data['v_unit'] = self.v_unit
         data['s_unit'] = self.s_unit

@@ -138,7 +138,7 @@ def load_network(path):
     >>> import shutil
     >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg', T_range=[250, 1300], iterinfo=False)
+    ... h_unit='kJ / kg', iterinfo=False)
     >>> air = source('air')
     >>> f = source('fuel')
     >>> c = compressor('compressor')

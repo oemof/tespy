@@ -102,7 +102,6 @@ def test_set_attr_errors():
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)
     set_attr_TypeError(nw, h_range=5)
-    set_attr_TypeError(nw, T_range=5)
     set_attr_TypeError(nw, iterinfo=5)
     set_attr_TypeError(mybus, P='some value')
     set_attr_TypeError(mybus, printout=5)
@@ -246,8 +245,7 @@ class TestCombustionChamberStoichErrors:
 
     def setup_combustion_chamber_stoich_error_tests(self):
         self.nw = network(
-            ['fuel', 'fuel_fg', 'Air'],
-            p_range=[1e4, 1e6], T_range=[300, 1500])
+            ['fuel', 'fuel_fg', 'Air'], p_range=[1e4, 1e6])
         label = 'combustion chamber'
         self.instance = combustion.combustion_chamber_stoich(label)
         c1 = connection(basics.source('air'), 'out1', self.instance, 'in1')

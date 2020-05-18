@@ -1261,7 +1261,7 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> import shutil
     >>> fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.001, 10], T_range=[10, 2000], iterinfo=False)
+    ... p_range=[1, 10], iterinfo=False)
     >>> amb = source('ambient air')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
@@ -1289,12 +1289,12 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.016
+    2.015
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1207.9
+    1207.1
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
@@ -1602,21 +1602,22 @@ class combustion_chamber_stoich(combustion_chamber):
 
         if not self.path.is_set:
             self.path.val = None
-        tespy_fluid(self.fuel_alias.val, self.fuel.val,
-                    [1000, nw.p_range_SI[1]], nw.T_range_SI,
-                    path=self.path.val)
-        tespy_fluid(self.fuel_alias.val + '_fg', self.fg,
-                    [1000, nw.p_range_SI[1]], nw.T_range_SI,
-                    path=self.path.val)
-        msg = ('Generated lookup table for ' + self.fuel_alias.val +
-               ' and for stoichiometric flue gas at stoichiometric '
-               'combustion chamber ' + self.label + '.')
+
+        tespy_fluid(
+            self.fuel_alias.val, self.fuel.val, [1000, nw.p_range_SI[1]],
+            path=self.path.val)
+        tespy_fluid(
+            self.fuel_alias.val + '_fg', self.fg, [1000, nw.p_range_SI[1]],
+            path=self.path.val)
+        msg = (
+            'Generated lookup table for ' + self.fuel_alias.val + ' and for '
+            'stoichiometric flue gas at component ' + self.label + '.')
         logging.debug(msg)
 
         if self.air_alias.val not in ['Air', 'air']:
-            tespy_fluid(self.air_alias.val, self.air.val,
-                        [1000, nw.p_range_SI[1]], nw.T_range_SI,
-                        path=self.path.val)
+            tespy_fluid(
+                self.air_alias.val, self.air.val, [1000, nw.p_range_SI[1]],
+                path=self.path.val)
             msg = ('Generated lookup table for ' + self.air_alias.val +
                    ' at stoichiometric combustion chamber ' + self.label + '.')
         else:

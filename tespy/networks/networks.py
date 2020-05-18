@@ -297,20 +297,13 @@ class network:
         self.p_range_SI = np.array([2e2, 300e5])
         self.h_range_SI = np.array([1e3, 7e6])
 
-        msg = ('Default mass flow limits, '
-               'min: ' + str(self.m_range_SI[0]) + ' ' + self.m_unit +
-               ', max: ' + str(self.m_range_SI[1]) + ' ' + self.m_unit + ', ')
-        logging.debug(msg)
-
-        msg = ('Default pressure limits, '
-               'min: ' + str(self.p_range_SI[0]) + ' ' + self.p_unit +
-               ', max: ' + str(self.p_range_SI[1]) + ' ' + self.p_unit + ', ')
-        logging.debug(msg)
-
-        msg = ('Default enthalpy limits, '
-               'min: ' + str(self.h_range_SI[0]) + ' ' + self.h_unit +
-               ', max: ' + str(self.h_range_SI[1]) + ' ' + self.h_unit + ', ')
-        logging.debug(msg)
+        for prop in ['m', 'p', 'h']:
+            msg = ('Default ' + self.props[prop] + ' limits, min: ' +
+                   str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
+                   self.SI_units[prop] + ', max: ' +
+                   str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
+                   self.SI_units[prop] + '.')
+            logging.debug(msg)
 
         self.set_attr(**kwargs)
 

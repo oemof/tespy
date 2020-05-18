@@ -118,9 +118,8 @@ class combustion_chamber(component):
     -------
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
-    oxygen supplied. Using the parameters p_range and T_range is recommended
-    when using combustion, as these stabilize the calculation. In this example
-    a mixture of methane, hydrogen and carbondioxide is used as fuel.
+    oxygen supplied. In this example a mixture of methane, hydrogen and
+    carbondioxide is used as fuel.
 
     >>> from tespy.components import sink, source, combustion_chamber
     >>> from tespy.connections import connection
@@ -129,7 +128,7 @@ class combustion_chamber(component):
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
+    ... iterinfo=False)
     >>> amb = source('ambient air')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')
@@ -2098,10 +2097,9 @@ class combustion_engine(combustion_chamber):
     -------
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
-    oxygen supplied. Using the parameters p_range and T_range is recommended
-    when using combustion, as these stabilize the calculation. In this example
-    a mixture of methane, hydrogen and carbondioxide is used as fuel. There are
-    two cooling ports, the cooling water will flow through them in parallel.
+    oxygen supplied. In this example a mixture of methane, hydrogen and
+    carbondioxide is used as fuel. There are two cooling ports, the cooling
+    water will flow through them in parallel.
 
     >>> from tespy.components import (sink, source, combustion_engine, merge,
     ... splitter)
@@ -2111,7 +2109,7 @@ class combustion_engine(combustion_chamber):
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], T_range=[10, 1200], iterinfo=False)
+    ... iterinfo=False)
     >>> amb = source('ambient')
     >>> sf = source('fuel')
     >>> fg = sink('flue gas outlet')

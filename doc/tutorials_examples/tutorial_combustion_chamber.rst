@@ -32,11 +32,6 @@ First of all you need to define the network containing all fluid components
 used for the combustion chamber. **These are at least the fuel, oxygen,
 carbon-dioxide and water**. For this example we added Argon, and of course - as
 we are using Air for the combustion - Nitrogen.
-On top, it is highly recommended to specify reasonable ranges for the fluid
-properties. If you have fluid mixtures within your network, the fluid property
-ranges will keep your fluid properties within the specified ranges for the
-first three steps of the newton's algorithm in order to stabilize the
-calculation.
 
 .. code-block:: python
 
@@ -45,9 +40,8 @@ calculation.
     # define full fluid list for the network's variable space
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
 
-    # define unit systems and fluid property ranges
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-                 p_range=[0.5, 10], T_range=[10, 1200])
+    # define unit systems
+    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
 As components there are two sources required, one for the fresh air, one for
 the fuel, a sink for the flue gas and the combustion chamber. Connect the
@@ -111,10 +105,10 @@ Of course, you can change the parametrisation in any desired way. For example
 instead of stating the thermal input, you could choose any of the mass flows,
 or instead of the air to stoichometric air ratio you could specify the flue
 gas temperature. It is also possible to make modifications on the fluid
-composition, for example stating the oxygen content in the flue gas. It is also
-possible to change the fuel composition. Make sure, all desired fuels of your
-fuel mixture are also within the fluid_list of the network. For the example
-below we added some hydrogen to the fuel mixture.
+composition, for example stating the oxygen content in the flue gas or to
+change the fuel composition. Make sure, all desired fuels of your fuel mixture
+are also within the fluid_list of the network. For the example below we added
+hydrogen to the fuel mixture.
 
 .. code-block:: python
 
@@ -125,8 +119,7 @@ below we added some hydrogen to the fuel mixture.
     # %% network
 
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-                 p_range=[0.5, 10], T_range=[10, 1200])
+    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
     # %% components
 
@@ -176,8 +169,8 @@ Again, the network must have the information, which fluids will be part of the
 fluid vector. In contrast to the normal combustion chamber, you will need the
 following fluids: **Air, Fuel and Flue Gas**. For this tutorial we will call
 them: **"myAir", "myFuel" and "myFuel_fg"**. Do not forget to specify the
-ranges for pressure and temperature. This is a very important step for this
-specific component, we will explain later, why it is.
+value range for pressure. This is a very important step for this specific
+component, we will explain later, why it is.
 
 .. code-block:: python
 
@@ -187,8 +180,7 @@ specific component, we will explain later, why it is.
     fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
 
     # define unit systems and fluid property ranges
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-                 p_range=[1, 10], T_range=[10, 2000])
+    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
 
 The components required are then the same as in the first tutorial, the
 stoichiometric combustion chamber's class is called
@@ -229,7 +221,7 @@ stoichiometric flue gas composition. The fluids will then be accessible with
 the following aliases: **"youraliasforair", "youraliasforfuel"
 and "youraliasforfuel_fg"**. The creation of the lookup tables will use
 your network's settings: **The fluid properties will be calculated within the
-network's specified ranges for pressure and temperature.**
+network's specified value range for pressure.**
 
 A folder called "LUT" will be created in your working directory containing all
 fluid property lookup tables. As the creation of the lookup tables does take
@@ -241,12 +233,9 @@ properties from path:
 
 - **Do not specify the path in case**
 
-    - you change the pressure range or the temperature range or
+    - you change the pressure range
     - you change the air or the fuel composition.
 
-- **For convergence stability choose large maximum temperatures**, much higher
-  than the highest temperature you are expecting at the combustion chambers
-  outlet.
 - **If you use more than one combustion chamber** do not use identical aliases,
   if the fluid compositions are not identical.
 

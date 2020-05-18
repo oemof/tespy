@@ -184,7 +184,7 @@ which has been used until version 0.2.x in TESPy.
         "T_unit": "C",
         "h_unit": "kJ / kg",
         "m_unit": "kg / s",
-        "T_range": [150, 200]
+        "h_range": [150, 3000]
     }
 
 Due to the addition of the CoolProp back end selection the

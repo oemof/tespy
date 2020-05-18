@@ -416,8 +416,8 @@ three iteration steps of the algorithm only. In other cases this convergence
 check is skipped.
 
  * Fox mixtures: check, if the fluid properties (pressure, enthalpy and
-   temperature)
-   are within the user specified boundaries (:code:`p_range, h_range, T_range`)
+   mass flow)
+   are within the user specified boundaries (:code:`p_range, h_range, m_range`)
    and if not, cut off higher/lower values.
  * Check the fluid properties of the connections based on the components they
    are connecting. E. g. check if the pressure at the outlet of a turbine is

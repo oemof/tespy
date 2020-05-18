@@ -371,18 +371,18 @@ class network:
                         '_min, ' + prop + '_max]')
                     logging.error(msg)
                     raise TypeError(msg)
-            else:
-                self.__dict__.update(
-                    {prop + '_range_SI':
-                     np.array(kwargs[prop + '_range']) *
-                     self.__dict__[prop][self.__dict__[prop + '_unit']]})
+                else:
+                    self.__dict__.update(
+                        {prop + '_range_SI':
+                         np.array(kwargs[prop + '_range']) *
+                         self.__dict__[prop][self.__dict__[prop + '_unit']]})
 
-            msg = ('Setting ' + self.props[prop] + ' limits, min: ' +
-                   str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
-                   self.SI_units[prop] + ', max: ' +
-                   str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
-                   self.SI_units[prop] + '.')
-            logging.debug(msg)
+                msg = ('Setting ' + self.props[prop] + ' limits, min: ' +
+                       str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
+                       self.SI_units[prop] + ', max: ' +
+                       str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
+                       self.SI_units[prop] + '.')
+                logging.debug(msg)
 
         # update non SI value ranges
         self.m_range = self.m_range_SI / self.m[self.m_unit]

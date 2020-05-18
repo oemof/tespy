@@ -370,48 +370,25 @@ class network:
                            kwargs[unit] + '.')
                     logging.debug(msg)
 
-        # value ranges
-        if 'm_range' in kwargs.keys():
-            if not isinstance(kwargs['m_range'], list):
-                msg = ('Specify the value range as list: [m_min, m_max]')
-                logging.error(msg)
-                raise TypeError(msg)
+        for prop in ['m', 'p', 'h']:
+            if prop + '_range' in kwargs.keys():
+                if not isinstance(kwargs[prop + '_range'], list):
+                    msg = (
+                        'Specify the value range as list: [' + prop +
+                        '_min, ' + prop + '_max]')
+                    logging.error(msg)
+                    raise TypeError(msg)
             else:
-                self.m_range_SI = (np.array(kwargs['m_range']) *
-                                   self.m[self.m_unit])
+                self.__dict__.update(
+                    {prop + '_range_SI':
+                     np.array(kwargs[prop + '_range']) *
+                     self.__dict__[prop][self.__dict__[prop + '_unit']]})
 
-            msg = ('Setting mass flow limits, min: ' +
-                   str(self.m_range_SI[0]) + ' ' + self.SI_units['m'] +
-                   ', max: ' + str(self.m_range_SI[1]) + ' ' +
-                   self.SI_units['m'] + '.')
-            logging.debug(msg)
-
-        if 'p_range' in kwargs.keys():
-            if not isinstance(kwargs['p_range'], list):
-                msg = ('Specify the value range as list: [p_min, p_max]')
-                logging.error(msg)
-                raise TypeError(msg)
-            else:
-                self.p_range_SI = (np.array(kwargs['p_range']) *
-                                   self.p[self.p_unit])
-            msg = ('Setting pressure limits, min: ' +
-                   str(self.p_range_SI[0]) + ' ' + self.SI_units['p'] +
-                   ', max: ' + str(self.p_range_SI[1]) + ' ' +
-                   self.SI_units['p'] + '.')
-            logging.debug(msg)
-
-        if 'h_range' in kwargs.keys():
-            if not isinstance(kwargs['h_range'], list):
-                msg = ('Specify the value range as list: [h_min, h_max]')
-                logging.error(msg)
-                raise TypeError(msg)
-            else:
-                self.h_range_SI = (np.array(kwargs['h_range']) *
-                                   self.h[self.h_unit])
-            msg = ('Setting enthalpy limits, min: ' +
-                   str(self.h_range_SI[0]) + ' ' + self.SI_units['h'] +
-                   ', max: ' + str(self.h_range_SI[1]) + ' ' +
-                   self.SI_units['h'] + '.')
+            msg = ('Setting ' + self.props[prop] + ' limits, min: ' +
+                   str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
+                   self.SI_units[prop] + ', max: ' +
+                   str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
+                   self.SI_units[prop] + '.')
             logging.debug(msg)
 
         # update non SI value ranges

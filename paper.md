@@ -59,7 +59,7 @@ implemented in a widespread programming language like Python, is very promising.
 TESPy is built up in modular structure with three main modules:
 
 * networks: The networks module represents the container for every simulation.
-  Initialization, preprocessing, solving and postprocessing are handled by the
+  Initialisation, preprocessing, solving and postprocessing are handled by the
   network class.
 * components: All components are part of the components module. The package
   provides basic components, for example different types of turbomachinery, heat

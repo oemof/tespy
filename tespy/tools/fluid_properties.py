@@ -58,9 +58,6 @@ class tespy_fluid:
     p_range : list/ndarray
         Pressure range for the new fluid lookup table.
 
-    T_range : list/ndarray
-        Temperature range for the new fluid lookup table.
-
     path : str
         Path to importing tespy fluid from.
 
@@ -91,9 +88,8 @@ class tespy_fluid:
     >>> import shutil
     >>> fluidvec = {'N2': 0.7552, 'O2': 0.2314, 'CO2': 0.0005, 'Ar': 0.0129}
     >>> p_arr = np.array([0.1, 10]) * 1e5
-    >>> T_arr = np.array([250, 1280])
     >>> myfluid = tespy_fluid('dry air', fluid=fluidvec, p_range=p_arr,
-    ... T_range=T_arr)
+    ... T_range=[300, 1200])
 
     Check if the fluid creation was successful and compare some fluid
     properties to the CoolProp air implementation. We have to add the CoolProp
@@ -137,13 +133,13 @@ class tespy_fluid:
     The fluid had been saved automatically, load it now.
 
     >>> loadfluid = tespy_fluid('dry air', fluid=fluidvec, p_range=p_arr,
-    ... T_range=T_arr, path='./LUT')
+    ... path='./LUT')
     >>> type(loadfluid)
     <class 'tespy.tools.fluid_properties.tespy_fluid'>
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def __init__(self, alias, fluid, p_range, T_range, path=None):
+    def __init__(self, alias, fluid, p_range, T_range=None, path=None):
 
         if not isinstance(alias, str):
             msg = 'Alias must be of type String.'
@@ -159,14 +155,6 @@ class tespy_fluid:
             self.alias = alias
 
         self.fluid = fluid
-
-        # adjust value ranges according to specified unit system
-        self.p_range = np.asarray(p_range)
-        self.T_range = np.asarray(T_range)
-
-        # set up grid
-        self.p = np.geomspace(self.p_range[0], self.p_range[1], 100)
-        self.T = np.linspace(self.T_range[0], self.T_range[1], 100)
 
         # path for loading
         self.path = path
@@ -186,13 +174,21 @@ class tespy_fluid:
                 fluid = f
             if f != self.alias:
                 self.fluids_back_ends[f] = back_end
-            else:
-                self.fluids_back_ends[f] = 'TESPy'
 
         memorise.add_fluids(self.fluids_back_ends)
 
-        params = {}
+        # set up grid
+        self.p = np.geomspace(p_range[0], p_range[1], 100)
 
+        if T_range is None:
+            T_range = [max([memorise.value_range[f][2] for f
+                            in self.fluids_back_ends.keys()]) + 1, 2000]
+
+        self.T = np.geomspace(T_range[0], T_range[1], 100)
+
+        memorise.add_fluids({self.alias: 'TESPy'})
+
+        params = {}
         params['h_pT'] = h_mix_pT
         params['s_pT'] = s_mix_pT
         params['d_pT'] = d_mix_pT
@@ -437,12 +433,12 @@ class memorise:
                 logging.debug(msg)
 
             elif back_end == 'TESPy':
-                pmin = tespy_fluid.fluids[f].p_range[0]
-                pmax = tespy_fluid.fluids[f].p_range[1]
-                Tmin = tespy_fluid.fluids[f].T_range[0]
-                Tmax = tespy_fluid.fluids[f].T_range[1]
-                msg = ('Loading fluid property ranges for TESPy-fluid ' +
-                       f + '.')
+                pmin = tespy_fluid.fluids[f].p[0]
+                pmax = tespy_fluid.fluids[f].p[-1]
+                Tmin = tespy_fluid.fluids[f].T[0]
+                Tmax = tespy_fluid.fluids[f].T[-1]
+                msg = (
+                    'Loading fluid property ranges for TESPy-fluid ' + f + '.')
                 logging.debug(msg)
                 # value range for fluid properties
                 memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
@@ -559,10 +555,16 @@ def T_mix_ph(flow, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if T0 < 70:
-            T0 = 300
+        if memorisation is True:
+            valmin = max(
+                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            ) + 0.1
+            if T0 < valmin or np.isnan(T0):
+                T0 = valmin * 1.1
+        else:
+            valmin = 70
         val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
-                     valmin=70, valmax=3000, imax=10)
+                     valmin=valmin, valmax=3000, imax=10)
     else:
         # calculate fluid property for pure fluids
         val = T_ph(flow[1], flow[2], fluid)
@@ -753,10 +755,17 @@ def T_mix_ps(flow, s, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if T0 < 70:
-            T0 = 300
+        if memorisation is True:
+            valmin = max(
+                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            ) + 0.1
+            if T0 < valmin or np.isnan(T0):
+                T0 = valmin * 1.1
+        else:
+            valmin = 70
+
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
-                     valmin=70, valmax=3000, imax=10)
+                     valmin=valmin, valmax=3000, imax=10)
         if memorisation is True:
             new = np.asarray(
                 [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
@@ -911,7 +920,7 @@ def dh_mix_pdT(flow, T):
             \frac{\partial h_{mix}}{\partial T} =
             \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
-    d = 2
+    d = 0.1
     return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
 
 # %%
@@ -1749,5 +1758,5 @@ def ds_mix_pdT(flow, T):
             \frac{\partial s_{mix}}{\partial T} =
             \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
-    d = 2
+    d = 0.1
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)

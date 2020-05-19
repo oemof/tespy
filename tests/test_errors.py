@@ -12,15 +12,20 @@ SPDX-License-Identifier: MIT
 from pytest import raises
 
 from tespy.connections import connection, bus, ref
-from tespy.components import (basics, combustion, components, heat_exchangers,
-                              nodes, piping, reactors, subsystems,
-                              turbomachinery)
+from tespy.components import (
+    basics, combustion, components, heat_exchangers, nodes, piping, reactors,
+    subsystems, turbomachinery
+)
 from tespy.networks.network_reader import load_network
 from tespy.networks.networks import network
-from tespy.tools.helpers import (TESPyComponentError, TESPyConnectionError,
-                                 TESPyNetworkError, extend_basic_path)
+from tespy.tools.helpers import (
+    TESPyComponentError, TESPyConnectionError, TESPyNetworkError,
+    extend_basic_path
+)
 from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import tespy_fluid, memorise, h_mix_pQ
+from tespy.tools.fluid_properties import (
+    tespy_fluid, memorise, h_mix_pQ, T_mix_ps
+)
 from tespy.tools.characteristics import char_map, char_line, load_custom_char
 
 import os
@@ -102,7 +107,6 @@ def test_set_attr_errors():
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)
     set_attr_TypeError(nw, h_range=5)
-    set_attr_TypeError(nw, T_range=5)
     set_attr_TypeError(nw, iterinfo=5)
     set_attr_TypeError(mybus, P='some value')
     set_attr_TypeError(mybus, printout=5)
@@ -245,9 +249,7 @@ def test_combustion_chamber_missing_fuel():
 class TestCombustionChamberStoichErrors:
 
     def setup_combustion_chamber_stoich_error_tests(self):
-        self.nw = network(
-            ['fuel', 'fuel_fg', 'Air'],
-            p_range=[1e4, 1e6], T_range=[300, 1500])
+        self.nw = network(['fuel', 'fuel_fg', 'Air'], p_range=[1e4, 1e6])
         label = 'combustion chamber'
         self.instance = combustion.combustion_chamber_stoich(label)
         c1 = connection(basics.source('air'), 'out1', self.instance, 'in1')
@@ -712,3 +714,7 @@ def test_IF97_back_end():
 def test_h_mix_pQ_on_mixtures():
     with raises(ValueError):
         h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)
+
+def test_T_mix_ps_on_pure_fluids():
+    with raises(ValueError):
+        T_mix_ps([0, 0, 0, {'O2': 1}], 1e3)

@@ -49,6 +49,8 @@ comp_target_classes = {
     'heat_exchanger': heat_exchangers.heat_exchanger,
     'heat_exchanger_simple': heat_exchangers.heat_exchanger_simple,
     'solar_collector': heat_exchangers.solar_collector,
+    'parabolic_trough': heat_exchangers.parabolic_trough,
+    'droplet_separator': nodes.droplet_separator,
     'drum': nodes.drum,
     'merge': nodes.merge,
     'node': nodes.node,
@@ -124,29 +126,33 @@ def load_network(path):
     with the network_reader module. All network information stored will be
     passed to a new network object. Components, connections and busses will
     be accessible by label. The following example setup is simple gas turbine
-    setup with compressor, combustion chamber and turbine.
+    setup with compressor, combustion chamber and turbine. The fuel is fed
+    from a pipeline and throttled to the required pressure while keeping the
+    temperature at a constant value.
 
     >>> import numpy as np
     >>> from tespy.components import (sink, source, combustion_chamber,
-    ... compressor, turbine)
+    ... compressor, turbine, heat_exchanger_simple)
     >>> from tespy.connections import connection, ref, bus
     >>> from tespy.networks import load_network, network
     >>> import shutil
     >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
     >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg', T_range=[250, 1300], iterinfo=False)
+    ... h_unit='kJ / kg', iterinfo=False)
     >>> air = source('air')
     >>> f = source('fuel')
     >>> c = compressor('compressor')
     >>> comb = combustion_chamber('combustion')
     >>> t = turbine('turbine')
+    >>> p = heat_exchanger_simple('fuel preheater')
     >>> si = sink('sink')
     >>> inc = connection(air, 'out1', c, 'in1', label='ambient air')
     >>> cc = connection(c, 'out1', comb, 'in1')
-    >>> fc = connection(f, 'out1', comb, 'in2')
+    >>> fp = connection(f, 'out1', p, 'in1')
+    >>> pc = connection(p, 'out1', comb, 'in2')
     >>> ct = connection(comb, 'out1', t, 'in1')
     >>> outg = connection(t, 'out1', si, 'in1')
-    >>> nw.add_conns(inc, cc, fc, ct, outg)
+    >>> nw.add_conns(inc, cc, fp, pc, ct, outg)
 
     Specify component and connection properties. The intlet pressure at the
     compressor and the outlet pressure after the turbine are identical. For the
@@ -160,8 +166,9 @@ def load_network(path):
     ... offdesign=['eta_s_char', 'cone'])
     >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'CH4': 0,
     ... 'H2O': 0}, fluid_balance=True, T=25, p=1)
-    >>> fc.set_attr(fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'CH4': 0.96, 'H2O': 0,
-    ... 'CO2': 0.04}, T=25)
+    >>> fp.set_attr(fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'CH4': 0.96, 'H2O': 0,
+    ... 'CO2': 0.04}, T=25, p=40)
+    >>> pc.set_attr(T=25)
     >>> ct.set_attr(T=1100)
     >>> outg.set_attr(p=ref(inc, 1, 0))
     >>> power = bus('total power output')

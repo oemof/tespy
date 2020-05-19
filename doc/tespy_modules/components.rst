@@ -22,11 +22,14 @@ well as the equations.
     * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine>`
 - Heat exchangers
     * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.heat_exchanger_simple>`
+    * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector>`
+    * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough>`
     * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger>`
     * :py:class:`Condenser <tespy.components.heat_exchangers.condenser>`
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater>`
 - Nodes
     * :py:class:`Node <tespy.components.nodes.node>`
+    * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator>`
     * :py:class:`Drum <tespy.components.nodes.drum>`
     * :py:class:`Merge <tespy.components.nodes.merge>`
     * :py:class:`Separator <tespy.components.nodes.separator>`
@@ -116,10 +119,16 @@ There are three components using parameter groups:
 - heat_exchanger_simple and pipe
     * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
     * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
+    * :code:`kA_char_group` (:code:`kA_char`, :code:`Tamb`)
 - solar_collector
     * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
     * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
       :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
+- parabolic_trough
+    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+    * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`aoi`,
+      :code:`doc`, :code:`c_1`, :code:`c_2`, :code:`iam_1`, :code:`iam_2`,
+      :code:`A`, :code:`Tamb`)
 
 Custom variables
 ^^^^^^^^^^^^^^^^
@@ -178,33 +187,38 @@ your own characteristic functions.
 
     The characteristic function can be an auxiliary parameter of a different
     component property. This is the case for :code:`kA_char1`
-    and :code:`kA_char2` of heat exchangers, :code:`kA_char` of simple
-    heat exchangers and pipes as well as the characteristics of a combustion
-    engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
+    and :code:`kA_char2` of heat exchangers as well as the characteristics of a
+    combustion engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
     and :code:`Qloss_char`.
 
-    The characteristic function is an individual parameter of the component.
-    This is the case for all other components!
+    For all other components, the characteristic function is an individual
+    parameter of the component.
 
     **What does this mean?**
 
-    For the auxiliary functionality the main parameter,
-    e.g. :code:`kA` of a heat exchanger must be set :code:`.kA.is_set=True`.
+    For the auxiliary functionality the main parameter, e.g. :code:`kA_char`
+    of a heat exchanger must be set :code:`.kA_char.is_set=True`.
 
     For the other functionality the characteristics parameter must be
     set e.g. :code:`.eta_s_char.is_set=True`.
 
-For example, :code:`kA` specification for heat exchangers:
+For example, :code:`kA_char` specification for heat exchangers:
 
 .. code-block:: python
 
     from tespy.components import heat_exchanger
-    from tespy.tools import dc_cc
+    from tespy.tools import dc_cc, dc_cp
     from tespy.tools.characteristics import load_default_char as ldc
     from tespy.tools.characteristics import char_line
     import numpy as np
 
-    he = heat_exchanger('evaporator', kA=1e5)
+    he = heat_exchanger('evaporator')
+
+    # the characteristic function requires the design value of the property,
+    # therefore the design value of kA must be set and additonally we set
+    # the kA_char method. This is performed automatically, if you specify the
+    # kA_char as offdesign parameter (usual case).
+    he.set_attr(kA=dc_cp(design=1e5), kA_char=dc_simple(is_set=True))
 
     # use a characteristic line from the defaults: specify the component, the
     # parameter and the name of the characteristic function. Also, specify, what
@@ -213,10 +227,10 @@ For example, :code:`kA` specification for heat exchangers:
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
     he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2)
 
-    # specification of a data container yields same result. It is aditionally
-    # possible to specify the characteristics parameter, mass flow in this case
-    # the specification parameters available are stated in the components
-    # class documentation
+    # specification of a data container yields the same result. It is
+    # aditionally possible to specify the characteristics parameter, mass flow
+    # in this case the specification parameters available are stated in the
+    # components class documentation
     he.set_attr(kA_char1=dc_cc(param='m', func=kA_char1),
                 kA_char2=dc_cc(param='m', func=kA_char2))
 
@@ -290,12 +304,12 @@ Characteristics are available for the following components and parameters:
     * :py:meth:`char_map <tespy.components.turbomachinery.compressor.char_map_func>`: component map for isentropic efficiency and pressure rise.
     * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.eta_s_char_func>`: isentropic efficiency vs. pressure ratio.
 - heat exchangers:
-    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.kA_func>`: heat transfer coefficient vs. mass flow.
+    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.kA_char_func>`: heat transfer coefficient vs. mass flow.
 - pump
     * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.eta_s_char_func>`: isentropic efficiency vs. volumetric flow rate.
     * :py:meth:`flow_char <tespy.components.turbomachinery.pump.flow_char_func>`: pressure rise vs. volumetric flow.
 - simple heat exchangers
-    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.kA_func>`: heat transfer coefficient vs. mass flow.
+    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.kA_char_func>`: heat transfer coefficient vs. mass flow.
 - turbine
     * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.eta_s_char_func>`: isentropic efficiency vs. isentropic enthalpy difference/pressure ratio/volumetric flow/mass flow.
 - valve

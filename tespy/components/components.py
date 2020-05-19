@@ -262,8 +262,8 @@ class component:
                     self.design_path = None
                 else:
                     msg = (
-                        'Please provide the design_path parameter as string '
-                        'or as nan.')
+                        'Please provide the design_path parameter as string. '
+                        'For unsetting use np.nan or None.')
                     logging.error(msg)
                     raise TypeError(msg)
 
@@ -554,18 +554,20 @@ class component:
         for p, data in self.variables.items():
             if isinstance(data, dc_cp):
                 val = self.get_attr(p).val
-                if val > data.max_val:
-                    msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
-                           str(val) + ' above maximum value (' +
-                           str(data.max_val) + ') at component ' +
-                           self.label + '.')
+                if round(val, 6) > data.max_val:
+                    msg = (
+                        'Invalid value for ' + p + ': ' + p + ' = ' +
+                        str(val) + ' above maximum value (' +
+                        str(data.max_val) + ') at component ' + self.label +
+                        '.')
                     logging.warning(msg)
 
-                elif val < data.min_val:
-                    msg = ('Invalid value for ' + p + ': ' + p + ' = ' +
-                           str(val) + ' below minimum value (' +
-                           str(data.min_val) + ') at component ' +
-                           self.label + '.')
+                elif round(val, 6) < data.min_val:
+                    msg = (
+                        'Invalid value for ' + p + ': ' + p + ' = ' +
+                        str(val) + ' below minimum value (' +
+                        str(data.min_val) + ') at component ' + self.label +
+                        '.')
                     logging.warning(msg)
 
     def initialise_fluids(self, nw):

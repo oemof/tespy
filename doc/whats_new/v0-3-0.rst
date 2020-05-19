@@ -74,6 +74,18 @@ New Features
   where :code:`mycomp` is a component object and :code:`mybus` is a bus the
   component has been added to
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
+- New component :py:class:`tespy.components.nodes.droplet_separator` for
+  separation of a single fluid in two phase state into saturated gas and
+  saturated liquid phase. An example is given in the docstrings of the class
+  documentation (`PR #186 <https://github.com/oemof/tespy/pull/186>`_).
+- New component :py:class:`tespy.components.heat_exchangers.parabolic_trough`
+  for concentrated solar power simulation. An example is given in the
+  docstrings of the class documentation
+  (`PR #191 <https://github.com/oemof/tespy/pull/191>`_).
+- New property :code:`min_iter` of the
+  :py:class:`tespy.networks.networks.network` class, allowing to specify the
+  minimum amount of iterations before a solution is accepted
+  (`PR #197 <https://github.com/oemof/tespy/pull/197>`_).
 
 Documentation
 #############
@@ -85,6 +97,11 @@ Parameter renaming
 - Adding components to a bus now requires :code:`'comp'` instead of :code:`'c'`
   and :code:`'param'` instead of :code:`'p'`
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
+- The former parameter :code:`kA` has been renamed to :code:`kA_char` as the
+  behavior in offdesign was following a characteristic instead of a constant
+  value. Additionally a new parameter :code:`kA` has been implemented, which
+  represents a specified constant value for :code:`kA` in both design and
+  offdesign cases (`PR #199 <https://github.com/oemof/tespy/pull/199>`_).
 
 Testing
 #######
@@ -104,16 +121,25 @@ Bug fixes
 - Increase the number of support points for tespy_fluid tabular data creation
   in order to lift accuracy to a more acceptable value
   (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
+- Fix the default characteristic line for compressor isentropic efficiency: The
+  line did not have an intersection with the point 1/1
+  (`PR #196 <https://github.com/oemof/tespy/pull/196>`_).
+- If a temperature value of a mixture was not found within the maximum number
+  of newton iterations in the :py:mod:`tespy.tools.fluid_properties` module,
+  the wrong value was still displayed in the output without a warning. In this
+  case, the value will be :code:`nan` in the future and a warning message is
+  displayed (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
 
 Other changes
 #############
 - Improve naming in networks, components and connections modules
   (`PR #172 <https://github.com/oemof/tespy/pull/172>`_,
-   `PR #175 <https://github.com/oemof/tespy/pull/175>`_).
-- Adjust the Python requirements to :code:`<3.8` as CoolProp does not build on
-  Python 3.8 at the moment, see
-  https://github.com/CoolProp/CoolProp/issues/1876
-  (`PR #177 <https://github.com/oemof/tespy/pull/177>`_).
+  `PR #175 <https://github.com/oemof/tespy/pull/175>`_).
+- The Parameter :code:`T_range` of networks is deprecated. The fluid property
+  calls for mixtures have been modified to prevent errors when the temperature
+  of the mixture is below the minimum or above the maximum temperature limit of
+  a component of the mixture
+  (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
 
 Changes in the API
 ##################
@@ -158,7 +184,7 @@ which has been used until version 0.2.x in TESPy.
         "T_unit": "C",
         "h_unit": "kJ / kg",
         "m_unit": "kg / s",
-        "T_range": [150, 200]
+        "h_range": [150, 3000]
     }
 
 Due to the addition of the CoolProp back end selection the

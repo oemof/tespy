@@ -5,10 +5,10 @@ from .combustion import (
     combustion_chamber, combustion_chamber_stoich, combustion_engine
     )
 from .heat_exchangers import (
-    heat_exchanger_simple, solar_collector,
+    heat_exchanger_simple, parabolic_trough, solar_collector,
     condenser, desuperheater, heat_exchanger
     )
-from .nodes import drum, merge, node, separator, splitter
+from .nodes import droplet_separator, drum, merge, node, separator, splitter
 from .piping import pipe, valve
 from .reactors import water_electrolyzer
 from .subsystems import subsystem

@@ -4,10 +4,10 @@
 
 Components in this module:
 
-    - :func:`tespy.components.basics.source`
-    - :func:`tespy.components.basics.sink`
-    - :func:`tespy.components.basics.subsystem_interface`
-    - :func:`tespy.components.basics.cycle_closer`
+- :func:`tespy.components.basics.source`
+- :func:`tespy.components.basics.sink`
+- :func:`tespy.components.basics.subsystem_interface`
+- :func:`tespy.components.basics.cycle_closer`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -109,8 +109,10 @@ class cycle_closer(component):
 
     @staticmethod
     def attr():
-        return {'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
-                'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)}
+        return {
+            'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
+            'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)
+        }
 
     @staticmethod
     def inlets():

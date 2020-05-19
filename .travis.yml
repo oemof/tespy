@@ -8,6 +8,9 @@ matrix:
     - name: "python 3.7 on xenial Linux"
       python: 3.7
       dist: xenial
+    - name: "python 3.8 on xenial Linux"
+      python: 3.8
+      dist: xenial
 #    - name: "Python 3.7.3 on Windows"
 #      os: windows
 #      language: shell

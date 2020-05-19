@@ -4,12 +4,12 @@
 
 Components in this module:
 
-    - :func:`tespy.components.heat_exchangers.heat_exchanger_simple`
-      (parent class)
-    - :func:`tespy.components.heat_exchangers.heat_exchanger` (parent class)
-    - :func:`tespy.components.heat_exchangers.condenser`
-    - :func:`tespy.components.heat_exchangers.desuperheater`
-    - :func:`tespy.components.heat_exchangers.solar_collector`
+- :func:`tespy.components.heat_exchangers.condenser`
+- :func:`tespy.components.heat_exchangers.desuperheater`
+- :func:`tespy.components.heat_exchangers.heat_exchanger`
+- :func:`tespy.components.heat_exchangers.heat_exchanger_simple`
+- :func:`tespy.components.heat_exchangers.parabolic_trough`
+- :func:`tespy.components.heat_exchangers.solar_collector`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -24,11 +24,12 @@ import numpy as np
 from tespy.components.components import component
 from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple, dc_gcp
 from tespy.tools.fluid_properties import (
-        h_mix_pT, s_mix_ph, v_mix_ph, visc_mix_ph, T_mix_ph,
-        dh_mix_dpQ, h_mix_pQ, T_bp_p, memorise
-        )
+    h_mix_pT, s_mix_ph, v_mix_ph, visc_mix_ph, T_mix_ph,
+    dh_mix_dpQ, h_mix_pQ, T_bp_p, memorise
+)
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import lamb, single_fluid
+from tespy.tools.helpers import lamb
+import warnings
 
 # %%
 
@@ -135,9 +136,8 @@ class heat_exchanger_simple(component):
     kA_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for heat transfer coefficient.
 
-    Tamb : str/float/tespy.tools.data_containers.dc_cp
-        Ambient temperature, provide parameter in network's temperature
-        unit.
+    Tamb : float/tespy.tools.data_containers.dc_simple
+        Ambient temperature, provide parameter in network's temperature unit.
 
     kA_group : tespy.tools.data_containers.dc_gcp
         Parametergroup for heat transfer calculation from ambient temperature
@@ -165,7 +165,7 @@ class heat_exchanger_simple(component):
     >>> heat_sink.component()
     'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
-    ... offdesign=['zeta', 'kA'])
+    ... offdesign=['zeta', 'kA_char'])
     >>> inc = connection(so1, 'out1', heat_sink, 'in1')
     >>> outg = connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -206,17 +206,18 @@ class heat_exchanger_simple(component):
 
     @staticmethod
     def attr():
-        return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=0),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-                'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
-                'kA': dc_cp(min_val=0, d=1),
-                'Tamb': dc_cp(),
-                'kA_char': dc_cc(param='m'),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
-                'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
+        return {
+            'Q': dc_cp(),
+            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
+            'L': dc_cp(min_val=1e-1, d=1e-3),
+            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+            'kA': dc_cp(min_val=0, d=1),
+            'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
+            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+            'hydro_group': dc_gcp(), 'kA_group': dc_gcp(),
+            'kA_char_group': dc_gcp()
+        }
 
     @staticmethod
     def inlets():
@@ -232,16 +233,11 @@ class heat_exchanger_simple(component):
 
         self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
                             nw.T[nw.T_unit][1])
-        self.Tamb.design = ((self.Tamb.design + nw.T[nw.T_unit][0]) *
-                            nw.T[nw.T_unit][1])
 
         # parameters for hydro group
         self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
 
-        is_set = True
-        for e in self.hydro_group.elements:
-            if not e.is_set:
-                is_set = False
+        is_set = self.L.is_set and self.ks.is_set and self.D.is_set
 
         if is_set:
             self.hydro_group.set_attr(is_set=True)
@@ -249,15 +245,16 @@ class heat_exchanger_simple(component):
                 method = 'Hazen-Williams equation'
             else:
                 method = 'darcy friction factor'
-            msg = ('Pressure loss calculation from pipe dimensions method is '
-                   'set to ' + method + '.')
+            msg = (
+                'Pressure loss calculation from pipe dimensions method is set '
+                'to ' + method + '.')
             logging.debug(msg)
 
         elif self.hydro_group.is_set:
-            msg = ('All parameters of the component group have to be '
-                   'specified! This component group uses the following '
-                   'parameters: L, ks, D at ' + self.label + '. '
-                   'Group will be set to False.')
+            msg = (
+                'All parameters of the component group have to be specified! '
+                'This component group uses the following parameters: L, ks, D '
+                'at ' + self.label + '. Group will be set to False.')
             logging.warning(msg)
             self.hydro_group.set_attr(is_set=False)
         else:
@@ -266,31 +263,55 @@ class heat_exchanger_simple(component):
         # parameters for kA group
         self.kA_group.set_attr(elements=[self.kA, self.Tamb])
 
-        is_set = True
-        for e in self.kA_group.elements:
-            if not e.is_set:
-                is_set = False
+        is_set = self.kA.is_set and self.Tamb.is_set
 
         if is_set:
             self.kA_group.set_attr(is_set=True)
         elif self.kA_group.is_set:
-            msg = ('All parameters of the component group have to be '
-                   'specified! This component group uses the following '
-                   'parameters: kA, Tamb at ' + self.label + '. '
-                   'Group will be set to False.')
+            msg = (
+                'All parameters of the component group have to be specified! '
+                'This component group uses the following parameters: kA, Tamb '
+                'at ' + self.label + '. Group will be set to False.')
             logging.warning(msg)
             self.kA_group.set_attr(is_set=False)
         else:
             self.kA_group.set_attr(is_set=False)
+
+        # parameters for kA_char group
+        self.kA_char_group.set_attr(elements=[self.kA_char, self.Tamb])
+
+        is_set = self.kA_char.is_set and self.Tamb.is_set
+
+        if is_set:
+            self.kA_char_group.set_attr(is_set=True)
+        elif self.kA_char_group.is_set:
+            msg = (
+                'All parameters of the component group have to be specified! '
+                'This component group uses the following parameters: kA_char, '
+                'Tamb at ' + self.label + '. Group will be set to False.')
+            logging.warning(msg)
+            self.kA_char_group.set_attr(is_set=False)
+        else:
+            self.kA_char_group.set_attr(is_set=False)
 
         # number of mandatroy equations for
         # fluid balance: num_fl
         # mass flow: 1
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
-                    self.kA_group]:
+                    self.kA_group, self.kA_char_group]:
             if var.is_set is True:
                 self.num_eq += 1
+
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
             self.num_eq,
@@ -362,12 +383,20 @@ class heat_exchanger_simple(component):
             **optional equations**
 
             - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func`
+            - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_char_func`
         """
         ######################################################################
-        # equation for specified kA-group paremeters
+        # equation for specified kA_group paremeters
         if self.kA_group.is_set:
             if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
                 self.residual[k] = self.kA_func()
+            k += 1
+
+        ######################################################################
+        # equation for specified kA_char_group paremeters
+        if self.kA_char_group.is_set:
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.kA_char_func()
             k += 1
 
     def derivatives(self, increment_filter):
@@ -458,9 +487,29 @@ class heat_exchanger_simple(component):
     def additional_derivatives(self, increment_filter, k):
         r"""Calculategit partial derivatives for given additional equations."""
         ######################################################################
-        # derivatives for specified kA-group paremeters
+        # derivatives for specified kA_group paremeters
         if self.kA_group.is_set:
             f = self.kA_func
+            self.jacobian[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            if self.kA.is_var:
+                self.jacobian[k, 2 + self.kA.var_pos, 0] = (
+                    self.numeric_deriv(f, self.vars[self.kA], 2))
+            k += 1
+
+        ######################################################################
+        # derivatives for specified kA_char_group paremeters
+
+        if self.kA_char_group.is_set:
+            f = self.kA_char_func
             if not increment_filter[0, 0]:
                 self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
             if not increment_filter[0, 1]:
@@ -471,11 +520,6 @@ class heat_exchanger_simple(component):
                 self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
             if not increment_filter[1, 2]:
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            # variable Tamb or kA
-            for var in self.kA_group.elements:
-                if var.is_var:
-                    self.jacobian[k, 2 + var.var_pos, 0] = (
-                        self.numeric_deriv(f, self.vars[var], 2))
             k += 1
 
     def darcy_func(self):
@@ -577,7 +621,50 @@ class heat_exchanger_simple(component):
                 \end{cases}
 
                 0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
+                kA \cdot \frac{ttd_u - ttd_l}
+                {\ln{\frac{ttd_u}{ttd_l}}}
+
+                T_{amb}: \text{ambient temperature}
+        """
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+
+        ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+
+        if ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+        elif ttd_1 < ttd_2:
+            td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
+        else:
+            td_log = 0
+
+        print(ttd_1, ttd_2)
+
+        return i[0] * (o[2] - i[2]) + self.kA.val * td_log
+
+    def kA_char_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient characteristic.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                ttd_u = \begin{cases}
+                T_{in} - T_{amb} & \dot{m} \geq 0\\
+                T_{out} - T_{amb} & \dot{m} < 0
+                \end{cases}
+
+                ttd_l = \begin{cases}
+                T_{in} - T_{amb} & \dot{m} < 0\\
+                T_{out} - T_{amb} & \dot{m} \geq 0
+                \end{cases}
+
+                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
+                kA_{ref} \cdot f_{kA} \cdot \frac{ttd_u - ttd_l}
                 {\ln{\frac{ttd_u}{ttd_l}}}
 
                 f_{kA} = \frac{2}{1 + \frac{1}
@@ -609,7 +696,7 @@ class heat_exchanger_simple(component):
 
         fkA = 2 / (1 + 1 / f)
 
-        return i[0] * (o[2] - i[2]) + self.kA.val * fkA * td_log
+        return i[0] * (o[2] - i[2]) + self.kA.design * fkA * td_log
 
     def bus_func(self, bus):
         r"""
@@ -776,9 +863,405 @@ class heat_exchanger_simple(component):
 # %%
 
 
+class parabolic_trough(heat_exchanger_simple):
+    r"""
+    The parabolic trough calculates heat output from irradiance.
+
+    Equations
+
+        **mandatory equations**
+
+        - :func:`tespy.components.components.component.fluid_func`
+        - :func:`tespy.components.components.component.mass_flow_func`
+
+        **optional equations**
+
+        .. math::
+
+            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
+            \dot{Q}
+
+            0 = p_{in} \cdot pr - p_{out}
+
+        - :func:`tespy.components.components.component.zeta_func`
+
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
+
+        **additional equations**
+
+        - :func:`tespy.components.heat_exchangers.parabolic_trough.additional_equations`
+
+    Inlets/Outlets
+
+        - in1
+        - out1
+
+    Image
+
+        .. image:: _images/parabolic_trough.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.tools.data_containers.dc_cp
+        Heat transfer, :math:`Q/\text{W}`.
+
+    pr : str/float/tespy.tools.data_containers.dc_cp
+        Outlet to inlet pressure ratio, :math:`pr/1`.
+
+    zeta : str/float/tespy.tools.data_containers.dc_cp
+        Geometry independent friction coefficient,
+        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    D : str/float/tespy.tools.data_containers.dc_cp
+        Diameter of the absorber tube, :math:`D/\text{m}`.
+
+    L : str/float/tespy.tools.data_containers.dc_cp
+        Length of the absorber tube, :math:`L/\text{m}`.
+
+    ks : str/float/tespy.tools.data_containers.dc_cp
+        Tube's roughness, :math:`ks/\text{m}` for darcy friction,
+        :math:`ks/\text{1}` for hazen-williams equation.
+
+    hydro_group : str/tespy.tools.data_containers.dc_gcp
+        Parametergroup for pressure drop calculation based on pipes dimensions.
+        Choose 'HW' for hazen-williams equation, else darcy friction factor is
+        used.
+
+    E : str/float/tespy.tools.data_containers.dc_cp
+        Direct irradiance to tilted collector,
+        :math:`E/\frac{\text{W}}{\text{m}^2}`.
+
+    aoi : str/float/tespy.tools.data_containers.dc_cp
+        Angle of incidience, :math:`aoi/^\circ`.
+
+    doc : str/float/tespy.tools.data_containers.dc_cp
+        Degree of cleanliness (1: full absorption, 0: no absorption),
+        :math:`X`.
+
+    eta_opt : str/float/tespy.tools.data_containers.dc_cp
+        (constant) optical losses due to surface reflection,
+        :math:`\eta_{opt}`.
+
+    c_1 : str/float/tespy.tools.data_containers.dc_cp
+        Linear thermal loss key figure,
+        :math:`c_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
+
+    c_2 : str/float/tespy.tools.data_containers.dc_cp
+        Quadratic thermal loss key figure,
+        :math:`c_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
+
+    iam_1 : str/float/tespy.tools.data_containers.dc_cp
+        Linear incidence angle modifier,
+        :math:`iam_1/\frac{1}{^\circ}`.
+
+    iam_2 : str/float/tespy.tools.data_containers.dc_cp
+        Quadratic incidence angle modifier,
+        :math:`iam_2/\left(\frac{1}{^\circ}\right)^2`.
+
+    A : str/float/tespy.tools.data_containers.dc_cp
+        Collector aperture surface area :math:`A/\text{m}^2`.
+
+    Tamb : float/tespy.tools.data_containers.dc_simple
+        Ambient temperature, provide parameter in network's temperature unit.
+
+    energy_group : tespy.tools.data_containers.dc_gcp
+        Parametergroup for energy balance of solarthermal collector.
+
+    Example
+    -------
+    A parabolic trough is installed using S800 as thermo-fluid.
+    First, the operation conditions from :cite:`Janotte2014` are reproduced.
+    Therefore, the direct normal irradiance :math:`\dot{E}_\mathrm{DNI}` is at
+    1000 :math:`\frac{\text{W}}{\text{m}^2}` at an angle of incidence
+    :math:`aoi` at 20 °. This means, the direct irradiance to the parabolic
+    trough :math:`E` is at
+    :math:`\dot{E}_{DNI} \cdot cos\left(20^\circ\right)`.
+
+    >>> from tespy.components import sink, source, parabolic_trough
+    >>> from tespy.connections import connection
+    >>> from tespy.networks import network
+    >>> import numpy as np
+    >>> import shutil
+    >>> fluids = ['INCOMP::S800']
+    >>> nw = network(fluids=fluids)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> so = source('source')
+    >>> si = sink('sink')
+    >>> pt = parabolic_trough('parabolic trough collector')
+    >>> pt.component()
+    'parabolic trough'
+    >>> inc = connection(so, 'out1', pt, 'in1')
+    >>> outg = connection(pt, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+
+    The pressure ratio is at a constant level of 1. However, it is possible to
+    specify the pressure losses from the absorber tube length, roughness and
+    diameter, too. The aperture surface :math:`A` is specified to 1
+    :math:`\text{m}^2` for simplicity reasons.
+
+    >>> aoi = 20
+    >>> E = 1000 * np.cos(aoi / 180 * np.pi)
+    >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
+    ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
+    ... iam_1=-1.59e-3, iam_2=9.77e-5)
+    >>> inc.set_attr(fluid={'S800': 1}, T=220, p=2)
+    >>> outg.set_attr(T=260)
+    >>> nw.solve('design')
+    >>> round(pt.Q.val, 0)
+    736.0
+
+    For example, it is possible to calculate the aperture area of the parabolic
+    trough given the total heat production, outflow temperature and mass flow.
+
+    >>> pt.set_attr(A='var', Q=5e6, Tamb=25)
+    >>> inc.set_attr(T=None)
+    >>> outg.set_attr(T=350, m=20)
+    >>> nw.solve('design')
+    >>> round(inc.T.val)
+    229.0
+    >>> round(pt.A.val)
+    6862.0
+
+    Given this design, it is possible to calculate the outlet temperature as
+    well as the heat transfer at different operating points.
+
+    >>> aoi = 30
+    >>> E = 800 * np.cos(aoi / 180 * np.pi)
+    >>> pt.set_attr(A=pt.A.val, aoi=aoi, Q=None, E=E)
+    >>> inc.set_attr(T=150)
+    >>> outg.set_attr(T=None)
+    >>> nw.solve('design')
+    >>> round(outg.T.val)
+    244.0
+    >>> round(pt.Q.val)
+    3603027.0
+    """
+
+    @staticmethod
+    def component():
+        return 'parabolic trough'
+
+    @staticmethod
+    def attr():
+        return {
+            'Q': dc_cp(),
+            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
+            'L': dc_cp(min_val=1e-1, d=1e-3),
+            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
+            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
+            'eta_opt': dc_cp(min_val=0, max_val=1),
+            'c_1': dc_cp(min_val=0), 'c_2': dc_cp(min_val=0),
+            'iam_1': dc_cp(), 'iam_2': dc_cp(),
+            'aoi': dc_cp(min_val=-90, max_val=90),
+            'doc': dc_cp(min_val=0, max_val=1),
+            'Tamb': dc_simple(),
+            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
+        }
+
+    def comp_init(self, nw):
+
+        component.comp_init(self, nw)
+
+        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
+                            nw.T[nw.T_unit][1])
+
+        # parameters for hydro group
+        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
+
+        is_set = True
+        for e in self.hydro_group.elements:
+            if e.is_set is False:
+                is_set = False
+
+        if is_set is True:
+            self.hydro_group.set_attr(is_set=True)
+        elif self.hydro_group.is_set is True:
+            msg = (
+                'All parameters of the component group have to be specified! '
+                'This component group uses the following parameters: L, ks, D '
+                'at ' + self.label + '. Group will be set to False.')
+            logging.warning(msg)
+            self.hydro_group.set_attr(is_set=False)
+        else:
+            self.hydro_group.set_attr(is_set=False)
+
+        # parameters for energy group
+        self.energy_group.set_attr(
+            elements=[
+                self.E, self.eta_opt, self.aoi, self.doc, self.c_1, self.c_2,
+                self.iam_1, self.iam_2, self.A, self.Tamb])
+
+        is_set = True
+        for e in self.energy_group.elements:
+            if e.is_set is False:
+                is_set = False
+
+        if is_set is True:
+            self.energy_group.set_attr(is_set=True)
+        elif self.energy_group.is_set is True:
+            msg = (
+                'All parameters of the component group have to be specified! '
+                'This component group uses the following parameters: E, '
+                'eta_opt, aoi, doc, c_1, c_2, iam_1, iam_2, A, Tamb at ' +
+                self.label + '. Group will be set to False.')
+            logging.warning(msg)
+            self.energy_group.set_attr(is_set=False)
+        else:
+            self.energy_group.set_attr(is_set=False)
+
+        # number of mandatroy equations for
+        # fluid balance: num_fl
+        # mass flow: 1
+        self.num_eq = self.num_nw_fluids + 1
+        for var in [self.Q, self.pr, self.zeta, self.hydro_group,
+                    self.energy_group]:
+            if var.is_set is True:
+                self.num_eq += 1
+
+        self.jacobian = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.residual = np.zeros(self.num_eq)
+        pos = self.num_nw_fluids
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+
+    def additional_equations(self, k):
+        r"""
+        Calculate results of additional equations.
+
+        Equations
+
+            **optional equations**
+
+            - :func:`tespy.components.heat_exchangers.parabolic_trough.energy_func`
+        """
+        ######################################################################
+        # equation for specified energy-group paremeters
+        if self.energy_group.is_set:
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.energy_func()
+
+    def additional_derivatives(self, increment_filter, k):
+        r"""Calculate partial derivatives for given additional equations."""
+        ######################################################################
+        # derivatives for specified energy-group paremeters
+        if self.energy_group.is_set:
+            f = self.energy_func
+            self.jacobian[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            if not increment_filter[0, 1]:
+                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+            if not increment_filter[0, 2]:
+                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+            if not increment_filter[1, 1]:
+                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+            if not increment_filter[1, 2]:
+                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+            # custom variables for the energy-group
+            for var in self.energy_group.elements:
+                if var == self.Tamb:
+                    continue
+                if var.is_var:
+                    self.jacobian[k, 2 + var.var_pos, 0] = (
+                        self.numeric_deriv(f, self.vars[var], 2))
+            k += 1
+
+    def energy_func(self):
+        r"""
+        Equation for solar collector energy balance.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+        Note
+        ----
+        .. math::
+
+            \begin{split}
+            T_m = & \frac{T_{out} + T_{in}}{2}\\
+            iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\
+            0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+            & - A \cdot \left[E \cdot \eta_{opt} \cdot doc^{1.5} \cdot
+            iam \right. \\
+            & \left. - c_1 \cdot \left(T_m - T_{amb} \right) -
+            c_2 \cdot \left(T_m - T_{amb}\right)^2
+            \vphantom{ \eta_{opt} \cdot doc^{1.5}} \right]
+            \end{split}
+
+        Reference: :cite:`Janotte2014`.
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
+               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+
+        iam = (
+            1 -  self.iam_1.val * abs(self.aoi.val) -
+            self.iam_2.val * self.aoi.val ** 2)
+
+        return (i[0] * (o[2] - i[2]) -
+                self.A.val * (
+                    self.E.val * self.eta_opt.val * self.doc.val ** 1.5 * iam -
+                    (T_m - self.Tamb.val_SI) * self.c_1.val -
+                    self.c_2.val * (T_m - self.Tamb.val_SI) ** 2))
+
+    def calc_parameters(self):
+        r"""Postprocessing parameter calculation."""
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
+        self.Q.val = i[0] * (o[2] - i[2])
+        self.pr.val = o[1] / i[1]
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
+                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+        if self.energy_group.is_set is True:
+            self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+
+        self.check_parameter_bounds()
+
+# %%
+
+
 class solar_collector(heat_exchanger_simple):
     r"""
-    The solar collector calculates heat output from radiation.
+    The solar collector calculates heat output from irradiance.
 
     Equations
 
@@ -869,7 +1352,7 @@ class solar_collector(heat_exchanger_simple):
         used.
 
     E : str/float/tespy.tools.data_containers.dc_cp
-        Radiation at tilted collector surface area,
+        irradiance at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
     eta_opt : str/float/tespy.tools.data_containers.dc_cp
@@ -877,17 +1360,17 @@ class solar_collector(heat_exchanger_simple):
         :math:`\eta_{opt}`.
 
     lkf_lin : str/float/tespy.tools.data_containers.dc_cp
-        Linear loss key figure,
+        Linear thermal loss key figure,
         :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
     lkf_quad : str/float/tespy.tools.data_containers.dc_cp
-        Quadratic loss key figure,
+        Quadratic thermal loss key figure,
         :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
     A : str/float/tespy.tools.data_containers.dc_cp
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.tools.data_containers.dc_cp
+    Tamb : float/tespy.tools.data_containers.dc_simple
         Ambient temperature, provide parameter in network's temperature unit.
 
     energy_group : tespy.tools.data_containers.dc_gcp
@@ -896,9 +1379,9 @@ class solar_collector(heat_exchanger_simple):
     Example
     -------
     The solar collector is used to calculate heat transferred to the heating
-    system from radiation on a tilted plane. For instance, it is possible to
+    system from irradiance on a tilted plane. For instance, it is possible to
     calculate the collector surface area required to transfer a specific amount
-    of heat at a given radiation. The collector parameters are the linear and
+    of heat at a given irradiance. The collector parameters are the linear and
     the quadratic loss keyfigure as well as the optical effifiency.
 
     >>> from tespy.components import sink, source, solar_collector
@@ -921,7 +1404,7 @@ class solar_collector(heat_exchanger_simple):
 
     The outlet temperature should be at 90 °C at a constant mass flow, which
     is determined in the design calculation. In offdesign operation (at a
-    different radiation) using the calculated surface area and mass flow, it
+    different irradiance) using the calculated surface area and mass flow, it
     is possible to predict the outlet temperature. It would instead be
     possible to calulate the change in mass flow required to hold the
     specified outlet temperature, too.
@@ -947,21 +1430,19 @@ class solar_collector(heat_exchanger_simple):
 
     @staticmethod
     def attr():
-        return {'Q': dc_cp(),
-                'pr': dc_cp(min_val=1e-4, max_val=1),
-                'zeta': dc_cp(min_val=0),
-                'D': dc_cp(min_val=1e-2, max_val=2, d=1e-3),
-                'L': dc_cp(min_val=1e-1, d=1e-3),
-                'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
-                'E': dc_cp(min_val=0),
-                'eta_opt': dc_cp(min_val=0, max_val=1),
-                'lkf_lin': dc_cp(min_val=0),
-                'lkf_quad': dc_cp(min_val=0),
-                'A': dc_cp(min_val=0),
-                'Tamb': dc_cp(),
-                'Q_loss': dc_cp(min_val=0),
-                'SQ': dc_simple(),
-                'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
+        return {
+            'Q': dc_cp(),
+            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
+            'L': dc_cp(min_val=1e-1, d=1e-3),
+            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
+            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
+            'eta_opt': dc_cp(min_val=0, max_val=1),
+            'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
+            'Tamb': dc_simple(),
+            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
+        }
 
     def comp_init(self, nw):
 
@@ -1065,6 +1546,8 @@ class solar_collector(heat_exchanger_simple):
                 self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
             # custom variables for the energy-group
             for var in self.energy_group.elements:
+                if var == self.Tamb:
+                    continue
                 if var.is_var:
                     self.jacobian[k, 2 + var.var_pos, 0] = (
                         self.numeric_deriv(f, self.vars[var], 2))
@@ -1072,7 +1555,7 @@ class solar_collector(heat_exchanger_simple):
 
     def energy_func(self):
         r"""
-        Equation for solar collector energy balance.
+        Equation for parabolic trough energy balance.
 
         Returns
         -------
@@ -1083,9 +1566,8 @@ class solar_collector(heat_exchanger_simple):
         ----
         .. math::
 
-            T_m = \frac{T_{out} + T_{in}}{2}\\
-
             \begin{split}
+            T_m = & \frac{T_{out} + T_{in}}{2}\\
             0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
             & - A \cdot \left[E \cdot \eta_{opt} - \alpha_1 \cdot
             \left(T_m - T_{amb} \right) - \alpha_2 \cdot
@@ -1147,6 +1629,7 @@ class heat_exchanger(component):
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
+        - :func:`tespy.components.heat_exchangers.condenser.kA_char_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_l_func`
 
@@ -1217,9 +1700,12 @@ class heat_exchanger(component):
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.tools.data_containers.dc_cp
+    kA : float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
+
+    kA_char : tespy.tools.data_containers.dc_simple
+        Area independent heat transition coefficient characteristic.
 
     kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for hot side heat transfer coefficient.
@@ -1264,7 +1750,7 @@ class heat_exchanger(component):
     different inlet temperatures of the exhaust air.
 
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA'])
+    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
     >>> cw_he.set_attr(fluid={'air': 0, 'water': 1}, T=10, p=3,
     ... offdesign=['m'])
     >>> ex_he.set_attr(fluid={'air': 1, 'water': 0}, v=0.1, T=35)
@@ -1294,16 +1780,17 @@ class heat_exchanger(component):
 
     @staticmethod
     def attr():
-        return {'Q': dc_cp(max_val=0),
-                'kA': dc_cp(min_val=0),
-                'td_log': dc_cp(min_val=0),
-                'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
-                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-                'kA_char1': dc_cc(param='m'),
-                'kA_char2': dc_cc(param='m'),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
-                'zero_flag': dc_simple()}
+        return {
+            'Q': dc_cp(max_val=0),
+            'kA': dc_cp(min_val=0),
+            'td_log': dc_cp(min_val=0),
+            'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
+            'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+            'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+            'kA_char': dc_simple(),
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
+            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple()
+        }
 
     @staticmethod
     def inlets():
@@ -1322,10 +1809,20 @@ class heat_exchanger(component):
         # mass flow: 2
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 2 + 3
-        for var in [self.Q, self.kA, self.ttd_u, self.ttd_l,
+        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
             if var.is_set is True:
                 self.num_eq += 1
+
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
             self.num_eq,
@@ -1368,6 +1865,13 @@ class heat_exchanger(component):
         if self.kA.is_set:
             if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
                 self.residual[k] = self.kA_func()
+            k += 1
+
+        ######################################################################
+        # equations for specified heat transfer coefficient characteristic
+        if self.kA_char.is_set:
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.kA_char_func()
             k += 1
 
         ######################################################################
@@ -1457,6 +1961,19 @@ class heat_exchanger(component):
         # derivatives for specified heat transfer coefficient
         if self.kA.is_set:
             f = self.kA_func
+            self.jacobian[k, 0, 0] = (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            for i in range(4):
+                if not increment_filter[i, 1]:
+                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
+                if not increment_filter[i, 2]:
+                    self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+            k += 1
+
+        ######################################################################
+        # derivatives for specified heat transfer coefficient
+        if self.kA_char.is_set:
+            f = self.kA_char_func
             if not increment_filter[0, 0]:
                 self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
             if not increment_filter[1, 0]:
@@ -1604,10 +2121,11 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-        return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                        self.inl[0].h.val_SI) +
-                self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
-                                        self.inl[1].h.val_SI))
+        return (
+            self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
+            self.inl[1].m.val_SI * (
+                self.outl[1].h.val_SI - self.inl[1].h.val_SI))
 
     def kA_func(self):
         r"""
@@ -1621,7 +2139,56 @@ class heat_exchanger(component):
             .. math::
 
                 res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+                kA \cdot \frac{T_{1,out} -
+                T_{2,in} - T_{1,in} + T_{2,out}}
+                {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+
+        Note
+        ----
+        For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
+        module :func:`tespy.data`.
+
+        - Calculate temperatures at inlets and outlets.
+        - Perform value manipulation, if temperature levels are not physically
+          feasible.
+        """
+        i1 = self.inl[0].to_flow()
+        i2 = self.inl[1].to_flow()
+        o1 = self.outl[0].to_flow()
+        o2 = self.outl[1].to_flow()
+
+        T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
+        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
+        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
+        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
+
+        if T_i1 <= T_o2:
+            T_i1 = T_o2 + 0.01
+        if T_i1 <= T_o2:
+            T_o2 = T_i1 - 0.01
+        if T_i1 <= T_o2:
+            T_o1 = T_i2 + 0.02
+        if T_o1 <= T_i2:
+            T_i2 = T_o1 - 0.02
+
+        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * td_log
+
+    def kA_char_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient characteristic.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
+                kA_{ref} \cdot f_{kA} \cdot \frac{T_{1,out} -
                 T_{2,in} - T_{1,in} + T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
 
@@ -1662,21 +2229,17 @@ class heat_exchanger(component):
 
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            if not np.isnan(i1_d[0]):
-                if not i1[0] == 0:
-                    fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            if not np.isnan(i2_d[0]):
-                if not i2[0] == 0:
-                    fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
+        return i1[0] * (o1[2] - i1[2]) + self.kA.design * fkA * td_log
 
     def ttd_u_func(self):
         r"""
@@ -1761,61 +2324,6 @@ class heat_exchanger(component):
         deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
         deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
         return deriv
-
-    def convergence_check(self, nw):
-        r"""
-        Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
-
-        Note
-        ----
-        Manipulate enthalpies/pressure at inlet and outlet if not specified by
-        user to match physically feasible constraints, keep fluid composition
-        within feasible range and then propagates it towards the outlet.
-        """
-        i, o = self.inl, self.outl
-
-        if self.ttd_l.is_set or self.ttd_u.is_set:
-            fl_i1 = single_fluid(i[0].fluid.val)
-            fl_i2 = single_fluid(i[1].fluid.val)
-            fl_o1 = single_fluid(o[0].fluid.val)
-            fl_o2 = single_fluid(o[1].fluid.val)
-
-        if self.ttd_l.is_set:
-            if isinstance(fl_o1, str):
-                T_min_o1 = memorise.value_range[fl_o1][2] * 1.1
-            else:
-                T_min_o1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_i2, str):
-                T_min_i2 = memorise.value_range[fl_i2][2] * 1.1
-            else:
-                T_min_i2 = nw.T_range_SI[0] * 1.1
-            h_min_o1 = h_mix_pT(o[0].to_flow(), T_min_o1)
-            h_min_i2 = h_mix_pT(i[1].to_flow(), T_min_i2)
-            if not o[0].h.val_set and o[0].h.val_SI < h_min_o1 * 2:
-                o[0].h.val_SI = h_min_o1 * 2
-            if not i[1].h.val_set and i[1].h.val_SI < h_min_i2:
-                i[1].h.val_SI = h_min_i2 * 1.1
-
-        if self.ttd_u.is_set:
-            if isinstance(fl_i1, str):
-                T_min_i1 = memorise.value_range[fl_i1][2] * 1.1
-            else:
-                T_min_i1 = nw.T_range_SI[0] * 1.1
-            if isinstance(fl_o2, str):
-                T_min_o2 = memorise.value_range[fl_o2][2] * 1.1
-            else:
-                T_min_o2 = nw.T_range_SI[0] * 1.1
-            h_min_i1 = h_mix_pT(i[0].to_flow(), T_min_i1)
-            h_min_o2 = h_mix_pT(o[1].to_flow(), T_min_o2)
-            if not i[0].h.val_set and i[0].h.val_SI < h_min_i1 * 2:
-                i[0].h.val_SI = h_min_i1 * 2
-            if not o[1].h.val_set and o[1].h.val_SI < h_min_o2:
-                o[1].h.val_SI = h_min_o2 * 1.1
 
     def initialise_source(self, c, key):
         r"""
@@ -1943,7 +2451,7 @@ class heat_exchanger(component):
                                np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
             self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
 
-        if self.kA.is_set:
+        if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
             if self.kA_char1.param == 'm':
                 i1_d = self.inl[0].to_flow_design()
@@ -1987,6 +2495,7 @@ class condenser(heat_exchanger):
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
         - :func:`tespy.components.heat_exchangers.condenser.kA_func`
+        - :func:`tespy.components.heat_exchangers.condenser.kA_char_func`
         - :func:`tespy.components.heat_exchangers.condenser.ttd_u_func`
 
         .. math::
@@ -2056,9 +2565,12 @@ class condenser(heat_exchanger):
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str/float/tespy.tools.data_containers.dc_cp
+    kA : float/tespy.tools.data_containers.dc_cp
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
+
+    kA_char : tespy.tools.data_containers.dc_simple
+        Area independent heat transition coefficient characteristic.
 
     kA_char1 : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line for hot side heat transfer coefficient.
@@ -2111,7 +2623,7 @@ class condenser(heat_exchanger):
     change, the outlet temperature of the air will change, too.
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
-    ... offdesign=['zeta2', 'kA'])
+    ... offdesign=['zeta2', 'kA_char'])
     >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
     >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
@@ -2150,17 +2662,17 @@ class condenser(heat_exchanger):
 
     @staticmethod
     def attr():
-        return {'Q': dc_cp(max_val=0),
-                'kA': dc_cp(min_val=0),
-                'td_log': dc_cp(min_val=0),
-                'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
-                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-                'subcooling': dc_simple(val=False),
-                'kA_char1': dc_cc(param='m'),
-                'kA_char2': dc_cc(param='m'),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
-                'zero_flag': dc_simple()}
+        return {
+            'Q': dc_cp(max_val=0), 'kA': dc_cp(min_val=0),
+            'td_log': dc_cp(min_val=0),
+            'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
+            'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+            'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+            'subcooling': dc_simple(val=False),
+            'kA_char': dc_simple(),
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
+            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+        }
 
     def comp_init(self, nw):
 
@@ -2174,10 +2686,20 @@ class condenser(heat_exchanger):
         # enthalpy hot side outlet (if not subcooling): 1
         if self.subcooling.val is False:
             self.num_eq += 1
-        for var in [self.Q, self.kA, self.ttd_u, self.ttd_l,
+        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
             if var.is_set is True:
                 self.num_eq += 1
+
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
             self.num_eq,
@@ -2219,25 +2741,6 @@ class condenser(heat_exchanger):
             self.jacobian[k, 2, 2] = 1
             k += 1
 
-    def energy_func(self):
-        r"""
-        Equation for condenser energy balance.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
-                \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
-        """
-        return (self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                        self.inl[0].h.val_SI) +
-                self.inl[1].m.val_SI * (self.outl[1].h.val_SI -
-                                        self.inl[1].h.val_SI))
-
     def kA_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient.
@@ -2250,7 +2753,51 @@ class condenser(heat_exchanger):
             .. math::
 
                 res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot f_{kA} \cdot \frac{T_{1,out} -
+                kA \cdot \frac{T_{1,out} -
+                T_{2,in} - T_s \left(p_{1,in}\right) +
+                T_{2,out}}
+                {\ln{\frac{T_{1,out} - T_{2,in}}
+                {T_s \left(p_{1,in}\right) - T_{2,out}}}}
+        """
+
+        i1 = self.inl[0].to_flow()
+        i2 = self.inl[1].to_flow()
+        o1 = self.outl[0].to_flow()
+        o2 = self.outl[1].to_flow()
+
+        T_i1 = T_bp_p(i1)
+        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
+        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
+        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
+
+        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+            T_i1 = T_o2 + 0.5
+        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+            T_o2 = T_i1 - 0.5
+
+        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+            T_o1 = T_i2 + 1
+        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+            T_i2 = T_o1 - 1
+
+        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+
+        return i1[0] * (o1[2] - i1[2]) + self.kA.val * td_log
+
+    def kA_char_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient characteristic.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
+                kA_{ref} \cdot f_{kA} \cdot \frac{T_{1,out} -
                 T_{2,in} - T_s \left(p_{1,in}\right) +
                 T_{2,out}}
                 {\ln{\frac{T_{1,out} - T_{2,in}}
@@ -2269,8 +2816,6 @@ class condenser(heat_exchanger):
         - Perform value manipulation, if temperature levels are physically
           infeasible.
         """
-        if self.zero_flag.is_set:
-            return self.inl[0].p.val_SI - self.inl[0].p.design
 
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
@@ -2297,19 +2842,18 @@ class condenser(heat_exchanger):
 
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            if not np.isnan(i1_d[0]):
-                fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            if not np.isnan(i2_d[0]):
-                fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * fkA * td_log
+
+        return i1[0] * (o1[2] - i1[2]) + self.kA.design * fkA * td_log
 
     def ttd_u_func(self):
         r"""
@@ -2473,7 +3017,7 @@ class desuperheater(heat_exchanger):
     if the cooling water flow rate is adjusted accordingly.
 
     >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-    ... offdesign=['zeta1', 'zeta2', 'kA'])
+    ... offdesign=['zeta1', 'zeta2', 'kA_char'])
     >>> cw_de.set_attr(fluid={'water': 1, 'ethanol': 0}, T=15, v=1,
     ... design=['v'])
     >>> de_cw.set_attr(p=1)
@@ -2510,10 +3054,20 @@ class desuperheater(heat_exchanger):
         # energy balance: 1
         # enthalpy hot side outlet: 1
         self.num_eq = self.num_nw_fluids * 2 + 4
-        for var in [self.Q, self.kA, self.ttd_u, self.ttd_l,
+        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
             if var.is_set is True:
                 self.num_eq += 1
+
+        if self.kA.is_set:
+            msg = (
+                'The usage of the parameter kA has changed for offdesign '
+                'calculation. Specifying kA will keep a constant value for kA '
+                'in the calculation. If you want to use the value adaption of '
+                'kA by the characteristic line, please use kA_char as '
+                'parameter instead (occurred at ' + self.label + '). This '
+                'warning will disappear in TESPy version 0.3.2.')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
             self.num_eq,

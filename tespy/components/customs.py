@@ -4,7 +4,7 @@
 
 Components in this module:
 
-    - :func:`tespy.components.customs.orc_evaporator`
+- :func:`tespy.components.customs.orc_evaporator`
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -222,15 +222,17 @@ class orc_evaporator(component):
 
     @staticmethod
     def attr():
-        return {'Q': dc_cp(max_val=0),
-                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
-                'pr3': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-                'zeta3': dc_cp(min_val=0),
-                'subcooling': dc_simple(val=False),
-                'overheating': dc_simple(val=False),
-                'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(),
-                'Sirr': dc_simple()}
+        return {
+            'Q': dc_cp(max_val=0),
+            'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+            'pr3': dc_cp(max_val=1),
+            'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+            'zeta3': dc_cp(min_val=0),
+            'subcooling': dc_simple(val=False),
+            'overheating': dc_simple(val=False),
+            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(),
+            'Sirr': dc_simple()
+        }
 
     @staticmethod
     def inlets():

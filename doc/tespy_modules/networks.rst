@@ -145,6 +145,8 @@ available keywords:
    information of your plant's design point.
  * :code:`max_iter` is the maximum amount of iterations performed by the
    solver.
+ * :code:`min_iter` is the minimum amount of iterations before a solution can
+   be accepted (given the convergence criterion is satisfied).
  * :code:`init_only` stop after initialisation (True/False).
  * :code:`init_previous` use starting values from previous simulation
    (True/False).
@@ -414,8 +416,8 @@ three iteration steps of the algorithm only. In other cases this convergence
 check is skipped.
 
  * Fox mixtures: check, if the fluid properties (pressure, enthalpy and
-   temperature)
-   are within the user specified boundaries (:code:`p_range, h_range, T_range`)
+   mass flow)
+   are within the user specified boundaries (:code:`p_range, h_range, m_range`)
    and if not, cut off higher/lower values.
  * Check the fluid properties of the connections based on the components they
    are connecting. For example, check if the pressure at the outlet of a
@@ -600,6 +602,30 @@ Use this code for connection parameters:
     mass_flow = myconn.m.val  # value in specified network unit
     mass_flow_SI = myconn.m.val_SI  # value in SI unit
     mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
+    specific_volume = myconn.vol.val  # value in specified network unit
+    specific_entropy = myconn.s.val  # value in specified network unit
+
+Creating fluid property diagrams
+--------------------------------
+
+.. figure:: api/_images/logph_diagram_states.svg
+    :align: center
+
+    Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+CoolProp has an inbuilt feature for creating fluid property diagrams.
+Unfortunately, the handling is not very easy at the moment. We recommend using
+fluprodia (Fluid Property Diagram) instead. You can create and customize
+different types of diagrams for all pure and pseudo-pure fluids available in
+CoolProp. In order to plot your process data into a diagram, simply extract
+the corresponding values from the connections. For more information on
+fluprodia have a look at the
+`online documentation <https://fluprodia.readthedocs.io/en/latest/>`_. You can
+install the package with pip.
+
+.. code-block:: bash
+
+    pip install fluprodia
 
 Network reader
 ==============

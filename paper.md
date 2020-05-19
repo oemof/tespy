@@ -35,7 +35,9 @@ design plants and simulate stationary operation. From that point, part-load
 behavior can be predicted using underlying characteristics for each of the
 plant's components. The component based structure combined with the solution
 method offer very high flexibility regarding the plant's topology and its
-parametrisation.
+parametrisation. An extensive online documentation is provided at [@TESPy].
+Several examples and tutorials on how to use the software are included,
+too.
 
 # Motivation
 
@@ -57,8 +59,8 @@ implemented in a widespread programming language like Python, is very promising.
 TESPy is built up in modular structure with three main modules:
 
 * networks: The networks module represents the container for every simulation.
-  The solution process, pre- and postprocessing are handled by the network
-  class.
+  Initialization, preprocessing, solving and postprocessing are handled by the
+  network class.
 * components: All components are part of the components module. The package
   provides basic components, for example different types of turbomachinery, heat
   exchangers, pipes, valves and mixers or splitters. On top of that, advanced
@@ -88,6 +90,14 @@ literature, for example [@Baehr; @Epple]) for every component regarding
 
 * mass flow and fluid composition as well as
 * energy (covering thermal and hydraulic properties).
+
+On top of the basic equations presented in this paper, there are many component
+specific equations that can be applied by the user. The full list of
+components, its parameters and the respective equations is documented online in
+the API section [@TESPy]. For calculation of fluid properties CoolProp
+[@CoolProp] is implemented supplying the user with a wide range of pure and
+incompressible fluids. In case of gaseous mixtures the software calculates the
+fluid properties by the laws of ideal mixtures [@Baehr; @Herning1936].
 
 In steady state, the total mass flow into a component must be equal to the total
 mass flow leaving the component (eq. \ref{eq:1}). Additionally, the mass balance
@@ -156,14 +166,15 @@ With respect to hydraulic state, the pressure drop
 $p_\mathrm{out}-p_\mathrm{in}$ in a pipe can be calculated
 by the Darcy-Weisbach equation \ref{eq:6} from its dimensions (length $L$,
 diameter $D$) and the Darcy friction factor $\lambda$ calculated from the
-pipe's roughness $k_\mathrm{s}$, its diameter and the Reynolds number $re$.
+pipe's roughness $k_\mathrm{s}$, its diameter and the Reynolds number
+$\mathrm{Re}$.
 Another much more simple approach is to specify the pressure ratio $pr$
 \ref{eq:7}.
 
 \begin{align}
 0=p_\mathrm{out}-p_\mathrm{in} +
-\frac{\rho \cdot c^2 \cdot \lambda\left(re,k_\mathrm{s},D\right) \cdot L}
-{2 \cdot D} \label{eq:6}\\
+\frac{\rho \cdot c^2 \cdot \lambda\left(\mathrm{Re},k_\mathrm{s},D\right)
+\cdot L}{2 \cdot D} \label{eq:6}\\
 0=pr - \frac{p_\mathrm{out}}{p_\mathrm{in}} \label{eq:7}
 \end{align}
 

@@ -2777,7 +2777,7 @@ class combustion_engine(combustion_chamber):
                 \dot{E} = \begin{cases}
                 LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
                 P & \text{key = 'P'}\\
-                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} +
+                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) +
                 \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
                 \text{key = 'Q'}\\
                 \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &

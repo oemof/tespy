@@ -115,6 +115,8 @@ Testing
   (`PR #174 <https://github.com/oemof/tespy/pull/174>`_).
 - Add bus tests for efficiency definitions
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
+- Add Python 3.8, PEP and documentation build tests
+  (`PR #201 <https://github.com/oemof/tespy/pull/201>`_).
 
 Bug fixes
 #########
@@ -140,6 +142,8 @@ Other changes
   of the mixture is below the minimum or above the maximum temperature limit of
   a component of the mixture
   (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
+- Restructure package skeleton
+  (`PR #201 <https://github.com/oemof/tespy/pull/201>`_).
 
 Changes in the API
 ##################
@@ -252,3 +256,4 @@ with that...).
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jfreissmann <https://github.com/jfreissmann>`_

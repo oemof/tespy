@@ -198,7 +198,6 @@ def bus_char_evaluation(params, bus_value):
 
 def bus_char_derivative(params, bus_value):
     """Calculate derivative for bus char evaluation."""
-    comp_value = params[0]
     reference_value = params[1]
     char_func = params[2]
     d = 1e-3

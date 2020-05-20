@@ -15,7 +15,6 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-import math
 import os
 from collections import OrderedDict
 

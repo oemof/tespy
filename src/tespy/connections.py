@@ -29,7 +29,6 @@ from tespy.tools.data_containers import dc_flu
 from tespy.tools.data_containers import dc_prop
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import TESPyConnectionError
-import warnings
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)

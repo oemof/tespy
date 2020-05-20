@@ -32,9 +32,9 @@ from tespy.tools.characteristics import load_custom_char
 from tespy.tools.data_containers import data_container
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_flu
+from tespy.tools.fluid_properties import T_mix_ps
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import memorise
-from tespy.tools.fluid_properties import T_mix_ps
 from tespy.tools.fluid_properties import tespy_fluid
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
@@ -155,9 +155,9 @@ def test_get_attr_errors():
 def test_cmp_instanciation_ValueError():
     """Test bad label specification for component."""
     labels = [5, 'Label,', 'Labe;l', 'Label.']
-    for l in labels:
+    for label in labels:
         with raises(ValueError):
-            combustion.combustion_engine(l)
+            combustion.combustion_engine(label)
 
 ##############################################################################
 # test errors in connection classes
@@ -720,6 +720,7 @@ def test_IF97_back_end():
 def test_h_mix_pQ_on_mixtures():
     with raises(ValueError):
         h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)
+
 
 def test_T_mix_ps_on_pure_fluids():
     with raises(ValueError):

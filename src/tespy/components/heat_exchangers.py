@@ -20,6 +20,7 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
+import warnings
 
 import numpy as np
 
@@ -33,13 +34,11 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.fluid_properties import memorise
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import lamb
-import warnings
 
 # %%
 
@@ -1242,7 +1241,7 @@ class parabolic_trough(heat_exchanger_simple):
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
         iam = (
-            1 -  self.iam_1.val * abs(self.aoi.val) -
+            1 - self.iam_1.val * abs(self.aoi.val) -
             self.iam_2.val * self.aoi.val ** 2)
 
         return (i[0] * (o[2] - i[2]) -

@@ -472,7 +472,6 @@ class TestHeatExchangers:
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(T_bp_p(self.c1.to_flow()) - self.c4.T.val_SI, 1)
         p = round(self.c1.p.val_SI, 5)
-        kA = instance.kA.val
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +
                str(ttd_u) + '.')

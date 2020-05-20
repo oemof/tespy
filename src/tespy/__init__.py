@@ -2,9 +2,8 @@
 
 __version__ = '0.3.0 - dev'
 
-# tespy connection import
+# tespy data and connection import
 from . import connections  # noqa: F401
-# tespy data import
 from . import data  # noqa: F401
 # tespy components imports
 from .components import basics  # noqa: F401

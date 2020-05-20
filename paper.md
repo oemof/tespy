@@ -35,7 +35,7 @@ design plants and simulate stationary operation. From that point, part-load
 behavior can be predicted using underlying characteristics for each of the
 plant's components. The component based structure combined with the solution
 method offer very high flexibility regarding the plant's topology and its
-parametrisation. An extensive online documentation is provided at [@TESPy].
+parametrisation. An extensive online documentation is provided at @TESPy.
 Several examples and tutorials on how to use the software are included,
 too.
 
@@ -45,14 +45,15 @@ Thermal process simulation is a fundamental discipline in energy engineering.
 Consequently, there are several well known commercial software solutions
 available in this field, for example EBSILON Professional or Aspen Plus, mainly
 used in the industrial environment. A similar approach was carried out by
-[@ThermoPower] with the open source library "ThermoPower" written in the
+@ThermoPower with the open source library "ThermoPower" written in the
 Modelica language. The software provides dynamic modeling and focuses on steam
 power plants, but has not been updated since 2014 [@ThermoPowerOnline].
 
-Due to the fact that ThermoPower is not updated anymore and limited on
-one field of thermal engineering a new solution is proposed. In order to open
-the software to a wide (scientific) audience, an open source solution
-implemented in a widespread programming language like Python, is very promising.
+Here we propose a new solution for simulating thermal processes, since
+ThermoPower  is not currently maintained and also limited to one field of
+thermal engineering. In order to open the software to a wide (scientific)
+audience an open source solution in the widespread programming language Python
+is implemented.
 
 # Package Architecture
 
@@ -85,19 +86,19 @@ enthalpy $h$ and fluid composition (defined by mass fraction $x$ of each fluid)
 of every connection. This way, it is possible to solve for both thermal as well
 as hydraulic state of the plant.
 
-To achieve this, TESPy implements balance equations (based on standard
-literature, for example [@Baehr; @Epple]) for every component regarding
+To achieve this, TESPy implements balance equations based on standard
+literature, for example [@Baehr; @Epple] for every component regarding
 
 * mass flow and fluid composition as well as
 * energy (covering thermal and hydraulic properties).
 
-On top of the basic equations presented in this paper, there are many component
-specific equations that can be applied by the user. The full list of
+On top of the basic equations presented in this paper, there are many
+component-specific equations that can be applied by the user. The full list of
 components, its parameters and the respective equations is documented online in
-the API section [@TESPy]. For calculation of fluid properties CoolProp
-[@CoolProp] is implemented supplying the user with a wide range of pure and
-incompressible fluids. In case of gaseous mixtures the software calculates the
-fluid properties by the laws of ideal mixtures [@Baehr; @Herning1936].
+the API section [@TESPy]. For calculation of fluid properties TESPy uses
+CoolProp [@CoolProp], which supports a wide range of pure and incompressible
+fluids. In case of gaseous mixtures the software calculates the fluid
+properties by the laws of ideal mixtures [@Baehr; @Herning1936].
 
 In steady state, the total mass flow into a component must be equal to the total
 mass flow leaving the component (eq. \ref{eq:1}). Additionally, the mass balance
@@ -150,9 +151,9 @@ taken into account instead of equation \ref{eq:2}. On top of that, the energy
 balance is different, as the reaction enthalpy has to be considered.
 Furthermore, it is necessary to compensate for the different zero point
 definitions of enthalpy in the fluid properties of the reaction components by
-defining a reference state $\mathrm{ref}$. E.g. for an adiabatic combustion
-chamber equation \ref{eq:5} is implemented using the fuel's lower heating value
-$LHV$ as reaction enthalpy.
+defining a reference state $\mathrm{ref}$. For example, equation \ref{eq:5} is
+implemented for adiabatic combustion chambers using the fuel's lower heating
+value $LHV$ as reaction enthalpy.
 
 \begin{equation}
 0=
@@ -167,9 +168,7 @@ $p_\mathrm{out}-p_\mathrm{in}$ in a pipe can be calculated
 by the Darcy-Weisbach equation \ref{eq:6} from its dimensions (length $L$,
 diameter $D$) and the Darcy friction factor $\lambda$ calculated from the
 pipe's roughness $k_\mathrm{s}$, its diameter and the Reynolds number
-$\mathrm{Re}$.
-Another much more simple approach is to specify the pressure ratio $pr$
-\ref{eq:7}.
+$\mathrm{Re}$. A simpler approach is to specify the pressure ratio $pr$.
 
 \begin{align}
 0=p_\mathrm{out}-p_\mathrm{in} +

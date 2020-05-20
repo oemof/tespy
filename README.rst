@@ -9,7 +9,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - |travis| |coveralls| |codecov|
+      - |travis| |coveralls|
     * - package
       - | |version| |wheel| |supported-versions|
         | |commits-since|
@@ -44,11 +44,11 @@ Overview
     :alt: Commits since latest release
     :target: https://github.com/oemof/tespy/compare/master...dev
 
-.. |zenodo| .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
    :alt: Release archive
    :target: https://doi.org/10.5281/zenodo.2555866
 
-.. |joss| .. image:: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f/status.svg
+.. |joss| image:: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f/status.svg
    :alt: Software Paper in JOSS
    :target: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f
 
@@ -155,4 +155,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-

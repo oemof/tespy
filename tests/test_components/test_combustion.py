@@ -10,13 +10,17 @@ tests/test_components/test_combustion.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.basics import sink, source
-from tespy.components.combustion import (combustion_chamber, combustion_engine)
-from tespy.connections import connection, bus
-from tespy.networks.networks import network
+import shutil
 
 import numpy as np
-import shutil
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.combustion import combustion_chamber
+from tespy.components.combustion import combustion_engine
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.networks.networks import network
 
 
 def convergence_check(lin_dep):

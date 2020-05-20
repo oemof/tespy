@@ -9,28 +9,37 @@ tests/test_errors.py
 
 SPDX-License-Identifier: MIT
 """
-from pytest import raises
-
-from tespy.connections import connection, bus, ref
-from tespy.components import (
-    basics, combustion, components, heat_exchangers, nodes, piping, reactors,
-    subsystems, turbomachinery
-)
-from tespy.networks.network_reader import load_network
-from tespy.networks.networks import network
-from tespy.tools.helpers import (
-    TESPyComponentError, TESPyConnectionError, TESPyNetworkError,
-    extend_basic_path
-)
-from tespy.tools.data_containers import data_container, dc_cc, dc_cp, dc_flu
-from tespy.tools.fluid_properties import (
-    tespy_fluid, memorise, h_mix_pQ, T_mix_ps
-)
-from tespy.tools.characteristics import char_map, char_line, load_custom_char
-
 import os
 import shutil
-import csv
+
+from pytest import raises
+
+from tespy.components import basics
+from tespy.components import combustion
+from tespy.components import components
+from tespy.components import nodes
+from tespy.components import piping
+from tespy.components import reactors
+from tespy.components import subsystems
+from tespy.components import turbomachinery
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.connections import ref
+from tespy.networks.networks import network
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import char_map
+from tespy.tools.characteristics import load_custom_char
+from tespy.tools.data_containers import data_container
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_flu
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import memorise
+from tespy.tools.fluid_properties import T_mix_ps
+from tespy.tools.fluid_properties import tespy_fluid
+from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import TESPyConnectionError
+from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import extend_basic_path
 
 ##############################################################################
 # test errors of set_attr and get_attr methods
@@ -68,7 +77,6 @@ def test_set_attr_errors():
     pipeline = piping.pipe('pipeline')
     conn = connection(comb, 'out1', pipeline, 'in1')
     mybus = bus('mybus')
-    sub = subsystems.subsystem('MySub')
 
     # ValueErrors
     set_attr_ValueError(comb, offdesign=['Q'])
@@ -457,7 +465,6 @@ def test_wrong_bus_param_func():
     """Test missing/wrong bus parameter specification in equations."""
     # this test does not need setup, since the function is called without
     # network initialisation
-    nw = network(['H2O', 'O2', 'H2'])
     instance = reactors.water_electrolyzer('electrolyzer')
     some_bus = bus('some_bus')
     param = 'G'
@@ -470,7 +477,6 @@ def test_wrong_bus_param_deriv():
     """Test missing/wrong bus parameter specification in derivatives."""
     # this test does not need setup, since the function is called without
     # network initialisation
-    nw = network(['H2O', 'O2', 'H2'])
     instance = reactors.water_electrolyzer('electrolyzer')
     # required for calling bus_deriv method without network initialisation
     instance.num_vars = 1

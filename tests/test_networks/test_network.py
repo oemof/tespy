@@ -10,19 +10,21 @@ tests/test_networks/test_network.py
 SPDX-License-Identifier: MIT
 """
 
-from pytest import raises
-
-from tespy.connections import connection
-from tespy.components import (basics, heat_exchangers, nodes, piping,
-                              turbomachinery)
-
-from tespy.networks.networks import network
-from tespy.networks.network_reader import load_network
-from tespy.tools.helpers import TESPyNetworkError
+import os
+import shutil
 
 import numpy as np
-import shutil
-import os
+from pytest import raises
+
+from tespy.components import basics
+from tespy.components import heat_exchangers
+from tespy.components import nodes
+from tespy.components import piping
+from tespy.components import turbomachinery
+from tespy.connections import connection
+from tespy.networks.network_reader import load_network
+from tespy.networks.networks import network
+from tespy.tools.helpers import TESPyNetworkError
 
 
 class TestNetworks:
@@ -356,8 +358,6 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.save('design1')
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -397,8 +397,6 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.save('design1')
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')

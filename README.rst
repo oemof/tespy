@@ -1,5 +1,26 @@
-Overview
-========
+Thermal Engineering Systems in Python
+=====================================
+
+TESPy stands for "Thermal Engineering Systems in Python" and provides a
+powerful simulation toolkit for thermal engineering plants such as power
+plants, district heating systems or heat pumps. It is an external extension
+module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
+can be used as a standalone package.
+
+With the TESPy package you are able to calculate stationary operation in order
+to design the process of thermal energy systems. From that point it is possible
+to simulate the offdesign behaviour of your plant using underlying
+characteristics for each of the plants components. The package inlcudes basic
+components, such as turbines, pumps, compressors, heat exchangers, pipes,
+mixers and splitters as well as some advanced components (derivatives of heat
+exchangers, drum).
+
+Everybody is welcome to use and/or develop TESPy. Contribution is already
+possible on a low level by simply fixing typos in TESPy's documentation or
+rephrasing sections which are unclear. If you want to support us that way
+please fork the TESPy repository to your own github account and make changes
+as described in the github guidelines:
+https://guides.github.com/activities/hello-world/
 
 .. start-badges
 
@@ -53,27 +74,6 @@ Overview
    :target: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f
 
 .. end-badges
-
-TESPy stands for "Thermal Engineering Systems in Python" and provides a
-powerful simulation toolkit for thermal engineering plants such as power
-plants, district heating systems or heat pumps. It is an external extension
-module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
-can be used as a standalone package.
-
-With the TESPy package you are able to calculate stationary operation in order
-to design the process of thermal energy systems. From that point it is possible
-to simulate the offdesign behaviour of your plant using underlying
-characteristics for each of the plants components. The package inlcudes basic
-components, such as turbines, pumps, compressors, heat exchangers, pipes,
-mixers and splitters as well as some advanced components (derivatives of heat
-exchangers, drum).
-
-Everybody is welcome to use and/or develop TESPy. Contribution is already
-possible on a low level by simply fixing typos in TESPy's documentation or
-rephrasing sections which are unclear. If you want to support us that way
-please fork the TESPy repository to your own github account and make changes
-as described in the github guidelines:
-https://guides.github.com/activities/hello-world/
 
 Documentation
 =============

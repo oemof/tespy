@@ -210,7 +210,7 @@ PEP8 (Python Style Guide)
   produced in the framework.
 
 * We use pylint to check your code. Pylint is integrated in many IDEs and
-  Editors. `Check here <http://docs.pylint.org/ide-integration>`_ or ask the
+  Editors. `Check here <https://pylint.pycqa.org/en/latest/>`_ or ask the
   maintainer of your IDE or Editor
 
 * Some IDEs have pep8 checkers, which are very helpful, especially for python
@@ -244,7 +244,7 @@ Branching model
 ^^^^^^^^^^^^^^^
 
 So far we adhere mostly to the git branching model by
-`Vincent Driessen <http://nvie.com/posts/a-successful-git-branching-model/>`_.
+`Vincent Driessen <https://nvie.com/posts/a-successful-git-branching-model/>`_.
 
 Differences are:
 
@@ -265,4 +265,4 @@ Documentation
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
 The files can be found in the folder */tespy/doc*. For further information on
-restructured text see: http://docutils.sourceforge.net/rst.html.
+restructured text see: http://docutils.sourceforge.io/rst.html.

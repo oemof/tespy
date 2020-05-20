@@ -40,7 +40,7 @@ Overview
     :alt: Supported Python versions
     :target: https://pypi.org/project/tespy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/oemof/tespy/v0.2.2.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/oemof/tespy/latest/dev
     :alt: Commits since latest release
     :target: https://github.com/oemof/tespy/compare/master...dev
 

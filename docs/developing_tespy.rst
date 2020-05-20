@@ -265,4 +265,4 @@ Documentation
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
 The files can be found in the folder */tespy/doc*. For further information on
-restructured text see: http://docutils.sourceforge.io/rst.html.
+restructured text see: https://docutils.sourceforge.io/rst.html.

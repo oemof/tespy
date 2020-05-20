@@ -148,11 +148,15 @@ The tests in TESPy are split up in two different parts:
 The tests contain code examples that expect a certain
 outcome. If the outcome is as expected a test will pass, if the outcome is
 different, the test will fail. You can run the tests locally by navigating into
-your local github clone:
+your local github clone. The command :code:`check` tests PEP guidelines, the
+command :code:`py3X` runs the software tests in the selected Python version.
 
 .. code:: bash
 
-    python -m pytest ./tespy --doctest-modules ./tests
+    python -m tox -e check
+    python -m tox -e py36
+    python -m tox -e py37
+    python -m tox -e py38
 
 Additionally, all tests will run automatically when you push changes to a
 branch that has a pull request opened.

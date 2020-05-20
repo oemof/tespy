@@ -87,7 +87,7 @@ of every connection. This way, it is possible to solve for both thermal as well
 as hydraulic state of the plant.
 
 To achieve this, TESPy implements balance equations based on standard
-literature, for example [@Baehr; @Epple] for every component regarding
+literature, for example @Baehr or @Epple, for every component regarding
 
 * mass flow and fluid composition as well as
 * energy (covering thermal and hydraulic properties).

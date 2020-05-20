@@ -7,16 +7,17 @@ available from its original location
 tests/test_components/test_orc_evaporator.py
 SPDX-License-Identifier: MIT
 """
-from tespy.components.basics import sink, source
-from tespy.components.customs import orc_evaporator
-from tespy.connections import connection, bus
-from tespy.networks.networks import network
-from tespy.tools.fluid_properties import T_bp_p
-
-import logging
+import shutil
 
 import numpy as np
-import shutil
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.customs import orc_evaporator
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.networks.networks import network
+from tespy.tools.fluid_properties import T_bp_p
 
 
 def convergence_check(lin_dep):
@@ -96,7 +97,6 @@ class TestOrcEvaporator:
         zeta1 = self.instance.zeta1.val
         zeta2 = self.instance.zeta2.val
         zeta3 = self.instance.zeta3.val
-        m = self.c5.m.val
 
         msg = ('Vapor mass fraction of steam outlet must be 0.0, is ' +
                str(round(x_outl1_calc, 1)) + '.')

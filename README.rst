@@ -1,13 +1,5 @@
-.. image:: https://coveralls.io/repos/github/oemof/tespy/badge.svg?branch=dev
-    :target: https://coveralls.io/github/oemof/tespy?branch=dev
-.. image:: https://travis-ci.org/oemof/tespy.svg?branch=dev
-    :target: https://travis-ci.org/oemof/tespy
-.. image:: https://readthedocs.org/projects/tespy/badge/?version=dev
-    :target: https://tespy.readthedocs.io/en/dev/
-.. image:: https://badge.fury.io/py/TESPy.svg
-    :target: https://badge.fury.io/py/TESPy
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
-   :target: https://doi.org/10.5281/zenodo.2555866
+Thermal Engineering Systems in Python
+=====================================
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as power
@@ -29,6 +21,59 @@ rephrasing sections which are unclear. If you want to support us that way
 please fork the TESPy repository to your own github account and make changes
 as described in the github guidelines:
 https://guides.github.com/activities/hello-world/
+
+.. start-badges
+
+.. list-table::
+    :stub-columns: 1
+
+    * - docs
+      - |docs|
+    * - tests
+      - |travis| |coveralls|
+    * - package
+      - | |version| |wheel| |supported-versions|
+        | |commits-since|
+    * - reference
+      - |joss| |zenodo|
+
+.. |docs| image:: https://readthedocs.org/projects/tespy/badge/?style=flat
+    :target: https://readthedocs.org/projects/tespy
+    :alt: Documentation Status
+
+.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=dev
+    :alt: Travis-CI Build Status
+    :target: https://travis-ci.org/oemof/tespy
+
+.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=dev&service=github
+    :alt: Coverage Status
+    :target: https://coveralls.io/r/oemof/tespy
+
+.. |version| image:: https://img.shields.io/pypi/v/tespy.svg
+    :alt: PyPI Package latest release
+    :target: https://pypi.org/project/tespy
+
+.. |wheel| image:: https://img.shields.io/pypi/wheel/tespy.svg
+    :alt: PyPI Wheel
+    :target: https://pypi.org/project/tespy
+
+.. |supported-versions| image:: https://img.shields.io/pypi/pyversions/tespy.svg
+    :alt: Supported Python versions
+    :target: https://pypi.org/project/tespy
+
+.. |commits-since| image:: https://img.shields.io/github/commits-since/oemof/tespy/latest/dev
+    :alt: Commits since latest release
+    :target: https://github.com/oemof/tespy/compare/master...dev
+
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
+   :alt: Release archive
+   :target: https://doi.org/10.5281/zenodo.2555866
+
+.. |joss| image:: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f/status.svg
+   :alt: Software Paper in JOSS
+   :target: https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f
+
+.. end-badges
 
 Documentation
 =============
@@ -91,7 +136,7 @@ BibTeX citation::
 License
 =======
 
-Copyright (c) 2019 oemof developer group
+Copyright (c) 2017-2020 oemof developer group
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

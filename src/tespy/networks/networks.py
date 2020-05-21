@@ -1605,7 +1605,7 @@ class network:
 
         msg = (
             'Solver properties: mode=' + self.mode + ', init_path=' +
-            self.init_path + ', design_path=' + self.design_path +
+            str(self.init_path) + ', design_path=' + str(self.design_path) +
             ', max_iter=' + str(max_iter) + ', min_iter=' + str(min_iter) +
             ', init_only=' + str(init_only))
         logging.debug(msg)

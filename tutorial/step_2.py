@@ -1,10 +1,17 @@
+from tespy.components import condenser
+from tespy.components import cycle_closer
+from tespy.components import drum
+from tespy.components import heat_exchanger
+from tespy.components import heat_exchanger_simple
+from tespy.components import pump
+from tespy.components import sink
+from tespy.components import source
+from tespy.components import valve
+from tespy.connections import connection
+from tespy.connections import ref
 from tespy.networks import network
-from tespy.components import (source, sink, cycle_closer,
-                              valve, drum, pump, compressor,
-                              condenser, heat_exchanger_simple, heat_exchanger)
-from tespy.connections import connection, ref
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import load_default_char as ldc
 
 # %% network
 
@@ -27,14 +34,6 @@ cd = condenser('condenser')
 rp = pump('recirculation pump')
 cons = heat_exchanger_simple('consumer')
 
-cp1 = sink('compressor 1')
-
-# consumer system
-
-cd = condenser('condenser')
-rp = pump('recirculation pump')
-cons = heat_exchanger_simple('consumer')
-
 # evaporator system
 
 va = valve('valve')
@@ -42,6 +41,8 @@ dr = drum('drum')
 ev = heat_exchanger('evaporator')
 su = heat_exchanger('superheater')
 pu = pump('pump evaporator')
+
+cp1 = sink('compressor 1')
 
 # %% connections
 
@@ -89,7 +90,7 @@ nw.add_conns(su_cp1)
 # condenser system
 
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
-            offdesign=['zeta2', 'kA'])
+            offdesign=['zeta2', 'kA_char'])
 rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
@@ -100,9 +101,9 @@ kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
 
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
             kA_char1=kA_char1, kA_char2=kA_char2,
-            design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
+            design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
 su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2, design=['pr1', 'pr2', 'ttd_u'],
-            offdesign=['zeta1', 'zeta2', 'kA'])
+            offdesign=['zeta1', 'zeta2', 'kA_char'])
 pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
 # %% connection parametrization

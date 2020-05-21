@@ -1,7 +1,11 @@
+from tespy.components import condenser
+from tespy.components import cycle_closer
+from tespy.components import heat_exchanger_simple
+from tespy.components import pump
+from tespy.components import sink
+from tespy.components import source
+from tespy.connections import connection
 from tespy.networks import network
-from tespy.components import (source, sink, condenser, pump,
-                              heat_exchanger_simple, cycle_closer)
-from tespy.connections import connection, ref
 
 # %% network
 
@@ -45,7 +49,7 @@ nw.add_conns(cd_va)
 # %% component parametrization
 
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
-            offdesign=['zeta2', 'kA'])
+            offdesign=['zeta2', 'kA_char'])
 rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 

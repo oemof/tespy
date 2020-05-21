@@ -9,20 +9,25 @@ tests/test_components/test_turbomachinery.py
 
 SPDX-License-Identifier: MIT
 """
-
-from nose.tools import eq_
-
-from tespy.components.basics import sink, source
-from tespy.components.turbomachinery import (turbomachine, compressor, pump,
-                                             turbine)
-from tespy.connections import connection, bus, ref
-from tespy.networks.networks import network
-from tespy.tools.data_containers import dc_cc, dc_cm
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.characteristics import char_line, compressor_map
-from tespy.tools.characteristics import load_default_char as ldc
-import numpy as np
 import shutil
+
+import numpy as np
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.turbomachinery import compressor
+from tespy.components.turbomachinery import pump
+from tespy.components.turbomachinery import turbine
+from tespy.components.turbomachinery import turbomachine
+from tespy.connections import connection
+from tespy.connections import ref
+from tespy.networks.networks import network
+from tespy.tools.characteristics import char_line
+from tespy.tools.characteristics import compressor_map
+from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import dc_cm
+from tespy.tools.fluid_properties import s_mix_ph
 
 
 def convergence_check(lin_dep):

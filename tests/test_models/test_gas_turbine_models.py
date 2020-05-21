@@ -9,13 +9,14 @@ tests/test_models/test_gasturbine_model.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
-import numpy as np
 import shutil
-from tespy.components.basics import sink, source
-from tespy.components.combustion import (
-    combustion_chamber, combustion_chamber_stoich)
-from tespy.components.turbomachinery import compressor, turbine
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.combustion import combustion_chamber
+from tespy.components.combustion import combustion_chamber_stoich
+from tespy.components.turbomachinery import compressor
+from tespy.components.turbomachinery import turbine
 from tespy.connections import connection
 from tespy.networks.networks import network
 

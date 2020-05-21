@@ -9,19 +9,21 @@ tests/test_components/test_heat_exchangers.py
 
 SPDX-License-Identifier: MIT
 """
-
-from tespy.components.basics import sink, source
-from tespy.components.heat_exchangers import (
-    heat_exchanger_simple, solar_collector, heat_exchanger, condenser,
-    parabolic_trough)
-from tespy.connections import connection, bus
-from tespy.networks.networks import network
-from tespy.tools.fluid_properties import T_bp_p
-
-import logging
+import shutil
 
 import numpy as np
-import shutil
+
+from tespy.components.basics import sink
+from tespy.components.basics import source
+from tespy.components.heat_exchangers import condenser
+from tespy.components.heat_exchangers import heat_exchanger
+from tespy.components.heat_exchangers import heat_exchanger_simple
+from tespy.components.heat_exchangers import parabolic_trough
+from tespy.components.heat_exchangers import solar_collector
+from tespy.connections import bus
+from tespy.connections import connection
+from tespy.networks.networks import network
+from tespy.tools.fluid_properties import T_bp_p
 
 
 def convergence_check(lin_dep):
@@ -470,7 +472,6 @@ class TestHeatExchangers:
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(T_bp_p(self.c1.to_flow()) - self.c4.T.val_SI, 1)
         p = round(self.c1.p.val_SI, 5)
-        kA = instance.kA.val
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +
                str(ttd_u) + '.')

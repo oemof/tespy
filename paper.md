@@ -35,23 +35,44 @@ design plants and simulate stationary operation. From that point, part-load
 behavior can be predicted using underlying characteristics for each of the
 plant's components. The component based structure combined with the solution
 method offer very high flexibility regarding the plant's topology and its
-parametrisation.
+parametrisation. An extensive online documentation is provided at @TESPy.
+Several examples and tutorials on how to use the software are included,
+too.
 
 # Motivation
 
 Thermal process simulation is a fundamental discipline in energy engineering.
 Consequently, there are several well known commercial software solutions
 available in this field, for example EBSILON Professional or Aspen Plus, mainly
-used in the industrial environment. In order to open this kind of software to a
-wide (scientific) audience, an open source solution is very promising. Its
-prevalence in the scientific field and the availability of interfaces to other
-programming languages plead for a python implementation.
+used in the industrial environment. A similar approach was carried out by
+@ThermoPower with the open source library "ThermoPower" written in the
+Modelica language. The software provides dynamic modeling and focuses on steam
+power plants, but has not been updated since 2014 [@ThermoPowerOnline].
+
+Here we propose a new solution for simulating thermal processes, since
+ThermoPower  is not currently maintained and also limited to one field of
+thermal engineering. In order to open the software to a wide (scientific)
+audience an open source solution in the widespread programming language Python
+is implemented.
+
+# Package Architecture
+
+TESPy is built up in modular structure with three main modules:
+
+* networks: The networks module represents the container for every simulation.
+  Initialisation, preprocessing, solving and postprocessing are handled by the
+  network class.
+* components: All components are part of the components module. The package
+  provides basic components, for example different types of turbomachinery, heat
+  exchangers, pipes, valves and mixers or splitters. On top of that, advanced
+  components like a drum, an internal combustion engine or a combustion chamber
+  are available. The individual properties of each component are defined in the respective class.
+* connections: Connections are used to connect components and hold the fluid
+  property information. Thus, they represent the plant's topology and its state.
 
 # Method
 
-The package is built of basic components, for example different types of
-turbomachinery, heat exchangers, pipes, valves and mixers or splitters. To
-simulate a specific plant an individual model is created connecting the
+To simulate a specific plant an individual model is created connecting the
 components to form a topological network. Steady state operation of the plant is
 determined by the fluid's state on every connection (and therefore its change
 within components) between the plant's individual components. Thus, based on the
@@ -60,65 +81,122 @@ representing the plant's topology and its parametrisation. By formulating the
 equations implicitly parameters and results are generally interchangeable
 offering high flexibility in the user specifications. The system of equations is
 numerically solved with an inbuilt solver applying the multi-dimensional
-Newton-Raphson method to determine the mass flow, pressure, enthalpy and fluid
-composition of every connection. This way, it is possible to solve for both
-thermal as well as hydraulic state of the plant.
+Newton-Raphson method to determine the mass flow $\dot{m}$, pressure $p$,
+enthalpy $h$ and fluid composition (defined by mass fraction $x$ of each fluid)
+of every connection. This way, it is possible to solve for both thermal as well
+as hydraulic state of the plant.
 
-To achieve this, TESPy implements balance equations (based on standard
-literature, for example [@Baehr; @Epple]) for every component regarding
+To achieve this, TESPy implements balance equations based on standard
+literature, for example @Baehr or @Epple, for every component regarding
 
-• mass flow and fluid composition as well as
+* mass flow and fluid composition as well as
+* energy (covering thermal and hydraulic properties).
 
-• energy (covering thermal and hydraulic properties).
+On top of the basic equations presented in this paper, there are many
+component-specific equations that can be applied by the user. The full list of
+components, its parameters and the respective equations is documented online in
+the API section [@TESPy]. For calculation of fluid properties TESPy uses
+CoolProp [@CoolProp], which supports a wide range of pure and incompressible
+fluids. In case of gaseous mixtures the software calculates the fluid
+properties by the laws of ideal mixtures [@Baehr; @Herning1936].
 
 In steady state, the total mass flow into a component must be equal to the total
-mass flow leaving the component (eq. 1). Additionally, the mass balance of a
-specific fluid fl is applied (eq. 2). The energy balance of all components is
-derived from the stationary energy balance of open systems with multiple inlets
-and outlets. Differences in flow velocity as well as height are neglected as
-these are relatively small compared to change in enthalpy in thermal engineering
-applications. The values of heat and power transferred, depend on the individual
-component properties. For example, a pipe does not transfer power, thus only
-heat may be transferred. In contrast, turbomachinery is considered adiabatic,
-thus only transfers power (eq. 3). If chemical reactions take place, the
-corresponding chemical mass balance is taken into account instead of equation 2.
-On top of that, the energy balance is different, as the reaction enthalpy has to
-be considered, too. Furthermore, it is necessary to compensate for the different
-zero point definitions of enthalpy in the fluid properties of the reaction
-components by defining a reference state. E. g. for a combustion chamber
-equation 4 is implemented.
+mass flow leaving the component (eq. \ref{eq:1}). Additionally, the mass balance
+of a specific fluid $fl$ is applied (eq. \ref{eq:2}). The energy balance of all
+components is derived from the stationary energy balance of open systems with
+multiple inlets and outlets (eq. \ref{eq:3}).
 
-$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}-\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}$$
+In thermal engineering applications the change in kinetic and potential energy
+due to differences in flow velocity $c$ and height $z$ are usually neglected as
+these are relatively small compared to change in enthalpy, subsequently the
+equation can be simplified (eq. \ref{eq:4}).
 
-$$0=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
+\begin{align}
+\begin{split}
+0 &=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}-\underset{o}{\sum}
+\dot{m}_{\mathrm{out,}o} \label{eq:1}
+\end{split}
+\\[2ex]
+\begin{split}
+0 &=\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot x_{fl\mathrm{,in,}i}-
 \underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot x_{fl\mathrm{,out,}o}
-\ \forall fl\in\mathrm{network\ fluids}$$
+\ \forall fl\in\mathrm{network\ fluids} \label{eq:2}
+\end{split}
+\\[2ex]
+\begin{split}
+0 & =\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot \left(
+h_{\mathrm{out,}o} + \mathrm{g} \cdot z_{\mathrm{out,}o} +
+\frac{c_{\mathrm{out,}o}^2}{2}\right)\\ &-
+\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot \left(
+h_{\mathrm{in,}i} + \mathrm{g} \cdot z_{\mathrm{in,}i} +
+\frac{c_{\mathrm{in,}i}^2}{2}\right)-P-\dot{Q} \label{eq:3}
+\end{split}
+\\[2ex]
+\begin{split}
+0 &=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
+\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}-P-\dot{Q}
+\label{eq:4}
+\end{split}
+\end{align}
 
-$$0=\underset{o}{\sum}\dot{m}_{\mathrm{out,}o}\cdot h_{\mathrm{out,}o}-
-\underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}-P-\dot{Q}$$
+The values of heat $\dot{Q}$ and power $P$ transferred, depend on
+the individual component properties. For example,
 
-$$0=
+* a pipe does not transfer power, thus only heat may be transferred ($P=0$).
+* turbomachinery is considered adiabatic, thus it only transfers power
+  ($\dot{Q}=0$).
+
+If chemical reactions take place, the corresponding chemical mass balance is
+taken into account instead of equation \ref{eq:2}. On top of that, the energy
+balance is different, as the reaction enthalpy has to be considered.
+Furthermore, it is necessary to compensate for the different zero point
+definitions of enthalpy in the fluid properties of the reaction components by
+defining a reference state $\mathrm{ref}$. For example, equation \ref{eq:5} is
+implemented for adiabatic combustion chambers using the fuel's lower heating
+value $LHV$ as reaction enthalpy.
+
+\begin{equation}
+0=
 \dot{m}_{\mathrm{out}}\cdot\left(h_{\mathrm{out}}-h_{\mathrm{out,ref}}\right)-
 \underset{i}{\sum}\dot{m}_{\mathrm{in,}i}\cdot\left(h_{\mathrm{in}}-
 h_{\mathrm{in,ref}}\right)_{i}-
-\dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j}$$
+\dot{m}_{\mathrm{in}}\cdot\underset{j}{\sum}LHV_{j}\cdot x_{j} \label{eq:5}
+\end{equation}
+
+With respect to hydraulic state, the pressure drop
+$p_\mathrm{out}-p_\mathrm{in}$ in a pipe can be calculated
+by the Darcy-Weisbach equation \ref{eq:6} from its dimensions (length $L$,
+diameter $D$) and the Darcy friction factor $\lambda$ calculated from the
+pipe's roughness $k_\mathrm{s}$, its diameter and the Reynolds number
+$\mathrm{Re}$. A simpler approach is to specify the pressure ratio $pr$.
+
+\begin{align}
+0=p_\mathrm{out}-p_\mathrm{in} +
+\frac{\rho \cdot c^2 \cdot \lambda\left(\mathrm{Re},k_\mathrm{s},D\right)
+\cdot L}{2 \cdot D} \label{eq:6}\\
+0=pr - \frac{p_\mathrm{out}}{p_\mathrm{in}} \label{eq:7}
+\end{align}
 
 After designing a specific plant, part-load performance can be determined. For
 this, design specific component parameters are calculated in the design case,
-for example the area independent heat transfer coefficient $kA$ of heat
-exchangers. The heat transferred at a different operation point may then be
-calculated using the design value of $kA$ applying equation (5).
+for example: the area independent heat transfer coefficient $kA$ of heat
+exchangers. The heat transfer at a different operation point is calculated from
+the $kA$ value and the logarithmic temperature difference
+$\Delta\vartheta_\mathrm{log}$ in equation \ref{eq:8}.
 
-$$0=\dot{Q}-kA\cdot\Delta\vartheta_{\mathrm{log}}$$
+ \begin{equation}
+ 0=\dot{Q}-kA\cdot\Delta\vartheta_\mathrm{log} \label{eq:8}
+ \end{equation}
 
-In general, these parameters can be adjusted using lookup table functions to
-match the model behavior to measured data. This is especially useful if
-components with well known characteristics should be implemented in a different
-plant or at different operating conditions. Due to the modular structure of
-TESPy, new equations or characteristic functions to further improve the
-representation of an actual plant can easily be added.
+In general, the design parameters ($kA$ in case of the heat exchanger) can be
+adjusted using lookup table functions to match the model behavior to measured
+data. This is especially useful if components with well known characteristics
+should be implemented in a different plant or at different operating conditions.
+To further improve the representation of an actual plant, the modular structure
+of TESPy easily allows the addition of new equations and characteristic
+functions to existing components or even new components.
 
-# Example Implementations
+# Previous Implementations
 
 The core strength of TESPy lies in the generic and component based architecture
 allowing to simulate technologically and topologically different thermal
@@ -139,15 +217,16 @@ in this field, too. Additionally, TESPy has been coupled with OpenGeoSys
 [@ogs] for pipeline network simulation of borehole thermal energy storage arrays
 [@BTES].
 
-# Acknowledgements
+# Acknowledgments
 
 This work is supported by University of Applied Sciences and the Center for
 Sustainable Energy Systems in Flensburg. It is part of the open energy modeling
-framework (oemof) [@oemof]. Many thanks to all
-[contributers](https://github.com/oemof/tespy/graphs/contributors).
+framework (oemof), most known for its software package oemof.solph [@oemof].
+Many thanks to all
+[contributors](https://github.com/oemof/tespy/graphs/contributors).
 
 Key parts of TESPy require the following scientific software packages: CoolProp
 [@CoolProp], NumPy [@NumPy], pandas [@pandas]. Other packages implemented are
-tabulate and SciPy.
+tabulate and SciPy [@SciPy].
 
 # References

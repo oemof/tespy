@@ -1677,8 +1677,8 @@ class network:
         self.start_time = time()
         self.progress = True
 
-        if self.iterinfo:
-            self.print_iterinfo('start')
+        if self.iterinfo is True:
+            self.print_iterinfo_head()
 
         for self.iter in range(self.max_iter):
 
@@ -1686,8 +1686,8 @@ class network:
             self.solve_control()
             self.res = np.append(self.res, norm(self.residual))
 
-            if self.iterinfo:
-                self.print_iterinfo('solving')
+            if self.iterinfo is True:
+                self.print_iterinfo_body()
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
@@ -1701,7 +1701,7 @@ class network:
 
         self.end_time = time()
 
-        self.print_iterinfo('end')
+        self.print_iterinfo_tail()
 
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
@@ -1775,81 +1775,73 @@ class network:
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def print_iterinfo(self, position):
-        """Print out the convergence progress."""
-        if position == 'start':
-            if self.num_comp_vars == 0:
-                # iterinfo printout without any custom variables
-                msg = ('iter\t| residual | massflow | pressure | enthalpy | '
-                       'fluid\n')
-                msg += ('--------+----------+----------+----------+----------'
-                        '+---------')
+    def print_iterinfo_head(self):
+        """Print head of convergence progress."""
+        if self.num_comp_vars == 0:
+            # iterinfo printout without any custom variables
+            msg = (
+                'iter\t| residual | massflow | pressure | enthalpy | fluid\n')
+            msg += '-' * 8 + '+----------' * 4 + '+' + '-' * 9
 
+        else:
+            # iterinfo printout with custom variables in network
+            msg = ('iter\t| residual | massflow | pressure | enthalpy | '
+                   'fluid    | custom\n')
+            msg += '-' * 8 + '+----------' * 5 + '+' + '-' * 9
+
+        print(msg)
+
+    def print_iterinfo_body(self):
+        """Print convergence progress."""
+        vec = self.increment[0:-(self.num_comp_vars + 1)]
+        msg = (str(self.iter + 1))
+
+        if self.lin_dep is False and not np.isnan(norm(self.residual)):
+            msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
+            msg += ' | ' + '{:.2e}'.format(norm(vec[0::self.num_conn_vars]))
+            msg += ' | ' + '{:.2e}'.format(norm(vec[1::self.num_conn_vars]))
+            msg += ' | ' + '{:.2e}'.format(norm(vec[2::self.num_conn_vars]))
+
+            ls = []
+            for f in range(len(self.fluids)):
+                ls += vec[3 + f::self.num_conn_vars].tolist()
+
+            msg += ' | ' + '{:.2e}'.format(norm(ls))
+
+            if self.num_comp_vars > 0:
+                msg += ' | ' + '{:.2e}'.format(norm(
+                    self.increment[-self.num_comp_vars:]))
+
+        else:
+            if np.isnan(norm(self.residual)):
+                msg += '\t|      nan'
             else:
-                # iterinfo printout with custom variables in network
-                msg = ('iter\t| residual | massflow | pressure | enthalpy | '
-                       'fluid    | custom\n')
-                msg += ('--------+----------+----------+----------+----------'
-                        '+----------+---------')
-
-            print(msg)
-
-        elif position == 'solving':
-            vec = self.increment[0:-(self.num_comp_vars + 1)]
-            msg = (str(self.iter + 1))
-            if not self.lin_dep and not np.isnan(norm(self.residual)):
                 msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
-                msg += ' | ' + '{:.2e}'.format(
-                        norm(vec[0::self.num_conn_vars]))
-                msg += ' | ' + '{:.2e}'.format(
-                        norm(vec[1::self.num_conn_vars]))
-                msg += ' | ' + '{:.2e}'.format(
-                        norm(vec[2::self.num_conn_vars]))
-                ls = []
-                for f in range(len(self.fluids)):
-                    ls += vec[3 + f::self.num_conn_vars].tolist()
+            msg += ' |      nan' * 4
+            if self.num_comp_vars > 0:
+                msg += ' |      nan'
 
-                msg += ' | ' + '{:.2e}'.format(norm(ls))
-                if self.num_comp_vars > 0:
-                    msg += ' | ' + '{:.2e}'.format(norm(
-                            self.increment[-self.num_comp_vars:]))
+        print(msg)
 
+    def print_iterinfo_tail(self):
+        """Print tail of convergence progress."""
+        msg = (
+            'Total iterations: ' + str(self.iter + 1) + ', Calculation '
+            'time: ' + str(round(self.end_time - self.start_time, 1)) +
+            ' s, Iterations per second: ')
+        ips = 'inf'
+        if self.end_time != self.start_time:
+            ips = str(round(
+                (self.iter + 1) / (self.end_time - self.start_time), 2))
+        msg += ips
+        logging.debug(msg)
+
+        if self.iterinfo is True:
+            if self.num_comp_vars == 0:
+                print('-' * 8 + '+----------' * 4 + '+' + '-' * 9)
             else:
-                if np.isnan(norm(self.residual)):
-                    msg += '\t|      nan'
-                else:
-                    msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
-                msg += ' |      nan'
-                msg += ' |      nan'
-                msg += ' |      nan'
-                msg += ' |      nan'
-                if self.num_comp_vars > 0:
-                    msg += ' |      nan'
-
+                print('-' * 8 + '+----------' * 5 + '+' + '-' * 9)
             print(msg)
-
-        elif position == 'end':
-            if self.iterinfo:
-                if self.num_comp_vars == 0:
-                    msg = ('--------+----------+----------+----------'
-                           '+----------+---------')
-                else:
-                    msg = ('--------+----------+----------+----------'
-                           '+----------+----------+---------')
-                print(msg)
-
-            msg = ('Total iterations: ' + str(self.iter + 1) + ', '
-                   'Calculation time: ' +
-                   str(round(self.end_time - self.start_time, 1)) + ' s, '
-                   'Iterations per second: ')
-            ips = 'inf'
-            if self.end_time != self.start_time:
-                ips = str(round(
-                    (self.iter + 1) / (self.end_time - self.start_time), 2))
-            msg += ips
-            logging.debug(msg)
-            if self.iterinfo:
-                print(msg)
 
     def matrix_inversion(self):
         """Invert matrix of derivatives and caluclate increment."""
@@ -1960,16 +1952,11 @@ class network:
         msg : str
             Debugging message.
         """
-        if prop == 'p':
-            msg = 'Pressure '
-        elif prop == 'h':
-            msg = 'Enthalpy '
-        elif prop == 'm':
-            msg = 'Mass flow '
-        msg += (
-            'out of fluid property range at connection ' + c.label +
-            ' adjusting value to ' + str(c.get_attr(prop).val_SI) + ' ' +
-            self.SI_units[prop] + '.')
+        msg = (
+            self.props[prop][0].upper() + self.props[prop][1:] +
+            ' out of fluid property range at connection ' + c.label +
+            ' adjusting value to ' + str(c.get_attr(prop).val_SI) +
+            ' ' + self.SI_units[prop] + '.')
         return msg
 
     def solve_check_props(self, c):
@@ -2009,7 +1996,8 @@ class network:
                 else:
                     c.h.val_SI = hmin * 1.0001
                 logging.debug(self.property_range_message(c, 'h'))
-            if c.h.val_SI > hmax and not c.h.val_set:
+
+            elif c.h.val_SI > hmax and not c.h.val_set:
                 c.h.val_SI = hmax * 0.9999
                 logging.debug(self.property_range_message(c, 'h'))
 
@@ -2033,7 +2021,8 @@ class network:
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
+
+            elif c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[1]
                 logging.debug(self.property_range_message(c, 'p'))
 
@@ -2041,7 +2030,8 @@ class network:
             if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
                 c.h.val_SI = self.h_range_SI[0]
                 logging.debug(self.property_range_message(c, 'h'))
-            if c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
+
+            elif c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
                 c.h.val_SI = self.h_range_SI[1]
                 logging.debug(self.property_range_message(c, 'h'))
 
@@ -2053,7 +2043,8 @@ class network:
         if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
             c.m.val_SI = self.m_range_SI[0]
             logging.debug(self.property_range_message(c, 'm'))
-        if c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
+
+        elif c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
             c.m.val_SI = self.m_range_SI[1]
             logging.debug(self.property_range_message(c, 'm'))
 

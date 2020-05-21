@@ -165,7 +165,7 @@ class TestBusses:
         msg = (
             'The efficiency value of the combustion chamber on the bus ' +
             ti.label + ' (' + str(eta_ti) + ') must be equal to 1.0.')
-        assert eta_ti == 1.0, 0
+        assert eta_ti == 1.0, msg
 
         # test partload for bus functions
         # first test in identical conditions

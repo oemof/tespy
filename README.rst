@@ -118,10 +118,11 @@ Citation
 ========
 
 The scope and functionalities of TESPy have been documented in a paper
-published in the Journal of Open Source Software (link to paper) with an
-OpenAccess license. As TESPy is a free software, we kindly ask that you add a
-reference to TESPy if you use the software for your scientific work. Please
-cite the article with the BibTeX citation below.
+published in the Journal of Open Source Software
+(https://doi.org/10.21105/joss.02178) with an OpenAccess license. As TESPy is a
+free software, we kindly ask that you add a reference to TESPy if you use the
+software for your scientific work. Please cite the article with the BibTeX
+citation below.
 
 Additionally, you have the possibility to cite a specific version of TESPy to
 make your work reproducible. The source code of every version is published on
@@ -129,8 +130,16 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 BibTeX citation::
 
-    @article{
-        here goes some data
+    @article{Witte2020,
+        doi = {10.21105/joss.02178}
+        year = {2020},
+        publisher = {The Open Journal},
+        volume = {5},
+        number = {49},
+        pages = {2179},
+        author = {Francesco Witte and Ilja Tuschy},
+        title = {{TESPy}: {T}hermal {E}ngineering {S}ystems in {P}ython},
+        journal = {Journal of Open Source Software}
     }
 
 License

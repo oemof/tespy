@@ -1,38 +1,49 @@
 language: python
-
+dist: xenial
+cache: false
+env:
+  global:
+    - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+    - SEGFAULT_SIGNALS=all
 matrix:
   include:
-    - name: "python 3.6 on xenial Linux"
-      python: 3.6
-      dist: xenial
-      sudo: true
-    - name: "python 3.7 on xenial Linux"
-      python: 3.7
-      dist: xenial
-      sudo: true
-#    - name: "python 3.8 on xenial Linux"
-#      python: 3.8
-#      dist: xenial
-#      sudo: true
-#    - name: "Python 3.7.2 on macOS"
-#      os: osx
-#      osx_image: xcode10.2
-#      language: shell
-#    - name: "Python 3.7.3 on Windows"
-#      os: windows
-#      language: shell
-#      before_install: choco install python3
-#      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
-
+    - python: '3.6'
+      env:
+        - TOXENV=check
+    - python: '3.6'
+      env:
+        - TOXENV=docs
+    - env:
+        - TOXENV=py36,coveralls
+      python: '3.6'
+    - env:
+        - TOXENV=py37,coveralls
+      python: '3.7'
+    - env:
+        - TOXENV=py38,coveralls
+      python: '3.8'
+before_install:
+  - python --version
+  - uname -a
+  - lsb_release -a || true
+  - |
+    if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+      [[ $TOXENV =~ py3 ]] && brew upgrade python
+      [[ $TOXENV =~ py2 ]] && brew install python@2
+      export PATH="/usr/local/opt/python/libexec/bin:${PATH}"
+    fi
 install:
-  - pip3 install .
-  - pip3 install coveralls
-  - pip3 install nose
-
-# command to run tests
+  - python -mpip install --progress-bar=off tox -rci/requirements.txt
+  - virtualenv --version
+  - easy_install --version
+  - pip --version
+  - tox --version
 script:
-  - python3 -m nose --with-doctest --with-coverage -c nose.cfg || python -m nose --with-doctest --with-coverage -c nose.cfg
-
-after_success:
-- coveralls
-
+  - tox -v
+after_failure:
+  - more .tox/log/* | cat
+  - more .tox/*/log/* | cat
+notifications:
+  email:
+    on_success: never
+    on_failure: always

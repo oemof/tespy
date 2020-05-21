@@ -1,0 +1,64 @@
+v0.1.0 (February, 2, 2019)
+++++++++++++++++++++++++++
+
+New Features
+############
+- Added new component node and modified equations for simple heat exchangers to work with negative mass flows. The node component is able to switch between merge and splitter equations according to the directions of the mass flows.
+  Please beware, that the amount of the equations of a splitter and a merge is not the same, thus the number of equations provided by the node depend on the flow direction and may change within the calculation process. In order to make use of the node,
+  a network should always contain more than one node, so that a different node can compensate a possible change in flow direction (`PR #43 <https://github.com/oemof/tespy/pull/43>`_).
+- Added examples for components, busses, connections etc. in the docstrings. You will find the examples in either your editors help pane or the online documentation of the API (`PR #45 <https://github.com/oemof/tespy/pull/45>`_).
+- Added an interface attribute for sinks and sources changing the component type from sink/source to subsys_interface when exporting the network, if you specify :code:`interface=True` for these type of components. This way, you can reimport the saved network and connect it to a different network. Also imported components, connections and busses are easily accessible by their label (components/busses) or their target with target id (connections). For an example, see the module documentation :py:mod:`tespy.network_reader`. (`PR #46 <https://github.com/oemof/tespy/pull/46>`_).
+- Added logging (console and log-file), :ref:`see how to use it<printout_logging_label>` (`PR #51 <https://github.com/oemof/tespy/pull/51>`_).
+
+Documentation
+#############
+- Adapted documentation and examples in regard of new features. Examples have been moved to the `oemof-examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_.
+- Improved consistency in documentation of all modules (`PR #45 <https://github.com/oemof/tespy/pull/45>`_).
+- Registered a DOI for TESPy version 0.1.0.
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
+   :target: https://doi.org/10.5281/zenodo.2555866
+
+Parameter renaming
+##################
+
+**networks**
+
+- init_file -> init_path
+- design_file -> design_path
+- structure -> deprecated: Providing :code:`structure=True` on saving the network is not required anymore, the network structure is exported automatically.
+
+.. note::
+
+	The initialisation method and handling of design and offdesign calculations has been adjusted.
+	In future, please specify the path to the folder, where your results have been saved, e.g.:
+
+	.. code::
+
+		mynetwork.save('path/to/folder')
+		mynetwork.solve('offdesign', design_path='path/to/folder', init_path='path/to/folder')
+
+
+Testing
+#######
+- The examples in the docstrings are used as doctests.
+- Component tests have been implemented.
+- General tests for errors, printouts and fluid properties have been implemented.
+- Benchmark test for a heat pump model (still to be improved, see inline comments).
+- Testcoverage will be checked for every PR in the future!
+
+See `PR #52 <https://github.com/oemof/tespy/pull/52>`_.
+
+Bug fixes
+#########
+- Adjusted network export and network import to work for grouped component properties and characteristic maps (`PR #46 <https://github.com/oemof/tespy/pull/46>`_).
+- Redesigned pre- and postprocessing of component properties as some errors occoured before. Design parameters are now always gathered from the component .csv-file containing the design point information (saved design state of the network) (`PR #50 <https://github.com/oemof/tespy/pull/50>`_).
+
+Other changes
+#############
+- Improved calculation speed by swapping the CoolProp.CoolProp.PropsSI-calls with CoolProp.AbstractState calls (`PR #49 <https://github.com/oemof/tespy/pull/49>`_).
+
+Contributors
+############
+
+- Francesco Witte

@@ -1603,21 +1603,21 @@ class network:
         else:
             self.mode = mode
 
-        msg = ('Solver properties: '
-               'mode=' + self.mode +
-               ', init_path=' + str(self.init_path) +
-               ', design_path=' + str(self.design_path) +
-               ', max_iter=' + str(max_iter) +
-               ', init_only=' + str(init_only))
+        msg = (
+            'Solver properties: mode=' + self.mode + ', init_path=' +
+            self.init_path + ', design_path=' + self.design_path +
+            ', max_iter=' + str(max_iter) + ', min_iter=' + str(min_iter) +
+            ', init_only=' + str(init_only))
         logging.debug(msg)
 
         if not self.checked:
             self.check_network()
 
-        msg = ('Network properties: '
-               'number of components=' + str(len(self.comps.index)) +
-               ', number of connections=' + str(len(self.conns.index)) +
-               ', number of busses=' + str(len(self.busses)))
+        msg = (
+            'Network properties: '
+            'number of components=' + str(len(self.comps.index)) +
+            ', number of connections=' + str(len(self.conns.index)) +
+            ', number of busses=' + str(len(self.busses)))
         logging.debug(msg)
 
         self.initialise()

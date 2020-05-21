@@ -136,7 +136,7 @@ BibTeX citation::
         publisher = {The Open Journal},
         volume = {5},
         number = {49},
-        pages = {2179},
+        pages = {2178},
         author = {Francesco Witte and Ilja Tuschy},
         title = {{TESPy}: {T}hermal {E}ngineering {S}ystems in {P}ython},
         journal = {Journal of Open Source Software}

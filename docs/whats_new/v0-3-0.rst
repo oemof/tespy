@@ -1,5 +1,25 @@
-v0.3.0 - Someversion (somemonth, someday, 2020)
-+++++++++++++++++++++++++++++++++++++++++++++++
+v0.3.0 - Mayer's Merit (May, 21, 2020)
+++++++++++++++++++++++++++++++++++++++
+
+TESPy version 0.3.0 -
+`Mayer's Merit <https://en.wikipedia.org/wiki/Julius_von_Mayer>`_ comes with a
+lot of new features and a publication in the Journal of Open Source Software.
+The paper is available at the website of the
+`JOSS <https://joss.theoj.org/papers/590b0b4767606bce4d0ebe397d4b7a4f>`_.
+
+BibTeX citation::
+
+    @article{Witte2020,
+        doi = {10.21105/joss.02178}
+        year = {2020},
+        publisher = {The Open Journal},
+        volume = {5},
+        number = {49},
+        pages = {2178},
+        author = {Francesco Witte and Ilja Tuschy},
+        title = {{TESPy}: {T}hermal {E}ngineering {S}ystems in {P}ython},
+        journal = {Journal of Open Source Software}
+    }
 
 New Features
 ############

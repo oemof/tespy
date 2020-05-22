@@ -438,18 +438,6 @@ class network:
             for c in subsys.conns.values():
                 self.add_conns(c)
 
-    def add_nwks(self, *args):
-        """
-        Add connections from a different network.
-
-        :param args: network objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type args: tespy.networks.network
-        :returns: no return value
-        """
-        for nw in args:
-            for c in nw.conns.index:
-                self.add_conns(c)
-
     def add_conns(self, *args):
         r"""
         Add one or more connections to the network.
@@ -679,8 +667,8 @@ class network:
 
         # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
-            duplicates = [item for item, count in
-                          Counter(labels).items() if count > 1]
+            duplicates = [
+                item for item, count in Counter(labels).items() if count > 1]
             msg = ('All Components must have unique labels, duplicates are: '
                    + str(duplicates) + '.')
             logging.error(msg)
@@ -884,14 +872,15 @@ class network:
         (connections) handle the parameter specification.
         """
         # components without any parameters
-        not_required = ['source', 'sink', 'node', 'merge', 'splitter',
-                        'separator', 'drum', 'subsystem_interface']
+        not_required = [
+            'source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum',
+            'subsystem_interface', 'droplet_separator']
         # fetch all components, reindex with label
         cp_sort = self.comps.copy()
         # get class name
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
-                                         args=('label',))
+        cp_sort['label'] = cp_sort.apply(
+            network.get_props, axis=1, args=('label',))
         cp_sort['comp'] = cp_sort.index
         cp_sort.set_index('label', inplace=True)
 
@@ -931,7 +920,7 @@ class network:
                     # write data to components
                     self.init_comp_design_params(comp, data)
 
-        msg = 'Read design point information for components.'
+        msg = 'Done reading design point information for components.'
         logging.debug(msg)
 
         # read connection design point information
@@ -962,7 +951,7 @@ class network:
                 # write data
                 self.init_conn_design_params(c, df)
 
-        msg = 'Read design point information for connections.'
+        msg = 'Done reading design point information for connections.'
         logging.debug(msg)
 
     def init_comp_design_params(self, component, data):
@@ -2059,10 +2048,12 @@ class network:
         """
         flow = c.to_flow()
         Tmin = max(
-            [fp.memorise.value_range[f][2] for f in flow[3].keys() if flow[3][f] > err]
+            [fp.memorise.value_range[f][2] for
+             f in flow[3].keys() if flow[3][f] > err]
         ) + 100
         Tmax = min(
-            [fp.memorise.value_range[f][3] for f in flow[3].keys() if flow[3][f] > err]
+            [fp.memorise.value_range[f][3] for
+             f in flow[3].keys() if flow[3][f] > err]
         ) - 100
         hmin = fp.h_mix_pT(flow, Tmin)
         hmax = fp.h_mix_pT(flow, Tmax)
@@ -2391,7 +2382,6 @@ class network:
         # equations and derivatives for specified primary variables are static
         if self.iter == 0:
             for c in self.conns.index:
-                flow = c.to_flow()
                 col = c.conn_loc * self.num_conn_vars
 
                 # specified mass flow, pressure and enthalpy
@@ -2422,15 +2412,12 @@ class network:
             if bus.P.is_set is True:
                 P_res = 0
                 for cp in bus.comps.index:
-                    i = self.comps.loc[cp, 'inlets'].tolist()
-                    o = self.comps.loc[cp, 'outlets'].tolist()
 
-                    P_res += cp.calc_bus_value(bus)
+                    P_res -= cp.calc_bus_value(bus)
                     deriv = -cp.bus_deriv(bus)
 
                     j = 0
-                    for c in i + o:
-                        loc = self.conns.index.get_loc(c)
+                    for loc in cp.conn_loc:
                         # start collumn index
                         coll_s = loc * self.num_conn_vars
                         # end collumn index
@@ -2438,8 +2425,7 @@ class network:
                         self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.residual[row] = bus.P.val - P_res
-
+                self.residual[row] = bus.P.val + P_res
                 row += 1
 
     def postprocessing(self):

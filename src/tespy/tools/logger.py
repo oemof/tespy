@@ -196,8 +196,7 @@ def check_git_branch():
     <class 'str'>
     """
     path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), os.pardir,
-        os.pardir, '.git')
+        os.path.realpath(__file__)), os.pardir, os.pardir, os.pardir, '.git')
 
     # Reads the name of the branch
     f_branch = os.path.join(path, 'HEAD')

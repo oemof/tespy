@@ -24,4 +24,3 @@ Other changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
-- `@jfreissmann <https://github.com/jfreissmann>`_

@@ -1,0 +1,11 @@
+v0.3.1 - Fix for Mayer's Merit (May, 29, 2020)
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug fixes
+#########
+- Remove a debugging printout in the kA_func of the
+  :py:class:`tespy.components.heat_exchangers.heat_exchanger_simple` class.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

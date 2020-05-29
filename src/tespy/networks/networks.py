@@ -305,11 +305,11 @@ class network:
         self.h_range_SI = np.array([1e3, 7e6])
 
         for prop in ['m', 'p', 'h']:
-            msg = ('Default ' + self.props[prop] + ' limits, min: ' +
-                   str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
-                   self.SI_units[prop] + ', max: ' +
-                   str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
-                   self.SI_units[prop] + '.')
+            limits = self.get_attr(prop + '_range_SI')
+            msg = (
+                'Default ' + self.props[prop] + ' limits, min: ' +
+                str(limits[0]) + ' ' + self.SI_units[prop] + ', max: ' +
+                str(limits[1]) + ' ' + self.SI_units[prop] + '.')
             logging.debug(msg)
 
         self.set_attr(**kwargs)
@@ -365,7 +365,7 @@ class network:
                     logging.error(msg)
                     raise ValueError(msg)
                 else:
-                    self.__dict__[unit] = kwargs[unit]
+                    self.__dict__.update({unit: kwargs[unit]})
                     msg = ('Setting ' + self.props[prop] + ' unit: ' +
                            kwargs[unit] + '.')
                     logging.debug(msg)
@@ -382,13 +382,13 @@ class network:
                     self.__dict__.update(
                         {prop + '_range_SI':
                          np.array(kwargs[prop + '_range']) *
-                         self.__dict__[prop][self.__dict__[prop + '_unit']]})
+                         self.get_attr(prop)[self.get_attr(prop + '_unit')]})
 
-                msg = ('Setting ' + self.props[prop] + ' limits, min: ' +
-                       str(self.__dict__[prop + '_range_SI'][0]) + ' ' +
-                       self.SI_units[prop] + ', max: ' +
-                       str(self.__dict__[prop + '_range_SI'][1]) + ' ' +
-                       self.SI_units[prop] + '.')
+                limits = self.get_attr(prop + '_range_SI')
+                msg = (
+                    'Setting ' + self.props[prop] + ' limits, min: ' +
+                    str(limits[0]) + ' ' + self.SI_units[prop] + ', max: ' +
+                    str(limits[1]) + ' ' + self.SI_units[prop] + '.')
                 logging.debug(msg)
 
         # update non SI value ranges
@@ -436,18 +436,6 @@ class network:
         """
         for subsys in args:
             for c in subsys.conns.values():
-                self.add_conns(c)
-
-    def add_nwks(self, *args):
-        """
-        Add connections from a different network.
-
-        :param args: network objects si :code:`add_subsys(s1, s2, s3, ...)`
-        :type args: tespy.networks.network
-        :returns: no return value
-        """
-        for nw in args:
-            for c in nw.conns.index:
                 self.add_conns(c)
 
     def add_conns(self, *args):
@@ -613,18 +601,18 @@ class network:
             num_o = (self.conns[['source', 'target']] == comp).sum().source
             num_i = (self.conns[['source', 'target']] == comp).sum().target
             if num_o != comp.num_o:
-                msg = (comp.label + ' is missing ' + str(comp.num_o - num_o) +
-                       ' outgoing connections. Make sure all outlets are '
-                       ' connected and all connections have been added to the '
-                       'network.')
+                msg = (
+                    comp.label + ' is missing ' + str(comp.num_o - num_o) + ' '
+                    'outgoing connections. Make sure all outlets are connected'
+                    ' and all connections have been added to the network.')
                 logging.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
             elif num_i != comp.num_i:
-                msg = (comp.label + ' is missing ' + str(comp.num_i - num_i) +
-                       ' incoming connections. Make sure all inlets are '
-                       ' connected and all connections have been added to the '
-                       'network.')
+                msg = (
+                    comp.label + ' is missing ' + str(comp.num_i - num_i) + ' '
+                    'incoming connections. Make sure all inlets are connected '
+                    'and all connections have been added to the network.')
                 logging.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
@@ -679,10 +667,10 @@ class network:
 
         # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
-            duplicates = [item for item, count in
-                          Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: '
-                   + str(duplicates) + '.')
+            duplicates = [
+                item for item, count in Counter(labels).items() if count > 1]
+            msg = ('All Components must have unique labels, duplicates are: ' +
+                   str(duplicates) + '.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -702,9 +690,9 @@ class network:
         - Switch from design/offdesign parameter specification.
         """
         if len(self.conns) == 0:
-            msg = ('No connections have been added to the network, please '
-                   'make sure to add your connections with the '
-                   '.add_conns() method.')
+            msg = (
+                'No connections have been added to the network, please make '
+                'sure to add your connections with the .add_conns() method.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -818,11 +806,10 @@ class network:
                     # read design point information
                     path = hlp.modify_path_os(
                         cp.design_path + '/components/' + c + '.csv')
-                    df = pd.read_csv(path, sep=';', decimal='.',
-                                     converters={
-                                             'busses': ast.literal_eval,
-                                             'bus_P_ref': ast.literal_eval
-                                             })
+                    df = pd.read_csv(
+                        path, sep=';', decimal='.', converters={
+                            'busses': ast.literal_eval,
+                            'bus_P_ref': ast.literal_eval})
                     df.set_index('label', inplace=True)
                     # write data
                     self.init_comp_design_params(cp, df.loc[cp.label])
@@ -884,14 +871,15 @@ class network:
         (connections) handle the parameter specification.
         """
         # components without any parameters
-        not_required = ['source', 'sink', 'node', 'merge', 'splitter',
-                        'separator', 'drum', 'subsystem_interface']
+        not_required = [
+            'source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum',
+            'subsystem_interface', 'droplet_separator']
         # fetch all components, reindex with label
         cp_sort = self.comps.copy()
         # get class name
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
-                                         args=('label',))
+        cp_sort['label'] = cp_sort.apply(
+            network.get_props, axis=1, args=('label',))
         cp_sort['comp'] = cp_sort.index
         cp_sort.set_index('label', inplace=True)
 
@@ -931,7 +919,7 @@ class network:
                     # write data to components
                     self.init_comp_design_params(comp, data)
 
-        msg = 'Read design point information for components.'
+        msg = 'Done reading design point information for components.'
         logging.debug(msg)
 
         # read connection design point information
@@ -952,8 +940,8 @@ class network:
                     'Reading individual design point information for '
                     'connection ' + c.label + ' from path ' + path_c + '.')
                 logging.debug(msg)
-                df_c = pd.read_csv(path_c, index_col=0,
-                                   delimiter=';', decimal='.')
+                df_c = pd.read_csv(
+                    path_c, index_col=0, delimiter=';', decimal='.')
 
                 # write data
                 self.init_conn_design_params(c, df_c)
@@ -962,7 +950,7 @@ class network:
                 # write data
                 self.init_conn_design_params(c, df)
 
-        msg = 'Read design point information for connections.'
+        msg = 'Done reading design point information for connections.'
         logging.debug(msg)
 
     def init_comp_design_params(self, component, data):
@@ -1006,19 +994,13 @@ class network:
             df['source_id'].isin([c.source_id]) &
             df['target_id'].isin([c.target_id])]
 
-        if len(conn.index) > 0:
+        try:
             # read connection information
             conn_id = conn.index[0]
-            c.m.design = (
-                df.loc[conn_id, 'm'] * self.m[df.loc[conn_id, 'm_unit']])
-            c.p.design = (
-                df.loc[conn_id, 'p'] * self.p[df.loc[conn_id, 'p_unit']])
-            c.h.design = (
-                df.loc[conn_id, 'h'] * self.h[df.loc[conn_id, 'h_unit']])
-            c.v.design = (
-                df.loc[conn_id, 'v'] * self.v[df.loc[conn_id, 'v_unit']])
-            c.x.design = (
-                df.loc[conn_id, 'x'] * self.x[df.loc[conn_id, 'x_unit']])
+            for var in ['m', 'p', 'h', 'v', 'x']:
+                c.get_attr(var).design = (
+                    df.loc[conn_id, var] *
+                    self.get_attr(var)[df.loc[conn_id, var + '_unit']])
             c.T.design = ((df.loc[conn_id, 'T'] +
                            self.T[df.loc[conn_id, 'T_unit']][0]) *
                           self.T[df.loc[conn_id, 'T_unit']][1])
@@ -1026,7 +1008,7 @@ class network:
                               self.T[df.loc[conn_id, 'T_unit']][1])
             for fluid in self.fluids:
                 c.fluid.design[fluid] = df.loc[conn_id, fluid]
-        else:
+        except IndexError:
             # no matches in the connections of the network and the design files
             msg = (
                 'Could not find connection ' + c.label + ' in design case. '
@@ -1123,9 +1105,9 @@ class network:
         # iterate over connectons, create ordered dicts
         for c in self.conns.index:
             c.conn_loc = self.conns.index.get_loc(c)
-            tmp = c.fluid.val.copy()
-            tmp0 = c.fluid.val0.copy()
-            tmp_set = c.fluid.val_set.copy()
+            tmp = c.fluid.val
+            tmp0 = c.fluid.val0
+            tmp_set = c.fluid.val_set
             c.fluid.val = OrderedDict()
             c.fluid.val0 = OrderedDict()
             c.fluid.val_set = OrderedDict()
@@ -1375,7 +1357,7 @@ class network:
                         c.get_attr(key).unit = self.get_attr('T_unit')
                     else:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
-                if (key not in ['T', 'x', 'v', 's', 'vol', 'Td_bp'] and
+                if (key in ['m', 'p', 'h'] and
                         c.get_attr(key).val_set is False):
                     if c.good_starting_values is False:
                         self.init_val0(c, key)
@@ -1412,7 +1394,10 @@ class network:
 
             # starting values for specified vapour content or temperature
             if c.x.val_set and not c.h.val_set:
-                c.h.val_SI = fp.h_mix_pQ(c.to_flow(), c.x.val_SI)
+                try:
+                    c.h.val_SI = fp.h_mix_pQ(c.to_flow(), c.x.val_SI)
+                except ValueError:
+                    pass
 
             if c.T.val_set and not c.h.val_set:
                 try:
@@ -1500,7 +1485,7 @@ class network:
                 df['target'].isin([c.target.label]) &
                 df['source_id'].isin([c.source_id]) &
                 df['target_id'].isin([c.target_id])]
-            if len(conn.index) > 0:
+            try:
                 conn_id = conn.index[0]
                 # overwrite SI-values with values from init_file,
                 # except user specified values
@@ -1523,7 +1508,7 @@ class network:
                 c.h.val0 = c.h.val_SI / self.h[c.h.unit]
                 c.fluid.val0 = c.fluid.val.copy()
                 c.good_starting_values = True
-            else:
+            except IndexError:
                 msg = (
                     'Could not find connection ' + c.label + ' in '
                     'connections.csv of init_path ' + self.init_path + '.')
@@ -1575,18 +1560,18 @@ class network:
         For more information on the solution process have a look at the online
         documentation at tespy.readthedocs.io in the section "using TESPy".
         """
+        self.new_design = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns.index:
                 if c.new_design is True:
                     self.new_design = True
                     break
+            if self.new_design is False:
+                for cp in self.comps.index:
+                    if cp.new_design is True:
+                        self.new_design = True
+                        break
 
-            for cp in self.comps.index:
-                if cp.new_design is True:
-                    self.new_design = True
-                    break
-
-            self.new_design = False
         else:
             self.new_design = True
 
@@ -1899,7 +1884,7 @@ class network:
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < err:
                         c.fluid.val[fluid] = 0
-                    if c.fluid.val[fluid] > 1 - err:
+                    elif c.fluid.val[fluid] > 1 - err:
                         c.fluid.val[fluid] = 1
 
                     j += 1
@@ -1922,7 +1907,7 @@ class network:
                     # keep value within specified value range
                     if var.val < var.min_val:
                         var.val = var.min_val
-                    if var.val > var.max_val:
+                    elif var.val > var.max_val:
                         var.val = var.max_val
 
                 sum_c_var += cp.num_vars
@@ -2059,10 +2044,12 @@ class network:
         """
         flow = c.to_flow()
         Tmin = max(
-            [fp.memorise.value_range[f][2] for f in flow[3].keys() if flow[3][f] > err]
+            [fp.memorise.value_range[f][2] for
+             f in flow[3].keys() if flow[3][f] > err]
         ) + 100
         Tmax = min(
-            [fp.memorise.value_range[f][3] for f in flow[3].keys() if flow[3][f] > err]
+            [fp.memorise.value_range[f][3] for
+             f in flow[3].keys() if flow[3][f] > err]
         ) - 100
         hmin = fp.h_mix_pT(flow, Tmin)
         hmax = fp.h_mix_pT(flow, Tmax)
@@ -2391,7 +2378,6 @@ class network:
         # equations and derivatives for specified primary variables are static
         if self.iter == 0:
             for c in self.conns.index:
-                flow = c.to_flow()
                 col = c.conn_loc * self.num_conn_vars
 
                 # specified mass flow, pressure and enthalpy
@@ -2422,15 +2408,12 @@ class network:
             if bus.P.is_set is True:
                 P_res = 0
                 for cp in bus.comps.index:
-                    i = self.comps.loc[cp, 'inlets'].tolist()
-                    o = self.comps.loc[cp, 'outlets'].tolist()
 
-                    P_res += cp.calc_bus_value(bus)
+                    P_res -= cp.calc_bus_value(bus)
                     deriv = -cp.bus_deriv(bus)
 
                     j = 0
-                    for c in i + o:
-                        loc = self.conns.index.get_loc(c)
+                    for loc in cp.conn_loc:
                         # start collumn index
                         coll_s = loc * self.num_conn_vars
                         # end collumn index
@@ -2438,8 +2421,7 @@ class network:
                         self.jacobian[row, coll_s:coll_e] = deriv[:, j]
                         j += 1
 
-                self.residual[row] = bus.P.val - P_res
-
+                self.residual[row] = bus.P.val + P_res
                 row += 1
 
     def postprocessing(self):

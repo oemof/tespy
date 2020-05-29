@@ -647,8 +647,6 @@ class heat_exchanger_simple(component):
         else:
             td_log = 0
 
-        print(ttd_1, ttd_2)
-
         return i[0] * (o[2] - i[2]) + self.kA.val * td_log
 
     def kA_char_func(self):

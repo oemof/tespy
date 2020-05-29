@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.3.1 - Mayer\'s Merit'
+__version__ = '0.3.2 - dev'
 
 # tespy data and connection import
 from . import connections  # noqa: F401

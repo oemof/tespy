@@ -1,0 +1,27 @@
+v0.3.2 - Someversion (Somedate)
++++++++++++++++++++++++++++++++
+
+New Features
+############
+
+Documentation
+#############
+
+Parameter renaming
+##################
+
+Testing
+#######
+
+Bug fixes
+#########
+
+Other changes
+#############
+- Reorder network initialisation process for improved maintenance and faster
+  performance (`PR #204 <https://github.com/oemof/tespy/pull/204>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jfreissmann <https://github.com/jfreissmann>`_

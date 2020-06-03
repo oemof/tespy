@@ -21,7 +21,6 @@ from collections import Counter
 from collections import OrderedDict
 from time import time
 
-import bcolors
 import numpy as np
 import pandas as pd
 from numpy.linalg import inv
@@ -43,7 +42,7 @@ from tespy.components.reactors import water_electrolyzer
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import err, coloring
 
 
 class network:
@@ -2546,15 +2545,16 @@ class network:
                 m = c.m.val_SI / self.m[self.m_unit]
                 p = c.p.val_SI / self.p[self.p_unit]
                 h = c.h.val_SI / self.h[self.h_unit]
-                t = c.T.val_SI / self.T[self.T_unit][1] - self.T[self.T_unit][0]
+                t = c.T.val_SI / \
+                    self.T[self.T_unit][1] - self.T[self.T_unit][0]
                 if c.m.val_set:
-                    m = bcolors.BLUE + str(m) + bcolors.END
+                    m = coloring['set'] + str(m) + coloring['end']
                 if c.p.val_set:
-                    p = bcolors.BLUE + str(p) + bcolors.END
+                    p = coloring['set'] + str(p) + coloring['end']
                 if c.h.val_set:
-                    h = bcolors.BLUE + str(h) + bcolors.END
+                    h = coloring['set'] + str(h) + coloring['end']
                 if c.T.val_set:
-                    t = bcolors.BLUE + str(t) + bcolors.END
+                    t = coloring['set'] + str(t) + coloring['end']
                 df.loc[row] = ([m, p, h, t])
         if len(df) > 0:
             print('##### RESULTS (connections) #####')
@@ -2587,12 +2587,14 @@ class network:
 
     def print_components(c, *args):
         if c.name.printout is True:
-            val = str(c.name.get_attr(args[0]).val)
+            val = c.name.get_attr(args[0]).val
+            if val < c.name.get_attr(args[0]).min_val or val > c.name.get_attr(args[0]).max_val:
+                return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_var:
-                return bcolors.ERR + ' ' + val + ' ' + bcolors.ENDC
+                return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_set:
-                return bcolors.BLUE + ' ' + val + ' ' + bcolors.ENDC
-            return val
+                return coloring['set'] + ' ' + str(val) + ' ' + coloring['end']
+            return str(val)
         else:
             return np.nan
 

@@ -168,9 +168,11 @@ def test_tespy_fluid_mixture():
     pmin = 1e4
     pmax = 1e7
 
+    # As the tespy fluid is part of a mixture, the minimum pressure for lookup
+    # table creation must be much lower than the actual pressure range tested.
     fp.tespy_fluid(
         alias='partial', fluid=partial_mix,
-        p_range=[pmin, pmax], T_range=[Tmin, Tmax])
+        p_range=[pmin / 3, pmax], T_range=[Tmin, Tmax])
 
     flow_mix = [0, 0, 0, mixture]
     flow_full = [0, 0, 0, full_mix]

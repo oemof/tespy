@@ -114,19 +114,16 @@ class tespy_fluid:
     0.0
 
     >>> v_tespy = v_mix_pT(fluid_props, T2)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> v = v_mix_pT(fluid_props_CP, T2)
     >>> round(abs(v_tespy - v) / v, 2)
     0.0
 
     >>> s_tespy = s_mix_pT(fluid_props, T2) - s_mix_pT(fluid_props, T1)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> s = s_mix_pT(fluid_props_CP, T2) - s_mix_pT(fluid_props_CP, T1)
     >>> round(abs(s_tespy - s) / s, 2)
     0.0
 
     >>> visc_tespy = visc_mix_pT(fluid_props, T2)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> visc = visc_mix_pT(fluid_props_CP, T2)
     >>> round(abs(visc_tespy - visc) / visc, 2)
     0.0
@@ -1327,14 +1324,19 @@ def v_mix_pT(flow, T):
 
     .. math::
 
-        v_{mix}(p,T)=\sum_{i} \frac{x_i}{\rho(p, T, fluid_{i})}
+        v_{mix}(p,T)=\frac{1}{\sum_{i} \rho(pp_{i}, T, fluid_{i})}\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
     """
-    v = 0
+    n = molar_mass_flow(flow[3])
+
+    d = 0
     for fluid, x in flow[3].items():
         if x > err:
-            v += x / d_pT(flow[1], T, fluid)
+            ni = x / molar_masses[fluid]
+            d += d_pT(flow[1] * ni / n, T, fluid)
 
-    return v
+    return 1 / d
 
 
 def d_mix_pT(flow, T):

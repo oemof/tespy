@@ -22,10 +22,9 @@ New features
         coloring['err'] = '\033[0m'
         coloring['var'] = '\033[0m'
 
-  (See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_ for a list of
-  available codes)
-
-  (`PR #206 <https://github.com/oemof/tespy/pull/206>`_).
+  See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_ for a
+  list of available codes
+  (`PR #205 <https://github.com/oemof/tespy/pull/205>`_).
 
 Bug fixes
 #########
@@ -41,4 +40,4 @@ Bug fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
-- `@jbueck <https://github.com/jbueck>`_)
+- `@jbueck <https://github.com/jbueck>`_

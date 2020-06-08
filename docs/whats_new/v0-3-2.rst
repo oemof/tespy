@@ -1,6 +1,31 @@
 v0.3.2 - Someversion (Somemonth, Someday, 2020)
 +++++++++++++++++++++++++++++++++++++++++++++++
 
+New features
+############
+- Colored printouts are available in the :code:`print_results()` method of the
+  network class. There are three different color codes available with default
+  settings:
+
+  - user specified parameters (:code:`'set'`, blue)
+  - component parameters specified as variables (:code:`'var'`, green)
+  - faulty parameters (:code:`'err'`, red)
+
+  In order to change the colors, simply import :code:`coloring` from the
+  :py:mod:`tespy.tools.global_vars` module and adjust the escape codes. For
+  example, to reset all colors to white text:
+
+  .. code-block:: python
+
+        from tespy.tools.global_vars import coloring
+        coloring['set'] = '\033[0m'
+        coloring['err'] = '\033[0m'
+        coloring['var'] = '\033[0m'
+
+  See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_ for a
+  list of available codes
+  (`PR #205 <https://github.com/oemof/tespy/pull/205>`_).
+
 Bug fixes
 #########
 - Readd method for :code:`T_mix_ps` calculation for pure fluids: In case the
@@ -15,3 +40,4 @@ Bug fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jbueck <https://github.com/jbueck>`_

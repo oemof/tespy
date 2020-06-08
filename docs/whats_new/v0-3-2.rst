@@ -1,0 +1,17 @@
+v0.3.2 - Someversion (Somemonth, Someday, 2020)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug fixes
+#########
+- Readd method for :code:`T_mix_ps` calculation for pure fluids: In case the
+  fluid propagation did not go through (e.g. due to availability of good
+  starting values) the fluid composition at a turbomachine's inlet and outlet
+  may not be equal (`PR #207 <https://github.com/oemof/tespy/pull/207>`_).
+- Fix the calculation of mixture density. The density is calculated as sum of
+  the densities of the mixture components at their respective partial pressure
+  and the mixture temperature
+  (`PR #207 <https://github.com/oemof/tespy/pull/207>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

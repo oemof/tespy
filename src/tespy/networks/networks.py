@@ -42,7 +42,8 @@ from tespy.components.reactors import water_electrolyzer
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
-from tespy.tools.global_vars import err, coloring
+from tespy.tools.global_vars import coloring
+from tespy.tools.global_vars import err
 
 
 class network:
@@ -2542,20 +2543,18 @@ class network:
             if c.printout is True:
                 row = (c.source.label + ':' + c.source_id + ' -> ' +
                        c.target.label + ':' + c.target_id)
-                m = c.m.val_SI / self.m[self.m_unit]
-                p = c.p.val_SI / self.p[self.p_unit]
-                h = c.h.val_SI / self.h[self.h_unit]
-                t = c.T.val_SI / \
-                    self.T[self.T_unit][1] - self.T[self.T_unit][0]
-                if c.m.val_set:
-                    m = coloring['set'] + str(m) + coloring['end']
-                if c.p.val_set:
-                    p = coloring['set'] + str(p) + coloring['end']
-                if c.h.val_set:
-                    h = coloring['set'] + str(h) + coloring['end']
-                if c.T.val_set:
-                    t = coloring['set'] + str(t) + coloring['end']
-                df.loc[row] = ([m, p, h, t])
+
+                row_data = []
+                for var in ['m', 'p', 'h', 'T']:
+                    if c.get_attr(var).val_set is True:
+                        row_data += [
+                            coloring['set'] + str(c.get_attr(var).val) +
+                            coloring['end']
+                        ]
+                    else:
+                        row_data += [str(c.get_attr(var).val)]
+
+                df.loc[row] = row_data
         if len(df) > 0:
             print('##### RESULTS (connections) #####')
             print(
@@ -2587,8 +2586,9 @@ class network:
 
     def print_components(c, *args):
         if c.name.printout is True:
-            val = c.name.get_attr(args[0]).val
-            if val < c.name.get_attr(args[0]).min_val or val > c.name.get_attr(args[0]).max_val:
+            val = float(c.name.get_attr(args[0]).val)
+            if (val < c.name.get_attr(args[0]).min_val or
+                    val > c.name.get_attr(args[0]).max_val):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']

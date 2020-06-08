@@ -764,67 +764,46 @@ def T_mix_ps(flow, s, T0=300):
 
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
                      valmin=valmin, valmax=3000, imax=10)
-        if memorisation is True:
-            new = np.asarray(
-                [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
-            # memorise the newly calculated value
-            memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
 
-        return val
     else:
         # calculate fluid property for pure fluids
-        msg = ('The calculation of temperature from pressure and entropy '
-               'for pure fluids should not be required, as the '
-               'calculation is always possible from pressure and '
-               'enthalpy. If there is a case, where you need to calculate '
-               'temperature from these properties, please inform us: '
-               'https://github.com/oemof/tespy.')
-        logging.error(msg)
-        raise ValueError(msg)
+        val = T_ps(flow[1], s, fluid)
 
-# %% deprecated
-#            for fluid, x in flow[3].items():
-#                if x > err:
-#                    val = T_ps(flow[1], s, fluid)
-#                    new = np.array([[flow[1], flow[2]] +
-#                                   list(flow[3].values()) + [s, val]])
-#                    # memorise the newly calculated value
-#                    memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
-#                                                  new, axis=0)
-#                    return val
-#
-#
-# def T_ps(p, s, fluid):
-#     r"""
-#     Calculate the temperature from pressure and entropy for a pure fluid.
-#
-#     Parameters
-#     ----------
-#     p : float
-#        Pressure p / Pa.
-#
-#     s : float
-#        Specific entropy h / (J/(kgK)).
-#
-#     fluid : str
-#        Fluid name.
-#
-#     Returns
-#     -------
-#     T : float
-#        Temperature T / K.
-#     """
-#     if 'IDGAS::' in fluid:
-#         msg = 'Ideal gas calculation not available by now.'
-#         logging.warning(msg)
-#     if 'TESPy::' in fluid:
-#         db = tespy_fluid.fluids[fluid].funcs['s_pT']
-#         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
-#     elif 'INCOMP::' in fluid:
-#         return CPPSI('T', 'P', p, 'H', s, fluid)
-#     else:
-#         memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
-#         return memorise.state[fluid].T()
+    if memorisation is True:
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
+        # memorise the newly calculated value
+        memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
+
+    return val
+
+
+def T_ps(p, s, fluid):
+    r"""
+    Calculate the temperature from pressure and entropy for a pure fluid.
+
+    Parameters
+    ----------
+    p : float
+       Pressure p / Pa.
+
+    s : float
+       Specific entropy h / (J/(kgK)).
+
+    fluid : str
+       Fluid name.
+
+    Returns
+    -------
+    T : float
+       Temperature T / K.
+    """
+    if fluid in tespy_fluid.fluids.keys():
+        db = tespy_fluid.fluids[fluid].funcs['s_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+    else:
+        memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+        return memorise.state[fluid].T()
 
 # %%
 

@@ -214,7 +214,7 @@ def load_network(path):
     >>> eta_s_t
     0.898
     >>> igva
-    20.139
+    20.138
 
     The designed network is exported to the path 'exported_nwk'. Now import the
     network and recalculate. Check if the results match with the previous

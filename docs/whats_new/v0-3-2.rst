@@ -1,5 +1,5 @@
-v0.3.2 - Someversion (Somemonth, Someday, 2020)
-+++++++++++++++++++++++++++++++++++++++++++++++
+v0.3.2 - Carnot's Colors (June, 10, 2020)
++++++++++++++++++++++++++++++++++++++++++
 
 New features
 ############
@@ -32,10 +32,14 @@ Bug fixes
   fluid propagation did not go through (e.g. due to availability of good
   starting values) the fluid composition at a turbomachine's inlet and outlet
   may not be equal (`PR #207 <https://github.com/oemof/tespy/pull/207>`_).
-- Fix the calculation of mixture density. The density is calculated as sum of
+- Fix the calculation of mixture density: The density is calculated as sum of
   the densities of the mixture components at their respective partial pressure
   and the mixture temperature
-  (`PR #207 <https://github.com/oemof/tespy/pull/207>`_).
+  (`PR #207 <https://github.com/oemof/tespy/pull/207>`_). With the old method,
+  the specific volume was calculated according to Amagat's law, which produced
+  incorrect values if one or more components of the mixture were liquid at the
+  mixture's temperature and pressure. See discussion about humid air propreties
+  here: `Issue #206 <https://github.com/oemof/tespy/issues/206>`_.
 
 Contributors
 ############

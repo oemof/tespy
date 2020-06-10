@@ -214,7 +214,7 @@ def load_network(path):
     >>> eta_s_t
     0.898
     >>> igva
-    20.139
+    20.138
 
     The designed network is exported to the path 'exported_nwk'. Now import the
     network and recalculate. Check if the results match with the previous
@@ -305,7 +305,7 @@ def load_network(path):
                     'component data for component of type ' + f[:-4] + '. '
                     'Please make sure to add the column bus_base to your data '
                     'or recreate the network export with the TESPy 0.3.x API. '
-                    'This warning will be removed in TESPy version 0.3.2.')
+                    'This warning will be removed in TESPy version 0.4.0.')
                 warnings.warn(msg, FutureWarning, stacklevel=2)
 
             comps = pd.concat((comps, df[cols]), axis=0)

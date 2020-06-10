@@ -902,7 +902,7 @@ class bus:
                         comp = c['c']
                         msg = (
                             'The dictionary keyword "c" will be removed in '
-                            'TESPy version 0.3.2. Please use "comp" instead.')
+                            'TESPy version 0.4.0. Please use "comp" instead.')
                         warnings.warn(msg, FutureWarning, stacklevel=2)
                     else:
                         comp = c['comp']
@@ -924,7 +924,7 @@ class bus:
                         if k == 'p':
                             msg = (
                                 'The dictionary keyword "p" will be removed '
-                                'TESPy version 0.3.2. Please use "param" '
+                                'TESPy version 0.4.0. Please use "param" '
                                 'instead.')
                             warnings.warn(msg, FutureWarning, stacklevel=2)
                         if isinstance(v, str) or v is None:

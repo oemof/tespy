@@ -1,0 +1,6 @@
+v0.3.3 - Someversion (Somemonth, Someday, 2020)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

@@ -1066,9 +1066,9 @@ class parabolic_trough(heat_exchanger_simple):
     >>> inc.set_attr(T=150)
     >>> outg.set_attr(T=None)
     >>> nw.solve('design')
-    >>> round(outg.T.val)
+    >>> round(outg.T.val, 0)
     244.0
-    >>> round(pt.Q.val)
+    >>> round(pt.Q.val, 0)
     3603027.0
     """
 

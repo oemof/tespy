@@ -56,7 +56,7 @@ class char_line:
     """
 
     def __init__(
-            self, x=np.array([0, 1]), y=np.array([1, 1]), extrapolate=False):
+            self, x=np.array([0, 1]), y=np.ones(2), extrapolate=False):
 
         self.x = x
         self.y = y
@@ -201,8 +201,8 @@ class char_map:
     be specified by the user.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.array([[1, 1], [1, 1]]),
-                 z1=np.array([[1, 1], [1, 1]]), z2=np.array([[1, 1], [1, 1]])):
+    def __init__(self, x=np.array([0, 1]), y=np.ones(2, 2), z1=np.ones(2, 2),
+                 z2=np.ones(2, 2)):
 
         self.x = x
         self.y = y
@@ -210,13 +210,13 @@ class char_map:
         self.z2 = z2
 
         if isinstance(self.x, list):
-            self.x = np.asarray(self.x)
+            self.x = np.array(self.x)
         if isinstance(self.y, list):
-            self.y = np.asarray(self.y)
+            self.y = np.array(self.y, dtype=object)
         if isinstance(self.z1, list):
-            self.z1 = np.asarray(self.z1)
+            self.z1 = np.array(self.z1, dtype=object)
         if isinstance(self.z2, list):
-            self.z2 = np.asarray(self.z2)
+            self.z2 = np.array(self.z2, dtype=object)
 
         self.x = self.x.astype(float)
         self.y = self.y.astype(float)

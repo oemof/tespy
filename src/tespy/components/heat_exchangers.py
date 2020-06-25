@@ -1052,9 +1052,9 @@ class parabolic_trough(heat_exchanger_simple):
     >>> inc.set_attr(T=None)
     >>> outg.set_attr(T=350, m=20)
     >>> nw.solve('design')
-    >>> round(inc.T.val)
+    >>> round(inc.T.val, 0)
     229.0
-    >>> round(pt.A.val)
+    >>> round(pt.A.val, 0)
     6862.0
 
     Given this design, it is possible to calculate the outlet temperature as

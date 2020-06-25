@@ -56,7 +56,7 @@ class char_line:
     """
 
     def __init__(
-            self, x=np.array([0, 1]), y=np.ones(2), extrapolate=False):
+            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False):
 
         self.x = x
         self.y = y
@@ -201,8 +201,8 @@ class char_map:
     be specified by the user.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.ones(2, 2), z1=np.ones(2, 2),
-                 z2=np.ones(2, 2)):
+    def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
+                 z1=np.ones((2, 2)), z2=np.ones((2, 2))):
 
         self.x = x
         self.y = y

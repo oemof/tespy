@@ -561,7 +561,8 @@ def T_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
 
     return val
@@ -1143,7 +1144,8 @@ def v_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
 
     return val
@@ -1416,7 +1418,8 @@ def visc_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
     return val
 
@@ -1577,7 +1580,8 @@ def s_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
 
     return val

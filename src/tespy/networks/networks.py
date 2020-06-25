@@ -55,6 +55,10 @@ class network:
     fluids : list
         A list of all fluids within the network container.
 
+    memorise_fluid_properties : bool
+        Activate or deactivate fluid property value memorisation. Default
+        state is activated (:code:`True`).
+
     h_range : list
         List with minimum and maximum values for enthalpy value range.
 
@@ -149,7 +153,7 @@ class network:
     >>> nw.print_results()
     """
 
-    def __init__(self, fluids, **kwargs):
+    def __init__(self, fluids, memorise_fluid_properties=True, **kwargs):
 
         # initialisation of basic properties
         self.checked = False
@@ -201,7 +205,7 @@ class network:
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids_backends)
+        fp.memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
 
         # available unit systems
         # mass flow

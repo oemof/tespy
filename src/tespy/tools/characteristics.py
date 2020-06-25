@@ -63,9 +63,9 @@ class char_line:
         self.extrapolate = extrapolate
 
         if isinstance(self.x, list):
-            self.x = np.array(self.x)
+            self.x = np.asarray(self.x)
         if isinstance(self.y, list):
-            self.y = np.array(self.y)
+            self.y = np.asarray(self.y)
 
         self.x = self.x.astype(float)
         self.y = self.y.astype(float)
@@ -210,13 +210,13 @@ class char_map:
         self.z2 = z2
 
         if isinstance(self.x, list):
-            self.x = np.array(self.x)
+            self.x = np.asarray(self.x)
         if isinstance(self.y, list):
-            self.y = np.array(self.y)
+            self.y = np.asarray(self.y)
         if isinstance(self.z1, list):
-            self.z1 = np.array(self.z1)
+            self.z1 = np.asarray(self.z1)
         if isinstance(self.z2, list):
-            self.z2 = np.array(self.z2)
+            self.z2 = np.asarray(self.z2)
 
         self.x = self.x.astype(float)
         self.y = self.y.astype(float)

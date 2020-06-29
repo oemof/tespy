@@ -545,14 +545,12 @@ def T_mix_ph(flow, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        try:
-            valmin = max(
-                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
-            ) + 0.1
-            if T0 < valmin or np.isnan(T0):
-                T0 = valmin * 1.1
-        except KeyError:
-            valmin = 70
+        valmin = max(
+            [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+        ) + 0.1
+        if T0 < valmin or np.isnan(T0):
+            T0 = valmin * 1.1
+
         val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
                      valmin=valmin, valmax=3000, imax=10)
     else:
@@ -745,14 +743,11 @@ def T_mix_ps(flow, s, T0=300):
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        try:
-            valmin = max(
-                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
-            ) + 0.1
-            if T0 < valmin or np.isnan(T0):
-                T0 = valmin * 1.1
-        except KeyError:
-            valmin = 70
+        valmin = max(
+            [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+        ) + 0.1
+        if T0 < valmin or np.isnan(T0):
+            T0 = valmin * 1.1
 
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
                      valmin=valmin, valmax=3000, imax=10)

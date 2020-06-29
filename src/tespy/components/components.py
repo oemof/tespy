@@ -572,7 +572,7 @@ class component:
                         '.')
                     logging.warning(msg)
 
-                elif val < data.min_val - err :
+                elif val < data.min_val - err:
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(val) + ' below minimum value (' +

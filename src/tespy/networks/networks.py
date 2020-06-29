@@ -804,6 +804,8 @@ class network:
 
         series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
+            # in case the attribution has been remapped
+            self.components[cp.label] = cp
             # read design point information of components with
             # local_offdesign activated from their respective design path
             if cp.local_offdesign is True:
@@ -1044,6 +1046,8 @@ class network:
         referenced values!
         """
         for cp in self.comps.index:
+            # in case the attribution has been remapped
+            self.components[cp.label] = cp
             if cp.local_design is False:
                 # unset variables provided in .design attribute
                 for var in cp.design:
@@ -2521,8 +2525,8 @@ class network:
                 if len(df) > 0:
                     # printout with tabulate
                     print('##### RESULTS (' + cp + ') #####')
-                    print(tabulate(df, headers='keys', tablefmt='psql',
-                                   floatfmt='.2e', showindex=False))
+                    print(tabulate(
+                        df, headers='keys', tablefmt='psql', floatfmt='.2e'))
 
         # connection properties
         df = pd.DataFrame(columns=[

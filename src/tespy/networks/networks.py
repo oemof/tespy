@@ -2581,7 +2581,7 @@ class network:
     def print_components(c, *args):
         if c.name.printout is True:
             val = float(c.name.get_attr(args[0]).val)
-            if (val < c.name.get_attr(args[0]).min_val - err  or
+            if (val < c.name.get_attr(args[0]).min_val - err or
                     val > c.name.get_attr(args[0]).max_val + err):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_var:

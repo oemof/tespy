@@ -55,6 +55,10 @@ class network:
     fluids : list
         A list of all fluids within the network container.
 
+    memorise_fluid_properties : bool
+        Activate or deactivate fluid property value memorisation. Default
+        state is activated (:code:`True`).
+
     h_range : list
         List with minimum and maximum values for enthalpy value range.
 
@@ -149,7 +153,7 @@ class network:
     >>> nw.print_results()
     """
 
-    def __init__(self, fluids, **kwargs):
+    def __init__(self, fluids, memorise_fluid_properties=True, **kwargs):
 
         # fluid list and constants
         if isinstance(fluids, list):
@@ -161,7 +165,7 @@ class network:
             raise TypeError(msg)
 
         self.set_defaults()
-        self.set_fluid_back_ends()
+        self.set_fluid_back_ends(memorise_fluid_properties)
         self.set_attr(**kwargs)
 
     def set_defaults(self):
@@ -245,7 +249,7 @@ class network:
                 str(limits[1]) + ' ' + self.SI_units[prop] + '.')
             logging.debug(msg)
 
-    def set_fluid_back_ends(self):
+    def set_fluid_back_ends(self, memorise_fluid_properties):
         """Set the fluid back ends."""
         # this must be ordered as the fluid property memorisation calls
         # the mass fractions of the different fluids as keys in a given order.
@@ -272,7 +276,7 @@ class network:
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids_backends)
+        fp.memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
 
     def set_attr(self, **kwargs):
         r"""
@@ -662,20 +666,22 @@ class network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame(index=comps, columns=['inlets', 'outlets'])
+        self.comps = pd.DataFrame(index=comps)
 
         labels = []
-        for comp in self.comps.index:
+        for comp in comps:
+            # this is required for printing and saving
+            self.comps.loc[comp, 'comp_type'] = comp.__class__.__name__
+            self.comps.loc[comp, 'label'] = comp.label
             # get for incoming and outgoing connections of a component
             sources = self.conns[self.conns['source'] == comp]
-            sources = sources['source_id'].sort_values().index
+            sources = sources['source_id'].sort_values().index.tolist()
             targets = self.conns[self.conns['target'] == comp]
-            targets = targets['target_id'].sort_values().index
-            self.comps.loc[comp] = [targets, sources]
+            targets = targets['target_id'].sort_values().index.tolist()
             # save the incoming and outgoing as well as the number of
             # connections as component attribute
-            comp.inl = targets.tolist()
-            comp.outl = sources.tolist()
+            comp.inl = targets
+            comp.outl = sources
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
@@ -892,6 +898,8 @@ class network:
 
         series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
+            # in case the attribution has been remapped
+            self.components[cp.label] = cp
             # read design point information of components with
             # local_offdesign activated from their respective design path
             if cp.local_offdesign is True:
@@ -973,17 +981,13 @@ class network:
             'source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum',
             'subsystem_interface', 'droplet_separator']
         # fetch all components, reindex with label
-        cp_sort = self.comps.copy()
-        # get class name
-        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort = cp_sort[~cp_sort['cp'].isin(not_required)]
-        cp_sort['label'] = cp_sort.apply(
-            network.get_props, axis=1, args=('label',))
-        cp_sort['comp'] = cp_sort.index
-        cp_sort.set_index('label', inplace=True)
+        df_comps = self.comps.copy()
+        df_comps['comp_obj'] = df_comps.index
+        df_comps.set_index('label', inplace=True)
+        df_comps = df_comps[~df_comps['comp_type'].isin(not_required)]
 
         # iter through unique types of components (class names)
-        for c in cp_sort['cp'].unique():
+        for c in df_comps['comp_type'].unique():
             path = hlp.modify_path_os(
                 self.design_path + '/components/' + c + '.csv')
             msg = (
@@ -999,7 +1003,7 @@ class network:
             df.set_index('label', inplace=True)
             # iter through all components of this type and set data
             for c_label in df.index:
-                comp = cp_sort.loc[c_label, 'comp']
+                comp = df_comps.loc[c_label, 'comp_obj']
                 # read data of components with individual design_path
                 if comp.design_path is not None:
                     path_c = hlp.modify_path_os(
@@ -1147,6 +1151,8 @@ class network:
         logging.debug(msg)
 
         for cp in self.comps.index:
+            # in case the attribution has been remapped
+            self.components[cp.label] = cp
             if cp.local_design is False:
                 # unset variables provided in .design attribute
                 for var in cp.design:
@@ -1213,19 +1219,19 @@ class network:
             # combustion chamber
             if isinstance(cp, combustion_chamber):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp, 'outlets']:
+                for c in cp.outl:
                     self.init_target(c, c.target)
 
             # combustion chamber
             elif isinstance(cp, water_electrolyzer):
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp, 'outlets']:
+                for c in cp.outl:
                     self.init_target(c, c.target)
 
             # other components (node, merge)
             else:
                 cp.initialise_fluids(self)
-                for c in self.comps.loc[cp, 'outlets']:
+                for c in cp.outl:
                     self.init_target(c, c.target)
 
         msg = 'Fluid initialisation done.'
@@ -1273,7 +1279,7 @@ class network:
 
         if (isinstance(c.target, splitter) or
                 isinstance(c.target, droplet_separator)):
-            for outconn in self.comps.loc[c.target, 'outlets']:
+            for outconn in c.target.outl:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1282,8 +1288,8 @@ class network:
                 self.init_target(outconn, start)
 
         if isinstance(c.target, water_electrolyzer):
-            if c == self.comps.loc[c.target, 'inlets'][0]:
-                outconn = self.comps.loc[c.target, 'outlets'][0]
+            if c == c.target.inl[0]:
+                outconn = c.target.outl[0]
 
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
@@ -1291,7 +1297,7 @@ class network:
                         outconn.fluid.val[fluid] = x
 
         if isinstance(c.target, combustion_engine):
-            for outconn in self.comps.loc[c.target, 'outlets'][:2]:
+            for outconn in c.target.outl[:2]:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1301,7 +1307,7 @@ class network:
 
         if isinstance(c.target, drum) and c.target != start:
             start = c.target
-            for outconn in self.comps.loc[c.target, 'outlets']:
+            for outconn in c.target.outl:
                 for fluid, x in c.fluid.val.items():
                     if (outconn.fluid.val_set[fluid] is False and
                             outconn.good_starting_values is False):
@@ -1350,7 +1356,7 @@ class network:
 
         if (isinstance(c.source, splitter) or
                 isinstance(c.source, droplet_separator)):
-            for inconn in self.comps.loc[c.source, 'inlets']:
+            for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1359,7 +1365,7 @@ class network:
                 self.init_source(inconn, start)
 
         if isinstance(c.source, merge):
-            for inconn in self.comps.loc[c.source, 'inlets']:
+            for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1368,7 +1374,7 @@ class network:
                 self.init_source(inconn, start)
 
         if isinstance(c.source, combustion_engine):
-            for inconn in self.comps.loc[c.source, 'inlets'][:2]:
+            for inconn in c.source.inl[:2]:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1378,7 +1384,7 @@ class network:
 
         if isinstance(c.source, drum) and c.source != start:
             start = c.source
-            for inconn in self.comps.loc[c.source, 'inlets']:
+            for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
                     if (inconn.fluid.val_set[fluid] is False and
                             inconn.good_starting_values is False):
@@ -1648,7 +1654,7 @@ class network:
 
         msg = (
             'Network properties: '
-            'number of components=' + str(len(self.comps.index)) +
+            'number of components=' + str(len(self.comps)) +
             ', number of connections=' + str(len(self.conns.index)) +
             ', number of busses=' + str(len(self.busses)))
         logging.debug(msg)
@@ -1978,7 +1984,8 @@ class network:
             if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
                 c.p.val_SI = fp.memorise.value_range[fl][0]
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
+            elif (c.p.val_SI > fp.memorise.value_range[fl][1] and
+                  not c.p.val_set):
                 c.p.val_SI = fp.memorise.value_range[fl][1]
                 logging.debug(self.property_range_message(c, 'p'))
 
@@ -2445,7 +2452,8 @@ class network:
     def postprocessing(self):
         r"""Calculate bus, component parameters and connection parameters."""
         # components
-        self.comps.apply(network.process_components, axis=1)
+        for cp in self.comps.index:
+            cp.calc_parameters()
 
         # busses
         for b in self.busses.values():
@@ -2502,25 +2510,13 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    @staticmethod
-    def process_components(cols):
-        cols.name.calc_parameters()
-
 # %% printing and plotting
 
     def print_results(self):
         r"""Print the calculations results to prompt."""
-        cp_sort = self.comps.copy()
-        # sort components by component type alphabetically
-        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
-        cp_sort['label'] = cp_sort.apply(network.get_props, axis=1,
-                                         args=('label',))
-        cp_sort.drop('inlets', axis=1, inplace=True)
-        cp_sort.drop('outlets', axis=1, inplace=True)
 
-        pd.options.mode.chained_assignment = None
-        for c in cp_sort.cp.unique():
-            df = cp_sort[cp_sort['cp'] == c]
+        for cp in self.comps['comp_type'].unique():
+            df = self.comps[self.comps['comp_type'] == cp].copy()
 
             # gather parameters to print for components of type c
             cols = []
@@ -2535,15 +2531,15 @@ class network:
                     df[col] = df.apply(
                         network.print_components, axis=1, args=(col,))
 
+                df.drop(['comp_type'], axis=1, inplace=True)
                 df.set_index('label', inplace=True)
-                df.drop('cp', axis=1, inplace=True)
-                df = df.dropna(how='all')
+                df.dropna(how='all', inplace=True)
 
                 if len(df) > 0:
                     # printout with tabulate
-                    print('##### RESULTS (' + c + ') #####')
-                    print(tabulate(df, headers='keys', tablefmt='psql',
-                                   floatfmt='.2e'))
+                    print('##### RESULTS (' + cp + ') #####')
+                    print(tabulate(
+                        df, headers='keys', tablefmt='psql', floatfmt='.2e'))
 
         # connection properties
         df = pd.DataFrame(columns=[
@@ -2579,8 +2575,7 @@ class network:
                 df['cp'] = b.comps.index
                 df['base'] = b.comps['base'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
-                df['bus value'] = df['cp'].apply(
-                    lambda x: x.calc_bus_value(b))
+                df['bus value'] = df['cp'].apply(lambda x: x.calc_bus_value(b))
                 df['efficiency'] = df['cp'].apply(
                     lambda x: x.calc_bus_efficiency(b))
                 df.loc[df['base'] == 'component', 'comp value'] = (
@@ -2599,8 +2594,8 @@ class network:
     def print_components(c, *args):
         if c.name.printout is True:
             val = float(c.name.get_attr(args[0]).val)
-            if (val < c.name.get_attr(args[0]).min_val or
-                    val > c.name.get_attr(args[0]).max_val):
+            if (val < c.name.get_attr(args[0]).min_val - err or
+                    val > c.name.get_attr(args[0]).max_val + err):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
@@ -2777,22 +2772,21 @@ class network:
         """
         busses = self.busses.values()
         # create / overwrite csv file
-        cp_sort = self.comps.copy()
-        # component type
-        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+
+        df_comps = self.comps.copy()
 
         # busses
-        cp_sort['busses'] = cp_sort.apply(
+        df_comps['busses'] = df_comps.apply(
             network.get_busses, axis=1, args=(busses,))
 
         for var in ['param', 'P_ref', 'char', 'base']:
-            cp_sort['bus_' + var] = cp_sort.apply(
+            df_comps['bus_' + var] = df_comps.apply(
                 network.get_bus_data, axis=1, args=(busses, var))
 
         pd.options.mode.chained_assignment = None
         f = network.get_props
-        for c in cp_sort.cp.unique():
-            df = cp_sort[cp_sort['cp'] == c]
+        for c in df_comps['comp_type'].unique():
+            df = df_comps[df_comps['comp_type'] == c]
 
             # basic information
             cols = ['label', 'design', 'offdesign', 'design_path',
@@ -2841,8 +2835,6 @@ class network:
                     df[col] = df.apply(f, axis=1, args=(col, 'method'))
 
             df.set_index('label', inplace=True)
-            df.drop('inlets', axis=1, inplace=True)
-            df.drop('outlets', axis=1, inplace=True)
             fn = path + c + '.csv'
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
             logging.debug(
@@ -2880,13 +2872,12 @@ class network:
             Path/filename for the file.
         """
         # components
-        cp_sort = self.comps
-        cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
+        df_comps = self.comps.copy()
 
         # characteristic lines in components
         chars = []
-        for c in cp_sort.cp.unique():
-            df = cp_sort[cp_sort['cp'] == c]
+        for c in df_comps['comp_type'].unique():
+            df = df_comps[df_comps['comp_type'] == c]
 
             for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cc):
@@ -2918,8 +2909,8 @@ class network:
 
         # characteristic maps in components
         chars = []
-        for c in cp_sort.cp.unique():
-            df = cp_sort[cp_sort['cp'] == c]
+        for c in df_comps['comp_type'].unique():
+            df = df_comps[df_comps['comp_type'] == c]
 
             for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cm):

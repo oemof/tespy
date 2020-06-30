@@ -301,11 +301,12 @@ class memorise:
     r"""Memorization of fluid properties."""
 
     @staticmethod
-    def add_fluids(fluids):
+    def add_fluids(fluids, memorise_fluid_properties=True):
         r"""
         Add list of fluids to fluid memorisation class.
 
-        - Generate arrays for fluid property lookup.
+        - Generate arrays for fluid property lookup if memorisation is
+          activated.
         - Calculate/set fluid property value ranges for convergence checks.
 
         Parameters
@@ -313,6 +314,10 @@ class memorise:
         fluids : dict
             Dict of fluid and corresponding CoolProp back end for fluid
             property memorization.
+
+        memorise_fluid_properties : bool
+            Activate or deactivate fluid property value memorisation. Default
+            state is activated (:code:`True`).
 
         Note
         ----
@@ -343,22 +348,14 @@ class memorise:
         """
         # number of fluids
         num_fl = len(fluids)
-        if num_fl > 0:
+        if memorise_fluid_properties is True and num_fl > 0:
             fl = tuple(fluids.keys())
             # fluid property tables
-            memorise.T_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.T_ps[fl] = np.empty((0, num_fl + 4), float)
-            memorise.v_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.visc_ph[fl] = np.empty((0, num_fl + 3), float)
-            memorise.s_ph[fl] = np.empty((0, num_fl + 3), float)
-            # lists for memory cache, values not in these lists will be deleted
-            # from the table after every tespy.networks.network.solve call.
-            memorise.T_ph_f[fl] = []
-            memorise.T_ps_f[fl] = []
-            memorise.v_ph_f[fl] = []
-            memorise.visc_ph_f[fl] = []
-            memorise.s_ph_f[fl] = []
-            memorise.count = 0
+            memorise.T_ph[fl] = np.empty((0, num_fl + 4), float)
+            memorise.T_ps[fl] = np.empty((0, num_fl + 5), float)
+            memorise.v_ph[fl] = np.empty((0, num_fl + 4), float)
+            memorise.visc_ph[fl] = np.empty((0, num_fl + 4), float)
+            memorise.s_ph[fl] = np.empty((0, num_fl + 4), float)
 
             msg = 'Added fluids ' + str(fl) + ' to memorise lookup tables.'
             logging.debug(msg)
@@ -458,47 +455,43 @@ class memorise:
             List of fluid for fluid property memorization.
         """
         fl = tuple(fluids)
+        threshold = 3
+        try:
+            # delete memory
+            memorise.s_ph[fl] = memorise.s_ph[fl][
+                memorise.s_ph[fl][:, -1] > threshold]
+            memorise.s_ph[fl][:, -1] = 0
 
-        # delete memory
-        mask = np.isin(memorise.T_ph[fl][:, -1], memorise.T_ph_f[fl])
-        memorise.T_ph[fl] = (memorise.T_ph[fl][mask])
+            memorise.T_ph[fl] = memorise.T_ph[fl][
+                memorise.T_ph[fl][:, -1] > threshold]
+            memorise.T_ph[fl][:, -1] = 0
 
-        mask = np.isin(memorise.T_ps[fl][:, -1], memorise.T_ps_f[fl])
-        memorise.T_ps[fl] = (memorise.T_ps[fl][mask])
+            memorise.T_ps[fl] = memorise.T_ps[fl][
+                memorise.T_ps[fl][:, -1] > threshold]
+            memorise.T_ps[fl][:, -1] = 0
 
-        mask = np.isin(memorise.v_ph[fl][:, -1], memorise.v_ph_f[fl])
-        memorise.v_ph[fl] = (memorise.v_ph[fl][mask])
+            memorise.v_ph[fl] = memorise.v_ph[fl][
+                memorise.v_ph[fl][:, -1] > threshold]
+            memorise.v_ph[fl][:, -1] = 0
 
-        mask = np.isin(memorise.visc_ph[fl][:, -1], memorise.visc_ph_f[fl])
-        memorise.visc_ph[fl] = (memorise.visc_ph[fl][mask])
+            memorise.visc_ph[fl] = memorise.visc_ph[fl][
+                memorise.visc_ph[fl][:, -1] > threshold]
+            memorise.visc_ph[fl][:, -1] = 0
 
-        mask = np.isin(memorise.s_ph[fl][:, -1], memorise.s_ph_f[fl])
-        memorise.s_ph[fl] = (memorise.s_ph[fl][mask])
-
-        # refresh cache
-        memorise.T_ph_f[fl] = []
-        memorise.T_ps_f[fl] = []
-        memorise.v_ph_f[fl] = []
-        memorise.visc_ph_f[fl] = []
-        memorise.s_ph_f[fl] = []
-
-        msg = ('Dropping not frequently used fluid property values from '
-               'memorise class for fluids ' + str(fl) + '.')
-        logging.debug(msg)
+            msg = ('Dropping not frequently used fluid property values from '
+                   'memorise class for fluids ' + str(fl) + '.')
+            logging.debug(msg)
+        except KeyError:
+            pass
 
 
 # create memorise dictionaries
 memorise.state = {}
 memorise.T_ph = {}
-memorise.T_ph_f = {}
 memorise.T_ps = {}
-memorise.T_ps_f = {}
 memorise.v_ph = {}
-memorise.v_ph_f = {}
 memorise.visc_ph = {}
-memorise.visc_ph_f = {}
 memorise.s_ph = {}
-memorise.s_ph_f = {}
 memorise.value_range = {}
 
 # %%
@@ -539,28 +532,25 @@ def T_mix_ph(flow, T0=300):
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.T_ph.keys()
     if memorisation is True:
-        a = memorise.T_ph[fl][:, :-1]
+        a = memorise.T_ph[fl][:, :-2]
         b = np.array([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
 
         if ix.size == 1:
             # known fluid properties
-            T = memorise.T_ph[fl][ix, -1][0]
-            memorise.T_ph_f[fl] += [T]
-            return T
+            memorise.T_ph[fl][ix, -1] += 1
+            return memorise.T_ph[fl][ix, -2][0]
 
     # unknown fluid properties
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if memorisation is True:
-            valmin = max(
-                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
-            ) + 0.1
-            if T0 < valmin or np.isnan(T0):
-                T0 = valmin * 1.1
-        else:
-            valmin = 70
+        valmin = max(
+            [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+        ) + 0.1
+        if T0 < valmin or np.isnan(T0):
+            T0 = valmin * 1.1
+
         val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
                      valmin=valmin, valmax=3000, imax=10)
     else:
@@ -569,7 +559,8 @@ def T_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.T_ph[fl] = np.append(memorise.T_ph[fl], new, axis=0)
 
     return val
@@ -740,27 +731,23 @@ def T_mix_ps(flow, s, T0=300):
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.T_ps.keys()
     if memorisation is True:
-        a = memorise.T_ps[fl][:, :-1]
+        a = memorise.T_ps[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
-            T = memorise.T_ps[fl][ix, -1][0]
-            memorise.T_ps_f[fl] += [T]
-            return T
+            memorise.T_ps[fl][ix, -1] += 1
+            return memorise.T_ps[fl][ix, -2][0]
 
     # unknown fluid properties
     fluid = single_fluid(flow[3])
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
-        if memorisation is True:
-            valmin = max(
-                [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
-            ) + 0.1
-            if T0 < valmin or np.isnan(T0):
-                T0 = valmin * 1.1
-        else:
-            valmin = 70
+        valmin = max(
+            [memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+        ) + 0.1
+        if T0 < valmin or np.isnan(T0):
+            T0 = valmin * 1.1
 
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
                      valmin=valmin, valmax=3000, imax=10)
@@ -771,7 +758,7 @@ def T_mix_ps(flow, s, T0=300):
 
     if memorisation is True:
         new = np.asarray(
-            [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
+            [[flow[1], flow[2]] + list(flow[3].values()) + [s, val, 0]])
         # memorise the newly calculated value
         memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
 
@@ -1133,14 +1120,13 @@ def v_mix_ph(flow, T0=300):
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.v_ph.keys()
     if memorisation is True:
-        a = memorise.v_ph[fl][:, :-1]
+        a = memorise.v_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
-            v = memorise.v_ph[fl][ix, -1][0]
-            memorise.v_ph_f[fl] += [v]
-            return v
+            memorise.v_ph[fl][ix, -1] += 1
+            return memorise.v_ph[fl][ix, -2][0]
 
     # unknown fluid properties
     fluid = single_fluid(flow[3])
@@ -1153,7 +1139,8 @@ def v_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.v_ph[fl] = np.append(memorise.v_ph[fl], new, axis=0)
 
     return val
@@ -1407,14 +1394,13 @@ def visc_mix_ph(flow, T0=300):
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.visc_ph.keys()
     if memorisation is True:
-        a = memorise.visc_ph[fl][:, :-1]
+        a = memorise.visc_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
-            visc = memorise.visc_ph[fl][ix, -1][0]
-            memorise.visc_ph_f[fl] += [visc]
-            return visc
+            memorise.visc_ph[fl][ix, -1] += 1
+            return memorise.visc_ph[fl][ix, -2][0]
 
     # unknown fluid properties
     fluid = single_fluid(flow[3])
@@ -1427,7 +1413,8 @@ def visc_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.visc_ph[fl] = np.append(memorise.visc_ph[fl], new, axis=0)
     return val
 
@@ -1569,14 +1556,13 @@ def s_mix_ph(flow, T0=300):
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.s_ph.keys()
     if memorisation is True:
-        a = memorise.s_ph[fl][:, :-1]
+        a = memorise.s_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
         if ix.size == 1:
             # known fluid properties
-            s = memorise.s_ph[fl][ix, -1][0]
-            memorise.s_ph_f[fl] += [s]
-            return s
+            memorise.s_ph[fl][ix, -1] += 1
+            return memorise.s_ph[fl][ix, -2][0]
 
     # unknown fluid properties
     fluid = single_fluid(flow[3])
@@ -1589,7 +1575,8 @@ def s_mix_ph(flow, T0=300):
 
     if memorisation is True:
         # memorise the newly calculated value
-        new = np.asarray([[flow[1], flow[2]] + list(flow[3].values()) + [val]])
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
         memorise.s_ph[fl] = np.append(memorise.s_ph[fl], new, axis=0)
 
     return val

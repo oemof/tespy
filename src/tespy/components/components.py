@@ -27,6 +27,7 @@ from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_gcp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.global_vars import err
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton
@@ -563,7 +564,7 @@ class component:
         for p, data in self.variables.items():
             if isinstance(data, dc_cp):
                 val = self.get_attr(p).val
-                if round(val, 6) > data.max_val:
+                if val > data.max_val + err:
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(val) + ' above maximum value (' +
@@ -571,7 +572,7 @@ class component:
                         '.')
                     logging.warning(msg)
 
-                elif round(val, 6) < data.min_val:
+                elif val < data.min_val - err:
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(val) + ' below minimum value (' +

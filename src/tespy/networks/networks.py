@@ -1984,7 +1984,8 @@ class network:
             if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
                 c.p.val_SI = fp.memorise.value_range[fl][0]
                 logging.debug(self.property_range_message(c, 'p'))
-            if c.p.val_SI > fp.memorise.value_range[fl][1] and not c.p.val_set:
+            elif (c.p.val_SI > fp.memorise.value_range[fl][1] and
+                  not c.p.val_set):
                 c.p.val_SI = fp.memorise.value_range[fl][1]
                 logging.debug(self.property_range_message(c, 'p'))
 

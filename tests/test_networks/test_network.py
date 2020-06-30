@@ -25,6 +25,13 @@ from tespy.connections import connection
 from tespy.networks.network_reader import load_network
 from tespy.networks.networks import network
 from tespy.tools.helpers import TESPyNetworkError
+import logging
+
+
+def convergence_check(lin_dep):
+    """Check convergence status of a simulation."""
+    msg = 'Calculation did not converge!'
+    assert lin_dep is False, msg
 
 
 class TestNetworks:
@@ -295,15 +302,18 @@ class TestNetworkIndividualOffdesign:
         """Test individual design path specification."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('design1')
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
 
-        self.sc2_v2.set_attr(T=95, m=np.nan)
-        self.sc1_v1.set_attr(T=np.nan, m=0.001)
+        self.sc2_v2.set_attr(T=95, state='l', m=None)
+        self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('design2')
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
@@ -318,11 +328,13 @@ class TestNetworkIndividualOffdesign:
         self.p2_sc2.set_attr(design_path='design2')
         self.sc2_v2.set_attr(design_path='design2')
         self.nw.solve('offdesign', design_path='design1')
+        convergence_check(self.nw.lin_dep)
 
         self.sc1.set_attr(E=500)
         self.sc2.set_attr(E=950)
 
         self.nw.solve('offdesign', design_path='design1')
+        convergence_check(self.nw.lin_dep)
         self.sc2_v2.set_attr(design_path=np.nan)
 
         # volumetric flow comparison
@@ -346,6 +358,7 @@ class TestNetworkIndividualOffdesign:
 
         msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
                str(self.sc2.zeta.val) + '.')
+        logging.info(str(zeta_sc2_design) + ' ' + str(self.sc2.zeta.val))
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
         shutil.rmtree('./design1', ignore_errors=True)
@@ -355,8 +368,10 @@ class TestNetworkIndividualOffdesign:
         """Test local offdesign feature."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('design1')
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -371,6 +386,7 @@ class TestNetworkIndividualOffdesign:
 
         self.sc2_v2.set_attr(T=95, m=np.nan)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('design2')
 
         # connections and components on side 1 must have switched to offdesign
@@ -394,8 +410,10 @@ class TestNetworkIndividualOffdesign:
         """Test missing design path on connections in local offdesign mode."""
         self.setup_network_individual_offdesign()
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         self.nw.save('design1')
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')

@@ -25,7 +25,6 @@ from tespy.connections import connection
 from tespy.networks.network_reader import load_network
 from tespy.networks.networks import network
 from tespy.tools.helpers import TESPyNetworkError
-import logging
 
 
 def convergence_check(lin_dep):
@@ -358,7 +357,6 @@ class TestNetworkIndividualOffdesign:
 
         msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
                str(self.sc2.zeta.val) + '.')
-        logging.info(str(zeta_sc2_design) + ' ' + str(self.sc2.zeta.val))
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
         shutil.rmtree('./design1', ignore_errors=True)

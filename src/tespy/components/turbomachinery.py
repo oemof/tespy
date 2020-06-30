@@ -473,7 +473,7 @@ class compressor(turbomachine):
 
             if self.char_warnings is True:
                 msg = ('Created characteristic map for parameter char_map '
-                       ' at component ' + self.label + ' from default data.\n'
+                       'at component ' + self.label + ' from default data.\n'
                        'You can specify your own data using component.char_map'
                        '.set_attr(func=custom_char).\n'
                        'If you want to disable these warnings use '

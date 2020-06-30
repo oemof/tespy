@@ -319,7 +319,7 @@ class heat_exchanger_simple(component):
                 'in the calculation. If you want to use the value adaption of '
                 'kA by the characteristic line, please use kA_char as '
                 'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.3.2.')
+                'warning will disappear in TESPy version 0.4.0.')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
@@ -1828,7 +1828,7 @@ class heat_exchanger(component):
                 'in the calculation. If you want to use the value adaption of '
                 'kA by the characteristic line, please use kA_char as '
                 'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.3.2.')
+                'warning will disappear in TESPy version 0.4.0.')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
@@ -2705,7 +2705,7 @@ class condenser(heat_exchanger):
                 'in the calculation. If you want to use the value adaption of '
                 'kA by the characteristic line, please use kA_char as '
                 'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.3.2.')
+                'warning will disappear in TESPy version 0.4.0.')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((
@@ -3073,7 +3073,7 @@ class desuperheater(heat_exchanger):
                 'in the calculation. If you want to use the value adaption of '
                 'kA by the characteristic line, please use kA_char as '
                 'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.3.2.')
+                'warning will disappear in TESPy version 0.4.0.')
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
         self.jacobian = np.zeros((

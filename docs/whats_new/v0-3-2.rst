@@ -1,26 +1,47 @@
-v0.3.2 - Someversion (Somedate)
-+++++++++++++++++++++++++++++++
+v0.3.2 - Carnot's Colors (June, 10, 2020)
++++++++++++++++++++++++++++++++++++++++++
 
-New Features
+New features
 ############
+- Colored printouts are available in the :code:`print_results()` method of the
+  network class. There are three different color codes available with default
+  settings:
 
-Documentation
-#############
+  - user specified parameters (:code:`'set'`, blue)
+  - component parameters specified as variables (:code:`'var'`, green)
+  - faulty parameters (:code:`'err'`, red)
 
-Parameter renaming
-##################
+  In order to change the colors, simply import :code:`coloring` from the
+  :py:mod:`tespy.tools.global_vars` module and adjust the escape codes. For
+  example, to reset all colors to white text:
 
-Testing
-#######
+  .. code-block:: python
+
+        from tespy.tools.global_vars import coloring
+        coloring['set'] = '\033[0m'
+        coloring['err'] = '\033[0m'
+        coloring['var'] = '\033[0m'
+
+  See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_ for a
+  list of available codes
+  (`PR #205 <https://github.com/oemof/tespy/pull/205>`_).
 
 Bug fixes
 #########
-
-Other changes
-#############
-- Reorder network initialisation process for improved maintenance and faster
-  performance (`PR #204 <https://github.com/oemof/tespy/pull/204>`_).
+- Readd method for :code:`T_mix_ps` calculation for pure fluids: In case the
+  fluid propagation did not go through (e.g. due to availability of good
+  starting values) the fluid composition at a turbomachine's inlet and outlet
+  may not be equal (`PR #207 <https://github.com/oemof/tespy/pull/207>`_).
+- Fix the calculation of mixture density: The density is calculated as sum of
+  the densities of the mixture components at their respective partial pressure
+  and the mixture temperature
+  (`PR #207 <https://github.com/oemof/tespy/pull/207>`_). With the old method,
+  the specific volume was calculated according to Amagat's law, which produced
+  incorrect values if one or more components of the mixture were liquid at the
+  mixture's temperature and pressure. See discussion about humid air propreties
+  here: `Issue #206 <https://github.com/oemof/tespy/issues/206>`_.
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jbueck <https://github.com/jbueck>`_

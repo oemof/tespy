@@ -42,6 +42,7 @@ from tespy.components.reactors import water_electrolyzer
 from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
+from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
 
 
@@ -2554,7 +2555,18 @@ class network:
             if c.printout is True:
                 row = (c.source.label + ':' + c.source_id + ' -> ' +
                        c.target.label + ':' + c.target_id)
-                df.loc[row] = ([c.m.val, c.p.val, c.h.val, c.T.val])
+
+                row_data = []
+                for var in ['m', 'p', 'h', 'T']:
+                    if c.get_attr(var).val_set is True:
+                        row_data += [
+                            coloring['set'] + str(c.get_attr(var).val) +
+                            coloring['end']
+                        ]
+                    else:
+                        row_data += [str(c.get_attr(var).val)]
+
+                df.loc[row] = row_data
         if len(df) > 0:
             print('##### RESULTS (connections) #####')
             print(
@@ -2586,7 +2598,15 @@ class network:
 
     def print_components(c, *args):
         if c.name.printout is True:
-            return c.name.get_attr(args[0]).val
+            val = float(c.name.get_attr(args[0]).val)
+            if (val < c.name.get_attr(args[0]).min_val or
+                    val > c.name.get_attr(args[0]).max_val):
+                return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
+            if c.name.get_attr(args[0]).is_var:
+                return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
+            if c.name.get_attr(args[0]).is_set:
+                return coloring['set'] + ' ' + str(val) + ' ' + coloring['end']
+            return str(val)
         else:
             return np.nan
 

@@ -114,19 +114,16 @@ class tespy_fluid:
     0.0
 
     >>> v_tespy = v_mix_pT(fluid_props, T2)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> v = v_mix_pT(fluid_props_CP, T2)
     >>> round(abs(v_tespy - v) / v, 2)
     0.0
 
     >>> s_tespy = s_mix_pT(fluid_props, T2) - s_mix_pT(fluid_props, T1)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> s = s_mix_pT(fluid_props_CP, T2) - s_mix_pT(fluid_props_CP, T1)
     >>> round(abs(s_tespy - s) / s, 2)
     0.0
 
     >>> visc_tespy = visc_mix_pT(fluid_props, T2)
-    >>> fluid_props_CP = [0, p, 0, {'air': 1}]
     >>> visc = visc_mix_pT(fluid_props_CP, T2)
     >>> round(abs(visc_tespy - visc) / visc, 2)
     0.0
@@ -767,67 +764,46 @@ def T_mix_ps(flow, s, T0=300):
 
         val = newton(s_mix_pT, ds_mix_pdT, flow, s, val0=T0,
                      valmin=valmin, valmax=3000, imax=10)
-        if memorisation is True:
-            new = np.asarray(
-                [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
-            # memorise the newly calculated value
-            memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
 
-        return val
     else:
         # calculate fluid property for pure fluids
-        msg = ('The calculation of temperature from pressure and entropy '
-               'for pure fluids should not be required, as the '
-               'calculation is always possible from pressure and '
-               'enthalpy. If there is a case, where you need to calculate '
-               'temperature from these properties, please inform us: '
-               'https://github.com/oemof/tespy.')
-        logging.error(msg)
-        raise ValueError(msg)
+        val = T_ps(flow[1], s, fluid)
 
-# %% deprecated
-#            for fluid, x in flow[3].items():
-#                if x > err:
-#                    val = T_ps(flow[1], s, fluid)
-#                    new = np.array([[flow[1], flow[2]] +
-#                                   list(flow[3].values()) + [s, val]])
-#                    # memorise the newly calculated value
-#                    memorise.T_ps[fl] = np.append(memorise.T_ps[fl],
-#                                                  new, axis=0)
-#                    return val
-#
-#
-# def T_ps(p, s, fluid):
-#     r"""
-#     Calculate the temperature from pressure and entropy for a pure fluid.
-#
-#     Parameters
-#     ----------
-#     p : float
-#        Pressure p / Pa.
-#
-#     s : float
-#        Specific entropy h / (J/(kgK)).
-#
-#     fluid : str
-#        Fluid name.
-#
-#     Returns
-#     -------
-#     T : float
-#        Temperature T / K.
-#     """
-#     if 'IDGAS::' in fluid:
-#         msg = 'Ideal gas calculation not available by now.'
-#         logging.warning(msg)
-#     if 'TESPy::' in fluid:
-#         db = tespy_fluid.fluids[fluid].funcs['s_pT']
-#         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
-#     elif 'INCOMP::' in fluid:
-#         return CPPSI('T', 'P', p, 'H', s, fluid)
-#     else:
-#         memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
-#         return memorise.state[fluid].T()
+    if memorisation is True:
+        new = np.asarray(
+            [[flow[1], flow[2]] + list(flow[3].values()) + [s, val]])
+        # memorise the newly calculated value
+        memorise.T_ps[fl] = np.append(memorise.T_ps[fl], new, axis=0)
+
+    return val
+
+
+def T_ps(p, s, fluid):
+    r"""
+    Calculate the temperature from pressure and entropy for a pure fluid.
+
+    Parameters
+    ----------
+    p : float
+       Pressure p / Pa.
+
+    s : float
+       Specific entropy h / (J/(kgK)).
+
+    fluid : str
+       Fluid name.
+
+    Returns
+    -------
+    T : float
+       Temperature T / K.
+    """
+    if fluid in tespy_fluid.fluids.keys():
+        db = tespy_fluid.fluids[fluid].funcs['s_pT']
+        return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
+    else:
+        memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+        return memorise.state[fluid].T()
 
 # %%
 
@@ -1327,14 +1303,19 @@ def v_mix_pT(flow, T):
 
     .. math::
 
-        v_{mix}(p,T)=\sum_{i} \frac{x_i}{\rho(p, T, fluid_{i})}
+        v_{mix}(p,T)=\frac{1}{\sum_{i} \rho(pp_{i}, T, fluid_{i})}\;
+        \forall i \in \text{fluid components}\\
+        pp: \text{partial pressure}
     """
-    v = 0
+    n = molar_mass_flow(flow[3])
+
+    d = 0
     for fluid, x in flow[3].items():
         if x > err:
-            v += x / d_pT(flow[1], T, fluid)
+            ni = x / molar_masses[fluid]
+            d += d_pT(flow[1] * ni / n, T, fluid)
 
-    return v
+    return 1 / d
 
 
 def d_mix_pT(flow, T):

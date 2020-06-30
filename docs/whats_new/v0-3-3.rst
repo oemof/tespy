@@ -31,6 +31,14 @@ New Features
 
   (`PR #211 <https://github.com/oemof/tespy/pull/211>`_).
 
+<<<<<<< HEAD
+=======
+Other Changes
+#############
+- Reorder network initialisation process for improved maintenance and faster
+  performance (`PR #204 <https://github.com/oemof/tespy/pull/204>`_).
+
+>>>>>>> dev
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

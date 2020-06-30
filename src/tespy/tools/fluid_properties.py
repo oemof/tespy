@@ -456,33 +456,30 @@ class memorise:
         """
         fl = tuple(fluids)
         threshold = 3
-        try:
-            # delete memory
-            memorise.s_ph[fl] = memorise.s_ph[fl][
-                memorise.s_ph[fl][:, -1] > threshold]
-            memorise.s_ph[fl][:, -1] = 0
+        # delete memory
+        memorise.s_ph[fl] = memorise.s_ph[fl][
+            memorise.s_ph[fl][:, -1] > threshold]
+        memorise.s_ph[fl][:, -1] = 0
 
-            memorise.T_ph[fl] = memorise.T_ph[fl][
-                memorise.T_ph[fl][:, -1] > threshold]
-            memorise.T_ph[fl][:, -1] = 0
+        memorise.T_ph[fl] = memorise.T_ph[fl][
+            memorise.T_ph[fl][:, -1] > threshold]
+        memorise.T_ph[fl][:, -1] = 0
 
-            memorise.T_ps[fl] = memorise.T_ps[fl][
-                memorise.T_ps[fl][:, -1] > threshold]
-            memorise.T_ps[fl][:, -1] = 0
+        memorise.T_ps[fl] = memorise.T_ps[fl][
+            memorise.T_ps[fl][:, -1] > threshold]
+        memorise.T_ps[fl][:, -1] = 0
 
-            memorise.v_ph[fl] = memorise.v_ph[fl][
-                memorise.v_ph[fl][:, -1] > threshold]
-            memorise.v_ph[fl][:, -1] = 0
+        memorise.v_ph[fl] = memorise.v_ph[fl][
+            memorise.v_ph[fl][:, -1] > threshold]
+        memorise.v_ph[fl][:, -1] = 0
 
-            memorise.visc_ph[fl] = memorise.visc_ph[fl][
-                memorise.visc_ph[fl][:, -1] > threshold]
-            memorise.visc_ph[fl][:, -1] = 0
+        memorise.visc_ph[fl] = memorise.visc_ph[fl][
+            memorise.visc_ph[fl][:, -1] > threshold]
+        memorise.visc_ph[fl][:, -1] = 0
 
-            msg = ('Dropping not frequently used fluid property values from '
-                   'memorise class for fluids ' + str(fl) + '.')
-            logging.debug(msg)
-        except KeyError:
-            pass
+        msg = ('Dropping not frequently used fluid property values from '
+               'memorise class for fluids ' + str(fl) + '.')
+        logging.debug(msg)
 
 
 # create memorise dictionaries

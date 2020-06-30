@@ -732,7 +732,7 @@ class bus:
     array([0., 3.])
     >>> heat_bus.comps.loc[fgc]['char'].y
     array([-1., -1.])
-    >>> round(chp.ti.val)
+    >>> round(chp.ti.val, 0)
     25813247.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)
     8896898.0
@@ -745,7 +745,7 @@ class bus:
     >>> power_bus.set_attr(P=7.5e6)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
-    >>> round(chp.ti.val)
+    >>> round(chp.ti.val, 0)
     21187528.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761

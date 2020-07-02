@@ -1437,24 +1437,25 @@ class network:
                         'connections.csv of init_path ' + self.init_path + '.')
                     logging.debug(msg)
 
-            for key in ['m', 'p', 'h', 'T']:
-                if key != 'T':
-                    if c.good_starting_values is False:
-                        self.init_val0(c, key)
-                    if c.get_attr(key).val_set is False:
-                        c.get_attr(key).val_SI = self.convert_to_SI(
-                            key, c.get_attr(key).val0, c.get_attr(key).unit)
-
-                if (c.get_attr(key).ref_set and
-                        c.get_attr(key).val_set is False):
-                    c.get_attr(key).val_SI = (
-                            c.get_attr(key).ref.obj.get_attr(key).val_SI *
-                            c.get_attr(key).ref.f + c.get_attr(key).ref.d)
-
-            if c.good_starting_values is False:
-                self.init_precalc_properties(c)
+            for key in ['m', 'p', 'h']:
+                if c.good_starting_values is False:
+                    self.init_val0(c, key)
+                if c.get_attr(key).val_set is False:
+                    c.get_attr(key).val_SI = self.convert_to_SI(
+                        key, c.get_attr(key).val0, c.get_attr(key).unit)
 
             self.init_count_connections_parameters(c)
+
+        for c in self.conns.index:
+            if c.good_starting_values is False:
+                for key in ['m', 'p', 'h', 'T']:
+                    if (c.get_attr(key).ref_set and
+                            c.get_attr(key).val_set is False):
+                        c.get_attr(key).val_SI = (
+                                c.get_attr(key).ref.obj.get_attr(key).val_SI *
+                                c.get_attr(key).ref.f + c.get_attr(key).ref.d)
+
+                self.init_precalc_properties(c)
 
         msg = 'Generic fluid property specification complete.'
         logging.debug(msg)

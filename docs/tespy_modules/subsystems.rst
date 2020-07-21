@@ -52,6 +52,7 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
     from tespy.components import subsystem, heat_exchanger, drum
     from tespy.connections import connection
 
+
     class waste_heat_steam_generator(subsystem):
         """Class documentation"""
 
@@ -64,18 +65,18 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
         def create_conns(self):
             """Define the subsystem's connections."""
-            self.conns['eco_dr'] = connection(self.comps['eco'], 'out2',
-                                              self.comps['drum'], 'in1')
-            self.conns['dr_eva'] = connection(self.comps['drum'], 'out1',
-                                              self.comps['eva'], 'in2')
-            self.conns['eva_dr'] = connection(self.comps['eva'], 'out2',
-                                              self.comps['drum'], 'in2')
-            self.conns['dr_sup'] = connection(self.comps['drum'], 'out2',
-                                              self.comps['sup'], 'in2')
-            self.conns['sup_eva'] = connection(self.comps['sup'], 'out1',
-                                               self.comps['eva'], 'in1')
-            self.conns['eva_eco'] = connection(self.comps['eva'], 'out1',
-                                               self.comps['eco'], 'in1')
+            self.conns['eco_dr'] = connection(
+                self.comps['eco'], 'out2', self.comps['drum'], 'in1')
+            self.conns['dr_eva'] = connection(
+                self.comps['drum'], 'out1', self.comps['eva'], 'in2')
+            self.conns['eva_dr'] = connection(
+                self.comps['eva'], 'out2', self.comps['drum'], 'in2')
+            self.conns['dr_sup'] = connection(
+                self.comps['drum'], 'out2', self.comps['sup'], 'in2')
+            self.conns['sup_eva'] = connection(
+                self.comps['sup'], 'out1', self.comps['eva'], 'in1')
+            self.conns['eva_eco'] = connection(
+                self.comps['eva'], 'out1', self.comps['eco'], 'in1')
 
 Import your subsystem
 ^^^^^^^^^^^^^^^^^^^^^
@@ -131,16 +132,18 @@ within the same folder as your script.
 
     # %% component parameters
 
-    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97, ttd_u=25,
+    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97,
                              design=['pr1', 'pr2', 'ttd_u'],
-                             offdesign=['zeta1', 'zeta2', 'kA'])
+                             offdesign=['zeta1', 'zeta2', 'kA_char'])
 
     sg.comps['eva'].set_attr(pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
-                             offdesign=['zeta1', 'kA'])
+                             offdesign=['zeta1', 'kA_char'])
 
     sg.comps['sup'].set_attr(pr1=0.999,  pr2=0.99, ttd_u=50,
                              design=['pr1', 'pr2', 'ttd_u'],
-                             offdesign=['zeta1', 'zeta2', 'kA'])
+                             offdesign=['zeta1', 'zeta2', 'kA_char'])
+
+    sg.conns['eco_dr'].set_attr(Td_bp=-5, design=['Td_bp'])
 
     # %% solve
 

@@ -395,8 +395,8 @@ def construct_comps(c, *args):
     instance : tespy.components.components.component
         TESPy component object.
     """
-    target_class = comp_target_classes[c.cp]
-    instance = target_class(c.label)
+    target_class = comp_target_classes[c['comp_type']]
+    instance = target_class(c['label'])
     kwargs = {}
 
     # basic properties

@@ -1,0 +1,41 @@
+v0.3.3 - Maxwell’s Memory (July, 21, 2020)
+++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- In some cases - especially large networks and many simulation runs within a
+  a single script - the fluid property memorisation added a lot of calculation
+  time for searching through the lookup tables of previously calculated fluid
+  property values. It is now possible to manually specify whether or not the
+  fluid property memorisation is performed.
+
+  The memorisation benefits
+
+  - networks using gaseous mixtures and
+  - smaller networks using the HEOS back end.
+
+  The memorisation slows down
+
+  - very large networks and
+  - usage of tabular back ends (BICUBIC or TTSE).
+
+  In order to deactivate memorisation, add
+  :code:`memorise_fluid_properties=False` on network creation, for example:
+
+  .. code-block:: python
+
+      from tespy.networks import network
+
+      mynetwork = network(
+          fluids=['BICUBIC::water'], memorise_fluid_properties=False)
+
+  (`PR #211 <https://github.com/oemof/tespy/pull/211>`_).
+
+Other Changes
+#############
+- Reorder network initialisation process for improved maintenance and faster
+  performance (`PR #204 <https://github.com/oemof/tespy/pull/204>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

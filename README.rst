@@ -41,11 +41,11 @@ https://guides.github.com/activities/hello-world/
     :target: https://readthedocs.org/projects/tespy
     :alt: Documentation Status
 
-.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=dev
+.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=master
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/oemof/tespy
 
-.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=dev&service=github
+.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=master&service=github
     :alt: Coverage Status
     :target: https://coveralls.io/r/oemof/tespy
 

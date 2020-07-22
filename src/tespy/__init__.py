@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.3.3 - Maxwell\'s Memory'
+__version__ = '0.3.4 - dev'
 
 # tespy data and connection import
 from . import connections  # noqa: F401

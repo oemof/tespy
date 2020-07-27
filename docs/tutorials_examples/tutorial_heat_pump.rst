@@ -337,17 +337,18 @@ pressure between superheater and first compressor will be a result of the
 pressure losses in the superheater and we set the terminal temperature
 difference there, bad starting values will lead to a linear dependency, as a
 temperature and a pressure are set while the fluid's state could be within the
-two phase region. Thus, we set starting values for pressure and for enthalpy at
-this connection, to make sure the starting point is outside of the two phase
-region. At last we have to fully determine the state of the incoming fluid at
-the superheater's hot side.
+two phase region. Thus, we set starting values for pressure the fluid's state
+at this connection. By specifying :code:`state='g'` the solver will keep the
+fluid in gaseous state at all times. Therefore we should only use this keyword
+if we know the fluid's state prior to simulation. At last we have to fully
+determine the state of the incoming fluid at the superheater's hot side.
 
 .. code-block:: python
 
     # evaporator system cold side
 
     pu_ev.set_attr(m=ref(va_dr, 4, 0), p0=5)
-    su_cp1.set_attr(p0=5, h0=1700)
+    su_cp1.set_attr(p0=5, state='g')
 
     # evaporator system hot side
 

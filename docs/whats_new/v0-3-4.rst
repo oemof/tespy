@@ -6,7 +6,7 @@ Documentation
 - Replace enthalpy starting value with :code:`state` keyword in the
   :ref:`heat pump tutorial<heat_pump_tutorial_label>` and the examples from the
   oemof_examples repository
-  (`PR #213 <https://github.com/oemof/tespy/pull/213>`_,
+  (`PR #214 <https://github.com/oemof/tespy/pull/214>`_,
   `743bfeb <https://github.com/oemof/oemof-examples/commit/743bfeb>`_).
 
 Other Changes

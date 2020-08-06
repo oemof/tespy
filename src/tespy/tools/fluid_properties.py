@@ -1730,7 +1730,7 @@ def ds_mix_pdT(flow, T):
     d = 0.1
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
-#%%
+# %%
 
 
 def calc_physical_exergy(conn, pamb, Tamb):
@@ -1752,8 +1752,8 @@ def calc_physical_exergy(conn, pamb, Tamb):
 
         .. math::
 
-            ex_{ph} = (h - h(p_{amb}, T_{amb}) -
-            T_{amb} \cdot (s - s(p_{amb}, T_{amb})
+            ex_{ph} = (h - h(p_{amb}, T_{amb})) -
+            T_{amb} \cdot (s - s(p_{amb}, T_{amb}))
     """
     hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
     samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)

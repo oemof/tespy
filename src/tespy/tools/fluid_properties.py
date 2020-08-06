@@ -1729,3 +1729,32 @@ def ds_mix_pdT(flow, T):
     """
     d = 0.1
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
+
+#%%
+
+
+def calc_physical_exergy(conn, pamb, Tamb):
+    r"""
+    Calculate specific physical exergy.
+
+    Parameters
+    ----------
+    conn : tespy.connections.connection
+        Connection to calculate specific physical exergy for.
+
+    pamb : float
+        Ambient pressure pamb / Pa.
+
+    Returns
+    -------
+    ex_ph : float
+        Specific physical exergy ex_ph / (J/kg).
+
+        .. math::
+
+            ex_{ph} = (h - h(p_{amb}, T_{amb}) -
+            T_{amb} \cdot (s - s(p_{amb}, T_{amb})
+    """
+    hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
+    samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
+    return (conn.h.val_SI - hamb) - Tamb*(conn.s.val_SI - samb)

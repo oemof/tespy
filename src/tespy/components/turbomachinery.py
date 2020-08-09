@@ -1269,6 +1269,20 @@ class pump(turbomachine):
 
         self.check_parameter_bounds()
 
+    def exergy_balance(self):
+        r"""
+        Perform exergy balance of a pump.
+
+            .. math::
+
+                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
+                Ex_{input} = P
+                Ex_{loss} = 0
+        """
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.Ex_input = self.P.val
+        self.Ex_loss = 0
+
 # %%
 
 
@@ -1724,3 +1738,22 @@ class turbine(turbomachine):
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self):
+        r"""
+        Perform exergy balance of a turbine.
+
+            .. math::
+
+                Ex_{output} = P
+                Ex_{input} = \dot{m}_{in} \cdot (ex_{ph,in} - ex_{ph,out})
+                Ex_{loss} = 0
+
+        Note
+        ----
+        Exergy destruction is always positive. Therefore, the output power
+        value needs to be multiplied by -1.
+        """
+        self.Ex_output = self.P.val*-1
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_loss = 0

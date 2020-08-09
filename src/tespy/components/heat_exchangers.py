@@ -873,13 +873,17 @@ class heat_exchanger_simple(component):
 
             .. math::
 
-                T_m = \frac{T_{ein} - T_{aus}}{\ln\left({\frac{T_{ein}}{T_{aus}}}\right)}
+                T_m = \frac{T_{ein} - T_{aus}}{\ln\left({\frac{T_{ein}}
+                                                         {T_{aus}}}\right)}
                 Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
-                Ex_{input} = \left(1 - \frac{T_{amb}}{T_m}\right) \cdot \dot{Q}
+                Ex_{input} = \left(1 - \frac{T_{amb}}
+                                   {T_m}\right) \cdot \dot{Q}
                 Ex_{loss} = 0
         """
-        Tm = (self.inl[0].T.val_SI - self.outl[0].T.val_SI) / (np.log(self.inl[0].T.val_SI / self.outl[0].T.val_SI))
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
+        Tm = (self.inl[0].T.val_SI - self.outl[0].T.val_SI) / (
+            np.log(self.inl[0].T.val_SI / self.outl[0].T.val_SI))
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
+                                                 - self.inl[0].ex_physical)
         self.Ex_input = (1 - (Tamb / Tm)) * self.Q.val
         self.Ex_loss = 0
 
@@ -1279,7 +1283,6 @@ class parabolic_trough(heat_exchanger_simple):
 
         self.check_parameter_bounds()
 
-
     def exergy_balance(self, Tamb):
         r"""
         Perform exergy balance of a parabolic trough.
@@ -1290,12 +1293,15 @@ class parabolic_trough(heat_exchanger_simple):
             .. math::
 
                 Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
-                Ex_{input} = \dot{Q}_{sol} \cdot \left(1 - \frac{4}{3} \frac{T_{amb}}{T_{sun}}\right)
+                Ex_{input} = \dot{Q}_{sol} \cdot \left(1 - \frac{4}
+                                                       {3} \frac{T_{amb}}
+                                                       {T_{sun}}\right)
                 Ex_{loss} = 0
         """
         T_sun = 5679
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
-        self.Ex_input = self.Q.val * (1 - ((4/3) * (Tamb/T_sun)))  # aus Morozuik Paper
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
+                                                 - self.inl[0].ex_physical)
+        self.Ex_input = self.Q.val * (1 - ((4/3) * (Tamb/T_sun)))
         self.Ex_loss = 0
 
 # %%
@@ -2518,12 +2524,16 @@ class heat_exchanger(component):
 
             .. math::
 
-                Ex_{output} = \dot{m}_{in,cold} \cdot (ex_{ph,out,cold} - ex_{ph,in,cold})
-                Ex_{input} = \dot{m}_{in,hot} \cdot (ex_{ph,in,hot} - ex_{ph,out,hot})
+                Ex_{output} = \dot{m}_{in,cold} \cdot (ex_{ph,out,cold}
+                                                       - ex_{ph,in,cold})
+                Ex_{input} = \dot{m}_{in,hot} \cdot (ex_{ph,in,hot}
+                                                     - ex_{ph,out,hot})
                 Ex_{loss} = 0
         """
-        self.Ex_output = self.inl[1].m.val_SI * (self.outl[1].ex_physical - self.inl[1].ex_physical)
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_output = self.inl[1].m.val_SI * (self.outl[1].ex_physical
+                                                 - self.inl[1].ex_physical)
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                                - self.outl[0].ex_physical)
         self.Ex_loss = 0
 
 # %%
@@ -2945,7 +2955,8 @@ class condenser(heat_exchanger):
                 Ex_{loss} = 0
         """
         self.Ex_output = 0
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                                - self.outl[0].ex_physical)
         self.Ex_loss = 0
 
 # %%

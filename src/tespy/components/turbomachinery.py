@@ -1279,7 +1279,8 @@ class pump(turbomachine):
                 Ex_{input} = P
                 Ex_{loss} = 0
         """
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
+                                                 - self.inl[0].ex_physical)
         self.Ex_input = self.P.val
         self.Ex_loss = 0
 
@@ -1755,5 +1756,6 @@ class turbine(turbomachine):
         value needs to be multiplied by -1.
         """
         self.Ex_output = self.P.val*-1
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                                - self.outl[0].ex_physical)
         self.Ex_loss = 0

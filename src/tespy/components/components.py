@@ -589,7 +589,8 @@ class component:
     def exergy_balance(self):
         r"""Create warning if exergy balance of a component
         is not available"""
-        logging.warning('Method not available for this component: ' + self.label)
+        logging.warning('Method not available for this component: '
+                        + self.label)
 
 # %%
 

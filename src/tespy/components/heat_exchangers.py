@@ -867,6 +867,22 @@ class heat_exchanger_simple(component):
 
         self.check_parameter_bounds()
 
+    def exergy_balance(self, Tamb):
+        r"""
+        Perform exergy balance of a simple heat exchanger.
+
+            .. math::
+
+                T_m = \frac{T_{ein} - T_{aus}}{\ln\left({\frac{T_{ein}}{T_{aus}}}\right)}
+                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
+                Ex_{input} = \left(1 - \frac{T_{amb}}{T_m}\right) \cdot \dot{Q}
+                Ex_{loss} = 0
+        """
+        Tm = (self.inl[0].T.val_SI - self.outl[0].T.val_SI) / (np.log(self.inl[0].T.val_SI / self.outl[0].T.val_SI))
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.Ex_input = (1 - (Tamb / Tm)) * self.Q.val
+        self.Ex_loss = 0
+
 # %%
 
 
@@ -1262,6 +1278,25 @@ class parabolic_trough(heat_exchanger_simple):
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
+
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Perform exergy balance of a parabolic trough.
+
+        Tamb : float
+            Ambient temperature Tamb / K.
+
+            .. math::
+
+                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
+                Ex_{input} = \dot{Q}_{sol} \cdot \left(1 - \frac{4}{3} \frac{T_{amb}}{T_{sun}}\right)
+                Ex_{loss} = 0
+        """
+        T_sun = 5679
+        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.Ex_input = self.Q.val * (1 - ((4/3) * (Tamb/T_sun)))  # aus Morozuik Paper
+        self.Ex_loss = 0
 
 # %%
 
@@ -2477,6 +2512,20 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
+    def exergy_balance(self):
+        r"""
+        Perform exergy balance of a heat exchanger.
+
+            .. math::
+
+                Ex_{output} = \dot{m}_{in,cold} \cdot (ex_{ph,out,cold} - ex_{ph,in,cold})
+                Ex_{input} = \dot{m}_{in,hot} \cdot (ex_{ph,in,hot} - ex_{ph,out,hot})
+                Ex_{loss} = 0
+        """
+        self.Ex_output = self.inl[1].m.val_SI * (self.outl[1].ex_physical - self.inl[1].ex_physical)
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_loss = 0
+
 # %%
 
 
@@ -2884,6 +2933,20 @@ class condenser(heat_exchanger):
         o2 = self.outl[1].to_flow()
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_bp_p(i1) + T_o2
+
+    def exergy_balance(self):
+        r"""
+        Perform exergy balance of a condenser.
+
+            .. math::
+
+                Ex_{output} = 0
+                Ex_{input} = \dot{m}_{in} \cdot (ex_{ph,in} - ex_{ph,out})
+                Ex_{loss} = 0
+        """
+        self.Ex_output = 0
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical - self.outl[0].ex_physical)
+        self.Ex_loss = 0
 
 # %%
 

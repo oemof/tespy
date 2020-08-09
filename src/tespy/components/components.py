@@ -586,6 +586,11 @@ class component:
     def convergence_check(self, nw):
         return
 
+    def exergy_balance(self):
+        r"""Create warning if exergy balance of a component
+        is not available"""
+        logging.warning('Method not available for this component: ' + self.label)
+
 # %%
 
     def fluid_func(self):

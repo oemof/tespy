@@ -29,6 +29,7 @@ from tespy.tools.data_containers import dc_flu
 from tespy.tools.data_containers import dc_prop
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import TESPyConnectionError
+from tespy.tools.fluid_properties import calc_physical_exergy
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)
@@ -595,6 +596,20 @@ class connection:
             List of mass flow and fluid property information.
         """
         return [self.m.design, self.p.design, self.h.design, self.fluid.design]
+
+    def get_physical_exergy(self, pamb, Tamb):
+        r"""
+        Get the value of a connection's specific physical exergy.
+
+        Parameters
+        ----------
+        pamb : float
+            Ambient pressure pamb / Pa.
+
+        Tamb : float
+            Ambient temperature Tamb / K.
+        """
+        self.ex_physical = calc_physical_exergy(self, pamb, Tamb)
 
 
 class bus:

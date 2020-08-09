@@ -534,3 +534,18 @@ class valve(component):
         self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self):
+        r"""
+        Perform exergy balance of a valve.
+
+         .. math::
+
+                Ex_{output} = 0
+                Ex_{input} = \dot{m}_{in} \cdot (ex_{ph,in} - ex_{ph,out})
+                Ex_{loss} = 0
+        """
+        self.Ex_output = 0
+        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical -
+                                                self.outl[0].ex_physical)
+        self.Ex_loss = 0

@@ -9,6 +9,14 @@ Documentation
   (`PR #214 <https://github.com/oemof/tespy/pull/214>`_,
   `743bfeb <https://github.com/oemof/oemof-examples/commit/743bfeb>`_).
 
+Bug Fixes
+#########
+- Update the dictionary of busses, components and connections before every
+  calculation. If a parameter is updated by user specification using the
+  dictionary access method and the network object is copied, the dictionaries
+  of the busses, components and connections point to a different object in some
+  cases (`d2537ca <https://github.com/oemof/tespy/commit/d2537ca>`_).
+
 Other Changes
 #############
 - Add network check at the end of

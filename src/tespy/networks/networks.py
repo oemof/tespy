@@ -770,6 +770,8 @@ class network:
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns.index:
+            # reindex connections dictionary
+            self.connections[c.label] = c
             if self.init_previous is False:
                 c.good_starting_values = False
 
@@ -889,16 +891,17 @@ class network:
                     for var in c.offdesign:
                         c.get_attr(var).val_set = False
 
-        # unset design values for busses
+        # unset design values for busses, count bus equations and
+        # reindex bus dicitonary
         for b in self.busses.values():
-            # count number of bus equations
+            self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
             for cp in b.comps.index:
                 b.comps.loc[cp, 'P_ref'] = np.nan
 
         series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
-            # in case the attribution has been remapped
+            # reindex components dicitonary
             self.components[cp.label] = cp
             # read design point information of components with
             # local_offdesign activated from their respective design path
@@ -1151,7 +1154,7 @@ class network:
         logging.debug(msg)
 
         for cp in self.comps.index:
-            # in case the attribution has been remapped
+            # reindex components dicitonary
             self.components[cp.label] = cp
             if cp.local_design is False:
                 # unset variables provided in .design attribute
@@ -1186,8 +1189,9 @@ class network:
         msg = 'Switched components from design to offdesign.'
         logging.debug(msg)
 
-        # count bus equations
+        # count bus equations and reindex bus dicitonary
         for b in self.busses.values():
+            self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
 
     def init_fluids(self):

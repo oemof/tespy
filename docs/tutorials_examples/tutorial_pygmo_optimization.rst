@@ -14,7 +14,7 @@ Designing a power plant meets multiple different tasks, such as finding the
 optimal fresh steam temperature and pressure to reduce exhaust steam water 
 content, or the optimization of extraction pressures to maximize cycle 
 efficiency and many more. 
-In case of a rather simple power plant topology the task of finding optimized 
+In case of a rather simple power plant topologies the task of finding optimized 
 values for e.g. extraction pressures is still managable without any optimization 
 tool. As the topology becomes more complexe and boundary conditions come into play 
 the usage of additional tools is recommended. 
@@ -25,12 +25,26 @@ The source code can be found at the `tespy_examples repository
 <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine>`_.  
 
 
-PyGMO
-^^^^^
+What is PyGMO?
+^^^^^^^^^^^^^^
 
 PyGMO (Python Parallel Global Multiobjective Optimizer) is a library that provides 
 a large number of evolutionary optimization algroithms. PyGMO can be used to 
 solve constrained, unconstrained, single objective and multi objective problems.
+
+
+Evolutionary Algorithms
++++++++++++++++++++++++
+
+Evolutionary Algorithms are optimization algorithms inspired by biological evolution. 
+In a given Population the Algorithm uses the so called fitness function to determine 
+the quality of the solutions to each individual (set of decision variables) problem. 
+The best possible solution of the population is called champion. Via Mutation, 
+Recombination and Selection your Population evolves to find better Solutions. 
+
+Evolutionary Algorithms will never find an exact solution to your problem. 
+They are only approximations to the real optimum.
+
 
 Install PyGMO
 +++++++++++++
@@ -74,13 +88,12 @@ the cycle efficiency:
             return self.nw.busses['power'].P.val/self.nw.busses['heat'].P.val
         
 In calculate_efficiency(self, x) the variable x is a list containing your 
-decision variables. 
+decision variables. This function returns the cycle efficiency for a specific 
+set of decision variables.
 
 
-
-
-Defining the optimization problem
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Creating your PyGMO-Model
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The optimization in PyGMO starts be defining the problem at hand. You can set 
 the number of objectives your problem has in get_nobj(). The number of constraints 
@@ -122,7 +135,29 @@ your fitness function and constraints in fitness(self, x):
             """Return function name."""
             return ""
             
-In this case we want to maximize the efficiency of our powerplant. TESPy
+By default PyGMO minimizes the fitness function. Therefore we set the fitness 
+function f1 to the reciprocal of the cycle efficiency. We set one inequality 
+constraint so that the pressure of the first extraction has to be bigger than 
+the second one:
+
+.. math::
+
+    p_{e,1} > p_{e,2}
+
+In PyGMO your inequality constraint has to be in form <0:
+
+.. math::
+    -p_{e,1} + p_{e,2} < 0
+
+
+We expect that the extraction pressure won't be more than 40 bar and not less 
+1 bar. Therefore we set the bounds of our decision variables:
+
+.. math::
+
+    1 bar < p_{e,1} < 40 bar
+    1 bar < p_{e,2} < 40 bar
+
 
 
 

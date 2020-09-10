@@ -199,4 +199,10 @@ The choice of your algorithm depends on the type of problem. Have you set equali
 inequality constraints? Do you perform a single- or multi-objective optimization?
  
 In a for-loop we evolve and print the champion of our last population.
-After 15 generations we print our final champion.
+After 15 generations we print our final champion:
+
+.. code:: bash
+
+    Efficiency:     44.8267 %
+    Extraction 1:   25.6915 bar
+    Extraction 2:   2.7081  bar

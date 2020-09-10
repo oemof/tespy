@@ -1,4 +1,4 @@
-Cycle optimization example using PyGMO
+Cycle optimization tutorial using PyGMO
 ---------------------------------------
 
 .. contents::
@@ -18,7 +18,7 @@ In case of a rather simple power plant topologies the task of finding optimized
 values for e.g. extraction pressures is still managable without any optimization 
 tool. As the topology becomes more complexe and boundary conditions come into play 
 the usage of additional tools is recommended. 
-The following example is intended to show the usage of PyGMO in combination 
+The following tutorial is intended to show the usage of PyGMO in combination 
 with TESPy to maximize the cycle efficiency of a power plant with two extractions.
 
 The source code can be found at the `tespy_examples repository
@@ -325,7 +325,7 @@ and inequality constraint. With optimize.model we set the model we want to optim
 In our case we want to optimize the extraction pressures in our PowerPlant(). 
 Finally, our problem is set in prob = pg.problem(optimize).
 
-With pop we define the the size of each population in our problem, algo is used 
+With pop we define the size of each population for the optimization, algo is used 
 to set the algorithm. A list of available algorithms can be found in
 `List of algorithms
 <https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_. 
@@ -337,6 +337,6 @@ After 15 generations we print our final champion:
 
 .. code:: bash
 
-    Efficiency:     44.8267 %
-    Extraction 1:   25.6915 bar
-    Extraction 2:   2.7081  bar
+    Efficiency:     44.8269 %
+    Extraction 1:   25.7071 bar
+    Extraction 2:   2.7105  bar

@@ -1,4 +1,4 @@
-cycle optimization example using PyGMO
+Cycle optimization example using PyGMO
 ---------------------------------------
 
 .. contents::
@@ -75,7 +75,7 @@ the cycle efficiency:
     
     class PowerPlant():
         def __init__(self):
-            TESPy_Model
+            Your TESPy_Model
         
         def calculate_efficiency(self,x):
             # set extraction pressure
@@ -105,7 +105,7 @@ your fitness function and constraints in fitness(self, x):
 
     import pygmo as pg
     
-    class ThermalPowerPlant():
+    class optimization_problem():
         def fitness(self, x):
             f1 = 1/self.model.calculate_efficiency(x)
             ci1 = -x[0]+x[1]
@@ -147,7 +147,7 @@ the second one:
 In PyGMO your inequality constraint has to be in form <0:
 
 .. math::
-    -p_{e,1} + p_{e,2} < 0
+    - p_{e,1} + p_{e,2} < 0
 
 
 We expect that the extraction pressure won't be more than 40 bar and not less 
@@ -159,10 +159,43 @@ We expect that the extraction pressure won't be more than 40 bar and not less
     1 bar < p_{e,2} < 40 bar
 
 
+Run PyGMO-Optimization
+^^^^^^^^^^^^^^^^^^^^^^
+
+The following code shows how to run the PyGMO optimization:
+
+.. code-block:: python
+
+    optimize = optimization_problem()
+    optimize.model = PowerPlant()
+    prob = pg.problem(optimize)
+    
+    pop = pg.population(prob, size=20)
+    algo = pg.algorithm(pg.nlopt())
+    
+    for i in range(15):
+        print(1/pop.champion_f[0]*100, pop.champion_x)
+        p = [pop.champion_x[0], pop.champion_x[1]]
+        pop = algo.evolve(pop)
 
 
+    print()
+    print('Efficiency: {} %'.format(round(100/pop.champion_f[0],4)))
+    print('Extraction 1: {} bar'.format(round(p[0],4)))
+    print('Extraction 2: {} bar'.format(round(p[1],4)))
 
 
+With optimize you tell PyGMO which problem you want to optimize. In the class 
+optimization_problem() we defined our problem be setting fitness function 
+and inequality constraint. With optimize.model we set the model we want to optimize. 
+In our case we want to optimize the extraction pressures in our PowerPlant(). 
+Finally, our problem is set in prob = pg.problem(optimize).
 
-
-
+With pop we define the the size of each population in our problem, algo is used 
+to set the algorithm. A list of available algorithms can be found in
+<https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_. The choice 
+of your algorithm depends on the type of problem. Have you set equality or 
+inequality constraints? Do you perform a single- or multi-objective optimization?
+ 
+In a for-loop we evolve and print the champion of our last population.
+After 15 generations we print our final champion.

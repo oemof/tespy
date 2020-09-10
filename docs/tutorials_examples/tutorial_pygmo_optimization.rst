@@ -278,7 +278,7 @@ the second one:
 
     p_{e,1} > p_{e,2}
 
-In PyGMO your inequality constraint has to be in form <0:
+In PyGMO your inequality constraint has to be in form of <0:
 
 .. math::
     - p_{e,1} + p_{e,2} < 0
@@ -307,10 +307,7 @@ The following code shows how to run the PyGMO optimization:
     pop = pg.population(prob, size=20)
     algo = pg.algorithm(pg.nlopt())
     
-    for i in range(15):
-        print(1/pop.champion_f[0]*100, pop.champion_x)
-        p = [pop.champion_x[0], pop.champion_x[1]]
-        pop = algo.evolve(pop)
+
 
 
     print()
@@ -326,17 +323,30 @@ In our case we want to optimize the extraction pressures in our PowerPlant().
 Finally, our problem is set in prob = pg.problem(optimize).
 
 With pop we define the size of each population for the optimization, algo is used 
-to set the algorithm. A list of available algorithms can be found in
+to set the algorithm you want to use. A list of available algorithms can be found in
 `List of algorithms
 <https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_. 
 The choice of your algorithm depends on the type of problem. Have you set equality or 
 inequality constraints? Do you perform a single- or multi-objective optimization?
  
-In a for-loop we evolve and print the champion of our last population.
-After 15 generations we print our final champion:
+In a for-loop we evolve and print the champion of our last population:
+
+.. code-block:: python
+
+    for i in range(15):
+        print(1/pop.champion_f[0]*100, pop.champion_x)
+        p = [pop.champion_x[0], pop.champion_x[1]]
+        pop = algo.evolve(pop)
+    
+    print()
+    print('Efficiency: {} %'.format(round(100/pop.champion_f[0],4)))
+    print('Extraction 1: {} bar'.format(round(p[0],4)))
+    print('Extraction 2: {} bar'.format(round(p[1],4)))
+        
+After 15 generations we get approximately:
 
 .. code:: bash
 
-    Efficiency:     44.8269 %
-    Extraction 1:   25.7071 bar
-    Extraction 2:   2.7105  bar
+    Efficiency:      44.8270 %
+    Extraction 1:    25.7059 bar
+    Extraction 2:    2.7103  bar

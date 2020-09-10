@@ -193,8 +193,9 @@ Finally, our problem is set in prob = pg.problem(optimize).
 
 With pop we define the the size of each population in our problem, algo is used 
 to set the algorithm. A list of available algorithms can be found in
-<https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_. The choice 
-of your algorithm depends on the type of problem. Have you set equality or 
+`List of algorithms
+<https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_. 
+The choice of your algorithm depends on the type of problem. Have you set equality or 
 inequality constraints? Do you perform a single- or multi-objective optimization?
  
 In a for-loop we evolve and print the champion of our last population.

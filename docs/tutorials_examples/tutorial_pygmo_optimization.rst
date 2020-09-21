@@ -43,7 +43,7 @@ The best possible solution of the population is called champion. Via Mutation,
 Recombination and Selection your Population evolves to find better Solutions. 
 
 Evolutionary Algorithms will never find an exact solution to your problem. 
-They are only approximations to the real optimum.
+They can only give an approximation for the real optimum.
 
 
 Install PyGMO
@@ -221,6 +221,7 @@ the cycle efficiency:
                     
             return self.nw.busses['power'].P.val/self.nw.busses['heat'].P.val
         
+Note, that you have to label all busses and connections you want to access later on with PyGMO. 
 In calculate_efficiency(self, x) the variable x is a list containing your 
 decision variables. This function returns the cycle efficiency for a specific 
 set of decision variables.
@@ -306,9 +307,6 @@ The following code shows how to run the PyGMO optimization:
     
     pop = pg.population(prob, size=20)
     algo = pg.algorithm(pg.nlopt())
-    
-
-
 
     print()
     print('Efficiency: {} %'.format(round(100/pop.champion_f[0],4)))
@@ -339,9 +337,9 @@ In a for-loop we evolve and print the champion of our last population:
         pop = algo.evolve(pop)
     
     print()
-    print('Efficiency: {} %'.format(round(100/pop.champion_f[0],4)))
-    print('Extraction 1: {} bar'.format(round(p[0],4)))
-    print('Extraction 2: {} bar'.format(round(p[1],4)))
+    print('Efficiency:      {} %'.format(round(100/pop.champion_f[0],4)))
+    print('Extraction 1:    {} bar'.format(round(p[0],4)))
+    print('Extraction 2:    {} bar'.format(round(p[1],4)))
         
 After 15 generations we get approximately:
 

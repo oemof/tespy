@@ -63,10 +63,10 @@ Citation
 
 The scope and functionalities of TESPy have been documented in a paper
 published in the Journal of Open Source Software with an OpenAccess license.
-Download the paper from https://doi.org/10.21105/joss.02178. As TESPy is a free
-software, we kindly ask that you add a reference to TESPy if you use the
-software for your scientific work. Please cite the article with the BibTeX
-citation below.
+Download the paper from https://doi.org/10.21105/joss.0217 :cite:`Witte2020`.
+As TESPy is a free software, we kindly ask that you add a reference to TESPy
+if you use the software for your scientific work. Please cite the article with
+the BibTeX citation below.
 
 Additionally, you have the possibility to cite a specific version of TESPy to
 make your work reproducible. The source code of every version is published on

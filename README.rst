@@ -131,7 +131,7 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 BibTeX citation::
 
     @article{Witte2020,
-        doi = {10.21105/joss.02178}
+        doi = {10.21105/joss.02178},
         year = {2020},
         publisher = {The Open Journal},
         volume = {5},

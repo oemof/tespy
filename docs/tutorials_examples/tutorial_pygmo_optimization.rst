@@ -1,5 +1,5 @@
-Cycle optimization tutorial using PyGMO
----------------------------------------
+Thermal Power Plant Efficiency Optimization
+-------------------------------------------
 
 .. contents::
     :depth: 1
@@ -15,20 +15,21 @@ content, or the optimization of extraction pressures to maximize cycle
 efficiency and many more.
 
 In case of a rather simple power plant topologies the task of finding optimized
-values for e.g. extraction pressures is still managable without any
-optimization tool. As the topology becomes more complexe and boundary
+values for e.g. extraction pressures is still manageable without any
+optimization tool. As the topology becomes more complex and boundary
 conditions come into play the usage of additional tools is recommended. The
 following tutorial is intended to show the usage of PyGMO in combination with
-TESPy to maximize the cycle efficiency of a power plant with two extractions.
+TESPy to **maximize the cycle efficiency of a power plant with two**
+**extractions.**
 
 The source code can be found at the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine>`_.
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/efficiency_optimization>`_.
 
 What is PyGMO?
 ^^^^^^^^^^^^^^
 
 PyGMO (Python Parallel Global Multiobjective Optimizer, :cite:`Biscani2020`) is
-a library that provides a large number of evolutionary optimization algroithms.
+a library that provides a large number of evolutionary optimization algorithms.
 PyGMO can be used to solve constrained, unconstrained, single objective and
 multi objective problems.
 
@@ -55,18 +56,25 @@ Install PyGMO
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is necessary to use object oriented programing in PyGMO. Therefore we create
-a class PowerPlant which contains our TESPy-Model and a function to return the
-cycle efficiency.
+It is necessary to use object oriented programming in PyGMO. Therefore we create
+a class :code:`PowerPlant` which contains our TESPy-Model and a function to
+return the cycle efficiency.
 
 .. code-block:: python
-
     from tespy.networks import network
     from tespy.components import (
-    turbine, splitter, merge, condenser, pump, sink, source,
-    heat_exchanger_simple, desuperheater, cycle_closer
+        turbine, splitter, merge, condenser, pump, sink, source,
+        heat_exchanger_simple, desuperheater, cycle_closer
     )
     from tespy.connections import connection, bus
+    from tespy.tools import logger
+    import logging
+
+    import numpy as np
+
+
+    logger.define_logging(screen_level=logging.ERROR)
+
 
     class PowerPlant():
         def __init__(self):
@@ -76,27 +84,27 @@ cycle efficiency.
                 iterinfo=False)
             # components
             # main cycle
-            eco  = heat_exchanger_simple('economizer')
-            eva  = heat_exchanger_simple('evaporator')
-            sup  = heat_exchanger_simple('superheater')
-            cc   = cycle_closer('cycle closer')
-            hpt  = turbine('high pressure turbine')
-            sp1  = splitter('splitter 1', num_out=2)
-            mpt  = turbine('mid pressure turbine')
-            sp2  = splitter('splitter 2', num_out=2)
-            lpt  = turbine('low pressure turbine')
-            con  = condenser('condenser')
-            pu1  = pump('feed water pump')
+            eco = heat_exchanger_simple('economizer')
+            eva = heat_exchanger_simple('evaporator')
+            sup = heat_exchanger_simple('superheater')
+            cc = cycle_closer('cycle closer')
+            hpt = turbine('high pressure turbine')
+            sp1 = splitter('splitter 1', num_out=2)
+            mpt = turbine('mid pressure turbine')
+            sp2 = splitter('splitter 2', num_out=2)
+            lpt = turbine('low pressure turbine')
+            con = condenser('condenser')
+            pu1 = pump('feed water pump')
             fwh1 = condenser('feed water preheater 1')
             fwh2 = condenser('feed water preheater 2')
-            dsh  = desuperheater('desuperheater')
-            pu2  = pump('feed water pump 2')
-            pu3  = pump('feed water pump 3')
-            me   = merge('merge', num_in=3)
+            dsh = desuperheater('desuperheater')
+            pu2 = pump('feed water pump 2')
+            pu3 = pump('feed water pump 3')
+            me = merge('merge', num_in=3)
 
             # cooling water
-            cwi  = source('cooling water source')
-            cwo  = sink('cooling water sink')
+            cwi = source('cooling water source')
+            cwo = sink('cooling water sink')
 
             # connections
             # main cycle
@@ -178,32 +186,49 @@ cycle efficiency.
             eco_eva.set_attr(x=0)
             eva_sup.set_attr(x=1)
 
-            self.cc_hpt.set_attr(m=200, T=650, p=100, fluid={'water': 1})
-            self.hpt_sp1.set_attr(p=20)
-            self.mpt_sp2.set_attr(p=3)
-            self.lpt_con.set_attr(p=0.05)
+            cc_hpt.set_attr(m=200, T=650, p=100, fluid={'water': 1})
+            hpt_sp1.set_attr(p=20)
+            mpt_sp2.set_attr(p=3)
+            lpt_con.set_attr(p=0.05)
 
             cwi_con.set_attr(T=20, p=10, fluid={'water': 1})
 
-        def calculate_efficiency(self,x):
+        def calculate_efficiency(self, x):
             # set extraction pressure
             self.nw.connections['extraction1'].set_attr(p=x[0])
             self.nw.connections['extraction2'].set_attr(p=x[1])
 
             self.nw.solve('design')
-            self.nw.save('extraction')
 
-            return self.nw.busses['power'].P.val / self.nw.busses['heat'].P.val
+            for cp in self.nw.components.values():
+                if isinstance(cp, condenser) or isinstance(cp, desuperheater):
+                    if cp.Q.val > 0:
+                        return np.nan
+                elif isinstance(cp, pump):
+                    if cp.P.val < 0:
+                        return np.nan
+                elif isinstance(cp, turbine):
+                    if cp.P.val > 0:
+                        return np.nan
+
+            if self.nw.res[-1] > 1e-3 or self.nw.lin_dep:
+                return np.nan
+            else:
+                return self.nw.busses['power'].P.val / self.nw.busses['heat'].P.val
+
 
 Note, that you have to label all busses and connections you want to access
-later on with PyGMO. In :code:`calculate_efficiency(self, x)` the variable x is
-a list containing your decision variables. This function returns the cycle
-efficiency for a specific set of decision variables. The efficiency is defined
-by the ratio of total power output to steam generator heat input.
+later on with PyGMO. In :code:`calculate_efficiency(self, x)` the variable
+:code:`x` is a list containing your decision variables. This function returns
+the cycle efficiency for a specific set of decision variables. The efficiency
+is defined by the ratio of total power transferred (including turbines and
+pumps) to steam generator heat input. We have to make sure, only the result
+of physically feasible solutions is returned. In case we have infeasible
+solutions, we can simply return :code:`np.nan`.
 
 .. math::
 
-    \eta_\mathrm{th}=\frac{|P|}{\dot{Q}_{sg}}
+    \eta_\mathrm{th}=\frac{|\sum P|}{\dot{Q}_{sg}}
 
 Creating your PyGMO-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -219,10 +244,13 @@ and constraints in :code:`fitness(self, x)`:
 
     import pygmo as pg
 
+
     class optimization_problem():
+
         def fitness(self, x):
-            f1 = 1/self.model.calculate_efficiency(x)
-            ci1 = -x[0]+x[1]
+            f1 = 1 / self.model.calculate_efficiency(x)
+            ci1 = -x[0] + x[1]
+            print(x)
             return [f1, ci1]
 
         def get_nobj(self):
@@ -239,7 +267,7 @@ and constraints in :code:`fitness(self, x)`:
 
         def get_bounds(self):
             """Return bounds of decision variables."""
-            return ([1,1], [40,40])
+            return ([1, 1], [40, 40])
 
 By default PyGMO minimizes the fitness function. Therefore we set the fitness
 function f1 to the reciprocal of the cycle efficiency. We set one inequality
@@ -274,47 +302,47 @@ The following code shows how to run the PyGMO optimization.
     optimize = optimization_problem()
     optimize.model = PowerPlant()
     prob = pg.problem(optimize)
+    num_gen = 15
 
-    pop = pg.population(prob, size=20)
-    algo = pg.algorithm(pg.nlopt())
-
-    print()
-    print('Efficiency: {} %'.format(round(100/pop.champion_f[0],4)))
-    print('Extraction 1: {} bar'.format(round(p[0],4)))
-    print('Extraction 2: {} bar'.format(round(p[1],4)))
+    pop = pg.population(prob, size=10)
+    algo = pg.algorithm(pg.ihs(gen=num_gen))
 
 
 With optimize you tell PyGMO which problem you want to optimize. In the class
-optimization_problem() we defined our problem be setting fitness function
-and inequality constraint. With optimize.model we set the model we want to optimize.
-In our case we want to optimize the extraction pressures in our PowerPlant().
-Finally, our problem is set in prob = pg.problem(optimize).
+:code:`optimization_problem()` we defined our problem be setting fitness
+function and inequality constraint. With :code:`optimize.model` we set the
+model we want to optimize. In our case we want to optimize the extraction
+pressures in our instance of class :code:`PowerPlant`. Finally, our problem is
+set in :code:`prob = pg.problem(optimize)`.
 
-With pop we define the size of each population for the optimization, algo is used
-to set the algorithm you want to use. A list of available algorithms can be found in
-`List of algorithms
-<https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_.
-The choice of your algorithm depends on the type of problem. Have you set equality or
-inequality constraints? Do you perform a single- or multi-objective optimization?
+With :code:`pop` we define the size of each population for the optimization,
+:code:`algo` is used to set the algorithm you want to use. A list of available
+algorithms can be found in
+`List of algorithms <https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_.
+The choice of your algorithm depends on the type of problem. Have you set
+equality or inequality constraints? Do you perform a single- or multi-objective
+optimization?
 
-In a for-loop we evolve and print the champion of our last population:
+We choose a population size of 10 individuals and want to carry out 15
+generations. We can evolve the population generation by generation, e.g. using
+a for loop. At the end, we print out the information of the best individual.
 
 .. code-block:: python
 
-    for i in range(15):
-        print(1/pop.champion_f[0]*100, pop.champion_x)
-        p = [pop.champion_x[0], pop.champion_x[1]]
+    for gen in range(num_gen):
+        print('Evolution: {}'.format(gen))
+        print('Efficiency: {} %'.format(round(100 / pop.champion_f[0], 4)))
         pop = algo.evolve(pop)
 
     print()
-    print('Efficiency:      {} %'.format(round(100/pop.champion_f[0],4)))
-    print('Extraction 1:    {} bar'.format(round(p[0],4)))
-    print('Extraction 2:    {} bar'.format(round(p[1],4)))
+    print('Efficiency: {} %'.format(round(100 / pop.champion_f[0], 4)))
+    print('Extraction 1: {} bar'.format(round(pop.champion_x[0], 4)))
+    print('Extraction 2: {} bar'.format(round(pop.champion_x[1], 4)))
 
-After 15 generations we get approximately:
+In our run, we got:
 
 .. code:: bash
 
-    Efficiency:      44.8270 %
-    Extraction 1:    25.7059 bar
-    Extraction 2:    2.7103  bar
+    Efficiency: 44.826 %
+    Extraction 1: 25.8685 bar
+    Extraction 2: 2.7252 bar

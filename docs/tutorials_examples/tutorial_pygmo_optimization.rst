@@ -343,6 +343,6 @@ In our run, we got:
 
 .. code:: bash
 
-    Efficiency: 44.826 %
-    Extraction 1: 25.8685 bar
-    Extraction 2: 2.7252 bar
+    Efficiency: 44.852 %
+    Extraction 1: 26.924 bar
+    Extraction 2: 2.823 bar

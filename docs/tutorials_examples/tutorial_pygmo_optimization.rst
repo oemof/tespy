@@ -351,3 +351,9 @@ In our run, we got:
     Efficiency: 44.852 %
     Extraction 1: 26.924 bar
     Extraction 2: 2.823 bar
+
+
+.. figure:: api/_images/scatterplot_efficiency_optimization.svg
+    :align: center
+
+    Figure: Scatter plot for all individuals during the optimization.

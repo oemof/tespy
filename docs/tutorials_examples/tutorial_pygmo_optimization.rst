@@ -25,6 +25,11 @@ TESPy to **maximize the cycle efficiency of a power plant with two**
 The source code can be found at the `tespy_examples repository
 <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/efficiency_optimization>`_.
 
+.. figure:: api/_images/power_plant_two_extractions.svg
+    :align: center
+
+    Figure: Topology of the power plant.
+
 What is PyGMO?
 ^^^^^^^^^^^^^^
 

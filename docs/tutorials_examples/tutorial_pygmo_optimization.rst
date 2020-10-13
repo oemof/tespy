@@ -358,8 +358,8 @@ In our run, we got:
 .. code:: bash
 
     Efficiency: 44.852 %
-    Extraction 1: 26.924 bar
-    Extraction 2: 2.823 bar
+    Extraction 1: 26.62 bar
+    Extraction 2: 2.825 bar
 
 
 .. figure:: api/_images/scatterplot_efficiency_optimization.svg

@@ -30,4 +30,4 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
-- `@MarBrandt <https://github.com/MarBrandt>`_
+- Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

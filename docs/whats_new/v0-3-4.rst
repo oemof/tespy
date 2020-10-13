@@ -1,5 +1,5 @@
-v0.3.4 - Someversion (Somemonth, Someday, 2020)
-+++++++++++++++++++++++++++++++++++++++++++++++
+v0.3.4 - Darwin's Delight (October, 13, 2020)
++++++++++++++++++++++++++++++++++++++++++++++
 
 Documentation
 #############
@@ -8,6 +8,10 @@ Documentation
   oemof_examples repository
   (`PR #214 <https://github.com/oemof/tespy/pull/214>`_,
   `743bfeb <https://github.com/oemof/oemof-examples/commit/743bfeb>`_).
+- Add a new tutorial for efficiency optimization of a thermal power plant using
+  TESPy and PyGMO (`PR #220 <https://github.com/oemof/tespy/pull/220>`_).
+- Fix some typos in the BibTeX data for the TESPy JOSS paper
+  (`PR #220 <https://github.com/oemof/tespy/pull/220>`_).
 
 Bug Fixes
 #########
@@ -26,3 +30,4 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

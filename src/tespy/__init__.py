@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.3.4 - dev'
+__version__ = '0.3.4 - Darwin\'s Delight'
 
 # tespy data and connection import
 from . import connections  # noqa: F401

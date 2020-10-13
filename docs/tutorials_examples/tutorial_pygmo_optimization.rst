@@ -246,8 +246,8 @@ converge.
 Creating your PyGMO-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The optimization in PyGMO starts be defining the problem at hand. You can set
-the number of objectives your problem has in :code:`get_nobj()`. The number of
+The optimization in PyGMO starts by defining the problem. You can set the
+number of objectives your problem has in :code:`get_nobj()`. The number of
 constraints is set in :code:`get_nec()` (equality constraints) and
 :code:`get_nic()` (inequality constraints). In :code:`get_bounds()` you set the
 bounds of your decision variables. Finally, you define your fitness function

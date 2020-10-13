@@ -9,8 +9,8 @@ can be used as a standalone package.
 
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of thermal energy systems. From that point it is possible
-to simulate the offdesign behaviour of your plant using underlying
-characteristics for each of the plants components. The package inlcudes basic
+to simulate the offdesign behavior of your plant using underlying
+characteristics for each of the plants components. The package includes basic
 components, such as turbines, pumps, compressors, heat exchangers, pipes,
 mixers and splitters as well as some advanced components (derivatives of heat
 exchangers, drum).

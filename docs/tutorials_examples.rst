@@ -58,6 +58,10 @@ tutorial. On top of that, we created a tutorial for the usage of the combustion
 chamber: It is an important component for thermal power plants while being a
 source for many errors in the calculation.
 
+The last tutorial is a plant design optimization tutorial. A thermal power
+plant with two extraction stages is optimized in regard of thermal efficiency
+with respect to the extraction pressure levels.
+
 .. contents:: `Tutorials`
     :depth: 1
     :local:
@@ -67,3 +71,5 @@ source for many errors in the calculation.
 .. include:: tutorials_examples/tutorial_heat_pump.rst
 .. _combustion_chamber_tutorial_label:
 .. include:: tutorials_examples/tutorial_combustion_chamber.rst
+.. _pygmo_tutorial_label:
+.. include:: tutorials_examples/tutorial_pygmo_optimization.rst

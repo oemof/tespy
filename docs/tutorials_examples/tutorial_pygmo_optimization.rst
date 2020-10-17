@@ -55,14 +55,14 @@ Install PyGMO
 +++++++++++++
 
 Linux
-+++++
+#####
 
 .. code-block:: bash
 
     pip install pygmo
 
 Windows
-+++++++
+#######
 
 .. code-block:: bash
 

@@ -78,7 +78,7 @@ On Linux you also have the option to use the
     
 Windows user can perform an installation from source as an alternative to conda. 
 For further information on this process we recommend the `PyGMO installation
-<https://esa.github.io/pygmo2/install.html>`_.
+<https://esa.github.io/pygmo2/install.html#installation-from-source>`_ accordingly.
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^

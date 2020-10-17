@@ -54,15 +54,22 @@ approximation for the real optimum.
 Install PyGMO
 +++++++++++++
 
-Linux
+Conda
 #####
+
+With the `conda<https://conda.io/en/latest/>`_ package manager PyGMO is 
+available for Linux, OSX and Windows thanks to the infrastructure of `conda-forge
+<https://conda-forge.org/>`_ :
 
 .. code-block:: bash
 
-    pip install pygmo
+    conda install -c conda-forge pygmo
 
-Windows
-#######
+pip
+###
+
+On Linux you also have the option to use the 
+`conda<https://pip.pypa.io/en/stable/>`_ package installer:
 
 .. code-block:: bash
 

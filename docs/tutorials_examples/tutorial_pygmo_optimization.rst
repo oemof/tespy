@@ -54,9 +54,19 @@ approximation for the real optimum.
 Install PyGMO
 +++++++++++++
 
+Linux
++++++
+
 .. code-block:: bash
 
     pip install pygmo
+
+Windows
++++++++
+
+.. code-block:: bash
+
+    conda install -c conda-forge pygmo
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^

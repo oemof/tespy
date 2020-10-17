@@ -54,12 +54,13 @@ approximation for the real optimum.
 Install PyGMO
 +++++++++++++
 
+
 Conda
 #####
 
 With the `conda<https://conda.io/en/latest/>`_ package manager PyGMO is 
 available for Linux, OSX and Windows thanks to the infrastructure of `conda-forge
-<https://conda-forge.org/>`_ :
+<https://conda-forge.org/>`_:
 
 .. code-block:: bash
 
@@ -74,6 +75,10 @@ On Linux you also have the option to use the
 .. code-block:: bash
 
     conda install -c conda-forge pygmo
+    
+Windows user can perform an installation from source as an alternative to anaconda. 
+For further information on this process we recommend the `PyGMO installation
+<https://esa.github.io/pygmo2/install.html>`_
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^

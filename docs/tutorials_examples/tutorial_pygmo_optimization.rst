@@ -76,7 +76,7 @@ On Linux you also have the option to use the
 
     conda install -c conda-forge pygmo
     
-Windows user can perform an installation from source as an alternative to anaconda. 
+Windows user can perform an installation from source as an alternative to conda. 
 For further information on this process we recommend the `PyGMO installation
 <https://esa.github.io/pygmo2/install.html>`_.
 

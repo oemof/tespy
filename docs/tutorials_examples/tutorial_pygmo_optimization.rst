@@ -74,7 +74,7 @@ On Linux you also have the option to use the
 
 .. code-block:: bash
 
-    conda install -c conda-forge pygmo
+    pip install pygmo
     
 Windows user can perform an installation from source as an alternative to conda. 
 For further information on this process we recommend the `PyGMO installation

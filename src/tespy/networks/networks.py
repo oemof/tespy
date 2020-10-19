@@ -23,7 +23,6 @@ from time import time
 
 import numpy as np
 import pandas as pd
-from numpy.linalg import inv
 from numpy.linalg import norm
 from tabulate import tabulate
 
@@ -44,6 +43,10 @@ from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
+from tespy.tools.global_vars import use_cuda
+# Only require cupy if Cuda shall be used
+if use_cuda:
+    import cupy
 
 
 class network:
@@ -1861,7 +1864,12 @@ class network:
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
         try:
-            self.increment = inv(self.jacobian).dot(-self.residual)
+            # Let the matrix inversion be computed by the GPU if use_cuda in global_vars.py is true.
+            if use_cuda:
+                self.increment = cupy.asnumpy(cupy.dot(cupy.linalg.inv(cupy.asarray(self.jacobian)),
+                                                        -cupy.asarray(self.residual)))
+            else:
+                self.increment = np.linalg.inv(self.jacobian).dot(-self.residual)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0

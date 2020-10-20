@@ -1,0 +1,32 @@
+v0.3.5 - Someversion (Somemonth, Someday, Someyear)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+
+Bug Fixes
+#########
+
+Other Changes
+#############
+.. list-table:: Adjust value limits for some component parameters
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - component
+     - parameter
+     - new value
+   * - heat_exchanger_simple
+     - :code:`zeta.max_val`
+     - 1e15
+   * -
+     - :code:`ks.max_val` (for Hazen-Williams equation)
+     - 200
+   * - valve
+     - :code:`zeta.max_val`
+     - 1e15
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jbueck <https://github.com/jbueck>`_

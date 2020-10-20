@@ -26,6 +26,15 @@ Other Changes
      - :code:`zeta.max_val`
      - 1e15
 
+- On some machines the coloring of the results printout does not work and
+  displaces the table in an ugly way. To avoid this, the coloring is changed to
+  optional (`PR #229 <https://github.com/oemof/tespy/pull/229>`_). Use the
+  following line for non-colored printouts:
+
+  .. code-block:: python
+
+      mynetwork.print_results(colored=False)
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

@@ -640,7 +640,8 @@ class heat_exchanger_simple(component):
         ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
         ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
-        # If one temperature difference is negative: use mean difference to avoid negative logarithm otherwise use lmtd
+        # If one temperature difference is negative: use mean difference to
+        # avoid negative logarithm otherwise use lmtd
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2
         elif ttd_1 > ttd_2:
@@ -851,8 +852,10 @@ class heat_exchanger_simple(component):
             self.Sirr.val = self.SQ1.val + self.SQ2.val
 
             if not self.kA.is_set:
-                ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-                ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+                ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - \
+                        self.Tamb.val_SI
+                ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - \
+                        self.Tamb.val_SI
 
                 if (ttd_1 / ttd_2) < 0:
                     td_log = (ttd_2 + ttd_1) / 2

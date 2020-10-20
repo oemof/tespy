@@ -1864,12 +1864,15 @@ class network:
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
         try:
-            # Let the matrix inversion be computed by the GPU if use_cuda in global_vars.py is true.
+            # Let the matrix inversion be computed by the GPU if use_cuda in
+            # global_vars.py is true.
             if use_cuda:
-                self.increment = cupy.asnumpy(cupy.dot(cupy.linalg.inv(cupy.asarray(self.jacobian)),
-                                                        -cupy.asarray(self.residual)))
+                self.increment = cupy.asnumpy(cupy.dot(
+                    cupy.linalg.inv(cupy.asarray(self.jacobian)),
+                    -cupy.asarray(self.residual)))
             else:
-                self.increment = np.linalg.inv(self.jacobian).dot(-self.residual)
+                self.increment = np.linalg.inv(
+                    self.jacobian).dot(-self.residual)
             self.lin_dep = False
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0

@@ -324,7 +324,8 @@ class combustion_chamber(component):
 
         ######################################################################
         # equation for energy balance
-        self.residual[k] = self.energy_balance()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.energy_balance()
         k += 1
 
         ######################################################################
@@ -2275,30 +2276,36 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # equations for fluids in combustion chamber
         for fluid in self.inl[0].fluid.val.keys():
-            self.residual[k] = self.reaction_balance(fluid)
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.reaction_balance(fluid)
             k += 1
 
         ######################################################################
         # equation for combustion engine energy balance
-        self.residual[k] = self.energy_balance()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.energy_balance()
         k += 1
 
         ######################################################################
         # equation for power to thermal input ratio from characteristic line
-        self.residual[k] = self.tiP_char_func()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.tiP_char_func()
         k += 1
 
         ######################################################################
         # equations for heat outputs from characteristic line
-        self.residual[k] = self.Q1_char_func()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.Q1_char_func()
         k += 1
 
-        self.residual[k] = self.Q2_char_func()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.Q2_char_func()
         k += 1
 
         ######################################################################
         # equation for heat loss from characteristic line
-        self.residual[k] = self.Qloss_char_func()
+        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            self.residual[k] = self.Qloss_char_func()
         k += 1
 
         ######################################################################
@@ -2338,13 +2345,15 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            self.residual[k] = self.zeta_func(zeta='zeta1', inconn=0,
-                                              outconn=0)
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.zeta_func(
+                    zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
-            self.residual[k] = self.zeta_func(zeta='zeta2', inconn=1,
-                                              outconn=1)
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.zeta_func(
+                    zeta='zeta2', inconn=1, outconn=1)
             k += 1
 
     def derivatives(self, increment_filter):

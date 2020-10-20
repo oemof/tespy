@@ -160,7 +160,9 @@ class turbomachine(component):
         k = 0
         ######################################################################
         # eqations for fluids
-        self.residual[k:self.num_nw_fluids] = self.fluid_func()
+        if (any(np.absolute(self.residual[k:self.num_nw_fluids])) > err ** 2 or
+                self.it % 4 == 0):
+            self.residual[k:self.num_nw_fluids] = self.fluid_func()
         k += self.num_nw_fluids
 
         ######################################################################
@@ -513,19 +515,23 @@ class compressor(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.residual[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            self.residual[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equations for specified characteristic map
         if self.char_map.is_set:
-            self.residual[k:k + 2] = self.char_map_func()
+            if (any(np.absolute(self.residual[k:k + 2])) > err ** 2 or
+                    self.it % 4 == 0):
+                self.residual[k:k + 2] = self.char_map_func()
             k += 2
 
     def additional_derivatives(self, increment_filter, k):
@@ -1011,19 +1017,22 @@ class pump(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.residual[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # equations for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            self.residual[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equations for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
-            self.residual[k] = self.flow_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.flow_char_func()
             k += 1
 
     def additional_derivatives(self, increment_filter, k):
@@ -1442,19 +1451,22 @@ class turbine(turbomachine):
         ######################################################################
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
-            self.residual[k] = self.eta_s_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_func()
             k += 1
 
         ######################################################################
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
-            self.residual[k] = self.eta_s_char_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.eta_s_char_func()
             k += 1
 
         ######################################################################
         # equation for specified cone law
         if self.cone.is_set:
-            self.residual[k] = self.cone_func()
+            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+                self.residual[k] = self.cone_func()
             k += 1
 
     def additional_derivatives(self, increment_filter, k):

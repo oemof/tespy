@@ -2338,11 +2338,13 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            self.residual[k] = self.zeta_func(zeta='zeta1', inconn=0, outconn=0)
+            self.residual[k] = self.zeta_func(zeta='zeta1', inconn=0,
+                                              outconn=0)
             k += 1
 
         if self.zeta2.is_set:
-            self.residual[k] = self.zeta_func(zeta='zeta2', inconn=1, outconn=1)
+            self.residual[k] = self.zeta_func(zeta='zeta2', inconn=1,
+                                              outconn=1)
             k += 1
 
     def derivatives(self, increment_filter):

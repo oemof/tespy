@@ -415,7 +415,7 @@ class water_electrolyzer(component):
         ######################################################################
         # temperature electrolyzer outlet
         self.residual[k] = (T_mix_ph(self.outl[1].to_flow()) -
-            T_mix_ph(self.outl[2].to_flow()))
+                            T_mix_ph(self.outl[2].to_flow()))
         k += 1
 
         ######################################################################

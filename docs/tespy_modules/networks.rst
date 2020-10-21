@@ -559,9 +559,34 @@ have two further options:
  * print the results to prompt (:code:`myplant.print_results()`) and
  * save the results in a .csv-file (:code:`myplant.save('savename')`).
 
-The :code:`print_results()` method will print out component, connection and bus
-properties. If you want to prevent the printout of components, connections or
-busses, you can specify the :code:`printout` parameter:
+To print the results in your console use the :code:`print_results()` method.
+It will print tables containing the component, connection and bus properties.
+Some of the results will be colored, the colored results indicate
+
+ * if a parameter was specified as value before calculation.
+ * if a parameter is out of its predefined value bounds (e.g. efficiency > 1).
+ * if a component parameter was set to :code:`'var'` in your calculation.
+
+The color for each of those categories is different and might depend on the
+console settings of your machine. You can change the colors using
+`ANSI escape codes<https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_,
+for example changing the color for user specified values to blue:
+
+.. code-block:: python
+
+      from tespy.tools.global_vars import coloring
+      coloring['set'] = '\034[0m'
+
+If you do not want the results to be colored you can instead call the method
+the following way:
+
+.. code-block:: python
+
+    myplant.print_results(colored=False)
+
+If you want to limit your prinouts to a specific subset of components,
+connections and busses, you can specify the :code:`printout` parameter to block
+individual result printout.
 
 .. code-block:: python
 

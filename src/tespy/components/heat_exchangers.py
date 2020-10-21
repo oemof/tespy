@@ -217,7 +217,8 @@ class heat_exchanger_simple(component):
     def attr():
         return {
             'Q': dc_cp(),
-            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'pr': dc_cp(min_val=1e-4, max_val=1),
+            'zeta': dc_cp(min_val=0, max_val=1e15),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
@@ -252,6 +253,7 @@ class heat_exchanger_simple(component):
             self.hydro_group.set_attr(is_set=True)
             if self.hydro_group.method == 'HW':
                 method = 'Hazen-Williams equation'
+                self.ks.set_attr(max_val=200)
             else:
                 method = 'darcy friction factor'
             msg = (

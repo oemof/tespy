@@ -35,6 +35,17 @@ Other Changes
 
       mynetwork.print_results(colored=False)
 
+- Add a flag to activate calculation of all component equations in every
+  iteration. This improves stability in some cases but reduces calculation
+  speed (`PR #228 <https://github.com/oemof/tespy/pull/228>`_). To activate
+  simply import the variable from the global variables at the start of your
+  script and change the value accordingly. The default value is :code:`False`.
+
+  .. code-block:: python
+
+      from tespy.tools.global_vars import always_all_equations
+      always_all_equations = True
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

@@ -569,7 +569,7 @@ Some of the results will be colored, the colored results indicate
 
 The color for each of those categories is different and might depend on the
 console settings of your machine. You can change the colors using
-`ANSI escape codes<https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_,
+`ANSI escape codes <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_,
 for example changing the color for user specified values to blue:
 
 .. code-block:: python

@@ -37,8 +37,8 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
-from tespy.tools.global_vars import err
 from tespy.tools.global_vars import always_all_equations
+from tespy.tools.global_vars import err
 from tespy.tools.helpers import lamb
 
 # %%
@@ -363,16 +363,16 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equations for specified zeta
         if self.zeta.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
         # equation for specified hydro-group paremeters
         if self.hydro_group.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 # hazen williams equation
                 if self.hydro_group.method == 'HW':
                     func = self.hw_func
@@ -400,16 +400,16 @@ class heat_exchanger_simple(component):
         ######################################################################
         # equation for specified kA_group paremeters
         if self.kA_group.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.kA_func()
             k += 1
 
         ######################################################################
         # equation for specified kA_char_group paremeters
         if self.kA_char_group.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.kA_char_func()
             k += 1
 
@@ -1183,8 +1183,8 @@ class parabolic_trough(heat_exchanger_simple):
         ######################################################################
         # equation for specified energy-group paremeters
         if self.energy_group.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.energy_func()
 
     def additional_derivatives(self, increment_filter, k):
@@ -1538,8 +1538,8 @@ class solar_collector(heat_exchanger_simple):
         ######################################################################
         # equation for specified energy-group paremeters
         if self.energy_group.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.energy_func()
 
     def additional_derivatives(self, increment_filter, k):
@@ -1877,16 +1877,16 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified heat transfer coefficient
         if self.kA.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.kA_func()
             k += 1
 
         ######################################################################
         # equations for specified heat transfer coefficient characteristic
         if self.kA_char.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.kA_char_func()
             k += 1
 
@@ -1919,8 +1919,8 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified zeta at hot side
         if self.zeta1.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(
                     zeta='zeta1', inconn=0, outconn=0)
             k += 1
@@ -1928,8 +1928,8 @@ class heat_exchanger(component):
         ######################################################################
         # equations for specified zeta at cold side
         if self.zeta2.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-                always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(
                     zeta='zeta2', inconn=1, outconn=1)
             k += 1

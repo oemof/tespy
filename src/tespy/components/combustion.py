@@ -32,9 +32,9 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties import tespy_fluid
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.global_vars import always_all_equations
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
-from tespy.tools.global_vars import always_all_equations
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
 from tespy.tools.helpers import molar_mass_flow
@@ -319,14 +319,15 @@ class combustion_chamber(component):
         ######################################################################
         # equations for fluids in reaction balance
         for fluid in self.inl[0].fluid.val.keys():
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 3 == 0:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 3 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.reaction_balance(fluid)
             k += 1
 
         ######################################################################
         # equation for energy balance
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.energy_balance()
         k += 1
 
@@ -2278,41 +2279,41 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # equations for fluids in combustion chamber
         for fluid in self.inl[0].fluid.val.keys():
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.reaction_balance(fluid)
             k += 1
 
         ######################################################################
         # equation for combustion engine energy balance
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.energy_balance()
         k += 1
 
         ######################################################################
         # equation for power to thermal input ratio from characteristic line
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.tiP_char_func()
         k += 1
 
         ######################################################################
         # equations for heat outputs from characteristic line
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.Q1_char_func()
         k += 1
 
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.Q2_char_func()
         k += 1
 
         ######################################################################
         # equation for heat loss from characteristic line
-        if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-          always_all_equations:
+        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                always_all_equations):
             self.residual[k] = self.Qloss_char_func()
         k += 1
 
@@ -2353,15 +2354,15 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # equations for specified zeta values at cooling loops
         if self.zeta1.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(
                     zeta='zeta1', inconn=0, outconn=0)
             k += 1
 
         if self.zeta2.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or\
-              always_all_equations:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(
                     zeta='zeta2', inconn=1, outconn=1)
             k += 1

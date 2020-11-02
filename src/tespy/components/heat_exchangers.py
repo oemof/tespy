@@ -866,27 +866,7 @@ class heat_exchanger_simple(component):
                                                    self.label)
 
         self.check_parameter_bounds()
-
-    def exergy_balance(self, Tamb):
-        r"""
-        Perform exergy balance of a simple heat exchanger.
-
-            .. math::
-
-                T_m = \frac{T_{ein} - T_{aus}}{\ln\left({\frac{T_{ein}}
-                                                         {T_{aus}}}\right)}
-                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
-                Ex_{input} = \left(1 - \frac{T_{amb}}
-                                   {T_m}\right) \cdot \dot{Q}
-                Ex_{loss} = 0
-        """
-        Tm = (self.inl[0].T.val_SI - self.outl[0].T.val_SI) / (
-            np.log(self.inl[0].T.val_SI / self.outl[0].T.val_SI))
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
-                                                 - self.inl[0].ex_physical)
-        self.Ex_input = (1 - (Tamb / Tm)) * self.Q.val
-        self.Ex_loss = 0
-
+    
 # %%
 
 
@@ -1283,26 +1263,36 @@ class parabolic_trough(heat_exchanger_simple):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, Tamb_val_SI, bus):
         r"""
-        Perform exergy balance of a parabolic trough.
+        Calculate exergy balance of a parabolic trough.
 
-        Tamb : float
-            Ambient temperature Tamb / K.
-
+        Parameters
+        ----------
+        Tamb_val_SI : float
+            Ambient temperature in K.
+        bus  : tespy.connections.bus
+            Energy flows in network. Used to calculate product exergy
+            or fuel exergy of turbines and pumps.
+            
+        Note
+        ----
             .. math::
 
-                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
-                Ex_{input} = \dot{Q}_{sol} \cdot \left(1 - \frac{4}
-                                                       {3} \frac{T_{amb}}
-                                                       {T_{sun}}\right)
-                Ex_{loss} = 0
+                E_{P} = \dot{m}_{in} \cdot (e_{ph,out} - e_{ph,in})
+                E_{F} = (1 - \frac{T_{\text{amb}}}{T_{\text{m}}}) \cdot \dot{Q}
         """
-        T_sun = 5679
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
-                                                 - self.inl[0].ex_physical)
-        self.Ex_input = self.Q.val * (1 - ((4/3) * (Tamb/T_sun)))
-        self.Ex_loss = 0
+        if np.isnan(self.Tamb.val_SI):
+            self.Tamb.val_SI = Tamb_val_SI
+        
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
+               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+        
+        self.E_P = self.inl[0].m.val_SI * (self.outl[0].ex_physical
+                                           - self.inl[0].ex_physical)
+        self.E_F = (1 - (self.Tamb.val_SI / T_m)) * self.Q.val
 
 # %%
 
@@ -2518,23 +2508,31 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb_val_SI, bus):
         r"""
-        Perform exergy balance of a heat exchanger.
+        Calculate exergy balance of a heat exchanger.
 
+        Parameters
+        ----------
+        Tamb_val_SI : float
+            Ambient temperature in K.
+        bus  : tespy.connections.bus
+            Energy flows in network. Used to calculate product exergy
+            or fuel exergy of turbines and pumps.
+            
+        Note
+        ----
             .. math::
 
-                Ex_{output} = \dot{m}_{in,cold} \cdot (ex_{ph,out,cold}
-                                                       - ex_{ph,in,cold})
-                Ex_{input} = \dot{m}_{in,hot} \cdot (ex_{ph,in,hot}
-                                                     - ex_{ph,out,hot})
-                Ex_{loss} = 0
+                E_{P} = \dot{m}_{in,cold} \cdot (e_{ph,out,cold} -
+                                                       e_{ph,in,cold})
+                E_{F} = \dot{m}_{in,hot} \cdot (e_{ph,in,hot} -
+                                                     e_{ph,out,hot})
         """
-        self.Ex_output = self.inl[1].m.val_SI * (self.outl[1].ex_physical
-                                                 - self.inl[1].ex_physical)
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
-                                                - self.outl[0].ex_physical)
-        self.Ex_loss = 0
+        self.E_P = self.inl[1].m.val_SI * (self.outl[1].ex_physical
+                                           - self.inl[1].ex_physical)
+        self.E_F = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                           - self.outl[0].ex_physical)
 
 # %%
 
@@ -2944,20 +2942,33 @@ class condenser(heat_exchanger):
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_bp_p(i1) + T_o2
 
-    def exergy_balance(self):
+    dissipative = True
+    def exergy_balance(self, Tamb_val_SI, bus):
         r"""
-        Perform exergy balance of a condenser.
+        Calculate exergy balance of a condenser.
 
+        Parameters
+        ----------
+        Tamb_val_SI : float
+            Ambient temperature in K.
+        bus  : tespy.connections.bus
+            Energy flows in network. Used to calculate product exergy
+            or fuel exergy of turbines and pumps.
+            
+        Note
+        ----
             .. math::
 
-                Ex_{output} = 0
-                Ex_{input} = \dot{m}_{in} \cdot (ex_{ph,in} - ex_{ph,out})
-                Ex_{loss} = 0
+                E_{P} = n/a
+                E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
         """
-        self.Ex_output = 0
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
-                                                - self.outl[0].ex_physical)
-        self.Ex_loss = 0
+        if self.dissipative == True:
+            self.E_P = 'n/a'
+        if self.dissipative == False:
+            self.E_P = self.inl[1].m.val_SI * (self.outl[1].ex_physical
+                                               - self.inl[1].ex_physical)
+        self.E_F = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                           - self.outl[0].ex_physical)
 
 # %%
 

@@ -1269,20 +1269,31 @@ class pump(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb_val_SI, bus):
         r"""
-        Perform exergy balance of a pump.
+        Calculate exergy balance of a pump.
 
+        Parameters
+        ----------
+        Tamb_val_SI : float
+            Ambient temperature in K.
+        bus  : tespy.connections.bus
+            Energy flows in network. Used to calculate product exergy
+            or fuel exergy of turbines and pumps.
+            
+        Note
+        ----
             .. math::
 
-                Ex_{output} = \dot{m}_{in} \cdot (ex_{ph,out} - ex_{ph,in})
-                Ex_{input} = P
-                Ex_{loss} = 0
+                E_{P} = \dot{m}_{in} \cdot (e_{ph,out} - e_{ph,in})
+                E_{F} = P
         """
-        self.Ex_output = self.inl[0].m.val_SI * (self.outl[0].ex_physical
+        self.E_P = self.inl[0].m.val_SI * (self.outl[0].ex_physical
                                                  - self.inl[0].ex_physical)
-        self.Ex_input = self.P.val
-        self.Ex_loss = 0
+        if bus == None:
+            self.E_F = self.P.val
+        else:
+            self.E_F = self.calc_bus_value(bus)
 
 # %%
 
@@ -1740,22 +1751,34 @@ class turbine(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb_val_SI, bus):
         r"""
-        Perform exergy balance of a turbine.
+        Calculate exergy balance of a turbine.
 
+        Parameters
+        ----------
+        Tamb_val_SI : float
+            Ambient temperature in K.
+        bus  : tespy.connections.bus
+            Energy flows in network. Used to calculate product exergy
+            or fuel exergy of turbines and pumps.
+            
+        Note
+        ----
             .. math::
 
-                Ex_{output} = P
-                Ex_{input} = \dot{m}_{in} \cdot (ex_{ph,in} - ex_{ph,out})
-                Ex_{loss} = 0
+                E_{P} = P
+                E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
 
         Note
         ----
         Exergy destruction is always positive. Therefore, the output power
         value needs to be multiplied by -1.
         """
-        self.Ex_output = self.P.val*-1
-        self.Ex_input = self.inl[0].m.val_SI * (self.inl[0].ex_physical
-                                                - self.outl[0].ex_physical)
-        self.Ex_loss = 0
+        if bus == None:
+            self.E_P = self.P.val*-1
+        else:
+            self.E_P = self.calc_bus_value(bus)*-1
+        
+        self.E_F = self.inl[0].m.val_SI * (self.inl[0].ex_physical
+                                           - self.outl[0].ex_physical)

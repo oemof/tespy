@@ -2579,7 +2579,7 @@ class network:
         # exergy balance of components
         for cp in self.comps.index:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter):
+                    isinstance(cp, source) or isinstance(cp, splitter)):
                 continue
             cp.exergy_balance(Tamb, bus)
 
@@ -2606,7 +2606,7 @@ class network:
         self.E_D_sum = 0
         for cp in self.comps.index:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter):
+                    isinstance(cp, source) or isinstance(cp, splitter)):
                 continue
             if cp.epsilon == -111:
                 continue
@@ -2632,7 +2632,7 @@ class network:
         # calculate exergy destruction ratios for components
         for cp in self.comps.index:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter):
+                    isinstance(cp, source) or isinstance(cp, splitter)):
                 continue
             if cp.epsilon == -111:
                 continue
@@ -2771,7 +2771,7 @@ class network:
                                    'E_D / MW', 'epsilon', 'y_D,k', 'y*_D,k'])
         for cp in self.comps.index:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter):
+                    isinstance(cp, source) or isinstance(cp, splitter)):
                 continue
             if cp.epsilon == -111:
                 continue

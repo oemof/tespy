@@ -369,6 +369,9 @@ def load_network(path):
 
     msg = 'Created network.'
     logging.info(msg)
+
+    nw.check_network()
+
     return nw
 
 

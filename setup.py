@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.3.4.dev0',
+    version='0.3.5.dev0',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (

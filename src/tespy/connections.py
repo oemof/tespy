@@ -28,8 +28,8 @@ from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_flu
 from tespy.tools.data_containers import dc_prop
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.fluid_properties import calc_physical_exergy
+from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)
@@ -600,6 +600,7 @@ class connection:
     def get_physical_exergy(self, pamb, Tamb):
         r"""
         Get the value of a connection's specific physical exergy.
+        Calcute physical exergy of connection
 
         Parameters
         ----------
@@ -608,9 +609,15 @@ class connection:
 
         Tamb : float
             Ambient temperature Tamb / K.
+        
+        Note
+        ----
+            .. math::
+
+                E^{\text{PH}} = \dot{m} \cdot e^{\text{PH}}
         """
         self.ex_physical = calc_physical_exergy(self, pamb, Tamb)
-
+        self.Ex_Physical = self.m.val_SI * self.ex_physical
 
 class bus:
     r"""

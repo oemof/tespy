@@ -1735,7 +1735,7 @@ def ds_mix_pdT(flow, T):
 
 def calc_physical_exergy(conn, pamb, Tamb):
     r"""
-    Calculate specific physical exergy rounded on the 6th decimal.
+    Calculate specific physical exergy.
 
     Parameters
     ----------
@@ -1750,14 +1750,14 @@ def calc_physical_exergy(conn, pamb, Tamb):
 
     Returns
     -------
-    ex_ph : float
-        Specific physical exergy ex_ph / (J/kg).
+    e_ph : float
+        Specific physical exergy e_ph / (J/kg).
 
         .. math::
 
-            ex_{ph} = (h - h(p_{amb}, T_{amb})) -
+            e_{ph} = (h - h(p_{amb}, T_{amb})) -
             T_{amb} \cdot (s - s(p_{amb}, T_{amb}))
     """
     hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
     samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
-    return round((conn.h.val_SI - hamb) - Tamb*(conn.s.val_SI - samb), 6)
+    return (conn.h.val_SI - hamb) - Tamb * (conn.s.val_SI - samb)

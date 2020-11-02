@@ -33,7 +33,7 @@ from tespy.components.basics import subsystem_interface
 from tespy.components.combustion import combustion_chamber
 from tespy.components.combustion import combustion_engine
 from tespy.components.customs import orc_evaporator
-from tespy.components.heat_exchangers import heat_exchanger, parabolic_trough
+from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import droplet_separator
 from tespy.components.nodes import drum
 from tespy.components.nodes import merge
@@ -2512,8 +2512,8 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    def exergy_analysis(self, pamb=101300, Tamb= 298.15, 
-                        bus=None, E_F=None, E_L=None):
+    def exergy_analysis(self, pamb = 101300, Tamb = 298.15,
+                        bus = None, E_F = None, E_L = None):
         r"""Perform exergy analysis.
         
         - Get values for physical exergy of connections.
@@ -2552,21 +2552,24 @@ class network:
         ----
             .. math::
 
-                E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}
-                \varepsilon_{\text{comp}} = \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
+                E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}\\
+                \varepsilon_{\text{comp}} = 
+                \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
                 
                 E_{\text{D,tot,bottom up}} = \sum_{comp=0}^N E_{\text{D},comp}
     
-                E_{\text{P}} = P_{\text{net}}
-                E_{\text{F}} = \sum_{comp=0}^N E_{\text{F},comp}
-                E_{\text{L}} = \sum_{conn=0}^N E_{\text{PH},conn}
-                E_{\text{D}} = E_{\text{F}} - E_{\text{P}} - E_{\text{L}}
+                E_{\text{P}} = P_{\text{net}}\\            
+                E_{\text{F}} = \sum_{comp=0}^N E_{\text{F},comp}\\            
+                E_{\text{L}} = \sum_{conn=0}^N E_{\text{PH},conn}\\            
+                E_{\text{D}} = E_{\text{F}} - E_{\text{P}} - E_{\text{L}}\\            
                 \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
                 
-                y_{\text{D},comp}= \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}
-                y^*_{\text{D},comp}= \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
+                y_{\text{D},comp} =
+                \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\            
+                y^*_{\text{D},comp} =
+                \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
         """
-        if E_F == None:
+        if E_F is None:
             msg = ('Missing fuel exergy E_F of network.')
             logging.warning(msg)
         

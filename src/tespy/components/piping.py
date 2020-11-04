@@ -308,7 +308,8 @@ class valve(component):
     @staticmethod
     def attr():
         return {
-            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'pr': dc_cp(min_val=1e-4, max_val=1),
+            'zeta': dc_cp(min_val=0, max_val=1e15),
             'dp_char': dc_cc(param='m'),
             'Sirr': dc_simple()
         }

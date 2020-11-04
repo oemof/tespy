@@ -770,6 +770,8 @@ class network:
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns.index:
+            # reindex connections dictionary
+            self.connections[c.label] = c
             if self.init_previous is False:
                 c.good_starting_values = False
 
@@ -895,16 +897,17 @@ class network:
                     for var in c.offdesign:
                         c.get_attr(var).val_set = False
 
-        # unset design values for busses
+        # unset design values for busses, count bus equations and
+        # reindex bus dicitonary
         for b in self.busses.values():
-            # count number of bus equations
+            self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
             for cp in b.comps.index:
                 b.comps.loc[cp, 'P_ref'] = np.nan
 
         series = pd.Series(dtype=np.float64)
         for cp in self.comps.index:
-            # in case the attribution has been remapped
+            # reindex components dicitonary
             self.components[cp.label] = cp
             # read design point information of components with
             # local_offdesign activated from their respective design path
@@ -1157,7 +1160,7 @@ class network:
         logging.debug(msg)
 
         for cp in self.comps.index:
-            # in case the attribution has been remapped
+            # reindex components dicitonary
             self.components[cp.label] = cp
             if cp.local_design is False:
                 # unset variables provided in .design attribute
@@ -1192,8 +1195,9 @@ class network:
         msg = 'Switched components from design to offdesign.'
         logging.debug(msg)
 
-        # count bus equations
+        # count bus equations and reindex bus dicitonary
         for b in self.busses.values():
+            self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
 
     def init_fluids(self):
@@ -1463,6 +1467,23 @@ class network:
 
                 self.init_precalc_properties(c)
 
+            # starting values for specified subcooling/overheating
+            # and state specification. These should be recalculated even with
+            # good starting values, for example, when one exchanges enthalpy
+            # with boiling point temperature difference.
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
+                    c.h.val_set is False):
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
+                        (c.state.val == 'g' and c.state.is_set is True)):
+                    h = fp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.001
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
+                      (c.state.val == 'l' and c.state.is_set is True)):
+                    h = fp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.999
+
         msg = 'Generic fluid property specification complete.'
         logging.debug(msg)
 
@@ -1507,21 +1528,6 @@ class network:
                 c.h.val_SI = fp.h_mix_pT(c.to_flow(), c.T.val_SI)
             except ValueError:
                 pass
-
-        # starting values for specified subcooling/overheating
-        # and state specification
-        if ((c.Td_bp.val_set is True or c.state.is_set is True) and
-                c.h.val_set is False):
-            if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                    (c.state.val == 'g' and c.state.is_set is True)):
-                h = fp.h_mix_pQ(c.to_flow(), 1)
-                if c.h.val_SI < h:
-                    c.h.val_SI = h * 1.001
-            elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                  (c.state.val == 'l' and c.state.is_set is True)):
-                h = fp.h_mix_pQ(c.to_flow(), 0)
-                if c.h.val_SI > h:
-                    c.h.val_SI = h * 0.999
 
     def init_val0(self, c, key):
         r"""
@@ -2626,7 +2632,7 @@ class network:
 
 # %% printing and plotting
 
-    def print_results(self):
+    def print_results(self, colored=True):
         r"""Print the calculations results to prompt."""
 
         for cp in self.comps['comp_type'].unique():
@@ -2643,7 +2649,7 @@ class network:
             if len(cols) > 0:
                 for col in cols:
                     df[col] = df.apply(
-                        network.print_components, axis=1, args=(col,))
+                        network.print_components, axis=1, args=(col, colored))
 
                 df.drop(['comp_type'], axis=1, inplace=True)
                 df.set_index('label', inplace=True)
@@ -2668,7 +2674,7 @@ class network:
 
                 row_data = []
                 for var in ['m', 'p', 'h', 'T']:
-                    if c.get_attr(var).val_set is True:
+                    if c.get_attr(var).val_set is True and colored is True:
                         row_data += [
                             coloring['set'] + str(c.get_attr(var).val) +
                             coloring['end']
@@ -2706,10 +2712,14 @@ class network:
                                floatfmt='.3e'))
 
     def print_components(c, *args):
+        param, colored = args
         if c.name.printout is True:
-            val = float(c.name.get_attr(args[0]).val)
-            if (val < c.name.get_attr(args[0]).min_val - err or
-                    val > c.name.get_attr(args[0]).max_val + err):
+            val = float(c.name.get_attr(param).val)
+            if colored is False:
+                return str(val)
+            # else part
+            if (val < c.name.get_attr(param).min_val - err or
+                    val > c.name.get_attr(param).max_val + err):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if c.name.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']

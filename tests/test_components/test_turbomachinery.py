@@ -349,8 +349,7 @@ class TestTurbomachinery:
                instance.component() + '.')
         assert 'turbomachine' == instance.component(), msg
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
-              'H2O': 0, 'NH3': 0, 'CO2': 0, 'CH4': 0}
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0, 'NH3': 0}
         self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
         self.c2.set_attr(p=3, h=2e5)
 

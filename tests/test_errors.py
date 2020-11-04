@@ -503,7 +503,7 @@ class TestNetworkErrors:
     def test_no_connections_error(self):
         with raises(TESPyNetworkError):
             self.nw.solve('design')
-    
+
     def test_bad_fluids_in_fluid_vector(self):
         source1 = basics.source('source1')
         sink1 = basics.sink('sink1')

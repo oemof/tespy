@@ -2731,6 +2731,9 @@ class condenser(heat_exchanger):
 
     def comp_init(self, nw):
 
+        # for exergy balance
+        self.dissipative = True
+
         component.comp_init(self, nw)
 
         # number of mandatroy equations for
@@ -2954,7 +2957,7 @@ class condenser(heat_exchanger):
             E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
         """
         if self.dissipative is True:
-            self.E_P = np.nan
+            self.E_P = 0
         else:
             self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
 

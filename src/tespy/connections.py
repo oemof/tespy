@@ -609,7 +609,7 @@ class connection:
 
         Tamb : float
             Ambient temperature Tamb / K.
-        
+
         Note
         ----
             .. math::
@@ -617,7 +617,7 @@ class connection:
                 E^{\text{PH}} = \dot{m} \cdot e^{\text{PH}}
         """
         self.ex_physical = calc_physical_exergy(self, pamb, Tamb)
-        self.Ex_Physical = self.m.val_SI * self.ex_physical
+        self.Ex_physical = self.m.val_SI * self.ex_physical
 
 class bus:
     r"""

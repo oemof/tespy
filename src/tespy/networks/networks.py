@@ -789,6 +789,12 @@ class network:
 
             # fluid vector specification
             tmp = c.fluid.val
+            for fluid in tmp.keys():
+                if fluid not in self.fluids:
+                    msg = ('Your connection ' + c.label + ' holds a fluid, '
+                           'that is not part of the networks\'s fluids (' +
+                           fluid + ').')
+                    raise hlp.TESPyNetworkError(msg)
             tmp0 = c.fluid.val0
             tmp_set = c.fluid.val_set
             c.fluid.val = OrderedDict()
@@ -2511,20 +2517,20 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    def exergy_analysis(self, pamb=101300, Tamb=298.15, bus=None, E_F=None,
-                        E_L=None):
+    def exergy_analysis(self,
+                        pamb=101325,
+                        Tamb=298.15,
+                        bus={}, E_F=None, E_L=None):
         r"""Perform exergy analysis.
 
         - Get values for physical exergy of connections.
         - Call exergy balances of components.
           The components cycle\_closer, source, sink and splitter are being
-          skipped because it does not make sense to perform an exergy analysis
-          with these components.
+          skipped because there is no change in exergy with these components.
         - Calculate exergy destruction and exergetic efficiency of components.
-          If there is a componenten in the network for which there is no
-          exergy balance implemented in TESPy, 0 is assigned to E_D, E_F and
-          E_P of the componenten. The exergetic efficiency epsilon gets the
-          value -111.
+          Components, that do not have exergy input
+          (:math:`E_{\text{F},comp}=0`) the efficiency value :math:`\epsilon`
+          will be :code:`nan`.
         - Sum up exergy destruction of components with bottom up approach.
         - The network product exergy equals the net power output.
         - Assign network fuel exergy and exergy los from parameters given
@@ -2535,38 +2541,39 @@ class network:
         Parameters
         ----------
         pamb : float
-            Ambient pressure in Pa.
+            Ambient pressure in network's pressure unit.
         Tamb : float
-            Ambient temperature in K.
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
-        E_F  : list
+            Ambient temperature in network's temperature unit.
+        busses : dict
+            A dictionary containing bus instances as keys and a list of
+            components that should evaluate on the bus value instead of the
+            component value, e.g. for electrical power of turbomachinery.
+        E_F : list
             List containing components which represent fuel exergy input
             in network.
-        E_L  : list
+        E_L : list
             List containing connections which represent exergy loss streams.
 
         Note
         ----
-            .. math::
+        .. math::
 
-                E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}\\
-                \varepsilon_{\text{comp}} =
-                \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
+            E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}\\
+            \varepsilon_{\text{comp}} =
+            \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
 
-                E_{\text{D,tot,bottom up}} = \sum_{comp=0}^N E_{\text{D},comp}
+            E_{\text{D,tot,bottom up}} = \sum_{comp=0}^N E_{\text{D},comp}
 
-                E_{\text{P}} = P_{\text{net}}\\
-                E_{\text{F}} = \sum_{comp=0}^N E_{\text{F},comp}\\
-                E_{\text{L}} = \sum_{conn=0}^N E_{\text{PH},conn}\\
-                E_{\text{D}} = E_{\text{F}} - E_{\text{P}} - E_{\text{L}}\\
-                \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
+            E_{\text{P}} = P_{\text{net}}\\
+            E_{\text{F}} = \sum_{comp=0}^N E_{\text{F},comp}\\
+            E_{\text{L}} = \sum_{conn=0}^N E_{\text{PH},conn}\\
+            E_{\text{D}} = E_{\text{F}} - E_{\text{P}} - E_{\text{L}}\\
+            \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
 
-                y_{\text{D},comp} =
-                \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
-                y^*_{\text{D},comp} =
-                \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
+            y_{\text{D},comp} =
+            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
+            y^*_{\text{D},comp} =
+            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
         """
         if E_F is None:
             msg = ('Missing fuel exergy E_F of network.')
@@ -2576,45 +2583,23 @@ class network:
         for conn in self.conns.index:
             conn.get_physical_exergy(pamb, Tamb)
 
-        # exergy balance of components
-        for cp in self.comps.index:
-            if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter)):
-                continue
-            cp.exergy_balance(Tamb, bus)
-
-            # calculate E_D for components
-            try:
-                if isinstance(cp.E_P, str):
-                    cp.E_D = cp.E_F
-                else:
-                    cp.E_D = cp.E_F - cp.E_P
-            except AttributeError:
-                cp.E_D = 0
-                cp.E_F = 0
-                cp.E_P = 0
-            # calculate epsilon for components
-            try:
-                if isinstance(cp.E_P, str):
-                    cp.epsilon = 'n/a'
-                else:
-                    cp.epsilon = cp.E_P / cp.E_F
-            except ZeroDivisionError:
-                cp.epsilon = -111
-
-        # bottom up calculation of exergy destruction
-        self.E_D_sum = 0
-        for cp in self.comps.index:
-            if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter)):
-                continue
-            if cp.epsilon == -111:
-                continue
-            self.E_D_sum += cp.E_D
-
-        # calculate E_P, E_F, E_L, E_D and epsilon for network
+        # calculate E_P, E_F, E_L, E_D and epsilon of network
         self.E_L = 0
         self.E_F = 0
+        self.E_D = 0
+        # exergy balance of components and
+        # bottom up calculation of exergy destruction
+        for cp in self.comps.index:
+            cp.exergy_balance(bus)
+
+            # calculate E_D and epsilon for components
+            cp.E_D = cp.E_F - cp.E_P
+            if cp.E_F != 0:
+                cp.epsilon = cp.E_P / cp.E_F
+            else:
+                cp.epsilon = np.nan
+
+            self.E_D += cp.E_D
 
         for b in self.busses.values():
             self.E_P = b.P.val*-1
@@ -2624,10 +2609,10 @@ class network:
 
         if E_L is not None:
             for conn in E_L:
-                self.E_L += conn.Ex_Physical
+                self.E_L += conn.Ex_physical
 
         self.E_D = self.E_F - self.E_P - self.E_L
-        self.epsilon = self.E_P/self.E_F
+        self.epsilon = self.E_P / self.E_F
 
         # calculate exergy destruction ratios for components
         for cp in self.comps.index:
@@ -2742,7 +2727,7 @@ class network:
         for c in self.conns.index:
             row = (c.source.label + ':' + c.source_id + ' -> ' +
                    c.target.label + ':' + c.target_id)
-            row_data = [c.ex_physical/10**3, c.Ex_Physical/10**6]
+            row_data = [c.ex_physical/10**3, c.Ex_physical/10**6]
             df.loc[row] = row_data
 
         self.df_exergy_conns = df

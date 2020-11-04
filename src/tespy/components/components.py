@@ -586,20 +586,20 @@ class component:
     def convergence_check(self, nw):
         return
 
-    def exergy_balance(self, Tamb_val_SI, bus):
-        r"""Create warning if exergy balance of a component
-        is not available
-        
+    def exergy_balance(self, bus):
+        r"""Exergy balance calculation method.
+
         Parameters
         ----------
-        Tamb_val_SI : float
-            Ambient temperature in K.
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
             or fuel exergy of turbines and pumps.
         """
-        logging.warning('Method not available for this component: '
-                        + self.label)
+        self.E_D = 0
+        self.E_F = 0
+        self.E_P = 0
+        logging.warning('Exergy balance not available for components of type '
+                        + self.component() + ' (' + self.label + ').')
 
 # %%
 

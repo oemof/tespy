@@ -1269,28 +1269,26 @@ class pump(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb_val_SI, bus):
+    def exergy_balance(self, bus):
         r"""
         Calculate exergy balance of a pump.
 
         Parameters
         ----------
-        Tamb_val_SI : float
-            Ambient temperature in K.
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
             or fuel exergy of turbines and pumps.
-            
+
         Note
         ----
-            .. math::
+        .. math::
 
-                E_{P} = \dot{m}_{in} \cdot (e_{ph,out} - e_{ph,in})
-                E_{F} = P
+            E_{P} = \dot{m}_{in} \cdot \left(e_{ph,out} - e_{ph,in}\right)\\
+            E_{F} = P
         """
-        self.E_P = self.inl[0].m.val_SI * (self.outl[0].ex_physical
-                                                 - self.inl[0].ex_physical)
-        if bus == None:
+        self.E_P = self.inl[0].m.val_SI * (
+            self.outl[0].ex_physical - self.inl[0].ex_physical)
+        if bus is None:
             self.E_F = self.P.val
         else:
             self.E_F = self.calc_bus_value(bus)
@@ -1751,24 +1749,22 @@ class turbine(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb_val_SI, bus):
+    def exergy_balance(self, bus):
         r"""
         Calculate exergy balance of a turbine.
 
         Parameters
         ----------
-        Tamb_val_SI : float
-            Ambient temperature in K.
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
             or fuel exergy of turbines and pumps.
-            
+
         Note
         ----
-            .. math::
+        .. math::
 
-                E_{P} = P
-                E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
+            E_{P} = P\\
+            E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
 
         Note
         ----
@@ -1776,9 +1772,8 @@ class turbine(turbomachine):
         value needs to be multiplied by -1.
         """
         if bus == None:
-            self.E_P = self.P.val*-1
+            self.E_P = abs(self.P.val)
         else:
-            self.E_P = self.calc_bus_value(bus)*-1
-        
-        self.E_F = self.inl[0].m.val_SI * (self.inl[0].ex_physical
-                                           - self.outl[0].ex_physical)
+            self.E_P = abs(self.calc_bus_value(bus))
+
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical

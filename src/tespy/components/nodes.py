@@ -1415,35 +1415,35 @@ class merge(node):
             j += 1
         k += 1
 
-    def exergy_balance(self, Tamb_val_SI, bus):
+    def exergy_balance(self, bus):
         r"""
         Calculate exergy balance of a merge.
-        
+
         Parameters
         ----------
-        Tamb_val_SI : float
-            Ambient temperature in K.
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
             or fuel exergy of turbines and pumps.
-            
+
         Note
         ----
-         .. math::
+        .. math::
 
-                E_{P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot (e_{ph,out} - e_{ph,in,n_{cold}})
-                E_{F} = \sum_{n_{hot}=0}^N \dot{m}_{in,n_{hot}} \cdot (e_{ph,out} - e_{ph,in,n_{hot}})
+            E_{P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot \left(
+            e_{ph,out} - e_{ph,in,n_{cold}}\right)\\
+            E_{F} = \sum_{n_{hot}=0}^N \dot{m}_{in,n_{hot}} \cdot \left(
+            e_{ph,out} - e_{ph,in,n_{hot}}\right)
         """
         self.E_P = 0
         for i in range(0, len(self.inl)):
             if self.inl[i].T.val_SI <= self.outl[0].T.val_SI:
-                self.E_P += self.inl[i].m.val_SI * (self.outl[0].ex_physical 
+                self.E_P += self.inl[i].m.val_SI * (self.outl[0].ex_physical
                                                     - self.inl[i].ex_physical)
 
         self.E_F = 0
         for i in range(0, len(self.inl)):
             if self.inl[i].T.val_SI > self.outl[0].T.val_SI:
-                self.E_F += self.inl[i].m.val_SI * (self.inl[i].ex_physical 
+                self.E_F += self.inl[i].m.val_SI * (self.inl[i].ex_physical
                                                     - self.outl[0].ex_physical)
 
 # %%

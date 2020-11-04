@@ -35,7 +35,12 @@ Other Changes
 
       mynetwork.print_results(colored=False)
 
+ - An error message is raised in case the user specifies a fluid vector
+   containing fluids, that are not part of the network's fluid list
+   (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
 - `@jbueck <https://github.com/jbueck>`_
+- Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

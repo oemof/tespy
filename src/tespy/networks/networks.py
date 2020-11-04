@@ -791,6 +791,12 @@ class network:
 
             # fluid vector specification
             tmp = c.fluid.val
+            for fluid in tmp.keys():
+                if fluid not in self.fluids:
+                    msg = ('Your connection ' + c.label + ' holds a fluid, '
+                           'that is not part of the networks\'s fluids (' +
+                           fluid + ').')
+                    raise hlp.TESPyNetworkError(msg)
             tmp0 = c.fluid.val0
             tmp_set = c.fluid.val_set
             c.fluid.val = OrderedDict()

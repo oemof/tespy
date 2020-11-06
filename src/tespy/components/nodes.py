@@ -1423,16 +1423,16 @@ class merge(node):
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            E_{P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot \left(
-            e_{ph,out} - e_{ph,in,n_{cold}}\right)\\
-            E_{F} = \sum_{n_{hot}=0}^N \dot{m}_{in,n_{hot}} \cdot \left(
-            e_{ph,out} - e_{ph,in,n_{hot}}\right)
+            \dot{E_P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot \left(
+            e_{ph,out} - e_{ph,in,n_{cold}} \right)\\
+            \dot{E_F} = \sum_{n_{hot}=0}^N \dot{m}_{in,n_{hot}} \cdot \left(
+            e_{ph,out} - e_{ph,in,n_{hot}} \right)
         """
         self.E_P = 0
         for i in range(0, len(self.inl)):

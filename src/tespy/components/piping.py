@@ -544,14 +544,14 @@ class valve(component):
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
          .. math::
 
-            E_{P} = 0\\
-            E_{F} = \dot{m}_{in} \cdot \left(e_{ph,in} - e_{ph,out}\right)
+            \dot{E_P} = \text{not defined (nd)}\\
+            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out} \right)
         """
-        self.E_P = 0
+        self.E_P = 'n/d'
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical

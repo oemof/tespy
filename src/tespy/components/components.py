@@ -593,11 +593,10 @@ class component:
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
         """
-        self.E_D = 0
-        self.E_F = 0
-        self.E_P = 0
+        self.E_F = np.nan
+        self.E_P = np.nan
         logging.warning('Exergy balance not available for components of type '
                         + self.component() + ' (' + self.label + ').')
 

@@ -1267,22 +1267,29 @@ class parabolic_trough(heat_exchanger_simple):
 
     def exergy_balance(self, bus):
         r"""
-        Calculate exergy balance of a parabolic trough.
+        Calculate exergy balance of a parabolic trough.\\
+        Here, the exergy balance includes exergy destruction due to pressure
+        losses, not due to heat losses.
 
         Parameters
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            E_{P} = \dot{m}_{in} \cdot (e_{ph,out} - e_{ph,in})\\
-            E_{F} = (1 - \frac{T_{\text{amb}}}{T_{\text{m}}}) \cdot \dot{Q}\\
+            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right)\\
+            \dot{E_F} = \left(1 - \frac{T_{\text{amb}}}{T_{\text{m}}}\right) 
+            \cdot \dot{Q}\\
             T_{\text{m}} = \frac{T_\text{in} + T_\text{out}}{2}
         """
+        if np.isnan(self.Tamb.val_SI):
+            logging.warning('For exergy analysis, Tamb must be specified for component of type'
+                        + self.component() + ' (' + self.label + ').')
+
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
@@ -2513,16 +2520,16 @@ class heat_exchanger(component):
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            E_{P} = \dot{m}_{in,cold} \cdot \left(
+            \dot{E_P} = \dot{m}_{in,cold} \cdot \left(
             e_{ph,out,cold} - e_{ph,in,cold} \right)\\
-            E_{F} = \dot{m}_{in,hot} \cdot \left(
-            e_{ph,in,hot} - e_{ph,out,hot}\right)
+            \dot{E_F} = \dot{m}_{in,hot} \cdot \left(
+            e_{ph,in,hot} - e_{ph,out,hot} \right)
         """
         self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
@@ -2946,20 +2953,20 @@ class condenser(heat_exchanger):
         ----------
         bus  : tespy.connections.bus
             Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines and pumps.
+            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
-
-            E_{P} = \begin{cases}
-            nan & \text{heat dissipation (default)}
+            
+            dot{E_P} = \begin{cases}
+            \text{not defined (n/d)} & \text{heat dissipation (default)} \\
             \dot{m}_{in,2} \cdot (e_{ph,in,2} - e_{ph,out,2}) & \\
             \end{cases}\\
-            E_{F} = \dot{m}_{in} \cdot (e_{ph,in} - e_{ph,out})
+            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out} \right)
         """
         if self.dissipative is True:
-            self.E_P = 0
+            self.E_P = 'n/d'
         else:
             self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
 

@@ -2533,16 +2533,30 @@ class network:
         - Call exergy balances of components.
           The components cycle\_closer, source, sink and splitter are being
           skipped because there is no change in exergy with these components.
+          Componentes for which no exergy balance has yet been implemented,
+          :code:`nan` is assigned for fuel exergy and product exergy.
+          Dissipative components do not have product exergy per definition 
+          (n/d).
         - Calculate exergy destruction and exergetic efficiency of components.
-          Components, that do not have exergy input
+          Components, that do not have fuel exergy
           (:math:`E_{\text{F},comp}=0`) the efficiency value :math:`\epsilon`
           will be :code:`nan`.
-        - Sum up exergy destruction of components with bottom up approach.
+          Since dissipative components do not have product exergy, an exergetic
+          efficiency is not available (n/a).
+        - The exergy destruction of components is sumed up following a bottom
+          up approach in order to compare it with the overall exergy 
+          destruction calculated with an exergy balance of the network. Both
+          values should be the same.
         - The network product exergy equals the net power output.
-        - Assign network fuel exergy and exergy los from parameters given
+        - Assign network fuel exergy and network exergy los from parameters given
           to method.
-        - Calculate network exergy destruction and epsilon.
-        - Calculate exergy destruction ratios for components.
+        - Calculate network exergy destruction and network exergetic
+          efficiency.
+        - Calculate exergy destruction ratios for components.\\
+          $y_D$ compares the rate of exergy destruction in a component to
+          the exergy rate of the fuel provided to the overall system.\\
+          $y^*_D$ compares the component exergy destruction rate to the total
+          exergy destruction rate within the system.
 
         Parameters
         ----------
@@ -2581,6 +2595,11 @@ class network:
             y^*_{\text{D},comp} =
             \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
         """
+        self.E_L = 0
+        self.E_F = 0
+        self.E_D = 0
+        self.E_D_sum = 0
+
         if E_F is None:
             msg = ('Missing fuel exergy E_F of network.')
             logging.warning(msg)
@@ -2589,24 +2608,31 @@ class network:
         for conn in self.conns.index:
             conn.get_physical_exergy(pamb, Tamb)
 
-        # calculate E_P, E_F, E_L, E_D and epsilon of network
-        self.E_L = 0
-        self.E_F = 0
-        self.E_D = 0
-        # exergy balance of components and
-        # bottom up calculation of exergy destruction
+        # exergy balance of components 
+        # calculation of E_D and epsilon of components and
+        # bottom up calculation of exergy destruction of components
         for cp in self.comps.index:
             cp.exergy_balance(bus)
 
-            # calculate E_D and epsilon for components
-            cp.E_D = cp.E_F - cp.E_P
-            if cp.E_F != 0:
+            # calculate E_D of components
+            if cp.E_P == 'n/d':
+                cp.E_D = cp.E_F
+            else:
+                cp.E_D = cp.E_F - cp.E_P
+            # calculate epsilon of components
+            if cp.E_P == 'n/d':
+                cp.epsilon ='n/a'
+            elif cp.E_F != 0:
                 cp.epsilon = cp.E_P / cp.E_F
             else:
                 cp.epsilon = np.nan
+            # sum up exergy destruction of components
+            if np.isnan(cp.E_D):
+                None
+            else:
+                self.E_D_sum += cp.E_D
 
-            self.E_D += cp.E_D
-
+        # calculate E_P, E_F, E_L, E_D and epsilon of network
         for b in self.busses.values():
             self.E_P = b.P.val*-1
 
@@ -2624,8 +2650,6 @@ class network:
         for cp in self.comps.index:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
                     isinstance(cp, source) or isinstance(cp, splitter)):
-                continue
-            if cp.epsilon == -111:
                 continue
             cp.y_Dk = cp.E_D / self.E_F
             cp.ystar_Dk = cp.E_D / self.E_D
@@ -2730,7 +2754,7 @@ class network:
             return np.nan
 
     def print_exergy_conns(self):
-        r"""Print the calculation results of the (specific) physical exergy of
+        r"""Print the calculations results of the (specific) physical exergy of
         the connections to prompt.
         """
         df = pd.DataFrame(columns=['e_PH / (kJ / kg)', 'E_PH / MW'])
@@ -2750,8 +2774,8 @@ class network:
         r"""Print the calculations results of the exergy analysis of
         components and network to prompt.
 
-        - The results are sorted beginning
-        with the component having the biggest exergy destruction by default.
+        - The results are sorted beginning with the component having the 
+        biggest exergy destruction by default.
         - Components with an exergy destruction smaller than 1000 W is not
         printed to prompt by default
 
@@ -2768,13 +2792,11 @@ class network:
             if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
                     isinstance(cp, source) or isinstance(cp, splitter)):
                 continue
-            if cp.epsilon == -111:
-                continue
             if not isinstance(cp.E_P, str):
                 cp.E_P = round(cp.E_P / 10**6, 4)
             if not isinstance(cp.epsilon, str):
                 cp.epsilon = round(cp.epsilon, 4)
-            if cp.E_D < E_D_min:
+            if np.isnan(cp.E_D) or cp.E_D < E_D_min:
                 continue
 
             row_data = [cp.label, cp.E_P, cp.E_F/10**6,

@@ -642,9 +642,13 @@ CoolProp has an inbuilt feature for creating fluid property diagrams.
 Unfortunately, the handling is not very easy at the moment. We recommend using
 fluprodia (Fluid Property Diagram) instead. You can create and customize
 different types of diagrams for all pure and pseudo-pure fluids available in
-CoolProp. In order to plot your process data into a diagram, simply extract
-the corresponding values from the connections. For more information on
-fluprodia have a look at the
+CoolProp. In order to plot your process data into a diagram, you can use the
+:code:`get_plotting_data` method of each component. The method returns a
+dictionary, that can be passed as **kwargs to the
+:code:`calc_individual_isoline` method of a fluprodia
+:code:`FluidPropertyDiagram` object. The fluprodia documentation provides
+examples of how to plot a process into different diagrams, too. For more
+information on fluprodia have a look at the
 `online documentation <https://fluprodia.readthedocs.io/en/latest/>`_. You can
 install the package with pip.
 

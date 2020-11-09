@@ -537,13 +537,24 @@ class valve(component):
         self.check_parameter_bounds()
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information."""
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
         return {
-            'isoline_property': 'h',
-            'isoline_value': self.inl[0].h.val,
-            'isoline_value_end': self.outl[0].h.val,
-            'starting_point_property': 'p',
-            'starting_point_value': self.inl[0].p.val,
-            'ending_point_property': 'p',
-            'ending_point_value': self.outl[0].p.val
+            1: {
+                'isoline_property': 'h',
+                'isoline_value': self.inl[0].h.val,
+                'isoline_value_end': self.outl[0].h.val,
+                'starting_point_property': 'p',
+                'starting_point_value': self.inl[0].p.val,
+                'ending_point_property': 'p',
+                'ending_point_value': self.outl[0].p.val
+            }
         }

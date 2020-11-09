@@ -460,7 +460,16 @@ class node(component):
             return 5e5
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information."""
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
         return {
             i + 1: {
                 'isoline_property': 'p',
@@ -831,7 +840,16 @@ class droplet_separator(component):
             return h_mix_pQ(c.to_flow(), 0.5)
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information."""
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
         return {
             i + 1: {
                 'isoline_property': 'p',
@@ -1442,7 +1460,16 @@ class merge(node):
         k += 1
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information."""
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
         return {
             i + 1: {
                 'isoline_property': 'p',
@@ -1696,7 +1723,6 @@ class separator(node):
         msg = ('No data available for components of type ' + self.component() +
                ' (' + self.label + ').')
         logging.warning(msg)
-        return {}
 
 # %%
 
@@ -1938,4 +1964,3 @@ class splitter(node):
         msg = ('No data available for components of type ' + self.component() +
                ' (' + self.label + ').')
         logging.warning(msg)
-        return {}

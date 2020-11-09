@@ -729,7 +729,16 @@ class orc_evaporator(component):
         self.check_parameter_bounds()
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information."""
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
         return {
             i + 1: {
                 'isoline_property': 'p',

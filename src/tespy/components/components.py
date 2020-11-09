@@ -590,7 +590,6 @@ class component:
         msg = ('No data available for components of type ' + self.component() +
                ' (' + self.label + ').')
         logging.warning(msg)
-        return {}
 
 # %%
 

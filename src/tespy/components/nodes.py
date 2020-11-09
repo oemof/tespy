@@ -1692,6 +1692,12 @@ class separator(node):
         """
         return
 
+    def get_plotting_data(self):
+        msg = ('No data available for components of type ' + self.component() +
+               ' (' + self.label + ').')
+        logging.warning(msg)
+        return {}
+
 # %%
 
 
@@ -1927,3 +1933,9 @@ class splitter(node):
             Network using this component object.
         """
         return
+
+    def get_plotting_data(self):
+        msg = ('No data available for components of type ' + self.component() +
+               ' (' + self.label + ').')
+        logging.warning(msg)
+        return {}

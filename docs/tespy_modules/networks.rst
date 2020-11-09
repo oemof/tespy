@@ -638,6 +638,11 @@ Creating fluid property diagrams
 
     Figure: logph diagram of NH3 with a simple heat pump cycle.
 
+.. figure:: api/_images/Ts_diagram_states.svg
+    :align: center
+
+    Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
 CoolProp has an inbuilt feature for creating fluid property diagrams.
 Unfortunately, the handling is not very easy at the moment. We recommend using
 fluprodia (Fluid Property Diagram) instead. You can create and customize

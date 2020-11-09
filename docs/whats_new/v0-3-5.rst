@@ -22,6 +22,18 @@ New Features
           'ending_point_value': 6.831002318100345
      }}
 
+  The diagrams could look like this:
+
+  .. figure:: ../api/_images/logph_diagram_states.svg
+      :align: center
+
+      Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+  .. figure:: ../api/_images/Ts_diagram_states.svg
+      :align: center
+
+      Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
   For more information see the respective
   :ref:`documentation section <FluProDia_label>`
   (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).

@@ -24,12 +24,12 @@ New Features
 
   The diagrams could look like this:
 
-  .. figure:: ../api/_images/logph_diagram_states.svg
+  .. figure:: api/_images/logph_diagram_states.svg
       :align: center
 
       Figure: logph diagram of NH3 with a simple heat pump cycle.
 
-  .. figure:: ../api/_images/Ts_diagram_states.svg
+  .. figure:: api/_images/Ts_diagram_states.svg
       :align: center
 
       Figure: Ts diagram of NH3 with a simple heat pump cycle.
@@ -72,9 +72,9 @@ Other Changes
 
       mynetwork.print_results(colored=False)
 
- - An error message is raised in case the user specifies a fluid vector
-   containing fluids, that are not part of the network's fluid list
-   (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
+- An error message is raised in case the user specifies a fluid vector
+  containing fluids, that are not part of the network's fluid list
+  (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
 
 Contributors
 ############

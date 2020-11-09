@@ -586,6 +586,11 @@ class component:
     def convergence_check(self, nw):
         return
 
+    def get_plotting_data(self):
+        msg = ('No data available for components of type ' + self.component() +
+               ' (' + self.label + ').')
+        logging.warning(msg)
+
 # %%
 
     def fluid_func(self):

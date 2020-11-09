@@ -1,6 +1,43 @@
 v0.3.5 - Someversion (Somemonth, Someday, Someyear)
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
+New Features
+############
+
+- Add a method :code:`get_plotting_data` to each component to export the input
+  data required by FluProDia in order to generate the data required to display
+  state changes in the components in a fluid property diagram. Each component
+  returns a nested dictionary containing the respective data. E.g. the return
+  value of a :code:`valve`:
+
+  .. code-block:: bash
+
+      {1: {
+          'isoline_property': 'h',
+          'isoline_value': 773.8970004397456,
+          'isoline_value_end': 773.8970004397456,
+          'starting_point_property': 'p',
+          'starting_point_value': 51.164150405253665,
+          'ending_point_property': 'p',
+          'ending_point_value': 6.831002318100345
+     }}
+
+  The diagrams could look like this:
+
+  .. figure:: ../api/_images/logph_diagram_states.svg
+      :align: center
+
+      Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+  .. figure:: ../api/_images/Ts_diagram_states.svg
+      :align: center
+
+      Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
+  For more information see the respective
+  :ref:`documentation section <FluProDia_label>`
+  (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).
+
 Documentation
 #############
 

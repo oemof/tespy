@@ -459,6 +459,28 @@ class node(component):
         elif key == 'h':
             return 5e5
 
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inc[i][0].p.val,
+                'isoline_value_end': self.outg[0][0].p.val,
+                'starting_point_property': 's',
+                'starting_point_value': self.inc[i][0].s.val,
+                'ending_point_property': 's',
+                'ending_point_value': self.outg[0][0].s.val
+            } for i in range(len(self.inc))}
+
     # %%
 
 
@@ -816,6 +838,28 @@ class droplet_separator(component):
             return 10e5
         elif key == 'h':
             return h_mix_pQ(c.to_flow(), 0.5)
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[0].p.val,
+                'isoline_value_end': self.outl[i].p.val,
+                'starting_point_property': 's',
+                'starting_point_value': self.inl[0].s.val,
+                'ending_point_property': 's',
+                'ending_point_value': self.outl[i].s.val
+            } for i in range(2)}
 
 # %%
 
@@ -1415,6 +1459,28 @@ class merge(node):
             j += 1
         k += 1
 
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[i].p.val,
+                'isoline_value_end': self.outl[0].p.val,
+                'starting_point_property': 's',
+                'starting_point_value': self.inl[i].s.val,
+                'ending_point_property': 's',
+                'ending_point_value': self.outl[0].s.val
+            } for i in range(self.num_i)}
+
 # %%
 
 
@@ -1653,6 +1719,11 @@ class separator(node):
         """
         return
 
+    def get_plotting_data(self):
+        msg = ('No data available for components of type ' + self.component() +
+               ' (' + self.label + ').')
+        logging.warning(msg)
+
 # %%
 
 
@@ -1888,3 +1959,8 @@ class splitter(node):
             Network using this component object.
         """
         return
+
+    def get_plotting_data(self):
+        msg = ('No data available for components of type ' + self.component() +
+               ' (' + self.label + ').')
+        logging.warning(msg)

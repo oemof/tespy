@@ -635,12 +635,12 @@ Use this code for connection parameters:
 Creating fluid property diagrams
 --------------------------------
 
-.. figure:: //api/_images/logph_diagram_states.svg
+.. figure:: api/_images/logph_diagram_states.svg
     :align: center
 
     Figure: logph diagram of NH3 with a simple heat pump cycle.
 
-.. figure:: //_images/Ts_diagram_states.svg
+.. figure:: api/_images/Ts_diagram_states.svg
     :align: center
 
     Figure: Ts diagram of NH3 with a simple heat pump cycle.

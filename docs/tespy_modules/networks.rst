@@ -635,15 +635,14 @@ Use this code for connection parameters:
 Creating fluid property diagrams
 --------------------------------
 
-.. figure:: //api/_images/logph_diagram_states.svg
+.. image:: //api/_images/logph_diagram_states.svg
     :align: center
 
-    Figure: logph diagram of NH3 with a simple heat pump cycle.
+Figure: logph diagram of NH3 with a simple heat pump cycle.
 
-.. figure:: //_images/Ts_diagram_states.svg
-    :align: center
+.. image:: //_images/Ts_diagram_states.svg
 
-    Figure: Ts diagram of NH3 with a simple heat pump cycle.
+Figure: Ts diagram of NH3 with a simple heat pump cycle.
 
 CoolProp has an inbuilt feature for creating fluid property diagrams.
 Unfortunately, the handling is not very easy at the moment. We recommend using

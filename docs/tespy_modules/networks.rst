@@ -630,6 +630,8 @@ Use this code for connection parameters:
     specific_volume = myconn.vol.val  # value in specified network unit
     specific_entropy = myconn.s.val  # value in specified network unit
 
+.. _FluProDia_label:
+
 Creating fluid property diagrams
 --------------------------------
 
@@ -660,6 +662,72 @@ install the package with pip.
 .. code-block:: bash
 
     pip install fluprodia
+
+.. note::
+
+    The plotting data a returned from the :code:`get_plotting_data` as a
+    nested dictionary. The first level key contains the connection id of the
+    state change (change state from incoming connection to outgoing
+    connection). The table below shows the state change and the respective id.
+
+    .. list-table:: State change and respective ids of dictionary
+       :widths: 60 10 10 10
+       :header-rows: 1
+
+       * - component
+         - state from
+         - state to
+         - id
+       * - components with one mass flow
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * - class heat_exchanger and subclasses
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out2`
+         - :code:`2`
+       * - class orc_evaporator
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out2`
+         - :code:`2`
+       * -
+         - :code:`in3`
+         - :code:`out3`
+         - :code:`3`
+       * - class merge
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out1`
+         - :code:`2`
+       * -
+         - ...
+         - ...
+         - ...
+       * - class node
+         - :code:`in1` if $\dot{m}>0$
+         - :code:`out1` if $\dot{m}>0$
+         - :code:`1`
+       * -
+         - ...
+         - ...
+         - ...
+
+    - All other components do not return any information as either there is no
+      change in state or the state change is accompanied by a change in fluid
+      composition.
+    - For class node the state change is from connections with incoming mass
+      flow connections with outgoing mass flow.
 
 Network reader
 ==============

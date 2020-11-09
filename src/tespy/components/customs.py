@@ -727,3 +727,16 @@ class orc_evaporator(component):
         self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
 
         self.check_parameter_bounds()
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information."""
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[i].p.val,
+                'isoline_value_end': self.outl[i].p.val,
+                'starting_point_property': 's',
+                'starting_point_value': self.inl[i].s.val,
+                'ending_point_property': 's',
+                'ending_point_value': self.outl[i].s.val
+            } for i in range(3)}

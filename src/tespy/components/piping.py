@@ -535,3 +535,15 @@ class valve(component):
         self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
         self.check_parameter_bounds()
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information."""
+        return {
+            'isoline_property': 'h',
+            'isoline_value': self.inl[0].h.val,
+            'isoline_value_end': self.outl[0].h.val,
+            'starting_point_property': 'p',
+            'starting_point_value': self.inl[0].p.val,
+            'ending_point_property': 'p',
+            'ending_point_value': self.outl[0].p.val
+        }

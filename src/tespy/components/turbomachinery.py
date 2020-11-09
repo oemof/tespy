@@ -318,6 +318,18 @@ class turbomachine(component):
                 s_mix_ph(self.outl[0].to_flow()) -
                 s_mix_ph(self.inl[0].to_flow()))
 
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information."""
+        return {
+            'isoline_property': 's',
+            'isoline_value': self.inl[0].s.val,
+            'isoline_value_end': self.outl[0].s.val,
+            'starting_point_property': 'p',
+            'starting_point_value': self.inl[0].p.val,
+            'ending_point_property': 'p',
+            'ending_point_value': self.outl[0].p.val
+        }
+
 # %%
 
 

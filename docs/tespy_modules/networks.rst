@@ -715,8 +715,8 @@ install the package with pip.
          - ...
          - ...
        * - class node
-         - :code:`in1` if $\dot{m}>0$
-         - :code:`out1` if $\dot{m}>0$
+         - :code:`in1` if :math:`\dot{m}>0`
+         - :code:`out1` if :math:`\dot{m}>0`
          - :code:`1`
        * -
          - ...

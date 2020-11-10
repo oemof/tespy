@@ -334,10 +334,10 @@ class turbomachine(component):
                 'isoline_property': 's',
                 'isoline_value': self.inl[0].s.val,
                 'isoline_value_end': self.outl[0].s.val,
-                'starting_point_property': 'p',
-                'starting_point_value': self.inl[0].p.val,
-                'ending_point_property': 'p',
-                'ending_point_value': self.outl[0].p.val
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[0].vol.val
             }
         }
 

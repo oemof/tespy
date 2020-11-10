@@ -1255,10 +1255,10 @@ class drum(component):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[1].p.val,
-                'starting_point_property': 's',
-                'starting_point_value': self.inl[0].s.val,
-                'ending_point_property': 's',
-                'ending_point_value': self.outl[1].s.val
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[1].vol.val
             }}
 
 # %%
@@ -1497,10 +1497,10 @@ class merge(node):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[i].p.val,
                 'isoline_value_end': self.outl[0].p.val,
-                'starting_point_property': 's',
-                'starting_point_value': self.inl[i].s.val,
-                'ending_point_property': 's',
-                'ending_point_value': self.outl[0].s.val
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[i].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[0].vol.val
             } for i in range(self.num_i)}
 
 # %%

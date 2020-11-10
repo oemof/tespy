@@ -2518,10 +2518,10 @@ class heat_exchanger(component):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[i].p.val,
                 'isoline_value_end': self.outl[i].p.val,
-                'starting_point_property': 's',
-                'starting_point_value': self.inl[i].s.val,
-                'ending_point_property': 's',
-                'ending_point_value': self.outl[i].s.val
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[i].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[i].vol.val
             } for i in range(2)}
 
 # %%

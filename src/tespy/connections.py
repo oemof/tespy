@@ -790,11 +790,13 @@ class bus:
         Specify :math:`P=\text{nan}`, if you want to unset the value of P.
         """
         for key in kwargs:
+            try:
+                float(kwargs[key])
+                is_numeric = True
+            except (TypeError, ValueError):
+                is_numeric = False
             if key == 'P':
-                if (isinstance(kwargs[key], float) or
-                        isinstance(kwargs[key], np.float64) or
-                        isinstance(kwargs[key], np.int64) or
-                        isinstance(kwargs[key], int)):
+                if is_numeric:
                     if np.isnan(kwargs[key]):
                         self.P.set_attr(is_set=False)
                     else:
@@ -936,12 +938,14 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'char':
+                        try:
+                            float(v)
+                            is_numeric = True
+                        except (TypeError, ValueError):
+                            is_numeric = False
                         if isinstance(v, char_line):
                             self.comps.loc[comp, 'char'] = v
-                        elif (isinstance(v, float) or
-                              isinstance(v, np.float64) or
-                              isinstance(v, np.int64) or
-                              isinstance(v, int)):
+                        elif is_numeric:
                             x = np.array([0, 3])
                             y = np.array([1, 1]) * v
                             self.comps.loc[comp, 'char'] = (
@@ -954,10 +958,12 @@ class bus:
                             raise TypeError(msg)
 
                     elif k == 'P_ref':
-                        if (v is None or isinstance(v, float) or
-                                isinstance(v, np.float64) or
-                                isinstance(v, np.int64) or
-                                isinstance(v, int)):
+                        try:
+                            float(v)
+                            is_numeric = True
+                        except (TypeError, ValueError):
+                            is_numeric = False
+                        if v is None or is_numeric:
                             self.comps.loc[comp, 'P_ref'] = v
                         else:
                             msg = 'Reference value must be numeric.'

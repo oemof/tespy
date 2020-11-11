@@ -43,6 +43,11 @@ Documentation
 
 Bug Fixes
 #########
+- Fix a bug, where checking if parameters are numeric in the :code:`set_attr()`
+  methods of classes connection, bus and component failed in case special numpy
+  number types were passed
+  (`#daa1ecb <https://github.com/oemof/tespy/commit/daa1ecb>`_,
+  `#b420396 <https://github.com/oemof/tespy/commit/b420396>`_).
 
 Other Changes
 #############

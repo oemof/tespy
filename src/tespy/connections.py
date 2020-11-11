@@ -379,6 +379,11 @@ class connection:
         for key in kwargs:
             if key in self.variables.keys() or key in self.variables0:
                 # fluid specification
+                try:
+                    float(kwargs[key])
+                    is_numeric = True
+                except (TypeError, ValueError):
+                    is_numeric = False
                 if 'fluid' in key:
                     if isinstance(kwargs[key], dict):
                         # starting values
@@ -408,11 +413,8 @@ class connection:
                     elif isinstance(kwargs[key], dc_simple):
                         self.state = kwargs[key]
                     elif kwargs[key] is None:
-                        self.get_attr(key).set_attr(is_set=False)
-                    elif (isinstance(kwargs[key], float) or
-                          isinstance(kwargs[key], np.float64) or
-                          isinstance(kwargs[key], np.int64) or
-                          isinstance(kwargs[key], int)):
+                        self.state.set_attr(is_set=False)
+                    elif is_numeric:
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
                         else:
@@ -432,10 +434,7 @@ class connection:
                     self.get_attr(key).set_attr(val_set=False)
                     self.get_attr(key).set_attr(ref_set=False)
 
-                elif (isinstance(kwargs[key], float) or
-                      isinstance(kwargs[key], np.float64) or
-                      isinstance(kwargs[key], np.int64) or
-                      isinstance(kwargs[key], int)):
+                elif is_numeric:
                     if np.isnan(kwargs[key]):
                         self.get_attr(key).set_attr(val_set=False)
                         self.get_attr(key).set_attr(ref_set=False)

@@ -156,9 +156,16 @@ class component:
                         self.get_attr(key).set_attr(is_var=False)
                     except KeyError:
                         pass
+                    continue
+
+                try:
+                    float(kwargs[key])
+                    is_numeric = True
+                except (TypeError, ValueError):
+                    is_numeric = False
 
                 # data container specification
-                elif isinstance(kwargs[key], data_container):
+                if isinstance(kwargs[key], data_container):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
 
@@ -171,13 +178,10 @@ class component:
                         logging.error(msg)
                         raise TypeError(msg)
 
+                # value specification for component properties
                 elif (isinstance(self.get_attr(key), dc_cp) or
                       isinstance(self.get_attr(key), dc_simple)):
-                    # value specification for component properties
-                    if (isinstance(kwargs[key], float) or
-                            isinstance(kwargs[key], np.float64) or
-                            isinstance(kwargs[key], np.int64) or
-                            isinstance(kwargs[key], int)):
+                    if is_numeric:
                         if np.isnan(kwargs[key]):
                             self.get_attr(key).set_attr(is_set=False)
                             if isinstance(self.get_attr(key), dc_cp):

@@ -224,6 +224,7 @@ class heat_exchanger_simple(component):
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
+            'dissipative': dc_simple(val=True),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
             'hydro_group': dc_gcp(), 'kA_group': dc_gcp(),
             'kA_char_group': dc_gcp()
@@ -904,12 +905,20 @@ class heat_exchanger_simple(component):
 
         Note
         ----
+        If the fluid transfers heat to the ambient, you can specify
+        :code:`mysimpleheatexchanger.set_attr(dissipative=True)` to set the
+        exergy production to zero (only in case :math:`\dot{Q}<0`!).
+
         .. math ::
 
             \dot{E}_\mathrm{P} = \begin{cases}
             \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
             \dot{Q} > 0\\
+            \begin{cases}
             \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
+            & \text{if not dissipative (default)}\\
+            0 & \text{if dissipative}\\
+            \end{cases}
             & \dot{Q} < 0\\
             \end{cases}
 
@@ -935,7 +944,10 @@ class heat_exchanger_simple(component):
 
         if o[2] < i[2]:
             self.E_F = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
-            self.E_P = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
+            if self.dissipative.val:
+                self.E_P = 0
+            else:
+                self.E_P = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
         else:
             self.E_F = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
             self.E_P = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
@@ -1167,6 +1179,7 @@ class parabolic_trough(heat_exchanger_simple):
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'dissipative': dc_simple(val=False),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -1523,6 +1536,7 @@ class solar_collector(heat_exchanger_simple):
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'dissipative': dc_simple(val=False),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -2993,7 +3007,8 @@ class condenser(heat_exchanger):
             \dot{E}_\mathrm{P} = \begin{cases}
             \text{not defined (n/d)} & \text{if dissipative (default)} \\
             \dot{m}_\mathrm{in,2} \cdot \left(
-            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) & \\
+            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
+            \text{if not dissipative}\\
             \end{cases}\\
             \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
             e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)

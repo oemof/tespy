@@ -837,9 +837,9 @@ class compressor(turbomachine):
         ----
         .. math::
 
-            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in}
-            \right)\\
-            \dot{E_F} = P
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,out} - e_\mathrm{ph,in} \right)\\
+            \dot{E}_\mathrm{F} = P
         """
         self.E_P = self.inl[0].m.val_SI * (
             self.outl[0].ex_physical - self.inl[0].ex_physical)
@@ -1295,9 +1295,9 @@ class pump(turbomachine):
         ----
         .. math::
 
-            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in}
-            \right)\\
-            \dot{E_F} = P
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,out} - e_\mathrm{ph,in}\right)\\
+            \dot{E}_\mathrm{F} = P
         """
         self.E_P = self.inl[0].m.val_SI * (
             self.outl[0].ex_physical - self.inl[0].ex_physical)
@@ -1769,9 +1769,9 @@ class turbine(turbomachine):
         ----
         .. math::
 
-            \dot{E_P} = |P| \\
-            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out}
-            \right)
+            \dot{E}_\mathrm{P} = |P| \\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
         """
         self.E_P = abs(self.P.val)
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical

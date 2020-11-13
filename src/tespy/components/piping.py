@@ -544,9 +544,9 @@ class valve(component):
         ----
          .. math::
 
-            \dot{E_P} = \text{not defined (nd)}\\
-            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out}
-            \right)
+            \dot{E}_\mathrm{P} = \text{not defined (n/d)}\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out}\right)
         """
         self.E_P = 'n/d'
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical

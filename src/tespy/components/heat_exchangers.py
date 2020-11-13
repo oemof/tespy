@@ -878,7 +878,7 @@ class heat_exchanger_simple(component):
 
         .. math::
 
-            Ex_\mathrm{Q}=\left( 1-\frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)
+            E_\mathrm{Q}=\left( 1-\frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)
             \cdot \dot{Q}\\
             h_2 - h_1 = \int_1^2 v \cdot dp - \int_1^2 T \cdot ds
 
@@ -906,18 +906,18 @@ class heat_exchanger_simple(component):
         ----
         .. math ::
 
-            \dot{E_P} = \begin{cases}
+            \dot{E}_\mathrm{P} = \begin{cases}
             \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
             \dot{Q} > 0\\
             \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
-            \dot{Q} < 0\\
+            & \dot{Q} < 0\\
             \end{cases}
 
-            \dot{E_F} = \begin{cases}
+            \dot{E}_\mathrm{F} = \begin{cases}
             \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
             \dot{Q} < 0\\
             \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
-            \dot{Q} > 0\\
+            & \dot{Q} > 0\\
             \end{cases}
         """
         if np.isnan(self.Tamb.val_SI):
@@ -2560,10 +2560,10 @@ class heat_exchanger(component):
         ----
         .. math::
 
-            \dot{E_P} = \dot{m}_{in,cold} \cdot \left(
-            e_{ph,out,cold} - e_{ph,in,cold} \right)\\
-            \dot{E_F} = \dot{m}_{in,hot} \cdot \left(
-            e_{ph,in,hot} - e_{ph,out,hot} \right)
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in,cold} \cdot \left(
+            e_\mathrm{ph,out,2} - e_\mathrm{ph,in,2} \right)\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in,1} \cdot \left(
+            e_\mathrm{ph,in,1} - e_\mathrm{ph,out,1} \right)
         """
         self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
@@ -2985,14 +2985,18 @@ class condenser(heat_exchanger):
 
         Note
         ----
+        Specify :code:`yourcondenser.set_attr(dissipative=False)` to change the
+        dissipative argument.
+
         .. math::
 
-            dot{E_P} = \begin{cases}
-            \text{not defined (n/d)} & \text{if dissipative is True
-            (default)} \\
-            \dot{m}_{in,2} \cdot (e_{ph,in,2} - e_{ph,out,2}) & \\
+            \dot{E}_\mathrm{P} = \begin{cases}
+            \text{not defined (n/d)} & \text{if dissipative (default)} \\
+            \dot{m}_\mathrm{in,2} \cdot \left(
+            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) & \\
             \end{cases}\\
-            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out} \right)
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
         """
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
 

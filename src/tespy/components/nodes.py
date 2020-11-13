@@ -1425,10 +1425,12 @@ class merge(node):
 
         .. math::
 
-            \dot{E_P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot \left(
-            e_{ph,out} - e_{ph,in,n_{cold}} \right)\\
-            \dot{E_F} = \sum_{n_{hot}=0}^N \dot{m}_{in,n_{hot}} \cdot \left(
-            e_{ph,out} - e_{ph,in,n_{hot}} \right)
+            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
+            \dot{m}_{\mathrm{in,}n} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
+            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
+            \dot{m}_{\mathrm{in,}m} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
         """
         self.E_P = 0
         for i in range(0, len(self.inl)):

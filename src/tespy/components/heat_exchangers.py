@@ -311,7 +311,7 @@ class heat_exchanger_simple(component):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.kA_group, self.kA_char_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -869,7 +869,7 @@ class heat_exchanger_simple(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a simple heat exchanger.
 
@@ -901,12 +901,6 @@ class heat_exchanger_simple(component):
         .. math::
 
             T_\mathrm{m,Q}=\frac{h_2-h_1}{s_\mathrm{2*}-s_\mathrm{1*}}
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
@@ -1188,12 +1182,12 @@ class parabolic_trough(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
+        elif self.hydro_group.is_set:
             msg = (
                 'All parameters of the component group have to be specified! '
                 'This component group uses the following parameters: L, ks, D '
@@ -1211,12 +1205,12 @@ class parabolic_trough(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
+        elif self.energy_group.is_set:
             msg = (
                 'All parameters of the component group have to be specified! '
                 'This component group uses the following parameters: E, '
@@ -1233,7 +1227,7 @@ class parabolic_trough(heat_exchanger_simple):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.energy_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1339,7 +1333,7 @@ class parabolic_trough(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
@@ -1544,12 +1538,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
+        elif self.hydro_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -1566,12 +1560,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
+        elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -1587,7 +1581,7 @@ class solar_collector(heat_exchanger_simple):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.energy_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1686,7 +1680,7 @@ class solar_collector(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
@@ -1899,7 +1893,7 @@ class heat_exchanger(component):
         self.num_eq = self.num_nw_fluids * 2 + 3
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -2558,15 +2552,9 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a heat exchanger.
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
@@ -2783,13 +2771,11 @@ class condenser(heat_exchanger):
             'subcooling': dc_simple(val=False),
             'kA_char': dc_simple(),
             'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
+            'dissipative': dc_simple(val=True),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
         }
 
     def comp_init(self, nw):
-
-        # for exergy balance
-        self.dissipative = True
 
         component.comp_init(self, nw)
 
@@ -2799,11 +2785,11 @@ class condenser(heat_exchanger):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 2 + 3
         # enthalpy hot side outlet (if not subcooling): 1
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             self.num_eq += 1
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -2841,7 +2827,7 @@ class condenser(heat_exchanger):
         """
         ######################################################################
         # equation for saturated liquid at hot side outlet
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
@@ -2850,7 +2836,7 @@ class condenser(heat_exchanger):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for saturated liquid at hot side outlet equation
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 0)
             self.jacobian[k, 2, 2] = 1
@@ -2997,25 +2983,20 @@ class condenser(heat_exchanger):
         r"""
         Calculate exergy balance of a condenser.
 
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
-
         Note
         ----
         .. math::
 
             dot{E_P} = \begin{cases}
-            \text{not defined (n/d)} & \text{heat dissipation (default)} \\
+            \text{not defined (n/d)} & \text{if dissipative is True
+            (default)} \\
             \dot{m}_{in,2} \cdot (e_{ph,in,2} - e_{ph,out,2}) & \\
             \end{cases}\\
             \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out} \right)
         """
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
 
-        if self.dissipative is True:
+        if self.dissipative.val:
             self.E_P = 'n/d'
             self.epsilon = 'n/d'
             self.E_D = self.E_F
@@ -3202,7 +3183,7 @@ class desuperheater(heat_exchanger):
         self.num_eq = self.num_nw_fluids * 2 + 4
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:

@@ -312,7 +312,7 @@ class water_electrolyzer(component):
         self.num_eq = self.num_nw_fluids * 4 + 7
         for var in [self.e, self.eta, self.eta_char, self.Q, self.pr_c,
                     self.zeta]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((

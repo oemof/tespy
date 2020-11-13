@@ -142,7 +142,7 @@ class turbomachine(component):
         # mass flow: 1
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -471,7 +471,7 @@ class compressor(turbomachine):
             self.char_map.func = ldc(
                 self.component(), 'char_map', 'DEFAULT', compressor_map)
 
-            if self.char_warnings is True:
+            if self.char_warnings:
                 msg = ('Created characteristic map for parameter char_map '
                        'at component ' + self.label + ' from default data.\n'
                        'You can specify your own data using component.char_map'
@@ -487,7 +487,7 @@ class compressor(turbomachine):
         # characteristic map delivers two equations
         for var in [self.P, self.pr, self.eta_s, self.char_map, self.char_map,
                     self.eta_s_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -829,31 +829,21 @@ class compressor(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a compressor.
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right)\\
+            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in}
+            \right)\\
             \dot{E_F} = P
         """
         self.E_P = self.inl[0].m.val_SI * (
             self.outl[0].ex_physical - self.inl[0].ex_physical)
-
-        if bus is None:
-            self.E_F = self.P.val
-        else:
-            self.E_F = self.calc_bus_value(bus)
-
+        self.E_F = self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 
@@ -1017,7 +1007,7 @@ class pump(turbomachine):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char,
                     self.flow_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1297,31 +1287,21 @@ class pump(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a pump.
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right)\\
+            \dot{E_P} = \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in}
+            \right)\\
             \dot{E_F} = P
         """
         self.E_P = self.inl[0].m.val_SI * (
             self.outl[0].ex_physical - self.inl[0].ex_physical)
-
-        if bus is None:
-            self.E_F = self.P.val
-        else:
-            self.E_F = self.calc_bus_value(bus)
-
+        self.E_F = self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 
@@ -1471,8 +1451,8 @@ class turbine(turbomachine):
 
         component.comp_init(self, nw)
 
-        if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
-                self.local_design is False):
+        if ((nw.mode == 'offdesign' or self.local_offdesign) and
+                not self.local_design):
             self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
 
         # number of mandatroy equations for
@@ -1480,7 +1460,7 @@ class turbine(turbomachine):
         # mass flow: 1
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1677,7 +1657,7 @@ class turbine(turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if i[0].good_starting_values is False:
+        if not i[0].good_starting_values:
             if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
                 i[0].p.val_SI = 1e5
 
@@ -1781,33 +1761,19 @@ class turbine(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a turbine.
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----
         .. math::
 
-            \dot{E_P} = P \cdot -1 \\
-            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out} \right)
-
-        Note
-        ----
-        Exergy destruction is always positive. Therefore, the output power
-        value needs to be multiplied by -1.
+            \dot{E_P} = |P| \\
+            \dot{E_F} = \dot{m}_{in} \cdot \left( e_{ph,in} - e_{ph,out}
+            \right)
         """
-        if bus is None:
-            self.E_P = abs(self.P.val)
-        else:
-            self.E_P = abs(self.calc_bus_value(bus))
-
+        self.E_P = abs(self.P.val)
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

@@ -253,14 +253,14 @@ class orc_evaporator(component):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 3 + 3 + 1
         # enthalpy hot side 1 outlet (if not subcooling): 1
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             self.num_eq += 1
         # enthalpy cold side outlet (if not overheating): 1
-        if self.overheating.val is False:
+        if not self.overheating.val:
             self.num_eq += 1
         for var in [self.Q, self.pr1, self.pr2, self.pr3,
                     self.zeta1, self.zeta2, self.zeta3, ]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -347,14 +347,14 @@ class orc_evaporator(component):
 
         ######################################################################
         # equation for saturated liquid at hot side 1 outlet
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
 
         ######################################################################
         # equation for saturated gas at cold side outlet
-        if self.overheating.val is False:
+        if not self.overheating.val:
             o3 = self.outl[2].to_flow()
             self.residual[k] = o3[2] - h_mix_pQ(o3, 1)
             k += 1
@@ -471,7 +471,7 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for saturated liquid at hot side 1 outlet equation
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.jacobian[k, 3, 1] = -dh_mix_dpQ(o1, 0)
             self.jacobian[k, 3, 2] = 1
@@ -479,7 +479,7 @@ class orc_evaporator(component):
 
         ######################################################################
         # derivatives for saturated gas at cold side outlet 3 equation
-        if self.overheating.val is False:
+        if not self.overheating.val:
             o3 = self.outl[2].to_flow()
             self.jacobian[k, 5, 1] = -dh_mix_dpQ(o3, 1)
             self.jacobian[k, 5, 2] = 1

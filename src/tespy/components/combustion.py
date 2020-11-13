@@ -204,7 +204,7 @@ class combustion_chamber(component):
             # energy balance: 1
             self.num_eq = self.num_nw_fluids + 4
             for var in [self.lamb, self.ti]:
-                if var.is_set is True:
+                if var.is_set:
                     self.num_eq += 1
 
             self.jacobian = np.zeros((
@@ -974,7 +974,7 @@ class combustion_chamber(component):
 
         m = 0
         for i in inl:
-            if i.good_starting_values is False:
+            if not i.good_starting_values:
                 if i.m.val_SI < 0 and not i.m.val_set:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
@@ -982,7 +982,7 @@ class combustion_chamber(component):
         ######################################################################
         # check fluid composition
         for o in outl:
-            if o.good_starting_values is False:
+            if not o.good_starting_values:
                 fluids = [f for f in o.fluid.val.keys()
                           if not o.fluid.val_set[f]]
                 for f in fluids:
@@ -1019,7 +1019,7 @@ class combustion_chamber(component):
         ######################################################################
         # flue gas propagation
         for o in outl:
-            if o.good_starting_values is False:
+            if not o.good_starting_values:
                 if o.m.val_SI < 0 and not o.m.val_set:
                     o.m.val_SI = 10
                 nw.init_target(o, o.target)
@@ -1033,7 +1033,7 @@ class combustion_chamber(component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                if i.good_starting_values is False:
+                if not i.good_starting_values:
                     fuel = 0
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
@@ -1046,7 +1046,7 @@ class combustion_chamber(component):
                     if fuel < 0.75:
                         air_tmp = i.m.val_SI
 
-            if fuel_found is True:
+            if fuel_found:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
     @staticmethod
@@ -1344,7 +1344,7 @@ class combustion_chamber_stoich(combustion_chamber):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids + 4
         for var in [self.lamb, self.ti]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -2238,7 +2238,7 @@ class combustion_engine(combustion_chamber):
         # P and Qloss are not included, as the equations are mandatory anyway
         for var in [self.lamb, self.ti, self.Q1, self.Q2,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((

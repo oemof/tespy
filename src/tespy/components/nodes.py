@@ -1415,20 +1415,13 @@ class merge(node):
             j += 1
         k += 1
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a merge.
 
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
-
         Note
         ----
-        Please note, that the exergy balance accounts for physical exergy only
-        and therefore does not consider mixing processes of different fluids.
+        Please note, that the exergy balance accounts for physical exergy only.
 
         .. math::
 
@@ -1440,14 +1433,14 @@ class merge(node):
         self.E_P = 0
         for i in range(0, len(self.inl)):
             if self.inl[i].T.val_SI <= self.outl[0].T.val_SI:
-                self.E_P += self.inl[i].m.val_SI * (self.outl[0].ex_physical
-                                                    - self.inl[i].ex_physical)
+                self.E_P += self.inl[i].m.val_SI * (
+                    self.outl[0].ex_physical - self.inl[i].ex_physical)
 
         self.E_F = 0
         for i in range(0, len(self.inl)):
             if self.inl[i].T.val_SI > self.outl[0].T.val_SI:
-                self.E_F += self.inl[i].m.val_SI * (self.inl[i].ex_physical
-                                                    - self.outl[0].ex_physical)
+                self.E_F += self.inl[i].m.val_SI * (
+                    self.inl[i].ex_physical - self.outl[0].ex_physical)
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

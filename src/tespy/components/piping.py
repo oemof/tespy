@@ -332,7 +332,7 @@ class valve(component):
         # enthalpy: 1
         self.num_eq = self.num_nw_fluids + 2
         for var in [self.pr, self.zeta, self.dp_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -536,15 +536,9 @@ class valve(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a valve.
-
-        Parameters
-        ----------
-        bus  : tespy.connections.bus
-            Energy flows in network. Used to calculate product exergy
-            or fuel exergy of turbines, pumps and compressors.
 
         Note
         ----

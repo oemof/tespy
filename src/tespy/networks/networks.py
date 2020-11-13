@@ -2614,7 +2614,7 @@ class network:
         # calculation of E_D and epsilon of components and
         # bottom up calculation of exergy destruction of components
         for cp in self.comps.index:
-            cp.exergy_balance(bus)
+            cp.exergy_balance()
 
             # calculate E_D of components
             if cp.E_P == 'n/d':

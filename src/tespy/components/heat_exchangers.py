@@ -2979,7 +2979,7 @@ class condenser(heat_exchanger):
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_bp_p(i1) + T_o2
 
-    def exergy_balance(self, bus):
+    def exergy_balance(self):
         r"""
         Calculate exergy balance of a condenser.
 

@@ -28,7 +28,9 @@ from numpy.linalg import norm
 from tabulate import tabulate
 
 from tespy import connections as con
-from tespy.components.basics import cycle_closer, sink, source
+from tespy.components.basics import cycle_closer
+from tespy.components.basics import sink
+from tespy.components.basics import source
 from tespy.components.basics import subsystem_interface
 from tespy.components.combustion import combustion_chamber
 from tespy.components.combustion import combustion_engine
@@ -109,9 +111,9 @@ class network:
     the fluids is mandatory! Unit systems, fluid property range and iterinfo
     are optional.
 
-    Standard value for iterinfo. This will print out convergence
-    progress to the console. You can suop the printouts by setting this
-    property to false.
+    Standard value for iterinfo is :code:`True`. This will print out
+    convergence progress to the console. You can suop the printouts by setting
+    this property to :code:`False`.
 
     >>> from tespy.networks import network
     >>> fluid_list = ['water', 'air', 'R134a']
@@ -844,10 +846,10 @@ class network:
         Initialise a design calculation.
 
         Offdesign parameters are unset, design parameters are set. If
-        :code:`local_offdesign` for connections or components, the
-        design point information are read from the .csv-files in the respective
-        :code:`design_path`. In this case, the design values are unset, the
-        offdesign values set.
+        :code:`local_offdesign` is :code:`True` for connections or components,
+        the design point information are read from the .csv-files in the
+        respective :code:`design_path`. In this case, the design values are
+        unset, the offdesign values set.
         """
         # connections
         for c in self.conns.index:
@@ -856,7 +858,7 @@ class network:
             if c.local_offdesign:
                 if c.design_path is None:
                     msg = (
-                        'The parameter local_offdesign for the '
+                        'The parameter local_offdesign is True for the '
                         'connection ' + c.label + ', an individual '
                         'design_path must be specified in this case!')
                     logging.error(msg)
@@ -2899,7 +2901,7 @@ class network:
         - Uses connections object id as row identifier and saves
             * connections source and target as well as
             * properties with references and
-            * fluid vector (including user specification if structure).
+            * fluid vector.
         - Connections source and target are identified by its labels.
 
         Parameters

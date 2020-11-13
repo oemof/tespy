@@ -595,8 +595,10 @@ class component:
             Energy flows in network. Used to calculate product exergy
             or fuel exergy of turbines, pumps and compressors.
         """
-        self.E_F = np.nan
-        self.E_P = np.nan
+        self.E_F = 'n/d'
+        self.E_P = 'n/d'
+        self.E_D = 'n/d'
+        self.epsilon = 'n/d'
         logging.warning('Exergy balance not available for components of type '
                         + self.component() + ' (' + self.label + ').')
 

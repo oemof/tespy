@@ -1427,6 +1427,9 @@ class merge(node):
 
         Note
         ----
+        Please note, that the exergy balance accounts for physical exergy only
+        and therefore does not consider mixing processes of different fluids.
+
         .. math::
 
             \dot{E_P} = \sum_{n_{cold}=0}^N \dot{m}_{in,n_{cold}} \cdot \left(
@@ -1446,6 +1449,8 @@ class merge(node):
                 self.E_F += self.inl[i].m.val_SI * (self.inl[i].ex_physical
                                                     - self.outl[0].ex_physical)
 
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 # %%
 
 

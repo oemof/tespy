@@ -348,7 +348,7 @@ class memorise:
         """
         # number of fluids
         num_fl = len(fluids)
-        if memorise_fluid_properties is True and num_fl > 0:
+        if memorise_fluid_properties and num_fl > 0:
             fl = tuple(fluids.keys())
             # fluid property tables
             memorise.T_ph[fl] = np.empty((0, num_fl + 4), float)
@@ -531,7 +531,7 @@ def T_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.T_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = memorise.T_ph[fl][:, :-2]
         b = np.array([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -557,7 +557,7 @@ def T_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = T_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -730,7 +730,7 @@ def T_mix_ps(flow, s, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.T_ps.keys()
-    if memorisation is True:
+    if memorisation:
         a = memorise.T_ps[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -756,7 +756,7 @@ def T_mix_ps(flow, s, T0=300):
         # calculate fluid property for pure fluids
         val = T_ps(flow[1], s, fluid)
 
-    if memorisation is True:
+    if memorisation:
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [s, val, 0]])
         # memorise the newly calculated value
@@ -1119,7 +1119,7 @@ def v_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.v_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = memorise.v_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1137,7 +1137,7 @@ def v_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = 1 / d_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -1393,7 +1393,7 @@ def visc_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.visc_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = memorise.visc_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1411,7 +1411,7 @@ def visc_mix_ph(flow, T0=300):
         # calculate the fluid properties for pure fluids
         val = visc_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -1555,7 +1555,7 @@ def s_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in memorise.s_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = memorise.s_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1573,7 +1573,7 @@ def s_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = s_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])

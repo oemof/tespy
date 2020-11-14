@@ -2605,12 +2605,12 @@ class network:
         self.component_exergy_data = pd.DataFrame(
             columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
 
-        self.connection_exergy_data = pd.DataFrame(
-            columns=['e_PH', 'E_PH'])
+        self.connection_exergy_data = pd.DataFrame(columns=['e_PH', 'E_PH'])
 
         self.E_P = 0
         self.E_F = 0
         self.E_D = 0
+        self.E_L = 0
 
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
@@ -2624,27 +2624,31 @@ class network:
         # physical exergy of connections
         for conn in self.conns.index:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
+            self.connection_exergy_data.loc[conn.label] = [
+                conn.ex_physical, conn.Ex_physical]
 
         # exergy balance of components
-        # calculation of E_D and epsilon of components and
-        # bottom up calculation of exergy destruction of components/busses
 
         for cp in self.comps.index:
             cp.exergy_balance()
+            if isinstance(cp, sink):
+                self.E_L += cp.E_D
+                cp_E_D = 0
+            else:
+                cp_E_D = cp.E_D
 
             cp_E_F = cp.E_F
             cp_E_P = cp.E_P
-            cp_E_D = cp.E_D
             cp_epsilon = cp.epsilon
             cp_on_num_busses = 0
             for b in E_F + E_P:
                 if cp in b.comps.index:
                     if cp_on_num_busses > 0:
                         msg = (
-                            'The component ' + cp.label + ' is on multiple busses '
-                            'in the exergy analysis. Make sure that no component '
-                            'is connected to more than one of the busses passed '
-                            'to the exergy_analysis method.')
+                            'The component ' + cp.label + ' is on multiple '
+                            'busses in the exergy analysis. Make sure that no '
+                            'component is connected to more than one of the '
+                            'busses passed to the exergy_analysis method.')
                         logging.error(msg)
                         raise hlp.TESPyNetworkError(msg)
 
@@ -2674,8 +2678,6 @@ class network:
         self.E_D = self.component_exergy_data['E_D'].sum()
         self.E_F = abs(self.E_F)
         self.E_P = abs(self.E_P)
-        print(self.E_F - self.E_P - self.E_D)
-        print(self.E_F, self.E_P, self.E_D)
 
         self.epsilon = self.E_P / self.E_F
 
@@ -2684,6 +2686,16 @@ class network:
             self.component_exergy_data['E_D'] / self.E_F)
         self.component_exergy_data['y*_Dk'] = (
             self.component_exergy_data['E_D'] / self.E_D)
+
+        residual = abs(self.E_F - self.E_P - self.E_L - self.E_D)
+        if residual >= err ** 0.5:
+            msg = (
+                'The exergy balance of your network is not closed (residual '
+                'value is ' + str(round(residual, 6)) + ', but should be '
+                'smaller than 1e-3), you should check the component and '
+                'network exergy data and check, if network is properly setup '
+                'for the exergy analysis.')
+            logging.warning(msg)
 
 # %% printing and plotting
 
@@ -2784,7 +2796,7 @@ class network:
         else:
             return np.nan
 
-    def print_exergy_conns(self):
+    def print_connection_exergy_data(self):
         r"""Print the calculations results of the (specific) physical exergy of
         the connections to prompt.
         """
@@ -2801,7 +2813,7 @@ class network:
               'physical exergy #####')
         print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f'))
 
-    def print_exergy_comps(self, E_D_min=1000, sort_desc=True):
+    def print_exergy_analysis(self, E_D_min=1000, sort_desc=True):
         r"""Print the results of the exergy analysis to prompt.
 
         - The results are sorted beginning with the component having the
@@ -2827,14 +2839,12 @@ class network:
             tablefmt='psql', floatfmt='.3e', showindex=False))
 
         # print network exergy analysis results
-        df = pd.DataFrame(columns=['label', 'E_P / MW', 'E_F / MW',
-                                   'E_D / MW', 'epsilon'])
-        row_data = ['network', self.E_P/10**6, self.E_F/10**6, self.E_D/10**6,
-                    self.epsilon]
+        df = pd.DataFrame(
+            columns=['E_P', 'E_F', 'E_L', 'E_D', 'epsilon'])
+        row_data = [self.E_P, self.E_F, self.E_L, self.E_D, self.epsilon]
         df.loc['network'] = row_data
         print('\n##### RESULTS (network) Exergy analysis #####')
-        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f',
-                       showindex=False))
+        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
 # %% saving
 

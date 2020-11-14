@@ -536,7 +536,6 @@ class valve(component):
 
         self.check_parameter_bounds()
 
-<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a valve.
@@ -553,7 +552,7 @@ class valve(component):
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         self.E_D = self.E_F
         self.epsilon = 'n/d'
-=======
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
@@ -576,4 +575,3 @@ class valve(component):
                 'ending_point_value': self.outl[0].vol.val
             }
         }
->>>>>>> upstream/dev

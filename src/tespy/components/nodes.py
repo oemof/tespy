@@ -1481,7 +1481,6 @@ class merge(node):
             j += 1
         k += 1
 
-<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a merge.
@@ -1513,7 +1512,7 @@ class merge(node):
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
-=======
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
@@ -1536,7 +1535,6 @@ class merge(node):
                 'ending_point_value': self.outl[0].vol.val
             } for i in range(self.num_i)}
 
->>>>>>> upstream/dev
 # %%
 
 

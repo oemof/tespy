@@ -870,7 +870,6 @@ class heat_exchanger_simple(component):
 
         self.check_parameter_bounds()
 
-<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a simple heat exchanger.
@@ -955,7 +954,7 @@ class heat_exchanger_simple(component):
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
-=======
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
@@ -979,7 +978,6 @@ class heat_exchanger_simple(component):
             }
         }
 
->>>>>>> upstream/dev
 # %%
 
 
@@ -2592,7 +2590,6 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
-<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a heat exchanger.
@@ -2610,7 +2607,7 @@ class heat_exchanger(component):
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
-=======
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
@@ -2632,7 +2629,6 @@ class heat_exchanger(component):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)}
->>>>>>> upstream/dev
 
 # %%
 

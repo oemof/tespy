@@ -590,7 +590,6 @@ class component:
     def convergence_check(self, nw):
         return
 
-<<<<<<< HEAD
     def exergy_balance(self):
         r"""Exergy balance calculation method."""
         self.E_F = 'n/d'
@@ -599,12 +598,11 @@ class component:
         self.epsilon = 'n/d'
         logging.warning('Exergy balance not available for components of type '
                         + self.component() + ' (' + self.label + ').')
-=======
+
     def get_plotting_data(self):
         msg = ('No data available for components of type ' + self.component() +
                ' (' + self.label + ').')
         logging.warning(msg)
->>>>>>> upstream/dev
 
 # %%
 

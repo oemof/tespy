@@ -727,3 +727,25 @@ class orc_evaporator(component):
         self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
 
         self.check_parameter_bounds()
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[i].p.val,
+                'isoline_value_end': self.outl[i].p.val,
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[i].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[i].vol.val
+            } for i in range(3)}

@@ -870,6 +870,7 @@ class heat_exchanger_simple(component):
 
         self.check_parameter_bounds()
 
+<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a simple heat exchanger.
@@ -954,6 +955,31 @@ class heat_exchanger_simple(component):
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
+=======
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[0].p.val,
+                'isoline_value_end': self.outl[0].p.val,
+                'starting_point_property': 's',
+                'starting_point_value': self.inl[0].s.val,
+                'ending_point_property': 's',
+                'ending_point_value': self.outl[0].s.val
+            }
+        }
+
+>>>>>>> upstream/dev
 # %%
 
 
@@ -2566,6 +2592,7 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
+<<<<<<< HEAD
     def exergy_balance(self):
         r"""
         Calculate exergy balance of a heat exchanger.
@@ -2583,6 +2610,29 @@ class heat_exchanger(component):
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
+=======
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[i].p.val,
+                'isoline_value_end': self.outl[i].p.val,
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[i].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[i].vol.val
+            } for i in range(2)}
+>>>>>>> upstream/dev
 
 # %%
 

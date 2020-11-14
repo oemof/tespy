@@ -1,11 +1,53 @@
 v0.3.5 - Someversion (Somemonth, Someday, Someyear)
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
+New Features
+############
+
+- Add a method :code:`get_plotting_data` to each component to export the input
+  data required by FluProDia in order to generate the data required to display
+  state changes in the components in a fluid property diagram. Each component
+  returns a nested dictionary containing the respective data. E.g. the return
+  value of a :code:`valve`:
+
+  .. code-block:: bash
+
+      {1: {
+          'isoline_property': 'h',
+          'isoline_value': 773.8970004397456,
+          'isoline_value_end': 773.8970004397456,
+          'starting_point_property': 'p',
+          'starting_point_value': 51.164150405253665,
+          'ending_point_property': 'p',
+          'ending_point_value': 6.831002318100345
+     }}
+
+  The diagrams could look like this:
+
+  .. figure:: api/_images/logph_diagram_states.svg
+      :align: center
+
+      Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+  .. figure:: api/_images/Ts_diagram_states.svg
+      :align: center
+
+      Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
+  For more information see the respective
+  :ref:`documentation section <FluProDia_label>`
+  (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).
+
 Documentation
 #############
 
 Bug Fixes
 #########
+- Fix a bug, where checking if parameters are numeric in the :code:`set_attr()`
+  methods of classes connection, bus and component failed in case special numpy
+  number types were passed
+  (`#daa1ecb <https://github.com/oemof/tespy/commit/daa1ecb>`_,
+  `#b420396 <https://github.com/oemof/tespy/commit/b420396>`_).
 
 Other Changes
 #############
@@ -35,7 +77,12 @@ Other Changes
 
       mynetwork.print_results(colored=False)
 
+- An error message is raised in case the user specifies a fluid vector
+  containing fluids, that are not part of the network's fluid list
+  (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
 - `@jbueck <https://github.com/jbueck>`_
+- Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

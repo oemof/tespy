@@ -2631,8 +2631,6 @@ class network:
 
         for cp in self.comps.index:
             cp.exergy_balance()
-            if not np.isnan(cp.E_D):
-                self.E_D += cp.E_D
 
             cp_E_F = cp.E_F
             cp_E_P = cp.E_P
@@ -2673,6 +2671,7 @@ class network:
             self.component_exergy_data.loc[cp.label] = [
                 cp.label, cp_E_F, cp_E_P, cp_E_D, cp_epsilon, np.nan, np.nan]
 
+        self.E_D = self.component_exergy_data['E_D'].sum()
         self.E_F = abs(self.E_F)
         self.E_P = abs(self.E_P)
         print(self.E_F - self.E_P - self.E_D)

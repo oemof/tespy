@@ -379,6 +379,38 @@ class component:
     def equations(self):
         return
 
+    def bus_func(self, bus):
+        r"""
+        Base method for calculation of the value of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
+
+        Returns
+        -------
+        val : float
+            :math:`val=0`
+        """
+        return 0
+
+    def bus_deriv(self, bus):
+        r"""
+        Base method for partial derivatives of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
+
     def calc_bus_efficiency(self, bus):
         r"""
         Return the busses' efficiency.
@@ -413,7 +445,7 @@ class component:
         """
         b = bus.comps.loc[self]
         comp_val = self.bus_func(b)
-        if np.isnan(b['P_ref']):
+        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
             expr = 1
         else:
             if b['base'] == 'component':
@@ -592,10 +624,10 @@ class component:
 
     def exergy_balance(self):
         r"""Exergy balance calculation method."""
-        self.E_F = 'n/d'
-        self.E_P = 'n/d'
-        self.E_D = 'n/d'
-        self.epsilon = 'n/d'
+        self.E_F = np.nan
+        self.E_P = np.nan
+        self.E_D = np.nan
+        self.epsilon = np.nan
         logging.warning('Exergy balance not available for components of type '
                         + self.component() + ' (' + self.label + ').')
 

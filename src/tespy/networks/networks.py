@@ -2525,56 +2525,58 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    def exergy_analysis(self,
-                        pamb=101325,
-                        Tamb=298.15,
-                        bus={}, E_F=None, E_L=None):
+    def exergy_analysis(self, pamb, Tamb, E_F, E_P, internal_busses=[]):
         r"""Perform exergy analysis.
 
         - Get values for physical exergy of connections.
-        - Call exergy balances of components.
-          The components cycle\_closer, source, sink and splitter are being
-          skipped because there is no change in exergy with these components.
-          Componentes for which no exergy balance has yet been implemented,
-          :code:`nan` is assigned for fuel exergy and product exergy.
-          Dissipative components do not have product exergy per definition
-          (n/d).
-        - Calculate exergy destruction and exergetic efficiency of components.
-          Components, that do not have fuel exergy
-          (:math:`E_{\text{F},comp}=0`) the efficiency value :math:`\epsilon`
-          will be :code:`nan`.
-          Since dissipative components do not have product exergy, an exergetic
-          efficiency is not available (n/a).
+        - Call exergy balances of components:
+
+          - The components cycle\_closer, source, sink and splitter are being
+            skipped because there is no change in exergy with these components.
+          - Components for which no exergy balance has yet been implemented,
+            :code:`nan` (not defined) is assigned for fuel and product
+            exergy as well as exergy destruction and exergetic efficiency.
+          - Dissipative components do not have product exergy (:code:`nan`) per
+            definition.
+
         - The exergy destruction of components is sumed up following a bottom
           up approach in order to compare it with the overall exergy
           destruction calculated with an exergy balance of the network. Both
           values should be the same.
-        - The network product exergy equals the net power output.
-        - Assign network fuel exergy and network exergy los from parameters given
-          to method.
+        - Assign network fuel exergy and network exergy loss from parameters
+          given to method.
         - Calculate network exergy destruction and network exergetic
           efficiency.
-        - Calculate exergy destruction ratios for components.\\
-          $y_D$ compares the rate of exergy destruction in a component to
-          the exergy rate of the fuel provided to the overall system.\\
-          $y^*_D$ compares the component exergy destruction rate to the total
-          exergy destruction rate within the system.
+        - Calculate exergy destruction ratios for components.
+
+          - :math:`y_\mathrm{D}` compares the rate of exergy destruction in a
+            component to the exergy rate of the fuel provided to the overall
+            system.
+          - :math:`y^*\mathrm{D}` compares the component exergy destruction
+            rate to the total exergy destruction rate within the system.
 
         Parameters
         ----------
         pamb : float
             Ambient pressure in network's pressure unit.
+
         Tamb : float
             Ambient temperature in network's temperature unit.
-        busses : dict
-            A dictionary containing bus instances as keys and a list of
-            components that should evaluate on the bus value instead of the
-            component value, e.g. for electrical power of turbomachinery.
-        E_F : list
-            List containing components which represent fuel exergy input
-            in network.
-        E_L : list
-            List containing connections which represent exergy loss streams.
+
+        E_F : float
+            List containing busses which represent fuel exergy input of the
+            network, e.g. heat exchangers of the steam generator.
+
+        E_P : list
+            List containing busses which represent exergy production of the
+            network, e.g. the motors and generators of a power plant.
+
+        internal_busses : list
+            List containing internal busses that represent exergy transfer
+            within your network but neither exergy production or exergy fuel,
+            e.g. a steam turbine driven feed water pump. The conversion factors
+            of the bus are applied to calculate exergy destruction which is
+            allocated to the respective components.
 
         Note
         ----
@@ -2597,64 +2599,92 @@ class network:
             y^*_{\text{D},comp} =
             \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
         """
-        self.E_L = 0
+        pamb_SI = self.convert_to_SI('p', pamb, self.p_unit)
+        Tamb_SI = self.convert_to_SI('T', Tamb, self.T_unit)
+
+        self.component_exergy_data = pd.DataFrame(
+            columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
+
+        self.connection_exergy_data = pd.DataFrame(
+            columns=['e_PH', 'E_PH'])
+
+        self.E_P = 0
         self.E_F = 0
         self.E_D = 0
-        self.E_D_sum = 0
 
-        if E_F is None:
+        if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
-            logging.warning(msg)
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        elif len(E_P) == 0:
+            msg = ('Missing product exergy E_P of network.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         # physical exergy of connections
         for conn in self.conns.index:
-            conn.get_physical_exergy(pamb, Tamb)
+            conn.get_physical_exergy(pamb_SI, Tamb_SI)
 
         # exergy balance of components
         # calculation of E_D and epsilon of components and
-        # bottom up calculation of exergy destruction of components
+        # bottom up calculation of exergy destruction of components/busses
+
         for cp in self.comps.index:
             cp.exergy_balance()
+            if not np.isnan(cp.E_D):
+                self.E_D += cp.E_D
 
-            # calculate E_D of components
-            if cp.E_P == 'n/d':
-                cp.E_D = cp.E_F
-            else:
-                cp.E_D = cp.E_F - cp.E_P
-            # calculate epsilon of components
-            if cp.E_P == 'n/d':
-                cp.epsilon ='n/a'
-            elif cp.E_F != 0:
-                cp.epsilon = cp.E_P / cp.E_F
-            else:
-                cp.epsilon = np.nan
-            # sum up exergy destruction of components
-            if np.isnan(cp.E_D):
-                None
-            else:
-                self.E_D_sum += cp.E_D
+            cp_E_F = cp.E_F
+            cp_E_P = cp.E_P
+            cp_E_D = cp.E_D
+            cp_epsilon = cp.epsilon
+            cp_on_num_busses = 0
+            for b in E_F + E_P:
+                if cp in b.comps.index:
+                    if cp_on_num_busses > 0:
+                        msg = (
+                            'The component ' + cp.label + ' is on multiple busses '
+                            'in the exergy analysis. Make sure that no component '
+                            'is connected to more than one of the busses passed '
+                            'to the exergy_analysis method.')
+                        logging.error(msg)
+                        raise hlp.TESPyNetworkError(msg)
 
-        # calculate E_P, E_F, E_L, E_D and epsilon of network
-        for b in self.busses.values():
-            self.E_P = b.P.val*-1
+                    if b.comps.loc[cp, 'base'] == 'bus':
+                        cp_E_F = cp.E_F / cp.calc_bus_efficiency(b)
+                    else:
+                        cp_E_P = cp.E_P * cp.calc_bus_efficiency(b)
+                    cp_E_D = cp_E_F - cp_E_P
+                    cp_epsilon = cp_E_P / cp_E_F
 
-        for cp in E_F:
-            self.E_F += cp.E_F
+                    if b in E_F:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_F += cp_E_F
+                        else:
+                            self.E_F -= cp_E_P
+                    elif b in E_P:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_P -= cp_E_F
+                        else:
+                            self.E_P += cp_E_P
 
-        if E_L is not None:
-            for conn in E_L:
-                self.E_L += conn.Ex_physical
+                    cp_on_num_busses += 1
 
-        self.E_D = self.E_F - self.E_P - self.E_L
+            self.component_exergy_data.loc[cp.label] = [
+                cp.label, cp_E_F, cp_E_P, cp_E_D, cp_epsilon, np.nan, np.nan]
+
+        self.E_F = abs(self.E_F)
+        self.E_P = abs(self.E_P)
+        print(self.E_F - self.E_P - self.E_D)
+        print(self.E_F, self.E_P, self.E_D)
+
         self.epsilon = self.E_P / self.E_F
 
-        # calculate exergy destruction ratios for components
-        for cp in self.comps.index:
-            if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter)):
-                continue
-            cp.y_Dk = cp.E_D / self.E_F
-            cp.ystar_Dk = cp.E_D / self.E_D
+        # calculate exergy destruction ratios for components/busses
+        self.component_exergy_data['y_Dk'] = (
+            self.component_exergy_data['E_D'] / self.E_F)
+        self.component_exergy_data['y*_Dk'] = (
+            self.component_exergy_data['E_D'] / self.E_D)
 
 # %% printing and plotting
 
@@ -2773,56 +2803,38 @@ class network:
         print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f'))
 
     def print_exergy_comps(self, E_D_min=1000, sort_desc=True):
-        r"""Print the calculations results of the exergy analysis of
-        components and network to prompt.
+        r"""Print the results of the exergy analysis to prompt.
 
         - The results are sorted beginning with the component having the
-        biggest exergy destruction by default.
+          biggest exergy destruction by default.
         - Components with an exergy destruction smaller than 1000 W is not
-        printed to prompt by default
+          printed to prompt by default.
 
         Parameters
         ----------
         E_D_min : float
             Minimum exergy destruction to be printed to prompt.
+
         sort_des : boolean
             Sort the component results descending by exergy destruction.
         """
-        df = pd.DataFrame(columns=['label', 'E_P / MW', 'E_F / MW',
-                                   'E_D / MW', 'epsilon', 'y_D,k', 'y*_D,k'])
-        for cp in self.comps.index:
-            if (isinstance(cp, cycle_closer) or isinstance(cp, sink) or
-                    isinstance(cp, source) or isinstance(cp, splitter)):
-                continue
-            if not isinstance(cp.E_P, str):
-                cp.E_P = round(cp.E_P / 10**6, 4)
-            if not isinstance(cp.epsilon, str):
-                cp.epsilon = round(cp.epsilon, 4)
-            if np.isnan(cp.E_D) or cp.E_D < E_D_min:
-                continue
-
-            row_data = [cp.label, cp.E_P, cp.E_F/10**6,
-                        cp.E_D/10**6, cp.epsilon, cp.y_Dk,
-                        cp.ystar_Dk]
-            df.loc[cp.label] = row_data
-            if sort_desc:
-                df.sort_values(by=['E_D / MW'], ascending=False, inplace=True)
+        if sort_desc:
+            df = self.component_exergy_data.sort_values(
+                by=['E_D'], ascending=False)
 
         print('\n##### RESULTS (components) Exergy analysis #####')
-        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f',
-                       showindex=False))
+        print(tabulate(
+            df[df['E_D'] > E_D_min], headers='keys',
+            tablefmt='psql', floatfmt='.3e', showindex=False))
 
         # print network exergy analysis results
         df = pd.DataFrame(columns=['label', 'E_P / MW', 'E_F / MW',
-                                   'E_D / MW', 'E_L / MW','epsilon'])
+                                   'E_D / MW', 'epsilon'])
         row_data = ['network', self.E_P/10**6, self.E_F/10**6, self.E_D/10**6,
-                    self.E_L/10**6, self.epsilon]
+                    self.epsilon]
         df.loc['network'] = row_data
         print('\n##### RESULTS (network) Exergy analysis #####')
         print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f',
-                       showindex=False))
-        print(tabulate([['Bottom up calculation of exergy destruction / MW',
-                        self.E_D_sum/10**6 ]],tablefmt='psql', floatfmt='.4f',
                        showindex=False))
 
 # %% saving

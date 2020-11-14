@@ -544,14 +544,14 @@ class valve(component):
         ----
          .. math::
 
-            \dot{E}_\mathrm{P} = \text{not defined (n/d)}\\
+            \dot{E}_\mathrm{P} = \text{not defined (nan)}\\
             \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
             e_\mathrm{ph,in} - e_\mathrm{ph,out}\right)
         """
-        self.E_P = 'n/d'
+        self.E_P = np.nan
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         self.E_D = self.E_F
-        self.epsilon = 'n/d'
+        self.epsilon = np.nan
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

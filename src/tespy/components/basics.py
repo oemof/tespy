@@ -231,8 +231,40 @@ class sink(component):
         return 'sink'
 
     @staticmethod
+    def attr():
+        return {'exergy': dc_simple()}
+
+    @staticmethod
     def inlets():
         return ['in1']
+
+    def exergy_balance(self):
+        r"""Exergy balance calculation method of a sink.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{D} = \begin{cases}
+            \dot{m}_\mathrm{in} \cdot e_\mathrm{ph,in} & \text{exergy='loss'}\\
+            \text{nan} & \text{else}\\
+            \end{cases}
+
+            \dot{E}_\mathrm{P} = \begin{cases}
+            \dot{m}_\mathrm{in} \cdot e_\mathrm{ph,in} &
+            \text{exergy='product'}\\
+            \text{nan} & \text{else}\\
+            \end{cases}
+        """
+        self.E_D = np.nan
+        self.E_P = np.nan
+        self.E_F = np.nan
+        self.epsilon = np.nan
+
+        if self.exergy.val == 'product':
+            self.E_P = self.inl[0].Ex_physical
+        elif self.exergy.val == 'loss':
+            self.E_D = self.inl[0].Ex_physical
 
 # %%
 
@@ -287,8 +319,33 @@ class source(component):
         return 'source'
 
     @staticmethod
+    def attr():
+        return {'exergy': dc_simple()}
+
+    @staticmethod
     def outlets():
         return ['out1']
+
+    def exergy_balance(self):
+        r"""Exergy balance calculation method of a source.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{F} = \begin{cases}
+            \dot{m}_\mathrm{out} \cdot e_\mathrm{ph,out} &
+            \text{exergy='fuel'}\\
+            \text{nan} & \text{else}\\
+            \end{cases}
+        """
+        if self.exergy.val == 'fuel':
+            self.E_F = np.nan
+        else:
+            self.E_F = self.outl[0].Ex_physical
+        self.E_P = np.nan
+        self.E_D = np.nan
+        self.epsilon = np.nan
 
 # %%
 

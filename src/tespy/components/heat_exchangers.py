@@ -3051,7 +3051,7 @@ class condenser(heat_exchanger):
         .. math::
 
             \dot{E}_\mathrm{P} = \begin{cases}
-            \text{not defined (n/d)} & \text{if dissipative (default)} \\
+            \text{not defined (nan)} & \text{if dissipative (default)} \\
             \dot{m}_\mathrm{in,2} \cdot \left(
             e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
             \text{if not dissipative}\\
@@ -3062,8 +3062,8 @@ class condenser(heat_exchanger):
         self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
 
         if self.dissipative.val:
-            self.E_P = 'n/d'
-            self.epsilon = 'n/d'
+            self.E_P = np.nan
+            self.epsilon = np.nan
             self.E_D = self.E_F
         else:
             self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical

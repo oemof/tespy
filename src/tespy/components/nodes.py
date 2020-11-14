@@ -1499,16 +1499,16 @@ class merge(node):
             e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
         """
         self.E_P = 0
-        for i in range(0, len(self.inl)):
-            if self.inl[i].T.val_SI <= self.outl[0].T.val_SI:
-                self.E_P += self.inl[i].m.val_SI * (
-                    self.outl[0].ex_physical - self.inl[i].ex_physical)
+        for i in self.inl:
+            if i.T.val_SI <= self.outl[0].T.val_SI:
+                self.E_P += i.m.val_SI * (
+                    self.outl[0].ex_physical - i.ex_physical)
 
         self.E_F = 0
-        for i in range(0, len(self.inl)):
-            if self.inl[i].T.val_SI > self.outl[0].T.val_SI:
-                self.E_F += self.inl[i].m.val_SI * (
-                    self.inl[i].ex_physical - self.outl[0].ex_physical)
+        for i in self.inl:
+            if i.T.val_SI > self.outl[0].T.val_SI:
+                self.E_F += i.m.val_SI * (
+                    i.ex_physical - self.outl[0].ex_physical)
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

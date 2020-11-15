@@ -2641,7 +2641,7 @@ class network:
             cp_E_P = cp.E_P
             cp_epsilon = cp.epsilon
             cp_on_num_busses = 0
-            for b in E_F + E_P:
+            for b in E_F + E_P + internal_busses:
                 if cp in b.comps.index:
                     if cp_on_num_busses > 0:
                         msg = (

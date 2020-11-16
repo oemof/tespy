@@ -20,12 +20,15 @@ from tespy.components.basics import cycle_closer
 from tespy.components.heat_exchangers import heat_exchanger_simple
 from tespy.components.nodes import merge
 from tespy.components.nodes import splitter
+from tespy.components.piping import valve
+from tespy.components.turbomachinery import compressor
 from tespy.components.turbomachinery import pump
 from tespy.components.turbomachinery import turbine
 from tespy.connections import bus
 from tespy.connections import connection
 from tespy.networks.networks import network
 from tespy.tools.global_vars import err
+from tespy.tools.helpers import TESPyComponentError
 
 
 def convergence_check(lin_dep):
@@ -180,3 +183,74 @@ class TestClausiusRankine:
             'Feed water pump turbine exergy efficiency must be 0.99 but is ' +
             str(round(eps, 4)) + ' .')
         assert round(eps, 4) == 0.99, msg
+
+
+class TestRefrigerator:
+
+    def setup(self):
+        """Setup clausis rankine cycle with turbine driven feed water pump."""
+        self.Tamb = 20
+        self.pamb = 1
+        fluids = ['R134a']
+        self.nw = network(fluids=fluids)
+        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+
+        # create components
+        va = valve('expansion valve')
+        cp = compressor('compressor')
+        cond = heat_exchanger_simple('condenser')
+        eva = heat_exchanger_simple('evaporator')
+        cc = cycle_closer('cycle closer')
+
+        # create busses
+        # power output bus
+        self.power = bus('power input')
+        self.power.add_comps({'comp': cp, 'char': 1, 'base': 'bus'})
+        # cooling bus
+        self.cool = bus('heat from fridge')
+        self.cool.add_comps({'comp': eva})
+        # heat input bus
+        self.heat = bus('heat to ambient')
+        self.heat.add_comps({'comp': cond})
+        self.nw.add_busses(self.power, self.cool, self.heat)
+
+        # create connections
+        cc_cp = connection(cc, 'out1', cp, 'in1', label='from eva')
+        cp_cond = connection(cp, 'out1', cond, 'in1', label='to cond')
+        cond_va = connection(cond, 'out1', va, 'in1', label='from cond')
+        va_eva = connection(va, 'out1', eva, 'in1', label='to eva')
+        eva_cc = connection(eva, 'out1', cc, 'in1')
+        self.nw.add_conns(cc_cp, cp_cond, cond_va, va_eva, eva_cc)
+
+        # component parameters
+        cp.set_attr(eta_s=0.9)
+        cond.set_attr(pr=0.97, Tamb=self.Tamb)
+        eva.set_attr(pr=0.96, Tamb=self.Tamb)
+
+        # connection parameters
+        cc_cp.set_attr(m=1, x=1, T=-25, fluid={'R134a': 1})
+        cond_va.set_attr(x=0, T=self.Tamb)
+
+        # solve network
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+    def test_exergy_analysis_bus_conversion(self):
+        """Test exergy analysis at product exergy with T < Tamb."""
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
+
+        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+    def test_exergy_analysis_heat_transfer_to_higher_temperature(self):
+        """Test exergy analysis bus conversion factors."""
+        # we do not need to recalculate when changing this value like this
+        self.nw.components['condenser'].Tamb.val_SI = self.Tamb + 273.15 + 100
+        with raises(TESPyComponentError):
+            self.nw.exergy_analysis(
+                self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])

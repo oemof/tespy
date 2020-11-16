@@ -103,10 +103,15 @@ class TestClausiusRankine:
             E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
         )
         msg = (
-            'Exergy destruction must be 0 of this network (smaller than ' +
+            'Exergy destruction of this network must be 0 (smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
             str(round(abs(self.nw.E_D), 4)) + ' .')
         assert abs(self.nw.E_D) <= err ** 0.5, msg
+
+        msg = (
+            'Exergy efficiency of this network must be 1 for this test but '
+            'is ' + str(round(self.nw.epsilon, 4)) + ' .')
+        assert round(self.nw.epsilon, 4) == 1, msg
 
         exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
         msg = (
@@ -131,6 +136,8 @@ class TestClausiusRankine:
              'char': 0.99},
             {'comp': self.nw.components['pump'], 'char': 0.98, 'base': 'bus'})
         self.nw.add_busses(self.fwp_power)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
         # miss out on internal bus in exergy_analysis
         self.nw.exergy_analysis(
             self.pamb, self.Tamb,
@@ -143,3 +150,34 @@ class TestClausiusRankine:
             str(err ** 0.5) + ') but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
         assert abs(exergy_balance) > err ** 0.5, msg
+
+    def test_exergy_analysis_bus_conversion(self):
+        """Test exergy analysis bus conversion factors."""
+        # specify efficiency values for the internal bus
+        self.nw.del_busses(self.fwp_power)
+        self.fwp_power = bus('feed water pump power', P=0)
+        self.fwp_power.add_comps(
+            {'comp': self.nw.components['feed water pump turbine'],
+             'char': 0.99},
+            {'comp': self.nw.components['pump'], 'char': 0.98, 'base': 'bus'})
+        self.nw.add_busses(self.fwp_power)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        # miss out on internal bus in exergy_analysis
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb,
+            E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
+        )
+        self.nw.print_exergy_analysis()
+        eps = self.nw.component_exergy_data.loc['pump', 'epsilon']
+        msg = (
+            'Pump exergy efficiency must be 0.98 but is ' +
+            str(round(eps, 4)) + ' .')
+        assert round(eps, 4) == 0.98, msg
+
+        eps = self.nw.component_exergy_data.loc[
+            'feed water pump turbine', 'epsilon']
+        msg = (
+            'Feed water pump turbine exergy efficiency must be 0.99 but is ' +
+            str(round(eps, 4)) + ' .')
+        assert round(eps, 4) == 0.99, msg

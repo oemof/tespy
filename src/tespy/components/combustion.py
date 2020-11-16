@@ -454,73 +454,73 @@ class combustion_chamber(component):
 
         General equations
 
-            .. math::
+        .. math::
 
-                \text{combustion chamber: } i \in [1,2], o \in [1]\\
-                \text{combustion engine: } i \in [3,4], o \in [3]\\
+            \text{combustion chamber: } i \in [1,2], o \in [1]\\
+            \text{combustion engine: } i \in [3,4], o \in [3]\\
 
-                res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
-                \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
-                \forall i, \; \forall j
+            res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
+            \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right) \;
+            \forall i, \; \forall j
 
-                \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
-                {M_{fluid}} \; \forall i
+            \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
+            {M_{fluid}} \; \forall i
 
-                \dot{m}_{O_2,m,stoich}=\frac{\dot{m}_{H_m}}{4} + \dot{m}_{C_m}
+            \dot{m}_{O_2,m,stoich}=\frac{\dot{m}_{H_m}}{4} + \dot{m}_{C_m}
 
-                \lambda = \frac{\dot{m}_{O_2,m}}{\dot{m}_{O_2,m,stoich}}
+            \lambda = \frac{\dot{m}_{O_2,m}}{\dot{m}_{O_2,m,stoich}}
 
         Excess carbon and hydrogen
 
-            .. math::
+        .. math::
 
-               \dot{m}_{H_{exc,m}} = \begin{cases}
-               0 & \lambda \geq 1\\
-               4 \cdot \left( \dot{m}_{O_2,m,stoich} -
-               \dot{m}_{O_2,m}\right) & \lambda < 1
-                \end{cases}
+           \dot{m}_{H_{exc,m}} = \begin{cases}
+           0 & \lambda \geq 1\\
+           4 \cdot \left( \dot{m}_{O_2,m,stoich} -
+           \dot{m}_{O_2,m}\right) & \lambda < 1
+            \end{cases}
 
-               \dot{m}_{C_{exc,m}} = \begin{cases}
-               0 & \lambda \geq 1\\
-               \dot{m}_{O_2,m,stoich} - \dot{m}_{O_2,m} & \lambda < 1
-                \end{cases}
+           \dot{m}_{C_{exc,m}} = \begin{cases}
+           0 & \lambda \geq 1\\
+           \dot{m}_{O_2,m,stoich} - \dot{m}_{O_2,m} & \lambda < 1
+            \end{cases}
 
         Equation for fuel
 
-            .. math::
+        .. math::
 
-                0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
-                \cdot M_{fuel}\\
+            0 = res - \left(\dot{m}_{f,m} - \dot{m}_{f,exc,m}\right)
+            \cdot M_{fuel}\\
 
-                \dot{m}_{f,exc,m} = \begin{cases}
-                0 & \lambda \geq 1\\
-                \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
-                {n_{C,fuel} + 0.25 \cdot n_{H,fuel}}
-                \end{cases}
+            \dot{m}_{f,exc,m} = \begin{cases}
+            0 & \lambda \geq 1\\
+            \dot{m}_{f,m} - \frac{\dot{m}_{O_2,m}}
+            {n_{C,fuel} + 0.25 \cdot n_{H,fuel}}
+            \end{cases}
 
         Equation for oxygen
 
-            .. math::
+        .. math::
 
-                0 = res - \begin{cases}
-                -\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} &
-                \lambda \geq 1\\
-                - \dot{m}_{O_2,m} \cdot M_{O_2} & \lambda < 1
-                \end{cases}
+            0 = res - \begin{cases}
+            -\frac{\dot{m}_{O_2,m} \cdot M_{O_2}}{\lambda} &
+            \lambda \geq 1\\
+            - \dot{m}_{O_2,m} \cdot M_{O_2} & \lambda < 1
+            \end{cases}
 
         Equation for water
 
-            .. math::
+        .. math::
 
-                0 = res + \left( \dot{m}_{H_m} - \dot{m}_{H_{exc,m}} \right)
-                \cdot 0.5 \cdot M_{H_2O}
+            0 = res + \left( \dot{m}_{H_m} - \dot{m}_{H_{exc,m}} \right)
+            \cdot 0.5 \cdot M_{H_2O}
 
         Equation for carbondioxide
 
-            .. math::
+        .. math::
 
-                0 = res + \left( \dot{m}_{C_m} - \dot{m}_{C_{exc,m}} \right)
-                \cdot M_{CO_2}
+            0 = res + \left( \dot{m}_{C_m} - \dot{m}_{C_{exc,m}} \right)
+            \cdot M_{CO_2}
 
         Equation for all other fluids
 
@@ -1504,47 +1504,45 @@ class combustion_chamber_stoich(combustion_chamber):
         - calculate flue gas fluid composition
         - generate custom fluid porperties
 
-
-
         Reactive components in fuel
 
-            .. math::
+        .. math::
 
-                m_{fuel} = \frac{1}{M_{fuel}}\\
-                m_{CO_2} = \sum_{i} \frac{x_{i} \cdot m_{fuel} \cdot num_{C,i}
-                \cdot M_{CO_{2}}}{M_{i}}\\
-                m_{H_{2}O} = \sum_{i} \frac{x_{i} \cdot m_{fuel} \cdot
-                num_{H,i} \cdot M_{H_{2}O}}{2 \cdot M_{i}}\\
-                \forall i \in \text{fuels in fuel vector},\\
-                num = \text{number of atoms in molecule}
+            m_{fuel} = \frac{1}{M_{fuel}}\\
+            m_{CO_2} = \sum_{i} \frac{x_{i} \cdot m_{fuel} \cdot num_{C,i}
+            \cdot M_{CO_{2}}}{M_{i}}\\
+            m_{H_{2}O} = \sum_{i} \frac{x_{i} \cdot m_{fuel} \cdot
+            num_{H,i} \cdot M_{H_{2}O}}{2 \cdot M_{i}}\\
+            \forall i \in \text{fuels in fuel vector},\\
+            num = \text{number of atoms in molecule}
 
         Other components of fuel vector
 
-            .. math::
+        .. math::
 
-                m_{fg,j} = x_{j} \cdot m_{fuel}\\
-                \forall j \in \text{non fuels in fuel vecotr, e.g. } CO_2,\\
-                m_{fg,j} = \text{mass of fluid component j in flue gas}
+            m_{fg,j} = x_{j} \cdot m_{fuel}\\
+            \forall j \in \text{non fuels in fuel vecotr, e.g. } CO_2,\\
+            m_{fg,j} = \text{mass of fluid component j in flue gas}
 
         Non-reactive components in air
 
-            .. math::
+        .. math::
 
-                n_{O_2} = \left( \frac{m_{CO_2}}{M_{CO_2}} +
-                \frac{m_{H_{2}O}}
-                {0,5 \cdot M_{H_{2}O}} \right) \cdot \lambda,\\
-                n_{O_2} = \text{mol of oxygen required}\\
-                m_{air} = \frac{n_{O_2} \cdot M_{O_2}}{x_{O_{2}, air}},\\
-                m_{air} = \text{required total air mass}\\
-                m_{fg,j} = x_{j, air} \cdot m_{air}\\
-                m_{fg, O_2} = 0,\\
-                m_{fg,j} = \text{mass of fluid component j in flue gas}
+            n_{O_2} = \left( \frac{m_{CO_2}}{M_{CO_2}} +
+            \frac{m_{H_{2}O}}
+            {0,5 \cdot M_{H_{2}O}} \right) \cdot \lambda,\\
+            n_{O_2} = \text{mol of oxygen required}\\
+            m_{air} = \frac{n_{O_2} \cdot M_{O_2}}{x_{O_{2}, air}},\\
+            m_{air} = \text{required total air mass}\\
+            m_{fg,j} = x_{j, air} \cdot m_{air}\\
+            m_{fg, O_2} = 0,\\
+            m_{fg,j} = \text{mass of fluid component j in flue gas}
 
         Flue gas composition
 
-            .. math::
+        .. math::
 
-                x_{fg,j} = \frac{m_{fg, j}}{m_{air} + m_{fuel}}
+            x_{fg,j} = \frac{m_{fg, j}}{m_{air} + m_{fuel}}
 
         Parameters
         ----------
@@ -1644,42 +1642,42 @@ class combustion_chamber_stoich(combustion_chamber):
 
         General equations
 
-            .. math::
+        .. math::
 
-                res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
-                \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right)\\
-                \forall i \in [1,2], \; \forall j \in [1]
+            res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
+            \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right)\\
+            \forall i \in [1,2], \; \forall j \in [1]
 
-                \dot{m}_{air,min} = \dot{m}_{fuel} \cdot air_{min}
+            \dot{m}_{air,min} = \dot{m}_{fuel} \cdot air_{min}
 
-                \lambda = \frac{\dot{m}_{air}}{\dot{m}_{air,min}}
+            \lambda = \frac{\dot{m}_{air}}{\dot{m}_{air,min}}
 
         Equation for fuel
 
-            .. math::
+        .. math::
 
-                0 = res - \left(\dot{m}_{f} - \dot{m}_{f,exc}\right)
+            0 = res - \left(\dot{m}_{f} - \dot{m}_{f,exc}\right)
 
-                \dot{m}_{f,exc} = \begin{cases}
-                0 & \lambda \geq 1\\
-                \dot{m}_{f} - \frac{\dot{m}_{air}}
-                {\lambda \cdot air_{min}} & \lambda < 1
-                \end{cases}
+            \dot{m}_{f,exc} = \begin{cases}
+            0 & \lambda \geq 1\\
+            \dot{m}_{f} - \frac{\dot{m}_{air}}
+            {\lambda \cdot air_{min}} & \lambda < 1
+            \end{cases}
 
         Equation for air
 
-            .. math::
+        .. math::
 
-                0 = res - \begin{cases}
-                -\dot{m}_{air,min} & \lambda \geq 1\\
-                -\dot{m}_{air} & \lambda < 1
-                \end{cases}
+            0 = res - \begin{cases}
+            -\dot{m}_{air,min} & \lambda \geq 1\\
+            -\dot{m}_{air} & \lambda < 1
+            \end{cases}
 
         Equation for stoichiometric flue gas
 
-            .. math::
+        .. math::
 
-                0 = res + \dot{m}_{air,min} + \dot{m}_{f}
+            0 = res + \dot{m}_{air,min} + \dot{m}_{f}
 
         Equation for all other fluids
 

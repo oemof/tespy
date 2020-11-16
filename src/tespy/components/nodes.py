@@ -1498,17 +1498,10 @@ class merge(node):
             \dot{m}_{\mathrm{in,}m} \cdot \left(
             e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
         """
-        self.E_P = 0
-        for i in self.inl:
-            if i.T.val_SI <= self.outl[0].T.val_SI:
-                self.E_P += i.m.val_SI * (
-                    self.outl[0].ex_physical - i.ex_physical)
-
+        self.E_P = self.outl[0].Ex_physical
         self.E_F = 0
         for i in self.inl:
-            if i.T.val_SI > self.outl[0].T.val_SI:
-                self.E_F += i.m.val_SI * (
-                    i.ex_physical - self.outl[0].ex_physical)
+            self.E_F += i.Ex_physical
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

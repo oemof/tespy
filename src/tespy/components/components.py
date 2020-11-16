@@ -628,8 +628,6 @@ class component:
         self.E_P = np.nan
         self.E_D = np.nan
         self.epsilon = np.nan
-        logging.warning('Exergy balance not available for components of type '
-                        + self.component() + ' (' + self.label + ').')
 
     def get_plotting_data(self):
         msg = ('No data available for components of type ' + self.component() +

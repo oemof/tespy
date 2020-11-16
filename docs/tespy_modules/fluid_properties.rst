@@ -17,8 +17,8 @@ to choose from the following back ends:
 - :code:`TTSE`: Tabular back end with lowest accuracy and very high calculation
   speed.
 - :code:`INCOMP`: Back end for incompressible fluids.
-- ~~:code:`IF97`: Back end for the IAPWS-IF97 of water, very accurate and much
-  higher calculation speed than :code:`HEOS`.~~ Due to a bug in the CoolProp
+- :code:`IF97`: Back end for the IAPWS-IF97 of water, very accurate and much
+  higher calculation speed than :code:`HEOS`. Due to a bug in the CoolProp
   back end this option is not available at the moment, for more information
   see this `github issue <https://github.com/CoolProp/CoolProp/issues/1918/>`_.
 

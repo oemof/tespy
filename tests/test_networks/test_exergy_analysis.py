@@ -29,6 +29,7 @@ from tespy.connections import connection
 from tespy.networks.networks import network
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import TESPyNetworkError
 
 
 def convergence_check(lin_dep):
@@ -184,6 +185,23 @@ class TestClausiusRankine:
             str(round(eps, 4)) + ' .')
         assert round(eps, 4) == 0.99, msg
 
+    def test_exergy_analysis_missing_E_F_E_P_information(self):
+        """Test exergy analysis errors with missing information."""
+        with raises(TESPyNetworkError):
+            self.nw.exergy_analysis(
+                self.pamb, self.Tamb, E_P=[self.power], E_F=[])
+
+        with raises(TESPyNetworkError):
+            self.nw.exergy_analysis(
+                self.pamb, self.Tamb, E_P=[], E_F=[self.heat])
+
+    def test_exergy_analysis_component_on_two_busses(self):
+        """Test exergy analysis errors with components on more than one bus."""
+        with raises(TESPyNetworkError):
+            self.nw.exergy_analysis(
+                self.pamb, self.Tamb, E_P=[self.power],
+                E_F=[self.heat, self.power])
+
 
 class TestRefrigerator:
 
@@ -248,9 +266,17 @@ class TestRefrigerator:
         assert abs(exergy_balance) <= err ** 0.5, msg
 
     def test_exergy_analysis_heat_transfer_to_higher_temperature(self):
-        """Test exergy analysis bus conversion factors."""
+        """Test error with heat transfer to higher temperature."""
         # we do not need to recalculate when changing this value like this
         self.nw.components['condenser'].Tamb.val_SI = self.Tamb + 273.15 + 100
+        with raises(TESPyComponentError):
+            self.nw.exergy_analysis(
+                self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
+
+    def test_exergy_analysis_missing_Tamb_on_heat_exchanger_simple(self):
+        """Test error with missing Tamb information."""
+        # we do not need to recalculate when changing this value like this
+        self.nw.components['condenser'].Tamb.val_SI = np.nan
         with raises(TESPyComponentError):
             self.nw.exergy_analysis(
                 self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])

@@ -16,7 +16,11 @@ import shutil
 import numpy as np
 from pytest import raises
 
+from CoolProp.CoolProp import PropsSI as PSI
+
 from tespy.components.basics import cycle_closer
+from tespy.components.basics import sink
+from tespy.components.basics import source
 from tespy.components.heat_exchangers import heat_exchanger_simple
 from tespy.components.nodes import merge
 from tespy.components.nodes import splitter
@@ -27,6 +31,7 @@ from tespy.components.turbomachinery import turbine
 from tespy.connections import bus
 from tespy.connections import connection
 from tespy.networks.networks import network
+from tespy.tools.fluid_properties import calc_physical_exergy
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyNetworkError
@@ -41,7 +46,7 @@ def convergence_check(lin_dep):
 class TestClausiusRankine:
 
     def setup(self):
-        """Setup clausis rankine cycle with turbine driven feed water pump."""
+        """Set up clausis rankine cycle with turbine driven feed water pump."""
         self.Tamb = 20
         self.pamb = 1
         fluids = ['water']
@@ -88,9 +93,9 @@ class TestClausiusRankine:
         # component parameters
         turb.set_attr(eta_s=1)
         fwp_turb.set_attr(eta_s=1)
-        condenser.set_attr(pr=1, Tamb=self.Tamb)
+        condenser.set_attr(pr=1)
         fwp.set_attr(eta_s=1)
-        steam_generator.set_attr(pr=1, Tamb=self.Tamb)
+        steam_generator.set_attr(pr=1)
 
         # connection parameters
         fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
@@ -206,7 +211,7 @@ class TestClausiusRankine:
 class TestRefrigerator:
 
     def setup(self):
-        """Setup clausis rankine cycle with turbine driven feed water pump."""
+        """Set up simple refrigerator."""
         self.Tamb = 20
         self.pamb = 1
         fluids = ['R134a']
@@ -223,7 +228,7 @@ class TestRefrigerator:
         # create busses
         # power output bus
         self.power = bus('power input')
-        self.power.add_comps({'comp': cp, 'char': 1, 'base': 'bus'})
+        self.power.add_comps({'comp': cp, 'char': 0.97, 'base': 'bus'})
         # cooling bus
         self.cool = bus('heat from fridge')
         self.cool.add_comps({'comp': eva})
@@ -242,8 +247,8 @@ class TestRefrigerator:
 
         # component parameters
         cp.set_attr(eta_s=0.9)
-        cond.set_attr(pr=0.97, Tamb=self.Tamb)
-        eva.set_attr(pr=0.96, Tamb=self.Tamb)
+        cond.set_attr(pr=0.97)
+        eva.set_attr(pr=0.96)
 
         # connection parameters
         cc_cp.set_attr(m=1, x=1, T=-25, fluid={'R134a': 1})
@@ -267,16 +272,149 @@ class TestRefrigerator:
 
     def test_exergy_analysis_heat_transfer_to_higher_temperature(self):
         """Test error with heat transfer to higher temperature."""
-        # we do not need to recalculate when changing this value like this
-        self.nw.components['condenser'].Tamb.val_SI = self.Tamb + 273.15 + 100
+        # we do not need to recalculate when changing only ambient temperature
         with raises(TESPyComponentError):
             self.nw.exergy_analysis(
-                self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
+                self.pamb, self.Tamb + 100, E_P=[self.cool], E_F=[self.power])
 
-    def test_exergy_analysis_missing_Tamb_on_heat_exchanger_simple(self):
-        """Test error with missing Tamb information."""
-        # we do not need to recalculate when changing this value like this
-        self.nw.components['condenser'].Tamb.val_SI = np.nan
-        with raises(TESPyComponentError):
-            self.nw.exergy_analysis(
-                self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
+
+class TestCompressedAirIn:
+
+    def setup(self):
+        """Set up air compressor."""
+        self.Tamb = 20
+        self.pamb = 1
+        fluids = ['Air']
+
+        # compressor part
+        self.nw = network(fluids=fluids)
+        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+
+        # components
+        amb = source('air intake', exergy='fuel')
+        cp = compressor('compressor')
+        cooler = heat_exchanger_simple('cooling')
+        cas = sink('compressed air storage', exergy='product')
+
+        # power input bus
+        self.power_in = bus('power input')
+        self.power_in.add_comps({'comp': cp, 'char': 1, 'base': 'bus'})
+        # compressed air bus (not sure about this!)
+        self.cas_in = bus('massflow into storage')
+        self.cas_in.add_comps({'comp': cas}, {'comp': amb, 'base': 'bus'})
+        self.nw.add_busses(self.power_in, self.cas_in)
+
+        # create connections
+        amb_cp = connection(amb, 'out1', cp, 'in1')
+        cp_cool = connection(cp, 'out1', cooler, 'in1')
+        cool_cas = connection(cooler, 'out1', cas, 'in1')
+        self.nw.add_conns(amb_cp, cp_cool, cool_cas)
+
+        # component parameters
+        cp.set_attr(eta_s=1)
+        cooler.set_attr(pr=1)
+
+        # connection parameters
+        amb_cp.set_attr(m=2, T=self.Tamb, p=self.pamb, fluid={'Air': 1})
+        cool_cas.set_attr(T=self.Tamb, p=10)
+
+        # solve network
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+    def test_exergy_analysis_bus_conversion(self):
+        """Test exergy analysis at product exergy with T < Tamb."""
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb, E_P=[self.cas_in], E_F=[self.power_in])
+
+        exergy_balance = (
+            self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D)
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+
+class TestCompressedAirOut:
+
+    def setup(self):
+        """Set up air compressed air turbine."""
+        self.Tamb = 20
+        self.pamb = 1
+        fluids = ['Air']
+
+        # turbine part
+        self.nw = network(fluids=fluids)
+        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+
+        # components
+        cas = source('compressed air storage', exergy='fuel')
+        reheater = heat_exchanger_simple('reheating')
+        turb = turbine('turbine')
+        amb = sink('air outlet', exergy='loss')
+
+        # power ouput bus
+        self.power_out = bus('power output')
+        self.power_out.add_comps({'comp': turb, 'char': 1})
+        # compressed air bus
+        self.cas_out = bus('exergy in')
+        self.cas_out.add_comps(
+            {'comp': cas, 'base': 'bus'},
+            {'comp': reheater, 'base': 'bus'})
+        self.nw.add_busses(self.power_out, self.cas_out)
+
+        # create connections
+        cas_reheater = connection(cas, 'out1', reheater, 'in1')
+        reheater_turb = connection(reheater, 'out1', turb, 'in1')
+        turb_amb = connection(turb, 'out1', amb, 'in1', label='outlet')
+        self.nw.add_conns(cas_reheater, reheater_turb, turb_amb)
+
+        # component parameters
+        turb.set_attr(eta_s=1)
+        reheater.set_attr(pr=1)
+
+        # connection parameters
+        cas_reheater.set_attr(m=2, T=self.Tamb, p=10, fluid={'Air': 1})
+        reheater_turb.set_attr()
+        turb_amb.set_attr(p=self.pamb, T=self.Tamb)
+
+        # solve network
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+    def test_exergy_analysis_bus_conversion(self):
+        """Test exergy analysis at product exergy with T < Tamb."""
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out])
+
+        exergy_balance = (
+            self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D)
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+        msg = (
+            'Exergy efficiency must be equal to 1.0 for this test but is ' +
+            str(round(self.nw.epsilon, 4)) + ' .')
+        assert round(self.nw.epsilon, 4) == 1, msg
+
+        c = self.nw.connections['outlet']
+        c.set_attr(T=self.Tamb - 20)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out])
+
+        msg = (
+            'Exergy destruction must be equal to 0.0 for this test but is ' +
+            str(round(self.nw.E_D, 4)) + ' .')
+        assert round(self.nw.E_D, 4) == 0, msg
+
+        msg = (
+            'Exergy loss must be equal to ' + str(round(c.Ex_physical, 4)) +
+            ' for this test but is ' + str(round(self.nw.E_L, 4)) + ' .')
+        assert round(self.nw.E_L, 4) == round(c.Ex_physical, 4), msg

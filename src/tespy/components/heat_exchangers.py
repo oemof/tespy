@@ -914,8 +914,7 @@ class heat_exchanger_simple(component):
 
             \dot{E}_\mathrm{P} = \begin{cases}
             \begin{cases}
-            \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
-            \dot{Q} > 0\\
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
             \begin{cases}
             |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
             & \text{if not dissipative}\\
@@ -931,14 +930,12 @@ class heat_exchanger_simple(component):
 
             \dot{E}_\mathrm{F} = \begin{cases}
             \begin{cases}
-            \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
-            \dot{Q} < 0\\
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} < 0\\
             \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
             & \dot{Q} > 0\\
             \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
             \begin{cases}
-            \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right)
-            & \dot{Q} > 0\\
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
             \text{Impossible, error is raised} & \dot{Q} < 0\\
             \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
             \end{cases}

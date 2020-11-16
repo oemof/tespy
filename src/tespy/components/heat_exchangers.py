@@ -39,6 +39,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import lamb
+from tespy.tools.helpers import TESPyComponentError
 
 # %%
 
@@ -912,28 +913,42 @@ class heat_exchanger_simple(component):
         .. math ::
 
             \dot{E}_\mathrm{P} = \begin{cases}
+            \begin{cases}
             \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
             \dot{Q} > 0\\
             \begin{cases}
-            \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
-            & \text{if not dissipative (default)}\\
-            0 & \text{if dissipative}\\
-            \end{cases}
-            & \dot{Q} < 0\\
+            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
+            & \text{if not dissipative}\\
+            0 & \text{if dissipative (default)}\\
+            \end{cases} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
+            \begin{cases}
+            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
+            & \dot{Q} > 0\\
+            \text{Impossible, error is raised} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
             \end{cases}
 
             \dot{E}_\mathrm{F} = \begin{cases}
+            \begin{cases}
             \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right) &
             \dot{Q} < 0\\
             \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
             & \dot{Q} > 0\\
+            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
+            \begin{cases}
+            \dot{m}_{in} \cdot \left( e_{ph,out} - e_{ph,in} \right)
+            & \dot{Q} > 0\\
+            \text{Impossible, error is raised} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
             \end{cases}
         """
         if np.isnan(self.Tamb.val_SI):
             msg = (
                 'For exergy analysis, Tamb must be specified for component ' +
                 'of type' + self.component() + ' (' + self.label + ').')
-            logging.warning(msg)
+            logging.error(msg)
+            raise TESPyComponentError(msg)
 
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -942,15 +957,30 @@ class heat_exchanger_simple(component):
         s2_star = s_mix_ph([0, p1_star, o[2], o[3]], T0=self.outl[0].T.val_SI)
         T_mQ = (o[2] - i[2]) / (s2_star - s1_star)
 
+        ex_heat = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
+        ex_stream = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
+
         if o[2] < i[2]:
-            self.E_F = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
-            if self.dissipative.val:
-                self.E_P = 0
+            if self.Tamb.val_SI / T_mQ <= 1:
+                self.E_F = ex_stream
+                if self.dissipative.val:
+                    self.E_P = 0
+                else:
+                    self.E_P = ex_heat
             else:
-                self.E_P = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
+                msg = (
+                    'Transferring heat to the ambient with temperature T=' +
+                    str(round(self.Tamb.val_SI)) + ' K is impossible as the '
+                    'temperature of the heat is T=' + str(round(T_mQ)) + ' K.')
+                logging.error(msg)
+                raise TESPyComponentError(msg)
         else:
-            self.E_F = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
-            self.E_P = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
+            if self.Tamb.val_SI / T_mQ <= 1:
+                self.E_F = ex_heat
+                self.E_P = ex_stream
+            else:
+                self.E_F = ex_stream
+                self.E_P = ex_heat
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

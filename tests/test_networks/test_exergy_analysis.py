@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_networks/test_network.py
+tests/test_networks/test_exergy_analysis.py
 
 SPDX-License-Identifier: MIT
 """
@@ -163,7 +163,6 @@ class TestClausiusRankine:
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        # miss out on internal bus in exergy_analysis
         self.nw.exergy_analysis(
             self.pamb, self.Tamb,
             E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]

@@ -1481,7 +1481,7 @@ class merge(node):
             j += 1
         k += 1
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a merge.
 

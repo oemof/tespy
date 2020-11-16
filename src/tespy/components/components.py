@@ -622,7 +622,7 @@ class component:
     def convergence_check(self, nw):
         return
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""Exergy balance calculation method."""
         self.E_F = np.nan
         self.E_P = np.nan

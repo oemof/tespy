@@ -2630,10 +2630,11 @@ class network:
         # exergy balance of components
 
         for cp in self.comps.index:
-            cp.exergy_balance()
+            cp.exergy_balance(Tamb_SI)
             if isinstance(cp, sink):
-                self.E_L += cp.E_D
-                cp_E_D = 0
+                if cp.exergy.val == 'loss':
+                    self.E_L += cp.E_D
+                    cp_E_D = 0
             else:
                 cp_E_D = cp.E_D
 

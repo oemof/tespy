@@ -852,7 +852,7 @@ class compressor(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a compressor.
 
@@ -1310,7 +1310,7 @@ class pump(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a pump.
 
@@ -1784,7 +1784,7 @@ class turbine(turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a turbine.
 

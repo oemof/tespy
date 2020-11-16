@@ -871,7 +871,7 @@ class heat_exchanger_simple(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a simple heat exchanger.
 
@@ -907,8 +907,9 @@ class heat_exchanger_simple(component):
         Note
         ----
         If the fluid transfers heat to the ambient, you can specify
-        :code:`mysimpleheatexchanger.set_attr(dissipative=True)` to set the
-        exergy production to zero (only in case :math:`\dot{Q}<0`!).
+        :code:`mysimpleheatexchanger.set_attr(dissipative=False)` if you do
+        NOT want the exergy production to be zero (only in case
+        :math:`\dot{Q}<0`!).
 
         .. math ::
 
@@ -940,13 +941,6 @@ class heat_exchanger_simple(component):
             \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
             \end{cases}
         """
-        if np.isnan(self.Tamb.val_SI):
-            msg = (
-                'For exergy analysis, Tamb must be specified for component ' +
-                'of type' + self.component() + ' (' + self.label + ').')
-            logging.error(msg)
-            raise TESPyComponentError(msg)
-
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         p1_star = i[1] * (o[1] / i[1]) ** 0.5
@@ -954,11 +948,11 @@ class heat_exchanger_simple(component):
         s2_star = s_mix_ph([0, p1_star, o[2], o[3]], T0=self.outl[0].T.val_SI)
         T_mQ = (o[2] - i[2]) / (s2_star - s1_star)
 
-        ex_heat = abs((1 - (self.Tamb.val_SI / T_mQ)) * self.Q.val)
+        ex_heat = abs((1 - (Tamb / T_mQ)) * self.Q.val)
         ex_stream = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
 
         if o[2] < i[2]:
-            if self.Tamb.val_SI / T_mQ <= 1:
+            if Tamb / T_mQ <= 1:
                 self.E_F = ex_stream
                 if self.dissipative.val:
                     self.E_P = 0
@@ -967,12 +961,12 @@ class heat_exchanger_simple(component):
             else:
                 msg = (
                     'Transferring heat to the ambient with temperature T=' +
-                    str(round(self.Tamb.val_SI)) + ' K is impossible as the '
-                    'temperature of the heat is T=' + str(round(T_mQ)) + ' K.')
+                    str(round(Tamb)) + ' K is impossible as the temperature '
+                    'of the heat is T=' + str(round(T_mQ)) + ' K.')
                 logging.error(msg)
                 raise TESPyComponentError(msg)
         else:
-            if self.Tamb.val_SI / T_mQ <= 1:
+            if Tamb / T_mQ <= 1:
                 self.E_F = ex_heat
                 self.E_P = ex_stream
             else:
@@ -1230,7 +1224,7 @@ class parabolic_trough(heat_exchanger_simple):
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
-            'dissipative': dc_simple(val=False),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -1587,7 +1581,7 @@ class solar_collector(heat_exchanger_simple):
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
-            'dissipative': dc_simple(val=False),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -2617,7 +2611,7 @@ class heat_exchanger(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a heat exchanger.
 
@@ -2858,7 +2852,7 @@ class condenser(heat_exchanger):
             'subcooling': dc_simple(val=False),
             'kA_char': dc_simple(),
             'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
-            'dissipative': dc_simple(val=True),
+            'dissipative': dc_simple(val=False),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
         }
 
@@ -3066,22 +3060,23 @@ class condenser(heat_exchanger):
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_bp_p(i1) + T_o2
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a condenser.
 
         Note
         ----
-        Specify :code:`yourcondenser.set_attr(dissipative=False)` to change the
-        dissipative argument.
+        If you do not want to consider exergy production (exergy of cold side),
+        you can specify :code:`yourcondenser.set_attr(dissipative=True)` to
+        force exergy destruction.
 
         .. math::
 
             \dot{E}_\mathrm{P} = \begin{cases}
-            \text{not defined (nan)} & \text{if dissipative (default)} \\
+            \text{not defined (nan)} & \text{if dissipative} \\
             \dot{m}_\mathrm{in,2} \cdot \left(
             e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
-            \text{if not dissipative}\\
+            \text{if not dissipative (default)}\\
             \end{cases}\\
             \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
             e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)

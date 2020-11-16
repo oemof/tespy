@@ -536,7 +536,7 @@ class valve(component):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a valve.
 

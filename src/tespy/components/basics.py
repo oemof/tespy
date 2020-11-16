@@ -238,7 +238,7 @@ class sink(component):
     def inlets():
         return ['in1']
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""Exergy balance calculation method of a sink.
 
         Note
@@ -326,7 +326,7 @@ class source(component):
     def outlets():
         return ['out1']
 
-    def exergy_balance(self):
+    def exergy_balance(self, Tamb):
         r"""Exergy balance calculation method of a source.
 
         Note
@@ -340,9 +340,9 @@ class source(component):
             \end{cases}
         """
         if self.exergy.val == 'fuel':
-            self.E_F = np.nan
-        else:
             self.E_F = self.outl[0].Ex_physical
+        else:
+            self.E_F = np.nan
         self.E_P = np.nan
         self.E_D = np.nan
         self.epsilon = np.nan

@@ -2528,31 +2528,30 @@ class network:
     def exergy_analysis(self, pamb, Tamb, E_F, E_P, internal_busses=[]):
         r"""Perform exergy analysis.
 
-        - Get values for physical exergy of connections.
-        - Call exergy balances of components:
+        - Calculate the values of physical exergy on all connections.
+        - Calculate exergy balance for all components. The individual exergy
+          balance methods are documented in the API-documentation of the
+          respective components.
 
-          - The components cycle\_closer, source, sink and splitter are being
-            skipped because there is no change in exergy with these components.
           - Components for which no exergy balance has yet been implemented,
             :code:`nan` (not defined) is assigned for fuel and product
             exergy as well as exergy destruction and exergetic efficiency.
           - Dissipative components do not have product exergy (:code:`nan`) per
             definition.
 
-        - The exergy destruction of components is sumed up following a bottom
-          up approach in order to compare it with the overall exergy
+        - The exergy destruction of all components is summed up following a
+          bottom up approach in order to compare it with the overall exergy
           destruction calculated with an exergy balance of the network. Both
           values should be the same.
-        - Assign network fuel exergy and network exergy loss from parameters
-          given to method.
-        - Calculate network exergy destruction and network exergetic
-          efficiency.
+        - Calculate network fuel exergy and product exergy from data provided
+          from the busses passed to this method.
+        - Calculate network exergetic efficiency.
         - Calculate exergy destruction ratios for components.
 
-          - :math:`y_\mathrm{D}` compares the rate of exergy destruction in a
+          - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
             component to the exergy rate of the fuel provided to the overall
             system.
-          - :math:`y^*\mathrm{D}` compares the component exergy destruction
+          - :math:`y^*\mathrm{D}` compare the component exergy destruction
             rate to the total exergy destruction rate within the system.
 
         Parameters
@@ -2580,6 +2579,9 @@ class network:
 
         Note
         ----
+        The nomenclature of the variables used in the exergy analysis is
+        according to :cite:`Tsatsaronis2007`.
+
         .. math::
 
             E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}\\

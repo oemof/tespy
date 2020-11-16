@@ -2572,11 +2572,11 @@ class network:
             network, e.g. the motors and generators of a power plant.
 
         internal_busses : list
-            List containing internal busses that represent exergy transfer
-            within your network but neither exergy production or exergy fuel,
-            e.g. a steam turbine driven feed water pump. The conversion factors
-            of the bus are applied to calculate exergy destruction which is
-            allocated to the respective components.
+            Optional: List containing internal busses that represent exergy
+            transfer within your network but neither exergy production or
+            exergy fuel, e.g. a steam turbine driven feed water pump. The
+            conversion factors of the bus are applied to calculate exergy
+            destruction which is allocated to the respective components.
 
         Note
         ----

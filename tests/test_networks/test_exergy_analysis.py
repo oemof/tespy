@@ -103,21 +103,43 @@ class TestClausiusRankine:
             E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
         )
         msg = (
-            'Exergy destruction must be 0 for this network (smaller than ' +
+            'Exergy destruction must be 0 of this network (smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
             str(round(abs(self.nw.E_D), 4)) + ' .')
         assert abs(self.nw.E_D) <= err ** 0.5, msg
 
         exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
         msg = (
-            'Exergy balance must be 0 for this network (smaller than ' +
+            'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
         assert abs(exergy_balance) <= err ** 0.5, msg
 
-        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
         msg = (
             'Fuel exergy and product exergy must be identical for this test. '
             'Fuel exergy value: ' + str(round(self.nw.E_F, 4)) +
             '. Product exergy value: ' + str(round(self.nw.E_P, 4)) + '.')
         assert round(abs(self.nw.E_F - self.nw.E_P), 4) < err ** 0.5, msg
+
+    def test_exergy_analysis_violated_balance(self):
+        """Test exergy analysis with violated balance."""
+        # specify efficiency values for the internal bus
+        self.nw.del_busses(self.fwp_power)
+        self.fwp_power = bus('feed water pump power', P=0)
+        self.fwp_power.add_comps(
+            {'comp': self.nw.components['feed water pump turbine'],
+             'char': 0.99},
+            {'comp': self.nw.components['pump'], 'char': 0.98, 'base': 'bus'})
+        self.nw.add_busses(self.fwp_power)
+        # miss out on internal bus in exergy_analysis
+        self.nw.exergy_analysis(
+            self.pamb, self.Tamb,
+            E_P=[self.power], E_F=[self.heat]
+        )
+
+        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
+        msg = (
+            'Exergy balance must be violated for this test (larger than ' +
+            str(err ** 0.5) + ') but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) > err ** 0.5, msg

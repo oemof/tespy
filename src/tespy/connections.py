@@ -1013,35 +1013,6 @@ class bus:
                 self.label + '.')
             logging.debug(msg)
 
-    def exergy_balance(self):
-        r"""Exergy balance calculation method for busses.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} = \begin{cases}
-            \text{bus value} & \text{base: component}\\
-            \text{component value} & \text{base: bus}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} = \begin{cases}
-            \text{bus value} & \text{base: bus}\\
-            \text{component value} & \text{base: component}\\
-            \end{cases}
-        """
-        for cp in self.comps.index:
-            base = self.comps.loc[cp, 'base']
-            if base == 'bus':
-                self.comps.loc[cp, 'E_F'] = abs(cp.calc_bus_value(self))
-                self.comps.loc[cp, 'E_P'] = abs(cp.bus_func(self))
-            else:
-                self.comps.loc[cp, 'E_F'] = abs(cp.bus_func(self))
-                self.comps.loc[cp, 'E_P'] = abs(cp.calc_bus_value(self))
-
-        self.comps['E_D'] = self.comps['E_F'] - self.comps['E_P']
-        self.comps['epsilon'] = self.comps['E_P'] / self.comps['E_F']
-
 
 class ref:
     r"""

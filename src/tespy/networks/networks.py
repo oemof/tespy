@@ -2550,7 +2550,7 @@ class network:
           - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
             component to the exergy rate of the fuel provided to the overall
             system.
-          - :math:`y^*\mathrm{D}` compare the component exergy destruction
+          - :math:`y^*_\mathrm{D}` compare the component exergy destruction
             rate to the total exergy destruction rate within the system.
 
         Parameters

@@ -2539,12 +2539,11 @@ class network:
           - Dissipative components do not have product exergy (:code:`nan`) per
             definition.
 
-        - The exergy destruction of all components is summed up following a
-          bottom up approach in order to compare it with the overall exergy
-          destruction calculated with an exergy balance of the network. Both
-          values should be the same.
         - Calculate network fuel exergy and product exergy from data provided
           from the busses passed to this method.
+        - Component fuel and product exergy of components passed within the
+          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
+          adjusted to consider the bus conversion factor, too.
         - Calculate network exergetic efficiency.
         - Calculate exergy destruction ratios for components.
 
@@ -2588,18 +2587,161 @@ class network:
             \varepsilon_{\text{comp}} =
             \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
 
-            E_{\text{D,tot,bottom up}} = \sum_{comp=0}^N E_{\text{D},comp}
+            E_{\text{D}} = \sum_{comp} E_{\text{D},comp}
+            \forall comp \in \text{ network components}
 
-            E_{\text{P}} = P_{\text{net}}\\
-            E_{\text{F}} = \sum_{comp=0}^N E_{\text{F},comp}\\
-            E_{\text{L}} = \sum_{conn=0}^N E_{\text{PH},conn}\\
-            E_{\text{D}} = E_{\text{F}} - E_{\text{P}} - E_{\text{L}}\\
+            E_{\text{P}} = \sum_{comp} E_{\text{P},comp} comp \in
+            \text{ components of busses in E_P if 'base': 'component'}
+            - \sum_{comp} E_{\text{F},comp} comp \in
+            \text{ components of busses in E_P if 'base': 'bus'}
+
+            E_{\text{F}} = \sum_{comp} E_{\text{F},comp} comp \in
+            \text{ components of busses in E_F if 'base': 'bus'}
+            - \sum_{comp} E_{\text{P},comp} comp \in
+            \text{ components of busses in E_F if 'base': 'component'}
+
+            E_{\text{L}} = \sum_{comp} E_{\text{D},comp}\\
+            comp \in
+            \text{ sinks of network components if parameter exergy='loss'}
+
+        The exergy balance of the network must be closed, meaning fuel exergy
+        minus product exergy, exergy destruction and exergy losses must be
+        zero. If the balance is violated a warning message is prompted.
+
+        .. math::
+
+            |E_{\text{F}} - E_{\text{P}} - E_{\text{L}} - E_{\text{D}}| \leq
+            \Delta_\text{max}\\
+
             \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
 
             y_{\text{D},comp} =
             \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
             y^*_{\text{D},comp} =
             \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
+
+        Example
+        -------
+        In this example a simple clausius rankine cycle is set up and an
+        exergy analysis is performed after simulation of the power plant.
+        Start by defining ambient state and genereral network setup.
+
+        >>> from tespy.components.basics import cycle_closer
+        >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+        >>> from tespy.components.nodes import merge
+        >>> from tespy.components.nodes import splitter
+        >>> from tespy.components.piping import valve
+        >>> from tespy.components.turbomachinery import compressor
+        >>> from tespy.components.turbomachinery import pump
+        >>> from tespy.components.turbomachinery import turbine
+        >>> from tespy.connections import bus
+        >>> from tespy.connections import connection
+        >>> from tespy.networks.networks import network
+
+        >>> Tamb = 20
+        >>> pamb = 1
+        >>> fluids = ['water']
+        >>> nw = network(fluids=fluids)
+        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
+        ... iterinfo=False)
+
+        In order to show all functionalities available we use a feed water pump
+        that is not driven electrically by a motor but instead internally by
+        an own steam turbine. Therefore we split up the live steam from the
+        steam generator and merge the streams after both steam turbines. For
+        simplicity the steam generator and the condenser are modeled as simple
+        heat exchangers.
+
+        >>> cycle_close = cycle_closer('cycle closer')
+        >>> splitter1 = splitter('splitter 1')
+        >>> merge1 = merge('merge 1')
+        >>> turb = turbine('turbine')
+        >>> fwp_turb = turbine('feed water pump turbine')
+        >>> condenser = heat_exchanger_simple('condenser')
+        >>> fwp = pump('pump')
+        >>> steam_generator = heat_exchanger_simple('steam generator')
+
+        >>> fs_in = connection(cycle_close, 'out1', splitter1, 'in1')
+        >>> fs_fwpt = connection(splitter1, 'out1', fwp_turb, 'in1')
+        >>> fs_t = connection(splitter1, 'out2', turb, 'in1')
+        >>> fwpt_ws = connection(fwp_turb, 'out1', merge1, 'in1')
+        >>> t_ws = connection(turb, 'out1', merge1, 'in2')
+        >>> ws = connection(merge1, 'out1', condenser, 'in1')
+        >>> cond = connection(condenser, 'out1', fwp, 'in1')
+        >>> fw = connection(fwp, 'out1', steam_generator, 'in1')
+        >>> fs_out = connection(steam_generator, 'out1', cycle_close, 'in1')
+        >>> nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond,
+        ... fw, fs_out)
+
+        Next step is to set up the busses to later pass them according to the
+        convetions in the list below:
+
+        - E_F for fuel exergy
+        - E_P for product exergy
+        - internal_busses for internal energy transport
+
+        The first bus is for output power, which is only represented by the
+        main steam turbine. The efficiency is set to 0.97. This bus will
+        represent the product exergy.
+
+        >>> power = bus('power_output')
+        >>> power.add_comps({'comp': turb, 'char': 0.97})
+
+        The second bus is for driving the feed water pump. The total power of
+        this bus is specified to be 0 in order to make sure, the power genrated
+        by the secondary steam turbine is transferred to the feed water pump.
+        For mechanical efficiency we choose 0.985 for both components, but
+        we need to make sure, the :code:`'base'` of the feed water pump is
+        :code:`'bus'` as the energy from the turbine drives the feed water
+        pump.
+
+        >>> fwp_power = bus('feed water pump power', P=0)
+        >>> fwp_power.add_comps(
+        ... {'comp': fwp_turb, 'char': 0.985},
+        ... {'comp': fwp, 'char': 0.985, 'base': 'bus'})
+
+        The fuel exergy is the exergy input into the network which is
+        represented by the heat input bus. Here again, as we have an energy
+        input from outside of the network, the :code:`'base'` keyword must be
+        specified to :code:`'bus'`.
+
+        >>> heat = bus('heat_input')
+        >>> heat.add_comps({'comp': steam_generator, 'base': 'bus'})
+        >>> nw.add_busses(power, fwp_power, heat)
+
+        After setting up the busses, we specify the parameters for components
+        and connections and start the simulation.
+
+        >>> turb.set_attr(eta_s=0.9)
+        >>> fwp_turb.set_attr(eta_s=0.87)
+        >>> condenser.set_attr(pr=0.98)
+        >>> fwp.set_attr(eta_s=0.75)
+        >>> steam_generator.set_attr(pr=0.89)
+        >>> fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
+        >>> cond.set_attr(T=Tamb + 3, x=0)
+        >>> nw.solve('design')
+
+        To evaluate the exergy balance of the network, we simply call the
+        :py:meth:`tespy.networks.networks.network.exergy_analysis` method
+        passing the respective busses as well as the ambient state. To print
+        the results you can subsequently use the
+        :py:meth:`tespy.networks.networks.network.print_exergy_analysis`
+        method. The ecergy balance should be closed, if you set up your network
+        analysis. If not, an error is prompted.
+
+        >>> nw.exergy_analysis(pamb=pamb, Tamb=Tamb,
+        ... E_F=[heat], E_P=[power], internal_busses=[fwp_power])
+        >>> abs(round(nw.E_F - nw.E_P - nw.E_L - nw.E_D, 3))
+        0.0
+        >>> ();nw.print_exergy_analysis();() # doctest: +ELLIPSIS
+        (...)
+
+        The component exergy and connection exergy data are stored as
+        dataframes and therefore accessible for further investigation.
+
+        >>> components = nw.component_exergy_data
+        >>> connections = nw.connection_exergy_data
+
         """
         pamb_SI = self.convert_to_SI('p', pamb, self.p_unit)
         Tamb_SI = self.convert_to_SI('T', Tamb, self.T_unit)

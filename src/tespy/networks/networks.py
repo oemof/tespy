@@ -2583,29 +2583,29 @@ class network:
 
         .. math::
 
-        \begin{align}
-        E_{\mathrm{D},comp} = & E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
-        & \\
-        \varepsilon_{\mathrm{comp}} = &
-        \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} & \\
-        E_{\mathrm{D}} = & \sum_{comp} E_{\mathrm{D},comp} &
-        \forall comp \in \text{ network components}\\
-        E_{\mathrm{P}} = & \sum_{comp} E_{\mathrm{P},comp} &
-        \forall comp \in
-        \text{ components of busses in E\_P if 'base': 'component'}\\
-        E_{\mathrm{P}} = & E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp} &
-        \forall comp \in
-        \text{ components of busses in E\_P if 'base': 'bus'}\\
-        E_{\mathrm{F}} = & \sum_{comp} E_{\mathrm{F},comp} &
-        \forall comp \in
-        \text{ components of busses in E\_F if 'base': 'bus'}\\
-        E_{\mathrm{F}} = & E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp} &
-        \forall comp \in
-        \text{ components of busses in E\_F if 'base': 'component'}\\
-        E_{\mathrm{L}} = & \sum_{comp} E_{\mathrm{D},comp} &
-        \forall comp \in
-        \text{ sinks of network components if parameter exergy='loss'}
-        \end{align}
+            \begin{align}
+            E_{\mathrm{D},comp} = & E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
+            & \\
+            \varepsilon_{\mathrm{comp}} = &
+            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} & \\
+            E_{\mathrm{D}} = & \sum_{comp} E_{\mathrm{D},comp} &
+            \forall comp \in \text{ network components}\\
+            E_{\mathrm{P}} = & \sum_{comp} E_{\mathrm{P},comp} &
+            \forall comp \in
+            \text{ components of busses in E\_P if 'base': 'component'}\\
+            E_{\mathrm{P}} = & E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
+            & \forall comp \in
+            \text{ components of busses in E\_P if 'base': 'bus'}\\
+            E_{\mathrm{F}} = & \sum_{comp} E_{\mathrm{F},comp} &
+            \forall comp \in
+            \text{ components of busses in E\_F if 'base': 'bus'}\\
+            E_{\mathrm{F}} = & E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
+            & \forall comp \in
+            \text{ components of busses in E\_F if 'base': 'component'}\\
+            E_{\mathrm{L}} = & \sum_{comp} E_{\mathrm{D},comp} &
+            \forall comp \in
+            \text{ sinks of network components if parameter exergy='loss'}
+            \end{align}
 
         The exergy balance of the network must be closed, meaning fuel exergy
         minus product exergy, exergy destruction and exergy losses must be

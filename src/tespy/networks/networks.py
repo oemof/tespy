@@ -2583,26 +2583,29 @@ class network:
 
         .. math::
 
-            E_{\text{D},comp} = E_{\text{F},comp} - E_{\text{P},comp}\\
-            \varepsilon_{\text{comp}} =
-            \frac{E_{\text{P},comp}}{E_{\text{F},comp}}
-
-            E_{\text{D}} = \sum_{comp} E_{\text{D},comp}
-            \forall comp \in \text{ network components}
-
-            E_{\text{P}} = \sum_{comp} E_{\text{P},comp} comp \in
-            \text{ components of busses in E_P if 'base': 'component'}
-            - \sum_{comp} E_{\text{F},comp} comp \in
-            \text{ components of busses in E_P if 'base': 'bus'}
-
-            E_{\text{F}} = \sum_{comp} E_{\text{F},comp} comp \in
-            \text{ components of busses in E_F if 'base': 'bus'}
-            - \sum_{comp} E_{\text{P},comp} comp \in
-            \text{ components of busses in E_F if 'base': 'component'}
-
-            E_{\text{L}} = \sum_{comp} E_{\text{D},comp}\\
-            comp \in
-            \text{ sinks of network components if parameter exergy='loss'}
+        \begin{align}
+        E_{\mathrm{D},comp} = & E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
+        & \\
+        \varepsilon_{\mathrm{comp}} = &
+        \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} & \\
+        E_{\mathrm{D}} = & \sum_{comp} E_{\mathrm{D},comp} &
+        \forall comp \in \text{ network components}\\
+        E_{\mathrm{P}} = & \sum_{comp} E_{\mathrm{P},comp} &
+        \forall comp \in
+        \text{ components of busses in E\_P if 'base': 'component'}\\
+        E_{\mathrm{P}} = & E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp} &
+        \forall comp \in
+        \text{ components of busses in E\_P if 'base': 'bus'}\\
+        E_{\mathrm{F}} = & \sum_{comp} E_{\mathrm{F},comp} &
+        \forall comp \in
+        \text{ components of busses in E\_F if 'base': 'bus'}\\
+        E_{\mathrm{F}} = & E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp} &
+        \forall comp \in
+        \text{ components of busses in E\_F if 'base': 'component'}\\
+        E_{\mathrm{L}} = & \sum_{comp} E_{\mathrm{D},comp} &
+        \forall comp \in
+        \text{ sinks of network components if parameter exergy='loss'}
+        \end{align}
 
         The exergy balance of the network must be closed, meaning fuel exergy
         minus product exergy, exergy destruction and exergy losses must be

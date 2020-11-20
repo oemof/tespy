@@ -2583,38 +2583,39 @@ class network:
 
         .. math::
 
-            \begin{align}
-            E_{\mathrm{D},comp} = & E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
-            & \\
-            \varepsilon_{\mathrm{comp}} = &
-            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} & \\
-            E_{\mathrm{D}} = & \sum_{comp} E_{\mathrm{D},comp} &
+            \begin{split}
+            E_{\mathrm{D},comp} = E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
+            \;& \\
+            \varepsilon_{\mathrm{comp}} =
+            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} \;& \\
+            E_{\mathrm{D}} = \sum_{comp} E_{\mathrm{D},comp} \;&
             \forall comp \in \text{ network components}\\
-            E_{\mathrm{P}} = & \sum_{comp} E_{\mathrm{P},comp} &
+            E_{\mathrm{P}} = \sum_{comp} E_{\mathrm{P},comp} \;&
             \forall comp \in
             \text{ components of busses in E\_P if 'base': 'component'}\\
-            E_{\mathrm{P}} = & E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
-            & \forall comp \in
+            E_{\mathrm{P}} = E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
+            \;& \forall comp \in
             \text{ components of busses in E\_P if 'base': 'bus'}\\
-            E_{\mathrm{F}} = & \sum_{comp} E_{\mathrm{F},comp} &
+            E_{\mathrm{F}} = \sum_{comp} E_{\mathrm{F},comp} \;&
             \forall comp \in
             \text{ components of busses in E\_F if 'base': 'bus'}\\
-            E_{\mathrm{F}} = & E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
-            & \forall comp \in
+            E_{\mathrm{F}} = E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
+            \;& \forall comp \in
             \text{ components of busses in E\_F if 'base': 'component'}\\
-            E_{\mathrm{L}} = & \sum_{comp} E_{\mathrm{D},comp} &
+            E_{\mathrm{L}} = \sum_{comp} E_{\mathrm{D},comp} \;&
             \forall comp \in
             \text{ sinks of network components if parameter exergy='loss'}
-            \end{align}
+            \end{split}
 
         The exergy balance of the network must be closed, meaning fuel exergy
         minus product exergy, exergy destruction and exergy losses must be
-        zero. If the balance is violated a warning message is prompted.
+        zero (:math:`\Delta E_\text{max}=0.001`). If the balance is violated a
+        warning message is prompted.
 
         .. math::
 
             |E_{\text{F}} - E_{\text{P}} - E_{\text{L}} - E_{\text{D}}| \leq
-            \Delta_\text{max}\\
+            \Delta E_\text{max}\\
 
             \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
 

@@ -60,7 +60,7 @@ class TestReactors:
         # check bus function:
         # power output on component and bus must be indentical
         power = bus('power')
-        power.add_comps({'comp': self.instance, 'param': 'P'})
+        power.add_comps({'comp': self.instance, 'param': 'P', 'base': 'bus'})
         power.set_attr(P=2.5e6)
         self.nw.add_busses(power)
 

@@ -795,7 +795,7 @@ def T_ps(p, s, fluid):
 # %%
 
 
-def h_mix_pT(flow, T):
+def h_mix_pT(flow, T, force_gas=False):
     r"""
     Calculate the enthalpy from pressure and Temperature.
 
@@ -829,12 +829,12 @@ def h_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
-            h += h_pT(flow[1] * ni / n, T, fluid) * x
+            h += h_pT(flow[1] * ni / n, T, fluid, force_gas) * x
 
     return h
 
 
-def h_pT(p, T, fluid):
+def h_pT(p, T, fluid, force_gas=False):
     r"""
     Calculate the enthalpy from pressure and temperature for a pure fluid.
 
@@ -857,6 +857,14 @@ def h_pT(p, T, fluid):
     if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
+        if force_gas:
+            if T < memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+                memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                h = memorise.state[fluid].hmass()
+                memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                h_sat = memorise.state[fluid].hmass()
+                return max(h, h_sat)
+
         memorise.state[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.state[fluid].hmass()
 
@@ -1613,7 +1621,7 @@ def s_ph(p, h, fluid):
 # %%
 
 
-def s_mix_pT(flow, T):
+def s_mix_pT(flow, T, force_gas=False):
     r"""
     Calculate the entropy from pressure and temperature.
 
@@ -1669,14 +1677,14 @@ def s_mix_pT(flow, T):
     for fluid, x in fluid_comps.items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            s += s_pT(pp, T, fluid) * x
+            s += s_pT(pp, T, fluid, force_gas) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   np.log(pp / flow[1]))
 
     return s
 
 
-def s_pT(p, T, fluid):
+def s_pT(p, T, fluid, force_gas):
     r"""
     Calculate the entropy from pressure and temperature for a pure fluid.
 
@@ -1699,6 +1707,14 @@ def s_pT(p, T, fluid):
     if fluid in tespy_fluid.fluids.keys():
         return tespy_fluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
+        if force_gas:
+            if T < memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+                memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                s = memorise.state[fluid].smass()
+                memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                s_sat = memorise.state[fluid].smass()
+                return max(s, s_sat)
+
         memorise.state[fluid].update(CP.PT_INPUTS, p, T)
         return memorise.state[fluid].smass()
 

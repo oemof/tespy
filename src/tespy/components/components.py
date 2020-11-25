@@ -622,6 +622,10 @@ class component:
     def convergence_check(self, nw):
         return
 
+    def entropy_balance(self):
+        r"""Entropy balance calculation method."""
+        return
+
     def exergy_balance(self, Tamb):
         r"""Exergy balance calculation method."""
         self.E_F = np.nan

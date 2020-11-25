@@ -27,7 +27,6 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
@@ -946,16 +945,17 @@ class water_electrolyzer(component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
-                                               self.inl[0].h.val_SI)
+        self.Q.val = - self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.e.val = self.P.val / self.outl[2].m.val_SI
         self.eta.val = self.e0 / self.e.val
 
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
 
         if self.eta_char.is_set:
             # get bound errors for efficiency characteristics

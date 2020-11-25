@@ -311,12 +311,27 @@ class turbomachine(component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
         self.P.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.Sirr.val = self.inl[0].m.val_SI * (
-                s_mix_ph(self.outl[0].to_flow()) -
-                s_mix_ph(self.inl[0].to_flow()))
+        self.entropy_balance()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of turbomachine.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \right)\\
+        """
+        self.S_irr = self.inl[0].m.val_SI * (
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -655,19 +670,15 @@ class compressor(turbomachine):
                 \left( h_{out,s} - h_{in} \right)
         """
         # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
-
+        i = self.inl[0]
+        o = self.outl[0]
         expr = 1
         if self.eta_s_char.param == 'm':
-            if not np.isnan(i_d[0]):
-                expr = i[0] / i_d[0]
+            if not np.isnan(i.m.design):
+                expr = i.m.val_SI / i.m.design
         elif self.eta_s_char.param == 'pr':
-            if not np.isnan([i_d[1], o_d[1]]).any():
-                expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+            if not np.isnan(self.pr.design):
+                expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
         else:
             msg = ('Must provide a parameter for eta_s_char at component ' +
                    self.label + '.')
@@ -675,7 +686,7 @@ class compressor(turbomachine):
             raise ValueError(msg)
 
         return (self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
-                (o[2] - i[2]) - (self.h_os('post') - i[2]))
+                (o.h.val_SI - i.h.val_SI) - (self.h_os('post') - i.h.val_SI))
 
     def char_map_func(self):
         r"""
@@ -710,21 +721,17 @@ class compressor(turbomachine):
             \eta_{s,c}(char(m, igva))
         """
         # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
+        i = self.inl[0]
+        o = self.outl[0]
+        T_i = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
 
-        T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-
-        x = np.sqrt(T_mix_ph(i_d) / T_i)
-        y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
+        x = np.sqrt(i.T.design / T_i)
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         pr, eta = self.char_map.func.evaluate(x, y, igva=self.igva.val)
 
-        z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
-        z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2]) /
+        z1 = (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
+        z2 = ((self.h_os('post') - i.h.val_SI) / (o.h.val_SI - i.h.val_SI) /
               self.eta_s.design - eta)
 
         return np.array([z1, z2])
@@ -825,28 +832,22 @@ class compressor(turbomachine):
 
         if self.char_map.is_set:
             # get bound errors for characteristic map
-            i = self.inl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-            x = np.sqrt(T_mix_ph(i_d)) / np.sqrt(T_i)
-            y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
-            self.char_map.func.get_bound_errors(x, y, self.igva.val,
-                                                self.label)
+            i = self.inl[0]
+            T_i = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+            x = np.sqrt(i.T.design) / np.sqrt(T_i)
+            y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+            self.char_map.func.get_bound_errors(
+                x, y, self.igva.val, self.label)
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            o_d = self.outl[0].to_flow_design()
-
             expr = 1
             if self.eta_s_char.param == 'm':
-                if not np.isnan(i_d[0]):
-                    expr = i[0] / i_d[0]
+                if not np.isnan(self.inl[0].m.design):
+                    expr = self.inl[0].m.val / self.inl[0].m.design
             elif self.eta_s_char.param == 'pr':
-                if not np.isnan([i_d[1], o_d[1]]).any():
-                    expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+                if not np.isnan(self.pr.design):
+                    expr = self.pr.val / self.pr.design
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
@@ -1155,18 +1156,15 @@ class pump(turbomachine):
                 \left( h_{out,s} - h_{in} \right)
         """
         # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
+        i = self.inl[0]
+        o = self.outl[0]
+        v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
 
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
+        expr = i.m.val_SI * v_i / (i.v.design)
 
-        expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
-
-        return ((o[2] - i[2]) * self.eta_s.design *
+        return ((o.h.val_SI - i.h.val_SI) * self.eta_s.design *
                 self.eta_s_char.func.evaluate(expr) -
-                (self.h_os('post') - i[2]))
+                (self.h_os('post') - i.h.val_SI))
 
     def flow_char_func(self):
         r"""
@@ -1296,16 +1294,13 @@ class pump(turbomachine):
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+            expr = self.inl[0].m.val_SI * self.inl[0].vol.val_SI / (
+                self.inl[0].m.design * self.inl[0].vol.design)
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
         if self.flow_char.is_set:
             # get bound errors for flow characteristics
-            i = self.inl[0].to_flow()
-            expr = i[0] * v_mix_ph(i, T0=self.inl[0].T.val_SI)
+            expr = self.inl[0].m.val_SI * self.inl[0].vol.val_SI
             self.flow_char.func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
@@ -1609,20 +1604,15 @@ class turbine(turbomachine):
                 {1 - \left(\frac{p_{out,ref}}{p_{in,ref}} \right)^{2}}} -
                 \dot{m}_{in}
         """
-        # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
-
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-
         n = 1
-        return (- i[0] + i_d[0] * i[1] / i_d[1] *
-                np.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
-                np.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
-                            (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
+        # actual values
+        i = self.inl[0]
+        o = self.outl[0]
+        v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        return (- i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
+                np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * v_i)) *
+                np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
+                            (1 - (self.pr.design) ** ((n + 1) / n)))))
 
     def eta_s_char_func(self):
         r"""
@@ -1639,30 +1629,27 @@ class turbine(turbomachine):
                 f\left( expr \right) \cdot \Delta h_{s}
         """
         # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
+        i = self.inl[0]
+        o = self.outl[0]
 
         if self.eta_s_char.param == 'dh_s':
-            expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+            expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i.h.val_SI))
         elif self.eta_s_char.param == 'm':
-            expr = i[0] / i_d[0]
+            expr = i.m.val_SI / i.m.design
         elif self.eta_s_char.param == 'v':
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+            v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+            expr = i.m.val_SI * v_i / self.inl[0].v.design
         elif self.eta_s_char.param == 'pr':
-            expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+            expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
         else:
             msg = ('Please choose the parameter, you want to link the '
                    'isentropic efficiency to.')
             logging.error(msg)
             raise ValueError(msg)
 
-        return (-(o[2] - i[2]) + self.eta_s.design *
+        return (-(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
                 self.eta_s_char.func.evaluate(expr) *
-                (self.h_os('post') - i[2]))
+                (self.h_os('post') - i.h.val_SI))
 
     def convergence_check(self, nw):
         r"""
@@ -1765,20 +1752,15 @@ class turbine(turbomachine):
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            o_d = self.outl[0].to_flow_design()
-
             if self.eta_s_char.param == 'dh_s':
-                expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+                expr = np.sqrt(self.dh_s_ref /
+                    (self.h_os('post') - self.inl[0].h.val_SI))
             elif self.eta_s_char.param == 'm':
-                expr = i[0] / i_d[0]
+                expr = self.inl[0].m.val_SI / self.inl[0].m.design
             elif self.eta_s_char.param == 'v':
-                v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-                expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+                expr = self.inl[0].v.val_SI / self.inl[0].v.design
             elif self.eta_s_char.param == 'pr':
-                expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+                expr = self.pr.val / self.pr.design
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 

@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_networks/test_exergy_analysis.py
+tests/test_networks/test_exergy_and_entropy_analysis.py
 
 SPDX-License-Identifier: MIT
 """
@@ -134,6 +134,28 @@ class TestClausiusRankine:
             'Fuel exergy value: ' + str(round(self.nw.E_F, 4)) +
             '. Product exergy value: ' + str(round(self.nw.E_P, 4)) + '.')
         assert round(abs(self.nw.E_F - self.nw.E_P), 4) < err ** 0.5, msg
+
+    def test_entropy_perfect_cycle(self):
+        """Test entropy values in the perfect clausius rankine cycle."""
+        labels = [
+            'turbine', 'feed water pump turbine', 'condenser',
+            'steam generator', 'pump'
+        ]
+        for label in labels:
+            cp = self.nw.components[label]
+            msg = (
+                'Entropy production due to irreversibility must be 0 for all '
+                'components in this test but is ' + str(round(cp.S_irr, 4)) +
+                ' at component ' + label + ' of type ' + cp.component() + '.')
+            assert round(cp.S_irr, 4) == 0, msg
+        sg = self.nw.components['steam generator']
+        cd = self.nw.components['condenser']
+        msg = (
+            'Value of entropy production due to heat input at steam generator '
+            '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
+            'value of entropy reduction in condenser (S_Q=' +
+            str(round(cd.S_Q, 4)) + ').')
+        assert round(sg.S_Q, 4) == -round(cd.S_Q, 4), msg
 
     def test_exergy_analysis_violated_balance(self):
         """Test exergy analysis with violated balance."""
@@ -416,4 +438,4 @@ class TestCompressedAirOut:
         msg = (
             'Exergy loss must be equal to ' + str(round(c.Ex_physical, 4)) +
             ' for this test but is ' + str(round(self.nw.E_L, 4)) + '.')
-        assert round(self.nw.E_L, 4) > round(c.Ex_physical, 4), msg
+        assert round(self.nw.E_L, 4) == round(c.Ex_physical, 4), msg

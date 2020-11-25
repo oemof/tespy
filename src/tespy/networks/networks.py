@@ -1111,6 +1111,7 @@ class network:
             for var in ['m', 'p', 'h', 'v', 'x', 'T', 'Td_bp']:
                 c.get_attr(var).design = self.convert_to_SI(
                     var, df.loc[conn_id, var], df.loc[conn_id, var + '_unit'])
+            c.vol.design = c.v.design / c.m.design
             for fluid in self.fluids:
                 c.fluid.design[fluid] = df.loc[conn_id, fluid]
         except IndexError:
@@ -2465,26 +2466,7 @@ class network:
                 row += 1
 
     def postprocessing(self):
-        r"""Calculate bus, component parameters and connection parameters."""
-        # components
-        for cp in self.comps.index:
-            cp.calc_parameters()
-
-        # busses
-        for b in self.busses.values():
-            b.P.val = 0
-            for cp in b.comps.index:
-                # get components bus func value
-                val = cp.calc_bus_value(b)
-                b.P.val += val
-                # save as reference value
-                if self.mode == 'design':
-                    if b.comps.loc[cp, 'base'] == 'component':
-                        b.comps.loc[cp, 'P_ref'] = (
-                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
-                    else:
-                        b.comps.loc[cp, 'P_ref'] = val
-
+        r"""Calculate connection, bus and component parameters."""
         # connections
         for c in self.conns.index:
             flow = c.to_flow()
@@ -2521,6 +2503,26 @@ class network:
             c.p.val0 = c.p.val
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
+
+        # components
+        for cp in self.comps.index:
+            cp.calc_parameters()
+            cp.entropy_balance()
+
+        # busses
+        for b in self.busses.values():
+            b.P.val = 0
+            for cp in b.comps.index:
+                # get components bus func value
+                val = cp.calc_bus_value(b)
+                b.P.val += val
+                # save as reference value
+                if self.mode == 'design':
+                    if b.comps.loc[cp, 'base'] == 'component':
+                        b.comps.loc[cp, 'P_ref'] = (
+                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                    else:
+                        b.comps.loc[cp, 'P_ref'] = val
 
         msg = 'Postprocessing complete.'
         logging.info(msg)

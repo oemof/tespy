@@ -1131,13 +1131,13 @@ class combustion_chamber(component):
         - :code:`S_irr`: Entropy production due to irreversibilty
 
         The methodology for entropy analysis of combustion processes is derived
-        from SOURCE. Similar to the energy balance of a combustion reaction, we
-        need to define the same reference state for the entropy balance of the
-        combustion. The temperature for the reference state is set to 25 °C and
-        reference pressure is 1 bar. As the water in the flue gas may be liquid
-        but the thermodynmic temperature of heat of combustion refers to the
-        lower heating value, the water is forced to gas at the reference point
-        by considering evaporation.
+        from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
+        reaction, we need to define the same reference state for the entropy
+        balance of the combustion. The temperature for the reference state is
+        set to 25 °C and reference pressure is 1 bar. As the water in the flue
+        gas may be liquid but the thermodynmic temperature of heat of
+        combustion refers to the lower heating value, the water is forced to
+        gas at the reference point by considering evaporation.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
@@ -3359,13 +3359,13 @@ class combustion_engine(combustion_chamber):
         - :code:`S_irr`: Total entropy production due to irreversibilty
 
         The methodology for entropy analysis of combustion processes is derived
-        from SOURCE. Similar to the energy balance of a combustion reaction, we
-        need to define the same reference state for the entropy balance of the
-        combustion. The temperature for the reference state is set to 25 °C and
-        reference pressure is 1 bar. As the water in the flue gas may be liquid
-        but the thermodynmic temperature of heat of combustion refers to the
-        lower heating value, the water is forced to gas at the reference point
-        by considering evaporation.
+        from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
+        reaction, we need to define the same reference state for the entropy
+        balance of the combustion. The temperature for the reference state is
+        set to 25 °C and reference pressure is 1 bar. As the water in the flue
+        gas may be liquid but the thermodynmic temperature of heat of
+        combustion refers to the lower heating value, the water is forced to
+        gas at the reference point by considering evaporation.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.

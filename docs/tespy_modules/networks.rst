@@ -559,9 +559,34 @@ have two further options:
  * print the results to prompt (:code:`myplant.print_results()`) and
  * save the results in a .csv-file (:code:`myplant.save('savename')`).
 
-The :code:`print_results()` method will print out component, connection and bus
-properties. If you want to prevent the printout of components, connections or
-busses, you can specify the :code:`printout` parameter:
+To print the results in your console use the :code:`print_results()` method.
+It will print tables containing the component, connection and bus properties.
+Some of the results will be colored, the colored results indicate
+
+ * if a parameter was specified as value before calculation.
+ * if a parameter is out of its predefined value bounds (e.g. efficiency > 1).
+ * if a component parameter was set to :code:`'var'` in your calculation.
+
+The color for each of those categories is different and might depend on the
+console settings of your machine. You can change the colors using
+`ANSI escape codes <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_,
+for example changing the color for user specified values to blue:
+
+.. code-block:: python
+
+      from tespy.tools.global_vars import coloring
+      coloring['set'] = '\034[0m'
+
+If you do not want the results to be colored you can instead call the method
+the following way:
+
+.. code-block:: python
+
+    myplant.print_results(colored=False)
+
+If you want to limit your prinouts to a specific subset of components,
+connections and busses, you can specify the :code:`printout` parameter to block
+individual result printout.
 
 .. code-block:: python
 
@@ -605,6 +630,8 @@ Use this code for connection parameters:
     specific_volume = myconn.vol.val  # value in specified network unit
     specific_entropy = myconn.s.val  # value in specified network unit
 
+.. _FluProDia_label:
+
 Creating fluid property diagrams
 --------------------------------
 
@@ -613,19 +640,94 @@ Creating fluid property diagrams
 
     Figure: logph diagram of NH3 with a simple heat pump cycle.
 
+.. figure:: api/_images/Ts_diagram_states.svg
+    :align: center
+
+    Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
 CoolProp has an inbuilt feature for creating fluid property diagrams.
 Unfortunately, the handling is not very easy at the moment. We recommend using
 fluprodia (Fluid Property Diagram) instead. You can create and customize
 different types of diagrams for all pure and pseudo-pure fluids available in
-CoolProp. In order to plot your process data into a diagram, simply extract
-the corresponding values from the connections. For more information on
-fluprodia have a look at the
+CoolProp. In order to plot your process data into a diagram, you can use the
+:code:`get_plotting_data` method of each component. The method returns a
+dictionary, that can be passed as **kwargs to the
+:code:`calc_individual_isoline` method of a fluprodia
+:code:`FluidPropertyDiagram` object. The fluprodia documentation provides
+examples of how to plot a process into different diagrams, too. For more
+information on fluprodia have a look at the
 `online documentation <https://fluprodia.readthedocs.io/en/latest/>`_. You can
 install the package with pip.
 
 .. code-block:: bash
 
     pip install fluprodia
+
+.. note::
+
+    The plotting data a returned from the :code:`get_plotting_data` as a
+    nested dictionary. The first level key contains the connection id of the
+    state change (change state from incoming connection to outgoing
+    connection). The table below shows the state change and the respective id.
+
+    .. list-table:: State change and respective ids of dictionary
+       :widths: 60 10 10 10
+       :header-rows: 1
+
+       * - component
+         - state from
+         - state to
+         - id
+       * - components with one mass flow
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * - class heat_exchanger and subclasses
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out2`
+         - :code:`2`
+       * - class orc_evaporator
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out2`
+         - :code:`2`
+       * -
+         - :code:`in3`
+         - :code:`out3`
+         - :code:`3`
+       * - class merge
+         - :code:`in1`
+         - :code:`out1`
+         - :code:`1`
+       * -
+         - :code:`in2`
+         - :code:`out1`
+         - :code:`2`
+       * -
+         - ...
+         - ...
+         - ...
+       * - class node
+         - :code:`in1` if :math:`\dot{m}>0`
+         - :code:`out1` if :math:`\dot{m}>0`
+         - :code:`1`
+       * -
+         - ...
+         - ...
+         - ...
+
+    - All other components do not return any information as either there is no
+      change in state or the state change is accompanied by a change in fluid
+      composition.
+    - For class node the state change is from connections with incoming mass
+      flow connections with outgoing mass flow.
 
 Network reader
 ==============

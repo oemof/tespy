@@ -1,0 +1,52 @@
+v0.3.5 - Someversion (Somemonth, Someday, Someyear)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+
+Bug Fixes
+#########
+
+Other Changes
+#############
+.. list-table:: Adjust value limits for some component parameters
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - component
+     - parameter
+     - new value
+   * - heat_exchanger_simple
+     - :code:`zeta.max_val`
+     - 1e15
+   * -
+     - :code:`ks.max_val` (for Hazen-Williams equation)
+     - 200
+   * - valve
+     - :code:`zeta.max_val`
+     - 1e15
+
+- On some machines the coloring of the results printout does not work and
+  displaces the table in an ugly way. To avoid this, the coloring is changed to
+  optional (`PR #229 <https://github.com/oemof/tespy/pull/229>`_). Use the
+  following line for non-colored printouts:
+
+  .. code-block:: python
+
+      mynetwork.print_results(colored=False)
+
+- Add a flag to activate calculation of all component equations in every
+  iteration. This improves stability in some cases but reduces calculation
+  speed (`PR #228 <https://github.com/oemof/tespy/pull/228>`_). To activate
+  simply import the variable from the global variables at the start of your
+  script and change the value accordingly. The default value is :code:`False`.
+
+  .. code-block:: python
+
+      from tespy.tools.global_vars import always_all_equations
+      always_all_equations = True
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@jbueck <https://github.com/jbueck>`_

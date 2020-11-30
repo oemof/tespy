@@ -24,6 +24,7 @@ from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.global_vars import always_all_equations
 from tespy.tools.global_vars import err
 
 # %%
@@ -308,7 +309,8 @@ class valve(component):
     @staticmethod
     def attr():
         return {
-            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'pr': dc_cp(min_val=1e-4, max_val=1),
+            'zeta': dc_cp(min_val=0, max_val=1e15),
             'dp_char': dc_cc(param='m'),
             'Sirr': dc_simple()
         }
@@ -373,14 +375,16 @@ class valve(component):
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    always_all_equations):
                 self.residual[k] = self.dp_char_func()
             k += 1
 

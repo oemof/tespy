@@ -20,3 +20,5 @@ coloring = {
     'err': '\033[31m',
     'var': '\033[32m'
 }
+
+always_all_equations = False

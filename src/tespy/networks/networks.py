@@ -1895,9 +1895,9 @@ class network:
             # Let the matrix inversion be computed by the GPU if use_cuda in
             # global_vars.py is true.
             if self.use_cuda:
-                self.increment = cupy.asnumpy(cupy.dot(
-                    cupy.linalg.inv(cupy.asarray(self.jacobian)),
-                    -cupy.asarray(self.residual)))
+                self.increment = cu.asnumpy(cu.dot(
+                    cu.linalg.inv(cu.asarray(self.jacobian)),
+                    -cu.asarray(self.residual)))
             else:
                 self.increment = np.linalg.inv(
                     self.jacobian).dot(-self.residual)

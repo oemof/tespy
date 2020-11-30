@@ -198,10 +198,10 @@ class TestTurbomachinery:
         y = np.array([14, 13.5, 12.5, 11, 9, 6.5, 3.5, 0]) * 1e5
         char = dc_cc(func=char_line(x, y), is_set=True)
         # apply flow char and eta_s char
-        instance.set_attr(flow_char=char, eta_s=np.nan,
-                          eta_s_char=dc_cc(func=ldc('pump', 'eta_s_char',
-                                                    'DEFAULT', char_line),
-                                           is_set=True))
+        instance.set_attr(
+            flow_char=char, eta_s=np.nan, eta_s_char=dc_cc(
+                func=ldc('pump', 'eta_s_char', 'DEFAULT', char_line),
+                is_set=True))
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
 
@@ -230,8 +230,8 @@ class TestTurbomachinery:
 
         # test boundaries of characteristic line:
         # lower boundary
-        self.c2.set_attr(T=ref(self.c1, 0, 20))
-        self.c1.set_attr(v=-0.1)
+        instance.set_attr(eta_s=0.8)
+        self.c1.set_attr(m=0, v=None)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be ' + str(14e5) + ', is ' +
@@ -239,7 +239,7 @@ class TestTurbomachinery:
         assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 14e5, msg
 
         # upper boundary
-        self.c1.set_attr(v=1.5)
+        self.c1.set_attr(v=1.5, m=None)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of power must be 0, is ' +

@@ -2386,7 +2386,7 @@ class network:
             # saturated steam fraction
             if c.x.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0 or always_all_equations):
+                        self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = c.h.val_SI - (
                         fp.h_mix_pQ(flow, c.x.val_SI))
                 if not self.increment_filter[col + 1]:
@@ -2398,7 +2398,7 @@ class network:
             # volumetric flow
             if c.v.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0 or always_all_equations):
+                        self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = (
                         c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
                         c.m.val_SI)
@@ -2412,7 +2412,7 @@ class network:
             # temperature difference to boiling point
             if c.Td_bp.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0 or always_all_equations):
+                        self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = (
                         fp.T_mix_ph(flow, T0=c.T.val_SI) - c.Td_bp.val_SI -
                         fp.T_bp_p(flow))

@@ -2034,8 +2034,16 @@ class network:
                 hmin = fp.h_pT(
                     c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
 
-            hmax = fp.h_pT(
-                c.p.val_SI, fp.memorise.value_range[fl][3], fl)
+            T = fp.memorise.value_range[fl][3]
+            while True:
+                try:
+                    hmax = fp.h_pT(c.p.val_SI, T, fl)
+                    break
+                except ValueError as e:
+                    T *= 0.99
+                    if T < fp.memorise.value_range[fl][2]:
+                        raise ValueError(e)
+
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
                     c.h.val_SI = hmin * 0.9999

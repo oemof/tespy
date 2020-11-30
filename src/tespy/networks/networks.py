@@ -43,10 +43,12 @@ from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
-from tespy.tools.global_vars import use_cuda
+
 # Only require cupy if Cuda shall be used
-if use_cuda:
-    import cupy
+try:
+    import cupy as cu
+except ModuleNotFoundError:
+    cu = None
 
 
 class network:
@@ -1579,7 +1581,8 @@ class network:
         return df
 
     def solve(self, mode, init_path=None, design_path=None,
-              max_iter=50, min_iter=4, init_only=False, init_previous=True):
+              max_iter=50, min_iter=4, init_only=False, init_previous=True,
+              use_cuda=False, always_all_equations=True):
         r"""
         Solve the network.
 
@@ -1616,6 +1619,15 @@ class network:
             Initialise the calculation with values from the previous
             calculation, default: :code:`True`.
 
+        use_cuda : boolean
+            Use cuda instead of numpy for matrix inversion, default:
+            :code:`False`.
+
+        always_all_equations : boolean
+            Calculate all equations in every iteration. Disabling this flag,
+            will increase calculation speed, especially for mixtures, default:
+            :code:`True`.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -1642,6 +1654,14 @@ class network:
         self.min_iter = min_iter
         self.init_previous = init_previous
         self.iter = 0
+        self.use_cuda = use_cuda
+        self.always_all_equations = always_all_equations
+
+        if self.use_cuda and cu is None:
+            msg = ('Specifying use_cuda=True requires cupy to be installed on '
+                   'your machine. Numpy will be used instead.')
+            logging.warning(msg)
+            self.use_cuda = False
 
         if mode != 'offdesign' and mode != 'design':
             msg = 'Mode must be "design" or "offdesign".'
@@ -1866,7 +1886,7 @@ class network:
         try:
             # Let the matrix inversion be computed by the GPU if use_cuda in
             # global_vars.py is true.
-            if use_cuda:
+            if self.use_cuda:
                 self.increment = cupy.asnumpy(cupy.dot(
                     cupy.linalg.inv(cupy.asarray(self.jacobian)),
                     -cupy.asarray(self.residual)))
@@ -2366,7 +2386,7 @@ class network:
             # saturated steam fraction
             if c.x.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0):
+                        self.iter % 2 == 0 or always_all_equations):
                     self.residual[k] = c.h.val_SI - (
                         fp.h_mix_pQ(flow, c.x.val_SI))
                 if not self.increment_filter[col + 1]:
@@ -2378,7 +2398,7 @@ class network:
             # volumetric flow
             if c.v.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0):
+                        self.iter % 2 == 0 or always_all_equations):
                     self.residual[k] = (
                         c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
                         c.m.val_SI)
@@ -2392,7 +2412,7 @@ class network:
             # temperature difference to boiling point
             if c.Td_bp.val_set is True:
                 if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0):
+                        self.iter % 2 == 0 or always_all_equations):
                     self.residual[k] = (
                         fp.T_mix_ph(flow, T0=c.T.val_SI) - c.Td_bp.val_SI -
                         fp.T_bp_p(flow))

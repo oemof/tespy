@@ -20,6 +20,3 @@ coloring = {
     'err': '\033[31m',
     'var': '\033[32m'
 }
-
-# Note that when using Cuda the package cupy has to be installed.
-use_cuda = False

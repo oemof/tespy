@@ -692,10 +692,15 @@ class heat_exchanger_simple(component):
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
+        # For numerical stability: If one temperature difference is negative
+        # use mean difference to avoid negative logarithm otherwise use lmtd.
+
         ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
         ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
-        if ttd_1 > ttd_2:
+        if (ttd_1 / ttd_2) < 0:
+            td_log = (ttd_2 + ttd_1) / 2
+        elif ttd_1 > ttd_2:
             td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
         elif ttd_1 < ttd_2:
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
@@ -853,18 +858,17 @@ class heat_exchanger_simple(component):
             self.SQ2.val = -i[0] * (o[2] - i[2]) / self.Tamb.val_SI
             self.Sirr.val = self.SQ1.val + self.SQ2.val
 
-            if not self.kA.is_set:
-                ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-                ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+            ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
+            ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
-                if ttd_1 > ttd_2:
-                    td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
-                elif ttd_1 < ttd_2:
-                    td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
-                else:
-                    td_log = 0
+            if ttd_1 > ttd_2:
+                td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+            elif ttd_1 < ttd_2:
+                td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
+            else:
+                td_log = 0
 
-                self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
+            self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
 
         if self.kA.is_set:
             # get bound errors for kA characteristic line

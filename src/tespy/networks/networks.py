@@ -796,6 +796,12 @@ class network:
 
             # fluid vector specification
             tmp = c.fluid.val
+            for fluid in tmp.keys():
+                if fluid not in self.fluids:
+                    msg = ('Your connection ' + c.label + ' holds a fluid, '
+                           'that is not part of the networks\'s fluids (' +
+                           fluid + ').')
+                    raise hlp.TESPyNetworkError(msg)
             tmp0 = c.fluid.val0
             tmp_set = c.fluid.val_set
             c.fluid.val = OrderedDict()
@@ -1466,6 +1472,23 @@ class network:
 
                 self.init_precalc_properties(c)
 
+            # starting values for specified subcooling/overheating
+            # and state specification. These should be recalculated even with
+            # good starting values, for example, when one exchanges enthalpy
+            # with boiling point temperature difference.
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
+                    c.h.val_set is False):
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
+                        (c.state.val == 'g' and c.state.is_set is True)):
+                    h = fp.h_mix_pQ(c.to_flow(), 1)
+                    if c.h.val_SI < h:
+                        c.h.val_SI = h * 1.001
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
+                      (c.state.val == 'l' and c.state.is_set is True)):
+                    h = fp.h_mix_pQ(c.to_flow(), 0)
+                    if c.h.val_SI > h:
+                        c.h.val_SI = h * 0.999
+
         msg = 'Generic fluid property specification complete.'
         logging.debug(msg)
 
@@ -1510,21 +1533,6 @@ class network:
                 c.h.val_SI = fp.h_mix_pT(c.to_flow(), c.T.val_SI)
             except ValueError:
                 pass
-
-        # starting values for specified subcooling/overheating
-        # and state specification
-        if ((c.Td_bp.val_set is True or c.state.is_set is True) and
-                c.h.val_set is False):
-            if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                    (c.state.val == 'g' and c.state.is_set is True)):
-                h = fp.h_mix_pQ(c.to_flow(), 1)
-                if c.h.val_SI < h:
-                    c.h.val_SI = h * 1.001
-            elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                  (c.state.val == 'l' and c.state.is_set is True)):
-                h = fp.h_mix_pQ(c.to_flow(), 0)
-                if c.h.val_SI > h:
-                    c.h.val_SI = h * 0.999
 
     def init_val0(self, c, key):
         r"""

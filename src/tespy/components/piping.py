@@ -537,3 +537,26 @@ class valve(component):
         self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
 
         self.check_parameter_bounds()
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            1: {
+                'isoline_property': 'h',
+                'isoline_value': self.inl[0].h.val,
+                'isoline_value_end': self.outl[0].h.val,
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[0].vol.val
+            }
+        }

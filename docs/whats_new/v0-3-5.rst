@@ -3,7 +3,6 @@ v0.3.5 - Someversion (Somemonth, Someday, Someyear)
 
 New Features
 ############
-
 - Add a method :code:`get_plotting_data` to each component to export the input
   data required by FluProDia in order to generate the data required to display
   state changes in the components in a fluid property diagram. Each component

@@ -28,7 +28,6 @@ from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.global_vars import always_all_equations
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
@@ -411,14 +410,14 @@ class water_electrolyzer(component):
         ######################################################################
         # equation for energy balance
         if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                always_all_equations):
+                self.nw.always_all_equations):
             self.residual[k] = self.P.val + self.energy_balance()
         k += 1
 
         ######################################################################
         # temperature electrolyzer outlet
         if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                always_all_equations):
+                self.nw.always_all_equations):
             self.residual[k] = (
                 T_mix_ph(self.outl[1].to_flow()) -
                 T_mix_ph(self.outl[2].to_flow()))
@@ -441,7 +440,7 @@ class water_electrolyzer(component):
         # specified zeta value
         if self.zeta.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    always_all_equations):
+                    self.nw.always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 

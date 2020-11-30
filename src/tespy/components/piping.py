@@ -24,7 +24,6 @@ from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.global_vars import always_all_equations
 from tespy.tools.global_vars import err
 
 # %%
@@ -376,7 +375,7 @@ class valve(component):
         # eqation specified zeta
         if self.zeta.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    always_all_equations):
+                    self.nw.always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 
@@ -384,7 +383,7 @@ class valve(component):
         # equation for specified difference pressure char
         if self.dp_char.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    always_all_equations):
+                    self.nw.always_all_equations):
                 self.residual[k] = self.dp_char_func()
             k += 1
 

@@ -161,7 +161,7 @@ class turbomachine(component):
         ######################################################################
         # eqations for fluids
         if (any(np.absolute(self.residual[k:self.num_nw_fluids])) > err ** 2 or
-                self.it % 4 == 0 or self.nw.always_all_equations):
+                self.it % 4 == 0 or self.always_all_equations):
             self.residual[k:self.num_nw_fluids] = self.fluid_func()
         k += self.num_nw_fluids
 
@@ -516,7 +516,7 @@ class compressor(turbomachine):
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_func()
             k += 1
 
@@ -524,7 +524,7 @@ class compressor(turbomachine):
         # equation for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_char_func()
             k += 1
 
@@ -532,7 +532,7 @@ class compressor(turbomachine):
         # equations for specified characteristic map
         if self.char_map.is_set:
             if (any(np.absolute(self.residual[k:k + 2])) > err ** 2 or
-                    self.it % 4 == 0 or self.nw.always_all_equations):
+                    self.it % 4 == 0 or self.always_all_equations):
                 self.residual[k:k + 2] = self.char_map_func()
             k += 2
 
@@ -1020,7 +1020,7 @@ class pump(turbomachine):
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_func()
             k += 1
 
@@ -1028,7 +1028,7 @@ class pump(turbomachine):
         # equations for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_char_func()
             k += 1
 
@@ -1036,7 +1036,7 @@ class pump(turbomachine):
         # equations for specified pressure rise vs. flowrate characteristics
         if self.flow_char.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.flow_char_func()
             k += 1
 
@@ -1457,7 +1457,7 @@ class turbine(turbomachine):
         # eqations for specified isentropic efficiency
         if self.eta_s.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_func()
             k += 1
 
@@ -1465,7 +1465,7 @@ class turbine(turbomachine):
         # derivatives for specified isentropic efficiency characteristics
         if self.eta_s_char.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.eta_s_char_func()
             k += 1
 
@@ -1473,7 +1473,7 @@ class turbine(turbomachine):
         # equation for specified cone law
         if self.cone.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.cone_func()
             k += 1
 

@@ -410,14 +410,14 @@ class water_electrolyzer(component):
         ######################################################################
         # equation for energy balance
         if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.nw.always_all_equations):
+                self.always_all_equations):
             self.residual[k] = self.P.val + self.energy_balance()
         k += 1
 
         ######################################################################
         # temperature electrolyzer outlet
         if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.nw.always_all_equations):
+                self.always_all_equations):
             self.residual[k] = (
                 T_mix_ph(self.outl[1].to_flow()) -
                 T_mix_ph(self.outl[2].to_flow()))
@@ -440,7 +440,7 @@ class water_electrolyzer(component):
         # specified zeta value
         if self.zeta.is_set:
             if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.nw.always_all_equations):
+                    self.always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 

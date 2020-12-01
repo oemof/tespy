@@ -1769,11 +1769,11 @@ def calc_physical_exergy(conn, pamb, Tamb):
     e_ph : float
         Specific physical exergy e_ph / (J/kg).
 
-    .. math::
+        .. math::
 
-        e_\mathrm{ph} = \left( h - h \left( p_\mathrm{amb}, T_\mathrm{amb}
-        \right) \right) - T_\mathrm{amb} \cdot \left(s -
-        s\left(p_\mathrm{amb}, T_\mathrm{amb}\right)\right)
+            e_\mathrm{ph} = \left( h - h \left( p_\mathrm{amb}, T_\mathrm{amb}
+            \right) \right) - T_\mathrm{amb} \cdot \left(s -
+            s\left(p_\mathrm{amb}, T_\mathrm{amb}\right)\right)
     """
     hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
     samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)

@@ -273,7 +273,8 @@ class component:
                     logging.error(msg)
                     raise ValueError(msg)
 
-            elif key in ['local_design', 'local_offdesign', 'printout']:
+            elif key in ['local_design', 'local_offdesign',
+                         'printout', 'char_warnings']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
                         'Please provide the parameter ' + key + ' as boolean '

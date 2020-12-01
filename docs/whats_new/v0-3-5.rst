@@ -58,8 +58,14 @@ New Features
 
       mynetwork.solve('design', use_cuda=True)
 
-  For more information on :code:`cupy` visit the online 
+  For more information on :code:`cupy` visit the online
   `documentation <https://docs.cupy.dev/en/stable/index.html>`_.
+
+  .. note::
+
+      In general, calculation time depends on many factors of your local
+      machine. You should try and check, if using cuda or disabling always all
+      equations benefits your calculation times individually.
 
 Documentation
 #############

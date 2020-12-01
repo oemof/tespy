@@ -195,8 +195,8 @@ def load_network(path):
 
     The total power output is set to 1 MW, electrical or mechanical
     efficiencies are not considered in this example. The documentation
-    example in class :func:`tespy.connections.bus` provides more information
-    on efficiencies of generators, for instance.
+    example in class :py:class:`tespy.connections.bus` provides more
+    information on efficiencies of generators, for instance.
 
     >>> inc.set_attr(m=np.nan)
     >>> power.set_attr(P=-1e6)

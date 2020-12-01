@@ -980,9 +980,9 @@ class network:
         Note
         ----
         The methods
-        :func:`tespy.networks.networks.network.init_comp_design_params`
+        :py:meth:`tespy.networks.networks.network.init_comp_design_params`
         (components) and the
-        :func:`tespy.networks.networks.network.init_conn_design_params`
+        :py:meth:`tespy.networks.networks.network.init_conn_design_params`
         (connections) handle the parameter specification.
         """
         # components without any parameters

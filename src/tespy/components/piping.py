@@ -4,8 +4,8 @@
 
 Components in this module:
 
-- :func:`tespy.components.piping.pipe`
-- :func:`tespy.components.piping.valve`
+- :py:class:`tespy.components.piping.pipe`
+- :py:class:`tespy.components.piping.valve`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -37,8 +37,8 @@ class pipe(heat_exchanger_simple):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -49,14 +49,14 @@ class pipe(heat_exchanger_simple):
 
             0 = p_{in} \cdot pr - p_{out}
 
-        - :func:`tespy.components.components.component.zeta_func`
+        - :py:meth:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
 
     Inlets/Outlets
 
@@ -190,8 +190,8 @@ class valve(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -203,9 +203,9 @@ class valve(component):
 
             0 = p_{in} \cdot pr - p_{out}
 
-        - :func:`tespy.components.components.component.zeta_func`
+        - :py:meth:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.piping.valve.dp_char_func`
+        - :py:meth:`tespy.components.piping.valve.dp_char_func`
 
 
     Inlets/Outlets

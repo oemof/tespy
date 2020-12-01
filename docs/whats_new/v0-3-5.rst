@@ -63,6 +63,8 @@ New Features
 
 Documentation
 #############
+- Fix several broken links and typos
+  (`PR #236 <https://github.com/oemof/tespy/pull/236>`_).
 
 Bug Fixes
 #########
@@ -111,6 +113,54 @@ Other Changes
   temperature difference between ambient and inlet and outlet temperature, if
   the terminal temperature differences do not have the same sign
   (`PR #225 <https://github.com/oemof/tespy/pull/225>`_).
+
+- Add a :code:`__repr__` methods for connections and components for fast access
+  to all numerical connection and component parameters via :code:`print()`.
+
+  .. code-block:: python
+
+      # [...]
+      chp = combustion_engine('my combustion engine')
+      chp_fg = connection(...)
+      # [...]
+      print(chp)
+      print(chp_fg)
+
+  The printout could look something like this:
+
+  .. code-block:: bash
+
+      Component: my combustion engine
+      [class]    combustion_engine
+      [data]     lamb: 1.000e+00
+                 ti: 2.530e+04
+                 P: 1.000e+04
+                 Q1: 4.980e+03
+                 Q2: 3.740e+03
+                 Qloss: 2.150e+03
+                 pr1: 9.900e-01
+                 pr2: 9.900e-01
+                 zeta1: 1.456e+03
+                 zeta2: 1.447e+03
+
+  .. code-block:: bash
+
+       Connection: my combustion engine:out3_flue gas outlet:in1
+       [fluid]     Ar: 1.219e-02
+                   CH4: 0.000e+00
+                   CO2: 1.508e-01
+                   H2O: 1.231e-01
+                   N2: 7.139e-01
+                   O2: 0.000e+00
+       [data]      m: 9.228e-03 kg / s
+                   p: 5.000e+00 bar
+                   h: 1.106e+06 J / kg
+                   T: 4.501e+02 C
+                   x: 0.000e+00 -
+                   v: 4.004e-03 m3 / s
+                   vol: 4.339e-01 m3 / kg
+                   s: 7.233e+03 J / kgK
+                   Td_bp: nan C
 
 Contributors
 ############

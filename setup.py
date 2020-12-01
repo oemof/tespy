@@ -70,6 +70,8 @@ setup(
         'scipy>=0.19.1,<2',
         'tabulate>=0.8.2,<0.9'
     ],
-    extras_require={'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme', ],
-                    'dummy': ['tespy']}
+    extras_require={
+        'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',
+                'sphinxcontrib.bibtex', ],
+        'dummy': ['tespy']}
 )

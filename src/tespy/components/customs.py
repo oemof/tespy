@@ -4,7 +4,7 @@
 
 Components in this module:
 
-- :func:`tespy.components.customs.orc_evaporator`
+- :py:class:`tespy.components.customs.orc_evaporator`
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -41,10 +41,10 @@ class orc_evaporator(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.customs.orc_evaporator.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.customs.orc_evaporator.mass_flow_func`
 
-        - :func:`tespy.components.customs.orc_evaporator.energy_func`
+        - :py:meth:`tespy.components.customs.orc_evaporator.energy_func`
 
         .. math::
 
@@ -52,9 +52,9 @@ class orc_evaporator(component):
             0 = p_{2,in} \cdot pr2 - p_{2,out}\\
             0 = p_{3,in} \cdot pr3 - p_{3,out}
 
-        - hot side steam :func:`tespy.components.components.component.zeta_func`
-        - hot side brine :func:`tespy.components.components.component.zeta_func`
-        - worling fluid :func:`tespy.components.components.component.zeta_func`
+        - hot side steam :py:meth:`tespy.components.components.component.zeta_func`
+        - hot side brine :py:meth:`tespy.components.components.component.zeta_func`
+        - worling fluid :py:meth:`tespy.components.components.component.zeta_func`
 
         **mandatory equations at outlet of the steam
         from geothermal heat source side**

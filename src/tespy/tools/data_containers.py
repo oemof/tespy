@@ -33,12 +33,17 @@ class data_container:
 
     Note
     ----
-    The initialisation method (__init__), setter method (set_attr) and getter
-    method (get_attr) are used for instances of class data_container and its
-    children. TESPy uses different data_containers for specific tasks:
-    Component characteristics (dc_cc), component maps (dc_cm), component
-    properties (dc_cp), grouped component properites (dc_gcp), fluid
-    composition (dc_flu), fluid properties (dc_prop).
+    The initialisation method (:code:`__init__`), setter method
+    (:code:`set_attr`) and getter method (:code:`get_attr`) are used for
+    instances of class data_container and its children. TESPy uses different
+    :code:`data_containers` for specific objectives:
+
+    - component characteristics :py:class:`tespy.tools.data_containers.dc_cc`
+    - component maps :py:class:`tespy.tools.data_containers.dc_cm`
+    - component properties :py:class:`tespy.tools.data_containers.dc_cp`
+    - grouped component properites :py:class:`tespy.tools.data_containers.dc_gcp`
+    - fluid composition :py:class:`tespy.tools.data_containers.dc_flu`
+    - fluid properties :py:class:`tespy.tools.data_containers.dc_prop`
 
     Grouped component properties are used, if more than one component property
     has to be specified in order to apply one equation, e.g. pressure drop in
@@ -377,10 +382,6 @@ class dc_prop(data_container):
     unit : boolean
         Has the unit for this property been specified manually by the user?
         default: unit_set=False.
-
-    Example
-    -------
-    See :func:`tespy.tools.data_containers.data_container`
     """
 
     @staticmethod

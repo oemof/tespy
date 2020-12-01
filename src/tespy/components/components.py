@@ -122,6 +122,23 @@ class component:
         self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
+    def __repr__(self):
+        info = (
+            'Component: ' + self.label + '\n' +
+            '[class]' + 4 * ' ' + self.__class__.__name__ + '\n' +
+            '[data]' + 5 * ' ')
+        count = 0
+        for param, data in self.variables.items():
+            if isinstance(data, dc_cp):
+                line = f"{param}: {data.val:.3e}"
+                if count == 0:
+                    info += line
+                else:
+                    info += '\n' + 11 * ' ' + line
+                count += 1
+
+        return info
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.

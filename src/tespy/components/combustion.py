@@ -1992,7 +1992,7 @@ class combustion_engine(combustion_chamber):
         **optional equations**
 
         - :func:`tespy.components.combustion.combustion_chamber.lambda_func`
-        - :func:`tespy.components.combustion.combustion_engine.ti_func`
+        - :func:`tespy.components.combustion.combustion_chamber.ti_func`
         - :func:`tespy.components.combustion.combustion_engine.Q1_func`
         - :func:`tespy.components.combustion.combustion_engine.Q2_func`
 

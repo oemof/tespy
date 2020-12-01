@@ -4,7 +4,7 @@
 
 Components in this module:
 
-- :func:`tespy.components.reactors.water_electrolyzer`
+- :py:class:`tespy.components.reactors.water_electrolyzer`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -76,7 +76,7 @@ class water_electrolyzer(component):
 
         Energy balance equation
 
-        :func:`tespy.components.reactors.water_electrolyzer.energy_balance`.
+        :py:meth:`tespy.components.reactors.water_electrolyzer.energy_balance`.
 
         .. math::
 
@@ -90,7 +90,7 @@ class water_electrolyzer(component):
 
             0 = p_{H_{2}O,in1} \cdot pr - p_{H_{2}O,out1}
 
-        - :func:`tespy.components.components.component.zeta_func`
+        - :py:meth:`tespy.components.components.component.zeta_func`
 
         .. math::
 
@@ -99,7 +99,7 @@ class water_electrolyzer(component):
 
             0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
-        - :func:`tespy.components.reactors.water_electrolyzer.eta_char_func`
+        - :py:meth:`tespy.components.reactors.water_electrolyzer.eta_char_func`
 
     Inlets/Outlets
 
@@ -845,7 +845,7 @@ class water_electrolyzer(component):
         The temperature for the reference state is set to 20 °C, thus
         the feed water must be liquid as proposed in the calculation of
         the minimum specific energy consumption for electrolysis:
-        :func:`tespy.components.reactors.water_electrolyzer.calc_e0`.
+        :py:meth:`tespy.components.reactors.water_electrolyzer.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.

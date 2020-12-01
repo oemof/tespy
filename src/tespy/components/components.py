@@ -162,7 +162,7 @@ class component:
         ----
         Allowed keywords in kwargs are obtained from class documentation as all
         components share the
-        :func:`tespy.components.components.component.set_attr` method.
+        :py:meth:`tespy.components.components.component.set_attr` method.
         """
         # set specified values
         for key in kwargs:

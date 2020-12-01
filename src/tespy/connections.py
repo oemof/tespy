@@ -2,11 +2,11 @@
 
 """Module for connections between components.
 
-Components in this module:
+Class definitions in this module:
 
-    - :func:`tespy.connections.connection` (mass flow)
-    - :func:`tespy.connections.bus` (energy flow)
-    - :func:`tespy.connections.ref` (referenced fluid states container)
+- :py:class:`tespy.connections.connection` (mass flow)
+- :py:class:`tespy.connections.bus` (energy flow)
+- :py:class:`tespy.connections.ref` (referenced fluid states container)
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -636,16 +636,16 @@ class bus:
 
     printout : bool
         Print the results of this bus to prompt with the
-        :func:`tespy.networks.networks.network.print_results` method. Standard
-        value is :code:`True`.
+        :py:meth:`tespy.networks.networks.network.print_results` method.
+        Standard value is :code:`True`.
 
     Example
     -------
     Busses are used to connect energy flow of different components. They can
     also be used to introduce efficiencies of energy conversion, e.g. in
     motors, generator or boilers. This example takes the combustion engine
-    example at :func:`tespy.components.combustion.combustion_engine` and adds
-    a flue gas cooler and a circulation pump for the cooling water. Then
+    example at :py:class:`tespy.components.combustion.combustion_engine` and
+    adds a flue gas cooler and a circulation pump for the cooling water. Then
     busses for heat output, thermal input and electricity output are
     implemented.
 
@@ -808,7 +808,7 @@ class bus:
 
         printout : bool
             Print the results of this bus to prompt with the
-            :func:`tespy.networks.networks.network.print_results` method.
+            :py:meth:`tespy.networks.networks.network.print_results` method.
             Standard value is :code:`True`.
 
         Note

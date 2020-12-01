@@ -382,10 +382,6 @@ class dc_prop(data_container):
     unit : boolean
         Has the unit for this property been specified manually by the user?
         default: unit_set=False.
-
-    Example
-    -------
-    See :func:`tespy.tools.data_containers.data_container`
     """
 
     @staticmethod

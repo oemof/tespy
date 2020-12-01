@@ -4,12 +4,12 @@
 
 Components in this module:
 
-- :func:`tespy.components.nodes.droplet_separator`
-- :func:`tespy.components.nodes.drum`
-- :func:`tespy.components.nodes.node`
-- :func:`tespy.components.nodes.merge`
-- :func:`tespy.components.nodes.splitter`
-- :func:`tespy.components.nodes.separator`
+- :py:class:`tespy.components.nodes.droplet_separator`
+- :py:class:`tespy.components.nodes.drum`
+- :py:class:`tespy.components.nodes.node`
+- :py:class:`tespy.components.nodes.merge`
+- :py:class:`tespy.components.nodes.splitter`
+- :py:class:`tespy.components.nodes.separator`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -44,7 +44,7 @@ class node(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -53,9 +53,9 @@ class node(component):
 
         **additional equations**
 
-        - :func:`tespy.components.nodes.splitter.additional_equations`
-        - :func:`tespy.components.nodes.separator.additional_equations`
-        - :func:`tespy.components.nodes.merge.additional_equations`
+        - :py:meth:`tespy.components.nodes.splitter.additional_equations`
+        - :py:meth:`tespy.components.nodes.separator.additional_equations`
+        - :py:meth:`tespy.components.nodes.merge.additional_equations`
 
     Inlets/Outlets
 
@@ -492,8 +492,8 @@ class droplet_separator(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.nodes.droplet_separator.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.nodes.droplet_separator.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -872,8 +872,8 @@ class drum(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.nodes.drum.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.nodes.drum.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -1272,7 +1272,7 @@ class merge(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -1281,7 +1281,7 @@ class merge(node):
 
         **additional equations**
 
-        - :func:`tespy.components.basics.merge.additional_equations`
+        - :py:meth:`tespy.components.basics.merge.additional_equations`
 
     Inlets/Outlets
 
@@ -1514,7 +1514,7 @@ class separator(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -1523,7 +1523,7 @@ class separator(node):
 
         **additional equations**
 
-        - :func:`tespy.components.nodes.separator.additional_equations`
+        - :py:meth:`tespy.components.nodes.separator.additional_equations`
 
     Inlets/Outlets
 
@@ -1757,7 +1757,7 @@ class splitter(node):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
@@ -1766,7 +1766,7 @@ class splitter(node):
 
         **additional equations**
 
-        - :func:`tespy.components.nodes.splitter.additional_equations`
+        - :py:meth:`tespy.components.nodes.splitter.additional_equations`
 
     Inlets/Outlets
 

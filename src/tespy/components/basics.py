@@ -4,10 +4,10 @@
 
 Components in this module:
 
-- :func:`tespy.components.basics.source`
-- :func:`tespy.components.basics.sink`
-- :func:`tespy.components.basics.subsystem_interface`
-- :func:`tespy.components.basics.cycle_closer`
+- :py:class:`tespy.components.basics.source`
+- :py:class:`tespy.components.basics.sink`
+- :py:class:`tespy.components.basics.subsystem_interface`
+- :py:class:`tespy.components.basics.cycle_closer`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

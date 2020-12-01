@@ -4,9 +4,9 @@
 
 Components in this module:
 
-- :func:`tespy.components.combustion.combustion_chamber`
-- :func:`tespy.components.combustion.combustion_chamber_stoich`
-- :func:`tespy.components.combustion.combustion_engine`
+- :py:class:`tespy.components.combustion.combustion_chamber`
+- :py:class:`tespy.components.combustion.combustion_chamber_stoich`
+- :py:class:`tespy.components.combustion.combustion_engine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -49,20 +49,20 @@ class combustion_chamber(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber.reaction_balance`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.reaction_balance`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`tespy.components.combustion.combustion_chamber.energy_balance`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber.lambda_func`
-        - :func:`tespy.components.combustion.combustion_chamber.ti_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.lambda_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.ti_func`
 
     Available fuels
 
@@ -728,7 +728,7 @@ class combustion_chamber(component):
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
         chamber uses a different reference, you will find it in the
-        :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
+        :py:meth:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
         documentation.
 
         - Reference temperature: 293.15 K.
@@ -1144,20 +1144,20 @@ class combustion_chamber_stoich(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber_stoich.reaction_balance`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.reaction_balance`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         .. math::
 
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
+        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber_stoich.lambda_func`
-        - :func:`tespy.components.combustion.combustion_chamber_stoich.ti_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.lambda_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.ti_func`
 
     Available fuels
 
@@ -1260,7 +1260,7 @@ class combustion_chamber_stoich(combustion_chamber):
     comes from a strong improvement in terms of calculation speed.
     This example will show the same calculation as presented in the combustion
     chamber example
-    (see :func:`tespy.components.combustion.combustion_chamber`).
+    (see :py:meth:`tespy.components.combustion.combustion_chamber`).
 
     >>> from tespy.components import sink, source, combustion_chamber_stoich
     >>> from tespy.connections import connection
@@ -1977,32 +1977,32 @@ class combustion_engine(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber.reaction_balance`
-        - :func:`tespy.components.combustion.combustion_engine.fluid_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.reaction_balance`
+        - :py:meth:`tespy.components.combustion.combustion_engine.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.combustion.combustion_engine.mass_flow_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :func:`tespy.components.combustion.combustion_engine.energy_balance`
+        - :py:meth:`tespy.components.combustion.combustion_engine.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.combustion.combustion_chamber.lambda_func`
-        - :func:`tespy.components.combustion.combustion_chamber.ti_func`
-        - :func:`tespy.components.combustion.combustion_engine.Q1_func`
-        - :func:`tespy.components.combustion.combustion_engine.Q2_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.lambda_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.ti_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.Q1_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.Q2_func`
 
         .. math::
 
             0 = p_{1,in} \cdot pr1 - p_{1,out}\\
             0 = p_{2,in} \cdot pr2 - p_{2,out}
 
-        - loop 1 :func:`tespy.components.components.component.zeta_func`
-        - loop 2 :func:`tespy.components.components.component.zeta_func`
+        - loop 1 :py:meth:`tespy.components.components.component.zeta_func`
+        - loop 2 :py:meth:`tespy.components.components.component.zeta_func`
 
     Available fuels
 

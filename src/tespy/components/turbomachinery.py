@@ -4,10 +4,10 @@
 
 Components in this module:
 
-- :func:`tespy.components.turbomachinery.compressor`
-- :func:`tespy.components.turbomachinery.pump`
-- :func:`tespy.components.turbomachinery.turbine`
-- :func:`tespy.components.turbomachinery.turbomachine`
+- :py:class:`tespy.components.turbomachinery.compressor`
+- :py:class:`tespy.components.turbomachinery.pump`
+- :py:class:`tespy.components.turbomachinery.turbine`
+- :py:class:`tespy.components.turbomachinery.turbomachine`
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -49,8 +49,8 @@ class turbomachine(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -61,15 +61,15 @@ class turbomachine(component):
 
         isentropic efficiency equations (optional)
 
-        - :func:`tespy.components.turbomachinery.pump.eta_s_func`
-        - :func:`tespy.components.turbomachinery.compressor.eta_s_func`
-        - :func:`tespy.components.turbomachinery.turbine.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.pump.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_func`
 
         **additional equations**
 
-        - :func:`tespy.components.turbomachinery.pump.additional_equations`
-        - :func:`tespy.components.turbomachinery.compressor.additional_equations`
-        - :func:`tespy.components.turbomachinery.turbine.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.pump.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.compressor.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.turbine.additional_equations`
 
     Inlets/Outlets
 
@@ -352,8 +352,8 @@ class compressor(turbomachine):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -364,7 +364,7 @@ class compressor(turbomachine):
 
         **additional equations**
 
-        - :func:`tespy.components.turbomachinery.compressor.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.compressor.additional_equations`
 
     Inlets/Outlets
 
@@ -531,9 +531,9 @@ class compressor(turbomachine):
 
             **optional equations**
 
-            - :func:`tespy.components.turbomachinery.compressor.eta_s_func`
-            - :func:`tespy.components.turbomachinery.compressor.eta_s_char_func`
-            - :func:`tespy.components.turbomachinery.compressor.char_map_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.char_map_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -863,8 +863,8 @@ class pump(turbomachine):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -875,7 +875,7 @@ class pump(turbomachine):
 
         **additional equations**
 
-        - :func:`tespy.components.turbomachinery.pump.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.pump.additional_equations`
 
     Inlets/Outlets
 
@@ -1033,9 +1033,9 @@ class pump(turbomachine):
 
             **optional equations**
 
-            - :func:`tespy.components.turbomachinery.pump.eta_s_func`
-            - :func:`tespy.components.turbomachinery.pump.eta_s_char_func`
-            - :func:`tespy.components.turbomachinery.pump.flow_char_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.eta_s_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.flow_char_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -1303,8 +1303,8 @@ class turbine(turbomachine):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.component.fluid_func`
-        - :func:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.components.component.fluid_func`
+        - :py:meth:`tespy.components.components.component.mass_flow_func`
 
         **optional equations**
 
@@ -1313,11 +1313,11 @@ class turbine(turbomachine):
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
             0 = pr \cdot p_{in} - p_{out}
 
-        - :func:`tespy.components.turbomachinery.turbine.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_func`
 
         **additional equations**
 
-        - :func:`tespy.components.turbomachinery.turbine.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.turbine.additional_equations`
 
     Inlets/Outlets
 
@@ -1468,8 +1468,8 @@ class turbine(turbomachine):
 
             **optional equations**
 
-            - :func:`tespy.components.turbomachinery.turbine.eta_s_char_func`
-            - :func:`tespy.components.turbomachinery.turbine.cone_func`
+            - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.turbine.cone_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency

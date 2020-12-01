@@ -1281,7 +1281,7 @@ class merge(node):
 
         **additional equations**
 
-        - :func:`tespy.components.components.merge.additional_equations`
+        - :func:`tespy.components.basics.merge.additional_equations`
 
     Inlets/Outlets
 

@@ -1977,7 +1977,7 @@ class combustion_engine(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.combustion.combustion_engine.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_chamber.reaction_balance`
         - :func:`tespy.components.combustion.combustion_engine.fluid_func`
           (for cooling water)
         - :func:`tespy.components.combustion.combustion_engine.mass_flow_func`
@@ -1991,7 +1991,7 @@ class combustion_engine(combustion_chamber):
 
         **optional equations**
 
-        - :func:`tespy.components.combustion.combustion_engine.lambda_func`
+        - :func:`tespy.components.combustion.combustion_chamber.lambda_func`
         - :func:`tespy.components.combustion.combustion_engine.ti_func`
         - :func:`tespy.components.combustion.combustion_engine.Q1_func`
         - :func:`tespy.components.combustion.combustion_engine.Q2_func`

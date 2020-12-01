@@ -684,7 +684,7 @@ class heat_exchanger_simple(component):
         Note
         ----
         For standard function of f\ :subscript:`1` \ see module
-        :func:`tespy.data`.
+        :py:mod:`tespy.data`.
         """
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
@@ -2178,7 +2178,7 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :func:`tespy.data`.
+        module :py:mod:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
@@ -2231,7 +2231,7 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :func:`tespy.data`.
+        module :py:mod:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
@@ -2540,7 +2540,7 @@ class condenser(heat_exchanger):
 
         - :func:`tespy.components.components.component.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
-        - :func:`tespy.components.heat_exchangers.condenser.energy_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
 
@@ -2864,7 +2864,7 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :func:`tespy.data`.
+        module :py:mod:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are physically

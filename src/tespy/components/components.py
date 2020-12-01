@@ -342,6 +342,7 @@ class component:
         """
         self.num_nw_fluids = len(nw.fluids)
         self.nw_fluids = nw.fluids
+        self.always_all_equations = nw.always_all_equations
         self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
         self.residual = []

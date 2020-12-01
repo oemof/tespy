@@ -374,14 +374,16 @@ class valve(component):
         ######################################################################
         # eqation specified zeta
         if self.zeta.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    self.always_all_equations):
                 self.residual[k] = self.zeta_func(zeta='zeta')
             k += 1
 
         ######################################################################
         # equation for specified difference pressure char
         if self.dp_char.is_set:
-            if np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0:
+            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
+                    self.always_all_equations):
                 self.residual[k] = self.dp_char_func()
             k += 1
 

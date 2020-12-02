@@ -104,13 +104,6 @@ If you want to specify the fluid vector you can do it in the following way.
 
     References can not be used for fluid composition at the moment!
 
-For a quick overview of the most important connection properties you can simply
-print your connection, e.g.:
-
-.. code-block:: python
-
-      print(myconn)
-
 You may want to access the network's connections other than using the variable
 names, for example in an imported network or connections from a subsystem. It
 is possible to access these using the connection's label. By default, the label

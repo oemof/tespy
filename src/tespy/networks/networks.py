@@ -2853,17 +2853,7 @@ class network:
             # attributes
             for col, data in df.index[0].variables.items():
                 # component characteristics container
-                if isinstance(data, dc.dc_cc):
-                    df[col] = df.apply(
-                        f, axis=1, args=(col, 'func')).astype(str)
-                    df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
-                    df[col + '_set'] = df.apply(
-                        f, axis=1, args=(col, 'is_set'))
-                    df[col + '_param'] = df.apply(
-                        f, axis=1, args=(col, 'param'))
-
-                # component characteristic map container
-                elif isinstance(data, dc.dc_cm):
+                if isinstance(data, dc.dc_cc) or isinstance(data, dc.dc_cm):
                     df[col] = df.apply(
                         f, axis=1, args=(col, 'func')).astype(str)
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
@@ -2931,25 +2921,28 @@ class network:
         df_comps = self.comps.copy()
 
         # characteristic lines in components
-        chars = []
+        char_lines = []
+        char_maps = []
         for c in df_comps['comp_type'].unique():
             df = df_comps[df_comps['comp_type'] == c]
 
             for col, data in df.index[0].variables.items():
                 if isinstance(data, dc.dc_cc):
-                    chars += df.apply(
-                        network.get_props, axis=1, args=(col, 'func')).tolist()
+                    char_lines += [data.func]
+                elif isinstance(data, dc.dc_cm):
+                    char_maps += [data.func]
 
         # characteristic lines in busses
         for bus in self.busses.values():
             for c in bus.comps.index:
                 ch = bus.comps.loc[c, 'char']
-                if ch not in chars:
-                    chars += [ch]
+                if ch not in char_lines:
+                    char_lines += [ch]
 
-        if len(chars) > 0:
+        # characteristic line export
+        if len(char_lines) > 0:
             # get id and data
-            df = pd.DataFrame({'id': chars}, index=chars)
+            df = pd.DataFrame({'id': char_lines}, index=char_lines)
             df['id'] = df.apply(network.get_id, axis=1)
             df['type'] = df.apply(network.get_class_base, axis=1)
 
@@ -2963,19 +2956,9 @@ class network:
             logging.debug(
                 'Characteristic line information saved to ' + fn + '.')
 
-        # characteristic maps in components
-        chars = []
-        for c in df_comps['comp_type'].unique():
-            df = df_comps[df_comps['comp_type'] == c]
-
-            for col, data in df.index[0].variables.items():
-                if isinstance(data, dc.dc_cm):
-                    chars += df.apply(network.get_props, axis=1,
-                                      args=(col, 'func')).tolist()
-
-        if len(chars) > 0:
+        if len(char_maps) > 0:
             # get id and data
-            df = pd.DataFrame({'id': chars}, index=chars)
+            df = pd.DataFrame({'id': char_maps}, index=char_maps)
             df['id'] = df.apply(network.get_id, axis=1)
             df['type'] = df.apply(network.get_class_base, axis=1)
 

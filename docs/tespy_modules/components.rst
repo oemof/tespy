@@ -90,16 +90,6 @@ evaporator and how to unset the parameter again.
     he.set_attr(kA=None)
     he.kA.set_attr(is_set=False)
 
-For a quick printout of all numeric component parameters (e.g. power, heat,
-pressure ration, ...) simply use the following line. Note, that the parameters
-are at default value, if no calculation was performed and no other value was
-specified. The values are SI-values.
-
-.. code-block:: python
-
-    print(he)
-
-
 Grouped parameters
 ^^^^^^^^^^^^^^^^^^
 

@@ -283,32 +283,6 @@ class connection:
             ') -> ' + self.target.label + ' (' + self.target_id + ').')
         logging.debug(msg)
 
-    def __repr__(self):
-        info = (
-            'Connection: ' + self.label + '\n' +
-            '[fluid]' + 5 * ' ')
-        count = 0
-        for fluid, mass_fraction in self.fluid.val.items():
-            line = f"{fluid}: {mass_fraction:.3e}"
-            if count == 0:
-                info += line
-            else:
-                info += '\n' + 12 * ' ' + line
-            count += 1
-        info += '\n[data]' + 6 * ' '
-        count = 0
-        for param, data in self.variables.items():
-            if isinstance(data, dc_prop):
-                line = f"{param}: {data.val:.3e} "
-                line += data.unit
-                if count == 0:
-                    info += line
-                else:
-                    info += '\n' + 12 * ' ' + line
-                count += 1
-
-        return info
-
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a connection.

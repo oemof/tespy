@@ -1,4 +1,4 @@
-Components
+tespy.components.component.CComponents
 ==========
 
 In this section we will introduce you into the details of component
@@ -323,7 +323,7 @@ Custom components
 -----------------
 
 You can add own components. The class should inherit from the
-:py:class:`component <tespy.components.components.component>` class or its
+:py:class:`component <tespy.components.component.Component>` class or its
 children. In order to do that, use the
 :py:mod:`customs <tespy.components.customs>` module or create a
 python file in your working directory and import the base class for your

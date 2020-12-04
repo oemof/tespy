@@ -20,13 +20,13 @@ from tespy.components import Source
 from tespy.components import Turbine
 from tespy.components.turbomachinery.turbomachine import Turbomachine
 from tespy.connections import Connection
-from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cm
+from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import s_mix_ph
 
 
@@ -62,8 +62,9 @@ class TestTurbomachinery:
         self.nw.save('tmp')
 
         # test isentropic efficiency value
-        eta_s_d = ((instance.h_os('') - self.c1.h.val_SI) /
-                   (self.c2.h.val_SI - self.c1.h.val_SI))
+        eta_s_d = (
+            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+             self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
                ', is ' + str(instance.eta_s.val) + '.')
         assert round(eta_s_d, 3) == round(instance.eta_s.val, 3), msg
@@ -74,8 +75,9 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
 
         # test calculated value
-        eta_s = ((instance.h_os('') - self.c1.h.val_SI) /
-                 (self.c2.h.val_SI - self.c1.h.val_SI))
+        eta_s = (
+            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+             self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
         assert round(eta_s, 3) == round(instance.eta_s.val, 3), msg
@@ -169,8 +171,9 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
 
         # test calculated value for efficiency
-        eta_s = ((instance.h_os('') - self.c1.h.val_SI) /
-                 (self.c2.h.val_SI - self.c1.h.val_SI))
+        eta_s = (
+            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+             self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
         assert eta_s == instance.eta_s.val, msg
@@ -261,8 +264,10 @@ class TestTurbomachinery:
         self.nw.save('tmp')
 
         # design value of isentropic efficiency
-        eta_s_d = ((self.c2.h.val_SI - self.c1.h.val_SI) /
-                   (instance.h_os('') - self.c1.h.val_SI))
+        eta_s_d = (
+            (self.c2.h.val_SI - self.c1.h.val_SI) / (
+                isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+                self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' +
                str(round(eta_s_d, 3)) + ', is ' + str(instance.eta_s.val) +
                '.')
@@ -272,11 +277,13 @@ class TestTurbomachinery:
         instance.set_attr(eta_s=1.1)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        eta_s = round((self.c2.h.val_SI - self.c1.h.val_SI) /
-                      (instance.h_os('') - self.c1.h.val_SI), 3)
+        eta_s = (
+            (self.c2.h.val_SI - self.c1.h.val_SI) / (
+                isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+                self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
-        assert eta_s == round(instance.eta_s.val, 3), msg
+        assert round(eta_s, 3) == round(instance.eta_s.val, 3), msg
 
         # unset isentropic efficiency and inlet pressure,
         # use characteristcs and cone law instead, parameters have to be in
@@ -334,7 +341,9 @@ class TestTurbomachinery:
         instance.eta_s_char.param = 'dh_s'
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
-        expr = (instance.h_os('') - self.c1.h.val_SI) / instance.dh_s_ref
+        expr = (
+            isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+            self.c1.h.val_SI) / instance.dh_s_ref
         eta_s = round(eta_s_d * instance.eta_s_char.func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency (' +
                str(round(instance.eta_s.val, 3)) +

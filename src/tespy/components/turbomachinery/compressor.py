@@ -24,13 +24,7 @@ from tespy.tools.data_containers import dc_cm
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_ps
-from tespy.tools.fluid_properties import h_ps
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.fluid_properties import s_ph
-from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.fluid_properties import isentropic
 from tespy.tools.global_vars import err
 
 
@@ -327,8 +321,11 @@ class Compressor(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
                 \left( h_{out,s} - h_{in} \right)
         """
-        return (-(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
-                self.eta_s.val + (self.h_os('post') - self.inl[0].h.val_SI))
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) * self.eta_s.val +
+            (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
     def eta_s_char_func(self):
         r"""
@@ -366,8 +363,10 @@ class Compressor(Turbomachine):
             logging.error(msg)
             raise ValueError(msg)
 
-        return (self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
-                (o[2] - i[2]) - (self.h_os('post') - i[2]))
+        return (
+            self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
+            (o[2] - i[2]) - (
+                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
 
     def char_map_func(self):
         r"""
@@ -416,8 +415,9 @@ class Compressor(Turbomachine):
         pr, eta = self.char_map.func.evaluate(x, y, igva=self.igva.val)
 
         z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
-        z2 = ((self.h_os('post') - i[2]) / (o[2] - i[2]) /
-              self.eta_s.design - eta)
+        z2 = (
+            (isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]) /
+            (o[2] - i[2]) / self.eta_s.design - eta)
 
         return np.array([z1, z2])
 
@@ -512,8 +512,11 @@ class Compressor(Turbomachine):
         r"""Postprocessing parameter calculation."""
         Turbomachine.calc_parameters(self)
 
-        self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
-                          (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
+        self.eta_s.val = (
+            (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
+            (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
 
         if self.char_map.is_set:
             # get bound errors for characteristic map

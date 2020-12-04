@@ -13,13 +13,13 @@ import shutil
 
 import numpy as np
 
-from tespy.components import Sink
-from tespy.components import Source
 from tespy.components import Condenser
 from tespy.components import HeatExchanger
 from tespy.components import HeatExchangerSimple
 from tespy.components import ParabolicTrough
+from tespy.components import Sink
 from tespy.components import SolarCollector
+from tespy.components import Source
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network

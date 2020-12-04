@@ -14,19 +14,19 @@ import shutil
 
 from pytest import raises
 
-from tespy.components import Sink
-from tespy.components import Source
-from tespy.components import CombustionEngine
 from tespy.components import CombustionChamber
 from tespy.components import CombustionChamberStoich
-from tespy.components.component import Component
+from tespy.components import CombustionEngine
+from tespy.components import Compressor
 from tespy.components import Merge
-from tespy.components import Splitter
 from tespy.components import Pipe
-from tespy.components import WaterElectrolyzer
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.components import Turbine
-from tespy.components import Compressor
+from tespy.components import WaterElectrolyzer
+from tespy.components.component import Component
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -37,9 +37,9 @@ from tespy.tools.characteristics import load_custom_char
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_flu
-from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import Memorise
 from tespy.tools.fluid_properties import TESPyFluid
+from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
@@ -660,8 +660,8 @@ def test_CharMap_number_of_dimensions():
 def test_CharMap_y_z_dimension_mismatch():
     with raises(ValueError):
         CharMap(x=[0, 1], y=[[1, 2, 3, 4], [1, 2, 3, 4]],
-                 z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
-                 z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+                z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+                z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
 
 
 def test_missing_CharLine_files():

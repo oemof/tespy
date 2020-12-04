@@ -17,16 +17,11 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import h_pT
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.fluid_properties import TESPyFluid
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError

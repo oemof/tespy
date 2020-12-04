@@ -1727,3 +1727,39 @@ def ds_mix_pdT(flow, T):
     """
     d = 0.1
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
+
+
+def isentropic(inflow, outflow, T0=300):
+    r"""
+    Calculate the enthalpy at the outlet after isentropic process.
+
+    Parameters
+    ----------
+    inflow : list
+        Inflow fluid property vector containing mass flow, pressure, enthalpy
+        and fluid composition.
+
+    outflow : list
+        Outflow fluid property vector containing mass flow, pressure, enthalpy
+        and fluid composition.
+
+    Returns
+    -------
+    h_s : float
+        Enthalpy after isentropic state change.
+
+        .. math::
+
+            h_\mathrm{s} = \begin{cases}
+            h\left(p_{out}, s\left(p_{in}, h_{in}\right) \right) &
+            \text{pure fluids}\\
+            h\left(p_{out}, s\left(p_{in}, T_{in}\right) \right) &
+            \text{mixtures}\\
+            \end{cases}
+    """
+    fluid = single_fluid(inflow[3])
+    if fluid is not None:
+        return h_ps(outflow[1], s_ph(inflow[1], inflow[2], fluid), fluid)
+    else:
+        s_mix = s_mix_ph(inflow)
+        return h_mix_ps(outflow, s_mix, T0=T0)

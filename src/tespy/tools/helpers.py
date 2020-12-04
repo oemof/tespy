@@ -202,12 +202,8 @@ def bus_char_derivative(params, bus_value):
     char_func = params[2]
     d = 1e-3
     return (1 - (
-        1 / char_func.evaluate(
-            (bus_value + d) / reference_value) -
-        1 / char_func.evaluate(
-            (bus_value - d) / reference_value)) / (2 * d))
-
-# %%
+        1 / char_func.evaluate((bus_value + d) / reference_value) -
+        1 / char_func.evaluate((bus_value - d) / reference_value)) / (2 * d))
 
 
 def molar_mass_flow(flow):

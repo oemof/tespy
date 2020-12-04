@@ -11,25 +11,11 @@ tespy/components/turbomachinery/turbomachine.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.characteristics import CompressorMap
-from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_ps
-from tespy.tools.fluid_properties import h_ps
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.fluid_properties import s_ph
-from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
 
@@ -215,44 +201,6 @@ class Turbomachine(Component):
         r"""Calculate partial derivatives for given additional equations."""
         return
 
-    def h_os(self, mode):
-        r"""
-        Calculate the enthalpy at the outlet after isentropic process.
-
-        Parameters
-        ----------
-        mode : str
-            Determines wheather calculation is in preprocessing mode.
-
-        Returns
-        -------
-        h : float
-            Enthalpy after isentropic state change.
-
-            .. math::
-
-                h = \begin{cases}
-                h\left(p_{out}, s\left(p_{in}, h_{in}\right) \right) &
-                \text{pure fluids}\\
-                h\left(p_{out}, s\left(p_{in}, T_{in}\right) \right) &
-                \text{mixtures}\\
-                \end{cases}
-        """
-        if mode == 'pre':
-            i = self.inl[0].to_flow_design()
-            o = self.outl[0].to_flow_design()
-        else:
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
-
-        fluid = single_fluid(i[3])
-        if fluid is not None:
-            return h_ps(o[1], s_ph(i[1], i[2], fluid), fluid)
-        else:
-            T_mix = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-            s_mix = s_mix_pT(i, T_mix)
-            return h_mix_ps(o, s_mix, T0=self.outl[0].T.val_SI)
-
     def bus_func(self, bus):
         r"""
         Calculate the value of the bus function.
@@ -306,9 +254,6 @@ class Turbomachine(Component):
         i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
         self.P.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.Sirr.val = self.inl[0].m.val_SI * (
-                s_mix_ph(self.outl[0].to_flow()) -
-                s_mix_ph(self.inl[0].to_flow()))
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

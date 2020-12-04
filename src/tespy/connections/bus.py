@@ -19,10 +19,6 @@ import pandas as pd
 from tespy.components.component import Component
 from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_flu
-from tespy.tools.data_containers import dc_prop
-from tespy.tools.data_containers import dc_simple
-from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)

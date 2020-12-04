@@ -12,26 +12,18 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-import warnings
 
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
-from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_gcp
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.fluid_properties import T_bp_p
 from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import dh_mix_dpQ
-from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import darcy_friction_factor as dff
 
 
 class SolarCollector(HeatExchangerSimple):

@@ -11,9 +11,9 @@ import shutil
 
 import numpy as np
 
+from tespy.components import ORCEvaporator
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.components import ORCEvaporator
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network

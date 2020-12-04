@@ -21,11 +21,7 @@ from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_gcp
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.fluid_properties import T_bp_p
 from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import dh_mix_dpQ
-from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph

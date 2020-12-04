@@ -16,19 +16,10 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
-from tespy.tools.characteristics import CompressorMap
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_ps
-from tespy.tools.fluid_properties import h_ps
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.fluid_properties import s_ph
-from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
@@ -178,7 +169,11 @@ class Turbine(Turbomachine):
 
         if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
                 self.local_design is False):
-            self.dh_s_ref = (self.h_os('pre') - self.inl[0].h.design)
+            self.dh_s_ref = (
+                isentropic(
+                    self.inl[0].to_flow_design(),
+                    self.outl[0].to_flow_design(),
+                    T0=self.inl[0].T.val_SI) - self.inl[0].h.design)
 
         # number of mandatroy equations for
         # fluid balance: num_fl
@@ -293,9 +288,12 @@ class Turbine(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) +
                 \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
         """
-        return (-(self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
-                (self.h_os('post') - self.inl[0].h.val_SI) *
-                self.eta_s.val)
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
+                isentropic(
+                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    T0=self.inl[0].T.val_SI) -
+                self.inl[0].h.val_SI) * self.eta_s.val)
 
     def cone_func(self):
         r"""
@@ -351,7 +349,8 @@ class Turbine(Turbomachine):
         o_d = self.outl[0].to_flow_design()
 
         if self.eta_s_char.param == 'dh_s':
-            expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+            expr = np.sqrt(self.dh_s_ref / (
+                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
         elif self.eta_s_char.param == 'm':
             expr = i[0] / i_d[0]
         elif self.eta_s_char.param == 'v':
@@ -365,9 +364,10 @@ class Turbine(Turbomachine):
             logging.error(msg)
             raise ValueError(msg)
 
-        return (-(o[2] - i[2]) + self.eta_s.design *
-                self.eta_s_char.func.evaluate(expr) *
-                (self.h_os('post') - i[2]))
+        return (
+            -(o[2] - i[2]) + self.eta_s.design *
+            self.eta_s_char.func.evaluate(expr) * (
+                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
 
     def convergence_check(self, nw):
         r"""
@@ -465,8 +465,11 @@ class Turbine(Turbomachine):
         r"""Postprocessing parameter calculation."""
         Turbomachine.calc_parameters(self)
 
-        self.eta_s.val = ((self.outl[0].h.val_SI - self.inl[0].h.val_SI) /
-                          (self.h_os('post') - self.inl[0].h.val_SI))
+        self.eta_s.val = (
+            (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
+                isentropic(
+                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
@@ -476,7 +479,8 @@ class Turbine(Turbomachine):
             o_d = self.outl[0].to_flow_design()
 
             if self.eta_s_char.param == 'dh_s':
-                expr = np.sqrt(self.dh_s_ref / (self.h_os('post') - i[2]))
+                expr = np.sqrt(self.dh_s_ref / (isentropic(
+                    i, o, T0=self.inl[0].T.val_SI) - i[2]))
             elif self.eta_s_char.param == 'm':
                 expr = i[0] / i_d[0]
             elif self.eta_s_char.param == 'v':

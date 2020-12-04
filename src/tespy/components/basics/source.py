@@ -10,11 +10,7 @@ available from its original location tespy/components/basics/source.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
 
 
 class Source(Component):

@@ -11,9 +11,9 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 
+from tespy.components import Pipe
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.components import Pipe
 from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.networks import Network

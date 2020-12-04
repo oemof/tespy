@@ -10,25 +10,14 @@ available from its original location tespy/components/turbomachinery/pump.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
-from tespy.tools.characteristics import CompressorMap
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_ps
-from tespy.tools.fluid_properties import h_ps
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.fluid_properties import s_ph
-from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
@@ -297,8 +286,11 @@ class Pump(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
                 \left( h_{out,s} - h_{in} \right)
         """
-        return (-(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
-                self.eta_s.val + (self.h_os('post') - self.inl[0].h.val_SI))
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) * self.eta_s.val +
+            (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
     def eta_s_char_func(self):
         r"""
@@ -327,9 +319,10 @@ class Pump(Turbomachine):
 
         expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
 
-        return ((o[2] - i[2]) * self.eta_s.design *
-                self.eta_s_char.func.evaluate(expr) -
-                (self.h_os('post') - i[2]))
+        return (
+            (o[2] - i[2]) * self.eta_s.design *
+            self.eta_s_char.func.evaluate(expr) - (
+                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
 
     def flow_char_func(self):
         r"""
@@ -454,8 +447,12 @@ class Pump(Turbomachine):
         r"""Postprocessing parameter calculation."""
         Turbomachine.calc_parameters(self)
 
-        self.eta_s.val = ((self.h_os('post') - self.inl[0].h.val_SI) /
-                          (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
+        self.eta_s.val = (
+            (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) -
+             self.inl[0].h.val_SI) /
+            (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics

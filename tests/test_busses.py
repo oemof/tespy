@@ -13,10 +13,10 @@ import shutil
 
 import numpy as np
 
-from tespy.components import Sink
-from tespy.components import Source
 from tespy.components import CombustionChamber
 from tespy.components import Compressor
+from tespy.components import Sink
+from tespy.components import Source
 from tespy.components import Turbine
 from tespy.connections import Bus
 from tespy.connections import Connection

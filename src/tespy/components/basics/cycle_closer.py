@@ -14,7 +14,6 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
 
 # %%
 

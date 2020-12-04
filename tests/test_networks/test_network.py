@@ -27,8 +27,8 @@ from tespy.components import Splitter
 from tespy.components import SubsystemInterface
 from tespy.components import Valve
 from tespy.connections import Connection
-from tespy.networks import load_network
 from tespy.networks import Network
+from tespy.networks import load_network
 from tespy.tools.helpers import TESPyNetworkError
 
 

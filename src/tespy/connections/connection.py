@@ -11,14 +11,10 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-import warnings
 
 import numpy as np
-import pandas as pd
 
 from tespy.components.component import Component
-from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_flu
 from tespy.tools.data_containers import dc_prop
 from tespy.tools.data_containers import dc_simple

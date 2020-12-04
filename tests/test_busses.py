@@ -20,7 +20,7 @@ from tespy.components import Compressor
 from tespy.components import Turbine
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.networks.networks import Network
+from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 
 

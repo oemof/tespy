@@ -19,7 +19,7 @@ from tespy.components import Source
 from tespy.components import WaterElectrolyzer
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.networks.networks import Network
+from tespy.networks import Network
 
 
 def convergence_check(lin_dep):

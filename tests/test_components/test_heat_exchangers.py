@@ -22,7 +22,7 @@ from tespy.components import ParabolicTrough
 from tespy.components import SolarCollector
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.networks.networks import Network
+from tespy.networks import Network
 from tespy.tools.fluid_properties import T_bp_p
 
 

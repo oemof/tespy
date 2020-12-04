@@ -16,7 +16,7 @@ from tespy.components import Source
 from tespy.components import ORCEvaporator
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.networks.networks import Network
+from tespy.networks import Network
 from tespy.tools.fluid_properties import T_bp_p
 
 

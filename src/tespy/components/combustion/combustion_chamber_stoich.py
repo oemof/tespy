@@ -1,4 +1,4 @@
-tespy.components.component.# -*- coding: utf-8
+#-*- coding: utf-8
 
 """Module of class CombustionChamberStoich.
 

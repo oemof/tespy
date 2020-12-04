@@ -50,7 +50,7 @@ from tespy.components import WaterElectrolyzer
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
-from tespy.networks.networks import Network
+from tespy.networks.network import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import CompressorMap

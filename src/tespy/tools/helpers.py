@@ -218,12 +218,12 @@ def molar_mass_flow(flow):
 
     Returns
     -------
-    mm : float
-        Molar mass flow mm / (mol/s).
+    m_m : float
+        Molar mass flow m_m / (mol/s).
 
         .. math::
 
-            mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
+            \dot{m}_\mathrm{m} = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
     """
     mm = 0
     for fluid, x in flow.items():

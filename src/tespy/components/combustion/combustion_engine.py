@@ -42,24 +42,24 @@ class CombustionEngine(CombustionChamber):
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.combustion.CombustionChamber.reaction_balance`
-        - :py:meth:`tespy.components.combustion.CombustionEngine.fluid_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.reaction_balance`
+        - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.fluid_func`
           (for cooling water)
-        - :py:meth:`tespy.components.combustion.CombustionEngine.mass_flow_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :py:meth:`tespy.components.combustion.CombustionEngine.energy_balance`
+        - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.energy_balance`
 
         **optional equations**
 
-        - :py:meth:`tespy.components.combustion.CombustionChamber.lambda_func`
-        - :py:meth:`tespy.components.combustion.CombustionChamber.ti_func`
-        - :py:meth:`tespy.components.combustion.CombustionEngine.Q1_func`
-        - :py:meth:`tespy.components.combustion.CombustionEngine.Q2_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.lambda_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.ti_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q1_func`
+        - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q2_func`
 
         .. math::
 
@@ -116,49 +116,49 @@ class CombustionEngine(CombustionChamber):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float, tespy.tools.data_containers.dc_cp
+    lamb : float, tespy.tools.data_containers.ComponentProperties
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.dc_cp
+    ti : float, tespy.tools.data_containers.ComponentProperties
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
-    P : str, float, tespy.tools.data_containers.dc_cp
+    P : str, float, tespy.tools.data_containers.ComponentProperties
         Power output, :math:`P/\text{W}`.
 
-    Q1 : float, tespy.tools.data_containers.dc_cp
+    Q1 : float, tespy.tools.data_containers.ComponentProperties
         Heat output 1, :math:`\dot Q/\text{W}`.
 
-    Q2 : float, tespy.tools.data_containers.dc_cp
+    Q2 : float, tespy.tools.data_containers.ComponentProperties
         Heat output 2, :math:`\dot Q/\text{W}`.
 
-    Qloss : str, float, tespy.tools.data_containers.dc_cp
+    Qloss : str, float, tespy.tools.data_containers.ComponentProperties
         Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
-    pr1 : float, tespy.tools.data_containers.dc_cp
+    pr1 : float, tespy.tools.data_containers.ComponentProperties
         Pressure ratio heat outlet 1, :math:`pr/1`.
 
-    pr2 : float, tespy.tools.data_containers.dc_cp
+    pr2 : float, tespy.tools.data_containers.ComponentProperties
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
-    zeta1 : float, tespy.tools.data_containers.dc_cp
+    zeta1 : float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient heating loop 1,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, tespy.tools.data_containers.dc_cp
+    zeta2 : float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient heating loop 2,
         :math:`\zeta/\frac{1}{\text{m}^4}`.
 
-    tiP_char : tespy.tools.charactersitics.char_line, tespy.tools.data_containers.dc_cc
+    tiP_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line linking fuel input to power output.
 
-    Q1_char : tespy.tools.charactersitics.char_line, tespy.tools.data_containers.dc_cc
+    Q1_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : tespy.tools.charactersitics.char_line, tespy.tools.data_containers.dc_cc
+    Q2_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : tespy.tools.charactersitics.char_line, tespy.tools.data_containers.dc_cc
+    Qloss_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line linking heat loss to power output.
 
     Note
@@ -670,7 +670,7 @@ class CombustionEngine(CombustionChamber):
 
             .. math::
 
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}}\\
+                res = fluid_{i,in_{j}} - fluid_{i,out_{j}}\\
                 \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
         """
         residual = []
@@ -833,7 +833,7 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -916,7 +916,7 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -1211,14 +1211,7 @@ class CombustionEngine(CombustionChamber):
                 self.tiP_char.func.evaluate(expr))
 
     def initialise_fluids(self):
-        r"""
-        Calculate reaction balance for generic starting values at outlet.
-
-        Parameters
-        ----------
-        nw : tespy.networks.networks.Networks.Network
-            Network using this component object.
-        """
+        """Calculate reaction balance for generic starting values at outlet."""
         N_2 = 0.7655
         O_2 = 0.2345
 
@@ -1275,7 +1268,7 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        c : tespy.connections.Connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -1305,7 +1298,7 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        c : tespy.connections.Connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

@@ -42,7 +42,7 @@ class Pump(Turbomachine):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.turbomachinery.pump.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.pump.Pump.additional_equations`
 
     Inlets/Outlets
 
@@ -82,20 +82,20 @@ class Pump(Turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.dc_cp
+    P : float, tespy.tools.data_containers.ComponentProperties
         Power, :math:`P/\text{W}`
 
-    eta_s : float, tespy.tools.data_containers.dc_cp
+    eta_s : float, tespy.tools.data_containers.ComponentProperties
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    flow_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    flow_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic curve for pressure rise vs. volumetric flow rate,
         provide CharLine as function :code:`func`.
         :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
@@ -200,9 +200,9 @@ class Pump(Turbomachine):
 
             **optional equations**
 
-            - :py:meth:`tespy.components.turbomachinery.pump.eta_s_func`
-            - :py:meth:`tespy.components.turbomachinery.pump.eta_s_char_func`
-            - :py:meth:`tespy.components.turbomachinery.pump.flow_char_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.pump.Pump.flow_char_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -345,14 +345,9 @@ class Pump(Turbomachine):
 
         return o[1] - i[1] - self.flow_char.func.evaluate(expr)
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         r"""
         Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
 
         Note
         ----
@@ -390,7 +385,7 @@ class Pump(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -420,7 +415,7 @@ class Pump(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

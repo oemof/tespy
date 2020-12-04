@@ -39,15 +39,15 @@ class Turbomachine(Component):
 
         isentropic efficiency equations (optional)
 
-        - :py:meth:`tespy.components.turbomachinery.pump.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
+        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
 
         **additional equations**
 
-        - :py:meth:`tespy.components.turbomachinery.pump.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.compressor.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.turbine.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.pump.Pump.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.additional_equations`
 
     Inlets/Outlets
 
@@ -80,19 +80,19 @@ class Turbomachine(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float/tespy.tools.data_containers.dc_cp
+    P : float, tespy.tools.data_containers.ComponentProperties
         Power, :math:`P/\text{W}`
 
-    pr : float/tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     Example
     -------
     For an example please refer to:
 
-    - :class:`tespy.components.turbomachinery.compressor`
-    - :class:`tespy.components.turbomachinery.pump`
-    - :class:`tespy.components.turbomachinery.turbine`
+    - :class:`tespy.components.turbomachinery.compressor.Compressor`
+    - :class:`tespy.components.turbomachinery.pump.Pump`
+    - :class:`tespy.components.turbomachinery.turbine.Turbine`
     """
 
     @staticmethod
@@ -207,7 +207,7 @@ class Turbomachine(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -234,7 +234,7 @@ class Turbomachine(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns

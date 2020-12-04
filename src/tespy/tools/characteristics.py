@@ -73,7 +73,7 @@ class CharLine:
         if len(self.x) != len(self.y):
             msg = ('Please provide the same amount of x-values and y-values. '
                    'Number of x-values is ' + str(len(self.x)) + ', number of '
-                   'y-values is ' + str(len(self.y)) + ' for char_line.')
+                   'y-values is ' + str(len(self.y)) + ' for CharLine.')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -242,25 +242,25 @@ class CharMap:
 
     def evaluate_x(self, x):
         r"""
-        Evaluate char_map for x inputs.
+        Evaluate CharMap for x inputs.
 
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         Returns
         -------
         yarr : ndarray
-            Second dimension input array of char_map calculated from first
+            Second dimension input array of CharMap calculated from first
             dimension input.
 
         z1arr : ndarray
-            First dimension output array of char_map calculated from first
+            First dimension output array of CharMap calculated from first
             dimension input.
 
         z2arr : ndarray
-            Second dimension output array of char_map calculated from first
+            Second dimension output array of CharMap calculated from first
             dimension input.
         """
         xpos = np.searchsorted(self.x, x)
@@ -284,23 +284,23 @@ class CharMap:
 
     def evaluate_y(self, y, yarr, z1arr, z2arr):
         r"""
-        Evaluate char_map for y inputs.
+        Evaluate CharMap for y inputs.
 
         Parameters
         ----------
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
 
         yarr : ndarray
-            Second dimension array of char_map calculated from first dimension
+            Second dimension array of CharMap calculated from first dimension
             input.
 
         z1arr : ndarray
-            First dimension output array of char_map calculated from first
+            First dimension output array of CharMap calculated from first
             dimension input.
 
         z2arr : ndarray
-            Second dimension output array of char_map calculated from first
+            Second dimension output array of CharMap calculated from first
             dimension input.
         """
         ypos = np.searchsorted(yarr, y)
@@ -316,15 +316,15 @@ class CharMap:
 
     def evaluate(self, x, y, **kwargs):
         r"""
-        Evaluate char_map for x and y inputs.
+        Evaluate CharMap for x and y inputs.
 
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
 
         Returns
         -------
@@ -371,15 +371,15 @@ class CharMap:
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         c : str
-            Label of the component, the char_map is applied on.
+            Label of the component, the CharMap is applied on.
 
         Returns
         -------
         yarr : ndarray
-            Second dimension input array of char_map calculated from first
+            Second dimension input array of CharMap calculated from first
             dimension input.
         """
         xpos = np.searchsorted(self.x, x)
@@ -408,14 +408,14 @@ class CharMap:
         Parameters
         ----------
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
 
         yarr : ndarray
-            Second dimension input array of char_map calculated from first
+            Second dimension input array of CharMap calculated from first
             dimension input.
 
         c : str
-            Label of the component, the char_map is applied on.
+            Label of the component, the CharMap is applied on.
         """
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr) and y != yarr[-1]:
@@ -432,15 +432,15 @@ class CharMap:
 
     def get_bound_errors(self, x, y, c):
         r"""
-        Check the char_map for bound violations.
+        Check the CharMap for bound violations.
 
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
         """
         yarr = self.get_bound_errors_x(x, c)
         self.get_bound_errors_y(y, yarr, c)
@@ -487,14 +487,14 @@ class CompressorMap(CharMap):
 
     Note
     ----
-    Ìn contrast to the :py:class:`tespy.tools.characteristics.char_map` this
+    Ìn contrast to the :py:class:`tespy.tools.characteristics.CharMap` this
     classes output is manipulated with the inlet guide vane angle
     :code:`igva`.
     """
 
     def evaluate(self, x, y, **kwargs):
         r"""
-        Evaluate compressor_map for x and y inputs.
+        Evaluate CompressorMap for x and y inputs.
 
         This method is different from the base method. The second dimension
         array is manipulated by the inlet guide vane angle igva.
@@ -502,10 +502,10 @@ class CompressorMap(CharMap):
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
 
         igva : float
             Inlet guide vane angle of the compressor.
@@ -520,7 +520,7 @@ class CompressorMap(CharMap):
 
         Note
         ----
-        In contrast to the :py:class:`tespy.tools.characteristics.char_map`
+        In contrast to the :py:class:`tespy.tools.characteristics.CharMap`
         the values are manipulated by the inlet guide vane angle (igva):
 
         .. math::
@@ -545,7 +545,7 @@ class CompressorMap(CharMap):
 
     def get_bound_errors(self, x, y, igva, c):
         r"""
-        Check the compressor_map for bound violations.
+        Check the CompressorMap for bound violations.
 
         This method is different from the base method. The second dimension
         array is manipulated by the inlet guide vane angle igva.
@@ -553,10 +553,10 @@ class CompressorMap(CharMap):
         Parameters
         ----------
         x : float
-            Input for first dimension of char_map.
+            Input for first dimension of CharMap.
 
         y : float
-            Input for second dimension of char_map.
+            Input for second dimension of CharMap.
 
         igva : float
             Inlet guide vane angle of the compressor.
@@ -587,7 +587,7 @@ def load_default_char(component, parameter, function_name, char_type):
     Returns
     -------
     obj : object
-        The characteristics (char_line, char_map, compressor_map) object.
+        The characteristics (CharLine, CharMap, CompressorMap) object.
     """
     if char_type == CharLine:
         path = resource_filename('tespy.data', 'char_lines.json')
@@ -627,7 +627,7 @@ def load_custom_char(name, char_type):
     Returns
     -------
     obj : object
-        The characteristics (char_line, char_map, compressor_map) object.
+        The characteristics (CharLine, CharMap, CompressorMap) object.
     """
     path = extend_basic_path('data')
 

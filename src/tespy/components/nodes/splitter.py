@@ -36,7 +36,7 @@ class Splitter(Node):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.nodes.splitter.additional_equations`
+        - :py:meth:`tespy.components.nodes.splitter.Splitter.additional_equations`
 
     Inlets/Outlets
 
@@ -76,7 +76,7 @@ class Splitter(Node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_out : float/tespy.tools.data_containers.dc_simple
+    num_out : float, tespy.tools.data_containers.DataContainerSimple
         Number of outlets for this component, default value: 2.
 
     Example
@@ -283,9 +283,7 @@ class Splitter(Node):
         inconn.source.propagate_fluid_to_source(inconn, start)
 
     def initialise_fluids(self):
-        r"""
-        Fluid initialisation for fluid mixture at outlet of the node.
-        """
+        """Overwrite parent method."""
         return
 
     def get_plotting_data(self):

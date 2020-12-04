@@ -42,11 +42,9 @@ class Turbine(Turbomachine):
             0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
             0 = pr \cdot p_{in} - p_{out}
 
-        - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_func`
-
         **additional equations**
 
-        - :py:meth:`tespy.components.turbomachinery.turbine.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.additional_equations`
 
     Inlets/Outlets
 
@@ -86,20 +84,20 @@ class Turbine(Turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.dc_cp
+    P : float, tespy.tools.data_containers.ComponentProperties
         Power, :math:`P/\text{W}`
 
-    eta_s : float, tespy.tools.data_containers.dc_cp
+    eta_s : float, tespy.tools.data_containers.ComponentProperties
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    cone : tespy.tools.data_containers.dc_simple
+    cone : tespy.tools.data_containers.DataContainerSimple
         Apply Stodola's cone law.
 
     Example
@@ -201,8 +199,9 @@ class Turbine(Turbomachine):
 
             **optional equations**
 
-            - :py:meth:`tespy.components.turbomachinery.turbine.eta_s_char_func`
-            - :py:meth:`tespy.components.turbomachinery.turbine.cone_func`
+            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
+            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -369,14 +368,9 @@ class Turbine(Turbomachine):
             self.eta_s_char.func.evaluate(expr) * (
                 isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         r"""
         Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
 
         Note
         ----
@@ -408,7 +402,7 @@ class Turbine(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -438,7 +432,7 @@ class Turbine(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

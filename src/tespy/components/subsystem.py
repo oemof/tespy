@@ -20,7 +20,7 @@ import logging
 
 class Subsystem:
     r"""
-    Class subsystem is the base class of all TESPy subsystems.
+    Class Subsystem is the base class of all TESPy subsystems.
 
     Parameters
     ----------
@@ -29,8 +29,8 @@ class Subsystem:
 
     Example
     -------
-    Basic example for a setting up a tespy.components.subsystems.subsystem
-    object. This example does not run a tespy calculation!
+    Basic example for a setting up a Subsystem object. This example does not
+    run a TESPy calculation!
 
     >>> from tespy.components import Subsystem
     >>> mysub = Subsystem('mySubsystem')

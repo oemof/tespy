@@ -18,6 +18,7 @@ class Source(Component):
     A flow originates from a Source.
 
     Equations
+
         This component is unconstrained.
 
     Parameters

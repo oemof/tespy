@@ -44,7 +44,7 @@ class Valve(Component):
 
         - :py:meth:`tespy.components.component.Component.zeta_func`
 
-        - :py:meth:`tespy.components.piping.valve.dp_char_func`
+        - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
 
 
     Inlets/Outlets
@@ -85,14 +85,14 @@ class Valve(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    pr : str, float, tespy.tools.data_containers.dc_cp
+    pr : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : str, float, tespy.tools.data_containers.dc_cp
+    zeta : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    dp_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for difference pressure to mass flow.
 
     Example
@@ -314,7 +314,7 @@ class Valve(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -343,7 +343,7 @@ class Valve(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

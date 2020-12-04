@@ -34,7 +34,7 @@ class Merge(Node):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.basics.merge.additional_equations`
+        - :py:meth:`tespy.components.nodes.merge.Merge.additional_equations`
 
     Inlets/Outlets
 
@@ -74,7 +74,7 @@ class Merge(Node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_in : float/tespy.tools.data_containers.dc_simple
+    num_in : float, tespy.tools.data_containers.DataContainerSimple
         Number of inlets for this component, default value: 2.
 
     Example

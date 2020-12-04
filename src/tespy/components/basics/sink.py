@@ -18,7 +18,8 @@ class Sink(Component):
     A flow drains in a Sink.
 
     Equations
-        This component is unconstrained.
+
+    This component is unconstrained.
 
     Parameters
     ----------

@@ -116,10 +116,10 @@ class CombustionChamberStoich(CombustionChamber):
     path : str
         Path to existing fluid property table.
 
-    lamb : float, tespy.tools.data_containers.dc_cp
+    lamb : float, tespy.tools.data_containers.ComponentProperties
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.dc_cp
+    ti : float, tespy.tools.data_containers.ComponentProperties
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -441,7 +441,7 @@ class CombustionChamberStoich(CombustionChamber):
 
         Parameters
         ----------
-        nw : tespy.networks.networks.Network
+        nw : tespy.networks.network.Network
             TESPy network to generate stoichiometric flue gas for.
         """
         lamb = 1
@@ -814,14 +814,7 @@ class CombustionChamberStoich(CombustionChamber):
         return m * self.lhv
 
     def initialise_fluids(self):
-        r"""
-        Calculate reaction balance for good generic flue gas starting values.
-
-        Parameters
-        ----------
-        nw : tespy.networks.networks.Network
-            Network using this component object.
-        """
+        """Calculate reaction balance for generic starting values at outlet."""
         air = self.air_alias.val
         flue_gas = self.fuel_alias.val + '_fg'
 
@@ -832,14 +825,9 @@ class CombustionChamberStoich(CombustionChamber):
                 c.fluid.val[flue_gas] = 0.2
             c.target.propagate_fluid_to_target(c, c.target)
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         r"""
         Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.networks.Network
-            The network object using this component.
 
         Note
         ----

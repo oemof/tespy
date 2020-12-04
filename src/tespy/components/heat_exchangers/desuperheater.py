@@ -30,8 +30,8 @@ class Desuperheater(HeatExchanger):
         **mandatory equations**
 
         - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.mass_flow_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.energy_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.mass_flow_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_func`
 
         **optional equations**
 
@@ -39,8 +39,8 @@ class Desuperheater(HeatExchanger):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.kA_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.ttd_u_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
 
         .. math::
 
@@ -52,7 +52,7 @@ class Desuperheater(HeatExchanger):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.heat_exchangers.Desuperheater.additional_equations`
+        - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.additional_equations`
 
     Inlets/Outlets
 
@@ -92,31 +92,31 @@ class Desuperheater(HeatExchanger):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.dc_cp
+    Q : str, float, tespy.tools.data_containers.ComponentProperties
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str, float, tespy.tools.data_containers.dc_cp
+    pr1 : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str, float, tespy.tools.data_containers.dc_cp
+    pr2 : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str, float, tespy.tools.data_containers.dc_cp
+    zeta1 : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str, float, tespy.tools.data_containers.dc_cp
+    zeta2 : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : str, float, tespy.tools.data_containers.dc_cp
+    kA : str, float, tespy.tools.data_containers.ComponentProperties
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.tools.charactersitics.CharLine, tespy.tools.data_containers.dc_cc
+    kA_char1 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.charactersitics.CharLine, tespy.tools.data_containers.dc_cc
+    kA_char2 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for cold side heat transfer coefficient.
 
     Note

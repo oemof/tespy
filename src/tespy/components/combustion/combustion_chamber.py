@@ -37,7 +37,7 @@ class CombustionChamber(Component):
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.combustion.CombustionChamber.reaction_balance`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.reaction_balance`
         - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
         .. math::
@@ -45,12 +45,12 @@ class CombustionChamber(Component):
             0 = p_{in,i} - p_{out} \;
             \forall i \in \mathrm{inlets}
 
-        - :py:meth:`tespy.components.combustion.CombustionChamber.energy_balance`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.energy_balance`
 
         **optional equations**
 
-        - :py:meth:`tespy.components.combustion.CombustionChamber.lambda_func`
-        - :py:meth:`tespy.components.combustion.CombustionChamber.ti_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.lambda_func`
+        - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.ti_func`
 
     Available fuels
 
@@ -99,10 +99,10 @@ class CombustionChamber(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    lamb : float, tespy.tools.data_containers.dc_cp
+    lamb : float, tespy.tools.data_containers.ComponentProperties
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.dc_cp
+    ti : float, tespy.tools.data_containers.ComponentProperties
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
         :math:`ti/\text{W}`.
 
@@ -701,7 +701,7 @@ class CombustionChamber(Component):
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
         chamber uses a different reference, you will find it in the
-        :py:meth:`tespy.components.combustion.CombustionChamberStoich.energy_balance`
+        :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance`
         documentation.
 
         - Reference temperature: 293.15 K.
@@ -823,7 +823,7 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -846,7 +846,7 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -863,14 +863,7 @@ class CombustionChamber(Component):
         return deriv
 
     def initialise_fluids(self):
-        r"""
-        Calculate reaction balance for good generic flue gas starting values.
-
-        Parameters
-        ----------
-        nw : tespy.networks.networks.Networks.Network
-            Network using this component object.
-        """
+        """Calculate reaction balance for generic starting values at outlet."""
         N_2 = 0.7655
         O_2 = 0.2345
 
@@ -920,14 +913,9 @@ class CombustionChamber(Component):
                     o.fluid.val[fluid] = fg[fluid]
             o.target.propagate_fluid_to_target(o, o.target)
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         r"""
         Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.networks.Networks.Network
-            The network object using this component.
 
         Note
         ----
@@ -936,6 +924,7 @@ class CombustionChamber(Component):
         composition within feasible range and then propagates it towards the
         outlet.
         """
+        # looks super strange, necessary to work with engine and chamber
         inl = self.inl[::-1][:2][::-1]
         outl = self.outl[::-1][0]
 
@@ -1021,7 +1010,7 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        c : tespy.connections.Connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -1051,7 +1040,7 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        c : tespy.connections.Connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

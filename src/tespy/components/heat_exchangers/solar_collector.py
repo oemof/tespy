@@ -48,12 +48,12 @@ class SolarCollector(HeatExchangerSimple):
 
         - :py:meth:`tespy.components.component.Component.zeta_func`
 
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchangerSimple.darcy_func`
-          or :py:meth:`tespy.components.heat_exchangers.HeatExchangerSimple.hw_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.darcy_func`
+          or :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hw_func`
 
         **additional equations**
 
-        - :py:meth:`tespy.components.heat_exchangers.SolarCollector.additional_equations`
+        - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.additional_equations`
 
     Inlets/Outlets
 
@@ -93,54 +93,54 @@ class SolarCollector(HeatExchangerSimple):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str/float/tespy.tools.data_containers.dc_cp
+    Q : str, float, tespy.tools.data_containers.ComponentProperties
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str/float/tespy.tools.data_containers.dc_cp
+    pr : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.tools.data_containers.dc_cp
+    zeta : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str/float/tespy.tools.data_containers.dc_cp
+    D : str, float, tespy.tools.data_containers.ComponentProperties
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str/float/tespy.tools.data_containers.dc_cp
+    L : str, float, tespy.tools.data_containers.ComponentProperties
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str/float/tespy.tools.data_containers.dc_cp
+    ks : str, float, tespy.tools.data_containers.ComponentProperties
         Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str/tespy.tools.data_containers.dc_gcp
+    hydro_group : str, tespy.tools.data_containers.GroupedComponentProperties
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    E : str/float/tespy.tools.data_containers.dc_cp
+    E : str, float, tespy.tools.data_containers.ComponentProperties
         irradiance at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
-    eta_opt : str/float/tespy.tools.data_containers.dc_cp
+    eta_opt : str, float, tespy.tools.data_containers.ComponentProperties
         optical loss at surface cover,
         :math:`\eta_{opt}`.
 
-    lkf_lin : str/float/tespy.tools.data_containers.dc_cp
+    lkf_lin : str, float, tespy.tools.data_containers.ComponentProperties
         Linear thermal loss key figure,
         :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
-    lkf_quad : str/float/tespy.tools.data_containers.dc_cp
+    lkf_quad : str, float, tespy.tools.data_containers.ComponentProperties
         Quadratic thermal loss key figure,
         :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
-    A : str/float/tespy.tools.data_containers.dc_cp
+    A : str, float, tespy.tools.data_containers.ComponentProperties
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float/tespy.tools.data_containers.dc_simple
+    Tamb : float, tespy.tools.data_containers.DataContainerSimple
         Ambient temperature, provide parameter in network's temperature unit.
 
-    energy_group : tespy.tools.data_containers.dc_gcp
+    energy_group : tespy.tools.data_containers.GroupedComponentProperties
         Parametergroup for energy balance of solarthermal collector.
 
     Example
@@ -287,7 +287,7 @@ class SolarCollector(HeatExchangerSimple):
 
             **optional equations**
 
-            - :py:meth:`tespy.components.heat_exchangers.SolarCollector.energy_func`
+            - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_func`
         """
         ######################################################################
         # equation for specified energy-group paremeters

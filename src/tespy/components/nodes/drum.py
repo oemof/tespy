@@ -25,7 +25,7 @@ class Drum(Component):
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.nodes.Drum.fluid_func`
+        - :py:meth:`tespy.components.nodes.drum.Drum.fluid_func`
         - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
         .. math::
@@ -331,7 +331,7 @@ class Drum(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -365,7 +365,7 @@ class Drum(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

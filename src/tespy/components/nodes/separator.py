@@ -40,7 +40,7 @@ class Separator(Node):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.nodes.separator.additional_equations`
+        - :py:meth:`tespy.components.nodes.separator.Separator.additional_equations`
 
     Inlets/Outlets
 
@@ -85,7 +85,7 @@ class Separator(Node):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_out : float/tespy.tools.data_containers.dc_simple
+    num_out : float, tespy.tools.data_containers.DataContainerSimple
         Number of outlets for this component, default value: 2.
 
     Example
@@ -247,14 +247,7 @@ class Separator(Node):
             k += 1
 
     def initialise_fluids(self):
-        r"""
-        Fluid initialisation for fluid mixture at outlet of the node.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            Network using this component object.
-        """
+        """Overwrite parent method."""
         return
 
     def get_plotting_data(self):

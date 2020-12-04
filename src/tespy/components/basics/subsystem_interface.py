@@ -75,7 +75,7 @@ class SubsystemInterface(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_inter : float/tespy.tools.data_containers.dc_simple
+    num_inter : float, tespy.tools.data_containers.DataContainerSimple
         Number of interfaces for subsystem.
 
     Note
@@ -216,7 +216,10 @@ class SubsystemInterface(Component):
         ----------
         pos : int
             Position of the variable in the matrix of derivatives.
-            mass flow: 0, pressure: 1, enthalpy: 2.
+
+            - mass flow: 0
+            - pressure: 1
+            - enthalpy: 2
 
         Returns
         -------

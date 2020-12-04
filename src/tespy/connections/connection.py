@@ -30,25 +30,25 @@ class Connection:
 
     Parameters
     ----------
-    m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+    m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
         Mass flow specification.
 
     m0 : float
         Starting value specification for mass flow.
 
-    p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+    p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
         Pressure specification.
 
     p0 : float
         Starting value specification for pressure.
 
-    h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+    h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
         Enthalpy specification.
 
     h0 : float
         Starting value specification for enthalpy.
 
-    fluid : dict, tespy.tools.data_containers.dc_flu
+    fluid : dict, tespy.tools.data_containers.FluidComposition
         Fluid compostition specification.
 
     fluid0 : dict
@@ -57,17 +57,17 @@ class Connection:
     fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float, tespy.tools.data_containers.dc_prop
+    x : float, tespy.tools.data_containers.FluidProperties
         Gas phase mass fraction specification.
 
-    T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+    T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
         Temperature specification.
 
-    Td_bp : float, tespy.tools.data_containers.dc_prop
+    Td_bp : float, tespy.tools.data_containers.FluidProperties
         Temperature difference to boiling point at pressure corresponding
         pressure of this connection in K.
 
-    v : float, tespy.tools.data_containers.dc_prop
+    v : float, tespy.tools.data_containers.FluidProperties
         Volumetric flow specification.
 
     state : str
@@ -281,25 +281,25 @@ class Connection:
 
         Parameters
         ----------
-        m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+        m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
             Mass flow specification.
 
         m0 : float
             Starting value specification for mass flow.
 
-        p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+        p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
             Pressure specification.
 
         p0 : float
             Starting value specification for pressure.
 
-        h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+        h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
             Enthalpy specification.
 
         h0 : float
             Starting value specification for enthalpy.
 
-        fluid : dict, tespy.tools.data_containers.dc_flu
+        fluid : dict, tespy.tools.data_containers.FluidComposition
             Fluid compostition specification.
 
         fluid0 : dict
@@ -308,17 +308,17 @@ class Connection:
         fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float, tespy.tools.data_containers.dc_prop
+        x : float, tespy.tools.data_containers.FluidProperties
             Gas phase mass fraction specification.
 
-        T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
+        T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
             Temperature specification.
 
-        Td_bp : float, tespy.tools.data_containers.dc_prop
+        Td_bp : float, tespy.tools.data_containers.FluidProperties
             Temperature difference to boiling point at pressure corresponding
             pressure of this connection in K.
 
-        v : float, tespy.tools.data_containers.dc_prop
+        v : float, tespy.tools.data_containers.FluidProperties
             Volumetric flow specification.
 
         state : str
@@ -393,7 +393,7 @@ class Connection:
                         # bad datatype
                         msg = (
                             'Datatype for fluid vector specification must be '
-                            'tespy.tools.data_containers.dc_flu or dict.')
+                            'tespy.tools.data_containers.FluidComposition or dict.')
                         logging.error(msg)
                         raise TypeError(msg)
 
@@ -599,7 +599,7 @@ class Ref:
 
     Parameters
     ----------
-    obj : tespy.connections.connection
+    obj : tespy.connections.connection.Connection
         Connection to be referenced.
 
     f : float

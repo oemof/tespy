@@ -36,9 +36,10 @@ class Node(Component):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.nodes.splitter.additional_equations`
-        - :py:meth:`tespy.components.nodes.separator.additional_equations`
-        - :py:meth:`tespy.components.nodes.merge.additional_equations`
+        - :py:meth:`tespy.components.nodes.node.Node.additional_equations`
+        - :py:meth:`tespy.components.nodes.splitter.Splitter.additional_equations`
+        - :py:meth:`tespy.components.nodes.separator.Separator.additional_equations`
+        - :py:meth:`tespy.components.nodes.merge.Merge.additional_equations`
 
     Inlets/Outlets
 
@@ -78,10 +79,10 @@ class Node(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    num_in : float/tespy.tools.data_containers.dc_simple
+    num_in : float, tespy.tools.data_containers.DataContainerSimple
         Number of inlets for this component, default value: 2.
 
-    num_out : float/tespy.tools.data_containers.dc_simple
+    num_out : float, tespy.tools.data_containers.DataContainerSimple
         Number of outlets for this component, default value: 2.
 
     Note
@@ -352,9 +353,7 @@ class Node(Component):
         return deriv
 
     def initialise_fluids(self):
-        r"""
-        Fluid initialisation for fluid mixture at outlet of the node.
-        """
+        """Fluid initialisation for fluid mixture at outlet of the node."""
         num_fl = {}
         for o in self.outl:
             num_fl[o] = num_fluids(o.fluid.val)
@@ -386,7 +385,7 @@ class Node(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -416,7 +415,7 @@ class Node(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

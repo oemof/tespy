@@ -38,9 +38,9 @@ class HeatExchanger(Component):
         **mandatory equations**
 
         - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.mass_flow_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.mass_flow_func`
 
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.energy_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_func`
 
         **optional equations**
 
@@ -48,10 +48,10 @@ class HeatExchanger(Component):
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
 
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.kA_func`
-        - :py:meth:`tespy.components.heat_exchangers.Condenser.kA_char_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.ttd_u_func`
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.ttd_l_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
 
         .. math::
 
@@ -63,7 +63,7 @@ class HeatExchanger(Component):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.heat_exchangers.HeatExchanger.additional_equations`
+        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.additional_equations`
 
     Inlets/Outlets
 
@@ -103,41 +103,43 @@ class HeatExchanger(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.dc_cp
+    Q : str, float, tespy.tools.data_containers.ComponentProperties
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str, float, tespy.tools.data_containers.dc_cp
+    pr1 : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str, float, tespy.tools.data_containers.dc_cp
+    pr2 : str, float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str, float, tespy.tools.data_containers.dc_cp
+    zeta1 : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str, float, tespy.tools.data_containers.dc_cp
+    zeta2 : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : float, tespy.tools.data_containers.dc_cp
+    kA : float, tespy.tools.data_containers.ComponentProperties
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.data_containers.dc_simple
+    kA_char : tespy.tools.data_containers.DataContainerSimple
         Area independent heat transition coefficient characteristic.
 
-    kA_char1 : tespy.tools.charactersitics.CharLine, tespy.tools.data_containers.dc_cc
+    kA_char1 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.charactersitics.CharLine, tespy.tools.data_containers.dc_cc
+    kA_char2 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for cold side heat transfer coefficient.
 
     Note
     ----
-    The HeatExchanger and subclasses (Desuperheater, Condenser) are
-    countercurrent heat exchangers. Equations (kA, ttd_u, ttd_l) do not work
-    for directcurrent and crosscurrent or combinations of different types.
+    The HeatExchanger and subclasses (
+    :py:class:`tespy.components.heat_exchangers.condenser.Condenser`,
+    :py:class:`tespy.components.heat_exchangers.desuperheater,Desuperheater`)
+    are countercurrent heat exchangers. Equations (kA, ttd_u, ttd_l) do not
+    work for directcurrent and crosscurrent or combinations of different types.
 
     Example
     -------
@@ -706,7 +708,7 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -734,7 +736,7 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -755,7 +757,7 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -791,7 +793,7 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

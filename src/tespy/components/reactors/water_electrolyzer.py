@@ -73,7 +73,7 @@ class WaterElectrolyzer(Component):
 
         Energy balance equation
 
-        :py:meth:`tespy.components.reactors.WaterElectrolyzer.energy_balance`.
+        :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance`.
 
         .. math::
 
@@ -96,7 +96,7 @@ class WaterElectrolyzer(Component):
 
             0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
-        - :py:meth:`tespy.components.reactors.WaterElectrolyzer.eta_char_func`
+        - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
 
     Inlets/Outlets
 
@@ -136,26 +136,26 @@ class WaterElectrolyzer(Component):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.dc_cp
+    P : float, tespy.tools.data_containers.ComponentProperties
         Power input, :math:`P/\text{W}`.
 
-    Q : float, tespy.tools.data_containers.dc_cp
+    Q : float, tespy.tools.data_containers.ComponentProperties
         Heat output of cooling, :math:`Q/\text{W}`
 
-    e : str, float, tespy.tools.data_containers.dc_cp
+    e : str, float, tespy.tools.data_containers.ComponentProperties
         Electrolysis specific energy consumption,
         :math:`e/(\text{J}/\text{m}^3)`.
 
-    eta : str, float, tespy.tools.data_containers.dc_cp
+    eta : str, float, tespy.tools.data_containers.ComponentProperties
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    eta_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Electrolysis efficiency characteristic line.
 
-    pr : float, tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.ComponentProperties
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : str, float, tespy.tools.data_containers.dc_cp
+    zeta : str, float, tespy.tools.data_containers.ComponentProperties
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -713,7 +713,7 @@ class WaterElectrolyzer(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -763,7 +763,7 @@ class WaterElectrolyzer(Component):
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -845,7 +845,7 @@ class WaterElectrolyzer(Component):
         The temperature for the reference state is set to 20 °C, thus
         the feed water must be liquid as proposed in the calculation of
         the minimum specific energy consumption for electrolysis:
-        :py:meth:`tespy.components.reactors.WaterElectrolyzer.calc_e0`.
+        :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.
@@ -870,14 +870,7 @@ class WaterElectrolyzer(Component):
         return val
 
     def initialise_fluids(self):
-        r"""
-        Set values to pure fluid on water inlet and gas outlets.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            Network using this component object.
-        """
+        """Set values to pure fluid on water inlet and gas outlets."""
         self.outl[1].fluid.val[self.o2] = 1
         self.outl[2].fluid.val[self.h2] = 1
         self.inl[1].fluid.val[self.h2o] = 1
@@ -892,7 +885,7 @@ class WaterElectrolyzer(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -923,7 +916,7 @@ class WaterElectrolyzer(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

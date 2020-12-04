@@ -454,7 +454,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.components.subsystems.subsystem
+        c : tespy.components.subsystem.Subsystem
             The subsystem to be added to the network, subsystem objects si
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
@@ -468,14 +468,14 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             The connection to be added to the network, connections objects ci
             :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
             if not isinstance(c, con.Connection):
-                msg = ('Must provide tespy.connections.connection objects as '
-                       'parameters.')
+                msg = ('Must provide tespy.connections.connection.Connection '
+                       'objects as parameters.')
                 logging.error(msg)
                 raise TypeError(msg)
 
@@ -503,7 +503,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             The connection to be removed from the network, connections objects
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
@@ -556,7 +556,7 @@ class Network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be added to the network, bus objects bi
             :code:`add_busses(b1, b2, b3, ...)`.
         """
@@ -572,7 +572,7 @@ class Network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be removed from the network, bus objects bi
             :code:`add_busses(b1, b2, b3, ...)`.
         """
@@ -588,7 +588,7 @@ class Network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be checked.
         """
         if isinstance(b, con.Bus):
@@ -1069,7 +1069,7 @@ class Network:
         component : tespy.components.component.Component
             Write design point information to this component.
 
-        data : pandas.core.series.Series or pandas.core.frame.DataFrame
+        data : pandas.core.series.Series, pandas.core.frame.DataFrame
             Design point information.
         """
         # write component design data
@@ -1087,7 +1087,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Write design point information to this connection.
 
         df : pandas.core.frame.DataFrame
@@ -1320,7 +1320,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection count parameters of.
         """
         self.num_conn_eq += [
@@ -1340,7 +1340,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
@@ -1365,7 +1365,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to initialise.
         """
         if np.isnan(c.get_attr(key).val0):
@@ -1461,7 +1461,7 @@ class Network:
         Note
         ----
         For more information on the solution process have a look at the online
-        documentation at tespy.readthedocs.io in the section "using TESPy".
+        documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
@@ -1805,7 +1805,7 @@ class Network:
         # second property check for first three iterations without an init_file
         if self.iter < 3:
             for cp in self.comps.index:
-                cp.convergence_check(self)
+                cp.convergence_check()
 
             for c in self.conns.index:
                 self.solve_check_props(c)
@@ -1816,7 +1816,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
 
         prop : str
@@ -1840,7 +1840,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
         fl = hlp.single_fluid(c.fluid.val)
@@ -1938,7 +1938,7 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
         flow = c.to_flow()
@@ -2557,9 +2557,11 @@ class Network:
         Save the connection properties.
 
         - Uses connections object id as row identifier and saves
-            * connections source and target as well as
-            * properties with references and
-            * fluid vector (including user specification if structure is True).
+
+            - connections source and target as well as
+            - properties with references and
+            - fluid vector (including user specification if structure is True).
+
         - Connections source and target are identified by its labels.
 
         Parameters

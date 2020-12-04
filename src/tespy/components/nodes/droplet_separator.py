@@ -26,7 +26,7 @@ class DropletSeparator(Component):
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.nodes.DropletSeparator.fluid_func`
+        - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
         - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
         .. math::
@@ -358,7 +358,7 @@ class DropletSeparator(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -392,7 +392,7 @@ class DropletSeparator(Component):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

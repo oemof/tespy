@@ -48,7 +48,7 @@ class Compressor(Turbomachine):
 
         **additional equations**
 
-        - :py:meth:`tespy.components.turbomachinery.compressor.additional_equations`
+        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.additional_equations`
 
     Inlets/Outlets
 
@@ -88,26 +88,26 @@ class Compressor(Turbomachine):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.dc_cp
+    P : float, tespy.tools.data_containers.ComponentProperties
         Power, :math:`P/\text{W}`
 
-    eta_s : float, tespy.tools.data_containers.dc_cp
+    eta_s : float, tespy.tools.data_containers.ComponentProperties
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.ComponentProperties
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
+    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    char_map : tespy.tools.characteristics.CompressorMap, tespy.tools.data_containers.dc_cm
+    char_map : tespy.tools.characteristics.CompressorMap, tespy.tools.data_containers.ComponentCharacteristicMaps
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
         :py:class:`tespy.tools.characteristics.CompressorMap` for further
         information. Provide a CompressorMap as function :code:`func`.
 
-    igva : str, float, espy.tools.data_containers.dc_cp
+    igva : str, float, tespy.tools.data_containers.ComponentProperties
         Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example
@@ -215,9 +215,9 @@ class Compressor(Turbomachine):
 
             **optional equations**
 
-            - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_func`
-            - :py:meth:`tespy.components.turbomachinery.compressor.eta_s_char_func`
-            - :py:meth:`tespy.components.turbomachinery.compressor.char_map_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
+            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_func`
         """
         ######################################################################
         # eqations for specified isentropic efficiency
@@ -421,14 +421,9 @@ class Compressor(Turbomachine):
 
         return np.array([z1, z2])
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         r"""
         Perform a convergence check.
-
-        Parameters
-        ----------
-        nw : tespy.networks.network
-            The network object using this component.
 
         Note
         ----
@@ -455,7 +450,7 @@ class Compressor(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -485,7 +480,7 @@ class Compressor(Turbomachine):
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str

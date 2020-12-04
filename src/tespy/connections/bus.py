@@ -38,7 +38,7 @@ class Bus:
 
     printout : bool
         Print the results of this bus to prompt with the
-        :py:meth:`tespy.networks.networks.network.print_results` method.
+        :py:meth:`tespy.networks.network.Network.print_results` method.
         Standard value is :code:`True`.
 
     Example
@@ -46,9 +46,10 @@ class Bus:
     Busses are used to connect energy flow of different components. They can
     also be used to introduce efficiencies of energy conversion, e.g. in
     motors, generator or boilers. This example takes the combustion engine
-    example at :py:class:`tespy.components.combustion.CombustionEngine` and
-    adds a flue gas cooler and a circulation pump for the cooling water. Then
-    busses for heat output, thermal input and electricity output are
+    example at
+    :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+    and adds a flue gas cooler and a circulation pump for the cooling water.
+    Then busses for heat output, thermal input and electricity output are
     implemented.
 
     >>> from tespy.components import (Sink, Source, CombustionEngine,
@@ -211,7 +212,7 @@ class Bus:
 
         printout : bool
             Print the results of this bus to prompt with the
-            :py:meth:`tespy.networks.networks.network.print_results` method.
+            :py:meth:`tespy.networks.network.Network.print_results` method.
             Standard value is :code:`True`.
 
         Note
@@ -307,8 +308,8 @@ class Bus:
               a constant factor of 1.
             - If you provide a numeric value instead of a characteristic line,
               TESPy takes this numeric value as a constant factor.
-            - Provide a TESPy.characteristic (cmp_char), if you want the factor
-              to follow a characteristic line.
+            - Provide a :py:class:`tespy.tools.characteristics.CharLine`, if
+              you want the factor to follow a characteristic line.
 
         - P_ref (float): Energy flow specification for reference case,
           :math:`P \text{/W}`, optional.

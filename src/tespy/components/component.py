@@ -37,7 +37,7 @@ from tespy.tools.helpers import newton
 
 class Component:
     r"""
-    Class component is the base class of all TESPy components.
+    Class Component is the base class of all TESPy components.
 
     Parameters
     ----------
@@ -321,7 +321,7 @@ class Component:
 
         Parameters
         ----------
-        nw : tespy.networks.network
+        nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
         self.num_nw_fluids = len(nw.fluids)
@@ -388,7 +388,7 @@ class Component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             Bus to calculate the efficiency value on.
 
         Returns
@@ -437,7 +437,7 @@ class Component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             Bus to calculate energy transfer on.
 
         Returns
@@ -492,7 +492,7 @@ class Component:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -518,7 +518,7 @@ class Component:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -636,7 +636,7 @@ class Component:
     def initialise_fluids(self):
         return
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         return
 
     def get_plotting_data(self):

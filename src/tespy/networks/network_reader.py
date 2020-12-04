@@ -116,7 +116,7 @@ def load_network(path):
 
     Returns
     -------
-    nw : tespy.networks.networks.network
+    nw : tespy.networks.network.Network
         TESPy networks object.
 
     Note
@@ -213,7 +213,7 @@ def load_network(path):
 
     The total power output is set to 1 MW, electrical or mechanical
     efficiencies are not considered in this example. The documentation
-    example in class :py:class:`tespy.connections.bus` provides more
+    example in class :py:class:`tespy.connections.bus.Bus` provides more
     information on efficiencies of generators, for instance.
 
     >>> inc.set_attr(m=np.nan)
@@ -506,7 +506,7 @@ def construct_network(path):
 
     Returns
     -------
-    nw : tespy.networks.networks.network
+    nw : tespy.networks.network.Network
         TESPy network object.
     """
     # read network .csv-file
@@ -542,7 +542,7 @@ def construct_conns(c, *args):
 
     Returns
     -------
-    conn : tespy.connections.connection
+    conn : tespy.connections.connection.Connection
         TESPy connection object.
     """
     # create connection
@@ -631,7 +631,7 @@ def construct_busses(c, *args):
 
     Returns
     -------
-    b : tespy.connections.bus
+    b : tespy.connections.bus.Bus
         TESPy bus object.
     """
     # set up bus with label and specify value for power

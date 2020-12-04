@@ -21,21 +21,39 @@ import warnings
 
 import pandas as pd
 
-from tespy.components import basics
-from tespy.components import combustion
-from tespy.components import customs
-from tespy.components import heat_exchangers
-from tespy.components import nodes
-from tespy.components import piping
-from tespy.components import reactors
-from tespy.components import turbomachinery
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.connections import ref
-from tespy.networks.networks import network
-from tespy.tools.characteristics import char_line
-from tespy.tools.characteristics import char_map
-from tespy.tools.characteristics import compressor_map
+from tespy.components import CombustionChamber
+from tespy.components import CombustionChamberStoich
+from tespy.components import CombustionEngine
+from tespy.components import Compressor
+from tespy.components import Condenser
+from tespy.components import CycleCloser
+from tespy.components import Desuperheater
+from tespy.components import DropletSeparator
+from tespy.components import Drum
+from tespy.components import HeatExchanger
+from tespy.components import HeatExchangerSimple
+from tespy.components import Merge
+from tespy.components import Node
+from tespy.components import ORCEvaporator
+from tespy.components import ParabolicTrough
+from tespy.components import Pipe
+from tespy.components import Pump
+from tespy.components import Separator
+from tespy.components import Sink
+from tespy.components import SolarCollector
+from tespy.components import Source
+from tespy.components import Splitter
+from tespy.components import SubsystemInterface
+from tespy.components import Turbine
+from tespy.components import Valve
+from tespy.components import WaterElectrolyzer
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.connections import Ref
+from tespy.networks.networks import Network
+from tespy.tools.characteristics import CharLine
+from tespy.tools.characteristics import CharMap
+from tespy.tools.characteristics import CompressorMap
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cm
 from tespy.tools.data_containers import dc_cp
@@ -50,38 +68,38 @@ logging.captureWarnings(True)
 
 
 comp_target_classes = {
-    'cycle_closer': basics.cycle_closer,
-    'sink': basics.sink,
-    'source': basics.source,
-    'subsystem_interface': basics.subsystem_interface,
-    'combustion_chamber': combustion.combustion_chamber,
-    'combustion_chamber_stoich': combustion.combustion_chamber_stoich,
-    'combustion_engine': combustion.combustion_engine,
-    'orc_evaporator': customs.orc_evaporator,
-    'condenser': heat_exchangers.condenser,
-    'desuperheater': heat_exchangers.desuperheater,
-    'heat_exchanger': heat_exchangers.heat_exchanger,
-    'heat_exchanger_simple': heat_exchangers.heat_exchanger_simple,
-    'solar_collector': heat_exchangers.solar_collector,
-    'parabolic_trough': heat_exchangers.parabolic_trough,
-    'droplet_separator': nodes.droplet_separator,
-    'drum': nodes.drum,
-    'merge': nodes.merge,
-    'node': nodes.node,
-    'separator': nodes.separator,
-    'splitter': nodes.splitter,
-    'pipe': piping.pipe,
-    'valve': piping.valve,
-    'water_electrolyzer': reactors.water_electrolyzer,
-    'compressor': turbomachinery.compressor,
-    'pump': turbomachinery.pump,
-    'turbine': turbomachinery.turbine
+    'CycleCloser': CycleCloser,
+    'Sink': Sink,
+    'Source': Source,
+    'SubsystemInterface': SubsystemInterface,
+    'CombustionChamber': CombustionChamber,
+    'CombustionChamberStoich': CombustionChamberStoich,
+    'CombustionEngine': CombustionEngine,
+    'ORCEvaporator': ORCEvaporator,
+    'Condenser': Condenser,
+    'Desuperheater': Desuperheater,
+    'HeatExchanger': HeatExchanger,
+    'HeatExchangerSimple': HeatExchangerSimple,
+    'SolarCollector': SolarCollector,
+    'ParabolicTrough': ParabolicTrough,
+    'DropletSeparator': DropletSeparator,
+    'Drum': Drum,
+    'Merge': Merge,
+    'Node': Node,
+    'Separator': Separator,
+    'Splitter': Splitter,
+    'Pipe': Pipe,
+    'Valve': Valve,
+    'WaterElectrolyzer': WaterElectrolyzer,
+    'Compressor': Compressor,
+    'Pump': Pump,
+    'Turbine': Turbine
 }
 
 
 map_target_classes = {
-    'char_map': char_map,
-    'compressor_map': compressor_map
+    'CharMap': CharMap,
+    'CompressorMap': CompressorMap
 }
 
 # %% network loading
@@ -144,27 +162,27 @@ def load_network(path):
     temperature at a constant value.
 
     >>> import numpy as np
-    >>> from tespy.components import (sink, source, combustion_chamber,
-    ... compressor, turbine, heat_exchanger_simple)
-    >>> from tespy.connections import connection, ref, bus
-    >>> from tespy.networks import load_network, network
+    >>> from tespy.components import (Sink, Source, CombustionChamber,
+    ... Compressor, Turbine, HeatExchangerSimple)
+    >>> from tespy.connections import Connection, Ref, Bus
+    >>> from tespy.networks import load_network, Network
     >>> import shutil
     >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
-    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ... h_unit='kJ / kg', iterinfo=False)
-    >>> air = source('air')
-    >>> f = source('fuel')
-    >>> c = compressor('compressor')
-    >>> comb = combustion_chamber('combustion')
-    >>> t = turbine('turbine')
-    >>> p = heat_exchanger_simple('fuel preheater')
-    >>> si = sink('sink')
-    >>> inc = connection(air, 'out1', c, 'in1', label='ambient air')
-    >>> cc = connection(c, 'out1', comb, 'in1')
-    >>> fp = connection(f, 'out1', p, 'in1')
-    >>> pc = connection(p, 'out1', comb, 'in2')
-    >>> ct = connection(comb, 'out1', t, 'in1')
-    >>> outg = connection(t, 'out1', si, 'in1')
+    >>> air = Source('air')
+    >>> f = Source('fuel')
+    >>> c = Compressor('compressor')
+    >>> comb = CombustionChamber('combustion')
+    >>> t = Turbine('turbine')
+    >>> p = HeatExchangerSimple('fuel preheater')
+    >>> si = Sink('sink')
+    >>> inc = Connection(air, 'out1', c, 'in1', label='ambient air')
+    >>> cc = Connection(c, 'out1', comb, 'in1')
+    >>> fp = Connection(f, 'out1', p, 'in1')
+    >>> pc = Connection(p, 'out1', comb, 'in2')
+    >>> ct = Connection(comb, 'out1', t, 'in1')
+    >>> outg = Connection(t, 'out1', si, 'in1')
     >>> nw.add_conns(inc, cc, fp, pc, ct, outg)
 
     Specify component and connection properties. The intlet pressure at the
@@ -183,8 +201,8 @@ def load_network(path):
     ... 'CO2': 0.04}, T=25, p=40)
     >>> pc.set_attr(T=25)
     >>> ct.set_attr(T=1100)
-    >>> outg.set_attr(p=ref(inc, 1, 0))
-    >>> power = bus('total power output')
+    >>> outg.set_attr(p=Ref(inc, 1, 0))
+    >>> power = Bus('total power output')
     >>> power.add_comps({'comp': c}, {'comp': t})
     >>> nw.add_busses(power)
 
@@ -395,7 +413,7 @@ def construct_comps(c, *args):
 
     Returns
     -------
-    instance : tespy.components.components.component
+    instance : tespy.components.component.Component
         TESPy component object.
     """
     target_class = comp_target_classes[c['comp_type']]
@@ -430,7 +448,7 @@ def construct_comps(c, *args):
                     extrapolate = False
                     if 'extrapolate' in args[0].columns:
                         extrapolate = args[0][values].extrapolate.values[0]
-                    char = char_line(x=x, y=y, extrapolate=extrapolate)
+                    char = CharLine(x=x, y=y, extrapolate=extrapolate)
 
                 except IndexError:
 
@@ -503,7 +521,7 @@ def construct_network(path):
     del data['fluids']
 
     # create network object with its properties
-    nw = network(fluids=fluid_list, **data)
+    nw = Network(fluids=fluid_list, **data)
 
     return nw
 
@@ -528,7 +546,7 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = connection(args[0].instance[c.source], c.source_id,
+    conn = Connection(args[0].instance[c.source], c.source_id,
                       args[0].instance[c.target], c.target_id)
 
     kwargs = {}
@@ -596,9 +614,8 @@ def conns_set_ref(c, *args):
             instance = args[0].instance[c[col + '_ref'] ==
                                         args[0]['id']].values[0]
             # write to connection properties
-            c['instance'].get_attr(col).ref = ref(instance,
-                                                  c[col + '_ref_f'],
-                                                  c[col + '_ref_d'])
+            c['instance'].get_attr(col).ref = Ref(
+                instance, c[col + '_ref_f'], c[col + '_ref_d'])
 
 # %% create busses
 
@@ -618,7 +635,7 @@ def construct_busses(c, *args):
         TESPy bus object.
     """
     # set up bus with label and specify value for power
-    b = bus(c.label, P=c.P)
+    b = Bus(c.label, P=c.P)
     b.P.is_set = c.P_set
     return b
 
@@ -650,8 +667,8 @@ def busses_add_comps(c, *args):
             base = c.bus_base[i]
 
         values = char == args[1]['id']
-        char = char_line(x=args[1][values].x.values[0],
-                         y=args[1][values].y.values[0])
+        char = CharLine(x=args[1][values].x.values[0],
+                        y=args[1][values].y.values[0])
 
         # add component with corresponding details to bus
         args[0].instance[b == args[0]['label']].values[0].add_comps({

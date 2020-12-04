@@ -14,7 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.nodes.node import Node
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 
 
 class Merge(Node):
@@ -43,7 +43,7 @@ class Merge(Node):
 
     Image
 
-        .. image:: _images/merge.svg
+        .. image:: _images/Merge.svg
            :scale: 100 %
            :alt: alternative text
            :align: center

@@ -315,12 +315,12 @@ class DropletSeparator(Component):
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         for outconn in self.outl:
             for fluid, x in inconn.fluid.val.items():
@@ -336,12 +336,12 @@ class DropletSeparator(Component):
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         inconn = self.inl[0]
         for fluid, x in outconn.fluid.val.items():

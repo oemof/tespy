@@ -15,9 +15,9 @@ import logging
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_flu
-from tespy.tools.data_containers import dc_prop
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import FluidComposition as dc_flu
+from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
@@ -119,7 +119,8 @@ class Connection:
 
     >>> from tespy.components import Sink, Source
     >>> from tespy.connections import Connection, Ref
-    >>> from tespy.tools.data_containers import dc_flu, dc_prop
+    >>> from tespy.tools import FluidComposition as dc_flu
+    >>> from tespy.tools import FluidProperties as dc_prop
     >>> import numpy as np
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
@@ -157,9 +158,9 @@ class Connection:
     information.
 
     >>> type(so_si1.v)
-    <class 'tespy.tools.data_containers.dc_prop'>
+    <class 'tespy.tools.data_containers.FluidProperties'>
     >>> type(so_si1.fluid)
-    <class 'tespy.tools.data_containers.dc_flu'>
+    <class 'tespy.tools.data_containers.FluidComposition'>
 
     If you want get a spcific value use the logic: connection.property.*.
     Aditionally, it is possible to use the :code:`get_attr` method.
@@ -589,6 +590,13 @@ class Ref:
     r"""
     Reference fluid properties from one connection to another connection.
 
+    For example, reference the mass flow of one connection :math:`\dot{m}` to
+    another mass flow :math:`\dot{m}_{ref}`:
+
+    .. math::
+
+        \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
+
     Parameters
     ----------
     obj : tespy.connections.connection
@@ -599,16 +607,6 @@ class Ref:
 
     d : float
         Delta to add after multiplication.
-
-    Note
-    ----
-    Reference the mass flow of one connection :math:`\dot{m}` to another mass
-    flow :math:`\dot{m}_{ref}`
-
-    .. math::
-
-        \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
-
     """
 
     def __init__(self, ref_obj, factor, delta):

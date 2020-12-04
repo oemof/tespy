@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 # %%
 
@@ -162,12 +162,12 @@ class CycleCloser(Component):
 
         Parameters
         ----------
-        inconn : tespy.connections.connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 
@@ -177,12 +177,12 @@ class CycleCloser(Component):
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 

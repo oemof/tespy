@@ -18,7 +18,7 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 
 
 def convergence_check(lin_dep):

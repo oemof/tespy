@@ -34,9 +34,9 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_custom_char
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_flu
+from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.fluid_properties import Memorise
 from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pQ

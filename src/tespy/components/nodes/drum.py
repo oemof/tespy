@@ -398,12 +398,12 @@ class Drum(Component):
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         if self != start:
             start = self
@@ -421,12 +421,12 @@ class Drum(Component):
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         if self != start:
             start = self

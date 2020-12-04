@@ -20,12 +20,12 @@ from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainer
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_gcp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import bus_char_derivative
@@ -544,15 +544,13 @@ class Component:
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
-        logging.error(str(inconn.label + ' ' + self.label))
-        logging.error(str((self.inl, self.outl, inconn)))
         conn_idx = self.inl.index(inconn)
         outconn = self.outl[conn_idx]
 
@@ -569,12 +567,12 @@ class Component:
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         conn_idx = self.outl.index(outconn)
         inconn = self.inl[conn_idx]

@@ -18,8 +18,8 @@ import numpy as np
 
 from tespy.components.combustion.combustion_chamber import CombustionChamber
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
@@ -39,7 +39,7 @@ class CombustionChamberStoich(CombustionChamber):
         **mandatory equations**
 
         - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.reaction_balance`
-        - :py:meth:`tespy.components.components.Component.mass_flow_func`
+        - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
         .. math::
 
@@ -64,7 +64,7 @@ class CombustionChamberStoich(CombustionChamber):
 
     Image
 
-        .. image:: _images/combustion_chamber.svg
+        .. image:: _images/CombustionChamber.svg
            :scale: 100 %
            :alt: alternative text
            :align: center

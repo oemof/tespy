@@ -18,7 +18,7 @@ import pandas as pd
 
 from tespy.components.component import Component
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)
@@ -188,7 +188,7 @@ class Bus:
             columns=['param', 'P_ref', 'char', 'efficiency', 'base'])
 
         self.label = label
-        self.P = dc_cp(val=np.nan, is_set=False)
+        self.P = dc_simple(val=np.nan, is_set=False)
         self.char = CharLine(x=np.array([0, 3]), y=np.array([1, 1]))
         self.printout = True
 

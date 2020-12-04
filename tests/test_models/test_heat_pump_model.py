@@ -27,7 +27,7 @@ from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import dc_cc
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 
 
 class TestHeatPump:

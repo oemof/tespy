@@ -15,7 +15,7 @@ import logging
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.helpers import num_fluids
 
 
@@ -441,31 +441,31 @@ class Node(Component):
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""
-        Propagate the fluids towards connection's target in recursion.
+        Fluid propagation stops here.
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 
     def propagate_fluid_to_source(self, outconn, start):
         r"""
-        Propagate the fluids towards connection's source in recursion.
+        Fluid propagation stops here.
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 

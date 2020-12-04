@@ -17,9 +17,9 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
@@ -175,7 +175,7 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.data_containers import dc_cc
+    >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']
     >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
@@ -954,12 +954,12 @@ class WaterElectrolyzer(Component):
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         if inconn == self.inl[0]:
             outconn = self.outl[0]
@@ -970,6 +970,29 @@ class WaterElectrolyzer(Component):
                     outconn.fluid.val[fluid] = x
 
             outconn.target.propagate_fluid_to_target(outconn, start)
+
+    def propagate_fluid_to_source(self, outconn, start):
+        r"""
+        Propagate the fluids towards connection's source in recursion.
+
+        Parameters
+        ----------
+        outconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        if outconn == self.outl[0]:
+            inconn = self.inl[0]
+
+            for fluid, x in outconn.fluid.val.items():
+                if (inconn.fluid.val_set[fluid] is False and
+                        inconn.good_starting_values is False):
+                    inconn.fluid.val[fluid] = x
+
+            inconn.source.propagate_fluid_to_source(inconn, start)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

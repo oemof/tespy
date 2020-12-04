@@ -13,9 +13,9 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
@@ -54,7 +54,7 @@ class Valve(Component):
 
     Image
 
-        .. image:: _images/valve.svg
+        .. image:: _images/Valve.svg
            :scale: 100 %
            :alt: alternative text
            :align: center

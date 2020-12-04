@@ -17,9 +17,9 @@ import numpy as np
 
 from tespy.components.combustion.combustion_chamber import CombustionChamber
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import h_pT
@@ -80,7 +80,7 @@ class CombustionEngine(CombustionChamber):
 
     Image
 
-        .. image:: _images/combustion_engine.svg
+        .. image:: _images/CombustionEngine.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -1334,12 +1334,12 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        inconn : tespy.connections.Connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.Connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         for outconn in self.outl[:2]:
             for fluid, x in inconn.fluid.val.items():
@@ -1354,12 +1354,12 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         for inconn in self.inl[:2]:
             for fluid, x in outconn.fluid.val.items():

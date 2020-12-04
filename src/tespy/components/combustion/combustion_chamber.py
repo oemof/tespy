@@ -17,8 +17,8 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import h_pT
@@ -63,7 +63,7 @@ class CombustionChamber(Component):
 
     Image
 
-        .. image:: _images/combustion_chamber.svg
+        .. image:: _images/CombustionChamber.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -1080,12 +1080,12 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        inconn : tespy.connections.connection
+        inconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 
@@ -1095,12 +1095,12 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        outconn : tespy.connections.connection
+        outconn : tespy.connections.connection.Connection
             Connection to initialise.
 
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
         """
         return
 

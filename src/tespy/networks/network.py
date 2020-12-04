@@ -27,9 +27,13 @@ from numpy.linalg import norm
 from tabulate import tabulate
 
 from tespy import connections as con
-from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
 
@@ -934,7 +938,7 @@ class Network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc.dc_cp):
+                    if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
                         switched = True
                         msg += var + ', '
@@ -1170,7 +1174,7 @@ class Network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc.dc_cp):
+                    if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
                         switched = True
                         msg += var + ', '
@@ -2391,7 +2395,7 @@ class Network:
             # gather parameters to print for components of type c
             cols = []
             for col, val in df.index[0].variables.items():
-                if isinstance(val, dc.dc_cp):
+                if isinstance(val, dc_cp):
                     if val.get_attr('printout'):
                         cols += [col]
 
@@ -2671,7 +2675,7 @@ class Network:
             # attributes
             for col, data in df.index[0].variables.items():
                 # component characteristics container
-                if isinstance(data, dc.dc_cc) or isinstance(data, dc.dc_cm):
+                if isinstance(data, dc_cc) or isinstance(data, dc_cm):
                     df[col] = df.apply(
                         f, axis=1, args=(col, 'func')).astype(str)
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
@@ -2681,7 +2685,7 @@ class Network:
                         f, axis=1, args=(col, 'param'))
 
                 # component property container
-                elif isinstance(data, dc.dc_cp):
+                elif isinstance(data, dc_cp):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(
                         f, axis=1, args=(col, 'is_set'))
@@ -2689,13 +2693,13 @@ class Network:
                         f, axis=1, args=(col, 'is_var'))
 
                 # component property container
-                elif isinstance(data, dc.dc_simple):
+                elif isinstance(data, dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(
                         f, axis=1, args=(col, 'is_set'))
 
                 # component property container
-                elif isinstance(data, dc.dc_gcp):
+                elif isinstance(data, dc_gcp):
                     df[col] = df.apply(f, axis=1, args=(col, 'method'))
 
             df.set_index('label', inplace=True)
@@ -2745,9 +2749,9 @@ class Network:
             df = df_comps[df_comps['comp_type'] == c]
 
             for col, data in df.index[0].variables.items():
-                if isinstance(data, dc.dc_cc):
+                if isinstance(data, dc_cc):
                     char_lines += [data.func]
-                elif isinstance(data, dc.dc_cm):
+                elif isinstance(data, dc_cm):
                     char_maps += [data.func]
 
         # characteristic lines in busses

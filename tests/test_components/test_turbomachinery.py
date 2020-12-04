@@ -24,8 +24,8 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import s_mix_ph
 

@@ -21,7 +21,7 @@ import numpy as np
 # %%
 
 
-class data_container:
+class DataContainer:
     r"""
     The data_container is parent class for all data_containers.
 
@@ -61,7 +61,7 @@ class data_container:
 
     >>> from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu,
     ... dc_gcp, dc_prop, dc_simple)
-    >>> from tespy.components.piping import pipe
+    >>> from tespy.components import Pipe
     >>> type(dc_cm(is_set=True))
     <class 'tespy.tools.data_containers.dc_cm'>
     >>> type(dc_cc(is_set=True, param='m'))
@@ -69,8 +69,8 @@ class data_container:
     >>> type(dc_cp(val=100, is_set=True, is_var=True, printout=True,
     ...      max_val=1000, min_val=1))
     <class 'tespy.tools.data_containers.dc_cp'>
-    >>> pipe = pipe('testpipe', L=100, D=0.5, ks=5e-5)
-    >>> type(dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
+    >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
+    >>> type(dc_gcp(is_set=True, elements=[pi.L, pi.D, pi.ks],
     ...      method='default'))
     <class 'tespy.tools.data_containers.dc_gcp'>
     >>> type(dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
@@ -154,7 +154,7 @@ class data_container:
 # %%
 
 
-class dc_cc(data_container):
+class dc_cc(DataContainer):
     r"""
     Data container for component characteristics.
 
@@ -187,7 +187,7 @@ class dc_cc(data_container):
 # %%
 
 
-class dc_cm(data_container):
+class dc_cm(DataContainer):
     r"""
     Data container for characteristic maps.
 
@@ -220,7 +220,7 @@ class dc_cm(data_container):
 # %%
 
 
-class dc_cp(data_container):
+class dc_cp(DataContainer):
     r"""
     Data container for component properties.
 
@@ -273,7 +273,7 @@ class dc_cp(data_container):
 # %%
 
 
-class dc_flu(data_container):
+class dc_flu(DataContainer):
     r"""
     Data container for fluid composition.
 
@@ -314,7 +314,7 @@ class dc_flu(data_container):
 # %%
 
 
-class dc_gcp(data_container):
+class dc_gcp(DataContainer):
     r"""
     Data container for grouped component parameters.
 
@@ -349,7 +349,7 @@ class dc_gcp(data_container):
 # %%
 
 
-class dc_prop(data_container):
+class dc_prop(DataContainer):
     r"""
     Data container for fluid properties.
 
@@ -402,7 +402,7 @@ class dc_prop(data_container):
 # %%
 
 
-class dc_simple(data_container):
+class dc_simple(DataContainer):
     r"""
     Simple data container without data type restrictions to val field.
 

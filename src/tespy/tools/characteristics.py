@@ -26,7 +26,7 @@ from tespy.tools.helpers import extend_basic_path
 # %%
 
 
-class char_line:
+class CharLine:
     r"""
     Class for characteristc lines.
 
@@ -175,7 +175,7 @@ class char_line:
 # %%
 
 
-class char_map:
+class CharMap:
     r"""
     Class for characteristic maps.
 
@@ -467,7 +467,7 @@ class char_map:
             raise KeyError(msg)
 
 
-class compressor_map(char_map):
+class CompressorMap(CharMap):
     r"""
     Class for compressor maps.
 
@@ -589,7 +589,7 @@ def load_default_char(component, parameter, function_name, char_type):
     obj : object
         The characteristics (char_line, char_map, compressor_map) object.
     """
-    if char_type == char_line:
+    if char_type == CharLine:
         path = resource_filename('tespy.data', 'char_lines.json')
     else:
         path = resource_filename('tespy.data', 'char_maps.json')
@@ -597,7 +597,7 @@ def load_default_char(component, parameter, function_name, char_type):
     with open(path) as f:
         data = json.loads(f.read())
 
-    if char_type == char_line:
+    if char_type == CharLine:
         x = data[component][parameter][function_name]['x']
         y = data[component][parameter][function_name]['y']
         obj = char_type(x, y)
@@ -631,7 +631,7 @@ def load_custom_char(name, char_type):
     """
     path = extend_basic_path('data')
 
-    if char_type == char_line:
+    if char_type == CharLine:
         path = os.path.join(path, 'char_lines.json')
     else:
         path = os.path.join(path, 'char_maps.json')
@@ -641,7 +641,7 @@ def load_custom_char(name, char_type):
         with open(path) as f:
             data = json.loads(f.read())
 
-        if char_type == char_line:
+        if char_type == CharLine:
             x = data[name]['x']
             y = data[name]['y']
             obj = char_type(x, y)

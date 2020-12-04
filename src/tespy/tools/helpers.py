@@ -330,7 +330,7 @@ def fluid_structure(fluid):
 # %%
 
 
-def lamb(re, ks, d):
+def darcy_friction_factor(re, ks, d):
     r"""
     Calculate the Darcy friction factor.
 
@@ -347,8 +347,8 @@ def lamb(re, ks, d):
 
     Returns
     -------
-    lamb : float
-        Darcy friction factor lamb / 1
+    darcy_friction_factor : float
+        Darcy friction factor :math:`\lambda` / 1
 
     Note
     ----
@@ -386,7 +386,7 @@ def lamb(re, ks, d):
     -------
     Calculate the Darcy friction factor at different hydraulic states.
 
-    >>> from tespy.tools.helpers import lamb
+    >>> from tespy.tools.helpers import darcy_friction_factor
     >>> ks = 5e-5
     >>> d = 0.05
     >>> re_laminar = 2000
@@ -398,17 +398,17 @@ def lamb(re, ks, d):
     >>> d_very_high = 1
     >>> ks_low = 1e-5
     >>> ks_rough = 1e-3
-    >>> lamb(re_laminar, ks, d)
+    >>> darcy_friction_factor(re_laminar, ks, d)
     0.032
-    >>> round(lamb(re_turb_smooth, ks, d), 3)
+    >>> round(darcy_friction_factor(re_turb_smooth, ks, d), 3)
     0.027
-    >>> round(lamb(re_turb_trans, ks, d), 3)
+    >>> round(darcy_friction_factor(re_turb_trans, ks, d), 3)
     0.023
-    >>> round(lamb(re_turb_trans, ks_rough, d), 3)
+    >>> round(darcy_friction_factor(re_turb_trans, ks_rough, d), 3)
     0.049
-    >>> round(lamb(re_high, ks, d_high), 3)
+    >>> round(darcy_friction_factor(re_high, ks, d_high), 3)
     0.012
-    >>> round(lamb(re_very_high, ks_low, d_very_high), 3)
+    >>> round(darcy_friction_factor(re_very_high, ks_low, d_very_high), 3)
     0.009
     """
     if re <= 2320:
@@ -416,23 +416,23 @@ def lamb(re, ks, d):
     else:
         if re * ks / d < 65:
             if re <= 5e4:
-                return lamb_blasius(re)
+                return blasius(re)
             elif re < 1e6:
-                return lamb_hanakov(re)
+                return hanakov(re)
             else:
                 l0 = 0.02
                 return newton(
-                    lamb_prandtl_karman, lamb_prandtl_karman_derivative, [re],
+                    prandtl_karman, prandtl_karman_derivative, [re],
                     0, val0=l0, valmin=0.00001, valmax=0.2)
 
         else:
             l0 = 0.002
             return newton(
-                lamb_colebrook, lamb_colebrook_derivative, [re, ks, d], 0,
+                colebrook, colebrook_derivative, [re, ks, d], 0,
                 val0=l0, valmin=0.0001, valmax=0.2)
 
 
-def lamb_blasius(re):
+def blasius(re):
     """
     Calculate friction coefficient according to Blasius.
 
@@ -443,13 +443,13 @@ def lamb_blasius(re):
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     return 0.3164 * re ** (-0.25)
 
 
-def lamb_hanakov(re):
+def hanakov(re):
     """
     Calculate friction coefficient according to Hanakov.
 
@@ -460,13 +460,13 @@ def lamb_hanakov(re):
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     return (1.8 * np.log10(re) - 1.5) ** (-2)
 
 
-def lamb_prandtl_karman(params, lamb):
+def prandtl_karman(params, darcy_friction_factor):
     """
     Calculate friction coefficient according to Prandtl and v. Kármán.
 
@@ -477,24 +477,28 @@ def lamb_prandtl_karman(params, lamb):
     re : float
         Reynolds number.
 
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     re = params[0]
-    return 2 * np.log10(re * lamb ** 0.5) - 0.8 - 1 / lamb ** 0.5
+    return (
+        2 * np.log10(re * darcy_friction_factor ** 0.5) - 0.8 -
+        1 / darcy_friction_factor ** 0.5)
 
 
-def lamb_prandtl_karman_derivative(params, lamb):
+def prandtl_karman_derivative(params, darcy_friction_factor):
     """Calculate derivative for Prandtl and v. Kármán equation."""
-    return 1 / (lamb * np.log(10)) + 1 / 2 * lamb ** (-1.5)
+    return (
+        1 / (darcy_friction_factor * np.log(10)) +
+        1 / 2 * darcy_friction_factor ** (-1.5))
 
 
-def lamb_colebrook(params, lamb):
+def colebrook(params, darcy_friction_factor):
     """
     Calculate friction coefficient accroding to Colebrook-White equation.
 
@@ -511,24 +515,26 @@ def lamb_colebrook(params, lamb):
     d : float
         Pipe's diameter.
 
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     re, ks, d = params[0], params[1], params[2]
-    return (2 * np.log10(2.51 / (re * lamb ** 0.5) + ks / (3.71 * d)) +
-            1 / lamb ** 0.5)
+    return (
+        2 * np.log10(
+            2.51 / (re * darcy_friction_factor ** 0.5) + ks / (3.71 * d)) +
+        1 / darcy_friction_factor ** 0.5)
 
 
-def lamb_colebrook_derivative(params, lamb):
+def colebrook_derivative(params, darcy_friction_factor):
     """Calculate derivative for Colebrook-White equation."""
     d = 0.001
-    return (lamb_colebrook(params, lamb + d) -
-            lamb_colebrook(params, lamb - d)) / (2 * d)
+    return (colebrook(params, darcy_friction_factor + d) -
+            colebrook(params, darcy_friction_factor - d)) / (2 * d)
 
 # %%
 

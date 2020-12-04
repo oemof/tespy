@@ -4,19 +4,19 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_components/test_orc_evaporator.py
+tests/test_components/test_customs.py
 SPDX-License-Identifier: MIT
 """
 import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.customs import orc_evaporator
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import ORCEvaporator
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks.networks import Network
 from tespy.tools.fluid_properties import T_bp_p
 
 
@@ -29,30 +29,29 @@ def convergence_check(lin_dep):
 class TestOrcEvaporator:
 
     def setup(self):
-        self.nw = network(['water', 'Isopentane'], T_unit='C', p_unit='bar',
+        self.nw = Network(['water', 'Isopentane'], T_unit='C', p_unit='bar',
                           h_unit='kJ / kg')
-        self.inl1 = source('inlet 1')
-        self.outl1 = sink('outlet 1')
+        self.inl1 = Source('inlet 1')
+        self.outl1 = Sink('outlet 1')
 
-        self.inl2 = source('inlet 2')
-        self.outl2 = sink('outlet 2')
+        self.inl2 = Source('inlet 2')
+        self.outl2 = Sink('outlet 2')
 
-        self.inl3 = source('inlet 3')
-        self.outl3 = sink('outlet 3')
+        self.inl3 = Source('inlet 3')
+        self.outl3 = Sink('outlet 3')
 
-        self.instance = orc_evaporator('orc evaporator')
+        self.instance = ORCEvaporator('orc evaporator')
 
-        self.c1 = connection(self.inl1, 'out1', self.instance, 'in1')
-        self.c2 = connection(self.instance, 'out1', self.outl1, 'in1')
-        self.c3 = connection(self.inl2, 'out1', self.instance, 'in2')
-        self.c4 = connection(self.instance, 'out2', self.outl2, 'in1')
-        self.c5 = connection(self.inl3, 'out1', self.instance, 'in3')
-        self.c6 = connection(self.instance, 'out3', self.outl3, 'in1')
+        self.c1 = Connection(self.inl1, 'out1', self.instance, 'in1')
+        self.c2 = Connection(self.instance, 'out1', self.outl1, 'in1')
+        self.c3 = Connection(self.inl2, 'out1', self.instance, 'in2')
+        self.c4 = Connection(self.instance, 'out2', self.outl2, 'in1')
+        self.c5 = Connection(self.inl3, 'out1', self.instance, 'in3')
+        self.c6 = Connection(self.instance, 'out3', self.outl3, 'in1')
 
-        self.nw.add_conns(self.c1, self.c2, self.c3,
-                          self.c4, self.c5, self.c6)
+        self.nw.add_conns(self.c1, self.c2, self.c3, self.c4, self.c5, self.c6)
 
-    def test_orc_evap(self):
+    def test_ORCEvaporator(self):
         """Test component properties of orc evaporator."""
         # design specification
         self.instance.set_attr(pr1=0.95, pr2=0.975, pr3=0.975,
@@ -79,7 +78,7 @@ class TestOrcEvaporator:
         # test bus
         self.instance.set_attr(Q=np.nan)
         P = 6.64e+07
-        b = bus('heat transfer', P=P)
+        b = Bus('heat transfer', P=P)
         b.add_comps({'comp': self.instance})
         self.nw.add_busses(b)
         self.nw.solve('design')

@@ -13,17 +13,17 @@ import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.turbomachinery import compressor
-from tespy.components.turbomachinery import pump
-from tespy.components.turbomachinery import turbine
-from tespy.components.turbomachinery import turbomachine
-from tespy.connections import connection
-from tespy.connections import ref
-from tespy.networks.networks import network
-from tespy.tools.characteristics import char_line
-from tespy.tools.characteristics import compressor_map
+from tespy.components import Compressor
+from tespy.components import Pump
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Turbine
+from tespy.components.turbomachinery.turbomachine import Turbomachine
+from tespy.connections import Connection
+from tespy.connections import Ref
+from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
+from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cm
@@ -39,17 +39,17 @@ def convergence_check(lin_dep):
 class TestTurbomachinery:
 
     def setup_network(self, instance):
-        self.nw = network(['INCOMP::DowQ', 'NH3', 'N2', 'O2', 'Ar'],
+        self.nw = Network(['INCOMP::DowQ', 'NH3', 'N2', 'O2', 'Ar'],
                           T_unit='C', p_unit='bar', v_unit='m3 / s')
-        self.source = source('source')
-        self.sink = sink('sink')
-        self.c1 = connection(self.source, 'out1', instance, 'in1')
-        self.c2 = connection(instance, 'out1', self.sink, 'in1')
+        self.source = Source('source')
+        self.sink = Sink('sink')
+        self.c1 = Connection(self.source, 'out1', instance, 'in1')
+        self.c2 = Connection(instance, 'out1', self.sink, 'in1')
         self.nw.add_conns(self.c1, self.c2)
 
-    def test_compressor(self):
+    def test_Compressor(self):
         """Test component properties of compressors."""
-        instance = compressor('compressor')
+        instance = Compressor('compressor')
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
@@ -84,7 +84,7 @@ class TestTurbomachinery:
         # rise calculation
         self.c2.set_attr(p=np.nan)
         instance.set_attr(char_map=dc_cm(func=ldc(
-            'compressor', 'char_map', 'DEFAULT', compressor_map),
+            'compressor', 'char_map', 'DEFAULT', CompressorMap),
             is_set=True), eta_s=np.nan)
 
         # offdesign test, efficiency value should be at design value
@@ -123,7 +123,7 @@ class TestTurbomachinery:
 
         # test parameter specification for eta_s_char with unset char map
         instance.set_attr(eta_s_char=dc_cc(func=ldc(
-            'compressor', 'eta_s_char', 'DEFAULT', char_line),
+            'compressor', 'eta_s_char', 'DEFAULT', CharLine),
             is_set=True, param='m'))
         instance.char_map.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
@@ -157,9 +157,9 @@ class TestTurbomachinery:
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_pump(self):
+    def test_Pump(self):
         """Test component properties of pumps."""
-        instance = pump('pump')
+        instance = Pump('pump')
         self.setup_network(instance)
         fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'DowQ': 1, 'NH3': 0}
         self.c1.set_attr(fluid=fl, v=1, p=5, T=50)
@@ -196,11 +196,11 @@ class TestTurbomachinery:
         # flow char (pressure rise vs. volumetric flow)
         x = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]
         y = np.array([14, 13.5, 12.5, 11, 9, 6.5, 3.5, 0]) * 1e5
-        char = dc_cc(func=char_line(x, y), is_set=True)
+        char = dc_cc(func=CharLine(x, y), is_set=True)
         # apply flow char and eta_s char
         instance.set_attr(
             flow_char=char, eta_s=np.nan, eta_s_char=dc_cc(
-                func=ldc('pump', 'eta_s_char', 'DEFAULT', char_line),
+                func=ldc('pump', 'eta_s_char', 'DEFAULT', CharLine),
                 is_set=True))
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
@@ -247,9 +247,9 @@ class TestTurbomachinery:
         assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 0, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_turbine(self):
+    def test_Turbine(self):
         """Test component properties of turbines."""
-        instance = turbine('turbine')
+        instance = Turbine('turbine')
         self.setup_network(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
               'NH3': 0}
@@ -342,9 +342,9 @@ class TestTurbomachinery:
         assert eta_s == round(instance.eta_s.val, 3), msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_turbomachine(self):
+    def test_Turbomachine(self):
         """Test component properties of turbomachines."""
-        instance = turbomachine('turbomachine')
+        instance = Turbomachine('turbomachine')
         msg = ('Component name must be turbomachine, is ' +
                instance.component() + '.')
         assert 'turbomachine' == instance.component(), msg

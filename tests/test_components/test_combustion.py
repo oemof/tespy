@@ -14,13 +14,13 @@ import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.combustion import combustion_chamber
-from tespy.components.combustion import combustion_engine
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
+from tespy.components import CombustionChamber
+from tespy.components import CombustionEngine
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks import Network
 
 
 def convergence_check(lin_dep):
@@ -33,42 +33,42 @@ class TestCombustion:
 
     def setup(self):
 
-        self.nw = network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'CH4'],
+        self.nw = Network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'CH4'],
                           T_unit='C', p_unit='bar', v_unit='m3 / s')
-        self.fuel = source('fuel')
-        self.air = source('ambient air')
-        self.fg = sink('flue gas')
+        self.fuel = Source('fuel')
+        self.air = Source('ambient air')
+        self.fg = Sink('flue gas')
 
-    def setup_combustion_chamber_network(self, instance):
+    def setup_CombustionChamber_network(self, instance):
 
-        self.c1 = connection(self.air, 'out1', instance, 'in1')
-        self.c2 = connection(self.fuel, 'out1', instance, 'in2')
-        self.c3 = connection(instance, 'out1', self.fg, 'in1')
+        self.c1 = Connection(self.air, 'out1', instance, 'in1')
+        self.c2 = Connection(self.fuel, 'out1', instance, 'in2')
+        self.c3 = Connection(instance, 'out1', self.fg, 'in1')
         self.nw.add_conns(self.c1, self.c2, self.c3)
 
-    def setup_combustion_engine_network(self, instance):
+    def setup_CombustionEngine_network(self, instance):
 
-        self.cw1_in = source('cooling water 1 source')
-        self.cw2_in = source('cooling water 2 source')
-        self.cw1_out = sink('cooling water 1 sink')
-        self.cw2_out = sink('cooling water 2 sink')
+        self.cw1_in = Source('cooling water 1 source')
+        self.cw2_in = Source('cooling water 2 source')
+        self.cw1_out = Sink('cooling water 1 sink')
+        self.cw2_out = Sink('cooling water 2 sink')
 
-        self.c1 = connection(self.air, 'out1', instance, 'in3')
-        self.c2 = connection(self.fuel, 'out1', instance, 'in4')
-        self.c3 = connection(instance, 'out3', self.fg, 'in1')
-        self.c4 = connection(self.cw1_in, 'out1', instance, 'in1')
-        self.c5 = connection(self.cw2_in, 'out1', instance, 'in2')
-        self.c6 = connection(instance, 'out1', self.cw1_out, 'in1')
-        self.c7 = connection(instance, 'out2', self.cw2_out, 'in1')
+        self.c1 = Connection(self.air, 'out1', instance, 'in3')
+        self.c2 = Connection(self.fuel, 'out1', instance, 'in4')
+        self.c3 = Connection(instance, 'out3', self.fg, 'in1')
+        self.c4 = Connection(self.cw1_in, 'out1', instance, 'in1')
+        self.c5 = Connection(self.cw2_in, 'out1', instance, 'in2')
+        self.c6 = Connection(instance, 'out1', self.cw1_out, 'in1')
+        self.c7 = Connection(instance, 'out2', self.cw2_out, 'in1')
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4, self.c5, self.c6,
                           self.c7)
 
-    def test_combustion_chamber(self):
+    def test_CombustionChamber(self):
         """
         Test component properties of combustion chamber.
         """
-        instance = combustion_chamber('combustion chamber')
-        self.setup_combustion_chamber_network(instance)
+        instance = CombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
 
         # connection parameter specification
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
@@ -78,8 +78,8 @@ class TestCombustion:
         self.c2.set_attr(fluid=fuel, T=30)
         self.c3.set_attr(T=1200)
 
-        # test specified bus value on combustion_chamber (must be equal to ti)
-        b = bus('thermal input', P=1e6)
+        # test specified bus value on CombustionChamber (must be equal to ti)
+        b = Bus('thermal input', P=1e6)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
@@ -89,7 +89,7 @@ class TestCombustion:
         assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
         b.set_attr(P=np.nan)
 
-        # test specified thermal input for combustion_chamber
+        # test specified thermal input for CombustionChamber
         instance.set_attr(ti=1e6)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -99,7 +99,7 @@ class TestCombustion:
                ', is ' + str(ti) + '.')
         assert round(ti, 1) == round(instance.ti.val, 1), msg
 
-        # test specified lamb for combustion_chamber
+        # test specified lamb for CombustionChamber
         self.c3.set_attr(T=np.nan)
         instance.set_attr(lamb=1)
         self.nw.solve('design')
@@ -108,10 +108,10 @@ class TestCombustion:
                str(round(self.c3.fluid.val['O2'], 4)) + '.')
         assert 0.0 == round(self.c3.fluid.val['O2'], 4), msg
 
-    def test_combustion_engine(self):
+    def test_CombustionEngine(self):
         """Test component properties of combustion engine."""
-        instance = combustion_engine('combustion engine')
-        self.setup_combustion_engine_network(instance)
+        instance = CombustionEngine('combustion engine')
+        self.setup_CombustionEngine_network(instance)
 
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
                'CH4': 0}
@@ -128,11 +128,11 @@ class TestCombustion:
         self.c5.set_attr(p=3, T=80, m=50, fluid=water2)
 
         # create busses
-        TI = bus('thermal input')
-        Q1 = bus('heat output 1')
-        Q2 = bus('heat output 2')
-        Q = bus('heat output')
-        Qloss = bus('thermal heat loss')
+        TI = Bus('thermal input')
+        Q1 = Bus('heat output 1')
+        Q2 = Bus('heat output 2')
+        Q = Bus('heat output')
+        Qloss = Bus('thermal heat loss')
 
         TI.add_comps({'comp': instance, 'param': 'TI'})
         Q1.add_comps({'comp': instance, 'param': 'Q1'})

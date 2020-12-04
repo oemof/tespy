@@ -83,7 +83,7 @@ class TESPyFluid:
 
     >>> from tespy.tools.fluid_properties import (TESPyFluid, h_mix_pT,
     ... s_mix_pT, v_mix_pT, visc_mix_pT)
-    >>> from tespy.networks.networks import Network
+    >>> from tespy.networks import Network
     >>> import shutil
     >>> fluidvec = {'N2': 0.7552, 'O2': 0.2314, 'CO2': 0.0005, 'Ar': 0.0129}
     >>> p_arr = np.array([0.1, 10]) * 1e5

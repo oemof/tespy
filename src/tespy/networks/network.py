@@ -99,7 +99,7 @@ class Network:
 
     Example
     -------
-    Basic example for a setting up a tespy.networks.network object. Specifying
+    Basic example for a setting up a tespy.networks.network.Network object. Specifying
     the fluids is mandatory! Unit systems, fluid property range and iterinfo
     are optional.
 
@@ -112,7 +112,7 @@ class Network:
     >>> mynetwork = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
-    <class 'tespy.networks.networks.Network'>
+    <class 'tespy.networks.network.Network'>
     >>> mynetwork.set_attr(iterinfo=False)
     >>> mynetwork.iterinfo
     False
@@ -974,9 +974,9 @@ class Network:
         Note
         ----
         The methods
-        :py:meth:`tespy.networks.networks.network.init_comp_design_params`
+        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
         (components) and the
-        :py:meth:`tespy.networks.networks.network.init_conn_design_params`
+        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
         (connections) handle the parameter specification.
         """
         # components without any parameters

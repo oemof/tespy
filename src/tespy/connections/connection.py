@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class Connection.
+"""Module of class Connection and class Ref.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -34,25 +34,25 @@ class Connection:
 
     Parameters
     ----------
-    m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+    m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
         Mass flow specification.
 
     m0 : float
         Starting value specification for mass flow.
 
-    p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+    p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
         Pressure specification.
 
     p0 : float
         Starting value specification for pressure.
 
-    h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+    h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
         Enthalpy specification.
 
     h0 : float
         Starting value specification for enthalpy.
 
-    fluid : dict/tespy.tools.helpers.dc_flu
+    fluid : dict, tespy.tools.data_containers.dc_flu
         Fluid compostition specification.
 
     fluid0 : dict
@@ -61,17 +61,17 @@ class Connection:
     fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float/tespy.tools.helpers.dc_prop
+    x : float, tespy.tools.data_containers.dc_prop
         Gas phase mass fraction specification.
 
-    T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+    T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
         Temperature specification.
 
-    Td_bp : float/tespy.tools.helpers.dc_prop
+    Td_bp : float, tespy.tools.data_containers.dc_prop
         Temperature difference to boiling point at pressure corresponding
         pressure of this connection in K.
 
-    v : float/tespy.tools.helpers.dc_prop
+    v : float, tespy.tools.data_containers.dc_prop
         Volumetric flow specification.
 
     state : str
@@ -173,7 +173,7 @@ class Connection:
     >>> so_si1.m.get_attr('val_set')
     False
     >>> type(so_si2.m.ref)
-    <class 'tespy.connections.Ref'>
+    <class 'tespy.connections.connection.Ref'>
     >>> so_si2.fluid.get_attr('balance')
     True
     >>> so_si2.m.ref.get_attr('d')
@@ -181,7 +181,7 @@ class Connection:
     >>> so_si2.m.ref_set
     True
     >>> type(so_si2.m.ref.get_attr('obj'))
-    <class 'tespy.connections.Connection'>
+    <class 'tespy.connections.connection.Connection'>
 
     Unset the specified temperature and specify temperature difference to
     boiling point instead.
@@ -284,25 +284,25 @@ class Connection:
 
         Parameters
         ----------
-        m : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+        m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
             Mass flow specification.
 
         m0 : float
             Starting value specification for mass flow.
 
-        p : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+        p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
             Pressure specification.
 
         p0 : float
             Starting value specification for pressure.
 
-        h : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+        h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
             Enthalpy specification.
 
         h0 : float
             Starting value specification for enthalpy.
 
-        fluid : dict/tespy.tools.helpers.dc_flu
+        fluid : dict, tespy.tools.data_containers.dc_flu
             Fluid compostition specification.
 
         fluid0 : dict
@@ -311,17 +311,17 @@ class Connection:
         fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float/tespy.tools.helpers.dc_prop
+        x : float, tespy.tools.data_containers.dc_prop
             Gas phase mass fraction specification.
 
-        T : float/tespy.connections.ref/tespy.tools.helpers.dc_prop
+        T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.dc_prop
             Temperature specification.
 
-        Td_bp : float/tespy.tools.helpers.dc_prop
+        Td_bp : float, tespy.tools.data_containers.dc_prop
             Temperature difference to boiling point at pressure corresponding
             pressure of this connection in K.
 
-        v : float/tespy.tools.helpers.dc_prop
+        v : float, tespy.tools.data_containers.dc_prop
             Volumetric flow specification.
 
         state : str
@@ -587,3 +587,78 @@ class Connection:
             List of mass flow and fluid property information.
         """
         return [self.m.design, self.p.design, self.h.design, self.fluid.design]
+
+
+class Ref:
+    r"""
+    Reference fluid properties from one connection to another connection.
+
+    Parameters
+    ----------
+    obj : tespy.connections.connection
+        Connection to be referenced.
+
+    f : float
+        Factor to multiply specified property with.
+
+    d : float
+        Delta to add after multiplication.
+
+    Note
+    ----
+    Reference the mass flow of one connection :math:`\dot{m}` to another mass
+    flow :math:`\dot{m}_{ref}`
+
+    .. math::
+
+        \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
+
+    """
+
+    def __init__(self, ref_obj, factor, delta):
+
+        if not isinstance(ref_obj, Connection):
+            msg = 'First parameter must be object of type connection.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        if not (isinstance(factor, int) or isinstance(factor, float)):
+            msg = 'Second parameter must be of type int or float.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        if not (isinstance(delta, int) or isinstance(delta, float)):
+            msg = 'Thrid parameter must be of type int or float.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        self.obj = ref_obj
+        self.f = factor
+        self.d = delta
+
+        msg = ('Created reference object with factor ' + str(self.f) +
+               ' and delta ' + str(self.d) + ' referring to connection ' +
+               ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
+               ref_obj.target.label + ' (' + ref_obj.target_id + ').')
+        logging.debug(msg)
+
+    def get_attr(self, key):
+        r"""
+        Get the value of a reference attribute.
+
+        Parameters
+        ----------
+        key : str
+            The attribute you want to retrieve.
+
+        Returns
+        -------
+        out :
+            Specified attribute.
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            msg = 'Reference has no attribute \"' + key + '\".'
+            logging.error(msg)
+            raise KeyError(msg)

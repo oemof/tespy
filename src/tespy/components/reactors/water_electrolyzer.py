@@ -1,15 +1,12 @@
 # -*- coding: utf-8
 
-"""Module for components of type reactor.
-
-Components in this module:
-
-- :py:class:`tespy.components.reactors.water_electrolyzer`
+"""Module of class WaterElectrolyzer.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/components/reactors.py
+available from its original location
+tespy/components/reactors/water_electrolyzer.py
 
 SPDX-License-Identifier: MIT
 """
@@ -19,7 +16,7 @@ import logging
 import CoolProp.CoolProp as CP
 import numpy as np
 
-from tespy.components.components import component
+from tespy.components.component import Component
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
@@ -35,7 +32,7 @@ from tespy.tools.helpers import TESPyComponentError
 # %%
 
 
-class water_electrolyzer(component):
+class WaterElectrolyzer(Component):
     r"""
     The water electrolyzer produces hydrogen and oxygen from water and power.
 
@@ -76,7 +73,7 @@ class water_electrolyzer(component):
 
         Energy balance equation
 
-        :py:meth:`tespy.components.reactors.water_electrolyzer.energy_balance`.
+        :py:meth:`tespy.components.reactors.WaterElectrolyzer.energy_balance`.
 
         .. math::
 
@@ -90,7 +87,7 @@ class water_electrolyzer(component):
 
             0 = p_{H_{2}O,in1} \cdot pr - p_{H_{2}O,out1}
 
-        - :py:meth:`tespy.components.components.component.zeta_func`
+        - :py:meth:`tespy.components.component.Component.zeta_func`
 
         .. math::
 
@@ -99,7 +96,7 @@ class water_electrolyzer(component):
 
             0 = P - \dot{m}_{H_2,out3} \cdot \frac{e_0}{\eta}
 
-        - :py:meth:`tespy.components.reactors.water_electrolyzer.eta_char_func`
+        - :py:meth:`tespy.components.reactors.WaterElectrolyzer.eta_char_func`
 
     Inlets/Outlets
 
@@ -108,7 +105,7 @@ class water_electrolyzer(component):
 
     Image
 
-        .. image:: _images/water_electrolyzer.svg
+        .. image:: _images/WaterElectrolyzer.svg
            :scale: 100 %
            :alt: alternative text
            :align: center
@@ -139,26 +136,26 @@ class water_electrolyzer(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    P : float/tespy.helpers.dc_cp
+    P : float, tespy.tools.data_containers.dc_cp
         Power input, :math:`P/\text{W}`.
 
-    Q : float/tespy.tools.data_containers.dc_cp
+    Q : float, tespy.tools.data_containers.dc_cp
         Heat output of cooling, :math:`Q/\text{W}`
 
-    e : str/float/tespy.tools.data_containers.dc_cp
+    e : str, float, tespy.tools.data_containers.dc_cp
         Electrolysis specific energy consumption,
         :math:`e/(\text{J}/\text{m}^3)`.
 
-    eta : str/float/tespy.tools.data_containers.dc_cp
+    eta : str, float, tespy.tools.data_containers.dc_cp
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
+    eta_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
         Electrolysis efficiency characteristic line.
 
-    pr : float/tespy.tools.data_containers.dc_cp
+    pr : float, tespy.tools.data_containers.dc_cp
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : str/float/tespy.tools.data_containers.dc_cp
+    zeta : str, float, tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -174,22 +171,22 @@ class water_electrolyzer(component):
     Create a water electrolyzer and compress the hydrogen, e.g. for a hydrogen
     storage.
 
-    >>> from tespy.components import (sink, source, compressor,
-    ... water_electrolyzer)
-    >>> from tespy.connections import connection
-    >>> from tespy.networks import network
+    >>> from tespy.components import (Sink, Source, Compressor,
+    ... WaterElectrolyzer)
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
     >>> from tespy.tools.data_containers import dc_cc
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']
-    >>> nw = network(fluids=fluid_list, T_unit='C', p_unit='bar',
+    >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
     ... v_unit='l / s', iterinfo=False)
-    >>> fw = source('feed water')
-    >>> oxy = sink('oxygen sink')
-    >>> hydro = sink('hydrogen sink')
-    >>> cw_cold = source('cooling water source')
-    >>> cw_hot = sink('cooling water sink')
-    >>> comp = compressor('compressor', eta_s=0.9)
-    >>> el = water_electrolyzer('electrolyzer')
+    >>> fw = Source('feed water')
+    >>> oxy = Sink('oxygen sink')
+    >>> hydro = Sink('hydrogen sink')
+    >>> cw_cold = Source('cooling water source')
+    >>> cw_hot = Sink('cooling water sink')
+    >>> comp = Compressor('compressor', eta_s=0.9)
+    >>> el = WaterElectrolyzer('electrolyzer')
     >>> el.component()
     'water electrolyzer'
 
@@ -201,12 +198,12 @@ class water_electrolyzer(component):
     offdesign electrolysis efficiency is predicted by the characteristic line.
     The default characteristic line can be found here: :py:mod:`tespy.data`.
 
-    >>> fw_el = connection(fw, 'out1', el, 'in2')
-    >>> el_o = connection(el, 'out2', oxy, 'in1')
-    >>> el_cmp = connection(el, 'out3', comp, 'in1')
-    >>> cmp_h = connection(comp, 'out1', hydro, 'in1')
-    >>> cw_el = connection(cw_cold, 'out1', el, 'in1')
-    >>> el_cw = connection(el, 'out1', cw_hot, 'in1')
+    >>> fw_el = Connection(fw, 'out1', el, 'in2')
+    >>> el_o = Connection(el, 'out2', oxy, 'in1')
+    >>> el_cmp = Connection(el, 'out3', comp, 'in1')
+    >>> cmp_h = Connection(comp, 'out1', hydro, 'in1')
+    >>> cw_el = Connection(cw_cold, 'out1', el, 'in1')
+    >>> el_cw = Connection(el, 'out1', cw_hot, 'in1')
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
     >>> fw_el.set_attr(p=10, T=15)
     >>> cw_el.set_attr(p=5, T=15, fluid={'H2O': 1, 'H2': 0, 'O2': 0})
@@ -265,7 +262,7 @@ class water_electrolyzer(component):
                    self.label + ' as custom variable of the system.')
             logging.info(msg)
 
-        component.comp_init(self, nw)
+        Component.comp_init(self, nw)
 
         o2 = [x for x in nw.fluids if x in [
             a.replace(' ', '') for a in CP.get_aliases('O2')]]
@@ -723,7 +720,7 @@ class water_electrolyzer(component):
         -------
         val : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.components.component.calc_bus_value`
+            :py:meth:`tespy.components.component.Component.calc_bus_value`
             for value manipulation according to the specified characteristic
             line of the bus.
 
@@ -848,7 +845,7 @@ class water_electrolyzer(component):
         The temperature for the reference state is set to 20 °C, thus
         the feed water must be liquid as proposed in the calculation of
         the minimum specific energy consumption for electrolysis:
-        :py:meth:`tespy.components.reactors.water_electrolyzer.calc_e0`.
+        :py:meth:`tespy.components.reactors.WaterElectrolyzer.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.
@@ -872,7 +869,7 @@ class water_electrolyzer(component):
                self.outl[2].m.val_SI * (self.outl[2].h.val_SI - h_refh2))
         return val
 
-    def initialise_fluids(self, nw):
+    def initialise_fluids(self):
         r"""
         Set values to pure fluid on water inlet and gas outlets.
 
@@ -884,6 +881,10 @@ class water_electrolyzer(component):
         self.outl[1].fluid.val[self.o2] = 1
         self.outl[2].fluid.val[self.h2] = 1
         self.inl[1].fluid.val[self.h2o] = 1
+        for c in self.outl[1:]:
+            c.target.propagate_fluid_to_target(c, c.target)
+        self.inl[1].source.propagate_fluid_to_source(
+            self.inl[1], self.inl[1].source)
 
     def initialise_source(self, c, key):
         r"""
@@ -946,6 +947,29 @@ class water_electrolyzer(component):
             flow = c.to_flow()
             T = 20 + 273.15
             return h_mix_pT(flow, T)
+
+    def propagate_fluid_to_target(self, inconn, start):
+        r"""
+        Propagate the fluids towards connection's target in recursion.
+
+        Parameters
+        ----------
+        inconn : tespy.connections.Connection
+            Connection to initialise.
+
+        start : tespy.connections.Connection
+            This connection is the fluid propagation starting point.
+            The starting connection is saved to prevent infinite looping.
+        """
+        if inconn == self.inl[0]:
+            outconn = self.outl[0]
+
+            for fluid, x in inconn.fluid.val.items():
+                if (outconn.fluid.val_set[fluid] is False and
+                        outconn.good_starting_values is False):
+                    outconn.fluid.val[fluid] = x
+
+            outconn.target.propagate_fluid_to_target(outconn, start)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

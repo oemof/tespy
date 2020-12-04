@@ -1,11 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for piping components.
-
-Components in this module:
-
-- :py:class:`tespy.components.piping.pipe`
-- :py:class:`tespy.components.piping.valve`
+"""Module of class Valve.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -17,8 +12,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.components import component
-from tespy.components.heat_exchangers import heat_exchanger_simple
+from tespy.components.component import Component
 from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
@@ -26,172 +20,17 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
-# %%
 
-
-class pipe(heat_exchanger_simple):
+class Valve(Component):
     r"""
-    The pipe is a subclass of a simple heat exchanger.
+    The Valve throttles a fluid without changing enthalpy.
 
     Equations
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.components.component.fluid_func`
-        - :py:meth:`tespy.components.components.component.mass_flow_func`
-
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
-            \dot{Q}
-
-            0 = p_{in} \cdot pr - p_{out}
-
-        - :py:meth:`tespy.components.components.component.zeta_func`
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
-          or :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.additional_equations`
-
-    Inlets/Outlets
-
-        - in1
-        - out1
-
-    Image
-
-        .. image:: _images/pipe.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    design_path: str
-        Path to the components design case.
-
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings: boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout: boolean
-        Include this component in the network's results printout.
-
-    Q : str/float/tespy.tools.data_containers.dc_cp
-        Heat transfer, :math:`Q/\text{W}`.
-
-    pr : str/float/tespy.tools.data_containers.dc_cp
-        Outlet to inlet pressure ratio, :math:`pr/1`.
-
-    zeta : str/float/tespy.tools.data_containers.dc_cp
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    D : str/float/tespy.tools.data_containers.dc_cp
-        Diameter of the pipes, :math:`D/\text{m}`.
-
-    L : str/float/tespy.tools.data_containers.dc_cp
-        Length of the pipes, :math:`L/\text{m}`.
-
-    ks : str/float/tespy.tools.data_containers.dc_cp
-        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
-        :math:`ks/\text{1}` for hazen-williams equation.
-
-    hydro_group : String/tespy.helpers.dc_gcp
-        Parametergroup for pressure drop calculation based on pipes dimensions.
-        Choose 'HW' for hazen-williams equation, else darcy friction factor is
-        used.
-
-    kA : str/float/tespy.tools.data_containers.dc_cp
-        Area independent heat transition coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
-
-    kA_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
-        Characteristic line for heat transfer coefficient.
-
-    Tamb : float/tespy.tools.data_containers.dc_cp
-        Ambient temperature, provide parameter in network's temperature
-        unit.
-
-    kA_group : tespy.helpers.dc_gcp
-        Parametergroup for heat transfer calculation from ambient temperature
-        and area independent heat transfer coefficient kA.
-
-    Example
-    -------
-    A mass flow of 10 kg/s ethanol is transported in a pipeline. The pipe is
-    considered adiabatic and has a length of 500 meters. We can calculate the
-    diameter required at a given pressure loss of 2.5 %. After we determined
-    the required diameter, we can predict pressure loss at a different mass
-    flow through the pipeline.
-
-    >>> from tespy.components import sink, source, pipe
-    >>> from tespy.connections import connection
-    >>> from tespy.networks import network
-    >>> import shutil
-    >>> fluid_list = ['ethanol']
-    >>> nw = network(fluids=fluid_list)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
-    >>> so = source('source 1')
-    >>> si = sink('sink 1')
-    >>> pi = pipe('pipeline')
-    >>> pi.component()
-    'pipe'
-    >>> pi.set_attr(pr=0.975, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
-    >>> inc = connection(so, 'out1', pi, 'in1')
-    >>> outg = connection(pi, 'out1', si, 'in1')
-    >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'ethanol': 1}, m=10, T=30, p=3)
-    >>> nw.solve('design')
-    >>> nw.save('tmp')
-    >>> round(pi.D.val, 3)
-    0.119
-    >>> outg.p.val / inc.p.val == pi.pr.val
-    True
-    >>> inc.set_attr(m=15)
-    >>> pi.set_attr(D=pi.D.val)
-    >>> nw.solve('offdesign', design_path='tmp')
-    >>> round(pi.pr.val, 2)
-    0.94
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
-    """
-
-    @staticmethod
-    def component():
-        return 'pipe'
-
-# %%
-
-
-class valve(component):
-    r"""
-    The valve throttles a fluid without changing enthalpy.
-
-    Equations
-
-        **mandatory equations**
-
-        - :py:meth:`tespy.components.components.component.fluid_func`
-        - :py:meth:`tespy.components.components.component.mass_flow_func`
+        - :py:meth:`tespy.components.component.Component.fluid_func`
+        - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
         .. math::
 
@@ -203,7 +42,7 @@ class valve(component):
 
             0 = p_{in} \cdot pr - p_{out}
 
-        - :py:meth:`tespy.components.components.component.zeta_func`
+        - :py:meth:`tespy.components.component.Component.zeta_func`
 
         - :py:meth:`tespy.components.piping.valve.dp_char_func`
 
@@ -246,14 +85,14 @@ class valve(component):
     printout: boolean
         Include this component in the network's results printout.
 
-    pr : str/float/tespy.tools.data_containers.dc_cp
+    pr : str, float, tespy.tools.data_containers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : str/float/tespy.tools.data_containers.dc_cp
+    zeta : str, float, tespy.tools.data_containers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : tespy.tools.characteristics.char_line/tespy.tools.data_containers.dc_cc
+    dp_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.dc_cc
         Characteristic line for difference pressure to mass flow.
 
     Example
@@ -262,20 +101,20 @@ class valve(component):
     valve. The inlet temperature is at 50 °C. It is possible to determine the
     outlet temperature as the throttling does not change enthalpy.
 
-    >>> from tespy.components import sink, source, valve
-    >>> from tespy.connections import connection
-    >>> from tespy.networks import network
+    >>> from tespy.components import Sink, Source, Valve
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
     >>> import shutil
     >>> fluid_list = ['CH4']
-    >>> nw = network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
     ... iterinfo=False)
-    >>> so = source('source')
-    >>> si = sink('sink')
-    >>> v = valve('valve')
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> v = Valve('valve')
     >>> v.component()
     'valve'
-    >>> so_v = connection(so, 'out1', v, 'in1')
-    >>> v_si = connection(v, 'out1', si, 'in1')
+    >>> so_v = Connection(so, 'out1', v, 'in1')
+    >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
     >>> v.set_attr(offdesign=['zeta'])
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
@@ -324,7 +163,7 @@ class valve(component):
 
     def comp_init(self, nw):
 
-        component.comp_init(self, nw)
+        Component.comp_init(self, nw)
 
         # number of mandatroy equations for
         # fluid balance: num_fl

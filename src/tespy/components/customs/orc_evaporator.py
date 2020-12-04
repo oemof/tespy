@@ -1,21 +1,17 @@
 # -*- coding: utf-8
 
-"""Module for custom components.
-
-Components in this module:
-
-- :py:class:`tespy.components.customs.orc_evaporator`
+"""Module of class ORCEvaporator.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/components/customs.py
+available from its original location tespy/components/customs/orc_evaporator.py
 
 SPDX-License-Identifier: MIT
 """
 
 import numpy as np
 
-from tespy.components.components import component
+from tespy.components.component import Component
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -24,10 +20,8 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 
-# %%
 
-
-class orc_evaporator(component):
+class ORCEvaporator(Component):
     r"""Evaporator of the geothermal Organic Rankine Cycle (ORC).
 
     Generally, the hot side of the geo-fluid from the geothermal wells deliver
@@ -41,10 +35,10 @@ class orc_evaporator(component):
 
         **mandatory equations**
 
-        - :py:meth:`tespy.components.components.component.fluid_func`
-        - :py:meth:`tespy.components.customs.orc_evaporator.mass_flow_func`
+        - :py:meth:`tespy.components.component.Component.fluid_func`
+        - :py:meth:`tespy.components.customs.ORCEvaporator.mass_flow_func`
 
-        - :py:meth:`tespy.components.customs.orc_evaporator.energy_func`
+        - :py:meth:`tespy.components.customs.ORCEvaporator.energy_func`
 
         .. math::
 
@@ -52,9 +46,9 @@ class orc_evaporator(component):
             0 = p_{2,in} \cdot pr2 - p_{2,out}\\
             0 = p_{3,in} \cdot pr3 - p_{3,out}
 
-        - hot side steam :py:meth:`tespy.components.components.component.zeta_func`
-        - hot side brine :py:meth:`tespy.components.components.component.zeta_func`
-        - worling fluid :py:meth:`tespy.components.components.component.zeta_func`
+        - hot side steam :py:meth:`tespy.components.component.Component.zeta_func`
+        - hot side brine :py:meth:`tespy.components.component.Component.zeta_func`
+        - worling fluid :py:meth:`tespy.components.component.Component.zeta_func`
 
         **mandatory equations at outlet of the steam
         from geothermal heat source side**
@@ -167,28 +161,27 @@ class orc_evaporator(component):
     working fluid. We calculate the mass flow of the working fluid with known
     steam and brine mass flow.
 
-    >>> from tespy.connections import connection
-    >>> from tespy.networks import network
-    >>> from tespy.components import source, sink
-    >>> from tespy.components.customs import orc_evaporator
+    >>> from tespy.components import Source, Sink, ORCEvaporator
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
     >>> fluids = ['water', 'Isopentane']
-    >>> nw = network(fluids=fluids, iterinfo=False)
+    >>> nw = Network(fluids=fluids, iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    >>> evaporator = orc_evaporator('geothermal orc evaporator')
+    >>> evaporator = ORCEvaporator('geothermal orc evaporator')
     >>> evaporator.component()
-    'orc_evaporator'
-    >>> source_wf = source('working fluid source')
-    >>> sink_wf = sink('working fluid sink')
-    >>> source_s = source('steam source')
-    >>> source_b = source('brine source')
-    >>> sink_s = sink('steam sink')
-    >>> sink_b = sink('brine sink')
-    >>> eva_wf_in = connection(source_wf, 'out1', evaporator, 'in3')
-    >>> eva_wf_out = connection(evaporator, 'out3', sink_wf, 'in1')
-    >>> eva_steam_in = connection(source_s, 'out1', evaporator, 'in1')
-    >>> eva_sink_s = connection(evaporator, 'out1', sink_s, 'in1')
-    >>> eva_brine_in = connection(source_b, 'out1', evaporator, 'in2')
-    >>> eva_sink_b = connection(evaporator, 'out2', sink_b, 'in1')
+    'orc evaporator'
+    >>> source_wf = Source('working fluid source')
+    >>> sink_wf = Sink('working fluid sink')
+    >>> source_s = Source('steam source')
+    >>> source_b = Source('brine source')
+    >>> sink_s = Sink('steam sink')
+    >>> sink_b = Sink('brine sink')
+    >>> eva_wf_in = Connection(source_wf, 'out1', evaporator, 'in3')
+    >>> eva_wf_out = Connection(evaporator, 'out3', sink_wf, 'in1')
+    >>> eva_steam_in = Connection(source_s, 'out1', evaporator, 'in1')
+    >>> eva_sink_s = Connection(evaporator, 'out1', sink_s, 'in1')
+    >>> eva_brine_in = Connection(source_b, 'out1', evaporator, 'in2')
+    >>> eva_sink_b = Connection(evaporator, 'out2', sink_b, 'in1')
     >>> nw.add_conns(eva_wf_in, eva_wf_out)
     >>> nw.add_conns(eva_steam_in, eva_sink_s)
     >>> nw.add_conns(eva_brine_in, eva_sink_b)
@@ -219,7 +212,7 @@ class orc_evaporator(component):
 
     @staticmethod
     def component():
-        return 'orc_evaporator'
+        return 'orc evaporator'
 
     @staticmethod
     def attr():
@@ -245,7 +238,7 @@ class orc_evaporator(component):
 
     def comp_init(self, nw):
 
-        component.comp_init(self, nw)
+        Component.comp_init(self, nw)
 
         # number of mandatroy equations for
         # fluid balance: num_fl * 3
@@ -560,7 +553,7 @@ class orc_evaporator(component):
         -------
         val : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.components.component.calc_bus_value`
+            :py:meth:`tespy.components.component.Component.calc_bus_value`
             for value manipulation according to the specified characteristic
             line of the bus.
 

@@ -23,7 +23,6 @@ from tespy.tools.data_containers import dc_cc
 from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_simple
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
 # %%
@@ -310,8 +309,7 @@ class valve(component):
         return {
             'pr': dc_cp(min_val=1e-4, max_val=1),
             'zeta': dc_cp(min_val=0, max_val=1e15),
-            'dp_char': dc_cc(param='m'),
-            'Sirr': dc_simple()
+            'dp_char': dc_cc(param='m')
         }
 
     @staticmethod
@@ -332,7 +330,7 @@ class valve(component):
         # enthalpy: 1
         self.num_eq = self.num_nw_fluids + 2
         for var in [self.pr, self.zeta, self.dp_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -532,11 +530,43 @@ class valve(component):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        self.Sirr.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
-
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a valve.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \right)\\
+        """
+        self.S_irr = self.inl[0].m.val_SI * (
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI)
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a valve.
+
+        Note
+        ----
+         .. math::
+
+            \dot{E}_\mathrm{P} = \text{not defined (nan)}\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out}\right)
+        """
+        self.E_P = np.nan
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        self.E_D = self.E_F
+        self.epsilon = np.nan
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

@@ -39,6 +39,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import lamb
+from tespy.tools.helpers import TESPyComponentError
 
 # %%
 
@@ -224,6 +225,7 @@ class heat_exchanger_simple(component):
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
+            'dissipative': dc_simple(val=True),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
             'hydro_group': dc_gcp(), 'kA_group': dc_gcp(),
             'kA_char_group': dc_gcp()
@@ -311,7 +313,7 @@ class heat_exchanger_simple(component):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.kA_group, self.kA_char_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -849,19 +851,14 @@ class heat_exchanger_simple(component):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-        v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
 
-        self.SQ1.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_i + v_o) / 2))
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
 
         if self.Tamb.is_set:
-            self.SQ2.val = -i[0] * (o[2] - i[2]) / self.Tamb.val_SI
-            self.Sirr.val = self.SQ1.val + self.SQ2.val
-
             ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
             ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
@@ -874,13 +871,143 @@ class heat_exchanger_simple(component):
 
             self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
 
-        if self.kA.is_set:
-            # get bound errors for kA characteristic line
-            if self.kA_char.param == 'm':
-                self.kA_char.func.get_bound_errors(
-                    i[0] / self.inl[0].m.design, self.label)
+            if self.kA_char.is_set:
+                # get bound errors for kA characteristic line
+                if self.kA_char.param == 'm':
+                    self.kA_char.func.get_bound_errors(
+                        i[0] / self.inl[0].m.design, self.label)
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a simple heat exchanger.
+
+        The allocation of the entropy streams due to heat exchanged and due to
+        irreversibility is performed by solving for T:
+
+        .. math::
+
+            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{out}^\mathrm{in}
+            v \cdot dp - \int_\mathrm{out}^\mathrm{in} T \cdot ds
+
+        As solving :math:`\int_\mathrm{out}^\mathrm{in} v \cdot dp` for non
+        isobaric processes would require perfect process knowledge (the path)
+        on how specific volume and pressure change throught the component, the
+        heat transfer is splitted into three separate virtual processes:
+
+        - in->in*: decrease pressure to
+          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          without changing enthalpy.
+        - in*->out* transfer heat without changing pressure.
+          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          without changing enthalpy.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_Q}=\dot{m} \cdot \left(s_\mathrm{out*}-s_\mathrm{in*}
+            \right)\\
+            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \right) - \text{S\_Q}\\
+            \text{T\_mQ}=\frac{\dot{Q}}{\text{S\_Q}}
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        p1_star = i[1] * (o[1] / i[1]) ** 0.5
+        s1_star = s_mix_ph([0, p1_star, i[2], i[3]], T0=self.inl[0].T.val_SI)
+        s2_star = s_mix_ph([0, p1_star, o[2], o[3]], T0=self.outl[0].T.val_SI)
+        self.S_Q = i[0] * (s2_star - s1_star)
+        self.S_irr = i[0] * (
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI) - self.S_Q
+        self.T_mQ = (o[2] - i[2]) / (s2_star - s1_star)
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a simple heat exchanger.
+
+        The exergy input of the heat transferred to fluid (the exergy output if
+        the heat transferred away from the fluid respectively) is calculated
+        via solving
+
+        .. math::
+
+            E_\mathrm{Q}=\left( 1-\frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)
+            \cdot \dot{Q}
+
+        The calculation of the thermodynamic temperature of heat is documented
+        in the
+        :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.entropy_balance`.
+
+        Note
+        ----
+        If the fluid transfers heat to the ambient, you can specify
+        :code:`mysimpleheatexchanger.set_attr(dissipative=False)` if you do
+        NOT want the exergy production to be zero (only in case
+        :math:`\dot{Q}<0`!).
+
+        .. math ::
+
+            \dot{E}_\mathrm{P} = \begin{cases}
+            \begin{cases}
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
+            \begin{cases}
+            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
+            & \text{if not dissipative}\\
+            0 & \text{if dissipative (default)}\\
+            \end{cases} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
+            \begin{cases}
+            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
+            & \dot{Q} > 0\\
+            \text{Impossible, error is raised} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
+            \end{cases}
+
+            \dot{E}_\mathrm{F} = \begin{cases}
+            \begin{cases}
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} < 0\\
+            \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
+            & \dot{Q} > 0\\
+            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
+            \begin{cases}
+            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
+            \text{Impossible, error is raised} & \dot{Q} < 0\\
+            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
+            \end{cases}
+        """
+        ex_heat = abs((1 - (Tamb / self.T_mQ)) * self.Q.val)
+        ex_stream = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
+
+        if self.Q.val < 0:
+            if Tamb / self.T_mQ <= 1:
+                self.E_F = ex_stream
+                if self.dissipative.val:
+                    self.E_P = 0
+                else:
+                    self.E_P = ex_heat
+            else:
+                msg = (
+                    'Transferring heat to the ambient with temperature T=' +
+                    str(round(Tamb)) + ' K is impossible as the temperature '
+                    'of the heat is T=' + str(round(self.T_mQ)) + ' K.')
+                logging.error(msg)
+                raise TESPyComponentError(msg)
+        else:
+            if Tamb / self.T_mQ <= 1:
+                self.E_F = ex_heat
+                self.E_P = ex_stream
+            else:
+                self.E_F = ex_stream
+                self.E_P = ex_heat
+
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -1129,7 +1256,8 @@ class parabolic_trough(heat_exchanger_simple):
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'Q_loss': dc_cp(min_val=0),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -1145,12 +1273,12 @@ class parabolic_trough(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
+        elif self.hydro_group.is_set:
             msg = (
                 'All parameters of the component group have to be specified! '
                 'This component group uses the following parameters: L, ks, D '
@@ -1168,12 +1296,12 @@ class parabolic_trough(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
+        elif self.energy_group.is_set:
             msg = (
                 'All parameters of the component group have to be specified! '
                 'This component group uses the following parameters: E, '
@@ -1190,7 +1318,7 @@ class parabolic_trough(heat_exchanger_simple):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.energy_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1292,12 +1420,12 @@ class parabolic_trough(heat_exchanger_simple):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
@@ -1486,7 +1614,8 @@ class solar_collector(heat_exchanger_simple):
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'Q_loss': dc_cp(min_val=0),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -1502,12 +1631,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
+        elif self.hydro_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -1524,12 +1653,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
+        elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -1545,7 +1674,7 @@ class solar_collector(heat_exchanger_simple):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.energy_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -1562,11 +1691,13 @@ class solar_collector(heat_exchanger_simple):
         r"""
         Calculate results of additional equations.
 
-        Equations
+        **optional equations**
 
-            **optional equations**
-
+<<<<<<< HEAD
             - :py:meth:`tespy.components.heat_exchangers.solar_collector.energy_func`
+=======
+        - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
+>>>>>>> pr/215
         """
         ######################################################################
         # equation for specified energy-group paremeters
@@ -1640,12 +1771,12 @@ class solar_collector(heat_exchanger_simple):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
@@ -1835,8 +1966,7 @@ class heat_exchanger(component):
             'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
             'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
             'kA_char': dc_simple(),
-            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
-            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple()
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m')
         }
 
     @staticmethod
@@ -1858,7 +1988,7 @@ class heat_exchanger(component):
         self.num_eq = self.num_nw_fluids * 2 + 3
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -2261,9 +2391,6 @@ class heat_exchanger(component):
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
 
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
-
         T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
         T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
         T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
@@ -2280,11 +2407,11 @@ class heat_exchanger(component):
 
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1[0] / self.inl[0].m.design)
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2[0] / self.inl[1].m.design)
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
@@ -2460,22 +2587,10 @@ class heat_exchanger(component):
         if isinstance(self, condenser):
             T_i1 = T_bp_p(i1)
         else:
-            T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-
-        # specific volume
-        v_i1 = v_mix_ph(i1, T0=T_i1)
-        v_i2 = v_mix_ph(i2, T0=T_i2)
-        v_o1 = v_mix_ph(o1, T0=T_o1)
-        v_o2 = v_mix_ph(o2, T0=T_o2)
-
-        # specific entropy
-        s_i1 = s_mix_ph(i1, T0=T_i1)
-        s_i2 = s_mix_ph(i2, T0=T_i2)
-        s_o1 = s_mix_ph(o1, T0=T_o1)
-        s_o2 = s_mix_ph(o2, T0=T_o2)
+            T_i1 = self.inl[0].T.val_SI
+        T_i2 = self.inl[1].T.val_SI
+        T_o1 = self.outl[0].T.val_SI
+        T_o2 = self.outl[1].T.val_SI
 
         # component parameters
         self.ttd_u.val = T_i1 - T_o2
@@ -2484,14 +2599,12 @@ class heat_exchanger(component):
 
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
-                          (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
-                          (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
-
-        self.SQ1.val = self.inl[0].m.val_SI * (s_o1 - s_i1)
-        self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
-        self.Sirr.val = self.SQ1.val + self.SQ2.val
+        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 / (
+            4 * i1[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 / (
+            4 * i2[0] ** 2 * (self.inl[1].vol.val_SI + self.outl[1].vol.val_SI)
+            ))
 
         # kA and logarithmic temperature difference
         if T_i1 <= T_o2 or T_o1 <= T_i2:
@@ -2505,21 +2618,104 @@ class heat_exchanger(component):
         if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
             if self.kA_char1.param == 'm':
-                i1_d = self.inl[0].to_flow_design()
-                if not np.isnan(i1_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[0].m.design):
+                    self.kA_char1.func.get_bound_errors(
+                        i1[0] / self.inl[0].m.design, self.label)
 
             # get bound errors for kA copld side characteristics
             if self.kA_char2.param == 'm':
-                i2_d = self.inl[1].to_flow_design()
-                if not np.isnan(i2_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[1].m.design):
+                    self.kA_char2.func.get_bound_errors(
+                        i2[0] / self.inl[1].m.design, self.label)
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a heat exchanger.
+
+        The allocation of the entropy streams due to heat exchanged and due to
+        irreversibility is performed by solving for T on both sides of the heat
+        exchanger:
+
+        .. math::
+
+            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{in}^\mathrm{out} v
+            \cdot dp - \int_\mathrm{in}^\mathrm{out} T \cdot ds
+
+        As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
+        isobaric processes would require perfect process knowledge (the path)
+        on how specific volume and pressure change throught the component, the
+        heat transfer is splitted into three separate virtual processes for
+        both sides:
+
+        - in->in*: decrease pressure to
+          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          without changing enthalpy.
+        - in*->out* transfer heat without changing pressure.
+          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          without changing enthalpy.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_Q1}=\dot{m} \cdot \left(s_\mathrm{out*,1}-s_\mathrm{in*,1}
+            \right)\\
+            \text{S\_Q2}=\dot{m} \cdot \left(s_\mathrm{out*,2}-s_\mathrm{in*,2}
+            \right)\\
+            \text{S\_Qirr}=\text{S\_Q2} - \text{S\_Q1}\\
+            \text{S\_irr1}=\dot{m} \cdot \left(s_\mathrm{out,1}-s_\mathrm{in,1}
+            \right) - \text{S\_Q1}\\
+            \text{S\_irr2}=\dot{m} \cdot \left(s_\mathrm{out,2}-s_\mathrm{in,2}
+            \right) - \text{S\_Q2}\\
+            \text{S\_irr}=\sum \dot{S}_\mathrm{irr}\\
+            \text{T\_mQ1}=\frac{\dot{Q}}{\text{S\_Q1}}\\
+            \text{T\_mQ2}=\frac{\dot{Q}}{\text{S\_Q2}}
+        """
+        self.S_irr = 0
+        for i in range(2):
+            inl = self.inl[i]
+            out = self.outl[i]
+            p_star = inl.p.val_SI * (
+                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+            s_i_star = s_mix_ph(
+                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+            s_o_star = s_mix_ph(
+                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+
+            setattr(self, 'S_Q' + str(i + 1),
+                    inl.m.val_SI * (s_o_star - s_i_star))
+            S_Q = self.get_attr('S_Q' + str(i + 1))
+            setattr(self, 'S_irr' + str(i + 1),
+                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
+            setattr(self, 'T_mQ' + str(i + 1),
+                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+
+            self.S_irr += self.get_attr('S_irr' + str(i + 1))
+
+        self.S_irr += self.S_Q1 + self.S_Q2
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a heat exchanger.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in,cold} \cdot \left(
+            e_\mathrm{ph,out,2} - e_\mathrm{ph,in,2} \right)\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in,1} \cdot \left(
+            e_\mathrm{ph,in,1} - e_\mathrm{ph,out,1} \right)
+        """
+        self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -2744,6 +2940,7 @@ class condenser(heat_exchanger):
             'subcooling': dc_simple(val=False),
             'kA_char': dc_simple(),
             'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
+            'dissipative': dc_simple(val=False),
             'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
         }
 
@@ -2757,11 +2954,11 @@ class condenser(heat_exchanger):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 2 + 3
         # enthalpy hot side outlet (if not subcooling): 1
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             self.num_eq += 1
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -2799,7 +2996,7 @@ class condenser(heat_exchanger):
         """
         ######################################################################
         # equation for saturated liquid at hot side outlet
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
@@ -2808,7 +3005,7 @@ class condenser(heat_exchanger):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for saturated liquid at hot side outlet equation
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 0)
             self.jacobian[k, 2, 2] = 1
@@ -2950,6 +3147,38 @@ class condenser(heat_exchanger):
         o2 = self.outl[1].to_flow()
         T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_bp_p(i1) + T_o2
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a condenser.
+
+        Note
+        ----
+        If you do not want to consider exergy production (exergy of cold side),
+        you can specify :code:`yourcondenser.set_attr(dissipative=True)` to
+        force exergy destruction.
+
+        .. math::
+
+            \dot{E}_\mathrm{P} = \begin{cases}
+            \text{not defined (nan)} & \text{if dissipative} \\
+            \dot{m}_\mathrm{in,2} \cdot \left(
+            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
+            \text{if not dissipative (default)}\\
+            \end{cases}\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
+        """
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+
+        if self.dissipative.val:
+            self.E_P = np.nan
+            self.epsilon = np.nan
+            self.E_D = self.E_F
+        else:
+            self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
+            self.E_D = self.E_F - self.E_P
+            self.epsilon = self.E_P / self.E_F
 
 # %%
 
@@ -3129,7 +3358,7 @@ class desuperheater(heat_exchanger):
         self.num_eq = self.num_nw_fluids * 2 + 4
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:

@@ -177,9 +177,9 @@ class TestCombustion:
 
         # calculate heat output over cooling loop
         heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
-        msg = ('Value of thermal input must be ' + str(heat1) + ', is ' +
+        msg = ('Value of heat output 1 must be ' + str(-heat1) + ', is ' +
                str(instance.Q1.val) + '.')
-        assert round(heat1, 1) == round(instance.Q1.val, 1), msg
+        assert round(heat1, 1) == -round(instance.Q1.val, 1), msg
         Q1.set_attr(P=np.nan)
 
         # test specified heat output 2 bus value
@@ -189,19 +189,19 @@ class TestCombustion:
 
         # calculate heat output over cooling loop
         heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
-        msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
+        msg = ('Value of heat output 2 must be ' + str(-heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        assert round(heat2, 1) == round(instance.Q2.val, 1), msg
+        assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test specified heat output 2 in component
         Q2.set_attr(P=np.nan)
-        instance.set_attr(Q2=heat2)
+        instance.set_attr(Q2=-heat2)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         convergence_check(self.nw.lin_dep)
         heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
-        msg = ('Value of heat output 2 must be ' + str(heat2) + ', is ' +
+        msg = ('Value of heat output 2 must be ' + str(-heat2) + ', is ' +
                str(instance.Q2.val) + '.')
-        assert round(heat2, 1) == round(instance.Q2.val, 1), msg
+        assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test total heat output bus value
         instance.set_attr(Q2=np.nan)
@@ -211,12 +211,12 @@ class TestCombustion:
         heat = (self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
                 self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
         msg = ('Value of total heat output must be ' + str(Q.P.val) +
-               ', is ' + str(heat) + '.')
-        assert round(Q.P.val, 1) == round(heat, 1), msg
+               ', is ' + str(-heat) + '.')
+        assert round(Q.P.val, 1) == -round(heat, 1), msg
 
         # test specified heat loss bus value
         Q.set_attr(P=np.nan)
-        Qloss.set_attr(P=1e5)
+        Qloss.set_attr(P=-1e5)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of heat loss must be ' + str(Qloss.P.val) + ', is ' +

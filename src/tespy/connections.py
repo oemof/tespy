@@ -28,6 +28,7 @@ from tespy.tools.data_containers import dc_cp
 from tespy.tools.data_containers import dc_flu
 from tespy.tools.data_containers import dc_prop
 from tespy.tools.data_containers import dc_simple
+from tespy.tools.fluid_properties import calc_physical_exergy
 from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
@@ -595,6 +596,27 @@ class connection:
         """
         return [self.m.design, self.p.design, self.h.design, self.fluid.design]
 
+    def get_physical_exergy(self, pamb, Tamb):
+        r"""
+        Get the value of a connection's specific physical exergy.
+        Calcute physical exergy of connection
+
+        Parameters
+        ----------
+        pamb : float
+            Ambient pressure pamb / Pa.
+
+        Tamb : float
+            Ambient temperature Tamb / K.
+
+        Note
+        ----
+            .. math::
+
+                E^{\text{PH}} = \dot{m} \cdot e^{\text{PH}}
+        """
+        self.ex_physical = calc_physical_exergy(self, pamb, Tamb)
+        self.Ex_physical = self.m.val_SI * self.ex_physical
 
 class bus:
     r"""
@@ -689,12 +711,10 @@ class bus:
     output at the bus.
 
     >>> load = np.array([0.2, 0.4, 0.6, 0.8, 1, 1.2])
-    >>> gen_efficiency = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
-    >>> mot_efficiency = 1 / (
-    ... np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98)
-    >>> gen = char_line(x=load, y=gen_efficiency)
-    >>> mot = char_line(x=load, y=mot_efficiency)
-    >>> power_bus = bus('total power output', P=10e6)
+    >>> eff = np.array([0.9, 0.94, 0.97, 0.99, 1, 0.99]) * 0.98
+    >>> gen = char_line(x=load, y=eff)
+    >>> mot = char_line(x=load, y=eff)
+    >>> power_bus = bus('total power output', P=-10e6)
     >>> heat_bus = bus('total heat input')
     >>> fuel_bus = bus('thermal input')
 
@@ -704,7 +724,7 @@ class bus:
 
     >>> heat_bus.P.is_set
     False
-    >>> heat_bus.set_attr(P=1e5)
+    >>> heat_bus.set_attr(P=-1e5)
     >>> heat_bus.P.is_set
     True
     >>> heat_bus.set_attr(P=None)
@@ -712,8 +732,8 @@ class bus:
     False
 
     >>> power_bus.add_comps({'comp': chp, 'char': gen, 'param': 'P'},
-    ... {'comp': pu, 'char': mot})
-    >>> heat_bus.add_comps({'comp': chp, 'param': 'Q'},
+    ... {'comp': pu, 'char': mot, 'base': 'bus'})
+    >>> heat_bus.add_comps({'comp': chp, 'param': 'Q', 'char': -1},
     ... {'comp': fgc, 'char': -1})
     >>> fuel_bus.add_comps({'comp': chp, 'param': 'TI'},
     ... {'comp': pu, 'char': mot})
@@ -722,34 +742,35 @@ class bus:
     >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
 
-    The heat bus characteristic for the flue gas cooler has automatically been
-    transformed into an array. The total heat output can be seen in the
-    enthalpy rise of the cooling water in the combustion engine and the flue
-    gas cooler.
+    The heat bus characteristic for the combustion engine and the flue gas
+    cooler have automatically been transformed into an array. The total heat
+    output can be seen on both, the heat bus and in the enthalpy rise of the
+    cooling water in the combustion engine and the flue gas cooler. Therefore
+    these values must be identical.
 
     >>> heat_bus.comps.loc[fgc]['char'].x
     array([0., 3.])
     >>> heat_bus.comps.loc[fgc]['char'].y
     array([-1., -1.])
     >>> round(chp.ti.val, 0)
-    25813247.0
+    25819387.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)
-    8896898.0
+    -8899014.0
     >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
-    12553049.0
+    12476723.0
     >>> round(heat_bus.P.val, 0)
-    12553049.0
-    >>> round(1 / pu.calc_bus_efficiency(power_bus), 2)
+    12476723.0
+    >>> round(pu.calc_bus_efficiency(power_bus), 2)
     0.98
-    >>> power_bus.set_attr(P=7.5e6)
+    >>> power_bus.set_attr(P=-7.5e6)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
     >>> round(chp.ti.val, 0)
-    21187528.0
+    21192700.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
-    >>> round(1 / pu.calc_bus_efficiency(power_bus), 3)
-    0.967
+    >>> round(pu.calc_bus_efficiency(power_bus), 3)
+    0.968
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

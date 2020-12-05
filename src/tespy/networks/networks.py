@@ -28,6 +28,8 @@ from tabulate import tabulate
 
 from tespy import connections as con
 from tespy.components.basics import cycle_closer
+from tespy.components.basics import sink
+from tespy.components.basics import source
 from tespy.components.basics import subsystem_interface
 from tespy.components.combustion import combustion_chamber
 from tespy.components.combustion import combustion_engine
@@ -114,9 +116,9 @@ class network:
     the fluids is mandatory! Unit systems, fluid property range and iterinfo
     are optional.
 
-    Standard value for iterinfo is True. This will print out convergence
-    progress to the console. You can suop the printouts by setting this
-    property to false.
+    Standard value for iterinfo is :code:`True`. This will print out
+    convergence progress to the console. You can suop the printouts by setting
+    this property to :code:`False`.
 
     >>> from tespy.networks import network
     >>> fluid_list = ['water', 'air', 'R134a']
@@ -753,7 +755,7 @@ class network:
                 raise hlp.TESPyNetworkError(msg)
 
             # load design case
-            if self.new_design is True:
+            if self.new_design:
                 self.init_offdesign_params()
 
             self.init_offdesign()
@@ -777,20 +779,20 @@ class network:
         for c in self.conns.index:
             # reindex connections dictionary
             self.connections[c.label] = c
-            if self.init_previous is False:
+            if not self.init_previous:
                 c.good_starting_values = False
 
             c.conn_loc = self.conns.index.get_loc(c)
 
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
                 # read unit specifications
-                if c.get_attr(key).unit_set is False:
+                if not c.get_attr(key).unit_set:
                     if key == 'Td_bp':
                         c.get_attr(key).unit = self.get_attr('T_unit')
                     else:
                         c.get_attr(key).unit = self.get_attr(key + '_unit')
                 # set SI value
-                if c.get_attr(key).val_set is True:
+                if c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = self.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
 
@@ -849,16 +851,16 @@ class network:
         Initialise a design calculation.
 
         Offdesign parameters are unset, design parameters are set. If
-        :code:`local_offdesign` is True for connections or components, the
-        design point information are read from the .csv-files in the respective
-        :code:`design_path`. In this case, the design values are unset, the
-        offdesign values set.
+        :code:`local_offdesign` is :code:`True` for connections or components,
+        the design point information are read from the .csv-files in the
+        respective :code:`design_path`. In this case, the design values are
+        unset, the offdesign values set.
         """
         # connections
         for c in self.conns.index:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
-            if c.local_offdesign is True:
+            if c.local_offdesign:
                 if c.design_path is None:
                     msg = (
                         'The parameter local_offdesign is True for the '
@@ -895,7 +897,7 @@ class network:
                 c.new_design = True
 
                 # switch connections to design mode
-                if self.redesign is True:
+                if self.redesign:
                     for var in c.design:
                         c.get_attr(var).val_set = True
 
@@ -916,7 +918,7 @@ class network:
             self.components[cp.label] = cp
             # read design point information of components with
             # local_offdesign activated from their respective design path
-            if cp.local_offdesign is True:
+            if cp.local_offdesign:
                 if cp.design_path is not None:
                     # get type of component (class name)
                     c = cp.__class__.__name__
@@ -959,7 +961,7 @@ class network:
 
             else:
                 # switch connections to design mode
-                if self.redesign is True:
+                if self.redesign:
                     for var in cp.design:
                         cp.get_attr(var).is_set = True
 
@@ -1114,6 +1116,7 @@ class network:
             for var in ['m', 'p', 'h', 'v', 'x', 'T', 'Td_bp']:
                 c.get_attr(var).design = self.convert_to_SI(
                     var, df.loc[conn_id, var], df.loc[conn_id, var + '_unit'])
+            c.vol.design = c.v.design / c.m.design
             for fluid in self.fluids:
                 c.fluid.design[fluid] = df.loc[conn_id, fluid]
         except IndexError:
@@ -1149,7 +1152,7 @@ class network:
         referenced values!
         """
         for c in self.conns.index:
-            if c.local_design is False:
+            if not c.local_design:
                 # switch connections to offdesign mode
                 for var in c.design:
                     c.get_attr(var).val_set = False
@@ -1167,7 +1170,7 @@ class network:
         for cp in self.comps.index:
             # reindex components dicitonary
             self.components[cp.label] = cp
-            if cp.local_design is False:
+            if not cp.local_design:
                 # unset variables provided in .design attribute
                 for var in cp.design:
                     cp.get_attr(var).is_set = False
@@ -1286,8 +1289,8 @@ class network:
             outconn = outc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
+                if (not outconn.fluid.val_set[fluid] and
+                        not outconn.good_starting_values):
                     outconn.fluid.val[fluid] = x
 
             self.init_target(outconn, start)
@@ -1296,8 +1299,8 @@ class network:
                 isinstance(c.target, droplet_separator)):
             for outconn in c.target.outl:
                 for fluid, x in c.fluid.val.items():
-                    if (outconn.fluid.val_set[fluid] is False and
-                            outconn.good_starting_values is False):
+                    if (not outconn.fluid.val_set[fluid] and
+                            not outconn.good_starting_values):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1307,15 +1310,15 @@ class network:
                 outconn = c.target.outl[0]
 
                 for fluid, x in c.fluid.val.items():
-                    if (outconn.fluid.val_set[fluid] is False and
-                            outconn.good_starting_values is False):
+                    if (not outconn.fluid.val_set[fluid] and
+                            not outconn.good_starting_values):
                         outconn.fluid.val[fluid] = x
 
         if isinstance(c.target, combustion_engine):
             for outconn in c.target.outl[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if (outconn.fluid.val_set[fluid] is False and
-                            outconn.good_starting_values is False):
+                    if (not outconn.fluid.val_set[fluid] and
+                            not outconn.good_starting_values):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1324,8 +1327,8 @@ class network:
             start = c.target
             for outconn in c.target.outl:
                 for fluid, x in c.fluid.val.items():
-                    if (outconn.fluid.val_set[fluid] is False and
-                            outconn.good_starting_values is False):
+                    if (not outconn.fluid.val_set[fluid] and
+                            not outconn.good_starting_values):
                         outconn.fluid.val[fluid] = x
 
                 self.init_target(outconn, start)
@@ -1363,8 +1366,8 @@ class network:
             inconn = inc.index[conn & cid][0]
 
             for fluid, x in c.fluid.val.items():
-                if (inconn.fluid.val_set[fluid] is False and
-                        inconn.good_starting_values is False):
+                if (not inconn.fluid.val_set[fluid] and
+                        not inconn.good_starting_values):
                     inconn.fluid.val[fluid] = x
 
             self.init_source(inconn, start)
@@ -1373,8 +1376,8 @@ class network:
                 isinstance(c.source, droplet_separator)):
             for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
-                    if (inconn.fluid.val_set[fluid] is False and
-                            inconn.good_starting_values is False):
+                    if (not inconn.fluid.val_set[fluid] and
+                            not inconn.good_starting_values):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1382,8 +1385,8 @@ class network:
         if isinstance(c.source, merge):
             for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
-                    if (inconn.fluid.val_set[fluid] is False and
-                            inconn.good_starting_values is False):
+                    if (not inconn.fluid.val_set[fluid] and
+                            not inconn.good_starting_values):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1391,8 +1394,8 @@ class network:
         if isinstance(c.source, combustion_engine):
             for inconn in c.source.inl[:2]:
                 for fluid, x in c.fluid.val.items():
-                    if (inconn.fluid.val_set[fluid] is False and
-                            inconn.good_starting_values is False):
+                    if (not inconn.fluid.val_set[fluid] and
+                            not inconn.good_starting_values):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1401,8 +1404,8 @@ class network:
             start = c.source
             for inconn in c.source.inl:
                 for fluid, x in c.fluid.val.items():
-                    if (inconn.fluid.val_set[fluid] is False and
-                            inconn.good_starting_values is False):
+                    if (not inconn.fluid.val_set[fluid] and
+                            not inconn.good_starting_values):
                         inconn.fluid.val[fluid] = x
 
                 self.init_source(inconn, start)
@@ -1440,7 +1443,7 @@ class network:
                         data.unit = df.loc[conn_id, prop + '_unit']
 
                     for fluid in self.fluids:
-                        if c.fluid.val_set[fluid] is False:
+                        if not c.fluid.val_set[fluid]:
                             c.fluid.val[fluid] = df.loc[conn_id, fluid]
                         c.fluid.val0[fluid] = c.fluid.val[fluid]
 
@@ -1453,19 +1456,19 @@ class network:
                     logging.debug(msg)
 
             for key in ['m', 'p', 'h']:
-                if c.good_starting_values is False:
+                if not c.good_starting_values:
                     self.init_val0(c, key)
-                if c.get_attr(key).val_set is False:
+                if not c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = self.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit)
 
             self.init_count_connections_parameters(c)
 
         for c in self.conns.index:
-            if c.good_starting_values is False:
+            if not c.good_starting_values:
                 for key in ['m', 'p', 'h', 'T']:
                     if (c.get_attr(key).ref_set and
-                            c.get_attr(key).val_set is False):
+                            not c.get_attr(key).val_set):
                         c.get_attr(key).val_SI = (
                                 c.get_attr(key).ref.obj.get_attr(key).val_SI *
                                 c.get_attr(key).ref.f + c.get_attr(key).ref.d)
@@ -1476,15 +1479,15 @@ class network:
             # and state specification. These should be recalculated even with
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
-            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
-                    c.h.val_set is False):
-                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                        (c.state.val == 'g' and c.state.is_set is True)):
+            if ((c.Td_bp.val_set or c.state.is_set) and
+                    not c.h.val_set):
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
+                        (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
-                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                      (c.state.val == 'l' and c.state.is_set is True)):
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
+                      (c.state.val == 'l' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1644,12 +1647,12 @@ class network:
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns.index:
-                if c.new_design is True:
+                if c.new_design:
                     self.new_design = True
                     break
-            if self.new_design is False:
+            if not self.new_design:
                 for cp in self.comps.index:
-                    if cp.new_design is True:
+                    if cp.new_design:
                         self.new_design = True
                         break
 
@@ -1748,7 +1751,7 @@ class network:
         self.start_time = time()
         self.progress = True
 
-        if self.iterinfo is True:
+        if self.iterinfo:
             self.print_iterinfo_head()
 
         for self.iter in range(self.max_iter):
@@ -1757,7 +1760,7 @@ class network:
             self.solve_control()
             self.res = np.append(self.res, norm(self.residual))
 
-            if self.iterinfo is True:
+            if self.iterinfo:
                 self.print_iterinfo_body()
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
@@ -1841,7 +1844,7 @@ class network:
         vec = self.increment[0:-(self.num_comp_vars + 1)]
         msg = (str(self.iter + 1))
 
-        if self.lin_dep is False and not np.isnan(norm(self.residual)):
+        if not self.lin_dep and not np.isnan(norm(self.residual)):
             msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
             msg += ' | ' + '{:.2e}'.format(norm(vec[0::self.num_conn_vars]))
             msg += ' | ' + '{:.2e}'.format(norm(vec[1::self.num_conn_vars]))
@@ -1881,7 +1884,7 @@ class network:
         msg += ips
         logging.debug(msg)
 
-        if self.iterinfo is True:
+        if self.iterinfo:
             if self.num_comp_vars == 0:
                 print('-' * 8 + '+----------' * 4 + '+' + '-' * 9)
             else:
@@ -1928,15 +1931,15 @@ class network:
         i = 0
         for c in self.conns.index:
             # mass flow, pressure and enthalpy
-            if c.m.val_set is False:
+            if not c.m.val_set:
                 c.m.val_SI += self.increment[i * (self.num_conn_vars)]
-            if c.p.val_set is False:
+            if not c.p.val_set:
                 # this prevents negative pressures
                 relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] /
                             (0.5 * c.p.val_SI))
                 c.p.val_SI += self.increment[
                     i * (self.num_conn_vars) + 1] / relax
-            if c.h.val_set is False:
+            if not c.h.val_set:
                 c.h.val_SI += self.increment[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
@@ -1944,7 +1947,7 @@ class network:
                 j = 0
                 for fluid in self.fluids:
                     # add increment
-                    if c.fluid.val_set[fluid] is False:
+                    if not c.fluid.val_set[fluid]:
                         c.fluid.val[fluid] += (
                                 self.increment[
                                     i * (self.num_conn_vars) + 3 + j])
@@ -2063,22 +2066,22 @@ class network:
                 c.h.val_SI = hmax * 0.9999
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
-                    c.h.val_set is False and self.iter < 3):
+            if ((c.Td_bp.val_set or c.state.is_set) and
+                    not c.h.val_set and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.is_set is True)):
+                        (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.01
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.is_set is True)):
+                      (c.state.val == 'l' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.99
                         logging.debug(self.property_range_message(c, 'h'))
 
-        elif self.iter < 4 and c.good_starting_values is False:
+        elif self.iter < 4 and not c.good_starting_values:
             # pressure
             if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
                 c.p.val_SI = self.p_range_SI[0]
@@ -2339,7 +2342,7 @@ class network:
 
             # referenced mass flow, pressure or enthalpy
             for var, pos in primary_vars.items():
-                if c.get_attr(var).ref_set is True:
+                if c.get_attr(var).ref_set:
                     ref = c.get_attr(var).ref
                     ref_col = ref.obj.conn_loc * self.num_conn_vars
                     self.residual[k] = (
@@ -2350,7 +2353,7 @@ class network:
                     k += 1
 
             # temperature
-            if c.T.val_set is True:
+            if c.T.val_set:
                 self.residual[k] = c.T.val_SI - fp.T_mix_ph(
                     flow, T0=c.T.val_SI)
 
@@ -2367,7 +2370,7 @@ class network:
                 k += 1
 
             # referenced temperature
-            if c.T.ref_set is True:
+            if c.T.ref_set:
                 ref = c.T.ref
                 flow_ref = ref.obj.to_flow()
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
@@ -2400,7 +2403,7 @@ class network:
                 k += 1
 
             # saturated steam fraction
-            if c.x.val_set is True:
+            if c.x.val_set:
                 if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = c.h.val_SI - (
@@ -2412,7 +2415,7 @@ class network:
                 k += 1
 
             # volumetric flow
-            if c.v.val_set is True:
+            if c.v.val_set:
                 if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = (
@@ -2426,7 +2429,7 @@ class network:
                 k += 1
 
             # temperature difference to boiling point
-            if c.Td_bp.val_set is True:
+            if c.Td_bp.val_set:
                 if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = (
@@ -2459,7 +2462,7 @@ class network:
 
                 # specified mass flow, pressure and enthalpy
                 for var, pos in primary_vars.items():
-                    if c.get_attr(var).val_set is True:
+                    if c.get_attr(var).val_set:
                         self.residual[k] = 0
                         self.jacobian[k, col + pos] = 1
                         k += 1
@@ -2482,7 +2485,7 @@ class network:
         """
         row = self.num_comp_eq + self.num_conn_eq
         for bus in self.busses.values():
-            if bus.P.is_set is True:
+            if bus.P.is_set:
                 P_res = 0
                 for cp in bus.comps.index:
 
@@ -2502,26 +2505,7 @@ class network:
                 row += 1
 
     def postprocessing(self):
-        r"""Calculate bus, component parameters and connection parameters."""
-        # components
-        for cp in self.comps.index:
-            cp.calc_parameters()
-
-        # busses
-        for b in self.busses.values():
-            b.P.val = 0
-            for cp in b.comps.index:
-                # get components bus func value
-                val = cp.calc_bus_value(b)
-                b.P.val += val
-                # save as reference value
-                if self.mode == 'design':
-                    if b.comps.loc[cp, 'base'] == 'component':
-                        b.comps.loc[cp, 'P_ref'] = (
-                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
-                    else:
-                        b.comps.loc[cp, 'P_ref'] = val
-
+        r"""Calculate connection, bus and component parameters."""
         # connections
         for c in self.conns.index:
             flow = c.to_flow()
@@ -2559,8 +2543,354 @@ class network:
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
 
+        # components
+        for cp in self.comps.index:
+            cp.calc_parameters()
+            cp.entropy_balance()
+
+        # busses
+        for b in self.busses.values():
+            b.P.val = 0
+            for cp in b.comps.index:
+                # get components bus func value
+                val = cp.calc_bus_value(b)
+                b.P.val += val
+                # save as reference value
+                if self.mode == 'design':
+                    if b.comps.loc[cp, 'base'] == 'component':
+                        b.comps.loc[cp, 'P_ref'] = (
+                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                    else:
+                        b.comps.loc[cp, 'P_ref'] = val
+
         msg = 'Postprocessing complete.'
         logging.info(msg)
+
+    def exergy_analysis(self, pamb, Tamb, E_F, E_P, E_L=[],
+                        internal_busses=[]):
+        r"""Perform exergy analysis.
+
+        - Calculate the values of physical exergy on all connections.
+        - Calculate exergy balance for all components. The individual exergy
+          balance methods are documented in the API-documentation of the
+          respective components.
+
+          - Components for which no exergy balance has yet been implemented,
+            :code:`nan` (not defined) is assigned for fuel and product
+            exergy as well as exergy destruction and exergetic efficiency.
+          - Dissipative components do not have product exergy (:code:`nan`) per
+            definition.
+
+        - Calculate network fuel exergy and product exergy from data provided
+          from the busses passed to this method.
+        - Component fuel and product exergy of components passed within the
+          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
+          adjusted to consider the bus conversion factor, too.
+        - Calculate network exergetic efficiency.
+        - Calculate exergy destruction ratios for components.
+
+          - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
+            component to the exergy rate of the fuel provided to the overall
+            system.
+          - :math:`y^*_\mathrm{D}` compare the component exergy destruction
+            rate to the total exergy destruction rate within the system.
+
+        Parameters
+        ----------
+        pamb : float
+            Ambient pressure in network's pressure unit.
+
+        Tamb : float
+            Ambient temperature in network's temperature unit.
+
+        E_F : float
+            List containing busses which represent fuel exergy input of the
+            network, e.g. heat exchangers of the steam generator.
+
+        E_P : list
+            List containing busses which represent exergy production of the
+            network, e.g. the motors and generators of a power plant.
+
+        E_L : list
+            List containing busses which represent exergy loss streams of the
+            network to the ambient, e.g. flue gases of a gas turbine.
+
+        internal_busses : list
+            Optional: List containing internal busses that represent exergy
+            transfer within your network but neither exergy production or
+            exergy fuel, e.g. a steam turbine driven feed water pump. The
+            conversion factors of the bus are applied to calculate exergy
+            destruction which is allocated to the respective components.
+
+        Note
+        ----
+        The nomenclature of the variables used in the exergy analysis is
+        according to :cite:`Tsatsaronis2007`.
+
+        .. math::
+
+            \begin{split}
+            E_{\mathrm{D},comp} = E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
+            \;& \\
+            \varepsilon_{\mathrm{comp}} =
+            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} \;& \\
+            E_{\mathrm{D}} = \sum_{comp} E_{\mathrm{D},comp} \;&
+            \forall comp \in \text{ network components}\\
+            E_{\mathrm{P}} = \sum_{comp} E_{\mathrm{P},comp} \;&
+            \forall comp \in
+            \text{ components of busses in E\_P if 'base': 'component'}\\
+            E_{\mathrm{P}} = E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
+            \;& \forall comp \in
+            \text{ components of busses in E\_P if 'base': 'bus'}\\
+            E_{\mathrm{F}} = \sum_{comp} E_{\mathrm{F},comp} \;&
+            \forall comp \in
+            \text{ components of busses in E\_F if 'base': 'bus'}\\
+            E_{\mathrm{F}} = E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
+            \;& \forall comp \in
+            \text{ components of busses in E\_F if 'base': 'component'}\\
+            E_{\mathrm{L}} = \sum_{comp} E_{\mathrm{D},comp} \;&
+            \forall comp \in
+            \text{ sinks of network components if parameter exergy='loss'}
+            \end{split}
+
+        The exergy balance of the network must be closed, meaning fuel exergy
+        minus product exergy, exergy destruction and exergy losses must be
+        zero (:math:`\Delta E_\text{max}=0.001`). If the balance is violated a
+        warning message is prompted.
+
+        .. math::
+
+            |E_{\text{F}} - E_{\text{P}} - E_{\text{L}} - E_{\text{D}}| \leq
+            \Delta E_\text{max}\\
+
+            \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
+
+            y_{\text{D},comp} =
+            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
+            y^*_{\text{D},comp} =
+            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
+
+        Example
+        -------
+        In this example a simple clausius rankine cycle is set up and an
+        exergy analysis is performed after simulation of the power plant.
+        Start by defining ambient state and genereral network setup.
+
+        >>> from tespy.components.basics import cycle_closer
+        >>> from tespy.components.heat_exchangers import heat_exchanger_simple
+        >>> from tespy.components.nodes import merge
+        >>> from tespy.components.nodes import splitter
+        >>> from tespy.components.piping import valve
+        >>> from tespy.components.turbomachinery import compressor
+        >>> from tespy.components.turbomachinery import pump
+        >>> from tespy.components.turbomachinery import turbine
+        >>> from tespy.connections import bus
+        >>> from tespy.connections import connection
+        >>> from tespy.networks.networks import network
+
+        >>> Tamb = 20
+        >>> pamb = 1
+        >>> fluids = ['water']
+        >>> nw = network(fluids=fluids)
+        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
+        ... iterinfo=False)
+
+        In order to show all functionalities available we use a feed water pump
+        that is not driven electrically by a motor but instead internally by
+        an own steam turbine. Therefore we split up the live steam from the
+        steam generator and merge the streams after both steam turbines. For
+        simplicity the steam generator and the condenser are modeled as simple
+        heat exchangers.
+
+        >>> cycle_close = cycle_closer('cycle closer')
+        >>> splitter1 = splitter('splitter 1')
+        >>> merge1 = merge('merge 1')
+        >>> turb = turbine('turbine')
+        >>> fwp_turb = turbine('feed water pump turbine')
+        >>> condenser = heat_exchanger_simple('condenser')
+        >>> fwp = pump('pump')
+        >>> steam_generator = heat_exchanger_simple('steam generator')
+
+        >>> fs_in = connection(cycle_close, 'out1', splitter1, 'in1')
+        >>> fs_fwpt = connection(splitter1, 'out1', fwp_turb, 'in1')
+        >>> fs_t = connection(splitter1, 'out2', turb, 'in1')
+        >>> fwpt_ws = connection(fwp_turb, 'out1', merge1, 'in1')
+        >>> t_ws = connection(turb, 'out1', merge1, 'in2')
+        >>> ws = connection(merge1, 'out1', condenser, 'in1')
+        >>> cond = connection(condenser, 'out1', fwp, 'in1')
+        >>> fw = connection(fwp, 'out1', steam_generator, 'in1')
+        >>> fs_out = connection(steam_generator, 'out1', cycle_close, 'in1')
+        >>> nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond,
+        ... fw, fs_out)
+
+        Next step is to set up the busses to later pass them according to the
+        convetions in the list below:
+
+        - E_F for fuel exergy
+        - E_P for product exergy
+        - internal_busses for internal energy transport
+
+        The first bus is for output power, which is only represented by the
+        main steam turbine. The efficiency is set to 0.97. This bus will
+        represent the product exergy.
+
+        >>> power = bus('power_output')
+        >>> power.add_comps({'comp': turb, 'char': 0.97})
+
+        The second bus is for driving the feed water pump. The total power of
+        this bus is specified to be 0 in order to make sure, the power genrated
+        by the secondary steam turbine is transferred to the feed water pump.
+        For mechanical efficiency we choose 0.985 for both components, but
+        we need to make sure, the :code:`'base'` of the feed water pump is
+        :code:`'bus'` as the energy from the turbine drives the feed water
+        pump.
+
+        >>> fwp_power = bus('feed water pump power', P=0)
+        >>> fwp_power.add_comps(
+        ... {'comp': fwp_turb, 'char': 0.985},
+        ... {'comp': fwp, 'char': 0.985, 'base': 'bus'})
+
+        The fuel exergy is the exergy input into the network which is
+        represented by the heat input bus. Here again, as we have an energy
+        input from outside of the network, the :code:`'base'` keyword must be
+        specified to :code:`'bus'`.
+
+        >>> heat = bus('heat_input')
+        >>> heat.add_comps({'comp': steam_generator, 'base': 'bus'})
+        >>> nw.add_busses(power, fwp_power, heat)
+
+        After setting up the busses, we specify the parameters for components
+        and connections and start the simulation.
+
+        >>> turb.set_attr(eta_s=0.9)
+        >>> fwp_turb.set_attr(eta_s=0.87)
+        >>> condenser.set_attr(pr=0.98)
+        >>> fwp.set_attr(eta_s=0.75)
+        >>> steam_generator.set_attr(pr=0.89)
+        >>> fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
+        >>> cond.set_attr(T=Tamb + 3, x=0)
+        >>> nw.solve('design')
+
+        To evaluate the exergy balance of the network, we simply call the
+        :py:meth:`tespy.networks.networks.network.exergy_analysis` method
+        passing the respective busses as well as the ambient state. To print
+        the results you can subsequently use the
+        :py:meth:`tespy.networks.networks.network.print_exergy_analysis`
+        method. The ecergy balance should be closed, if you set up your network
+        analysis. If not, an error is prompted.
+
+        >>> nw.exergy_analysis(pamb=pamb, Tamb=Tamb,
+        ... E_F=[heat], E_P=[power], internal_busses=[fwp_power])
+        >>> abs(round(nw.E_F - nw.E_P - nw.E_L - nw.E_D, 3))
+        0.0
+        >>> ();nw.print_exergy_analysis();() # doctest: +ELLIPSIS
+        (...)
+
+        The component exergy and connection exergy data are stored as
+        dataframes and therefore accessible for further investigation.
+
+        >>> components = nw.component_exergy_data
+        >>> connections = nw.connection_exergy_data
+
+        """
+        pamb_SI = self.convert_to_SI('p', pamb, self.p_unit)
+        Tamb_SI = self.convert_to_SI('T', Tamb, self.T_unit)
+
+        self.component_exergy_data = pd.DataFrame(
+            columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
+
+        self.connection_exergy_data = pd.DataFrame(columns=['e_PH', 'E_PH'])
+
+        self.E_P = 0
+        self.E_F = 0
+        self.E_D = 0
+        self.E_L = 0
+
+        if len(E_F) == 0:
+            msg = ('Missing fuel exergy E_F of network.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        elif len(E_P) == 0:
+            msg = ('Missing product exergy E_P of network.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        # physical exergy of connections
+        for conn in self.conns.index:
+            conn.get_physical_exergy(pamb_SI, Tamb_SI)
+            self.connection_exergy_data.loc[conn.label] = [
+                conn.ex_physical, conn.Ex_physical]
+
+        # exergy balance of components
+
+        for cp in self.comps.index:
+            cp.exergy_balance(Tamb_SI)
+
+            cp_E_D = cp.E_D
+            cp_E_F = cp.E_F
+            cp_E_P = cp.E_P
+            cp_epsilon = cp.epsilon
+            cp_on_num_busses = 0
+            for b in E_F + E_P + internal_busses + E_L:
+                if cp in b.comps.index:
+                    if cp_on_num_busses > 0:
+                        msg = (
+                            'The component ' + cp.label + ' is on multiple '
+                            'busses in the exergy analysis. Make sure that no '
+                            'component is connected to more than one of the '
+                            'busses passed to the exergy_analysis method.')
+                        logging.error(msg)
+                        raise hlp.TESPyNetworkError(msg)
+
+                    if b.comps.loc[cp, 'base'] == 'bus':
+                        cp_E_F = cp.E_F / cp.calc_bus_efficiency(b)
+                    else:
+                        cp_E_P = cp.E_P * cp.calc_bus_efficiency(b)
+                    cp_E_D = cp_E_F - cp_E_P
+                    cp_epsilon = cp_E_P / cp_E_F
+
+                    if b in E_F:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_F += cp_E_F
+                        else:
+                            self.E_F -= cp_E_P
+                    elif b in E_P:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_P -= cp_E_F
+                        else:
+                            self.E_P += cp_E_P
+                    elif b in E_L:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_L -= cp_E_F
+                        else:
+                            self.E_L += cp_E_P
+
+                    cp_on_num_busses += 1
+
+            self.component_exergy_data.loc[cp.label] = [
+                cp.label, cp_E_F, cp_E_P, cp_E_D, cp_epsilon, np.nan, np.nan]
+
+        self.E_D = self.component_exergy_data['E_D'].sum()
+        self.E_F = abs(self.E_F)
+        self.E_P = abs(self.E_P)
+
+        self.epsilon = self.E_P / self.E_F
+
+        # calculate exergy destruction ratios for components/busses
+        self.component_exergy_data['y_Dk'] = (
+            self.component_exergy_data['E_D'] / self.E_F)
+        self.component_exergy_data['y*_Dk'] = (
+            self.component_exergy_data['E_D'] / self.E_D)
+
+        residual = abs(self.E_F - self.E_P - self.E_L - self.E_D)
+        if residual >= err ** 0.5:
+            msg = (
+                'The exergy balance of your network is not closed (residual '
+                'value is ' + str(round(residual, 6)) + ', but should be '
+                'smaller than 1e-3), you should check the component and '
+                'network exergy data and check, if network is properly setup '
+                'for the exergy analysis.')
+            logging.warning(msg)
 
 # %% printing and plotting
 
@@ -2600,13 +2930,13 @@ class network:
             'h / (' + self.h_unit + ')',
             'T / (' + self.T_unit + ')'])
         for c in self.conns.index:
-            if c.printout is True:
+            if c.printout:
                 row = (c.source.label + ':' + c.source_id + ' -> ' +
                        c.target.label + ':' + c.target_id)
 
                 row_data = []
                 for var in ['m', 'p', 'h', 'T']:
-                    if c.get_attr(var).val_set is True and colored is True:
+                    if c.get_attr(var).val_set and colored:
                         row_data += [
                             coloring['set'] + str(c.get_attr(var).val) +
                             coloring['end']
@@ -2623,7 +2953,7 @@ class network:
         for b in self.busses.values():
             df = pd.DataFrame(columns=[
                 'component', 'comp value', 'bus value', 'efficiency'])
-            if b.printout is True:
+            if b.printout:
                 df['cp'] = b.comps.index
                 df['base'] = b.comps['base'].values
                 df['component'] = df['cp'].apply(lambda x: x.label)
@@ -2645,9 +2975,9 @@ class network:
 
     def print_components(c, *args):
         param, colored = args
-        if c.name.printout is True:
+        if c.name.printout:
             val = float(c.name.get_attr(param).val)
-            if colored is False:
+            if not colored:
                 return str(val)
             # else part
             if (val < c.name.get_attr(param).min_val - err or
@@ -2660,6 +2990,56 @@ class network:
             return str(val)
         else:
             return np.nan
+
+    def print_connection_exergy_data(self):
+        r"""Print the calculations results of the (specific) physical exergy of
+        the connections to prompt.
+        """
+        df = pd.DataFrame(columns=['e_PH / (kJ / kg)', 'E_PH / MW'])
+        for c in self.conns.index:
+            row = (c.source.label + ':' + c.source_id + ' -> ' +
+                   c.target.label + ':' + c.target_id)
+            row_data = [c.ex_physical/10**3, c.Ex_physical/10**6]
+            df.loc[row] = row_data
+
+        self.df_exergy_conns = df
+
+        print('\n##### RESULTS (connections) Specific physical exergy and ' +
+              'physical exergy #####')
+        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f'))
+
+    def print_exergy_analysis(self, E_D_min=1000, sort_desc=True):
+        r"""Print the results of the exergy analysis to prompt.
+
+        - The results are sorted beginning with the component having the
+          biggest exergy destruction by default.
+        - Components with an exergy destruction smaller than 1000 W is not
+          printed to prompt by default.
+
+        Parameters
+        ----------
+        E_D_min : float
+            Minimum exergy destruction to be printed to prompt.
+
+        sort_des : boolean
+            Sort the component results descending by exergy destruction.
+        """
+        if sort_desc:
+            df = self.component_exergy_data.sort_values(
+                by=['E_D'], ascending=False)
+
+        print('\n##### RESULTS (components) Exergy analysis #####')
+        print(tabulate(
+            df[df['E_D'] > E_D_min], headers='keys',
+            tablefmt='psql', floatfmt='.3e', showindex=False))
+
+        # print network exergy analysis results
+        df = pd.DataFrame(
+            columns=['E_P', 'E_F', 'E_L', 'E_D', 'epsilon'])
+        row_data = [self.E_P, self.E_F, self.E_L, self.E_D, self.epsilon]
+        df.loc['network'] = row_data
+        print('\n##### RESULTS (network) Exergy analysis #####')
+        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
 # %% saving
 
@@ -2737,7 +3117,7 @@ class network:
         - Uses connections object id as row identifier and saves
             * connections source and target as well as
             * properties with references and
-            * fluid vector (including user specification if structure is True).
+            * fluid vector.
         - Connections source and target are identified by its labels.
 
         Parameters

@@ -31,7 +31,6 @@ from tespy.tools.fluid_properties import h_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties import tespy_fluid
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
@@ -163,12 +162,12 @@ class combustion_chamber(component):
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.017
+    2.013
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1208.4
+    1206.2
     """
 
     @staticmethod
@@ -204,7 +203,7 @@ class combustion_chamber(component):
             # energy balance: 1
             self.num_eq = self.num_nw_fluids + 4
             for var in [self.lamb, self.ti]:
-                if var.is_set is True:
+                if var.is_set:
                     self.num_eq += 1
 
             self.jacobian = np.zeros((
@@ -725,7 +724,7 @@ class combustion_chamber(component):
 
         Note
         ----
-        The temperature for the reference state is set to 20 °C, thus
+        The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
@@ -733,34 +732,19 @@ class combustion_chamber(component):
         :py:meth:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
         documentation.
 
-        - Reference temperature: 293.15 K.
+        - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 293.15
+        T_ref = 298.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (
-                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
         for o in self.outl:
-            dh = 0
-            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
-            if n_h2o > 0:
-                p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
-                h = h_pT(p, T_ref, self.h2o)
-                try:
-                    flow = [0, p, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                except ValueError:
-                    flow = [0, 615, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                if h < h_steam:
-                    dh = (h_steam - h) * o.fluid.val[self.h2o]
-
-            res -= o.m.val_SI * (
-                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
         res += self.calc_ti()
 
@@ -976,7 +960,7 @@ class combustion_chamber(component):
 
         m = 0
         for i in inl:
-            if i.good_starting_values is False:
+            if not i.good_starting_values:
                 if i.m.val_SI < 0 and not i.m.val_set:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
@@ -984,7 +968,7 @@ class combustion_chamber(component):
         ######################################################################
         # check fluid composition
         for o in outl:
-            if o.good_starting_values is False:
+            if not o.good_starting_values:
                 fluids = [f for f in o.fluid.val.keys()
                           if not o.fluid.val_set[f]]
                 for f in fluids:
@@ -1021,7 +1005,7 @@ class combustion_chamber(component):
         ######################################################################
         # flue gas propagation
         for o in outl:
-            if o.good_starting_values is False:
+            if not o.good_starting_values:
                 if o.m.val_SI < 0 and not o.m.val_set:
                     o.m.val_SI = 10
                 nw.init_target(o, o.target)
@@ -1035,7 +1019,7 @@ class combustion_chamber(component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                if i.good_starting_values is False:
+                if not i.good_starting_values:
                     fuel = 0
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
@@ -1048,7 +1032,7 @@ class combustion_chamber(component):
                     if fuel < 0.75:
                         air_tmp = i.m.val_SI
 
-            if fuel_found is True:
+            if fuel_found:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
     @staticmethod
@@ -1133,7 +1117,56 @@ class combustion_chamber(component):
 
         self.lamb.val = n_oxygen / n_oxygen_stoich
 
+        self.entropy_balance()
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of combustion chamber.
+
+        Note
+        ----
+        The entropy balance makes the following parameter available:
+
+        - :code:`T_mcomb`: Thermodynamic temperature of heat of combustion
+        - :code:`S_comb`: Entropy production due to combustion
+        - :code:`S_irr`: Entropy production due to irreversibilty
+
+        The methodology for entropy analysis of combustion processes is derived
+        from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
+        reaction, we need to define the same reference state for the entropy
+        balance of the combustion. The temperature for the reference state is
+        set to 25 °C and reference pressure is 1 bar. As the water in the flue
+        gas may be liquid but the thermodynmic temperature of heat of
+        combustion refers to the lower heating value, the water is forced to
+        gas at the reference point by considering evaporation.
+
+        - Reference temperature: 298.15 K.
+        - Reference pressure: 1 bar.
+
+        .. math::
+
+            T_\mathrm{m,comb}= \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
+            {\dot{S}_\mathrm{comb}}\\
+            \dot{S}_\mathrm{comb}= \dot{m}_\mathrm{fluegas} \cdot
+            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)
+            - \sum_{i=1}^2 \dot{m}_{\mathrm{in,}i} \cdot
+            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\mathrm{irr}= 0\\
+        """
+        T_ref = 298.15
+        p_ref = 1e5
+        o = self.outl[0]
+        self.S_comb = o.m.val_SI * (
+            o.s.val_SI -
+            s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+        for c in self.inl:
+            self.S_comb -= c.m.val_SI * (
+                c.s.val_SI -
+                s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
+
+        self.S_irr = 0
+        self.T_mcomb = self.calc_ti() / self.S_comb
 
 # %%
 
@@ -1346,7 +1379,7 @@ class combustion_chamber_stoich(combustion_chamber):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids + 4
         for var in [self.lamb, self.ti]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -2098,10 +2131,19 @@ class combustion_engine(combustion_chamber):
     Qloss_char : tespy.tools.charactersitics.char_line/tespy.tools.data_containers.dc_cc
         Characteristic line linking heat loss to power output.
 
+    eta_mech : float
+        Value of internal efficiency of the combustion engine. This value is
+        required to determine the (virtual) thermodynamic temperature of heat
+        inside the combustion engine for the entropy balance calculation.
+        Default value is 0.85.
+
     Note
     ----
-    For more information on the usage of the combustion engine see the
-    examples in the tespy_examples repository.
+    Parameters available through entropy and exergy balances are listed in the
+    respective methods:
+
+    - :py:meth:`tespy.components.combustion.combustion_engine.entropy_balance`
+    - :py:meth:`tespy.components.combustion.combustion_engine.exergy_balance`
 
     Example
     -------
@@ -2148,7 +2190,7 @@ class combustion_engine(combustion_chamber):
     will be identical automatically. Reference the mass flow at the splitter
     to be split in half.
 
-    >>> chp.set_attr(pr1=0.99, P=10e6, lamb=1.0,
+    >>> chp.set_attr(pr1=0.99, P=-10e6, lamb=1.0,
     ... design=['pr1'], offdesign=['zeta1'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
@@ -2163,8 +2205,8 @@ class combustion_engine(combustion_chamber):
     >>> round(chp.ti.val, 0)
     25300000.0
     >>> round(chp.Q1.val, 0)
-    4980000.0
-    >>> chp.set_attr(Q1=4e6, P=np.nan)
+    -4980000.0
+    >>> chp.set_attr(Q1=-4e6, P=np.nan)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val, 0)
@@ -2187,20 +2229,16 @@ class combustion_engine(combustion_chamber):
 
     @staticmethod
     def attr():
-        return {'lamb': dc_cp(min_val=1),
-                'ti': dc_cp(min_val=0),
-                'P': dc_cp(val=1e6, d=1, min_val=1),
-                'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),
-                'Qloss': dc_cp(val=1e5, d=1, min_val=1),
-                'pr1': dc_cp(max_val=1),
-                'pr2': dc_cp(max_val=1),
-                'zeta1': dc_cp(min_val=0),
-                'zeta2': dc_cp(min_val=0),
-                'tiP_char': dc_cc(),
-                'Q1_char': dc_cc(),
-                'Q2_char': dc_cc(),
+        return {'lamb': dc_cp(min_val=1), 'ti': dc_cp(min_val=0),
+                'P': dc_cp(val=-1e6, d=1, max_val=-1), 'Q1': dc_cp(max_val=1),
+                'Q2': dc_cp(max_val=1),
+                'Qloss': dc_cp(val=-1e5, d=1, max_val=-1),
+                'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
+                'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
+                'tiP_char': dc_cc(), 'Q1_char': dc_cc(), 'Q2_char': dc_cc(),
                 'Qloss_char': dc_cc(),
-                'S': dc_simple()}
+                'eta_mech': dc_simple(val=0.85),
+                'T_v_inner': dc_simple()}
 
     @staticmethod
     def inlets():
@@ -2238,7 +2276,7 @@ class combustion_engine(combustion_chamber):
         # P and Qloss are not included, as the equations are mandatory anyway
         for var in [self.lamb, self.ti, self.Q1, self.Q2,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -2529,17 +2567,17 @@ class combustion_engine(combustion_chamber):
         ######################################################################
         # derivatives for specified heat outputs
         if self.Q1.is_set:
-            self.jacobian[k, 0, 0] = -(
+            self.jacobian[k, 0, 0] = (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.jacobian[k, 0, 2] = self.inl[0].m.val_SI
-            self.jacobian[k, 4, 2] = -self.inl[0].m.val_SI
+            self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+            self.jacobian[k, 4, 2] = self.inl[0].m.val_SI
             k += 1
 
         if self.Q2.is_set:
-            self.jacobian[k, 1, 0] = -(
+            self.jacobian[k, 1, 0] = (
                 self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            self.jacobian[k, 1, 2] = self.inl[1].m.val_SI
-            self.jacobian[k, 5, 2] = -self.inl[1].m.val_SI
+            self.jacobian[k, 1, 2] = -self.inl[1].m.val_SI
+            self.jacobian[k, 5, 2] = self.inl[1].m.val_SI
             k += 1
 
         ######################################################################
@@ -2716,40 +2754,25 @@ class combustion_engine(combustion_chamber):
 
         Note
         ----
-        The temperature for the reference state is set to 20 °C, thus
+        The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added.
 
-        - Reference temperature: 293.15 K.
+        - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 293.15
+        T_ref = 298.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl[2:]:
-            res += i.m.val_SI * (
-                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
 
         for o in self.outl[2:]:
-            dh = 0
-            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
-            if n_h2o > 0:
-                p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
-                h = h_pT(p, T_ref, self.h2o)
-                try:
-                    flow = [0, p, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                    # CP.PropsSI('H', 'P', p, 'Q', 1, self.h2o)
-                except ValueError:
-                    flow = [0, 615, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                if h < h_steam:
-                    dh = (h_steam - h) * o.fluid.val[self.h2o]
-
-            res -= o.m.val_SI * (
-                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
         res += self.calc_ti()
 
@@ -2759,7 +2782,7 @@ class combustion_engine(combustion_chamber):
                 self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
         # power output and heat loss
-        res -= self.P.val + self.Qloss.val
+        res += self.P.val + self.Qloss.val
 
         return res
 
@@ -2785,12 +2808,12 @@ class combustion_engine(combustion_chamber):
                 \dot{E} = \begin{cases}
                 LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
                 P & \text{key = 'P'}\\
-                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) +
-                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) +
+                -\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
                 \text{key = 'Q'}\\
-                \dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
+                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
                 \text{key = 'Q1'}\\
-                \dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
+                -\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
                 \text{key = 'Q2'}\\
                 \dot{Q}_{loss} & \text{key = 'Qloss'}
                 \end{cases}
@@ -2815,21 +2838,21 @@ class combustion_engine(combustion_chamber):
             for j in range(2):
                 i = self.inl[j]
                 o = self.outl[j]
-                val += i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+                val -= i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
         ######################################################################
         # value for bus parameter of heat production 1 (Q1)
         elif bus['param'] == 'Q1':
             i = self.inl[0]
             o = self.outl[0]
-            val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            val = - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
         ######################################################################
         # value for bus parameter of heat production 2 (Q2)
         elif bus['param'] == 'Q2':
             i = self.inl[1]
             o = self.outl[1]
-            val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            val = - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
 
         ######################################################################
         # value for bus parameter of heat loss (Qloss)
@@ -2927,13 +2950,13 @@ class combustion_engine(combustion_chamber):
 
             .. math::
 
-                val = \dot{m}_1 \cdot \left(h_{out,1} -
+                val = \dot{m}_1 \cdot \left(h_{out,1} +
                 h_{in,1} \right) - \dot{Q}_1
         """
         i = self.inl[0]
         o = self.outl[0]
 
-        return self.Q1.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val
 
     def Q2_func(self):
         r"""
@@ -2946,13 +2969,13 @@ class combustion_engine(combustion_chamber):
 
             .. math::
 
-                0 = \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) -
+                0 = \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) +
                 \dot{Q}_2
         """
         i = self.inl[1]
         o = self.outl[1]
 
-        return self.Q2.val - i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val
 
     def tiP_char_func(self):
         r"""
@@ -2965,7 +2988,7 @@ class combustion_engine(combustion_chamber):
 
             .. math::
 
-                0 = P \cdot f_{TI}\left(\frac{P}{P_{ref}}\right)- LHV \cdot
+                0 = P \cdot f_{TI}\left(\frac{P}{P_{ref}}\right)+ LHV \cdot
                 \left[\sum_i \left(\dot{m}_{in,i} \cdot
                 x_{f,i}\right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
                 \; \forall i \in [1,2]
@@ -2975,7 +2998,7 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return self.calc_ti() - self.tiP_char.func.evaluate(expr) * self.P.val
+        return self.calc_ti() + self.tiP_char.func.evaluate(expr) * self.P.val
 
     def Q1_char_func(self):
         r"""
@@ -3069,7 +3092,7 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Qloss_char.func.evaluate(expr) -
+        return (self.calc_ti() * self.Qloss_char.func.evaluate(expr) +
                 self.tiP_char.func.evaluate(expr) * self.Qloss.val)
 
     def calc_ti(self):
@@ -3112,7 +3135,7 @@ class combustion_engine(combustion_chamber):
 
             .. math::
 
-                P = \frac{LHV \cdot \dot{m}_{f}}
+                P = -\frac{LHV \cdot \dot{m}_{f}}
                 {f_{TI}\left(\frac{P}{P_{ref}}\right)}
 
         """
@@ -3121,7 +3144,7 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return self.calc_ti() / self.tiP_char.func.evaluate(expr)
+        return - self.calc_ti() / self.tiP_char.func.evaluate(expr)
 
     def calc_Qloss(self):
         r"""
@@ -3134,7 +3157,7 @@ class combustion_engine(combustion_chamber):
 
             .. math::
 
-                \dot{Q}_{loss} = \frac{LHV \cdot \dot{m}_{f} \cdot
+                \dot{Q}_{loss} = -\frac{LHV \cdot \dot{m}_{f} \cdot
                 f_{QLOSS}\left(\frac{P}{P_{ref}}\right)}
                 {f_{TI}\left(\frac{P}{P_{ref}}\right)}
         """
@@ -3143,8 +3166,8 @@ class combustion_engine(combustion_chamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Qloss_char.func.evaluate(expr) /
-                self.tiP_char.func.evaluate(expr))
+        return - (self.calc_ti() * self.Qloss_char.func.evaluate(expr) /
+                  self.tiP_char.func.evaluate(expr))
 
     def initialise_fluids(self, nw):
         r"""
@@ -3270,19 +3293,16 @@ class combustion_engine(combustion_chamber):
         o1 = self.outl[0].to_flow()
         o2 = self.outl[1].to_flow()
 
-        v_i1 = v_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        v_o1 = v_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        v_i2 = v_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        v_o2 = v_mix_ph(o1, T0=self.outl[1].T.val_SI)
-
         self.pr1.val = o1[1] / i1[1]
         self.pr2.val = o2[1] / i2[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
-                          (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
-                          (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
-        self.Q1.val = i1[0] * (o1[2] - i1[2])
-        self.Q2.val = i2[0] * (o2[2] - i2[2])
+        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 / (
+            4 * i1[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 / (
+            4 * i2[0] ** 2 * (self.inl[1].vol.val_SI + self.outl[1].vol.val_SI)
+            ))
+        self.Q1.val = - i1[0] * (o1[2] - i1[2])
+        self.Q2.val = - i2[0] * (o2[2] - i2[2])
         self.P.val = self.calc_P()
         self.Qloss.val = self.calc_Qloss()
 
@@ -3297,3 +3317,148 @@ class combustion_engine(combustion_chamber):
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
         combustion_chamber.calc_parameters(self)
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of combustion engine.
+
+        For the entropy balance of a combustion engine two additional
+        parameters need to be specified:
+
+        - virtual inner temperature :code:`T_v_inner` that is used to determine
+          the entropy of heat transferred from the hot side.
+        - mechanical efficiency :code:`eta_mech` describing the ratio of power
+          output :code:`P` to reversible power of the motor
+          :cite:`Zahoransky2019`. It is used to determine the irreversibilty
+          inside the motor.
+
+          .. math::
+
+              P_\mathrm{irr,inner}=\left(1 - \frac{1}{\eta_\mathrm{mech}}
+              \right) \cdot P
+
+        The default values are:
+
+        - :code:`T_v_inner`: flue gas temperature (result of calculation)
+        - :code:`eta_mech`: 0.85
+
+        Note
+        ----
+        The entropy balance makes the following parameter available:
+
+        - :code:`T_mcomb`: Thermodynamic temperature of heat of combustion
+        - :code:`S_comb`: Entropy production due to combustion
+        - :code:`T_mQ1`: Thermodynamic temperature of heat at cold side of
+          heater 1
+        - :code:`S_Q11`: Entropy transport at hot side of heater 1
+        - :code:`S_Q12`: Entropy transport at cold side of heater 1
+        - :code:`S_Q1irr`: Entropy production due to heat transfer at heater 1
+        - :code:`S_irr1`: Entropy production due to pressure losses at heater 1
+        - :code:`T_mQ2`: Thermodynamic temperature of heat at cold side of
+          heater 2
+        - :code:`S_Q21`: Entropy transport at hot side of heater 2
+        - :code:`S_Q22`: Entropy transport at cold side of heater 2
+        - :code:`S_Q2irr`: Entropy production due to heat transfer at heater 2
+        - :code:`S_irr2`: Entropy production due to pressure losses at heater 2
+        - :code:`S_irr_i`: Entropy production due to internal irreversibilty
+        - :code:`S_Qloss`: Entropy transport with heat loss to ambient
+        - :code:`S_Qcomb`: Virtual entropy transport of heat to revert
+          combustion gases to reference state
+        - :code:`S_irr`: Total entropy production due to irreversibilty
+
+        The methodology for entropy analysis of combustion processes is derived
+        from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
+        reaction, we need to define the same reference state for the entropy
+        balance of the combustion. The temperature for the reference state is
+        set to 25 °C and reference pressure is 1 bar. As the water in the flue
+        gas may be liquid but the thermodynmic temperature of heat of
+        combustion refers to the lower heating value, the water is forced to
+        gas at the reference point by considering evaporation.
+
+        - Reference temperature: 298.15 K.
+        - Reference pressure: 1 bar.
+
+        .. math::
+
+            \begin{split}
+            T_\mathrm{m,comb}= & \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
+            {\dot{S}_\mathrm{comb}}\\
+            \dot{S}_\mathrm{comb} =&\dot{S}_\mathrm{Q,comb}-\left(
+            \dot{S}_\mathrm{Q,11} + \dot{S}_\mathrm{Q,21} +
+            \dot{S}_\mathrm{Q,loss} +\dot{S}_\mathrm{irr,i}\right)\\
+            \dot{S}_\mathrm{Q,comb}= & \dot{m}_\mathrm{fluegas} \cdot
+            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)\\
+            & - \sum_{i=3}^4 \dot{m}_{\mathrm{in,}i} \cdot
+            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\mathrm{Q,11}= & \frac{\dot{Q}_1}{T_\mathrm{v,inner}}\\
+            \dot{S}_\mathrm{Q,21}= & \frac{\dot{Q}_2}{T_\mathrm{v,inner}}\\
+            \dot{S}_\mathrm{Q,loss}= & \frac{\dot{Q}_\mathrm{loss}}
+            {T_\mathrm{v,inner}}\\
+            \dot{S}_\mathrm{irr,i}= & \frac{\left(1 -
+            \frac{1}{\eta_\mathrm{mech}}\right) \cdot P}{T_\mathrm{v,inner}}\\
+            T_\mathrm{Q,12} = &\frac{-\dot{Q}_1}{\dot{m}_1 \cdot \left(
+            s_\mathrm{out,1} - s_\mathrm{in,1}\right)}\\
+            T_\mathrm{Q,22} = &\frac{-\dot{Q}_2}{\dot{m}_2 \cdot \left(
+            s_\mathrm{out,2} - s_\mathrm{in,2}\right)}\\
+            \dot{S}_\mathrm{irr} = &sum \dot{S}_\mathrm{irr}\\
+            \end{split}\\
+        """
+        T_ref = 298.15
+        p_ref = 1e5
+        o = self.outl[2]
+        self.S_Qcomb = o.m.val_SI * (
+            o.s.val_SI -
+            s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+
+        for c in self.inl[2:]:
+            self.S_Qcomb -= c.m.val_SI * (
+                c.s.val_SI -
+                s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
+
+        # (virtual) thermodynamic temperature of combustion, use default value
+        # if not specified
+        if not self.T_v_inner.is_set:
+            self.T_v_inner.val = o.T.val_SI
+
+        for i in range(2):
+            inl = self.inl[i]
+            out = self.outl[i]
+            p_star = inl.p.val_SI * (
+                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+            s_i_star = s_mix_ph(
+                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+            s_o_star = s_mix_ph(
+                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+
+            setattr(self, 'S_Q' + str(i + 1) + '2',
+                    inl.m.val_SI * (s_o_star - s_i_star))
+            S_Q = self.get_attr('S_Q' + str(i + 1) + '2')
+            setattr(self, 'S_irr' + str(i + 1),
+                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
+            setattr(self, 'T_mQ' + str(i + 1),
+                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+
+        # internal irreversibilty
+        self.P_irr_i = (1 / self.eta_mech.val - 1) * self.P.val
+
+        # internal entropy flow and production
+        self.S_Q11 = self.Q1.val / self.T_v_inner.val
+        self.S_Q21 = self.Q2.val / self.T_v_inner.val
+        self.S_Qloss = self.Qloss.val / self.T_v_inner.val
+        self.S_irr_i = self.P_irr_i / self.T_v_inner.val
+
+        # entropy production of heaters due to heat transfer
+        self.S_Q1irr = self.S_Q12 - self.S_Q11
+        self.S_Q2irr = self.S_Q22 - self.S_Q21
+
+        # calculate entropy production of combustion
+        self.S_comb = (
+            self.S_Qcomb - self.S_Q11 - self.S_Q21 - self.S_Qloss -
+            self.S_irr_i)
+
+        # thermodynamic temperature of heat input
+        self.T_mcomb = self.calc_ti() / self.S_comb
+        # total irreversibilty production
+        self.S_irr = (
+            self.S_irr_i + self.S_irr2 + self.S_irr1 + self.S_Q1irr +
+            self.S_Q2irr)

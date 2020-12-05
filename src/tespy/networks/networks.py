@@ -2527,7 +2527,8 @@ class network:
         msg = 'Postprocessing complete.'
         logging.info(msg)
 
-    def exergy_analysis(self, pamb, Tamb, E_F, E_P, internal_busses=[]):
+    def exergy_analysis(self, pamb, Tamb, E_F, E_P, E_L=[],
+                        internal_busses=[]):
         r"""Perform exergy analysis.
 
         - Calculate the values of physical exergy on all connections.
@@ -2570,6 +2571,10 @@ class network:
         E_P : list
             List containing busses which represent exergy production of the
             network, e.g. the motors and generators of a power plant.
+
+        E_L : list
+            List containing busses which represent exergy loss streams of the
+            network to the ambient, e.g. flue gases of a gas turbine.
 
         internal_busses : list
             Optional: List containing internal busses that represent exergy
@@ -2781,18 +2786,13 @@ class network:
 
         for cp in self.comps.index:
             cp.exergy_balance(Tamb_SI)
-            if isinstance(cp, sink):
-                if cp.exergy.val == 'loss':
-                    self.E_L += cp.E_D
-                    cp_E_D = 0
-            else:
-                cp_E_D = cp.E_D
 
+            cp_E_D = cp.E_D
             cp_E_F = cp.E_F
             cp_E_P = cp.E_P
             cp_epsilon = cp.epsilon
             cp_on_num_busses = 0
-            for b in E_F + E_P + internal_busses:
+            for b in E_F + E_P + internal_busses + E_L:
                 if cp in b.comps.index:
                     if cp_on_num_busses > 0:
                         msg = (
@@ -2820,6 +2820,11 @@ class network:
                             self.E_P -= cp_E_F
                         else:
                             self.E_P += cp_E_P
+                    elif b in E_L:
+                        if b.comps.loc[cp, 'base'] == 'bus':
+                            self.E_L -= cp_E_F
+                        else:
+                            self.E_L += cp_E_P
 
                     cp_on_num_busses += 1
 

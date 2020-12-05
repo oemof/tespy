@@ -346,7 +346,7 @@ class Memorise:
         """
         # number of fluids
         num_fl = len(fluids)
-        if memorise_fluid_properties is True and num_fl > 0:
+        if memorise_fluid_properties and num_fl > 0:
             fl = tuple(fluids.keys())
             # fluid property tables
             Memorise.T_ph[fl] = np.empty((0, num_fl + 4), float)
@@ -529,7 +529,7 @@ def T_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in Memorise.T_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = Memorise.T_ph[fl][:, :-2]
         b = np.array([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -555,7 +555,7 @@ def T_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = T_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -728,7 +728,7 @@ def T_mix_ps(flow, s, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in Memorise.T_ps.keys()
-    if memorisation is True:
+    if memorisation:
         a = Memorise.T_ps[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -754,7 +754,7 @@ def T_mix_ps(flow, s, T0=300):
         # calculate fluid property for pure fluids
         val = T_ps(flow[1], s, fluid)
 
-    if memorisation is True:
+    if memorisation:
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [s, val, 0]])
         # memorise the newly calculated value
@@ -793,7 +793,7 @@ def T_ps(p, s, fluid):
 # %%
 
 
-def h_mix_pT(flow, T):
+def h_mix_pT(flow, T, force_gas=False):
     r"""
     Calculate the enthalpy from pressure and Temperature.
 
@@ -827,12 +827,12 @@ def h_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
-            h += h_pT(flow[1] * ni / n, T, fluid) * x
+            h += h_pT(flow[1] * ni / n, T, fluid, force_gas) * x
 
     return h
 
 
-def h_pT(p, T, fluid):
+def h_pT(p, T, fluid, force_gas=False):
     r"""
     Calculate the enthalpy from pressure and temperature for a pure fluid.
 
@@ -855,6 +855,14 @@ def h_pT(p, T, fluid):
     if fluid in TESPyFluid.fluids.keys():
         return TESPyFluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
+        if force_gas:
+            if T < Memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+                Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                h = Memorise.state[fluid].hmass()
+                Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                h_sat = Memorise.state[fluid].hmass()
+                return max(h, h_sat)
+
         Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
         return Memorise.state[fluid].hmass()
 
@@ -1117,7 +1125,7 @@ def v_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in Memorise.v_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = Memorise.v_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1135,7 +1143,7 @@ def v_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = 1 / d_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -1391,7 +1399,7 @@ def visc_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in Memorise.visc_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = Memorise.visc_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1409,7 +1417,7 @@ def visc_mix_ph(flow, T0=300):
         # calculate the fluid properties for pure fluids
         val = visc_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -1553,7 +1561,7 @@ def s_mix_ph(flow, T0=300):
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
     memorisation = fl in Memorise.s_ph.keys()
-    if memorisation is True:
+    if memorisation:
         a = Memorise.s_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
         ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
@@ -1571,7 +1579,7 @@ def s_mix_ph(flow, T0=300):
         # calculate fluid property for pure fluids
         val = s_ph(flow[1], flow[2], fluid)
 
-    if memorisation is True:
+    if memorisation:
         # memorise the newly calculated value
         new = np.asarray(
             [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
@@ -1611,7 +1619,7 @@ def s_ph(p, h, fluid):
 # %%
 
 
-def s_mix_pT(flow, T):
+def s_mix_pT(flow, T, force_gas=False):
     r"""
     Calculate the entropy from pressure and temperature.
 
@@ -1667,14 +1675,14 @@ def s_mix_pT(flow, T):
     for fluid, x in fluid_comps.items():
         if x > err:
             pp = flow[1] * x / (molar_masses[fluid] * n)
-            s += s_pT(pp, T, fluid) * x
+            s += s_pT(pp, T, fluid, force_gas) * x
             s -= (x * gas_constants[fluid] / molar_masses[fluid] *
                   np.log(pp / flow[1]))
 
     return s
 
 
-def s_pT(p, T, fluid):
+def s_pT(p, T, fluid, force_gas):
     r"""
     Calculate the entropy from pressure and temperature for a pure fluid.
 
@@ -1697,6 +1705,14 @@ def s_pT(p, T, fluid):
     if fluid in TESPyFluid.fluids.keys():
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
+        if force_gas:
+            if T < Memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+                Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                s = Memorise.state[fluid].smass()
+                Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                s_sat = Memorise.state[fluid].smass()
+                return max(s, s_sat)
+
         Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
         return Memorise.state[fluid].smass()
 
@@ -1763,3 +1779,34 @@ def isentropic(inflow, outflow, T0=300):
     else:
         s_mix = s_mix_ph(inflow)
         return h_mix_ps(outflow, s_mix, T0=T0)
+
+
+def calc_physical_exergy(conn, pamb, Tamb):
+    r"""
+    Calculate specific physical exergy.
+
+    Parameters
+    ----------
+    conn : tespy.connections.connection
+        Connection to calculate specific physical exergy for.
+
+    pamb : float
+        Ambient pressure pamb / Pa.
+
+    Tamb : float
+        Ambient temperature Tamb / K.
+
+    Returns
+    -------
+    e_ph : float
+        Specific physical exergy e_ph / (J/kg).
+
+        .. math::
+
+            e_\mathrm{ph} = \left( h - h \left( p_\mathrm{amb}, T_\mathrm{amb}
+            \right) \right) - T_\mathrm{amb} \cdot \left(s -
+            s\left(p_\mathrm{amb}, T_\mathrm{amb}\right)\right)
+    """
+    hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
+    samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
+    return (conn.h.val_SI - hamb) - Tamb * (conn.s.val_SI - samb)

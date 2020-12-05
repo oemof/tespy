@@ -3,6 +3,9 @@ v0.3.5 - Someversion (Somemonth, Someday, Someyear)
 
 New Features
 ############
+- Add methods for exergy and entropy analyses of networks.
+  Examples will follow (`PR #215 <https://github.com/oemof/tespy/pull/215>`_),
+
 - Add a method :code:`get_plotting_data` to each component to export the input
   data required by FluProDia in order to generate the data required to display
   state changes in the components in a fluid property diagram. Each component
@@ -123,5 +126,6 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@juliusmeier <https://github.com/juliusmeier>`_
 - `@jbueck <https://github.com/jbueck>`_
 - Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

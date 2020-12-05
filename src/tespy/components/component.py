@@ -351,7 +351,7 @@ class Component:
                     except KeyError:
                         self.get_attr(key).func = CharLine(x=[0, 1], y=[1, 1])
 
-                    if self.char_warnings is True:
+                    if self.char_warnings:
                         msg = (
                             'Created characteristic line for parameter ' +
                             key + ' at component ' + self.label + ' from '
@@ -381,6 +381,38 @@ class Component:
 
     def equations(self):
         return
+
+    def bus_func(self, bus):
+        r"""
+        Base method for calculation of the value of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
+
+        Returns
+        -------
+        val : float
+            :math:`val=0`
+        """
+        return 0
+
+    def bus_deriv(self, bus):
+        r"""
+        Base method for partial derivatives of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus
+            TESPy bus object.
+
+        Returns
+        -------
+        mat_deriv : ndarray
+            Matrix of partial derivatives.
+        """
+        return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
 
     def calc_bus_efficiency(self, bus):
         r"""
@@ -416,7 +448,7 @@ class Component:
         """
         b = bus.comps.loc[self]
         comp_val = self.bus_func(b)
-        if np.isnan(b['P_ref']):
+        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
             expr = 1
         else:
             if b['base'] == 'component':
@@ -597,13 +629,13 @@ class Component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
-        if mode == 'design' or self.local_design is True:
+        if mode == 'design' or self.local_design:
             self.new_design = True
 
         for key, dc in self.variables.items():
             if isinstance(dc, dc_cp):
-                if ((mode == 'offdesign' and self.local_design is False) or
-                        (mode == 'design' and self.local_offdesign is True)):
+                if ((mode == 'offdesign' and not self.local_design) or
+                        (mode == 'design' and self.local_offdesign)):
                     self.get_attr(key).design = data[key]
 
                 else:
@@ -639,10 +671,19 @@ class Component:
     def convergence_check(self):
         return
 
+    def entropy_balance(self):
+        r"""Entropy balance calculation method."""
+        return
+
+    def exergy_balance(self, Tamb):
+        r"""Exergy balance calculation method."""
+        self.E_F = np.nan
+        self.E_P = np.nan
+        self.E_D = np.nan
+        self.epsilon = np.nan
+
     def get_plotting_data(self):
-        msg = ('No data available for components of type ' + self.component() +
-               ' (' + self.label + ').')
-        logging.warning(msg)
+        return
 
 # %%
 

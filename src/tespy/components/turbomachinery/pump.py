@@ -179,7 +179,7 @@ class Pump(Turbomachine):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char,
                     self.flow_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -309,20 +309,17 @@ class Pump(Turbomachine):
                 v_{in}}{\dot{m}_{in,ref} \cdot v_{in,ref}} \right) -
                 \left( h_{out,s} - h_{in} \right)
         """
-        # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-
-        expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+        i = self.inl[0]
+        o = self.outl[0]
+        v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        expr = i.m.val_SI * v_i / (i.v.design)
 
         return (
-            (o[2] - i[2]) * self.eta_s.design *
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.design *
             self.eta_s_char.func.evaluate(expr) - (
-                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
+                isentropic(
+                    i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+                i.h.val_SI))
 
     def flow_char_func(self):
         r"""
@@ -451,16 +448,30 @@ class Pump(Turbomachine):
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+            expr = self.inl[0].v.val_SI / self.inl[0].v.design
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
         if self.flow_char.is_set:
             # get bound errors for flow characteristics
-            i = self.inl[0].to_flow()
-            expr = i[0] * v_mix_ph(i, T0=self.inl[0].T.val_SI)
+            expr = self.inl[0].v.val_SI
             self.flow_char.func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a pump.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,out} - e_\mathrm{ph,in}\right)\\
+            \dot{E}_\mathrm{F} = P
+        """
+        self.E_P = self.inl[0].m.val_SI * (
+            self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.E_F = self.P.val
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F

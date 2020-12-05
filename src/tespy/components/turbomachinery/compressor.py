@@ -178,7 +178,7 @@ class Compressor(Turbomachine):
             self.char_map.func = ldc(
                 self.component(), 'char_map', 'DEFAULT', CompressorMap)
 
-            if self.char_warnings is True:
+            if self.char_warnings:
                 msg = ('Created characteristic map for parameter char_map '
                        'at component ' + self.label + ' from default data.\n'
                        'You can specify your own data using component.char_map'
@@ -194,7 +194,7 @@ class Compressor(Turbomachine):
         # characteristic map delivers two equations
         for var in [self.P, self.pr, self.eta_s, self.char_map, self.char_map,
                     self.eta_s_char]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -344,19 +344,15 @@ class Compressor(Turbomachine):
                 \left( h_{out,s} - h_{in} \right)
         """
         # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
-
+        i = self.inl[0]
+        o = self.outl[0]
         expr = 1
         if self.eta_s_char.param == 'm':
-            if not np.isnan(i_d[0]):
-                expr = i[0] / i_d[0]
+            if not np.isnan(i.m.design):
+                expr = i.m.val_SI / i.m.design
         elif self.eta_s_char.param == 'pr':
-            if not np.isnan([i_d[1], o_d[1]]).any():
-                expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+            if not np.isnan(self.pr.design):
+                expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
         else:
             msg = ('Must provide a parameter for eta_s_char at component ' +
                    self.label + '.')
@@ -365,8 +361,9 @@ class Compressor(Turbomachine):
 
         return (
             self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
-            (o[2] - i[2]) - (
-                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
+            (o.h.val_SI - i.h.val_SI) - (isentropic(
+                i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+             i.h.val_SI))
 
     def char_map_func(self):
         r"""
@@ -400,24 +397,19 @@ class Compressor(Turbomachine):
             Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
             \eta_{s,c}(char(m, igva))
         """
-        # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
+        i = self.inl[0]
+        o = self.outl[0]
+        T_i = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
 
-        T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-
-        x = np.sqrt(T_mix_ph(i_d) / T_i)
-        y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
+        x = np.sqrt(i.T.design / T_i)
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         pr, eta = self.char_map.func.evaluate(x, y, igva=self.igva.val)
 
-        z1 = o[1] * i_d[1] / (i[1] * o_d[1]) - pr
-        z2 = (
-            (isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]) /
-            (o[2] - i[2]) / self.eta_s.design - eta)
+        z1 = (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
+        z2 = ((
+            isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+            i.h.val_SI) / (o.h.val_SI - i.h.val_SI) / self.eta_s.design - eta)
 
         return np.array([z1, z2])
 
@@ -515,29 +507,40 @@ class Compressor(Turbomachine):
 
         if self.char_map.is_set:
             # get bound errors for characteristic map
-            i = self.inl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            T_i = T_mix_ph(i, T0=self.inl[0].T.val_SI)
-            x = np.sqrt(T_mix_ph(i_d)) / np.sqrt(T_i)
-            y = (i[0] * i_d[1]) / (i_d[0] * i[1] * x)
-            self.char_map.func.get_bound_errors(x, y, self.igva.val,
-                                                self.label)
+            x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+            y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
+                self.inl[0].m.design * self.inl[0].p.val_SI * x)
+            self.char_map.func.get_bound_errors(
+                x, y, self.igva.val, self.label)
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            o_d = self.outl[0].to_flow_design()
-
             expr = 1
             if self.eta_s_char.param == 'm':
-                if not np.isnan(i_d[0]):
-                    expr = i[0] / i_d[0]
+                if not np.isnan(self.inl[0].m.design):
+                    expr = self.inl[0].m.val_SI / self.inl[0].m.design
             elif self.eta_s_char.param == 'pr':
-                if not np.isnan([i_d[1], o_d[1]]).any():
-                    expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+                if not np.isnan(self.pr.design):
+                    expr = self.pr.val / self.pr.design
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a compressor.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,out} - e_\mathrm{ph,in} \right)\\
+            \dot{E}_\mathrm{F} = P
+        """
+        self.E_P = self.inl[0].m.val_SI * (
+            self.outl[0].ex_physical - self.inl[0].ex_physical)
+        self.E_F = self.P.val
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F

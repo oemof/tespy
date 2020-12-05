@@ -65,7 +65,9 @@ class TestHeatPump:
 
         # busses
         self.power = Bus('total compressor power')
-        self.power.add_comps({'comp': cp1}, {'comp': cp2})
+        self.power.add_comps(
+            {'comp': cp1, 'base': 'bus'},
+            {'comp': cp2, 'base': 'bus'})
         self.heat = Bus('total delivered heat')
         self.heat.add_comps({'comp': cd, 'char': -1})
         self.nw.add_busses(self.power, self.heat)

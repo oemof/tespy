@@ -468,6 +468,66 @@ class Node(Component):
         """
         return
 
+def entropy_balance(self):
+    r"""
+    Calculate entropy balance of a node.
+
+    Note
+    ----
+    A definition of reference points is included for compensation of
+    differences in zero point definitions of different fluid compositions.
+
+    - Reference temperature: 298.15 K.
+    - Reference pressure: 1 bar.
+
+    .. math::
+
+        \dot{S}_\mathrm{irr}= \sum_{i} \dot{m}_{\mathrm{outg,}i} \cdot
+        \left( s_{\mathrm{outg,}i} - s_{\mathrm{outg,ref,}i} \right)
+        - \sum_{i} \dot{m}_{\mathrm{inc,}i} \cdot
+        \left( s_{\mathrm{inc,}i} - s_{\mathrm{inc,ref,}i} \right)\\
+    """
+    T_ref = 298.15
+    p_ref = 1e5
+    o = self.outl[0]
+    self.S_irr = 0
+    for o in self.outg:
+        self.S_irr += o[0].m.val_SI * (
+            o[0].s.val_SI -
+            s_mix_pT([0, p_ref, 0, o[0].fluid.val], T_ref))
+    for i in self.inc:
+        self.S_irr -= i[0].m.val_SI * (
+            i[0].s.val_SI -
+            s_mix_pT([0, p_ref, 0, i[0].fluid.val], T_ref))
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a merge.
+
+        Note
+        ----
+        Please note, that the exergy balance accounts for physical exergy only.
+
+        .. math::
+
+            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
+            \dot{m}_{\mathrm{in,}n} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
+            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
+            \dot{m}_{\mathrm{in,}m} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
+        """
+        self.E_P = 0
+        self.E_F = 0
+        for i in self.inc:
+            self.E_F += i[0].Ex_physical
+
+        for o in self.outg:
+            self.E_P += o[0].Ex_physical
+
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
@@ -484,8 +544,8 @@ class Node(Component):
                 'isoline_property': 'p',
                 'isoline_value': self.inc[i][0].p.val,
                 'isoline_value_end': self.outg[0][0].p.val,
-                'starting_point_property': 's',
-                'starting_point_value': self.inc[i][0].s.val,
-                'ending_point_property': 's',
-                'ending_point_value': self.outg[0][0].s.val
+                'starting_point_property': 'v',
+                'starting_point_value': self.inc[i][0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outg[0][0].vol.val
             } for i in range(len(self.inc))}

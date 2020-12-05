@@ -207,7 +207,8 @@ class SolarCollector(HeatExchangerSimple):
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'Q_loss': dc_cp(min_val=0),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -223,12 +224,12 @@ class SolarCollector(HeatExchangerSimple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
+        elif self.hydro_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -245,12 +246,12 @@ class SolarCollector(HeatExchangerSimple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
+        elif self.energy_group.is_set:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -266,7 +267,7 @@ class SolarCollector(HeatExchangerSimple):
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.Q, self.pr, self.zeta, self.hydro_group,
                     self.energy_group]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -285,9 +286,9 @@ class SolarCollector(HeatExchangerSimple):
 
         Equations
 
-            **optional equations**
+        **optional equations**
 
-            - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_func`
+        - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_func`
         """
         ######################################################################
         # equation for specified energy-group paremeters
@@ -361,12 +362,12 @@ class SolarCollector(HeatExchangerSimple):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()

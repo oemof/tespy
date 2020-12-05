@@ -22,6 +22,7 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import h_pT
+from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
@@ -151,12 +152,12 @@ class CombustionChamber(Component):
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.017
+    2.013
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1208.4
+    1206.2
     """
 
     @staticmethod
@@ -190,7 +191,7 @@ class CombustionChamber(Component):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids + 4
         for var in [self.lamb, self.ti]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -696,7 +697,7 @@ class CombustionChamber(Component):
 
         Note
         ----
-        The temperature for the reference state is set to 20 °C, thus
+        The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
@@ -704,37 +705,22 @@ class CombustionChamber(Component):
         :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance`
         documentation.
 
-        - Reference temperature: 293.15 K.
+        - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 293.15
+        T_ref = 298.15
         p_ref = 1e5
 
         res = 0
         for i in self.inl:
-            res += i.m.val_SI * (
-                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
 
         for o in self.outl:
-            dh = 0
-            n_h2o = o.fluid.val[self.h2o] / molar_masses[self.h2o]
-            if n_h2o > 0:
-                p = p_ref * n_h2o / molar_mass_flow(o.fluid.val)
-                h = h_pT(p, T_ref, self.h2o)
-                try:
-                    flow = [0, p, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                except ValueError:
-                    flow = [0, 615, 0, {self.h2o: 1}]
-                    h_steam = h_mix_pQ(flow, 1)
-                if h < h_steam:
-                    dh = (h_steam - h) * o.fluid.val[self.h2o]
-
-            res -= o.m.val_SI * (
-                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref) - dh)
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
         res += self.calc_ti()
-
         return res
 
     def lambda_func(self):
@@ -930,14 +916,14 @@ class CombustionChamber(Component):
 
         m = 0
         for i in inl:
-            if i.good_starting_values is False:
+            if not i.good_starting_values:
                 if i.m.val_SI < 0 and not i.m.val_set:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
 
         ######################################################################
         # check fluid composition
-        if outl.good_starting_values is False:
+        if not outl.good_starting_values:
             fluids = [f for f in outl.fluid.val.keys()
                       if not outl.fluid.val_set[f]]
             for f in fluids:
@@ -973,7 +959,7 @@ class CombustionChamber(Component):
 
         ######################################################################
         # flue gas propagation
-        if outl.good_starting_values is False:
+        if not outl.good_starting_values:
             if outl.m.val_SI < 0 and not outl.m.val_set:
                 outl.m.val_SI = 10
             outl.target.propagate_fluid_to_target(outl, outl.target)
@@ -987,7 +973,7 @@ class CombustionChamber(Component):
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
-                if i.good_starting_values is False:
+                if not i.good_starting_values:
                     fuel = 0
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
@@ -1000,7 +986,7 @@ class CombustionChamber(Component):
                     if fuel < 0.75:
                         air_tmp = i.m.val_SI
 
-            if fuel_found is True:
+            if fuel_found:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
     @staticmethod
@@ -1116,3 +1102,51 @@ class CombustionChamber(Component):
         self.lamb.val = n_oxygen / n_oxygen_stoich
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of combustion chamber.
+
+        Note
+        ----
+        The entropy balance makes the following parameter available:
+
+        - :code:`T_mcomb`: Thermodynamic temperature of heat of combustion
+        - :code:`S_comb`: Entropy production due to combustion
+        - :code:`S_irr`: Entropy production due to irreversibilty
+
+        The methodology for entropy analysis of combustion processes is derived
+        from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
+        reaction, we need to define the same reference state for the entropy
+        balance of the combustion. The temperature for the reference state is
+        set to 25 °C and reference pressure is 1 bar. As the water in the flue
+        gas may be liquid but the thermodynmic temperature of heat of
+        combustion refers to the lower heating value, the water is forced to
+        gas at the reference point by considering evaporation.
+
+        - Reference temperature: 298.15 K.
+        - Reference pressure: 1 bar.
+
+        .. math::
+
+            T_\mathrm{m,comb}= \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
+            {\dot{S}_\mathrm{comb}}\\
+            \dot{S}_\mathrm{comb}= \dot{m}_\mathrm{fluegas} \cdot
+            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)
+            - \sum_{i=1}^2 \dot{m}_{\mathrm{in,}i} \cdot
+            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\mathrm{irr}= 0\\
+        """
+        T_ref = 298.15
+        p_ref = 1e5
+        o = self.outl[0]
+        self.S_comb = o.m.val_SI * (
+            o.s.val_SI -
+            s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+        for c in self.inl:
+            self.S_comb -= c.m.val_SI * (
+                c.s.val_SI -
+                s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
+
+        self.S_irr = 0
+        self.T_mcomb = self.calc_ti() / self.S_comb

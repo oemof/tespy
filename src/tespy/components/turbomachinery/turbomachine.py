@@ -120,7 +120,7 @@ class Turbomachine(Component):
         # mass flow: 1
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -251,9 +251,25 @@ class Turbomachine(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
-        self.P.val = i[0] * (o[2] - i[2])
-        self.pr.val = o[1] / i[1]
+        self.P.val = self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of turbomachine.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \right)\\
+        """
+        self.S_irr = self.inl[0].m.val_SI * (
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

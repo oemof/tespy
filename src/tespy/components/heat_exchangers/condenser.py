@@ -226,7 +226,7 @@ class Condenser(HeatExchanger):
             'subcooling': dc_simple(val=False),
             'kA_char': dc_simple(),
             'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
-            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
+            'dissipative': dc_simple(val=False)
         }
 
     def comp_init(self, nw):
@@ -239,11 +239,11 @@ class Condenser(HeatExchanger):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 2 + 3
         # enthalpy hot side outlet (if not subcooling): 1
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             self.num_eq += 1
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -281,7 +281,7 @@ class Condenser(HeatExchanger):
         """
         ######################################################################
         # equation for saturated liquid at hot side outlet
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
@@ -290,7 +290,7 @@ class Condenser(HeatExchanger):
         r"""Calculate partial derivatives for given additional equations."""
         ######################################################################
         # derivatives for saturated liquid at hot side outlet equation
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 0)
             self.jacobian[k, 2, 2] = 1
@@ -314,31 +314,29 @@ class Condenser(HeatExchanger):
                 {\ln{\frac{T_{1,out} - T_{2,in}}
                 {T_s \left(p_{1,in}\right) - T_{2,out}}}}
         """
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
 
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
+        T_i1 = T_bp_p(i1.to_flow())
+        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        T_i1 = T_bp_p(i1)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-
-        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+        if T_i1 <= T_o2 and not i1.T.val_set:
             T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+        if T_i1 <= T_o2 and not o2.T.val_set:
             T_o2 = T_i1 - 0.5
-
-        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+        if T_o1 <= T_i2 and not o1.T.val_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+        if T_o1 <= T_i2 and not i2.T.val_set:
             T_i2 = T_o1 - 1
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * td_log
+        return i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
 
     def kA_char_func(self):
         r"""
@@ -371,44 +369,41 @@ class Condenser(HeatExchanger):
         - Perform value manipulation, if temperature levels are physically
           infeasible.
         """
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
 
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
+        T_i1 = T_bp_p(i1.to_flow())
+        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
-
-        T_i1 = T_bp_p(i1)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-
-        if T_i1 <= T_o2 and not self.inl[0].T.val_set:
+        if T_i1 <= T_o2 and not i1.T.val_set:
             T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not self.outl[1].T.val_set:
+        if T_i1 <= T_o2 and not o2.T.val_set:
             T_o2 = T_i1 - 0.5
-
-        if T_o1 <= T_i2 and not self.outl[0].T.val_set:
+        if T_o1 <= T_i2 and not o1.T.val_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not self.inl[1].T.val_set:
+        if T_o1 <= T_i2 and not i2.T.val_set:
             T_i2 = T_o1 - 1
-
-        fkA1 = 1
-        if self.kA_char1.param == 'm':
-            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
-
-        fkA2 = 1
-        if self.kA_char2.param == 'm':
-            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
-
-        fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-        return i1[0] * (o1[2] - i1[2]) + self.kA.design * fkA * td_log
+        fkA1 = 1
+        if self.kA_char1.param == 'm':
+            fkA1 = self.kA_char1.func.evaluate(i1.m.val_SI / i1.m.design)
+
+        fkA2 = 1
+        if self.kA_char2.param == 'm':
+            fkA2 = self.kA_char2.func.evaluate(i2.m.val_SI / i2.m.design)
+
+        fkA = 2 / (1 / fkA1 + 1 / fkA2)
+
+        return (
+            i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
+            self.kA.design * fkA * td_log)
 
     def ttd_u_func(self):
         r"""
@@ -435,70 +430,73 @@ class Condenser(HeatExchanger):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # connection information
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-
-        # temperatures
-        T_i1 = T_bp_p(i1)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-
-        # specific volume
-        v_i1 = v_mix_ph(i1, T0=T_i1)
-        v_i2 = v_mix_ph(i2, T0=T_i2)
-        v_o1 = v_mix_ph(o1, T0=T_o1)
-        v_o2 = v_mix_ph(o2, T0=T_o2)
-
-        # specific entropy
-        s_i1 = s_mix_ph(i1, T0=T_i1)
-        s_i2 = s_mix_ph(i2, T0=T_i2)
-        s_o1 = s_mix_ph(o1, T0=T_o1)
-        s_o2 = s_mix_ph(o2, T0=T_o2)
-
         # component parameters
-        self.ttd_u.val = T_i1 - T_o2
-        self.ttd_l.val = T_o1 - T_i2
-        self.Q.val = i1[0] * (o1[2] - i1[2])
+        self.Q.val = self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        self.ttd_u.val = T_bp_p(self.inl[0].to_flow()) - self.outl[1].T.val_SI
+        self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
 
-        self.pr1.val = o1[1] / i1[1]
-        self.pr2.val = o2[1] / i2[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
-                          (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
-                          (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
-
-        self.SQ1.val = self.inl[0].m.val_SI * (s_o1 - s_i1)
-        self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
-        self.Sirr.val = self.SQ1.val + self.SQ2.val
+        # pr and zeta
+        for i in range(2):
+            self.get_attr('pr' + str(i + 1)).val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
+            self.get_attr('zeta' + str(i + 1)).val = (
+                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
+                    4 * self.inl[i].m.val_SI ** 2 *
+                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
+                ))
 
         # kA and logarithmic temperature difference
-        if T_i1 <= T_o2 or T_o1 <= T_i2:
+        if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
             self.kA.val = np.nan
         else:
-            self.td_log.val = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                               np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-            self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
+            self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
+                               np.log(self.ttd_l.val / self.ttd_u.val))
+            self.kA.val = -self.Q.val / self.td_log.val
 
         if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
             if self.kA_char1.param == 'm':
-                i1_d = self.inl[0].to_flow_design()
-                if not np.isnan(i1_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[0].m.design):
+                    self.kA_char1.func.get_bound_errors(
+                        self.inl[0].m.val_SI / self.inl[0].m.design,
+                        self.label)
 
             # get bound errors for kA copld side characteristics
             if self.kA_char2.param == 'm':
-                i2_d = self.inl[1].to_flow_design()
-                if not np.isnan(i2_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[1].m.design):
+                    self.kA_char2.func.get_bound_errors(
+                        self.inl[1].m.val_SI / self.inl[1].m.design,
+                        self.label)
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a condenser.
+        Note
+        ----
+        If you do not want to consider exergy production (exergy of cold side),
+        you can specify :code:`yourcondenser.set_attr(dissipative=True)` to
+        force exergy destruction.
+        .. math::
+            \dot{E}_\mathrm{P} = \begin{cases}
+            \text{not defined (nan)} & \text{if dissipative} \\
+            \dot{m}_\mathrm{in,2} \cdot \left(
+            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
+            \text{if not dissipative (default)}\\
+            \end{cases}\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
+        """
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+
+        if self.dissipative.val:
+            self.E_P = np.nan
+            self.epsilon = np.nan
+            self.E_D = self.E_F
+        else:
+            self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
+            self.E_D = self.E_F - self.E_P
+            self.epsilon = self.E_P / self.E_F

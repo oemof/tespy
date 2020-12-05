@@ -70,14 +70,14 @@ class TestOrcEvaporator:
         self.instance.set_attr(Q=Q)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
-        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
+        Q_is = -self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
         assert round(Q, 0) == round(Q_is, 0), msg
 
         # test bus
         self.instance.set_attr(Q=np.nan)
-        P = 6.64e+07
+        P = -6.64e+07
         b = Bus('heat transfer', P=P)
         b.add_comps({'comp': self.instance})
         self.nw.add_busses(b)
@@ -85,7 +85,7 @@ class TestOrcEvaporator:
         convergence_check(self.nw.lin_dep)
         self.nw.save('tmp')
 
-        Q_is = self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
+        Q_is = -self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(P, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
         assert round(P, 0) == round(Q_is, 0), msg

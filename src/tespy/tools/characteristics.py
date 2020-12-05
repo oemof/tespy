@@ -113,12 +113,12 @@ class CharLine:
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
-            if self.extrapolate is True:
+            if self.extrapolate:
                 xpos = -1
             else:
                 return self.y[-1]
         elif xpos == 0:
-            if self.extrapolate is True:
+            if self.extrapolate:
                 xpos = 1
             else:
                 return self.y[0]

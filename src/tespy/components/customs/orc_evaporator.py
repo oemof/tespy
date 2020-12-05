@@ -18,7 +18,6 @@ from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import v_mix_ph
 
 
 class ORCEvaporator(Component):
@@ -223,9 +222,7 @@ class ORCEvaporator(Component):
             'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
             'zeta3': dc_cp(min_val=0),
             'subcooling': dc_simple(val=False),
-            'overheating': dc_simple(val=False),
-            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'SQ3': dc_simple(),
-            'Sirr': dc_simple()
+            'overheating': dc_simple(val=False)
         }
 
     @staticmethod
@@ -246,14 +243,14 @@ class ORCEvaporator(Component):
         # energy balance: 1
         self.num_eq = self.num_nw_fluids * 3 + 3 + 1
         # enthalpy hot side 1 outlet (if not subcooling): 1
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             self.num_eq += 1
         # enthalpy cold side outlet (if not overheating): 1
-        if self.overheating.val is False:
+        if not self.overheating.val:
             self.num_eq += 1
         for var in [self.Q, self.pr1, self.pr2, self.pr3,
                     self.zeta1, self.zeta2, self.zeta3, ]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -290,7 +287,7 @@ class ORCEvaporator(Component):
         if self.Q.is_set:
             self.residual[k] = (
                 self.inl[2].m.val_SI * (
-                    self.outl[2].h.val_SI - self.inl[2].h.val_SI) - self.Q.val)
+                    self.outl[2].h.val_SI - self.inl[2].h.val_SI) + self.Q.val)
             k += 1
 
         ######################################################################
@@ -340,14 +337,14 @@ class ORCEvaporator(Component):
 
         ######################################################################
         # equation for saturated liquid at hot side 1 outlet
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
             k += 1
 
         ######################################################################
         # equation for saturated gas at cold side outlet
-        if self.overheating.val is False:
+        if not self.overheating.val:
             o3 = self.outl[2].to_flow()
             self.residual[k] = o3[2] - h_mix_pQ(o3, 1)
             k += 1
@@ -464,7 +461,7 @@ class ORCEvaporator(Component):
 
         ######################################################################
         # derivatives for saturated liquid at hot side 1 outlet equation
-        if self.subcooling.val is False:
+        if not self.subcooling.val:
             o1 = self.outl[0].to_flow()
             self.jacobian[k, 3, 1] = -dh_mix_dpQ(o1, 0)
             self.jacobian[k, 3, 2] = 1
@@ -472,7 +469,7 @@ class ORCEvaporator(Component):
 
         ######################################################################
         # derivatives for saturated gas at cold side outlet 3 equation
-        if self.overheating.val is False:
+        if not self.overheating.val:
             o3 = self.outl[2].to_flow()
             self.jacobian[k, 5, 1] = -dh_mix_dpQ(o3, 1)
             self.jacobian[k, 5, 2] = 1
@@ -559,12 +556,12 @@ class ORCEvaporator(Component):
 
             .. math::
 
-                \dot{E} = \dot{m}_{3,in} \cdot \left(
+                \dot{E} = -\dot{m}_{3,in} \cdot \left(
                 h_{3,out} - h_{3,in} \right)
         """
         i = self.inl[2].to_flow()
         o = self.outl[2].to_flow()
-        val = i[0] * (o[2] - i[2])
+        val = -i[0] * (o[2] - i[2])
 
         return val
 
@@ -677,49 +674,93 @@ class ORCEvaporator(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # connection information
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        i3 = self.inl[2].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-        o3 = self.outl[2].to_flow()
-
-        # specific volume
-        v_i1 = v_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        v_i2 = v_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        v_i3 = v_mix_ph(i3, T0=self.inl[2].T.val_SI)
-        v_o1 = v_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        v_o2 = v_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        v_o3 = v_mix_ph(o3, T0=self.outl[2].T.val_SI)
-
-        # specific entropy
-        s_i1 = s_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        s_i2 = s_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        s_i3 = s_mix_ph(i3, T0=self.inl[2].T.val_SI)
-        s_o1 = s_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        s_o2 = s_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        s_o3 = s_mix_ph(o3, T0=self.outl[2].T.val_SI)
-
         # component parameters
-        self.Q.val = -i3[0] * (o3[2] - i3[2])
-
-        self.pr1.val = o1[1] / i1[1]
-        self.pr2.val = o2[1] / i2[1]
-        self.pr3.val = o3[1] / i3[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
-                          (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
-                          (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
-        self.zeta3.val = ((i3[1] - o3[1]) * np.pi ** 2 /
-                          (8 * i3[0] ** 2 * (v_i3 + v_o3) / 2))
-
-        self.SQ1.val = self.inl[0].m.val_SI * (s_o1 - s_i1)
-        self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
-        self.SQ3.val = self.inl[2].m.val_SI * (s_o3 - s_i3)
-        self.Sirr.val = self.SQ1.val + self.SQ2.val + self.SQ3.val
+        self.Q.val = -self.inl[2].m.val_SI * (
+            self.outl[2].h.val_SI - self.inl[2].h.val_SI)
+        # pressure ratios and zeta values
+        for i in range(3):
+            self.get_attr('pr' + str(i + 1)).val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
+            self.get_attr('zeta' + str(i + 1)).val = (
+                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
+                    4 * self.inl[i].m.val_SI ** 2 *
+                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
+                ))
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of the two-phase orc evaporator.
+
+        The allocation of the entropy streams due to heat exchanged and due to
+        irreversibility is performed by solving for T on all sides of the heat
+        exchanger:
+
+        .. math::
+
+            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{in}^\mathrm{out} v
+            \cdot dp - \int_\mathrm{in}^\mathrm{out} T \cdot ds
+
+        As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
+        isobaric processes would require perfect process knowledge (the path)
+        on how specific volume and pressure change throught the component, the
+        heat transfer is splitted into three separate virtual processes:
+
+        - in->in*: decrease pressure to
+          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          without changing enthalpy.
+        - in*->out* transfer heat without changing pressure.
+          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          without changing enthalpy.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_Q1}=\dot{m} \cdot \left(s_\mathrm{out*,1}-s_\mathrm{in*,1}
+            \right)\\
+            \text{S\_Q2}=\dot{m} \cdot \left(s_\mathrm{out*,2}-s_\mathrm{in*,2}
+            \right)\\
+            \text{S\_Q3}=\dot{m} \cdot \left(s_\mathrm{out*,3}-s_\mathrm{in*,3}
+            \right)\\
+            \text{S\_Qirr}=\text{S\_Q3} - \text{S\_Q1} - \text{S\_Q2}\\
+            \text{S\_irr1}=\dot{m} \cdot \left(s_\mathrm{out,1}-s_\mathrm{in,1}
+            \right) - \text{S\_Q1}\\
+            \text{S\_irr2}=\dot{m} \cdot \left(s_\mathrm{out,2}-s_\mathrm{in,2}
+            \right) - \text{S\_Q2}\\
+            \text{S\_irr3}=\dot{m} \cdot \left(s_\mathrm{out,3}-s_\mathrm{in,3}
+            \right) - \text{S\_Q3}\\
+            \text{S\_irr}=\sum \dot{S}_\mathrm{irr}\\
+            \text{T\_mQ1}=\frac{\dot{Q}_1}{\text{S\_Q1}}\\
+            \text{T\_mQ2}=\frac{\dot{Q}_2}{\text{S\_Q2}}\\
+            \text{T\_mQ3}=\frac{\dot{Q}_1 + \dot{Q}_2}{\text{S\_Q3}}
+        """
+        self.S_irr = 0
+        for i in range(3):
+            inl = self.inl[i]
+            out = self.outl[i]
+            p_star = inl.p.val_SI * (
+                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+            s_i_star = s_mix_ph(
+                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+            s_o_star = s_mix_ph(
+                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+
+            setattr(self, 'S_Q' + str(i + 1),
+                    inl.m.val_SI * (s_o_star - s_i_star))
+            S_Q = self.get_attr('S_Q' + str(i + 1))
+            setattr(self, 'S_irr' + str(i + 1),
+                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
+            setattr(self, 'T_mQ' + str(i + 1),
+                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+
+            self.S_irr += self.get_attr('S_irr' + str(i + 1))
+
+        self.S_irr += self.S_Q1 + self.S_Q2 + self.S_Q3
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

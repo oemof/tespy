@@ -15,6 +15,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.nodes.node import Node
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.fluid_properties import s_mix_pT
 
 
 class Merge(Node):
@@ -233,6 +234,60 @@ class Merge(Node):
             self.jacobian[k, j, 2] = i.m.val_SI
             j += 1
         k += 1
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a merge.
+
+        Note
+        ----
+        A definition of reference points is included for compensation of
+        differences in zero point definitions of different fluid compositions.
+
+        - Reference temperature: 298.15 K.
+        - Reference pressure: 1 bar.
+
+        .. math::
+
+            \dot{S}_\mathrm{irr}= \dot{m}_\mathrm{out} \cdot
+            \left( s_\mathrm{out} - s_\mathrm{out,ref} \right)
+            - \sum_{i} \dot{m}_{\mathrm{in,}i} \cdot
+            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+        """
+        T_ref = 298.15
+        p_ref = 1e5
+        self.S_irr = self.outl[0].m.val_SI * (
+            self.outl[0].s.val_SI -
+            s_mix_pT([0, p_ref, 0, self.outl[0].fluid.val], T_ref))
+        for i in self.inl:
+            self.S_irr -= i.m.val_SI * (
+                i.s.val_SI -
+                s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a merge.
+
+        Note
+        ----
+        Please note, that the exergy balance accounts for physical exergy only.
+
+        .. math::
+
+            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
+            \dot{m}_{\mathrm{in,}n} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
+            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
+            \dot{m}_{\mathrm{in,}m} \cdot \left(
+            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
+        """
+        self.E_P = self.outl[0].Ex_physical
+        self.E_F = 0
+        for i in self.inl:
+            self.E_F += i.Ex_physical
+
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

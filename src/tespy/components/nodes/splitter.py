@@ -286,7 +286,16 @@ class Splitter(Node):
         """Overwrite parent method."""
         return
 
+    def entropy_balance(self):
+        r"""Entropy balance calculation method."""
+        return
+
+    def exergy_balance(self, Tamb):
+        r"""Exergy balance calculation method."""
+        self.E_F = np.nan
+        self.E_P = np.nan
+        self.E_D = np.nan
+        self.epsilon = np.nan
+
     def get_plotting_data(self):
-        msg = ('No data available for components of type ' + self.component() +
-               ' (' + self.label + ').')
-        logging.warning(msg)
+        return

@@ -196,7 +196,7 @@ class Desuperheater(HeatExchanger):
         self.num_eq = self.num_nw_fluids * 2 + 4
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:

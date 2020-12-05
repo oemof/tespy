@@ -210,8 +210,7 @@ class HeatExchanger(Component):
             'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
             'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
             'kA_char': dc_simple(),
-            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
-            'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple()
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m')
         }
 
     @staticmethod
@@ -233,7 +232,7 @@ class HeatExchanger(Component):
         self.num_eq = self.num_nw_fluids * 2 + 3
         for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
                     self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         if self.kA.is_set:
@@ -578,15 +577,15 @@ class HeatExchanger(Component):
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
 
-        T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
+        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
+        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -600,7 +599,7 @@ class HeatExchanger(Component):
         td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
                   np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-        return i1[0] * (o1[2] - i1[2]) + self.kA.val * td_log
+        return i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
 
     def kA_char_func(self):
         r"""
@@ -631,18 +630,15 @@ class HeatExchanger(Component):
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
 
-        i1_d = self.inl[0].to_flow_design()
-        i2_d = self.inl[1].to_flow_design()
-
-        T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
+        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
+        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -653,19 +649,22 @@ class HeatExchanger(Component):
         if T_o1 <= T_i2:
             T_i2 = T_o1 - 0.02
 
+        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+
         fkA1 = 1
         if self.kA_char1.param == 'm':
-            fkA1 = self.kA_char1.func.evaluate(i1[0] / i1_d[0])
+            fkA1 = self.kA_char1.func.evaluate(i1.m.val_SI / i1.m.design)
 
         fkA2 = 1
         if self.kA_char2.param == 'm':
-            fkA2 = self.kA_char2.func.evaluate(i2[0] / i2_d[0])
+            fkA2 = self.kA_char2.func.evaluate(i2.m.val_SI / i2.m.design)
 
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-        return i1[0] * (o1[2] - i1[2]) + self.kA.design * fkA * td_log
+        return (
+            i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
+            self.kA.design * fkA * td_log)
 
     def ttd_u_func(self):
         r"""
@@ -825,73 +824,134 @@ class HeatExchanger(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # connection information
-        i1 = self.inl[0].to_flow()
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-
-        # temperatures
-        T_i1 = T_mix_ph(i1, T0=self.inl[0].T.val_SI)
-        T_i2 = T_mix_ph(i2, T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(o1, T0=self.outl[0].T.val_SI)
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-
-        # specific volume
-        v_i1 = v_mix_ph(i1, T0=T_i1)
-        v_i2 = v_mix_ph(i2, T0=T_i2)
-        v_o1 = v_mix_ph(o1, T0=T_o1)
-        v_o2 = v_mix_ph(o2, T0=T_o2)
-
-        # specific entropy
-        s_i1 = s_mix_ph(i1, T0=T_i1)
-        s_i2 = s_mix_ph(i2, T0=T_i2)
-        s_o1 = s_mix_ph(o1, T0=T_o1)
-        s_o2 = s_mix_ph(o2, T0=T_o2)
-
         # component parameters
-        self.ttd_u.val = T_i1 - T_o2
-        self.ttd_l.val = T_o1 - T_i2
-        self.Q.val = i1[0] * (o1[2] - i1[2])
+        self.Q.val = self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        self.ttd_u.val = self.inl[0].T.val_SI - self.outl[1].T.val_SI
+        self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
 
-        self.pr1.val = o1[1] / i1[1]
-        self.pr2.val = o2[1] / i2[1]
-        self.zeta1.val = ((i1[1] - o1[1]) * np.pi ** 2 /
-                          (8 * i1[0] ** 2 * (v_i1 + v_o1) / 2))
-        self.zeta2.val = ((i2[1] - o2[1]) * np.pi ** 2 /
-                          (8 * i2[0] ** 2 * (v_i2 + v_o2) / 2))
-
-        self.SQ1.val = self.inl[0].m.val_SI * (s_o1 - s_i1)
-        self.SQ2.val = self.inl[1].m.val_SI * (s_o2 - s_i2)
-        self.Sirr.val = self.SQ1.val + self.SQ2.val
+        # pr and zeta
+        for i in range(2):
+            self.get_attr('pr' + str(i + 1)).val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
+            self.get_attr('zeta' + str(i + 1)).val = (
+                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
+                    4 * self.inl[i].m.val_SI ** 2 *
+                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
+                ))
 
         # kA and logarithmic temperature difference
-        if T_i1 <= T_o2 or T_o1 <= T_i2:
+        if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
             self.kA.val = np.nan
         else:
-            self.td_log.val = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                               np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-            self.kA.val = -(i1[0] * (o1[2] - i1[2]) / self.td_log.val)
+            self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
+                               np.log(self.ttd_l.val / self.ttd_u.val))
+            self.kA.val = -self.Q.val / self.td_log.val
 
         if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
             if self.kA_char1.param == 'm':
-                i1_d = self.inl[0].to_flow_design()
-                if not np.isnan(i1_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char1.func.get_bound_errors(i1[0] / i1_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[0].m.design):
+                    self.kA_char1.func.get_bound_errors(
+                        self.inl[0].m.val_SI / self.inl[0].m.design,
+                        self.label)
 
             # get bound errors for kA copld side characteristics
             if self.kA_char2.param == 'm':
-                i2_d = self.inl[1].to_flow_design()
-                if not np.isnan(i2_d[0]):
-                    if not i1[0] == 0:
-                        self.kA_char2.func.get_bound_errors(i2[0] / i2_d[0],
-                                                            self.label)
+                if not np.isnan(self.inl[1].m.design):
+                    self.kA_char2.func.get_bound_errors(
+                        self.inl[1].m.val_SI / self.inl[1].m.design,
+                        self.label)
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a heat exchanger.
+
+        The allocation of the entropy streams due to heat exchanged and due to
+        irreversibility is performed by solving for T on both sides of the heat
+        exchanger:
+
+        .. math::
+
+            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{in}^\mathrm{out} v
+            \cdot dp - \int_\mathrm{in}^\mathrm{out} T \cdot ds
+
+        As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
+        isobaric processes would require perfect process knowledge (the path)
+        on how specific volume and pressure change throught the component, the
+        heat transfer is splitted into three separate virtual processes for
+        both sides:
+
+        - in->in*: decrease pressure to
+          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          without changing enthalpy.
+        - in*->out* transfer heat without changing pressure.
+          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          without changing enthalpy.
+
+        Note
+        ----
+        The entropy balance makes the follwing parameter available:
+
+        .. math::
+
+            \text{S\_Q1}=\dot{m} \cdot \left(s_\mathrm{out*,1}-s_\mathrm{in*,1}
+            \right)\\
+            \text{S\_Q2}=\dot{m} \cdot \left(s_\mathrm{out*,2}-s_\mathrm{in*,2}
+            \right)\\
+            \text{S\_Qirr}=\text{S\_Q2} - \text{S\_Q1}\\
+            \text{S\_irr1}=\dot{m} \cdot \left(s_\mathrm{out,1}-s_\mathrm{in,1}
+            \right) - \text{S\_Q1}\\
+            \text{S\_irr2}=\dot{m} \cdot \left(s_\mathrm{out,2}-s_\mathrm{in,2}
+            \right) - \text{S\_Q2}\\
+            \text{S\_irr}=\sum \dot{S}_\mathrm{irr}\\
+            \text{T\_mQ1}=\frac{\dot{Q}}{\text{S\_Q1}}\\
+            \text{T\_mQ2}=\frac{\dot{Q}}{\text{S\_Q2}}
+        """
+        self.S_irr = 0
+        for i in range(2):
+            inl = self.inl[i]
+            out = self.outl[i]
+            p_star = inl.p.val_SI * (
+                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+            s_i_star = s_mix_ph(
+                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+            s_o_star = s_mix_ph(
+                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+
+            setattr(self, 'S_Q' + str(i + 1),
+                    inl.m.val_SI * (s_o_star - s_i_star))
+            S_Q = self.get_attr('S_Q' + str(i + 1))
+            setattr(self, 'S_irr' + str(i + 1),
+                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
+            setattr(self, 'T_mQ' + str(i + 1),
+                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+
+            self.S_irr += self.get_attr('S_irr' + str(i + 1))
+
+        self.S_irr += self.S_Q1 + self.S_Q2
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a heat exchanger.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in,cold} \cdot \left(
+            e_\mathrm{ph,out,2} - e_\mathrm{ph,in,2} \right)\\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in,1} \cdot \left(
+            e_\mathrm{ph,in,1} - e_\mathrm{ph,out,1} \right)
+        """
+        self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

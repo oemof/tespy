@@ -165,8 +165,8 @@ class Turbine(Turbomachine):
 
         Component.comp_init(self, nw)
 
-        if ((nw.mode == 'offdesign' or self.local_offdesign is True) and
-                self.local_design is False):
+        if ((nw.mode == 'offdesign' or self.local_offdesign) and
+                not self.local_design):
             self.dh_s_ref = (
                 isentropic(
                     self.inl[0].to_flow_design(),
@@ -178,7 +178,7 @@ class Turbine(Turbomachine):
         # mass flow: 1
         self.num_eq = self.num_nw_fluids + 1
         for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
-            if var.is_set is True:
+            if var.is_set:
                 self.num_eq += 1
 
         self.jacobian = np.zeros((
@@ -311,20 +311,14 @@ class Turbine(Turbomachine):
                 {1 - \left(\frac{p_{out,ref}}{p_{in,ref}} \right)^{2}}} -
                 \dot{m}_{in}
         """
-        # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
-
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-
         n = 1
-        return (- i[0] + i_d[0] * i[1] / i_d[1] *
-                np.sqrt(i_d[1] * v_mix_ph(i_d) / (i[1] * v_i)) *
-                np.sqrt(abs((1 - (o[1] / i[1]) ** ((n + 1) / n)) /
-                            (1 - (o_d[1] / i_d[1]) ** ((n + 1) / n)))))
+        i = self.inl[0]
+        o = self.outl[0]
+        v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        return (- i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
+                np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * v_i)) *
+                np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
+                            (1 - (self.pr.design) ** ((n + 1) / n)))))
 
     def eta_s_char_func(self):
         r"""
@@ -340,23 +334,20 @@ class Turbine(Turbomachine):
                 0 = - \left( h_{out} - h_{in} \right) + \eta_{s,e,0} \cdot
                 f\left( expr \right) \cdot \Delta h_{s}
         """
-        # actual values
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        # design values
-        i_d = self.inl[0].to_flow_design()
-        o_d = self.outl[0].to_flow_design()
+        i = self.inl[0]
+        o = self.outl[0]
 
         if self.eta_s_char.param == 'dh_s':
             expr = np.sqrt(self.dh_s_ref / (
-                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
+                isentropic(i.to_flow(), o.to_flow(), T0=i.T.val_SI) -
+                i.h.val_SI))
         elif self.eta_s_char.param == 'm':
-            expr = i[0] / i_d[0]
+            expr = i.m.val_SI / i.m.design
         elif self.eta_s_char.param == 'v':
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+            vol = v_mix_ph(i.to_flow(), T0=i.T.val_SI)
+            expr = i.m.val_SI * vol / self.inl[0].v.design
         elif self.eta_s_char.param == 'pr':
-            expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+            expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
         else:
             msg = ('Please choose the parameter, you want to link the '
                    'isentropic efficiency to.')
@@ -364,9 +355,10 @@ class Turbine(Turbomachine):
             raise ValueError(msg)
 
         return (
-            -(o[2] - i[2]) + self.eta_s.design *
+            -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
             self.eta_s_char.func.evaluate(expr) * (
-                isentropic(i, o, T0=self.inl[0].T.val_SI) - i[2]))
+                isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+                i.h.val_SI))
 
     def convergence_check(self):
         r"""
@@ -377,23 +369,23 @@ class Turbine(Turbomachine):
         Manipulate enthalpies/pressure at inlet and outlet if not specified by
         user to match physically feasible constraints.
         """
-        i, o = self.inl, self.outl
+        i, o = self.inl[0], self.outl[0]
 
-        if i[0].good_starting_values is False:
-            if i[0].p.val_SI <= 1e5 and not i[0].p.val_set:
-                i[0].p.val_SI = 1e5
+        if not i.good_starting_values:
+            if i.p.val_SI <= 1e5 and not i.p.val_set:
+                i.p.val_SI = 1e5
 
-            if i[0].h.val_SI < 10e5 and not i[0].h.val_set:
-                i[0].h.val_SI = 10e5
+            if i.h.val_SI < 10e5 and not i.h.val_set:
+                i.h.val_SI = 10e5
 
-            if o[0].h.val_SI < 5e5 and not o[0].h.val_set:
-                o[0].h.val_SI = 5e5
+            if o.h.val_SI < 5e5 and not o.h.val_set:
+                o.h.val_SI = 5e5
 
-        if i[0].h.val_SI <= o[0].h.val_SI and not o[0].h.val_set:
-            o[0].h.val_SI = i[0].h.val_SI * 0.9
+        if i.h.val_SI <= o.h.val_SI and not o.h.val_set:
+            o.h.val_SI = i.h.val_SI * 0.9
 
-        if i[0].p.val_SI <= o[0].p.val_SI and not o[0].p.val_set:
-            o[0].p.val_SI = i[0].p.val_SI * 0.9
+        if i.p.val_SI <= o.p.val_SI and not o.p.val_set:
+            o.p.val_SI = i.p.val_SI * 0.9
 
     @staticmethod
     def initialise_Source(c, key):
@@ -467,22 +459,34 @@ class Turbine(Turbomachine):
 
         if self.eta_s_char.is_set:
             # get bound errors for isentropic efficiency characteristics
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
-            i_d = self.inl[0].to_flow_design()
-            o_d = self.outl[0].to_flow_design()
-
             if self.eta_s_char.param == 'dh_s':
                 expr = np.sqrt(self.dh_s_ref / (isentropic(
-                    i, o, T0=self.inl[0].T.val_SI) - i[2]))
+                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
             elif self.eta_s_char.param == 'm':
-                expr = i[0] / i_d[0]
+                expr = self.inl[0].m.val_SI / self.inl[0].m.design
             elif self.eta_s_char.param == 'v':
-                v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-                expr = i[0] * v_i / (i_d[0] * v_mix_ph(i_d))
+                expr = self.inl[0].v.val_SI / self.inl[0].v.design
             elif self.eta_s_char.param == 'pr':
-                expr = (o[1] * i_d[1]) / (i[1] * o_d[1])
+                expr = self.pr.val / self.pr.design
 
             self.eta_s_char.func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
+
+    def exergy_balance(self, Tamb):
+        r"""
+        Calculate exergy balance of a turbine.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{P} = |P| \\
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
+            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
+        """
+        self.E_P = abs(self.P.val)
+        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F

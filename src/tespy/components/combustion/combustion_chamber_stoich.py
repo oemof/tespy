@@ -22,8 +22,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
@@ -878,31 +876,18 @@ class CombustionChamberStoich(CombustionChamber):
         m_fuel = 0
         for i in self.inl:
             m_fuel += i.m.val_SI * i.fluid.val[fuel]
-
         m_air = 0
         for i in self.inl:
             m_air += i.m.val_SI * i.fluid.val[air]
-
         self.lamb.val = (m_air / m_fuel) / self.air_min
-
-        S = 0
-        T_ref = 373.15
-        p_ref = 1e5
-
-        for i in self.inl:
-            S += i.m.val_SI * (s_mix_ph(i.to_flow()) -
-                               s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-
-        for o in self.outl:
-            S -= o.m.val_SI * (s_mix_ph(o.to_flow()) -
-                               s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
-
-        self.S.val = S
 
         ti = 0
         for i in self.inl:
             ti += i.m.val_SI * i.fluid.val[fuel] * self.lhv
-
         self.ti.val = ti
 
         self.check_parameter_bounds()
+
+    def entropy_balance(self):
+        r"""Entropy balance calculation method."""
+        return

@@ -247,7 +247,8 @@ class ParabolicTrough(HeatExchangerSimple):
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(min_val=0), 'SQ': dc_simple(),
+            'Q_loss': dc_cp(min_val=0),
+            'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
         }
 
@@ -263,10 +264,10 @@ class ParabolicTrough(HeatExchangerSimple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.hydro_group.set_attr(is_set=True)
         elif self.hydro_group.is_set is True:
             msg = (
@@ -286,10 +287,10 @@ class ParabolicTrough(HeatExchangerSimple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if e.is_set is False:
+            if not e.is_set:
                 is_set = False
 
-        if is_set is True:
+        if is_set:
             self.energy_group.set_attr(is_set=True)
         elif self.energy_group.is_set is True:
             msg = (
@@ -410,12 +411,12 @@ class ParabolicTrough(HeatExchangerSimple):
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
-        self.SQ.val = i[0] * (s_mix_ph(o) - s_mix_ph(i))
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
-                         (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        if self.energy_group.is_set is True:
+        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
+            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            ))
+        if self.energy_group.is_set:
             self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()

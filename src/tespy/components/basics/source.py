@@ -10,6 +10,8 @@ available from its original location tespy/components/basics/source.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import Component
 
 
@@ -81,3 +83,24 @@ class Source(Component):
             The starting component is saved to prevent infinite looping.
         """
         return
+
+    def exergy_balance(self, Tamb):
+        r"""Exergy balance calculation method of a source.
+
+        A source does not destroy or produce exergy. The value of
+        :math:`\dot{E}_\mathrm{F}` and :math:`\dot{E}_\mathrm{P}` are set to
+        the exergy of the mass flow to make exergy balancing methods more
+        simple as in general a mass flow can be fuel, product or loss.
+
+        Note
+        ----
+        .. math::
+
+            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{out} \cdot e_\mathrm{ph,out}
+
+            \dot{E}_\mathrm{P} = \dot{E}_\mathrm{F}
+        """
+        self.E_F = self.outl[0].Ex_physical
+        self.E_P = self.outl[0].Ex_physical
+        self.E_D = np.nan
+        self.epsilon = np.nan

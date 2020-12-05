@@ -452,10 +452,10 @@ class Drum(Component):
         return {
             1: {
                 'isoline_property': 'p',
-                'isoline_value': self.inl[0].p.val,
+                'isoline_value': self.outl[0].p.val,
                 'isoline_value_end': self.outl[1].p.val,
                 'starting_point_property': 'v',
-                'starting_point_value': self.inl[0].vol.val,
+                'starting_point_value': self.outl[0].vol.val,
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[1].vol.val
             }}

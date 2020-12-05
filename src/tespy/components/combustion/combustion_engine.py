@@ -20,15 +20,11 @@ from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
-from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.fluid_properties import h_pT
-from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
-from tespy.tools.helpers import molar_mass_flow
 
 
 class CombustionEngine(CombustionChamber):

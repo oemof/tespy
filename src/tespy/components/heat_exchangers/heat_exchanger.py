@@ -22,7 +22,6 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 
 

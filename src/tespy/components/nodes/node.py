@@ -16,6 +16,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import num_fluids
 
 
@@ -468,37 +469,37 @@ class Node(Component):
         """
         return
 
-def entropy_balance(self):
-    r"""
-    Calculate entropy balance of a node.
+    def entropy_balance(self):
+        r"""
+        Calculate entropy balance of a node.
 
-    Note
-    ----
-    A definition of reference points is included for compensation of
-    differences in zero point definitions of different fluid compositions.
+        Note
+        ----
+        A definition of reference points is included for compensation of
+        differences in zero point definitions of different fluid compositions.
 
-    - Reference temperature: 298.15 K.
-    - Reference pressure: 1 bar.
+        - Reference temperature: 298.15 K.
+        - Reference pressure: 1 bar.
 
-    .. math::
+        .. math::
 
-        \dot{S}_\mathrm{irr}= \sum_{i} \dot{m}_{\mathrm{outg,}i} \cdot
-        \left( s_{\mathrm{outg,}i} - s_{\mathrm{outg,ref,}i} \right)
-        - \sum_{i} \dot{m}_{\mathrm{inc,}i} \cdot
-        \left( s_{\mathrm{inc,}i} - s_{\mathrm{inc,ref,}i} \right)\\
-    """
-    T_ref = 298.15
-    p_ref = 1e5
-    o = self.outl[0]
-    self.S_irr = 0
-    for o in self.outg:
-        self.S_irr += o[0].m.val_SI * (
-            o[0].s.val_SI -
-            s_mix_pT([0, p_ref, 0, o[0].fluid.val], T_ref))
-    for i in self.inc:
-        self.S_irr -= i[0].m.val_SI * (
-            i[0].s.val_SI -
-            s_mix_pT([0, p_ref, 0, i[0].fluid.val], T_ref))
+            \dot{S}_\mathrm{irr}= \sum_{i} \dot{m}_{\mathrm{outg,}i} \cdot
+            \left( s_{\mathrm{outg,}i} - s_{\mathrm{outg,ref,}i} \right)
+            - \sum_{i} \dot{m}_{\mathrm{inc,}i} \cdot
+            \left( s_{\mathrm{inc,}i} - s_{\mathrm{inc,ref,}i} \right)\\
+        """
+        T_ref = 298.15
+        p_ref = 1e5
+        o = self.outl[0]
+        self.S_irr = 0
+        for o in self.outg:
+            self.S_irr += o[0].m.val_SI * (
+                o[0].s.val_SI -
+                s_mix_pT([0, p_ref, 0, o[0].fluid.val], T_ref))
+        for i in self.inc:
+            self.S_irr -= i[0].m.val_SI * (
+                i[0].s.val_SI -
+                s_mix_pT([0, p_ref, 0, i[0].fluid.val], T_ref))
 
     def exergy_balance(self, Tamb):
         r"""

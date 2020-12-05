@@ -10,26 +10,21 @@ tests/test_networks/test_exergy_and_entropy_analysis.py
 SPDX-License-Identifier: MIT
 """
 
-import os
-import shutil
-
-import numpy as np
 from pytest import raises
 
+from tespy.components import Compressor
 from tespy.components import CycleCloser
-from tespy.components import Sink
-from tespy.components import Source
 from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
-from tespy.components import Splitter
-from tespy.components import Valve
-from tespy.components import Compressor
 from tespy.components import Pump
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Splitter
 from tespy.components import Turbine
+from tespy.components import Valve
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.fluid_properties import calc_physical_exergy
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyNetworkError

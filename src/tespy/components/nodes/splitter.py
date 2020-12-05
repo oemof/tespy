@@ -10,8 +10,6 @@ available from its original location tespy/components/nodes/splitter.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component

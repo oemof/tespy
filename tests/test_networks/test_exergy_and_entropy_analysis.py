@@ -194,6 +194,7 @@ class TestClausiusRankine:
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
+        # no exergy losses in this case
         self.nw.exergy_analysis(
             self.pamb, self.Tamb,
             E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
@@ -281,6 +282,7 @@ class TestRefrigerator:
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
+        # no exergy losses in this case
         self.nw.exergy_analysis(
             self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
 
@@ -373,7 +375,7 @@ class TestCompressedAirOut:
         cas = source('compressed air storage', exergy='fuel')
         reheater = heat_exchanger_simple('reheating')
         turb = turbine('turbine')
-        amb = sink('air outlet', exergy='loss')
+        amb = sink('air outlet')
 
         # power ouput bus
         self.power_out = bus('power output')
@@ -383,6 +385,9 @@ class TestCompressedAirOut:
         self.cas_out.add_comps(
             {'comp': cas, 'base': 'bus'},
             {'comp': reheater, 'base': 'bus'})
+        # exergy loss bus
+        self.ex_loss = bus('exergy loss')
+        self.ex_loss.add_comps({'comp': amb, 'base': 'component'})
         self.nw.add_busses(self.power_out, self.cas_out)
 
         # create connections
@@ -407,7 +412,8 @@ class TestCompressedAirOut:
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
         self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out])
+            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out],
+            E_L=[self.ex_loss])
 
         exergy_balance = (
             self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D)
@@ -428,7 +434,8 @@ class TestCompressedAirOut:
         convergence_check(self.nw.lin_dep)
 
         self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out])
+            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out],
+            E_L=[self.ex_loss])
 
         msg = (
             'Exergy destruction must be equal to 0.0 for this test but is ' +

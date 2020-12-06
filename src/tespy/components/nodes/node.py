@@ -488,9 +488,9 @@ class Node(Component):
             - \sum_{i} \dot{m}_{\mathrm{inc,}i} \cdot
             \left( s_{\mathrm{inc,}i} - s_{\mathrm{inc,ref,}i} \right)\\
         """
+        # check if reference point definition is necessary (it should not)
         T_ref = 298.15
         p_ref = 1e5
-        o = self.outl[0]
         self.S_irr = 0
         for o in self.outg:
             self.S_irr += o[0].m.val_SI * (

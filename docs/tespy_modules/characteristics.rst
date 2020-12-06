@@ -3,10 +3,10 @@ Characteristics
 
 In this part we give an introduction on the TESPy characteristics
 implementation. There two different types of characteristics available in
-TESPy: lines (:py:class:`char_line <tespy.tools.characteristics.char_line>`)
-and maps (:py:class:`char_map <tespy.tools.characteristics.char_map>`).
+TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`)
+and maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`).
 The default characteristics available are to be found in the
-:py:mod:`tespy.data <tespy.data>` module documentation.
+:py:mod:`<tespy.data>` module documentation.
 
 Characteristic lines
 --------------------
@@ -69,7 +69,7 @@ are calculated, again using linear interpolation.
         \vec{z2} = \vec{z2} \cdot \left(1-\frac{igva}{100}^2\right)
 
     Also see the corresponding
-    :py:class:`section <tespy.tools.characteristics.compressor_map>` in the
+    :py:class:`<tespy.tools.characteristics.CompressorMap>` in the
     API documentation.
 
 .. _import_custom_characteristics_label:
@@ -82,9 +82,9 @@ writing the x, y (z1 and z2) data into your python script, for example:
 
 .. code-block:: python
 
-    from tespy.tools.characteristics import load_custom_char, char_line
+    from tespy.tools.characteristics import load_custom_char, CharLine
 
-    gen_char = load_custom_char('generator', char_line)
+    gen_char = load_custom_char('generator', CharLine)
 
 
 For the imports to work in the way shown, navigate to your .tespy folder in
@@ -131,15 +131,15 @@ below has 3 x values, thus the y, z1 and z2 data must contain 3 sets of values.
 
     {
         "name_of_char_map": {
-                "x": [0.971, 1, 1.029],
-                "y": [[0.93, 0.943, 0.953, 0.961, 0.962, 0.963],
-                      [0.987, 0.995, 1.0, 1.002, 1.005, 1.005],
-                      [1.02, 1.023, 1.026,1.028, 1.03, 1.032]],
-                "z1": [[0.982, 0.939, 0.895, 0.851, 0.806, 0.762],
-                       [1.102, 1.052, 1.0, 0.951, 0.9, 0.85],
-                       [1.213, 1.149, 1.085, 1.022, 0.958, 0.894]],
-                "z2": [[0.981, 0.995, 1.007, 1.002, 0.981, 0.961],
-                       [0.969, 0.984, 1.0, 0.985, 0.967, 0.95],
-                       [0.962, 0.949, 0.935, 0.922, 0.908, 0.895]]
-            }
+            "x": [0.971, 1, 1.029],
+            "y": [[0.93, 0.943, 0.953, 0.961, 0.962, 0.963],
+                  [0.987, 0.995, 1.0, 1.002, 1.005, 1.005],
+                  [1.02, 1.023, 1.026,1.028, 1.03, 1.032]],
+            "z1": [[0.982, 0.939, 0.895, 0.851, 0.806, 0.762],
+                   [1.102, 1.052, 1.0, 0.951, 0.9, 0.85],
+                   [1.213, 1.149, 1.085, 1.022, 0.958, 0.894]],
+            "z2": [[0.981, 0.995, 1.007, 1.002, 0.981, 0.961],
+                   [0.969, 0.984, 1.0, 0.985, 0.967, 0.95],
+                   [0.962, 0.949, 0.935, 0.922, 0.908, 0.895]]
+        }
     }

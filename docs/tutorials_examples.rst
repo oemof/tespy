@@ -23,9 +23,9 @@ You can find all examples in the
 on github. Additional small examples can be found in the API-documentation.
 
 * :py:mod:`Components <tespy.components>`
-* :py:mod:`Connections and busses <tespy.connections>`
-* :py:mod:`Networks <tespy.networks.networks>`
-* :py:mod:`Exporting/Importing networks <tespy.networks.network_reader>`
+* :py:mod:`Connections and Busses <tespy.connections>`
+* :py:mod:`Networks <tespy.networks.network>`
+* :py:mod:`Importing Networks <tespy.networks.network_reader>`
 
 .. contents:: `Examples`
     :depth: 1

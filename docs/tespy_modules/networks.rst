@@ -32,10 +32,10 @@ maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
 .. code-block:: python
 
-    from tespy.networks import network
+    from tespy.networks import Network
 
     fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
-    my_plant = network(fluids=fluid_list)
+    my_plant = Network(fluids=fluid_list)
     my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
     my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
 
@@ -47,10 +47,10 @@ maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
     .. code-block:: python
 
-        from tespy.networks import network
+        from tespy.networks import Network
 
         fluid_list = ['CO2', 'BICUBIC::H2O', 'INCOMP::DowQ']
-        network(fluids=fluid_list)
+        Network(fluids=fluid_list)
 
     If you do not specify a back-end, the **default back-end** :code:`HEOS`
     will be used (as for :code:`CO2`). In this example, :code:`H2O` will be
@@ -651,7 +651,7 @@ fluprodia (Fluid Property Diagram) instead. You can create and customize
 different types of diagrams for all pure and pseudo-pure fluids available in
 CoolProp. In order to plot your process data into a diagram, you can use the
 :code:`get_plotting_data` method of each component. The method returns a
-dictionary, that can be passed as **kwargs to the
+dictionary, that can be passed as :code:`**kwargs` to the
 :code:`calc_individual_isoline` method of a fluprodia
 :code:`FluidPropertyDiagram` object. The fluprodia documentation provides
 examples of how to plot a process into different diagrams, too. For more
@@ -757,7 +757,7 @@ created network.
 .. note::
 
     Imported busses, components and connections are accessible by their label,
-    e. g. :code:`imported_plant.busses['total heat output']`,
+    e.g. :code:`imported_plant.busses['total heat output']`,
     :code:`imported_plant.components['condenser']` and
     :code:`imported_plant.connections['myconnectionlabel']` respectively. If
     you did not provide labels for your connections, by default, the

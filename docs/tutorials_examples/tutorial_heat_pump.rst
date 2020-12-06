@@ -44,7 +44,7 @@ the variables are set to SI-Units.
 
     from tespy.networks import network
 
-    nw = network(fluids=['water', 'NH3'],
+    nw = Network(fluids=['water', 'NH3'],
                  T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
 We will use °C, bar and kJ/kg as units for temperature and enthalpy.

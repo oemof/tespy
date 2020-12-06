@@ -58,8 +58,8 @@ Install PyGMO
 Conda
 #####
 
-With the `conda <https://conda.io/en/latest/>`_ package manager PyGMO is 
-available for Linux, OSX and Windows thanks to the infrastructure of 
+With the `conda <https://conda.io/en/latest/>`_ package manager PyGMO is
+available for Linux, OSX and Windows thanks to the infrastructure of
 `conda-forge <https://conda-forge.org/>`_:
 
 .. code-block:: bash
@@ -69,14 +69,14 @@ available for Linux, OSX and Windows thanks to the infrastructure of
 pip
 ###
 
-On Linux you also have the option to use the 
+On Linux you also have the option to use the
 `pip <https://pip.pypa.io/en/stable/>`_ package installer:
 
 .. code-block:: bash
 
     pip install pygmo
-    
-Windows user can perform an installation from source as an alternative to conda. 
+
+Windows user can perform an installation from source as an alternative to conda.
 For further information on this process we recommend the `PyGMO installation
 <https://esa.github.io/pygmo2/install.html#installation-from-source>`_ accordingly.
 
@@ -107,7 +107,7 @@ return the cycle efficiency.
     class PowerPlant():
 
         def __init__(self):
-            self.nw = network(
+            self.nw = Network(
                 fluids=['BICUBIC::water'],
                 p_unit='bar', T_unit='C', h_unit='kJ / kg',
                 iterinfo=False)

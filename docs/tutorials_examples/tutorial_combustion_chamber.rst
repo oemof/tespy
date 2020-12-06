@@ -41,7 +41,7 @@ we are using Air for the combustion - Nitrogen.
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
 
     # define unit systems
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
 As components there are two sources required, one for the fresh air, one for
 the fuel, a sink for the flue gas and the combustion chamber. Connect the
@@ -119,7 +119,7 @@ hydrogen to the fuel mixture.
     # %% network
 
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
     # %% components
 
@@ -180,7 +180,7 @@ component, we will explain later, why it is.
     fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
 
     # define unit systems and fluid property ranges
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
 
 The components required are then the same as in the first tutorial, the
 stoichiometric combustion chamber's class is called

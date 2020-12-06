@@ -95,12 +95,11 @@ def generate_api_doc(component, parameter, name, char_type, ref):
     path = '_images/' + component + '_' + parameter + '_' + name + '.svg'
     rst = (
         '.. figure:: ' + path.replace(' ', '_') + '\n'
-        '    :scale: 100 %\n'
         '    :alt: Characteristic ' + char_type + ' "' + name +
         '" for parameter "' + parameter + '".\n'
         '    :align: center\n\n'
     )
-    if ref is not False:
+    if ref:
         rst += '    Reference: :cite:`' + ref + '`.\n\n'
     else:
         rst += '    Reference: Generic data.\n\n'

@@ -13,16 +13,16 @@ import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.heat_exchangers import condenser
-from tespy.components.heat_exchangers import heat_exchanger
-from tespy.components.heat_exchangers import heat_exchanger_simple
-from tespy.components.heat_exchangers import parabolic_trough
-from tespy.components.heat_exchangers import solar_collector
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
+from tespy.components import Condenser
+from tespy.components import HeatExchanger
+from tespy.components import HeatExchangerSimple
+from tespy.components import ParabolicTrough
+from tespy.components import Sink
+from tespy.components import SolarCollector
+from tespy.components import Source
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks import Network
 from tespy.tools.fluid_properties import T_bp_p
 
 
@@ -36,35 +36,35 @@ class TestHeatExchangers:
 
     def setup(self):
 
-        self.nw = network(
+        self.nw = Network(
             ['H2O', 'Ar', 'INCOMP::S800'], T_unit='C', p_unit='bar',
             v_unit='m3 / s')
-        self.inl1 = source('inlet 1')
-        self.outl1 = sink('outlet 1')
+        self.inl1 = Source('inlet 1')
+        self.outl1 = Sink('outlet 1')
 
-    def setup_heat_exchanger_simple_network(self, instance):
+    def setup_HeatExchangerSimple_network(self, instance):
 
-        self.c1 = connection(self.inl1, 'out1', instance, 'in1')
-        self.c2 = connection(instance, 'out1', self.outl1, 'in1')
+        self.c1 = Connection(self.inl1, 'out1', instance, 'in1')
+        self.c2 = Connection(instance, 'out1', self.outl1, 'in1')
 
         self.nw.add_conns(self.c1, self.c2)
 
-    def setup_heat_exchanger_network(self, instance):
+    def setup_HeatExchanger_network(self, instance):
 
-        self.inl2 = source('inlet 2')
-        self.outl2 = sink('outlet 2')
+        self.inl2 = Source('inlet 2')
+        self.outl2 = Sink('outlet 2')
 
-        self.c1 = connection(self.inl1, 'out1', instance, 'in1')
-        self.c2 = connection(instance, 'out1', self.outl1, 'in1')
-        self.c3 = connection(self.inl2, 'out1', instance, 'in2')
-        self.c4 = connection(instance, 'out2', self.outl2, 'in1')
+        self.c1 = Connection(self.inl1, 'out1', instance, 'in1')
+        self.c2 = Connection(instance, 'out1', self.outl1, 'in1')
+        self.c3 = Connection(self.inl2, 'out1', instance, 'in2')
+        self.c4 = Connection(instance, 'out2', self.outl2, 'in1')
 
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
     def test_heat_ex_simple(self):
         """Test component properties of simple heat exchanger."""
-        instance = heat_exchanger_simple('heat exchanger')
-        self.setup_heat_exchanger_simple_network(instance)
+        instance = HeatExchangerSimple('heat exchanger')
+        self.setup_HeatExchangerSimple_network(instance)
         fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, m=1, p=10, T=100)
         # trigger heat exchanger parameter groups
@@ -86,7 +86,7 @@ class TestHeatExchangers:
         # with Hazen-Williams method
         instance.set_attr(hydro_group='HW', D='var', L=100,
                           ks=100, pr=0.99, Tamb=20)
-        b = bus('heat', P=-1e5)
+        b = Bus('heat', P=-1e5)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
@@ -139,10 +139,10 @@ class TestHeatExchangers:
                ', is ' + str(instance.Q.val) + '.')
         assert Q == round(instance.Q.val, 0), msg
 
-    def test_parabolic_trough(self):
+    def test_ParabolicTrough(self):
         """Test component properties of parabolic trough."""
-        instance = parabolic_trough('parabolic trough')
-        self.setup_heat_exchanger_simple_network(instance)
+        instance = ParabolicTrough('parabolic trough')
+        self.setup_HeatExchangerSimple_network(instance)
         fl = {'Ar': 0, 'H2O': 0, 'S800': 1}
         self.c1.set_attr(fluid=fl, p=2, T=200)
         self.c2.set_attr(T=350)
@@ -244,10 +244,10 @@ class TestHeatExchangers:
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-    def test_solar_collector(self):
+    def test_SolarCollector(self):
         """Test component properties of solar collector."""
-        instance = solar_collector('solar collector')
-        self.setup_heat_exchanger_simple_network(instance)
+        instance = SolarCollector('solar collector')
+        self.setup_HeatExchangerSimple_network(instance)
         fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, p=10, T=30)
         self.c2.set_attr(T=70)
@@ -321,8 +321,8 @@ class TestHeatExchangers:
 
     def test_heat_ex(self):
         """Test component properties of heat exchanger."""
-        instance = heat_exchanger('heat exchanger')
-        self.setup_heat_exchanger_network(instance)
+        instance = HeatExchanger('heat exchanger')
+        self.setup_HeatExchanger_network(instance)
 
         # design specification
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
@@ -331,7 +331,7 @@ class TestHeatExchangers:
         self.c1.set_attr(T=120, p=3, fluid={'Ar': 0, 'H2O': 1, 'S800': 0})
         self.c2.set_attr(T=70)
         self.c3.set_attr(T=40, p=5, fluid={'Ar': 1, 'H2O': 0, 'S800': 0})
-        b = bus('heat transfer', P=-80e3)
+        b = Bus('heat transfer', P=-80e3)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
@@ -428,10 +428,10 @@ class TestHeatExchangers:
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_condenser(self):
-        """Test component properties of condenser."""
-        instance = condenser('condenser')
-        self.setup_heat_exchanger_network(instance)
+    def test_Condenser(self):
+        """Test component properties of Condenser."""
+        instance = Condenser('condenser')
+        self.setup_HeatExchanger_network(instance)
 
         # design specification
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,

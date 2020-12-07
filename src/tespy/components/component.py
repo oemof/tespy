@@ -16,16 +16,16 @@ import logging
 
 import numpy as np
 
-from tespy.tools.characteristics import char_line
-from tespy.tools.characteristics import char_map
-from tespy.tools.characteristics import compressor_map
+from tespy.tools.characteristics import CharLine
+from tespy.tools.characteristics import CharMap
+from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import data_container
-from tespy.tools.data_containers import dc_cc
-from tespy.tools.data_containers import dc_cm
-from tespy.tools.data_containers import dc_cp
-from tespy.tools.data_containers import dc_gcp
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainer
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import bus_char_derivative
@@ -35,9 +35,9 @@ from tespy.tools.helpers import newton
 # %%
 
 
-class component:
+class Component:
     r"""
-    Class component is the base class of all TESPy components.
+    Class Component is the base class of all TESPy components.
 
     Parameters
     ----------
@@ -80,13 +80,14 @@ class component:
 
     Example
     -------
-    Basic example for a setting up a tespy.components.components.component
-    object. This example does not run a tespy calculation.
+    Basic example for a setting up a
+    :py:class:`tespy.components.component.Component` object. This example does
+    not run a tespy calculation.
 
-    >>> from tespy.components.components import component
-    >>> comp = component('myComponent')
+    >>> from tespy.components.component import Component
+    >>> comp = Component('myComponent')
     >>> type(comp)
-    <class 'tespy.components.components.component'>
+    <class 'tespy.components.component.Component'>
     """
 
     def __init__(self, label, **kwargs):
@@ -145,7 +146,7 @@ class component:
         ----
         Allowed keywords in kwargs are obtained from class documentation as all
         components share the
-        :py:meth:`tespy.components.components.component.set_attr` method.
+        :py:meth:`tespy.components.component.Component.set_attr` method.
         """
         # set specified values
         for key in kwargs:
@@ -165,15 +166,15 @@ class component:
                     is_numeric = False
 
                 # data container specification
-                if isinstance(kwargs[key], data_container):
+                if isinstance(kwargs[key], DataContainer):
                     if isinstance(kwargs[key], type(self.get_attr(key))):
                         self.__dict__.update({key: kwargs[key]})
 
                     else:
                         msg = (
-                            'The keyword ' + key + ' expects a data_container '
+                            'The keyword ' + key + ' expects a DataContainer '
                             'of type ' + str(type(self.get_attr(key))) +
-                            ', a data_container of type ' +
+                            ', a DataContainer of type ' +
                             str(type(kwargs[key])) + ' was supplied.')
                         logging.error(msg)
                         raise TypeError(msg)
@@ -212,9 +213,9 @@ class component:
                 elif (isinstance(self.get_attr(key), dc_cc) or
                       isinstance(self.get_attr(key), dc_cm)):
                     # value specification for characteristics
-                    if (isinstance(kwargs[key], char_line) or
-                            isinstance(kwargs[key], char_map) or
-                            isinstance(kwargs[key], compressor_map)):
+                    if (isinstance(kwargs[key], CharLine) or
+                            isinstance(kwargs[key], CharMap) or
+                            isinstance(kwargs[key], CompressorMap)):
                         self.get_attr(key).func = kwargs[key]
 
                     # invalid datatype for keyword
@@ -320,7 +321,7 @@ class component:
 
         Parameters
         ----------
-        nw : tespy.networks.network
+        nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
         self.num_nw_fluids = len(nw.fluids)
@@ -346,9 +347,9 @@ class component:
                 if self.get_attr(key).func is None:
                     try:
                         self.get_attr(key).func = ldc(
-                            self.component(), key, 'DEFAULT', char_line)
+                            self.component(), key, 'DEFAULT', CharLine)
                     except KeyError:
-                        self.get_attr(key).func = char_line(x=[0, 1], y=[1, 1])
+                        self.get_attr(key).func = CharLine(x=[0, 1], y=[1, 1])
 
                     if self.char_warnings:
                         msg = (
@@ -387,7 +388,7 @@ class component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -403,7 +404,7 @@ class component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             TESPy bus object.
 
         Returns
@@ -419,7 +420,7 @@ class component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             Bus to calculate the efficiency value on.
 
         Returns
@@ -468,7 +469,7 @@ class component:
 
         Parameters
         ----------
-        bus : tespy.connections.bus
+        bus : tespy.connections.bus.Bus
             Bus to calculate energy transfer on.
 
         Returns
@@ -523,7 +524,7 @@ class component:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -549,7 +550,7 @@ class component:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
 
         key : str
@@ -568,6 +569,52 @@ class component:
                 \end{cases}
         """
         return 0
+
+    def propagate_fluid_to_target(self, inconn, start):
+        r"""
+        Propagate the fluids towards connection's target in recursion.
+
+        Parameters
+        ----------
+        inconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        for fluid, x in inconn.fluid.val.items():
+            if (outconn.fluid.val_set[fluid] is False and
+                    outconn.good_starting_values is False):
+                outconn.fluid.val[fluid] = x
+
+        outconn.target.propagate_fluid_to_target(outconn, start)
+
+    def propagate_fluid_to_source(self, outconn, start):
+        r"""
+        Propagate the fluids towards connection's source in recursion.
+
+        Parameters
+        ----------
+        outconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        conn_idx = self.outl.index(outconn)
+        inconn = self.inl[conn_idx]
+
+        for fluid, x in outconn.fluid.val.items():
+            if (inconn.fluid.val_set[fluid] is False and
+                    inconn.good_starting_values is False):
+                inconn.fluid.val[fluid] = x
+
+        inconn.source.propagate_fluid_to_source(inconn, start)
 
     def set_parameters(self, mode, data):
         r"""
@@ -618,10 +665,10 @@ class component:
                         '.')
                     logging.warning(msg)
 
-    def initialise_fluids(self, nw):
+    def initialise_fluids(self):
         return
 
-    def convergence_check(self, nw):
+    def convergence_check(self):
         return
 
     def entropy_balance(self):
@@ -636,9 +683,7 @@ class component:
         self.epsilon = np.nan
 
     def get_plotting_data(self):
-        msg = ('No data available for components of type ' + self.component() +
-               ' (' + self.label + ').')
-        logging.warning(msg)
+        return
 
 # %%
 

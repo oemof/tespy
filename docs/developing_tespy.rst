@@ -3,8 +3,8 @@
 Developing TESPy
 ================
 
-TESPy has been developed mainly by Francesco Witte at the university of applied
-sciences Flensburg. We hope that many people can make use of this project and
+TESPy has been developed mainly by Francesco Witte at the University of Applied
+Sciences Flensburg. We hope that many people can make use of this project and
 that it will be a community driven project in the future, as users might demand
 special components or flexible implementations of characteristics, custom
 equations, basically what ever you can think of.
@@ -280,5 +280,5 @@ Documentation
 
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
-The files can be found in the folder */tespy/doc*. For further information on
+The files can be found in the folder *docs*. For further information on
 restructured text see: https://docutils.sourceforge.io/rst.html.

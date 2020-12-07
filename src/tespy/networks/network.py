@@ -27,22 +27,13 @@ from numpy.linalg import norm
 from tabulate import tabulate
 
 from tespy import connections as con
-from tespy.components.basics import cycle_closer
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.basics import subsystem_interface
-from tespy.components.combustion import combustion_chamber
-from tespy.components.combustion import combustion_engine
-from tespy.components.customs import orc_evaporator
-from tespy.components.heat_exchangers import heat_exchanger
-from tespy.components.nodes import droplet_separator
-from tespy.components.nodes import drum
-from tespy.components.nodes import merge
-from tespy.components.nodes import splitter
-from tespy.components.reactors import water_electrolyzer
-from tespy.tools import data_containers as dc
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
 
@@ -53,7 +44,7 @@ except ModuleNotFoundError:
     cu = None
 
 
-class network:
+class Network:
     r"""
     Class component is the base class of all TESPy components.
 
@@ -112,7 +103,7 @@ class network:
 
     Example
     -------
-    Basic example for a setting up a tespy.networks.network object. Specifying
+    Basic example for a setting up a tespy.networks.network.Network object. Specifying
     the fluids is mandatory! Unit systems, fluid property range and iterinfo
     are optional.
 
@@ -120,12 +111,12 @@ class network:
     convergence progress to the console. You can suop the printouts by setting
     this property to :code:`False`.
 
-    >>> from tespy.networks import network
+    >>> from tespy.networks import Network
     >>> fluid_list = ['water', 'air', 'R134a']
-    >>> mynetwork = network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    >>> mynetwork = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
-    <class 'tespy.networks.networks.network'>
+    <class 'tespy.networks.network.Network'>
     >>> mynetwork.set_attr(iterinfo=False)
     >>> mynetwork.iterinfo
     False
@@ -139,19 +130,19 @@ class network:
     bus. Therefore the :code:`.print_results()` method should not print any
     results.
 
-    >>> from tespy.networks import network
-    >>> from tespy.components import source, sink, pipe
-    >>> from tespy.connections import connection, bus
-    >>> nw = network(['CH4'], T_unit='C', p_unit='bar', v_unit='m3 / s')
-    >>> so = source('source')
-    >>> si = sink('sink')
-    >>> p = pipe('pipe', Q=0, pr=0.95, printout=False)
-    >>> a = connection(so, 'out1', p, 'in1')
-    >>> b = connection(p, 'out1', si, 'in1')
+    >>> from tespy.networks import Network
+    >>> from tespy.components import Source, Sink, Pipe
+    >>> from tespy.connections import Connection, Bus
+    >>> nw = Network(['CH4'], T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False)
+    >>> a = Connection(so, 'out1', p, 'in1')
+    >>> b = Connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(a, b)
     >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
     >>> b.set_attr(printout=False)
-    >>> b = bus('heat bus')
+    >>> b = Bus('heat bus')
     >>> b.add_comps({'c': p})
     >>> nw.add_busses(b)
     >>> b.set_attr(printout=False)
@@ -283,7 +274,7 @@ class network:
         logging.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
+        fp.Memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
 
     def set_attr(self, **kwargs):
         r"""
@@ -463,7 +454,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.components.subsystems.subsystem
+        c : tespy.components.subsystem.Subsystem
             The subsystem to be added to the network, subsystem objects si
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
@@ -477,14 +468,14 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             The connection to be added to the network, connections objects ci
             :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            if not isinstance(c, con.connection):
-                msg = ('Must provide tespy.connections.connection objects as '
-                       'parameters.')
+            if not isinstance(c, con.Connection):
+                msg = ('Must provide tespy.connections.connection.Connection '
+                       'objects as parameters.')
                 logging.error(msg)
                 raise TypeError(msg)
 
@@ -512,7 +503,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             The connection to be removed from the network, connections objects
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
@@ -565,7 +556,7 @@ class network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be added to the network, bus objects bi
             :code:`add_busses(b1, b2, b3, ...)`.
         """
@@ -581,7 +572,7 @@ class network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be removed from the network, bus objects bi
             :code:`add_busses(b1, b2, b3, ...)`.
         """
@@ -597,10 +588,10 @@ class network:
 
         Parameters
         ----------
-        b : tespy.connections.bus
+        b : tespy.connections.bus.Bus
             The bus to be checked.
         """
-        if isinstance(b, con.bus):
+        if isinstance(b, con.Bus):
             if len(self.busses) > 0:
                 if b in self.busses.values():
                     msg = ('Network contains the bus ' + b.label + ' (' +
@@ -947,7 +938,7 @@ class network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc.dc_cp):
+                    if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
                         switched = True
                         msg += var + ', '
@@ -987,9 +978,9 @@ class network:
         Note
         ----
         The methods
-        :py:meth:`tespy.networks.networks.network.init_comp_design_params`
+        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
         (components) and the
-        :py:meth:`tespy.networks.networks.network.init_conn_design_params`
+        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
         (connections) handle the parameter specification.
         """
         # components without any parameters
@@ -1075,10 +1066,10 @@ class network:
 
         Parameters
         ----------
-        component : tespy.components.components.component
+        component : tespy.components.component.Component
             Write design point information to this component.
 
-        data : pandas.core.series.Series or pandas.core.frame.DataFrame
+        data : pandas.core.series.Series, pandas.core.frame.DataFrame
             Design point information.
         """
         # write component design data
@@ -1096,7 +1087,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Write design point information to this connection.
 
         df : pandas.core.frame.DataFrame
@@ -1184,7 +1175,7 @@ class network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc.dc_cp):
+                    if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
                         switched = True
                         msg += var + ', '
@@ -1229,186 +1220,15 @@ class network:
         # fluid propagation from set values
         for c in self.conns.index:
             if any(c.fluid.val_set.values()):
-                self.init_target(c, c.target)
-                self.init_source(c, c.source)
+                c.target.propagate_fluid_to_target(c, c.target)
+                c.source.propagate_fluid_to_source(c, c.source)
 
-        # fluid propagation for components
+        # fluid starting value generation for components
         for cp in self.comps.index:
-            # combustion chamber
-            if isinstance(cp, combustion_chamber):
-                cp.initialise_fluids(self)
-                for c in cp.outl:
-                    self.init_target(c, c.target)
-
-            # combustion chamber
-            elif isinstance(cp, water_electrolyzer):
-                cp.initialise_fluids(self)
-                for c in cp.outl:
-                    self.init_target(c, c.target)
-
-            # other components (node, merge)
-            else:
-                cp.initialise_fluids(self)
-                for c in cp.outl:
-                    self.init_target(c, c.target)
+            cp.initialise_fluids()
 
         msg = 'Fluid initialisation done.'
         logging.debug(msg)
-
-    def init_target(self, c, start):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        The propagation stops, if the component is a
-
-        - sink,
-        - merge,
-        - combustion chamber or
-        - cycle_closer.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection
-            Connection to initialise.
-
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
-        """
-        if ((len(c.target.inlets()) == 1 and len(c.target.outlets()) == 1 and
-                not isinstance(c.target, cycle_closer)) or
-                isinstance(c.target, heat_exchanger) or
-                isinstance(c.target, subsystem_interface) or
-                isinstance(c.target, orc_evaporator)):
-
-            outc = pd.DataFrame()
-            outc['source'] = self.conns['source'] == c.target
-            outc['source_id'] = (
-                self.conns['source_id'] == c.target_id.replace('in', 'out'))
-            conn, cid = outc['source'] == True, outc['source_id'] == True  # noqa: E712
-            outconn = outc.index[conn & cid][0]
-
-            for fluid, x in c.fluid.val.items():
-                if (not outconn.fluid.val_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
-
-            self.init_target(outconn, start)
-
-        if (isinstance(c.target, splitter) or
-                isinstance(c.target, droplet_separator)):
-            for outconn in c.target.outl:
-                for fluid, x in c.fluid.val.items():
-                    if (not outconn.fluid.val_set[fluid] and
-                            not outconn.good_starting_values):
-                        outconn.fluid.val[fluid] = x
-
-                self.init_target(outconn, start)
-
-        if isinstance(c.target, water_electrolyzer):
-            if c == c.target.inl[0]:
-                outconn = c.target.outl[0]
-
-                for fluid, x in c.fluid.val.items():
-                    if (not outconn.fluid.val_set[fluid] and
-                            not outconn.good_starting_values):
-                        outconn.fluid.val[fluid] = x
-
-        if isinstance(c.target, combustion_engine):
-            for outconn in c.target.outl[:2]:
-                for fluid, x in c.fluid.val.items():
-                    if (not outconn.fluid.val_set[fluid] and
-                            not outconn.good_starting_values):
-                        outconn.fluid.val[fluid] = x
-
-                self.init_target(outconn, start)
-
-        if isinstance(c.target, drum) and c.target != start:
-            start = c.target
-            for outconn in c.target.outl:
-                for fluid, x in c.fluid.val.items():
-                    if (not outconn.fluid.val_set[fluid] and
-                            not outconn.good_starting_values):
-                        outconn.fluid.val[fluid] = x
-
-                self.init_target(outconn, start)
-
-    def init_source(self, c, start):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        The propagation stops, if the component is a
-
-        - source,
-        - combustion chamber or
-        - cycle_closer.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection
-            Connection to initialise.
-
-        start : tespy.connections.connection
-            This connection is the fluid propagation starting point.
-            The starting connection is saved to prevent infinite looping.
-        """
-        if ((len(c.source.inlets()) == 1 and len(c.source.outlets()) == 1 and
-                not isinstance(c.source, cycle_closer)) or
-                isinstance(c.source, heat_exchanger) or
-                isinstance(c.source, subsystem_interface) or
-                isinstance(c.source, orc_evaporator)):
-
-            inc = pd.DataFrame()
-            inc['target'] = self.conns['target'] == c.source
-            inc['target_id'] = (
-                self.conns['target_id'] == c.source_id.replace('out', 'in'))
-            conn, cid = inc['target'] == True, inc['target_id'] == True  # noqa: E712
-            inconn = inc.index[conn & cid][0]
-
-            for fluid, x in c.fluid.val.items():
-                if (not inconn.fluid.val_set[fluid] and
-                        not inconn.good_starting_values):
-                    inconn.fluid.val[fluid] = x
-
-            self.init_source(inconn, start)
-
-        if (isinstance(c.source, splitter) or
-                isinstance(c.source, droplet_separator)):
-            for inconn in c.source.inl:
-                for fluid, x in c.fluid.val.items():
-                    if (not inconn.fluid.val_set[fluid] and
-                            not inconn.good_starting_values):
-                        inconn.fluid.val[fluid] = x
-
-                self.init_source(inconn, start)
-
-        if isinstance(c.source, merge):
-            for inconn in c.source.inl:
-                for fluid, x in c.fluid.val.items():
-                    if (not inconn.fluid.val_set[fluid] and
-                            not inconn.good_starting_values):
-                        inconn.fluid.val[fluid] = x
-
-                self.init_source(inconn, start)
-
-        if isinstance(c.source, combustion_engine):
-            for inconn in c.source.inl[:2]:
-                for fluid, x in c.fluid.val.items():
-                    if (not inconn.fluid.val_set[fluid] and
-                            not inconn.good_starting_values):
-                        inconn.fluid.val[fluid] = x
-
-                self.init_source(inconn, start)
-
-        if isinstance(c.source, drum) and c.source != start:
-            start = c.source
-            for inconn in c.source.inl:
-                for fluid, x in c.fluid.val.items():
-                    if (not inconn.fluid.val_set[fluid] and
-                            not inconn.good_starting_values):
-                        inconn.fluid.val[fluid] = x
-
-                self.init_source(inconn, start)
 
     def init_properties(self):
         """
@@ -1501,7 +1321,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection count parameters of.
         """
         self.num_conn_eq += [
@@ -1521,7 +1341,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
@@ -1546,7 +1366,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to initialise.
         """
         if np.isnan(c.get_attr(key).val0):
@@ -1642,7 +1462,7 @@ class network:
         Note
         ----
         For more information on the solution process have a look at the online
-        documentation at tespy.readthedocs.io in the section "using TESPy".
+        documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
@@ -1725,7 +1545,7 @@ class network:
             return
 
         self.postprocessing()
-        fp.memorise.del_memory(self.fluids)
+        fp.Memorise.del_memory(self.fluids)
 
         if not self.progress:
             msg = (
@@ -1986,7 +1806,7 @@ class network:
         # second property check for first three iterations without an init_file
         if self.iter < 3:
             for cp in self.comps.index:
-                cp.convergence_check(self)
+                cp.convergence_check()
 
             for c in self.conns.index:
                 self.solve_check_props(c)
@@ -1997,7 +1817,7 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
 
         prop : str
@@ -2021,38 +1841,38 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
         fl = hlp.single_fluid(c.fluid.val)
 
         if fl is not None:
             # pressure
-            if c.p.val_SI < fp.memorise.value_range[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.memorise.value_range[fl][0]
+            if c.p.val_SI < fp.Memorise.value_range[fl][0] and not c.p.val_set:
+                c.p.val_SI = fp.Memorise.value_range[fl][0]
                 logging.debug(self.property_range_message(c, 'p'))
-            elif (c.p.val_SI > fp.memorise.value_range[fl][1] and
+            elif (c.p.val_SI > fp.Memorise.value_range[fl][1] and
                   not c.p.val_set):
-                c.p.val_SI = fp.memorise.value_range[fl][1]
+                c.p.val_SI = fp.Memorise.value_range[fl][1]
                 logging.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
             try:
                 hmin = fp.h_pT(
-                    c.p.val_SI, fp.memorise.value_range[fl][2] * 1.001, fl)
+                    c.p.val_SI, fp.Memorise.value_range[fl][2] * 1.001, fl)
             except ValueError:
                 f = 1.05
                 hmin = fp.h_pT(
-                    c.p.val_SI, fp.memorise.value_range[fl][2] * f, fl)
+                    c.p.val_SI, fp.Memorise.value_range[fl][2] * f, fl)
 
-            T = fp.memorise.value_range[fl][3]
+            T = fp.Memorise.value_range[fl][3]
             while True:
                 try:
                     hmax = fp.h_pT(c.p.val_SI, T, fl)
                     break
                 except ValueError as e:
                     T *= 0.99
-                    if T < fp.memorise.value_range[fl][2]:
+                    if T < fp.Memorise.value_range[fl][2]:
                         raise ValueError(e)
 
             if c.h.val_SI < hmin and not c.h.val_set:
@@ -2119,16 +1939,16 @@ class network:
 
         Parameters
         ----------
-        c : tespy.connections.connection
+        c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
         flow = c.to_flow()
         Tmin = max(
-            [fp.memorise.value_range[f][2] for
+            [fp.Memorise.value_range[f][2] for
              f in flow[3].keys() if flow[3][f] > err]
         ) + 100
         Tmax = min(
-            [fp.memorise.value_range[f][3] for
+            [fp.Memorise.value_range[f][3] for
              f in flow[3].keys() if flow[3][f] > err]
         ) - 100
         hmin = fp.h_mix_pT(flow, Tmin)
@@ -2676,22 +2496,16 @@ class network:
         exergy analysis is performed after simulation of the power plant.
         Start by defining ambient state and genereral network setup.
 
-        >>> from tespy.components.basics import cycle_closer
-        >>> from tespy.components.heat_exchangers import heat_exchanger_simple
-        >>> from tespy.components.nodes import merge
-        >>> from tespy.components.nodes import splitter
-        >>> from tespy.components.piping import valve
-        >>> from tespy.components.turbomachinery import compressor
-        >>> from tespy.components.turbomachinery import pump
-        >>> from tespy.components.turbomachinery import turbine
-        >>> from tespy.connections import bus
-        >>> from tespy.connections import connection
-        >>> from tespy.networks.networks import network
+        >>> from tespy.components import (CycleCloser, HeatExchangerSimple,
+        ... Merge, Splitter, Valve, Compressor, Pump, Turbine)
+        >>> from tespy.connections import Bus
+        >>> from tespy.connections import Connection
+        >>> from tespy.networks import Network
 
         >>> Tamb = 20
         >>> pamb = 1
         >>> fluids = ['water']
-        >>> nw = network(fluids=fluids)
+        >>> nw = Network(fluids=fluids)
         >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
         ... iterinfo=False)
 
@@ -2702,24 +2516,24 @@ class network:
         simplicity the steam generator and the condenser are modeled as simple
         heat exchangers.
 
-        >>> cycle_close = cycle_closer('cycle closer')
-        >>> splitter1 = splitter('splitter 1')
-        >>> merge1 = merge('merge 1')
-        >>> turb = turbine('turbine')
-        >>> fwp_turb = turbine('feed water pump turbine')
-        >>> condenser = heat_exchanger_simple('condenser')
-        >>> fwp = pump('pump')
-        >>> steam_generator = heat_exchanger_simple('steam generator')
+        >>> cycle_close = CycleCloser('cycle closer')
+        >>> splitter1 = Splitter('splitter 1')
+        >>> merge1 = Merge('merge 1')
+        >>> turb = Turbine('turbine')
+        >>> fwp_turb = Turbine('feed water pump turbine')
+        >>> condenser = HeatExchangerSimple('condenser')
+        >>> fwp = Pump('pump')
+        >>> steam_generator = HeatExchangerSimple('steam generator')
 
-        >>> fs_in = connection(cycle_close, 'out1', splitter1, 'in1')
-        >>> fs_fwpt = connection(splitter1, 'out1', fwp_turb, 'in1')
-        >>> fs_t = connection(splitter1, 'out2', turb, 'in1')
-        >>> fwpt_ws = connection(fwp_turb, 'out1', merge1, 'in1')
-        >>> t_ws = connection(turb, 'out1', merge1, 'in2')
-        >>> ws = connection(merge1, 'out1', condenser, 'in1')
-        >>> cond = connection(condenser, 'out1', fwp, 'in1')
-        >>> fw = connection(fwp, 'out1', steam_generator, 'in1')
-        >>> fs_out = connection(steam_generator, 'out1', cycle_close, 'in1')
+        >>> fs_in = Connection(cycle_close, 'out1', splitter1, 'in1')
+        >>> fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')
+        >>> fs_t = Connection(splitter1, 'out2', turb, 'in1')
+        >>> fwpt_ws = Connection(fwp_turb, 'out1', merge1, 'in1')
+        >>> t_ws = Connection(turb, 'out1', merge1, 'in2')
+        >>> ws = Connection(merge1, 'out1', condenser, 'in1')
+        >>> cond = Connection(condenser, 'out1', fwp, 'in1')
+        >>> fw = Connection(fwp, 'out1', steam_generator, 'in1')
+        >>> fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
         >>> nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond,
         ... fw, fs_out)
 
@@ -2729,12 +2543,14 @@ class network:
         - E_F for fuel exergy
         - E_P for product exergy
         - internal_busses for internal energy transport
+        - E_L for exergy loss streams to the ambient (sources and sinks go
+          here, in case you use e.g. flue gases or air input)
 
         The first bus is for output power, which is only represented by the
         main steam turbine. The efficiency is set to 0.97. This bus will
         represent the product exergy.
 
-        >>> power = bus('power_output')
+        >>> power = Bus('power_output')
         >>> power.add_comps({'comp': turb, 'char': 0.97})
 
         The second bus is for driving the feed water pump. The total power of
@@ -2745,7 +2561,7 @@ class network:
         :code:`'bus'` as the energy from the turbine drives the feed water
         pump.
 
-        >>> fwp_power = bus('feed water pump power', P=0)
+        >>> fwp_power = Bus('feed water pump power', P=0)
         >>> fwp_power.add_comps(
         ... {'comp': fwp_turb, 'char': 0.985},
         ... {'comp': fwp, 'char': 0.985, 'base': 'bus'})
@@ -2755,7 +2571,7 @@ class network:
         input from outside of the network, the :code:`'base'` keyword must be
         specified to :code:`'bus'`.
 
-        >>> heat = bus('heat_input')
+        >>> heat = Bus('heat_input')
         >>> heat.add_comps({'comp': steam_generator, 'base': 'bus'})
         >>> nw.add_busses(power, fwp_power, heat)
 
@@ -2772,11 +2588,11 @@ class network:
         >>> nw.solve('design')
 
         To evaluate the exergy balance of the network, we simply call the
-        :py:meth:`tespy.networks.networks.network.exergy_analysis` method
+        :py:meth:`tespy.networks.network.Network.exergy_analysis` method
         passing the respective busses as well as the ambient state. To print
         the results you can subsequently use the
-        :py:meth:`tespy.networks.networks.network.print_exergy_analysis`
-        method. The ecergy balance should be closed, if you set up your network
+        :py:meth:`tespy.networks.network.Network.print_exergy_analysis`
+        method. The exergy balance should be closed, if you set up your network
         analysis. If not, an error is prompted.
 
         >>> nw.exergy_analysis(pamb=pamb, Tamb=Tamb,
@@ -2903,7 +2719,7 @@ class network:
             # gather parameters to print for components of type c
             cols = []
             for col, val in df.index[0].variables.items():
-                if isinstance(val, dc.dc_cp):
+                if isinstance(val, dc_cp):
                     if val.get_attr('printout'):
                         cols += [col]
 
@@ -2911,7 +2727,7 @@ class network:
             if len(cols) > 0:
                 for col in cols:
                     df[col] = df.apply(
-                        network.print_components, axis=1, args=(col, colored))
+                        Network.print_components, axis=1, args=(col, colored))
 
                 df.drop(['comp_type'], axis=1, inplace=True)
                 df.set_index('label', inplace=True)
@@ -3115,9 +2931,11 @@ class network:
         Save the connection properties.
 
         - Uses connections object id as row identifier and saves
-            * connections source and target as well as
-            * properties with references and
-            * fluid vector.
+
+            - connections source and target as well as
+            - properties with references and
+            - fluid vector (including user specification if structure is True).
+
         - Connections source and target are identified by its labels.
 
         Parameters
@@ -3125,10 +2943,10 @@ class network:
         fn : str
             Path/filename for the file.
         """
-        f = network.get_props
+        f = Network.get_props
         df = pd.DataFrame()
         # connection id
-        df['id'] = self.conns.apply(network.get_id, axis=1)
+        df['id'] = self.conns.apply(Network.get_id, axis=1)
 
         # general connection parameters
         # source
@@ -3213,14 +3031,14 @@ class network:
 
         # busses
         df_comps['busses'] = df_comps.apply(
-            network.get_busses, axis=1, args=(busses,))
+            Network.get_busses, axis=1, args=(busses,))
 
         for var in ['param', 'P_ref', 'char', 'base']:
             df_comps['bus_' + var] = df_comps.apply(
-                network.get_bus_data, axis=1, args=(busses, var))
+                Network.get_bus_data, axis=1, args=(busses, var))
 
         pd.options.mode.chained_assignment = None
-        f = network.get_props
+        f = Network.get_props
         for c in df_comps['comp_type'].unique():
             df = df_comps[df_comps['comp_type'] == c]
 
@@ -3233,7 +3051,7 @@ class network:
             # attributes
             for col, data in df.index[0].variables.items():
                 # component characteristics container
-                if isinstance(data, dc.dc_cc) or isinstance(data, dc.dc_cm):
+                if isinstance(data, dc_cc) or isinstance(data, dc_cm):
                     df[col] = df.apply(
                         f, axis=1, args=(col, 'func')).astype(str)
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
@@ -3243,7 +3061,7 @@ class network:
                         f, axis=1, args=(col, 'param'))
 
                 # component property container
-                elif isinstance(data, dc.dc_cp):
+                elif isinstance(data, dc_cp):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(
                         f, axis=1, args=(col, 'is_set'))
@@ -3251,13 +3069,13 @@ class network:
                         f, axis=1, args=(col, 'is_var'))
 
                 # component property container
-                elif isinstance(data, dc.dc_simple):
+                elif isinstance(data, dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(
                         f, axis=1, args=(col, 'is_set'))
 
                 # component property container
-                elif isinstance(data, dc.dc_gcp):
+                elif isinstance(data, dc_gcp):
                     df[col] = df.apply(f, axis=1, args=(col, 'method'))
 
             df.set_index('label', inplace=True)
@@ -3278,9 +3096,9 @@ class network:
         if len(self.busses) > 0:
             df = pd.DataFrame(
                 {'id': self.busses.values()}, index=self.busses.values())
-            df['label'] = df.apply(network.get_props, axis=1, args=('label',))
-            df['P'] = df.apply(network.get_props, axis=1, args=('P', 'val'))
-            df['P_set'] = df.apply(network.get_props, axis=1,
+            df['label'] = df.apply(Network.get_props, axis=1, args=('label',))
+            df['P'] = df.apply(Network.get_props, axis=1, args=('P', 'val'))
+            df['P_set'] = df.apply(Network.get_props, axis=1,
                                    args=('P', 'is_set'))
             df.drop('id', axis=1, inplace=True)
 
@@ -3307,9 +3125,9 @@ class network:
             df = df_comps[df_comps['comp_type'] == c]
 
             for col, data in df.index[0].variables.items():
-                if isinstance(data, dc.dc_cc):
+                if isinstance(data, dc_cc):
                     char_lines += [data.func]
-                elif isinstance(data, dc.dc_cm):
+                elif isinstance(data, dc_cm):
                     char_maps += [data.func]
 
         # characteristic lines in busses
@@ -3323,12 +3141,12 @@ class network:
         if len(char_lines) > 0:
             # get id and data
             df = pd.DataFrame({'id': char_lines}, index=char_lines)
-            df['id'] = df.apply(network.get_id, axis=1)
-            df['type'] = df.apply(network.get_class_base, axis=1)
+            df['id'] = df.apply(Network.get_id, axis=1)
+            df['type'] = df.apply(Network.get_class_base, axis=1)
 
             cols = ['x', 'y', 'extrapolate']
             for val in cols:
-                df[val] = df.apply(network.get_props, axis=1, args=(val,))
+                df[val] = df.apply(Network.get_props, axis=1, args=(val,))
 
             # write to char.csv
             fn = path + 'char_line.csv'
@@ -3339,12 +3157,12 @@ class network:
         if len(char_maps) > 0:
             # get id and data
             df = pd.DataFrame({'id': char_maps}, index=char_maps)
-            df['id'] = df.apply(network.get_id, axis=1)
-            df['type'] = df.apply(network.get_class_base, axis=1)
+            df['id'] = df.apply(Network.get_id, axis=1)
+            df['type'] = df.apply(Network.get_class_base, axis=1)
 
             cols = ['x', 'y', 'z1', 'z2']
             for val in cols:
-                df[val] = df.apply(network.get_props, axis=1, args=(val,))
+                df[val] = df.apply(Network.get_props, axis=1, args=(val,))
 
             # write to char_map.csv
             fn = path + 'char_map.csv'
@@ -3371,7 +3189,7 @@ class network:
                     not isinstance(c.name.get_attr(args[0]), float) and
                     not isinstance(c.name.get_attr(args[0]), list) and
                     not isinstance(c.name.get_attr(args[0]), np.ndarray) and
-                    not isinstance(c.name.get_attr(args[0]), con.connection)):
+                    not isinstance(c.name.get_attr(args[0]), con.Connection)):
                 if len(args) == 1:
                     return c.name.get_attr(args[0])
                 elif args[0] == 'fluid' and args[1] != 'balance':

@@ -10,28 +10,21 @@ tests/test_networks/test_exergy_and_entropy_analysis.py
 SPDX-License-Identifier: MIT
 """
 
-import os
-import shutil
-
-import numpy as np
 from pytest import raises
 
-from CoolProp.CoolProp import PropsSI as PSI
-
-from tespy.components.basics import cycle_closer
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.heat_exchangers import heat_exchanger_simple
-from tespy.components.nodes import merge
-from tespy.components.nodes import splitter
-from tespy.components.piping import valve
-from tespy.components.turbomachinery import compressor
-from tespy.components.turbomachinery import pump
-from tespy.components.turbomachinery import turbine
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
-from tespy.tools.fluid_properties import calc_physical_exergy
+from tespy.components import Compressor
+from tespy.components import CycleCloser
+from tespy.components import HeatExchangerSimple
+from tespy.components import Merge
+from tespy.components import Pump
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Splitter
+from tespy.components import Turbine
+from tespy.components import Valve
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks import Network
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyNetworkError
@@ -50,43 +43,43 @@ class TestClausiusRankine:
         self.Tamb = 20
         self.pamb = 1
         fluids = ['water']
-        self.nw = network(fluids=fluids)
+        self.nw = Network(fluids=fluids)
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # create components
-        splitter1 = splitter('splitter 1')
-        merge1 = merge('merge 1')
-        turb = turbine('turbine')
-        fwp_turb = turbine('feed water pump turbine')
-        condenser = heat_exchanger_simple('condenser')
-        fwp = pump('pump')
-        steam_generator = heat_exchanger_simple('steam generator')
-        cycle_close = cycle_closer('cycle closer')
+        splitter1 = Splitter('splitter 1')
+        merge1 = Merge('merge 1')
+        turb = Turbine('turbine')
+        fwp_turb = Turbine('feed water pump turbine')
+        condenser = HeatExchangerSimple('condenser')
+        fwp = Pump('pump')
+        steam_generator = HeatExchangerSimple('steam generator')
+        cycle_close = CycleCloser('cycle closer')
 
         # create busses
         # power output bus
-        self.power = bus('power_output')
+        self.power = Bus('power_output')
         self.power.add_comps({'comp': turb, 'char': 1})
         # turbine driven feed water pump internal bus
-        self.fwp_power = bus('feed water pump power', P=0)
+        self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
             {'comp': fwp_turb, 'char': 1},
             {'comp': fwp, 'char': 1, 'base': 'bus'})
         # heat input bus
-        self.heat = bus('heat_input')
+        self.heat = Bus('heat_input')
         self.heat.add_comps({'comp': steam_generator, 'base': 'bus'})
         self.nw.add_busses(self.power, self.fwp_power, self.heat)
 
         # create connections
-        fs_in = connection(cycle_close, 'out1', splitter1, 'in1', label='fs')
-        fs_fwpt = connection(splitter1, 'out1', fwp_turb, 'in1')
-        fs_t = connection(splitter1, 'out2', turb, 'in1')
-        fwpt_ws = connection(fwp_turb, 'out1', merge1, 'in1')
-        t_ws = connection(turb, 'out1', merge1, 'in2')
-        ws = connection(merge1, 'out1', condenser, 'in1')
-        cond = connection(condenser, 'out1', fwp, 'in1', label='cond')
-        fw = connection(fwp, 'out1', steam_generator, 'in1', label='fw')
-        fs_out = connection(steam_generator, 'out1', cycle_close, 'in1')
+        fs_in = Connection(cycle_close, 'out1', splitter1, 'in1', label='fs')
+        fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')
+        fs_t = Connection(splitter1, 'out2', turb, 'in1')
+        fwpt_ws = Connection(fwp_turb, 'out1', merge1, 'in1')
+        t_ws = Connection(turb, 'out1', merge1, 'in2')
+        ws = Connection(merge1, 'out1', condenser, 'in1')
+        cond = Connection(condenser, 'out1', fwp, 'in1', label='cond')
+        fw = Connection(fwp, 'out1', steam_generator, 'in1', label='fw')
+        fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
         self.nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw,
                           fs_out)
 
@@ -161,7 +154,7 @@ class TestClausiusRankine:
         """Test exergy analysis with violated balance."""
         # specify efficiency values for the internal bus
         self.nw.del_busses(self.fwp_power)
-        self.fwp_power = bus('feed water pump power', P=0)
+        self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
             {'comp': self.nw.components['feed water pump turbine'],
              'char': 0.99},
@@ -186,7 +179,7 @@ class TestClausiusRankine:
         """Test exergy analysis bus conversion factors."""
         # specify efficiency values for the internal bus
         self.nw.del_busses(self.fwp_power)
-        self.fwp_power = bus('feed water pump power', P=0)
+        self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
             {'comp': self.nw.components['feed water pump turbine'],
              'char': 0.99},
@@ -237,34 +230,34 @@ class TestRefrigerator:
         self.Tamb = 20
         self.pamb = 1
         fluids = ['R134a']
-        self.nw = network(fluids=fluids)
+        self.nw = Network(fluids=fluids)
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # create components
-        va = valve('expansion valve')
-        cp = compressor('compressor')
-        cond = heat_exchanger_simple('condenser')
-        eva = heat_exchanger_simple('evaporator')
-        cc = cycle_closer('cycle closer')
+        va = Valve('expansion valve')
+        cp = Compressor('compressor')
+        cond = HeatExchangerSimple('condenser')
+        eva = HeatExchangerSimple('evaporator')
+        cc = CycleCloser('cycle closer')
 
         # create busses
         # power output bus
-        self.power = bus('power input')
+        self.power = Bus('power input')
         self.power.add_comps({'comp': cp, 'char': 0.97, 'base': 'bus'})
         # cooling bus
-        self.cool = bus('heat from fridge')
+        self.cool = Bus('heat from fridge')
         self.cool.add_comps({'comp': eva})
         # heat input bus
-        self.heat = bus('heat to ambient')
+        self.heat = Bus('heat to ambient')
         self.heat.add_comps({'comp': cond})
         self.nw.add_busses(self.power, self.cool, self.heat)
 
         # create connections
-        cc_cp = connection(cc, 'out1', cp, 'in1', label='from eva')
-        cp_cond = connection(cp, 'out1', cond, 'in1', label='to cond')
-        cond_va = connection(cond, 'out1', va, 'in1', label='from cond')
-        va_eva = connection(va, 'out1', eva, 'in1', label='to eva')
-        eva_cc = connection(eva, 'out1', cc, 'in1')
+        cc_cp = Connection(cc, 'out1', cp, 'in1', label='from eva')
+        cp_cond = Connection(cp, 'out1', cond, 'in1', label='to cond')
+        cond_va = Connection(cond, 'out1', va, 'in1', label='from cond')
+        va_eva = Connection(va, 'out1', eva, 'in1', label='to eva')
+        eva_cc = Connection(eva, 'out1', cc, 'in1')
         self.nw.add_conns(cc_cp, cp_cond, cond_va, va_eva, eva_cc)
 
         # component parameters
@@ -310,27 +303,27 @@ class TestCompressedAirIn:
         fluids = ['Air']
 
         # compressor part
-        self.nw = network(fluids=fluids)
+        self.nw = Network(fluids=fluids)
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components
-        amb = source('air intake', exergy='fuel')
-        cp = compressor('compressor')
-        cooler = heat_exchanger_simple('cooling')
-        cas = sink('compressed air storage', exergy='product')
+        amb = Source('air intake')
+        cp = Compressor('compressor')
+        cooler = HeatExchangerSimple('cooling')
+        cas = Sink('compressed air storage')
 
         # power input bus
-        self.power_in = bus('power input')
+        self.power_in = Bus('power input')
         self.power_in.add_comps({'comp': cp, 'char': 1, 'base': 'bus'})
         # compressed air bus (not sure about this!)
-        self.cas_in = bus('massflow into storage')
+        self.cas_in = Bus('massflow into storage')
         self.cas_in.add_comps({'comp': cas}, {'comp': amb, 'base': 'bus'})
         self.nw.add_busses(self.power_in, self.cas_in)
 
         # create connections
-        amb_cp = connection(amb, 'out1', cp, 'in1')
-        cp_cool = connection(cp, 'out1', cooler, 'in1')
-        cool_cas = connection(cooler, 'out1', cas, 'in1')
+        amb_cp = Connection(amb, 'out1', cp, 'in1')
+        cp_cool = Connection(cp, 'out1', cooler, 'in1')
+        cool_cas = Connection(cooler, 'out1', cas, 'in1')
         self.nw.add_conns(amb_cp, cp_cool, cool_cas)
 
         # component parameters
@@ -368,32 +361,32 @@ class TestCompressedAirOut:
         fluids = ['Air']
 
         # turbine part
-        self.nw = network(fluids=fluids)
+        self.nw = Network(fluids=fluids)
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components
-        cas = source('compressed air storage', exergy='fuel')
-        reheater = heat_exchanger_simple('reheating')
-        turb = turbine('turbine')
-        amb = sink('air outlet')
+        cas = Source('compressed air storage')
+        reheater = HeatExchangerSimple('reheating')
+        turb = Turbine('turbine')
+        amb = Sink('air outlet')
 
         # power ouput bus
-        self.power_out = bus('power output')
+        self.power_out = Bus('power output')
         self.power_out.add_comps({'comp': turb, 'char': 1})
         # compressed air bus
-        self.cas_out = bus('exergy in')
+        self.cas_out = Bus('exergy in')
         self.cas_out.add_comps(
             {'comp': cas, 'base': 'bus'},
             {'comp': reheater, 'base': 'bus'})
         # exergy loss bus
-        self.ex_loss = bus('exergy loss')
+        self.ex_loss = Bus('exergy loss')
         self.ex_loss.add_comps({'comp': amb, 'base': 'component'})
         self.nw.add_busses(self.power_out, self.cas_out)
 
         # create connections
-        cas_reheater = connection(cas, 'out1', reheater, 'in1')
-        reheater_turb = connection(reheater, 'out1', turb, 'in1')
-        turb_amb = connection(turb, 'out1', amb, 'in1', label='outlet')
+        cas_reheater = Connection(cas, 'out1', reheater, 'in1')
+        reheater_turb = Connection(reheater, 'out1', turb, 'in1')
+        turb_amb = Connection(turb, 'out1', amb, 'in1', label='outlet')
         self.nw.add_conns(cas_reheater, reheater_turb, turb_amb)
 
         # component parameters

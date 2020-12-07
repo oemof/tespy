@@ -14,12 +14,12 @@ import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.reactors import water_electrolyzer
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import WaterElectrolyzer
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks import Network
 
 
 def convergence_check(lin_dep):
@@ -32,34 +32,34 @@ class TestReactors:
 
     def setup(self):
         """Set up network for electrolyzer tests."""
-        self.nw = network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
-        self.instance = water_electrolyzer('electrolyzer')
+        self.nw = Network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
+        self.instance = WaterElectrolyzer('electrolyzer')
 
-        fw = source('feed water')
-        cw_in = source('cooling water')
-        o2 = sink('oxygen sink')
-        h2 = sink('hydrogen sink')
-        cw_out = sink('cooling water sink')
+        fw = Source('feed water')
+        cw_in = Source('cooling water')
+        o2 = Sink('oxygen sink')
+        h2 = Sink('hydrogen sink')
+        cw_out = Sink('cooling water sink')
 
         self.instance.set_attr(pr_c=0.99)
 
-        cw_el = connection(cw_in, 'out1', self.instance, 'in1',
+        cw_el = Connection(cw_in, 'out1', self.instance, 'in1',
                            fluid={'H2O': 1, 'H2': 0, 'O2': 0}, T=20, p=1)
-        el_cw = connection(self.instance, 'out1', cw_out, 'in1', T=45)
+        el_cw = Connection(self.instance, 'out1', cw_out, 'in1', T=45)
 
         self.nw.add_conns(cw_el, el_cw)
 
-        fw_el = connection(fw, 'out1', self.instance, 'in2', m=0.1, T=20, p=10)
-        el_o2 = connection(self.instance, 'out2', o2, 'in1')
-        el_h2 = connection(self.instance, 'out3', h2, 'in1', T=50)
+        fw_el = Connection(fw, 'out1', self.instance, 'in2', m=0.1, T=20, p=10)
+        el_o2 = Connection(self.instance, 'out2', o2, 'in1')
+        el_h2 = Connection(self.instance, 'out3', h2, 'in1', T=50)
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
-    def test_water_electrolyzer(self):
+    def test_WaterElectrolyzer(self):
         """Test component properties of water electrolyzer."""
         # check bus function:
         # power output on component and bus must be indentical
-        power = bus('power')
+        power = Bus('power')
         power.add_comps({'comp': self.instance, 'param': 'P', 'base': 'bus'})
         power.set_attr(P=2.5e6)
         self.nw.add_busses(power)
@@ -73,7 +73,7 @@ class TestReactors:
 
         # check bus function:
         # heat output on component and bus must be indentical
-        heat = bus('heat')
+        heat = Bus('heat')
         heat.add_comps({'comp': self.instance, 'param': 'Q'})
         heat.set_attr(P=-8e5)
         self.nw.add_busses(heat)

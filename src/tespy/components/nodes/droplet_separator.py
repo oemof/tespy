@@ -1,0 +1,438 @@
+# -*- coding: utf-8
+
+"""Module of class DropletSeparator.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/components/nodes/droplet_separator.py
+
+SPDX-License-Identifier: MIT
+"""
+
+import numpy as np
+
+from tespy.components.component import Component
+from tespy.tools.fluid_properties import dh_mix_dpQ
+from tespy.tools.fluid_properties import h_mix_pQ
+
+
+class DropletSeparator(Component):
+    r"""
+    Separate liquid phase from gas phase of a single fluid.
+
+    Equations
+
+        **mandatory equations**
+
+        - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+
+        .. math::
+
+            0 = \dot{m}_{in} \cdot h_{in} -
+            \sum_j \left(\dot{m}_{j,out} \cdot h_{j,out} \right)\\
+            \forall j \in outlet
+
+            0 = p_{in} - p_{out,i}\\
+            \forall i \in \mathrm{outlets}
+
+            0 = h_{1,out} - h\left(p, x=1 \right)
+
+            0 = h_{2,out} - h\left(p, x=0 \right)\\
+            x: \text{vapour mass fraction}
+
+    Inlets/Outlets
+
+        - in1
+        - out1, out2 (index 1: gas phase, index 2: liquid phase)
+
+    Image
+
+        .. image:: _images/DropletSeparator.svg
+           :scale: 100 %
+           :alt: alternative text
+           :align: center
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Note
+    ----
+    If you are using a drum in a network with multiple fluids, it is likely
+    the fluid propagation causes trouble. If this is the case, try to
+    specify the fluid composition at another connection of your network.
+
+    This component assumes, that the fluid composition between outlet 1 and
+    inlet 2 does not change, thus there is no equation for the fluid mass
+    fraction at the inlet 2!
+
+    Example
+    -------
+    The droplet separator separates gas from liquid phase. From a stream of
+    water the liquid phase will be separated.
+
+    >>> from tespy.components import Sink, Source, DropletSeparator
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools.fluid_properties import Q_ph, T_bp_p
+    >>> import shutil
+    >>> nw = Network(fluids=['water'], T_unit='C', p_unit='bar',
+    ... h_unit='kJ / kg', iterinfo=False)
+    >>> so = Source('two phase inflow')
+    >>> sig = Sink('gas outflow')
+    >>> sil = Sink('liquid outflow')
+    >>> ds = DropletSeparator('droplet separator')
+    >>> ds.component()
+    'droplet separator'
+    >>> so_ds = Connection(so, 'out1', ds, 'in1')
+    >>> ds_sig = Connection(ds, 'out1', sig, 'in1')
+    >>> ds_sil = Connection(ds, 'out2', sil, 'in1')
+    >>> nw.add_conns(so_ds, ds_sig, ds_sil)
+
+    We specify the fluid's state at the inlet. At the gas outflow saturated
+    gas enthalpy is expected, at the liquid gas outflow saturated liquid
+    enthalpy. The mass flow at the outlets is expected to split according to
+    the vapor mass fraction:
+
+    .. math::
+
+        \dot{m}_\mathrm{out,1} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
+        \dot{m}_\mathrm{in}
+
+        \dot{m}_\mathrm{out,2} = \left(1 - \frac{h_\mathrm{in} - h'}{h'' - h'}
+        \right) \cdot \dot{m}_\mathrm{in}
+
+    >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
+    >>> nw.solve('design')
+    >>> Q_in = Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water')
+    >>> round(Q_in * so_ds.m.val_SI, 6) == round(ds_sig.m.val_SI, 6)
+    True
+    >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
+    True
+    >>> Q_ph(ds_sig.p.val_SI, ds_sig.h.val_SI, 'water')
+    1.0
+    >>> Q_ph(ds_sil.p.val_SI, ds_sil.h.val_SI, 'water')
+    0.0
+
+    In a different setup, we unset pressure and enthalpy and specify gas
+    temperature and mass flow instead. The temperature specification must yield
+    the corresponding boiling point pressure and the mass flow must yield the
+    inlet enthalpy. The inlet vapor mass fraction must be equal to fraction of
+    gas mass flow to inlet mass flow (0.95 in this example).
+
+    >>> so_ds.set_attr(fluid={'water': 1}, p=None, h=None, T=150, m=10)
+    >>> ds_sig.set_attr(m=9.5)
+    >>> nw.solve('design')
+    >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
+    0.95
+    >>> T_boil = T_bp_p(so_ds.to_flow())
+    >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
+    True
+    """
+
+    @staticmethod
+    def component():
+        return 'droplet separator'
+
+    @staticmethod
+    def inlets():
+        return ['in1']
+
+    @staticmethod
+    def outlets():
+        return ['out1', 'out2']
+
+    def comp_init(self, nw):
+
+        Component.comp_init(self, nw)
+
+        # number of mandatroy equations for
+        # fluid balance: num_fl * 2
+        # mass flow: 1
+        # pressure: 2
+        # enthalpy: 1
+        # saturated liquid outlet: 1
+        # saturated gas outlet: 1
+        self.num_eq = self.num_nw_fluids * 2 + 6
+
+        self.jacobian = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+
+        self.residual = np.zeros(self.num_eq)
+        pos = self.num_nw_fluids * 2
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+        self.jacobian[pos + 1:pos + 3] = self.pressure_deriv()
+
+    def equations(self):
+        r"""Calculate residual vector with results of equations."""
+        k = 0
+        ######################################################################
+        # eqations for fluid balance
+        self.residual[k:k + self.num_nw_fluids * 2] = self.fluid_func()
+        k += self.num_nw_fluids * 2
+
+        ######################################################################
+        # eqations for mass flow balance
+        self.residual[k] = self.mass_flow_func()
+        k += 1
+
+        ######################################################################
+        # eqations for pressure
+        p = self.inl[0].p.val_SI
+        for c in self.outl:
+            self.residual[k] = p - c.p.val_SI
+            k += 1
+
+        ######################################################################
+        # eqations for enthalpy
+        val = 0
+        for i in self.inl:
+            val += i.m.val_SI * i.h.val_SI
+        for o in self.outl:
+            val -= o.m.val_SI * o.h.val_SI
+        self.residual[k] = val
+        k += 1
+
+        ######################################################################
+        # eqations for staturated fluid state at outlets
+        self.residual[k] = h_mix_pQ(
+            self.outl[0].to_flow(), 1) - self.outl[0].h.val_SI
+        k += 1
+        self.residual[k] = h_mix_pQ(
+            self.outl[1].to_flow(), 0) - self.outl[1].h.val_SI
+        k += 1
+
+    def derivatives(self, increment_filter):
+        r"""Calculate partial derivatives for given equations."""
+        ######################################################################
+        # derivatives fluid, mass flow and pressure balance are static
+        k = self.num_nw_fluids * 2 + 3
+
+        ######################################################################
+        # derivatives for energy balance equation
+        self.jacobian[k, 0, 0] = self.inl[0].h.val_SI
+        self.jacobian[k, 0, 2] = self.inl[0].m.val_SI
+        j = 0
+        for outl in self.outl:
+            self.jacobian[k, j + 1, 0] = -outl.h.val_SI
+            self.jacobian[k, j + 1, 2] = -outl.m.val_SI
+            j += 1
+        k += 1
+
+        ######################################################################
+        # derivatives of equations for saturated states at outlets
+        self.jacobian[k, 1, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, 1, 2] = -1
+        k += 1
+        self.jacobian[k, 2, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
+        self.jacobian[k, 2, 2] = -1
+        k += 1
+
+    def fluid_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+
+            .. math::
+
+                0 = fluid_{i,in_1} - fluid_{i,out_{j}}\\
+                \forall i \in \mathrm{fluid}, \; \forall j \in inlets
+
+        """
+        residual = []
+
+        for o in self.outl:
+            for fluid, x in self.inl[0].fluid.val.items():
+                residual += [x - o.fluid.val[fluid]]
+        return residual
+
+    def fluid_deriv(self):
+        r"""
+        Calculate partial derivatives for all fluid balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
+        """
+        deriv = np.zeros((2 * self.num_nw_fluids, 3, self.num_nw_vars))
+        for k in range(2):
+            for i in range(self.num_nw_fluids):
+                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
+                deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
+        return deriv
+
+    def pressure_deriv(self):
+        r"""
+        Calculate partial derivatives for pressure equations.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the pressure equations.
+        """
+        deriv = np.zeros((2, 3, self.num_nw_vars))
+        for k in range(2):
+            deriv[k, 0, 1] = 1
+            deriv[k, k + 1, 1] = -1
+        return deriv
+
+    def propagate_fluid_to_target(self, inconn, start):
+        r"""
+        Propagate the fluids towards connection's target in recursion.
+
+        Parameters
+        ----------
+        inconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        for outconn in self.outl:
+            for fluid, x in inconn.fluid.val.items():
+                if (outconn.fluid.val_set[fluid] is False and
+                        outconn.good_starting_values is False):
+                    outconn.fluid.val[fluid] = x
+
+            outconn.target.propagate_fluid_to_target(outconn, start)
+
+    def propagate_fluid_to_source(self, outconn, start):
+        r"""
+        Propagate the fluids towards connection's source in recursion.
+
+        Parameters
+        ----------
+        outconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        inconn = self.inl[0]
+        for fluid, x in outconn.fluid.val.items():
+            if (inconn.fluid.val_set[fluid] is False and
+                    inconn.good_starting_values is False):
+                inconn.fluid.val[fluid] = x
+
+        inconn.source.propagate_fluid_to_source(inconn, start)
+
+    @staticmethod
+    def initialise_source(c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \begin{cases}
+                10^6 & \text{key = 'p'}\\
+                h\left(p, x=1 \right) & \text{key = 'h' at outlet 1}\\
+                h\left(p, x=0 \right) & \text{key = 'h' at outlet 2}
+                \end{cases}
+        """
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            if c.source_id == 'out1':
+                return h_mix_pQ(c.to_flow(), 1)
+            else:
+                return h_mix_pQ(c.to_flow(), 0)
+
+    @staticmethod
+    def initialise_target(c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at inlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \begin{cases}
+                10^6 & \text{key = 'p'}\\
+                h\left(p, x=0.5 \right) & \text{key = 'h' at inlet 1}
+                \end{cases}
+        """
+        if key == 'p':
+            return 10e5
+        elif key == 'h':
+            return h_mix_pQ(c.to_flow(), 0.5)
+
+    def get_plotting_data(self):
+        """Generate a dictionary containing FluProDia plotting information.
+
+        Returns
+        -------
+        data : dict
+            A nested dictionary containing the keywords required by the
+            :code:`calc_individual_isoline` method of the
+            :code:`FluidPropertyDiagram` class. First level keys are the
+            connection index ('in1' -> 'out1', therefore :code:`1` etc.).
+        """
+        return {
+            i + 1: {
+                'isoline_property': 'p',
+                'isoline_value': self.inl[0].p.val,
+                'isoline_value_end': self.outl[i].p.val,
+                'starting_point_property': 'v',
+                'starting_point_value': self.inl[0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[i].vol.val
+            } for i in range(2)}

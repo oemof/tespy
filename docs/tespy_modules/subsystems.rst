@@ -17,12 +17,12 @@ Create a :code:`.py` file in your working-directory. This file contains the
 class definition of your subsystem and at minimum two methods:
 
 - :code:`create_comps`: Method to create the components of your subsystem and
-  save them in the :code:`subsystem.comps` attribute (dictionary).
+  save them in the :code:`Subsystem.comps` attribute (dictionary).
 - :code:`create_conns`: Method to create the connections of your subsystem and
-  save them in the :code:`subsystem.conns` attribute (dictionary).
+  save them in the :code:`Subsystem.conns` attribute (dictionary).
 
 All other functionalities are inherited by the parent class of the
-:py:class:`subsystem <tespy.components.subsystems.subsystem>` object.
+:py:class:`subsystem <tespy.components.subsystem.Subsystem>` object.
 
 Example
 -------
@@ -49,33 +49,33 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
 .. code-block:: python
 
-    from tespy.components import subsystem, heat_exchanger, drum
-    from tespy.connections import connection
+    from tespy.components import Subsystem, HeatExchanger, Drum
+    from tespy.connections import Connection
 
 
-    class waste_heat_steam_generator(subsystem):
+    class WasteHeatSteamGenerator(Subsystem):
         """Class documentation"""
 
         def create_comps(self):
             """Create the subsystem's components."""
-            self.comps['eco'] = heat_exchanger('economizer')
-            self.comps['eva'] = heat_exchanger('evaporator')
-            self.comps['sup'] = heat_exchanger('superheater')
-            self.comps['drum'] = drum('drum')
+            self.comps['eco'] = HeatExchanger('economizer')
+            self.comps['eva'] = HeatExchanger('evaporator')
+            self.comps['sup'] = HeatExchanger('superheater')
+            self.comps['drum'] = Drum('drum')
 
         def create_conns(self):
             """Define the subsystem's connections."""
-            self.conns['eco_dr'] = connection(
+            self.conns['eco_dr'] = Connection(
                 self.comps['eco'], 'out2', self.comps['drum'], 'in1')
-            self.conns['dr_eva'] = connection(
+            self.conns['dr_eva'] = Connection(
                 self.comps['drum'], 'out1', self.comps['eva'], 'in2')
-            self.conns['eva_dr'] = connection(
+            self.conns['eva_dr'] = Connection(
                 self.comps['eva'], 'out2', self.comps['drum'], 'in2')
-            self.conns['dr_sup'] = connection(
+            self.conns['dr_sup'] = Connection(
                 self.comps['drum'], 'out2', self.comps['sup'], 'in2')
-            self.conns['sup_eva'] = connection(
+            self.conns['sup_eva'] = Connection(
                 self.comps['sup'], 'out1', self.comps['eva'], 'in1')
-            self.conns['eva_eco'] = connection(
+            self.conns['eva_eco'] = Connection(
                 self.comps['eva'], 'out1', self.comps['eco'], 'in1')
 
 Import your subsystem
@@ -88,34 +88,34 @@ within the same folder as your script.
 
 .. code-block:: python
 
-    from tespy.networks import network
-    from tespy.components import source, sink
-    from tespy.connections import connection
+    from tespy.networks import Network
+    from tespy.components import Source, Sink
+    from tespy.connections import Connection
     import numpy as np
 
-    from mysubsystems import waste_heat_steam_generator as whsg
+    from mysubsystems import WasteHeatSteamGenerator as WHSG
 
     # %% network definition
 
     fluid_list = ['air', 'water']
-    nw = network(fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(fluid_list, p_unit='bar', T_unit='C')
 
     # %% component definition
 
-    feed_water = source('feed water inlet')
-    steam = sink('live steam outlet')
+    feed_water = Source('feed water inlet')
+    steam = Sink('live steam outlet')
 
-    waste_heat = source('waste heat inlet')
-    chimney = sink('waste heat chimney')
+    waste_heat = Source('waste heat inlet')
+    chimney = Sink('waste heat chimney')
 
-    sg = whsg('waste heat steam generator')
+    sg = WHSG('waste heat steam generator')
 
     # %% connection definition
 
-    fw_sg = connection(feed_water, 'out1', sg.comps['eco'], 'in2')
-    sg_ls = connection(sg.comps['sup'], 'out2', steam, 'in1')
-    fg_sg = connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
-    sg_ch = connection(sg.comps['eco'], 'out1', chimney, 'in1')
+    fw_sg = Connection(feed_water, 'out1', sg.comps['eco'], 'in2')
+    sg_ls = Connection(sg.comps['sup'], 'out2', steam, 'in1')
+    fg_sg = Connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
+    sg_ch = Connection(sg.comps['eco'], 'out1', chimney, 'in1')
 
     nw.add_conns(fw_sg, sg_ls, fg_sg, sg_ch)
     nw.add_subsys(sg)
@@ -163,9 +163,9 @@ If you want to add even more flexibility, you might need to manipulate the
 :code:`__init__` method of your custom subsystem class. Usually, you do not
 need to override this method. However, if you need additional parameters, e.g.
 in order to alter the subsystem's topology or specify additional information,
-take a look at the standard
-:py:meth:`__init__ <tespy.components.subsystems.subsystem>` method and add your
-code between the label declaration and the components and connection creation.
+take a look at the :py:class:`tespy.components.subsystem.Subsystem` class and
+add your code between the label declaration and the components and connection
+creation in the :code:`__init__` method.
 
 For example, if you want a variable number of inlets and outlets because you
 have a variable number of components groups within your subsystem, you may

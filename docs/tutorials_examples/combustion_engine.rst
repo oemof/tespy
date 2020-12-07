@@ -1,18 +1,18 @@
 Combustion engine
 -----------------
 
-We have added a cogeneration unit in version 0.0.5 of TESPy. The combustion
+We have added a combustion engine in version 0.0.5 of TESPy. The combustion
 engine is based on the combustion chamber, and additionally provides a power
-and two heating outlets, heat losses can be taken into account as well. Power
-output, heat production and losses are all linked to the thermal input of the
-combustion engine by characteristic lines, which usually are provided by the
-manufacturer. TESPy provides a set of predefined characteristics (documented in
-the :py:class:`characteristics module <tespy.tools.characteristics.characteristics>` class).
+as well as two heating outlets and heat losses can be taken into account, too.
+Power output, heat production and heat losses are all linked to the thermal
+input of the combustion engine by characteristic lines, which usually are
+provided by the manufacturer. TESPy provides a set of predefined
+characteristics (documented in the :py:class:`<tespy.data>` module).
 
-.. figure:: api/_images/combustion_engine.svg
+.. figure:: api/_images/CombustionEngine.svg
     :align: center
 
-    Figure: Topology of a cogeneration unit.
+    Figure: Topology of the combustion engine.
 
 The characteristics take the power ratio (:math:`\frac{P}{P_{ref}}`) as
 argument. For a design case simulation the power ratio is always assumed to be
@@ -34,13 +34,13 @@ your code could look like this:
 
 .. code-block:: python
 
-	chp = cmp.cogeneration_unit('chp')
+    chp = CombustionEngine('chp')
 
-	bus = con.bus('some label')
-	# for thermal input
-	bus.add_comps({'c': chp, 'p': 'TI'})
-	# for power output
-	bus.add_comps({'c': chp, 'p': 'P'})
+    b = Bus('some label')
+    # for thermal input
+    b.add_comps({'comp': chp, 'param': 'TI'})
+    # for power output
+    b.add_comps({'comp': chp, 'param': 'P'})
 
 Enjoy fiddling around with the source code of the
 `combustion engine <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_engine.py>`_

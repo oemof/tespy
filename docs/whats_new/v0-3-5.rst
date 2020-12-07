@@ -1,6 +1,58 @@
 v0.3.5 - Someversion (Somemonth, Someday, Someyear)
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
+API Changes
+###########
+- In order to stick closer to the
+  `PEP 8 style guide <https://www.python.org/dev/peps/pep-0008/>`_ we changed
+  the names of all classes in TESPy to :code:`CamelCase` instead of
+  :code:`snake_case` as the latter is reserved for methods. This means, you
+  need to change your import like in the following examples:
+
+  .. code-block:: python
+
+      from tespy.components import Turbine, CombustionEngine
+      from tespy.components import HeatExchanger, HeatExchangerSimple
+      from tespy.connections import Connection
+      from tespy.connections import Bus
+      from tespy.connections import Ref
+      from tespy.networks import Network
+      from tespy.tools.characteristics import CharLine
+
+  Along with this, we renamed the DataContainer class and subclasses.
+
+  .. list-table:: New names for DataContainer classes
+     :widths: 25 50
+     :header-rows: 1
+
+     * - old name
+       - new name
+     * - data_container
+       - :py:class:`DataContainer <tespy.tools.data_containers.DataContainer>`
+     * - dc_simple
+       - :py:class:`DataContainerSimple <tespy.tools.data_containers.DataContainerSimple>`
+     * - dc_cc
+       - :py:class:`ComponentCharacteristics <tespy.tools.data_containers.ComponentCharacteristics>`
+     * - dc_cm
+       - :py:class:`ComponentCharacteristicMaps <tespy.tools.data_containers.ComponentCharacteristicMaps>`
+     * - dc_cp
+       - :py:class:`ComponentProperties <tespy.tools.data_containers.ComponentProperties>`
+     * - dc_gcp
+       - :py:class:`GroupedComponentProperties <tespy.tools.data_containers.GroupedComponentProperties>`
+     * - dc_flu
+       - :py:class:`FluidComposition <tespy.tools.data_containers.FluidComposition>`
+     * - dc_prop
+       - :py:class:`FluidProperties <tespy.tools.data_containers.FluidProperties>`
+
+  The examples in the online documentation and the oemof_examples repository
+  have been adjusted accordingly
+  (`PR #237 <https://github.com/oemof/tespy/pull/237>`_).
+- The definition of power and heat transfer in the
+  :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+  and the :py:class:`tespy.components.customs.orc_evaporator.ORCEvaporator`
+  have been changed to negative as all values are energy output streams
+  (`PR #215 <https://github.com/oemof/tespy/pull/215>`_).
+
 New Features
 ############
 - Add methods for exergy and entropy analyses of networks.
@@ -44,7 +96,7 @@ New Features
   iteration. This improves stability in some cases but may reduce calculation
   speed (`PR #226 <https://github.com/oemof/tespy/pull/226>`_). To deactivate
   simply specify on calling the
-  :py:meth:`tespy.networks.networks.network.solve` method:
+  :py:meth:`tespy.networks.network.Network.solve` method:
 
   .. code-block:: python
 
@@ -55,7 +107,7 @@ New Features
   requires :code:`cupy` installed on your machine
   (`PR #226 <https://github.com/oemof/tespy/pull/226>`_). To activate simply
   specify on calling the
-  :py:meth:`tespy.networks.networks.network.solve` method:
+  :py:meth:`tespy.networks.network.Network.solve` method:
 
   .. code-block:: python
 
@@ -116,8 +168,8 @@ Other Changes
   (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
 
 - For improved convergence stability of the methods
-  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_func` and
-  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.kA_char_func`,
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_func` and
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_func`,
   the logarithmic temperature difference is calculated based on the mean
   temperature difference between ambient and inlet and outlet temperature, if
   the terminal temperature differences do not have the same sign

@@ -58,7 +58,7 @@ applied automatically to the fluid vector.
 It is also possible create lookup-tables for fluid mixtures with fixed mass
 fractions of the components, as this reduces the amount of CoolProp fluid
 property calls and speeds up your calculation. Look up the
-:py:class:`tespy_fluids documentation <tespy.tools.fluid_properties.tespy_fluid>`
+:py:class:`TESPyFluid <tespy.tools.fluid_properties.TESPyFluid>` documentation
 for more information.
 
 Other mixtures

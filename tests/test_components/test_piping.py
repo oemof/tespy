@@ -11,14 +11,14 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.piping import pipe
-from tespy.components.piping import valve
-from tespy.connections import connection
-from tespy.networks.networks import network
-from tespy.tools.characteristics import char_line
-from tespy.tools.data_containers import dc_cc
+from tespy.components import Pipe
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Valve
+from tespy.connections import Connection
+from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 
 
 def convergence_check(lin_dep):
@@ -30,16 +30,16 @@ def convergence_check(lin_dep):
 class TestPiping:
 
     def setup_piping_network(self, instance):
-        self.nw = network(['CH4'], T_unit='C', p_unit='bar')
-        self.source = source('source')
-        self.sink = sink('sink')
-        self.c1 = connection(self.source, 'out1', instance, 'in1')
-        self.c2 = connection(instance, 'out1', self.sink, 'in1')
+        self.nw = Network(['CH4'], T_unit='C', p_unit='bar')
+        self.source = Source('source')
+        self.sink = Sink('sink')
+        self.c1 = Connection(self.source, 'out1', instance, 'in1')
+        self.c2 = Connection(instance, 'out1', self.sink, 'in1')
         self.nw.add_conns(self.c1, self.c2)
 
-    def test_valve(self):
+    def test_Valve(self):
         """Test component properties of valves."""
-        instance = valve('valve')
+        instance = Valve('valve')
         self.setup_piping_network(instance)
 
         # parameter specification
@@ -57,7 +57,7 @@ class TestPiping:
 
         # test variable zeta value
         zeta = round(instance.zeta.val, 0)
-        instance.set_attr(zeta='var', pr=np.nan)
+        instance.set_attr(zeta='var', pr=None)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of dimension independent zeta value must be ' +
@@ -67,9 +67,8 @@ class TestPiping:
         # dp char
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
-        dp_char = char_line(x, y)
-        instance.set_attr(zeta=np.nan,
-                          dp_char=dc_cc(func=dp_char, is_set=True))
+        dp_char = CharLine(x, y)
+        instance.set_attr(zeta=None, dp_char=dc_cc(func=dp_char, is_set=True))
         m = 11
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=np.nan)
@@ -82,9 +81,9 @@ class TestPiping:
                'is ' + str(dp_act) + '.')
         assert dp == dp_act, msg
 
-    def test_pipe(self):
+    def test_Pipe(self):
         """Test component properties of pipe."""
-        instance = pipe('pipe')
+        instance = Pipe('pipe')
         self.setup_piping_network(instance)
 
         # NO TEST NEEDED AT THE MOMENT, THE PIPE PROPERTIES ARE IDENTICAL TO

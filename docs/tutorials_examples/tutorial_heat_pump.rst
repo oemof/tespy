@@ -31,20 +31,20 @@ Set up a Network
 ^^^^^^^^^^^^^^^^
 
 In order to simulate our heat pump we have to create an instance of the
-tespy.network class. The network is the main container of the model and will be
-required in all following sections.
-First, it is necessary to specify a list of the fluids used in the plant. In
-this example we will work with water (H\ :sub:`2`\O) and ammonia
-(NH\ :sub:`3`\). Water is used for the cold side of the heat exchanger, for the
-consumer and for the hot side of the environmental temperature. Ammonia is used
-as coolant within the heat pump circuit. If you don’t specify the unit system,
-the variables are set to SI-Units.
+:py:class:`tespy.networks.network.Network` class. The network is the main
+container of the model and will be required in all following sections. First,
+it is necessary to specify a list of the fluids used in the plant. In this
+example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\).
+Water is used for the cold side of the heat exchanger, for the consumer and for
+the hot side of the environmental temperature. Ammonia is used as coolant
+within the heat pump circuit. If you don’t specify the unit system, the
+variables are set to SI-Units.
 
 .. code-block:: python
 
-    from tespy.networks import network
+    from tespy.networks import Network
 
-    nw = network(fluids=['water', 'NH3'],
+    nw = Network(fluids=['water', 'NH3'],
                  T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
 We will use °C, bar and kJ/kg as units for temperature and enthalpy.
@@ -57,7 +57,7 @@ Components
 
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From figure 1 you can determine the components of the
-consumer system: condenser, pump and the consumer (heat-exchanger-simple).
+consumer system: condenser, pump and the consumer (HeatExchangerSimple).
 Additionally we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment
@@ -68,23 +68,22 @@ properties can be initialised by .csv at the interface-connection, too.
 
 .. code-block:: python
 
-    from tespy.components import (source, sink, cycle_closer,
-                                  valve, drum, pump, compressor,
-                                  condenser, heat_exchanger_simple,
-                                  heat_exchanger)
+    from tespy.components import (
+        Source, Sink, CycleCloser, Valve, Drum, Pump, Compressor,
+        Condenser, HeatExchangerSimple, HeatExchanger)
 
     # sources & sinks
 
-    c_in = source('coolant in')
-    cons_closer = cycle_closer('consumer cycle closer')
+    c_in = Source('coolant in')
+    cons_closer = CycleCloser('consumer cycle closer')
 
-    va = sink('valve')
+    va = Sink('valve')
 
     # consumer system
 
-    cd = condenser('condenser')
-    rp = pump('recirculation pump')
-    cons = heat_exchanger_simple('consumer'))
+    cd = Condenser('condenser')
+    rp = Pump('recirculation pump')
+    cons = HeatExchangerSimple('consumer')
 
 Connections
 +++++++++++
@@ -94,43 +93,48 @@ Every connection requires the source, the source id, the target and the target
 id as arguments: the source is the component from which the connection
 originates, the source id is the outlet id of that component. This applies
 analogously to the target. To find all inlet and outlet ids of a component look
-up the class documentation.
+up the class documentation of the respective component. An overview of the
+components available and the class documentations is provided in the
+:ref:`TESPy modules overview <using_tespy_components_label>`. The
+:py:class:`tespy.connections.connection.Ref` class is used specify fluid
+property values by referencing fluid properties of different connections. It is
+used in a later step.
 
 .. code-block:: python
 
-    from tespy.connections import connection
+    from tespy.connections import Connection, Ref
 
     # consumer system
 
-    c_in_cd = connection(c_in, 'out1', cd, 'in1')
+    c_in_cd = Connection(c_in, 'out1', cd, 'in1')
 
-    close_rp = connection(cons_closer, 'out1', rp, 'in1')
-    rp_cd = connection(rp, 'out1', cd, 'in2')
-    cd_cons = connection(cd, 'out2', cons, 'in1')
-    cons_close = connection(cons, 'out1', cons_closer, 'in1')
+    close_rp = Connection(cons_closer, 'out1', rp, 'in1')
+    rp_cd = Connection(rp, 'out1', cd, 'in2')
+    cd_cons = Connection(cd, 'out2', cons, 'in1')
+    cons_close = Connection(cons, 'out1', cons_closer, 'in1')
 
     nw.add_conns(c_in_cd, close_rp, rp_cd, cd_cons, cons_close)
 
     # connection condenser - evaporator system
 
-    cd_va = connection(cd, 'out1', va, 'in1')
+    cd_va = Connection(cd, 'out1', va, 'in1')
 
     nw.add_conns(cd_va)
 
 .. note::
 
     Instead of just connecting the consumers outlet to the pumps inlet, we must
-    to make use of at least one auxiliary component: Closing a cycle without
-    further adjustments will always result in a linear dependency in the fluid
-    and the mass flow equations. We therefore need to cut open the cycle. The
-    :py:class`tespy.components.basics.cycle_closer` component makes sure, the
-    fluid properties pressure and enthalpy are identical at the inlet and the
-    outlet. A different solution to this problem, is adding a merge and a
-    splitter at some point of your network and connect the second inlet/outlet
-    to a source/sink. This causes residual mass flow and residual fluids to
-    emerge/drain there. The cycle closer will give out a warning, if the mass
-    flow or the fluid composition at its outlet are different to those at its
-    inlet.
+    make use of an auxiliary component: Closing a cycle without further
+    adjustments will always result in a linear dependency in the fluid and the
+    mass flow equations. We therefore need implement a CycleCloser. The
+    :py:class:`tespy.components.basics.cycle_closer.CycleCloser` component makes
+    sure, the fluid properties pressure and enthalpy are identical at the inlet
+    and the outlet. The component will prompt a warning, if the mass flow or
+    the fluid composition at its outlet are different to those at its inlet. A
+    different solution to this problem, is adding a merge and a splitter at
+    some point of your network and connect the second inlet/outlet to a
+    source/sink. This causes residual mass flow and residual fluids to
+    emerge/drain there.
 
 Parametrization
 +++++++++++++++
@@ -138,22 +142,44 @@ Parametrization
 For the condenser we set pressure ratios on hot and cold side and additionally
 we set a value for the upper terminal temperature difference as design
 parameter and the heat transfer coefficient as offdesign parameter. The
-consumer will have a pressure ratio, too. Further we set the isentropic
+consumer will have pressure losses, too. Further we set the isentropic
 efficiency for the pump, the offdesign efficiency is calculated with a
 characteristic function. Thus, we set the efficiency as design parameter and
 the characteristic function as offdesign parameter. In offdesign calculation
 the consumer's pressure ratio will be a function of the mass flow, thus as
 offdesign parameter we select zeta. The most important parameter is the
-consumers heat demand. We marked this setting as key parameter.
+consumers heat demand. We marked this setting as "key parameter".
 
 .. code-block:: python
 
-    cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
+    cd.set_attr(pr1=1, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
                 offdesign=['zeta2', 'kA'])
     rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
-.. note::
+In order to calculate this network further parametrization is necessary, as
+e.g. the fluids are not determined yet: At the hot inlet of the condenser we
+define the temperature and the fluid vector. In order to fully determine the
+fluid's state at this point, an information on the pressure is required. This
+is achieved by setting the terminal temperature difference (see above). The
+same needs to be done for the consumer cycle. We suggest to set the parameters
+at the pump's inlet. On top, we assume that the consumer requires a constant
+inlet temperature. The CycleCloser automatically makes sure, that the fluid's
+state at the consumer's outlet is the same as at the pump's inlet.
+
+.. code-block:: python
+
+    c_in_cd.set_attr(T=170, fluid={'water': 0, 'NH3': 1})
+    close_rp.set_attr(T=60, p=10, fluid={'water': 1, 'NH3': 0})
+    cd_cons.set_attr(T=90)
+
+.. code-block:: python
+
+    # %% key parameter
+
+    cons.set_attr(Q=-230e3)
+
+    .. note::
 
     In TESPy there are two different types of calculations: design point and
     offdesign calculation. All parameters specified in the design attribute of
@@ -171,35 +197,6 @@ consumers heat demand. We marked this setting as key parameter.
     case, this might be different ambient temperature, different feed flow
     temperature, or partial load.
 
-In order to calculate this network further parametrization is necessary, as e.
-g. the fluids are not determined yet: At the hot inlet of the condenser we
-define the temperature and the fluid vector. In order to fully determine the
-fluid's state at this point, an information on the pressure is required. This
-is achieved by setting the terminal temperature difference (see above). The
-same needs to be done for the consumer cycle. We suggest to set the parameters
-at the pump's inlet. On top, we assume that the consumer requires a constant
-inlet temperature.
-
-The last step is to define the fluid's state after the consumer. This is
-automatically performed by the :py:class:`tespy.components.basics.cycle_closer`
-component. This component makes sure pressure and enthalpy are at its inlet
-and its outlet. This way, the fluid properties at the consumer's outlet are
-identical to those at the pump's inlet, too.
-
-.. code-block:: python
-
-    from tespy.connections import ref
-
-    c_in_cd.set_attr(T=170, fluid={'water': 0, 'NH3': 1})
-    close_rp.set_attr(T=60, p=10, fluid={'water': 1, 'NH3': 0})
-    cd_cons.set_attr(T=90)
-
-.. code-block:: python
-
-    # %% key parameter
-
-    cons.set_attr(Q=-230e3)
-
 Solve
 +++++
 
@@ -207,7 +204,7 @@ After creating the system, we want to solve our network. First, we calculate
 the design case and directly after we can perform the offdesign calculation at
 a different value for our key parameter. For general information on the solving
 process in TESPy and available parameters check the corresponding section in
-:ref:`Using TESPy <using_tespy_networks_label>`.
+the :ref:`TESPy modules introduction <using_tespy_networks_label>`.
 
 .. code-block:: python
 
@@ -239,18 +236,18 @@ script.
 
     # sources & sinks
 
-    amb_in = source('source ambient')
-    amb_out = sink('sink ambient')
+    amb_in = Source('source ambient')
+    amb_out = Sink('sink ambient')
 
-    cp1 = sink('compressor 1')
+    cp1 = Sink('compressor 1')
 
     # evaporator system
 
-    va = valve('valve')
-    dr = drum('drum')
-    ev = heat_exchanger('evaporator')
-    su = heat_exchanger('superheater')
-    pu = pump('pump evaporator')
+    va = Valve('valve')
+    dr = Drum('drum')
+    ev = HeatExchanger('evaporator')
+    su = HeatExchanger('superheater')
+    pu = Pump('pump evaporator')
 
 Connections
 +++++++++++
@@ -267,23 +264,23 @@ following connections to the model:
 
     # evaporator system
 
-    va_dr = connection(va, 'out1', dr, 'in1')
-    dr_pu = connection(dr, 'out1', pu, 'in1')
-    pu_ev = connection(pu, 'out1', ev, 'in2')
-    ev_dr = connection(ev, 'out2', dr, 'in2')
-    dr_su = connection(dr, 'out2', su, 'in2')
+    va_dr = Connection(va, 'out1', dr, 'in1')
+    dr_pu = Connection(dr, 'out1', pu, 'in1')
+    pu_ev = Connection(pu, 'out1', ev, 'in2')
+    ev_dr = Connection(ev, 'out2', dr, 'in2')
+    dr_su = Connection(dr, 'out2', su, 'in2')
 
     nw.add_conns(va_dr, dr_pu, pu_ev, ev_dr, dr_su)
 
-    amb_in_su = connection(amb_in, 'out1', su, 'in1')
-    su_ev = connection(su, 'out1', ev, 'in1')
-    ev_amb_out = connection(ev, 'out1', amb_out, 'in1')
+    amb_in_su = Connection(amb_in, 'out1', su, 'in1')
+    su_ev = Connection(su, 'out1', ev, 'in1')
+    ev_amb_out = Connection(ev, 'out1', amb_out, 'in1')
 
     nw.add_conns(amb_in_su, su_ev, ev_amb_out)
 
     # connection evaporator system - compressor system
 
-    su_cp1 = connection(su, 'out2', cp1, 'in1')
+    su_cp1 = Connection(su, 'out2', cp1, 'in1')
 
     nw.add_conns(su_cp1)
 
@@ -293,8 +290,9 @@ Parametrization
 Previous parametrization stays untouched. Regarding the evaporator, we specify
 pressure ratios on hot and cold side as well as the lower terminal temperature
 difference. We use the hot side pressure ratio and the lower terminal
-temperature difference as design parameters and choose zeta as well as the
-area independent heat transition coefficient as its offdesign parameters.
+temperature (similar to pinch point layout for waste heat steam generators)
+difference as design parameters and choose zeta as well as the area independent
+heat transition coefficient as its offdesign parameters.
 
 On top of that, the characteristic function of the evaporator should follow the
 default characteristic line of 'EVAPORATING FLUID' on the cold side and the
@@ -306,16 +304,18 @@ will also use the pressure ratios on hot and cold side. Further we set a value
 for the upper terminal temperature difference. For the pump we set the
 isentropic efficiency. For offdesign and design parameter specification of
 these components the same logic as for the evaporator and the already existing
-part of the network is applied: The system designer has to answer the question:
+part of the network is applied. The system designer has to answer the question:
 Which parameters are design point parameters and how does the component perform
 at a different operation point.
 
 .. code-block:: python
 
+    from tespy.tools.characteristics import CharLine
+    from tespy.tools.characteristics import load_default_char as ldc
     # evaporator system
 
-    kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', char_line)
-    kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', char_line)
+    kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
+    kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
 
     ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
                 kA_char1=kA_char1, kA_char2=kA_char2,
@@ -331,29 +331,35 @@ cycle mass flow. The pressure is achieved through the given lower terminal
 temperature difference of the evaporator and its hot side outlet temperature.
 As we have specified a terminal temperature difference at the evaporator's cold
 side inlet (:code:`ttd_l`), it might be necessary to state a starting value for
-the pressure, as we are near to the two-phase region. On the hot side inlet of
-the superheater we define the temperature, pressure and the fluid. Since the
-pressure between superheater and first compressor will be a result of the
-pressure losses in the superheater and we set the terminal temperature
-difference there, bad starting values will lead to a linear dependency, as a
-temperature and a pressure are set while the fluid's state could be within the
-two phase region. Thus, we set starting values for pressure the fluid's state
-at this connection. By specifying :code:`state='g'` the solver will keep the
-fluid in gaseous state at all times. Therefore we should only use this keyword
-if we know the fluid's state prior to simulation. At last we have to fully
-determine the state of the incoming fluid at the superheater's hot side.
+the pressure or the state of the fluid (gaseous), as we are near to the
+wo-phase region. On the hot side inlet of the superheater we define the
+temperature, pressure and the fluid. Since the pressure between superheater and
+first compressor will be a result of the pressure losses in the superheater and
+we set the terminal temperature difference there, bad starting values will lead
+to a linear dependency, as a temperature and a pressure are set while the
+fluid's state could be within the two phase region. Thus, we choose to specify
+:code:`state='g'`, so the solver will keep the fluid in gaseous state at all
+times. At last we have to fully determine the state of the incoming fluid at
+the superheater's hot side.
+
+.. note::
+
+    Do only use the :code:`state` keyword if you know the fluid's state prior
+    to the simulation. If you specify the fluid to be gaseous but the correct
+    result of the simulation would be within the two-phase region, your
+    calculation most likely will not converge.
 
 .. code-block:: python
 
     # evaporator system cold side
 
-    pu_ev.set_attr(m=ref(va_dr, 4, 0), p0=5)
-    su_cp1.set_attr(p0=5, state='g')
+    pu_ev.set_attr(m=Ref(va_dr, 0.75, 0), p0=5)
+    su_cp1.set_attr(state='g')
 
     # evaporator system hot side
 
     amb_in_su.set_attr(T=12, p=1, fluid={'water': 1, 'NH3': 0})
-    ev_amb_out.set_attr(T=9))
+    ev_amb_out.set_attr(T=9)
 
 Solve
 +++++
@@ -362,8 +368,7 @@ Again, you should calculate your network after you added these parts. As we
 have already calculated one part of our network, this time we can use the
 :code:`init_path` for the design calculation and load the results from the
 previous network. This step is not required, but in larger, more complex
-networks, it might help, to achieve better convergence. For the offdesign
-calculation see part 3.1.4.
+networks, it might help, to achieve better convergence.
 
 
 Compressor system
@@ -380,25 +385,28 @@ side of the intercooler requires a source and a sink. Again, remember
 redefining the former sink "cp1" to a compressor. We will now replace the
 source for the coolant :code:`c_in` at the condenser with another cycle closer
 :code:`cool_closer`, to make sure the fluid properties after the second
-compressor are identical to the fluid properties at the condenser inlet. The
-intercooling leads to a lower COP but may be necessary depending on your
-temperature level requirement on the consumer's side. In a single stage
-compression, the outlet temperature of the coolant might be very high.
+compressor are identical to the fluid properties at the condenser inlet.
+
+.. note::
+
+    The intercooling leads to a lower COP but may be necessary depending on
+    your temperature level requirement on the consumer's side. In a single
+    stage compression, the outlet temperature of the coolant might be very high.
 
 .. code-block:: python
 
     # sources & sinks
 
-    ic_in = source('source intercool')
-    ic_out = sink('sink intercool')
+    ic_in = Source('source intercool')
+    ic_out = Sink('sink intercool')
 
-    cool_closer = cycle_closer('coolant cycle closer')
+    cool_closer = CycleCloser('coolant cycle closer')
 
     # compressor-system
 
-    cp1 = compressor('compressor 1')
-    cp2 = compressor('compressor 2')
-    he = heat_exchanger('intercooler')
+    cp1 = Compressor('compressor 1')
+    cp2 = Compressor('compressor 2')
+    he = HeatExchanger('intercooler')
 
 Connections
 +++++++++++
@@ -408,13 +416,13 @@ connection definition touching the new cycle closer. Replace
 
 .. code-block:: python
 
-    c_in_cd = connection(c_in, 'out1', cd, 'in1')
+    c_in_cd = Connection(c_in, 'out1', cd, 'in1')
 
 with
 
 .. code-block:: python
 
-    c_in_cd = connection(cool_closer, 'out1', cd, 'in1')
+    c_in_cd = Connection(cool_closer, 'out1', cd, 'in1')
 
 Of course, do not forget to add the new connections to the script.
 
@@ -422,12 +430,12 @@ Of course, do not forget to add the new connections to the script.
 
     # compressor-system
 
-    cp1_he = connection(cp1, 'out1', he, 'in1')
-    he_cp2 = connection(he, 'out1', cp2, 'in1')
-    cp2_close = connection(cp2, 'out1', cool_closer, 'in1')
+    cp1_he = Connection(cp1, 'out1', he, 'in1')
+    he_cp2 = Connection(he, 'out1', cp2, 'in1')
+    cp2_close = Connection(cp2, 'out1', cool_closer, 'in1')
 
-    ic_in_he = connection(ic_in, 'out1', he, 'in2')
-    he_ic_out = connection(he, 'out2', ic_out, 'in1')
+    ic_in_he = Connection(ic_in, 'out1', he, 'in2')
+    he_ic_out = Connection(he, 'out2', ic_out, 'in1')
 
     nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_close)
 
@@ -470,7 +478,7 @@ allowed to set the temperature at the condenser's hot inlet anymore.
 
     # compressor-system
 
-    he_cp2.set_attr(T0=40, p0=10, design=['T'])
+    he_cp2.set_attr(T=40, p0=10, design=['T'])
     ic_in_he.set_attr(p=1, T=20, fluid={'water': 1, 'NH3': 0})
     he_ic_out.set_attr(T=30, design=['T'])
 
@@ -479,8 +487,8 @@ Solve
 
 Here again, using the saved results from previous calculations is always
 favorable, but with the manually adjusted starting values, the calculation
-should still converge. Also see section 3.2.4. If you want to use the previous
-part to initialise start the solver with
+should still converge. If you want to use the previous part to initialise start
+the solver with
 
 .. code-block:: python
 

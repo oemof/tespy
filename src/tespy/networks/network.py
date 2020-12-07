@@ -2588,11 +2588,11 @@ class Network:
         >>> nw.solve('design')
 
         To evaluate the exergy balance of the network, we simply call the
-        :py:meth:`tespy.networks.networks.network.exergy_analysis` method
+        :py:meth:`tespy.networks.network.Network.exergy_analysis` method
         passing the respective busses as well as the ambient state. To print
         the results you can subsequently use the
-        :py:meth:`tespy.networks.networks.network.print_exergy_analysis`
-        method. The ecergy balance should be closed, if you set up your network
+        :py:meth:`tespy.networks.network.Network.print_exergy_analysis`
+        method. The exergy balance should be closed, if you set up your network
         analysis. If not, an error is prompted.
 
         >>> nw.exergy_analysis(pamb=pamb, Tamb=Tamb,

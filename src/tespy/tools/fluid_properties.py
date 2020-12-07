@@ -164,6 +164,7 @@ class TESPyFluid:
             try:
                 data = fluid.split('::')
                 back_end = data[0]
+                fluid = data[1]
             except IndexError:
                 back_end = 'HEOS'
             if fluid != self.alias:

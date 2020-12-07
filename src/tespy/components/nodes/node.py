@@ -456,7 +456,7 @@ class Node(Component):
 
     def propagate_fluid_to_source(self, outconn, start):
         r"""
-        Fluid propagation stops here.
+        Propagate the fluids towards connection's source in recursion.
 
         Parameters
         ----------
@@ -467,7 +467,13 @@ class Node(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        return
+        for inconn in self.inl:
+            for fluid, x in outconn.fluid.val.items():
+                if (not inconn.fluid.val_set[fluid] and
+                        not inconn.good_starting_values):
+                    inconn.fluid.val[fluid] = x
+
+            inconn.source.propagate_fluid_to_source(inconn, start)
 
     def entropy_balance(self):
         r"""

@@ -46,6 +46,10 @@ API Changes
 
   The examples in the online documentation and the oemof_examples repository
   have been adjusted accordingly.
+- The definition of power and heat transfer in the
+  :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+  and the :py:class:`tespy.components.customs.orc_evaporator.ORCEvaporator`
+  have been changed to negative as all values are energy output streams.
 
 New Features
 ############

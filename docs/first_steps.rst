@@ -17,8 +17,9 @@ Set up a plant
 In order to simulate a plant we start by creating a network
 (:py:class:`tespy.networks.network.Network`). The network is the main container
 for the model. You need to specify a list of the fluids you require for the
-calculation in your plant. For more information on the fluid properties jump to
-the :ref:`bottom of this page <tespy_fluid_properties_label>`.
+calculation in your plant. For more information on the fluid properties go to
+the :ref:`corresponding section <tespy_fluid_properties_label>` in TESPy
+modules.
 
 .. code-block:: python
 
@@ -53,9 +54,9 @@ exchanger. The full list of parameters for a specific component is stated in
 the respective class documentation. The example uses pipes, a control valve and
 a heat exchanger. The definition of the parameters available can be found here:
 
-- :py:class:`<tespy.components.piping.pipe.Pipe>`
-- :py:class:`<tespy.components.piping.valve.Valve>`
-- :py:class:`<tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple>`
+- :py:class:`tespy.components.piping.pipe.Pipe`
+- :py:class:`tespy.components.piping.valve.Valve`
+- :py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
 
 .. note::
 
@@ -122,7 +123,7 @@ way as parameters are set for components. The basic specification options are:
     modules chapter for detailed information. The specification options are
     stated in the
     connection class documentation, too:
-    :py:class:`<tespy.connections.connection.Connection>`.
+    :py:class:`tespy.connections.connection.Connection`.
 
 After creating the connections, we need to add them to the network. As the
 connections hold the information, which components are connected in which way,

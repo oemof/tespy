@@ -23,7 +23,7 @@ It is possible to specify values, starting values, references and data
 containers. The data containers for connections are dc_prop for fluid
 properties (mass flow, pressure, enthalpy, temperature and vapor mass
 fraction) and dc_flu for fluid composition. If you want to specify
-data_containers, you need to import them from the :code:`tespy.tools` module.
+data_containers, you need to import them from the :py:mod:`tespy.tools` module.
 
 In order to create the connections we create the components to connect first.
 
@@ -58,7 +58,7 @@ In order to create the connections we create the components to connect first.
                     h=dc_prop(val0=100))
 
     # specify a value in a different unit for a specific parameter
-    myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
+    myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True))
 
     # specify a referenced value: pressure of myconn is 1.2 times pressure at
     # myotherconn minus 5 Pa (always SI unit here)
@@ -88,7 +88,7 @@ If you want to specify the fluid vector you can do it in the following way.
     myconn.set_attr(fluid={'water': 1, 'air': 0})
     # same thing, but using data container
     myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0},
-                    val_set:{'water': True, 'air': True}))
+                    val_set={'water': True, 'air': True}))
 
     # set starting values
     myconn.set_attr(fluid0={'water': 1, 'air': 0})
@@ -96,7 +96,7 @@ If you want to specify the fluid vector you can do it in the following way.
     myconn.set_attr(fluid=dc_flu(val0={'water': 1, 'air': 0}))
 
     # unset full fluid vector
-    myconn.set_attr(fluid=None)
+    myconn.set_attr(fluid={})
     # unset part of fluid vector
     myconn.fluid.set_attr(val_set={'water': False})
 

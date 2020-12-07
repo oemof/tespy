@@ -6,7 +6,7 @@ implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`)
 and maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`).
 The default characteristics available are to be found in the
-:py:mod:`<tespy.data>` module documentation.
+:py:mod:`tespy.data` module documentation.
 
 Characteristic lines
 --------------------
@@ -69,8 +69,8 @@ are calculated, again using linear interpolation.
         \vec{z2} = \vec{z2} \cdot \left(1-\frac{igva}{100}^2\right)
 
     Also see the corresponding
-    :py:class:`<tespy.tools.characteristics.CompressorMap>` in the
-    API documentation.
+    :py:class:`tespy.tools.characteristics.CompressorMap` in the API
+    documentation.
 
 .. _import_custom_characteristics_label:
 

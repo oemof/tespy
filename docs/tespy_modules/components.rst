@@ -222,6 +222,7 @@ For example, :code:`kA_char` specification for heat exchangers:
     from tespy.components import HeatExchanger
     from tespy.tools import ComponentProperties as dc_cp
     from tespy.tools import ComponentCharacteristics as dc_cc
+    from tespy.tools import DataContainerSimple as dc_simple
     from tespy.tools.characteristics import load_default_char as ldc
     from tespy.tools.characteristics import CharLine
     import numpy as np
@@ -237,9 +238,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     # use a characteristic line from the defaults: specify the component, the
     # parameter and the name of the characteristic function. Also, specify, what
     # type of characteristic function you want to use.
-    kA_char1 = ldc('heat exchanger', 'kA_char1', 'EVAPORATING FLUID', CharLine)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2)
+    he.set_attr(kA_char2=kA_char2)
 
     # specification of a data container yields the same result. It is
     # aditionally possible to specify the characteristics parameter, mass flow
@@ -455,7 +455,7 @@ method.
 
     def comp_init(self, nw):
 
-        component.comp_init(self, nw)
+        Component.comp_init(self, nw)
 
         # number of mandatroy equations for
         # fluid balance: num_fl

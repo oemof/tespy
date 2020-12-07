@@ -11,8 +11,8 @@ In the example section we provide a variety of TESPy applications, among
 others:
 
 * a very basic model of the clausius rankine process,
-* the calculation of backpressure lines of a chp at different loads and feed
-  flow temperature levels,
+* the calculation of backpressure lines of a combined heat and power cycle at
+  different loads and feed flow temperature levels,
 * modeling approach for a district heating system with various consumers and
   system infrastructure as well as
 * the COP of a heat pump dependent on load, ambient temperature and heat

@@ -89,12 +89,12 @@ return the cycle efficiency.
 
 .. code-block:: python
 
-    from tespy.networks import network
+    from tespy.networks import Network
     from tespy.components import (
-        turbine, splitter, merge, condenser, pump, sink, source,
-        heat_exchanger_simple, desuperheater, cycle_closer
+        Turbine, Splitter, Merge, Condenser, Pump, Sink, Source,
+        HeatExchangerSimple, Desuperheater, CycleCloser
     )
-    from tespy.connections import connection, bus
+    from tespy.connections import Connection, Bus
     from tespy.tools import logger
     import logging
 
@@ -113,81 +113,81 @@ return the cycle efficiency.
                 iterinfo=False)
             # components
             # main cycle
-            eco = heat_exchanger_simple('economizer')
-            eva = heat_exchanger_simple('evaporator')
-            sup = heat_exchanger_simple('superheater')
-            cc = cycle_closer('cycle closer')
-            hpt = turbine('high pressure turbine')
-            sp1 = splitter('splitter 1', num_out=2)
-            mpt = turbine('mid pressure turbine')
-            sp2 = splitter('splitter 2', num_out=2)
-            lpt = turbine('low pressure turbine')
-            con = condenser('condenser')
-            pu1 = pump('feed water pump')
-            fwh1 = condenser('feed water preheater 1')
-            fwh2 = condenser('feed water preheater 2')
-            dsh = desuperheater('desuperheater')
-            me2 = merge('merge2', num_in=2)
-            pu2 = pump('feed water pump 2')
-            pu3 = pump('feed water pump 3')
-            me = merge('merge', num_in=2)
+            eco = HeatExchangerSimple('economizer')
+            eva = HeatExchangerSimple('evaporator')
+            sup = HeatExchangerSimple('superheater')
+            cc = CycleCloser('cycle closer')
+            hpt = Turbine('high pressure turbine')
+            sp1 = Splitter('splitter 1', num_out=2)
+            mpt = Turbine('mid pressure turbine')
+            sp2 = Splitter('splitter 2', num_out=2)
+            lpt = Turbine('low pressure turbine')
+            con = Condenser('condenser')
+            pu1 = Pump('feed water pump')
+            fwh1 = Condenser('feed water preheater 1')
+            fwh2 = Condenser('feed water preheater 2')
+            dsh = Desuperheater('desuperheater')
+            me2 = Merge('merge2', num_in=2)
+            pu2 = Pump('feed water pump 2')
+            pu3 = Pump('feed water pump 3')
+            me = Merge('merge', num_in=2)
 
             # cooling water
-            cwi = source('cooling water source')
-            cwo = sink('cooling water sink')
+            cwi = Source('cooling water source')
+            cwo = Sink('cooling water sink')
 
             # connections
             # main cycle
-            cc_hpt = connection(cc, 'out1', hpt, 'in1', label='feed steam')
-            hpt_sp1 = connection(hpt, 'out1', sp1, 'in1', label='extraction1')
-            sp1_mpt = connection(sp1, 'out1', mpt, 'in1', state='g')
-            mpt_sp2 = connection(mpt, 'out1', sp2, 'in1', label='extraction2')
-            sp2_lpt = connection(sp2, 'out1', lpt, 'in1')
-            lpt_con = connection(lpt, 'out1', con, 'in1')
-            con_pu1 = connection(con, 'out1', pu1, 'in1')
-            pu1_fwh1 = connection(pu1, 'out1', fwh1, 'in2')
-            fwh1_me = connection(fwh1, 'out2', me, 'in1', state='l')
-            me_fwh2 = connection(me, 'out1', fwh2, 'in2', state='l')
-            fwh2_dsh = connection(fwh2, 'out2', dsh, 'in2', state='l')
-            dsh_me2 = connection(dsh, 'out2', me2, 'in1')
-            me2_eco = connection(me2, 'out1', eco, 'in1', state='l')
-            eco_eva = connection(eco, 'out1', eva, 'in1')
-            eva_sup = connection(eva, 'out1', sup, 'in1')
-            sup_cc = connection(sup, 'out1', cc, 'in1')
+            cc_hpt = Connection(cc, 'out1', hpt, 'in1', label='feed steam')
+            hpt_sp1 = Connection(hpt, 'out1', sp1, 'in1', label='extraction1')
+            sp1_mpt = Connection(sp1, 'out1', mpt, 'in1', state='g')
+            mpt_sp2 = Connection(mpt, 'out1', sp2, 'in1', label='extraction2')
+            sp2_lpt = Connection(sp2, 'out1', lpt, 'in1')
+            lpt_con = Connection(lpt, 'out1', con, 'in1')
+            con_pu1 = Connection(con, 'out1', pu1, 'in1')
+            pu1_fwh1 = Connection(pu1, 'out1', fwh1, 'in2')
+            fwh1_me = Connection(fwh1, 'out2', me, 'in1', state='l')
+            me_fwh2 = Connection(me, 'out1', fwh2, 'in2', state='l')
+            fwh2_dsh = Connection(fwh2, 'out2', dsh, 'in2', state='l')
+            dsh_me2 = Connection(dsh, 'out2', me2, 'in1')
+            me2_eco = Connection(me2, 'out1', eco, 'in1', state='l')
+            eco_eva = Connection(eco, 'out1', eva, 'in1')
+            eva_sup = Connection(eva, 'out1', sup, 'in1')
+            sup_cc = Connection(sup, 'out1', cc, 'in1')
 
             self.nw.add_conns(cc_hpt, hpt_sp1, sp1_mpt, mpt_sp2, sp2_lpt,
                               lpt_con, con_pu1, pu1_fwh1, fwh1_me, me_fwh2,
                               fwh2_dsh, dsh_me2, me2_eco, eco_eva, eva_sup, sup_cc)
 
             # cooling water
-            cwi_con = connection(cwi, 'out1', con, 'in2')
-            con_cwo = connection(con, 'out2', cwo, 'in1')
+            cwi_con = Connection(cwi, 'out1', con, 'in2')
+            con_cwo = Connection(con, 'out2', cwo, 'in1')
 
             self.nw.add_conns(cwi_con, con_cwo)
 
             # preheating
-            sp1_dsh = connection(sp1, 'out2', dsh, 'in1')
-            dsh_fwh2 = connection(dsh, 'out1', fwh2, 'in1')
-            fwh2_pu2 = connection(fwh2, 'out1', pu2, 'in1')
-            pu2_me2 = connection(pu2, 'out1', me2, 'in2')
+            sp1_dsh = Connection(sp1, 'out2', dsh, 'in1')
+            dsh_fwh2 = Connection(dsh, 'out1', fwh2, 'in1')
+            fwh2_pu2 = Connection(fwh2, 'out1', pu2, 'in1')
+            pu2_me2 = Connection(pu2, 'out1', me2, 'in2')
 
-            sp2_fwh1 = connection(sp2, 'out2', fwh1, 'in1')
-            fwh1_pu3 = connection(fwh1, 'out1', pu3, 'in1')
-            pu3_me = connection(pu3, 'out1', me, 'in2')
+            sp2_fwh1 = Connection(sp2, 'out2', fwh1, 'in1')
+            fwh1_pu3 = Connection(fwh1, 'out1', pu3, 'in1')
+            pu3_me = Connection(pu3, 'out1', me, 'in2')
 
             self.nw.add_conns(sp1_dsh, dsh_fwh2, fwh2_pu2, pu2_me2,
                               sp2_fwh1, fwh1_pu3, pu3_me)
 
             # busses
             # power bus
-            self.power = bus('power')
+            self.power = Bus('power')
             self.power.add_comps(
                 {'comp': hpt, 'char': -1}, {'comp': mpt, 'char': -1},
                 {'comp': lpt, 'char': -1}, {'comp': pu1, 'char': -1},
                 {'comp': pu2, 'char': -1}, {'comp': pu3, 'char': -1})
 
             # heating bus
-            self.heat = bus('heat')
+            self.heat = Bus('heat')
             self.heat.add_comps(
                 {'comp': eco, 'char': 1}, {'comp': eva, 'char': 1},
                 {'comp': sup, 'char': 1})
@@ -208,9 +208,9 @@ return the cycle efficiency.
             eva.set_attr(pr=0.99)
             sup.set_attr(pr=0.99)
 
-            con.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
-            fwh1.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
-            fwh2.set_attr(pr1=0.99, pr2=0.99, ttd_u=5)
+            con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
+            fwh1.set_attr(pr1=1, pr2=0.99, ttd_u=5)
+            fwh2.set_attr(pr1=1, pr2=0.99, ttd_u=5)
             dsh.set_attr(pr1=0.99, pr2=0.99)
 
             # connections
@@ -232,13 +232,13 @@ return the cycle efficiency.
             self.nw.solve('design')
 
             for cp in self.nw.components.values():
-                if isinstance(cp, condenser) or isinstance(cp, desuperheater):
+                if isinstance(cp, Condenser) or isinstance(cp, Desuperheater):
                     if cp.Q.val > 0:
                         return np.nan
-                elif isinstance(cp, pump):
+                elif isinstance(cp, Pump):
                     if cp.P.val < 0:
                         return np.nan
-                elif isinstance(cp, turbine):
+                elif isinstance(cp, Turbine):
                     if cp.P.val > 0:
                         return np.nan
 

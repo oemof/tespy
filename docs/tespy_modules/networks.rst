@@ -98,13 +98,12 @@ Adding connections
 ++++++++++++++++++
 As seen in the introduction, you will have to create your networks from the
 components and the connections between them. You can add connections directly
-or via subsystems and networks holding them by using the appropriate methods:
+or via subsystems using the corresponding methods:
 
 .. code-block:: python
 
     myplant.add_conns()
     myplant.add_subsys()
-    myplant.add_nwks()
 
 .. note::
 
@@ -137,19 +136,26 @@ This starts the initialisation of your network and proceeds to its calculation.
 The specification of the **calculation mode is mandatory**, This is the list of
 available keywords:
 
- * :code:`mode` is the calculation mode (:code:`"design"`-calculation or
-   :code:`"offdesign"`-calculation).
- * :code:`init_path` is the path to the network folder you want to use for
-   initialisation.
- * :code:`design_path` is the path to the network folder which holds the
-   information of your plant's design point.
- * :code:`max_iter` is the maximum amount of iterations performed by the
-   solver.
- * :code:`min_iter` is the minimum amount of iterations before a solution can
-   be accepted (given the convergence criterion is satisfied).
- * :code:`init_only` stop after initialisation (True/False).
- * :code:`init_previous` use starting values from previous simulation
-   (True/False).
+- :code:`mode` is the calculation mode (:code:`'design'`-calculation or
+  :code:`'offdesign'`-calculation).
+- :code:`init_path` is the path to the network folder you want to use for
+  initialisation.
+- :code:`design_path` is the path to the network folder which holds the
+  information of your plant's design point.
+- :code:`max_iter` is the maximum amount of iterations performed by the
+  solver.
+- :code:`min_iter` is the minimum amount of iterations before a solution can
+  be accepted (given the convergence criterion is satisfied).
+- :code:`init_only` stop after initialisation (True/False).
+- :code:`init_previous` use starting values from previous simulation
+  (True/False).
+- :code:`use_cuda` use cuda instead of numpy for matrix inversion, speeds up
+  simulation in some cases by outsourcing calculation to graphics card. For
+  more information please visit the
+  `cupy documentation <https://docs.cupy.dev/en/stable/index.html>`_.
+- :code:`always_all_equations` you can skip recalculation of converged
+  equations in the calculation process if you specify this parameter to be
+  :code:`False`. Default value is :code:`True`.
 
 There are two calculation modes available (:code:`'design'` and
 :code:`'offdesign'`), which are explained in the subsections below. If you
@@ -173,7 +179,7 @@ Design mode
 +++++++++++
 The design mode is used to design your system and is always the first
 calculation of your plant. **The offdesign calculation is always based on a**
-**design calculation!**. Obviously as you are designing the plant the way you
+**design calculation!** Obviously as you are designing the plant the way you
 want, you are flexible to choose the parameters to specify. However, you can
 not specify parameters that are based on a design case, as for example the
 isentropic efficiency characteristic function of a turbine or a pump.
@@ -189,9 +195,9 @@ By stating :code:`'offdesign'` as calculation mode, **components and**
 **connections will switch to the offdesign mode.** This means that all
 parameters provided as design parameters will be unset and all parameters
 provided as offdesign parameters will be set instead. You can specify a
-connection's or component's (off-)design parameters using the set_attr method.
+connection's or component's (off-)design parameters using the
+:code:`set_attr` method.
 
-You can specify design and offdesign parameters for components and connections.
 For example, for a condenser you would usually design it to a maximum terminal
 temperature difference, in offdesign the heat transfer coefficient is selected.
 The heat transfer coefficient is calculated in the preprocessing of the
@@ -297,7 +303,7 @@ If available, the fluid property initialisation uses the user specified starting
 values or the results from the previous simulation. Otherwise generic starting
 values are generated on basis of which components a connection is linked to.
 If you do not want to use the results of a previous calculation, you need to
-specify :code:`init_previous=False` on the :code:`network.solve` method call.
+specify :code:`init_previous=False` on the :code:`Network.solve` method call.
 
 Last step in starting value generation is the initialisation from a saved
 network structure. In order to initialise your calculation from the
@@ -385,8 +391,8 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 .. math::
 
     \forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
-                                             &0 = \dot{m}_{in} - \dot{m}_{out}\\
-                     \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
+    &0 = \dot{m}_{in} - \dot{m}_{out}\\
+    \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
 .. _using_tespy_convergence_check_label:
 
@@ -436,28 +442,35 @@ after the third iteration, further checks are usually not required.
 
     It is possible to improve the convergence stability manually when using
     pure fluids. If you know the fluid's state is liquid or gaseous prior to
-    the calculation, you may provide the according value for the keyword e. g.
+    the calculation, you may provide the according value for the keyword e.g.
     :code:`myconn.set_attr(state='l')`. The convergence check manipulates the
     enthalpy values so that the fluid is always in the desired state at that
     point. For an example see the release information of
-    :ref:`version 0.1.1 <whats_new_011_example_label>`.
+    :ref:`version 0.1.1 <whats_new_011_example_label>`. **Please note, that**
+    **you need to adjust the other parts of the script to the latest API.**
 
 Calculation speed improvement
 +++++++++++++++++++++++++++++
-For improvement of calculation speed, the calculation of specific equations and
-derivatives is skipped if possible. There are two criteria for equations and
-one criterion for derivatives that are checked for calculation intensive
-operations, e. g. whenever fluid property library calls are necessary:
+For improvement of calculation speed, the calculation of specific derivatives
+is skipped if possible. If you specify :code:`always_all_equations=False` for
+your simulation, equations may also be skipped: There are two criteria for
+equations and one criterion for derivatives that are checked for calculation
+intensive operations, e.g. whenever fluid property library calls are necessary:
 
 For component equations the recalculation of the residual value is skipped,
 
+- only if you specified :code:`always_all_equations=False` and
 - if the absolute of the residual value of that equations is lower than the
-  threshold of :code:`1e-12` in the iteration before and simultaneously
+  threshold of :code:`1e-12` in the iteration before and
 - the iteration count is not a multiple of 4.
 
-Connection equations are evaluated at least in every second iteration. If a
-temperature value has been specified, the equation will be evaluated in every
-iteration.
+Connections equations are skipped
+
+- only if you specified :code:`always_all_equations=False` and
+- if the absolute of the residual value of that equations is lower than the
+  threshold of :code:`1e-12` in the iteration before and
+- the iteration count is not a multiple of 2 and
+- the specified property is not temperature.
 
 The calculation of derivatives is skipped, if the change of the corresponding
 variable was below a threshold of :code:`1e-12` in the iteration before.
@@ -491,7 +504,7 @@ overdetermined.
     by adding an additional component without any parametrisation. This way,
     you can easily determine, which parameters are still to be specified.
 
-When using multiple fluids in your network, e. g.
+When using multiple fluids in your network, e.g.
 :code:`fluids=['water', 'air', 'methane']` and at some point you want to have
 water only, you still need to specify the mass fractions for both air and
 methane (although beeing zero) at that point
@@ -499,7 +512,7 @@ methane (although beeing zero) at that point
 :code:`fluid={water: 1}, fluid_balance=True` will still not be sufficient, as
 the fluid_balance parameter adds only one equation to your system.
 
-If you are modeling a cycle, e. g. the clausius rankine cylce, you need to make
+If you are modeling a cycle, e.g. the clausius rankine cylce, you need to make
 a cut in the cycle using the cycle_closer or a sink and a source not to
 overdetermine the system. Have a look in the
 :ref:`heat pump tutorial <heat_pump_tutorial_label>` to understand why this is
@@ -509,23 +522,23 @@ If you have provided the correct number of parameters in your system and the
 calculations stops after or even before the first iteration, there are four
 frequent reasons for that:
 
- * Sometimes, the fluid property database does not find a specific fluid
-   property in the initialisation process, have you specified the values in the
+- Sometimes, the fluid property database does not find a specific fluid
+  property in the initialisation process, have you specified the values in the
    correct unit?
- * Also, fluid property calculation might fail, if the fluid propagation
-   failed. Provide starting values for the fluid composition, especially, if
-   you are using drums, merges and splitters.
- * A linear dependency in the jacobian matrix due to bad parameter settings
-   stops the calculation (overdetermining one variable, while missing out on
-   another).
- * A linear dependency in the Jacobian matrix due to bad starting values stops
-   the calculation.
+- Also, fluid property calculation might fail, if the fluid propagation
+  failed. Provide starting values for the fluid composition, especially, if
+  you are using drums, merges and splitters.
+- A linear dependency in the jacobian matrix due to bad parameter settings
+  stops the calculation (overdetermining one variable, while missing out on
+  another).
+- A linear dependency in the Jacobian matrix due to bad starting values stops
+  the calculation.
 
 The first reason can be eliminated by carefully choosing the parametrization.
 **A linear dependency due to bad starting values is often more difficult to**
 **resolve and it may require some experience.** In many cases, the linear
 dependency is caused by equations, that require the **calculation of a**
-**temperature**, e. g. specifying a temperature at some point of the network,
+**temperature**, e.g. specifying a temperature at some point of the network,
 terminal temperature differences at heat exchangers, etc.. In this case,
 **the starting enthalpy and pressure should be adjusted in a way, that the**
 **fluid state is not within the two-phase region:** The specification of
@@ -613,14 +626,14 @@ and characteristics.
 In order to perform calculations based on your results, you can access all
 components' and connections' parameters:
 
-For the components this is the way to go
+For the components use something like this
 
 .. code:: python
 
     eff = mycomp.eta_s.val  # isentropic efficiency of mycomp
     P = mycomp.P.val
 
-Use this code for connection parameters:
+and similar for connection parameters:
 
 .. code:: python
 
@@ -629,6 +642,11 @@ Use this code for connection parameters:
     mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
     specific_volume = myconn.vol.val  # value in specified network unit
     specific_entropy = myconn.s.val  # value in specified network unit
+    volumetric_flow = myconn.v.val  # value in specified network unit
+    specific_exergy = myconn.ex_physical  # SI value only
+
+The full list of connection and component parameters can be obtained from the
+respective API documentation.
 
 .. _FluProDia_label:
 
@@ -731,9 +749,9 @@ install the package with pip.
 
 Network reader
 ==============
-The network reader is a useful tool to import networks from a datastructure
-using .csv-files. In order to reimport an exported TESPy network, you must save
-the network first.
+The network reader is a useful tool to import networks from a data structure
+using .csv-files. In order to re-import an exported TESPy network, you must
+save the network first.
 
 .. code:: python
 

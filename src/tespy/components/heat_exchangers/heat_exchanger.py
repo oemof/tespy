@@ -87,7 +87,7 @@ class HeatExchanger(Component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    design_path: str
+    design_path : str
         Path to the components design case.
 
     local_offdesign : boolean
@@ -96,10 +96,10 @@ class HeatExchanger(Component):
     local_design : boolean
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings: boolean
+    char_warnings : boolean
         Ignore warnings on default characteristics usage for this component.
 
-    printout: boolean
+    printout : boolean
         Include this component in the network's results printout.
 
     Q : str, float, tespy.tools.data_containers.ComponentProperties
@@ -947,8 +947,15 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in,1} \cdot \left(
             e_\mathrm{ph,in,1} - e_\mathrm{ph,out,1} \right)
         """
-        self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
-        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        if self.inl[1].T.val_SI >= Tamb:
+            self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        elif self.inl[0].T.val_SI <= Tamb:
+            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
+            self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical
+        else:
+            self.E_P = np.nan
+            self.E_F = np.nan
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

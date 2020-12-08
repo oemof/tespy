@@ -99,7 +99,7 @@ class CombustionEngine(CombustionChamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    design_path: str
+    design_path : str
         Path to the components design case.
 
     local_offdesign : boolean
@@ -108,10 +108,10 @@ class CombustionEngine(CombustionChamber):
     local_design : boolean
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings: boolean
+    char_warnings : boolean
         Ignore warnings on default characteristics usage for this component.
 
-    printout: boolean
+    printout : boolean
         Include this component in the network's results printout.
 
     lamb : float, tespy.tools.data_containers.ComponentProperties
@@ -170,8 +170,8 @@ class CombustionEngine(CombustionChamber):
     Parameters available through entropy and exergy balances are listed in the
     respective methods:
 
-    - :py:meth:`tespy.components.combustion.combustion_engine.entropy_balance`
-    - :py:meth:`tespy.components.combustion.combustion_engine.exergy_balance`
+    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.entropy_balance`
+    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.exergy_balance`
 
     Example
     -------

@@ -50,7 +50,7 @@ class Component:
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    design_path: str
+    design_path : str
         Path to the components design case.
 
     local_offdesign : boolean
@@ -59,10 +59,10 @@ class Component:
     local_design : boolean
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings: boolean
+    char_warnings : boolean
         Ignore warnings on default characteristics usage for this component.
 
-    printout: boolean
+    printout : boolean
         Include this component in the network's results printout.
 
     **kwargs :

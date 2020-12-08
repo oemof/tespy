@@ -92,7 +92,7 @@ class ORCEvaporator(Component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    design_path: str
+    design_path : str
         Path to the components design case.
 
     local_offdesign : boolean
@@ -101,10 +101,10 @@ class ORCEvaporator(Component):
     local_design : boolean
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings: boolean
+    char_warnings : boolean
         Ignore warnings on default characteristics usage for this component.
 
-    printout: boolean
+    printout : boolean
         Include this component in the network's results printout.
 
     Q : float, tespy.tools.data_containers.ComponentProperties
@@ -134,11 +134,11 @@ class ORCEvaporator(Component):
         Geometry independent friction coefficient at cold side (working fluid),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    subcooling : bool
+    subcooling : boolean
         Enable/disable subcooling at oulet of the hot side 1,
         default value: disabled (False).
 
-    overheating : bool
+    overheating : boolean
         Enable/disable overheating at oulet of the cold side,
         default value: disabled (False).
 

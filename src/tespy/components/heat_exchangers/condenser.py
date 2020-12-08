@@ -86,7 +86,7 @@ class Condenser(HeatExchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    design_path: str
+    design_path : str
         Path to the components design case.
 
     local_offdesign : boolean
@@ -95,10 +95,10 @@ class Condenser(HeatExchanger):
     local_design : boolean
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings: boolean
+    char_warnings : boolean
         Ignore warnings on default characteristics usage for this component.
 
-    printout: boolean
+    printout : boolean
         Include this component in the network's results printout.
 
     Q : str, float, tespy.tools.data_containers.ComponentProperties
@@ -131,7 +131,7 @@ class Condenser(HeatExchanger):
     kA_char2 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
         Characteristic line for cold side heat transfer coefficient.
 
-    subcooling : bool
+    subcooling : boolean
         Enable/disable subcooling, default value: disabled.
 
     Note
@@ -473,12 +473,15 @@ class Condenser(HeatExchanger):
     def exergy_balance(self, Tamb):
         r"""
         Calculate exergy balance of a condenser.
+
         Note
         ----
         If you do not want to consider exergy production (exergy of cold side),
         you can specify :code:`yourcondenser.set_attr(dissipative=True)` to
         force exergy destruction.
+
         .. math::
+
             \dot{E}_\mathrm{P} = \begin{cases}
             \text{not defined (nan)} & \text{if dissipative} \\
             \dot{m}_\mathrm{in,2} \cdot \left(

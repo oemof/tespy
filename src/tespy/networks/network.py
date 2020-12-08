@@ -53,7 +53,7 @@ class Network:
     fluids : list
         A list of all fluids within the network container.
 
-    memorise_fluid_properties : bool
+    memorise_fluid_properties : boolean
         Activate or deactivate fluid property value memorisation. Default
         state is activated (:code:`True`).
 

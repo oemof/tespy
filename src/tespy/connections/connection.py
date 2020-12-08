@@ -90,7 +90,7 @@ class Connection:
     local_design : boolean
         Treat this connection in design mode in an offdesign calculation.
 
-    printout: boolean
+    printout : boolean
         Include this connection in the network's results printout.
 
     label : str
@@ -341,7 +341,7 @@ class Connection:
         local_design : boolean
             Treat this connection in design mode in an offdesign calculation.
 
-        printout: boolean
+        printout : boolean
             Include this connection in the network's results printout.
 
         label : str

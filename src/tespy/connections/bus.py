@@ -36,7 +36,7 @@ class Bus:
     P : float
         Total power/heat flow specification for bus, :math:`P \text{/W}`.
 
-    printout : bool
+    printout : boolean
         Print the results of this bus to prompt with the
         :py:meth:`tespy.networks.network.Network.print_results` method.
         Standard value is :code:`True`.
@@ -209,7 +209,7 @@ class Bus:
         P : float
             Total power/heat flow specification for bus, :math:`P \text{/W}`.
 
-        printout : bool
+        printout : boolean
             Print the results of this bus to prompt with the
             :py:meth:`tespy.networks.network.Network.print_results` method.
             Standard value is :code:`True`.

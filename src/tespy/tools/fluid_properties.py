@@ -314,7 +314,7 @@ class Memorise:
             Dict of fluid and corresponding CoolProp back end for fluid
             property memorization.
 
-        memorise_fluid_properties : bool
+        memorise_fluid_properties : boolean
             Activate or deactivate fluid property value memorisation. Default
             state is activated (:code:`True`).
 
@@ -360,18 +360,11 @@ class Memorise:
             logging.debug(msg)
 
         for f, back_end in fluids.items():
-            if back_end == 'IF97':
-                msg = (
-                    'Due to a bug in the IF97 CoolProp back end, it is not '
-                    'possible to use this back end at the moment. For more '
-                    'information see '
-                    'https://github.com/CoolProp/CoolProp/issues/1918.')
-                logging.error(msg)
-                raise ValueError(msg)
-            elif f not in Memorise.state.keys() and back_end != 'TESPy':
+            if f not in Memorise.state.keys() and back_end != 'TESPy':
                 # create CoolProp.AbstractState object
                 try:
                     Memorise.state[f] = CP.AbstractState(back_end, f)
+                    Memorise.back_end[f] = back_end
                 except ValueError:
                     msg = (
                         'Could not find the fluid "' + f + '" in the fluid '
@@ -478,7 +471,7 @@ class Memorise:
             Memorise.visc_ph[fl][:, -1] = 0
 
             msg = ('Dropping not frequently used fluid property values from '
-                   'memorise class for fluids ' + str(fl) + '.')
+                   'Memorise class for fluids ' + str(fl) + '.')
             logging.debug(msg)
         except KeyError:
             pass
@@ -486,6 +479,7 @@ class Memorise:
 
 # create memorise dictionaries
 Memorise.state = {}
+Memorise.back_end = {}
 Memorise.T_ph = {}
 Memorise.T_ps = {}
 Memorise.v_ph = {}
@@ -588,6 +582,8 @@ def T_ph(p, h, fluid):
     if fluid in TESPyFluid.fluids.keys():
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
+    elif Memorise.back_end[fluid] == 'IF97':
+        return IF97_entropy_iteration(p, h, fluid, 'T')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].T()
@@ -954,6 +950,61 @@ def h_ps(p, s, fluid):
         Memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
         return Memorise.state[fluid].hmass()
 
+
+def h_ps_IF97(params, s):
+    r"""
+    Calculate the enthalpy from pressure and entropy for IF97 backend.
+
+    Parameters
+    ----------
+    fluid : str
+        Fluid name.
+
+    p : float
+        Pressure p / Pa.
+
+    s : float
+        Specific entropy h / (J/(kgK)).
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
+    """
+    Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s)
+    return Memorise.state[params[0]].hmass()
+
+
+def dh_pds_IF97(params, s):
+    r"""
+    Calculate the derivative of enthalpy to entropy at constant pressure.
+
+    For pure fluids only, required for IF97 entropy iteration only.
+
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    s : float
+        Specific entropy h / (J/(kgK)).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    dh : float
+        Derivative of specific enthalpy dh / ds / K.
+    """
+    d = 1e-2
+    Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s + d)
+    h_upper = Memorise.state[params[0]].hmass()
+
+    Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s - d)
+    h_lower = Memorise.state[params[0]].hmass()
+
+    return (h_upper - h_lower) / (2 * d)
 # %%
 
 
@@ -1177,6 +1228,8 @@ def d_ph(p, h, fluid):
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['d_pT'].ev(p, T)
+    elif Memorise.back_end[fluid] == 'IF97':
+        return IF97_entropy_iteration(p, h, fluid, 'rho')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].rhomass()
@@ -1450,6 +1503,8 @@ def visc_ph(p, h, fluid):
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
+    elif Memorise.back_end[fluid] == 'IF97':
+        return IF97_entropy_iteration(p, h, fluid, 'visc')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].viscosity()
@@ -1613,6 +1668,8 @@ def s_ph(p, h, fluid):
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
+    elif Memorise.back_end[fluid] == 'IF97':
+        return IF97_entropy_iteration(p, h, fluid, 's')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].smass()
@@ -1743,6 +1800,7 @@ def ds_mix_pdT(flow, T):
             \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
     d = 0.1
+    logging.warning(str(flow, T))
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
 
@@ -1811,3 +1869,74 @@ def calc_physical_exergy(conn, pamb, Tamb):
     hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
     samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
     return (conn.h.val_SI - hamb) - Tamb * (conn.s.val_SI - samb)
+
+
+def entropy_iteration_IF97(p, h, fluid, output):
+    r"""
+    Generate the state of IF97::water via entropy iteration.
+
+    Parameters
+    ----------
+    p : float
+        Pressure p / Pa.
+
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    T : float
+        Temperature T / K.
+    """
+    # region 1 exclusive issue!
+    Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
+    if p <= 16.529164252605 * 1e6:
+        h_at_ph = Memorise.state[fluid].hmass()
+        deviation = abs(h_at_ph - h)
+        if deviation / h > 0.001:
+            # region 1, where isenthalpic lines are tangent to saturation dome
+            if p > 1e6 and p < 1e7 and h > 2700000 and h < 2850000:
+                smin = 5750
+                smax = 6500
+            # bottom left corner in Ts diagram
+            elif h < 10000:
+                smin = 0
+                smax = 50
+            else:
+                # proximity to saturated liquid
+                Memorise.state[fluid].update(CP.PQ_INPUTS, p, 0)
+                h_sat_l = Memorise.state[fluid].hmass()
+                if abs(h - h_sat_l) / h_sat_l < 1e-1:
+                    if p < 1000:
+                        smin = 0
+                    elif p < 60000:
+                        smin = Memorise.state[fluid].smass() * 0.9
+                    else:
+                        smin = Memorise.state[fluid].smass() * 0.95
+
+                    state.update(CP.PQ_INPUTS, p, 0.3)
+                    smax = Memorise.state[fluid].smass()
+                # all others
+                else:
+                    state.update(CP.HmassP_INPUTS, h, p)
+                    s0 = Memorise.state[fluid].smass()
+                    smin = 0.8 * s0
+                    smax = 1.2 * s0
+
+            s0 = (smax + smin) / 2
+            s = newton(func=h_ps_IF97, deriv=dh_pds, params=[fluid, p], y=h,
+                       val0=s0, valmin=smin, valmax=smax, max_iter=5,
+                       tol_rel=1e-3, tol_mode='rel')
+            Memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
+
+    if output == 'T':
+        return Memorise.state[fluid].T()
+    elif output == 's':
+        return Memorise.state[fluid].smass()
+    elif output == 'rho':
+        return Memorise.state[fluid].rhomass()
+    else:
+        return Memorise.state[fluid].viscosity()

@@ -71,6 +71,20 @@ def newton(func, deriv, params, y, **kwargs):
     max_iter : int
         Maximum number of iterations, default: max_iter=10.
 
+    tol_rel : float
+        Maximum relative tolerance :math:`|\frac{y - f(x)}{f(x)}|`, default
+        value: 1e-6.
+
+    tol_abs : float
+        Maximum absolute tolerance :math:`|y - f(x)|`, default value: 1e-6.
+
+    tol_mode : str
+        Check for relative, absolute or both tolerances:
+
+        - :code:`tol_mode='abs'` (default)
+        - :code:`tol_mode='rel'`
+        - :code:`tol_mode='both'`
+
     Returns
     -------
     val : float
@@ -90,11 +104,14 @@ def newton(func, deriv, params, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
+    tol_rel = kwargs.get('tol_rel', err)
+    tol_abs = kwargs.get('tol_abs', err)
+    tol_mode = kwargs.get('tol_mode', 'abs')
 
     # start newton loop
-    res = 1
+    expr = True
     i = 0
-    while abs(res) >= err:
+    while expr:
         # calculate function residual and new value
         res = y - func(params, x)
         x += res / deriv(params, x)
@@ -114,6 +131,12 @@ def newton(func, deriv, params, y, **kwargs):
             logging.debug(msg)
 
             break
+        if tol_mode == 'abs':
+            expr = abs(res) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(res / y) >= tol_rel
+        else:
+            expr = abs(res / y) >= tol_rel or abs(res) >= tol_abs
 
     return x
 

@@ -227,7 +227,7 @@ class TestFluidPropertyBackEnds:
     def setup_clausius_rankine(self, fluid_list):
         """Setup a Clausius-Rankine cycle."""
         self.nw = Network(fluids=fluid_list)
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=True)
 
         # %% components
 
@@ -316,10 +316,7 @@ class TestFluidPropertyBackEnds:
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
-        back_ends = ['HEOS', 'BICUBIC', 'TTSE']
-        # the IF97 back end is buggy on the CoolProp side, therefore not
-        # supported at the moment
-        # back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
+        back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
         results = {}
         for back_end in back_ends:
             # delete the fluid from the memorisation class
@@ -341,8 +338,8 @@ class TestFluidPropertyBackEnds:
             msg = (
                 'The deviation in thermal efficiency of the Clausius-Rankine '
                 'cycle calculated with ' + back_end + ' back end is ' +
-                str(d_rel) + ' but should not be larger than 1e-6.')
-            assert d_rel <= 1e-6, msg
+                str(d_rel) + ' but should not be larger than 1e-4.')
+            assert d_rel <= 1e-4, msg
 
     def test_pipeline_network(self):
         """Test a pipeline network with fluids from different back ends."""

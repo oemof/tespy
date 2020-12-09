@@ -723,13 +723,6 @@ def test_TESPyFluid_alias_value():
 # test errors in fluid porperty functions
 
 
-def test_IF97_back_end():
-    if 'water' in Memorise.state.keys():
-        del Memorise.state['water']
-    with raises(ValueError):
-        Memorise.add_fluids({'water': 'IF97'})
-
-
 def test_h_mix_pQ_on_mixtures():
     with raises(ValueError):
         h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)

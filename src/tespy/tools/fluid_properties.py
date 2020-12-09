@@ -583,7 +583,7 @@ def T_ph(p, h, fluid):
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
     elif Memorise.back_end[fluid] == 'IF97':
-        return IF97_entropy_iteration(p, h, fluid, 'T')
+        return entropy_iteration_IF97(p, h, fluid, 'T')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].T()
@@ -1229,7 +1229,7 @@ def d_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     elif Memorise.back_end[fluid] == 'IF97':
-        return IF97_entropy_iteration(p, h, fluid, 'rho')
+        return entropy_iteration_IF97(p, h, fluid, 'rho')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].rhomass()
@@ -1504,7 +1504,7 @@ def visc_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     elif Memorise.back_end[fluid] == 'IF97':
-        return IF97_entropy_iteration(p, h, fluid, 'visc')
+        return entropy_iteration_IF97(p, h, fluid, 'visc')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].viscosity()
@@ -1669,7 +1669,7 @@ def s_ph(p, h, fluid):
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     elif Memorise.back_end[fluid] == 'IF97':
-        return IF97_entropy_iteration(p, h, fluid, 's')
+        return entropy_iteration_IF97(p, h, fluid, 's')
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].smass()
@@ -1800,7 +1800,6 @@ def ds_mix_pdT(flow, T):
             \frac{s_{mix}(p,T+d)-s_{mix}(p,T-d)}{2 \cdot d}
     """
     d = 0.1
-    logging.warning(str(flow, T))
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
 
@@ -1917,18 +1916,18 @@ def entropy_iteration_IF97(p, h, fluid, output):
                     else:
                         smin = Memorise.state[fluid].smass() * 0.95
 
-                    state.update(CP.PQ_INPUTS, p, 0.3)
+                    Memorise.state[fluid].update(CP.PQ_INPUTS, p, 0.3)
                     smax = Memorise.state[fluid].smass()
                 # all others
                 else:
-                    state.update(CP.HmassP_INPUTS, h, p)
+                    Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
                     s0 = Memorise.state[fluid].smass()
                     smin = 0.8 * s0
                     smax = 1.2 * s0
 
             s0 = (smax + smin) / 2
-            s = newton(func=h_ps_IF97, deriv=dh_pds, params=[fluid, p], y=h,
-                       val0=s0, valmin=smin, valmax=smax, max_iter=5,
+            s = newton(func=h_ps_IF97, deriv=dh_pds_IF97, params=[fluid, p],
+                       y=h, val0=s0, valmin=smin, valmax=smax, max_iter=5,
                        tol_rel=1e-3, tol_mode='rel')
             Memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
 

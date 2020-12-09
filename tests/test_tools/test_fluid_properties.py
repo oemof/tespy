@@ -329,6 +329,8 @@ class TestFluidPropertyBackEnds:
 
         efficiency = results['HEOS']
 
+        if fluid in fp.Memorise.state.keys():
+            del fp.Memorise.state[fluid]
         for back_end in back_ends:
             if back_end == 'HEOS':
                 continue

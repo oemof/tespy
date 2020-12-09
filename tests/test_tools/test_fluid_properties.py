@@ -322,6 +322,7 @@ class TestFluidPropertyBackEnds:
             # delete the fluid from the memorisation class
             if fluid in fp.Memorise.state.keys():
                 del fp.Memorise.state[fluid]
+                del fp.Memorise.back_end[fluid]
             self.setup_clausius_rankine([back_end + '::' + fluid])
             results[back_end] = (
                 1 - abs(self.nw.components['condenser'].Q.val) /
@@ -331,6 +332,7 @@ class TestFluidPropertyBackEnds:
 
         if fluid in fp.Memorise.state.keys():
             del fp.Memorise.state[fluid]
+            del fp.Memorise.back_end[fluid]
         for back_end in back_ends:
             if back_end == 'HEOS':
                 continue

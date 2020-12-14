@@ -52,7 +52,6 @@ class Valve(Component):
     Image
 
         .. image:: _images/Valve.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -388,7 +387,7 @@ class Valve(Component):
         self.S_irr = self.inl[0].m.val_SI * (
             self.outl[0].s.val_SI - self.inl[0].s.val_SI)
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a valve.
 
@@ -396,14 +395,48 @@ class Valve(Component):
         ----
          .. math::
 
-            \dot{E}_\mathrm{P} = \text{not defined (nan)}\\
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
-            e_\mathrm{ph,in} - e_\mathrm{ph,out}\right)
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            \text{not defined (nan)} & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T} &
+            T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \end{cases}
+
+            \dot{E}_\mathrm{F} =
+            \begin{cases}
+            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M}-
+            \dot{E}_\mathrm{out}^\mathrm{M}
+            & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
+            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} &
+            T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \end{cases}
         """
-        self.E_P = np.nan
-        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        self.E_D = self.E_F
-        self.epsilon = np.nan
+        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            self.E_P = np.nan
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+            self.E_D = self.E_F
+        elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
+            self.E_P = self.outl[0].Ex_therm
+            self.E_F = self.inl[0].Ex_therm + (
+                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+            self.E_D = self.E_F - self.E_P
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
+            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
+            self.E_D = self.E_F - self.E_P
+        else:
+            msg = ('Exergy balance of a valve, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logging.warning(msg)
+            self.E_P = np.nan
+            self.E_F = np.nan
+            self.E_D = np.nan
+
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

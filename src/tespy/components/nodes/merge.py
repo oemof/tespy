@@ -263,9 +263,16 @@ class Merge(Node):
                 i.s.val_SI -
                 s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a merge.
+
+        REVISION REQUIRED
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
@@ -285,6 +292,7 @@ class Merge(Node):
         for i in self.inl:
             self.E_F += i.Ex_physical
 
+        self.E_bus = np.nan
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

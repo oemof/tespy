@@ -473,9 +473,14 @@ class Turbine(Turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a turbine.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         .. math::
 
@@ -504,7 +509,7 @@ class Turbine(Turbomachine):
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
             self.E_P = -self.P.val + self.outl[0].Ex_therm
-            self.E_E = self.inl[0].Ex_therm + (
+            self.E_F = self.inl[0].Ex_therm + (
                 self.inl[0].Ex_mech - self.outl[0].Ex_mech)
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
             self.E_P = -self.P.val + (

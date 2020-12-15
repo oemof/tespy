@@ -84,23 +84,27 @@ class Source(Component):
         """
         return
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.
 
         A source does not destroy or produce exergy. The value of
-        :math:`\dot{E}_\mathrm{F}` and :math:`\dot{E}_\mathrm{P}` are set to
-        the exergy of the mass flow to make exergy balancing methods more
-        simple as in general a mass flow can be fuel, product or loss.
+        :math:`\dot{E}_\mathrm{bus}` is set to the exergy of the mass flow to
+        make exergy balancing methods more simple as in general a mass flow can
+        be fuel, product or loss.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
         .. math::
 
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{out} \cdot e_\mathrm{ph,out}
-
-            \dot{E}_\mathrm{P} = \dot{E}_\mathrm{F}
+            \dot{E}_\mathrm{bus} = E_\mathrm{out}^\mathrm{PH}
         """
-        self.E_F = self.outl[0].Ex_physical
-        self.E_P = self.outl[0].Ex_physical
+        self.E_P = np.nan
+        self.E_F = np.nan
+        self.E_bus = self.outl[0].Ex_physical
         self.E_D = np.nan
         self.epsilon = np.nan

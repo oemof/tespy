@@ -461,6 +461,11 @@ class Pump(Turbomachine):
         r"""
         Calculate exergy balance of a pump.
 
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
         .. math::
 
             \dot{E}_\mathrm{P} =
@@ -479,7 +484,7 @@ class Pump(Turbomachine):
             P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
             P + \dot{E}_\mathrm{in}^\mathrm{T}
             & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T}
+            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
             & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
             \end{cases}
         """

@@ -391,6 +391,11 @@ class Valve(Component):
         r"""
         Calculate exergy balance of a valve.
 
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
         .. math::
 
             \dot{E}_\mathrm{P} =

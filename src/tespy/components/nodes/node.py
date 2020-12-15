@@ -506,9 +506,14 @@ class Node(Component):
                 i[0].s.val_SI -
                 s_mix_pT([0, p_ref, 0, i[0].fluid.val], T_ref))
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
-        Calculate exergy balance of a merge.
+        Calculate exergy balance of a node.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----

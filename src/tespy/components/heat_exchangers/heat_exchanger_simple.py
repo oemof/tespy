@@ -921,6 +921,11 @@ class HeatExchangerSimple(Component):
         well as the direction of heat transfer (input or output) fuel and
         product exergy are calculated as follows.
 
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
         Note
         ----
         If the fluid transfers heat to the ambient, you can specify

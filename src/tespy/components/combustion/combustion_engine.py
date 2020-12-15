@@ -166,11 +166,10 @@ class CombustionEngine(CombustionChamber):
 
     Note
     ----
-    Parameters available through entropy and exergy balances are listed in the
-    respective methods:
+    Parameters available through entropy balance are listed in the respective
+    method:
 
     - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.entropy_balance`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.exergy_balance`
 
     Example
     -------

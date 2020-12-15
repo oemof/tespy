@@ -937,6 +937,11 @@ class HeatExchanger(Component):
         r"""
         Calculate exergy balance of a heat exchanger.
 
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
         Note
         ----
         .. math::

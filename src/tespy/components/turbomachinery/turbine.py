@@ -477,29 +477,27 @@ class Turbine(Turbomachine):
         r"""
         Calculate exergy balance of a turbine.
 
-        Note
-        ----
         .. math::
 
-           \dot{E}_\mathrm{P} =
-           \begin{cases}
-           -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-           -P + \dot{E}_\mathrm{out}^\mathrm{T}
-           & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
-           -P +\dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-           & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
-           \end{cases}
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            -P + \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
+            -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \end{cases}
 
-          \dot{E}_\mathrm{F} =
-          \begin{cases}
-          \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-          & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-          \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
-          \dot{E}_\mathrm{out}^\mathrm{M}
-          & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
-          \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} &
-          T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
-          \end{cases}
+           \dot{E}_\mathrm{F} =
+           \begin{cases}
+           \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
+           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+           \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
+           \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
+           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} &
+           T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+           \end{cases}
         """
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
             self.E_P = -self.P.val
@@ -518,5 +516,7 @@ class Turbine(Turbomachine):
             logging.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
+
+        self.E_bus = -self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

@@ -461,29 +461,27 @@ class Pump(Turbomachine):
         r"""
         Calculate exergy balance of a pump.
 
-        Note
-        ----
         .. math::
 
-           \dot{E}_\mathrm{P} =
-           \begin{cases}
-           \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-           \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
-           \dot{E}_\mathrm{in}^\mathrm{M}
-           & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
-           \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M} &
-           T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
-           \end{cases}
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
+            \dot{E}_\mathrm{in}^\mathrm{M}
+            & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M} &
+            T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \end{cases}
 
-           \dot{E}_\mathrm{F} =
-           \begin{cases}
-           P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-           P + \dot{E}_\mathrm{in}^\mathrm{T}
-           & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
-           P + \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T}
-           & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
-           \end{cases}
+            \dot{E}_\mathrm{F} =
+            \begin{cases}
+            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            P + \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_\mathrm{in} \leq T_0\; T_\mathrm{out} > T_0\\
+            P + \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \end{cases}
         """
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
             self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
@@ -502,5 +500,7 @@ class Pump(Turbomachine):
             logging.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
+
+        self.E_bus = self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

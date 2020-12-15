@@ -586,26 +586,34 @@ class Connection:
         """
         return [self.m.design, self.p.design, self.h.design, self.fluid.design]
 
-    def get_physical_exergy(self, pamb, Tamb):
+    def get_physical_exergy(self, p0, T0):
         r"""
         Get the value of a connection's specific physical exergy.
         Calcute physical exergy of connection
 
         Parameters
         ----------
-        pamb : float
-            Ambient pressure pamb / Pa.
+        p0 : float
+            Ambient pressure p0 / Pa.
 
-        Tamb : float
-            Ambient temperature Tamb / K.
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
             .. math::
 
-                E^{\text{PH}} = \dot{m} \cdot e^{\text{PH}}
+                e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
+
+                E^\mathrm{T} = \dot{m} \cdot e^\mathrm{T}
+                E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}
+                E^\mathrm{PH} = \dot{m} \cdot e^\mathrm{PH}
         """
-        self.ex_physical = calc_physical_exergy(self, pamb, Tamb)
+        self.ex_therm, self.ex_mech = calc_physical_exergy(self, p0, T0)
+        self.Ex_therm = self.ex_therm * self.m.val_SI
+        self.Ex_mech = self.ex_mech * self.m.val_SI
+
+        self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
 
 

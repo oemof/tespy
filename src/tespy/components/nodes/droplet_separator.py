@@ -51,7 +51,6 @@ class DropletSeparator(Component):
     Image
 
         .. image:: _images/DropletSeparator.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

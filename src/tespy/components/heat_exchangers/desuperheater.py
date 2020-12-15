@@ -62,7 +62,6 @@ class Desuperheater(HeatExchanger):
     Image
 
         .. image:: _images/HeatExchanger.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

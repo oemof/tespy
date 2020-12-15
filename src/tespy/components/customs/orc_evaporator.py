@@ -77,7 +77,6 @@ class ORCEvaporator(Component):
     Image
 
         .. image:: _images/ORCEvaporator.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

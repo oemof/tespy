@@ -50,7 +50,6 @@ class Node(Component):
     Image
 
         .. image:: _images/Node.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

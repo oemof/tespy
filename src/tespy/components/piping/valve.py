@@ -391,9 +391,7 @@ class Valve(Component):
         r"""
         Calculate exergy balance of a valve.
 
-        Note
-        ----
-         .. math::
+        .. math::
 
             \dot{E}_\mathrm{P} =
             \begin{cases}
@@ -418,23 +416,24 @@ class Valve(Component):
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
             self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-            self.E_D = self.E_F
         elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
             self.E_P = self.outl[0].Ex_therm
             self.E_F = self.inl[0].Ex_therm + (
                 self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-            self.E_D = self.E_F - self.E_P
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
             self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
             self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-            self.E_D = self.E_F - self.E_P
         else:
             msg = ('Exergy balance of a valve, where outlet temperature is '
                    'larger than inlet temperature is not implmented.')
             logging.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
-            self.E_D = np.nan
+
+        if np.isnan(self.E_P):
+            self.E_D = self.E_F
+        else:
+            self.E_D = self.E_F - self.E_P
 
         self.epsilon = self.E_P / self.E_F
 

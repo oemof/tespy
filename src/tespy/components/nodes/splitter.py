@@ -44,7 +44,6 @@ class Splitter(Node):
     Image
 
         .. image:: _images/Splitter.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

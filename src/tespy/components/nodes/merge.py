@@ -45,7 +45,6 @@ class Merge(Node):
     Image
 
         .. image:: _images/Merge.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

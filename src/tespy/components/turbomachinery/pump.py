@@ -10,6 +10,8 @@ available from its original location tespy/components/turbomachinery/pump.py
 SPDX-License-Identifier: MIT
 """
 
+import logging
+
 import numpy as np
 
 from tespy.components.component import Component

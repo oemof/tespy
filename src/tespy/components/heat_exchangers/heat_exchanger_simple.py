@@ -26,7 +26,6 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import darcy_friction_factor as dff
 
 

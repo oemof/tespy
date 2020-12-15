@@ -135,9 +135,10 @@ class HeatExchanger(Component):
     ----
     The HeatExchanger and subclasses (
     :py:class:`tespy.components.heat_exchangers.condenser.Condenser`,
-    :py:class:`tespy.components.heat_exchangers.desuperheater,Desuperheater`)
-    are countercurrent heat exchangers. Equations (kA, ttd_u, ttd_l) do not
-    work for directcurrent and crosscurrent or combinations of different types.
+    :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`)
+    are countercurrent heat exchangers. Equations (:code:`kA`, :code:`ttd_u`,
+    :code:`ttd_l`) do not work for directcurrent and crosscurrent or
+    combinations of different types.
 
     Example
     -------

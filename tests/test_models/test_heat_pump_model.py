@@ -284,13 +284,10 @@ class TestHeatPump:
                 else:
                     self.nw.solve('offdesign', design_path='tmp')
 
-                # relative deviation should not exceed 20 %
+                # relative deviation should not exceed 6.5 %
                 # this should be much less, unfortunately not all ebsilon
                 # characteristics are available, thus it is
-                # difficult/impossible to match the models perfectly! Another
-                # issue is, that the component characteristics for generators
-                # and motors do not work on the same basis (tespy: mechanical,
-                # ebsilon: electrical)!
+                # difficult/impossible to match the models perfectly!
                 d_rel_COP = abs(
                     self.heat.P.val / self.power.P.val - COP[i, j]) / COP[i, j]
                 msg = ('The deviation in COP should be less than 0.065, is ' +

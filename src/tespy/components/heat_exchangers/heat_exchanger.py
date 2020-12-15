@@ -72,7 +72,6 @@ class HeatExchanger(Component):
     Image
 
         .. image:: _images/HeatExchanger.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -934,7 +933,7 @@ class HeatExchanger(Component):
 
         self.S_irr += self.S_Q1 + self.S_Q2
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a heat exchanger.
 
@@ -942,20 +941,101 @@ class HeatExchanger(Component):
         ----
         .. math::
 
-            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in,cold} \cdot \left(
-            e_\mathrm{ph,out,2} - e_\mathrm{ph,in,2} \right)\\
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in,1} \cdot \left(
-            e_\mathrm{ph,in,1} - e_\mathrm{ph,out,1} \right)
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            \dot{E}_\mathrm{out,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{in,2}^\mathrm{PH}
+            & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
+            T_\mathrm{out,2} \geq T_0\\
+            \dot{E}_\mathrm{out,1}^\mathrm{T} -
+            \dot{E}_\mathrm{in,1}^\mathrm{T}
+            & T_0 \geq  T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
+            T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{out,1}^\mathrm{T} +
+            \dot{E}_\mathrm{out,2}^\mathrm{T}
+            & T_\mathrm{in,1}, T_\mathrm{out,2} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,1}\\
+            \dot{E}_\mathrm{out,1}^\mathrm{T}
+            & T_\mathrm{in,1} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{in,2}^\mathrm{T} -
+            \dot{E}_\mathrm{out,2}^\mathrm{T}
+            & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{out,2}^\mathrm{T}
+            & T_\mathrm{in,1}, T_\mathrm{out,1},
+            T_\mathrm{out,2} \geq T_0 > T_\mathrm{in,2}\\
+            \end{cases}
+
+            \dot{E}_\mathrm{F} =
+            \begin{cases}
+            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,1}^\mathrm{PH}
+            & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
+            T_\mathrm{out,2} \geq T_0\\
+            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,2}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,1}^\mathrm{M} -
+            \dot{E}_\mathrm{out,1}^\mathrm{M}
+            & T_0 \geq T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
+            T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{in,1}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,1}^\mathrm{M} -
+            \dot{E}_\mathrm{out,2}^\mathrm{M}
+            & T_\mathrm{in,1}, T_\mathrm{out,2} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,1}\\
+            \dot{E}_\mathrm{in,1}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,1}^\mathrm{M}
+            & T_\mathrm{in,1} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,2}^\mathrm{M} -
+            \dot{E}_\mathrm{out,2}^\mathrm{M}
+            & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
+            T_\mathrm{in,2}, T_\mathrm{out,2}\\
+            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,2}^\mathrm{M}
+            & T_\mathrm{in,1}, T_\mathrm{out,1},
+            T_\mathrm{out,2} \geq T_0 > T_\mathrm{in,2}\\
+            \end{cases}
         """
-        if self.inl[1].T.val_SI >= Tamb:
+        if all([c.T.val_SI >= T0 for c in self.inl + self.outl]):
             self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.inl[0].T.val_SI <= Tamb:
-            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-            self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical
+        elif all([c.T.val_SI <= T0 for c in self.inl + self.outl]):
+            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
+            self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical + (
+                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+        elif (self.inl[0].T.val_SI >= T0 and self.outl[1].T.val_SI >= T0 and
+              self.outl[0].T.val_SI < T0 and self.inl[1].T.val_SI < T0):
+            self.E_P = self.outl[0].Ex_therm + self.outl[1].Ex_therm
+            self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
+                self.outl[0].Ex_mech + self.outl[1].Ex_mech)
+        elif (self.inl[0].T.val_SI >= T0 and self.inl[1].T.val_SI < T0 and
+              self.outl[0].T.val_SI < T0 and self.outl[1].T.val_SI < T0):
+            self.E_P = self.outl[0].Ex_therm
+            self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
+                self.outl[1].Ex_physical + self.outl[0].Ex_mech)
+        elif (self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0 and
+              self.inl[1].T.val_SI < T0 and self.outl[1].T.val_SI < T0):
+            self.E_P = self.inl[1].Ex_therm - self.outl[1].Ex_therm
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
+                self.inl[1].Ex_mech - self.outl[1].Ex_mech)
+            # or?
+            # self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
+            # self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical + (
+            #     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
         else:
-            self.E_P = np.nan
-            self.E_F = np.nan
+            self.E_P = self.outl[1].Ex_therm
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
+                self.inl[1].Ex_physical - self.outl[1].Ex_mech)
+
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

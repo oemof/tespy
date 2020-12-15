@@ -175,6 +175,8 @@ extensions = [
     'sphinxcontrib.bibtex'
 ]
 
+bibtex_bibfiles = ['references.bib']
+
 numpydoc_show_class_members = False
 
 #

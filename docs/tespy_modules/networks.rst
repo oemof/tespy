@@ -295,6 +295,7 @@ be calculated prior to the propagation. You do not necessarily need to state a
 starting value for the fluid at every point of the network.
 
 .. note::
+
     If the fluid propagation fails, you often experience an error, where the
     fluid property database can not find a value, because the fluid is 'nan'.
     Providing starting values manually can fix this problem.
@@ -348,7 +349,7 @@ calculate the residuals
 
     f(\vec{x}_i)
 
-jacobian matrix J
+Jacobian matrix J
 
 .. math::
 
@@ -498,6 +499,7 @@ you will not be given an information which specific parameters are under- or
 overdetermined.
 
 .. note::
+
     Always keep in mind, that the system has to find a value for mass flow,
     pressure, enthalpy and the fluid mass fractions. Try to build up your
     network step by step and have in mind, what parameters will be determined
@@ -524,11 +526,11 @@ frequent reasons for that:
 
 - Sometimes, the fluid property database does not find a specific fluid
   property in the initialisation process, have you specified the values in the
-   correct unit?
+  correct unit?
 - Also, fluid property calculation might fail, if the fluid propagation
   failed. Provide starting values for the fluid composition, especially, if
   you are using drums, merges and splitters.
-- A linear dependency in the jacobian matrix due to bad parameter settings
+- A linear dependency in the Jacobian matrix due to bad parameter settings
   stops the calculation (overdetermining one variable, while missing out on
   another).
 - A linear dependency in the Jacobian matrix due to bad starting values stops

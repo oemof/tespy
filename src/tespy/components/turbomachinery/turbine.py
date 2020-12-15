@@ -488,9 +488,9 @@ class Turbine(Turbomachine):
             \begin{cases}
             -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
             -P + \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
+            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
             -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
             \end{cases}
 
            \dot{E}_\mathrm{F} =
@@ -499,10 +499,12 @@ class Turbine(Turbomachine):
            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
            \dot{E}_\mathrm{out}^\mathrm{M}
-           & T_\mathrm{in} > T_0\; T_\mathrm{out} \leq T_0\\
-           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} &
-           T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+           & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
+           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
            \end{cases}
+
+           \dot{E}_\mathrm{bus} = -P
         """
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
             self.E_P = -self.P.val

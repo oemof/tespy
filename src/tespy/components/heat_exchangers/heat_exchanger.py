@@ -964,8 +964,7 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{out,1}^\mathrm{T}
             & T_\mathrm{in,1} \geq T_0 >
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{in,2}^\mathrm{T} -
-            \dot{E}_\mathrm{out,2}^\mathrm{T}
+            \text{not defined (nan)}
             & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{out,2}^\mathrm{T}
@@ -999,8 +998,8 @@ class HeatExchanger(Component):
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{in,1}^\mathrm{PH} -
             \dot{E}_\mathrm{out,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{M} -
-            \dot{E}_\mathrm{out,2}^\mathrm{M}
+            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
+            \dot{E}_\mathrm{out,2}^\mathrm{PH}
             & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{in,1}^\mathrm{PH} -
@@ -1030,19 +1029,19 @@ class HeatExchanger(Component):
                 self.outl[1].Ex_physical + self.outl[0].Ex_mech)
         elif (self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0 and
               self.inl[1].T.val_SI < T0 and self.outl[1].T.val_SI < T0):
-            self.E_P = self.inl[1].Ex_therm - self.outl[1].Ex_therm
+            self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
-                self.inl[1].Ex_mech - self.outl[1].Ex_mech)
-            # or?
-            # self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-            # self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical + (
-            #     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+                self.inl[1].Ex_physical - self.outl[1].Ex_physical)
         else:
             self.E_P = self.outl[1].Ex_therm
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_mech)
 
-        self.E_D = self.E_F - self.E_P
+        self.E_bus = np.nan
+        if np.isnan(self.E_P):
+            self.E_D = self.E_F
+        else:
+            self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):

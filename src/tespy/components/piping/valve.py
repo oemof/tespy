@@ -398,6 +398,8 @@ class Valve(Component):
         T0 : float
             Ambient temperature T0 / K.
 
+        Note
+        ----
         .. math::
 
             \dot{E}_\mathrm{P} =
@@ -405,8 +407,8 @@ class Valve(Component):
             \text{not defined (nan)} & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
             \dot{E}_\mathrm{out}^\mathrm{T}
             & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T} &
-            T_\mathrm{in}, T_\mathrm{out} \leq T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
             \end{cases}
 
             \dot{E}_\mathrm{F} =
@@ -437,11 +439,11 @@ class Valve(Component):
             self.E_P = np.nan
             self.E_F = np.nan
 
+        self.E_bus = np.nan
         if np.isnan(self.E_P):
             self.E_D = self.E_F
         else:
             self.E_D = self.E_F - self.E_P
-
         self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):

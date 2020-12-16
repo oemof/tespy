@@ -482,6 +482,8 @@ class Turbine(Turbomachine):
         T0 : float
             Ambient temperature T0 / K.
 
+        Note
+        ----
         .. math::
 
             \dot{E}_\mathrm{P} =

@@ -521,12 +521,8 @@ class Node(Component):
 
         .. math::
 
-            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
-            \dot{m}_{\mathrm{in,}n} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
-            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
-            \dot{m}_{\mathrm{in,}m} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
+            \dot{E}_\mathrm{P} = \sum E_{\mathrm{out,}i}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
         """
         self.E_P = 0
         self.E_F = 0
@@ -536,6 +532,7 @@ class Node(Component):
         for o in self.outg:
             self.E_P += o[0].Ex_physical
 
+        self.E_bus = np.nan
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

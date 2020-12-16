@@ -267,8 +267,6 @@ class Merge(Node):
         r"""
         Calculate exergy balance of a merge.
 
-        REVISION REQUIRED
-
         Parameters
         ----------
         T0 : float
@@ -280,12 +278,8 @@ class Merge(Node):
 
         .. math::
 
-            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
-            \dot{m}_{\mathrm{in,}n} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
-            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
-            \dot{m}_{\mathrm{in,}m} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
+            \dot{E}_\mathrm{P} = E_\mathrm{out}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
         """
         self.E_P = self.outl[0].Ex_physical
         self.E_F = 0

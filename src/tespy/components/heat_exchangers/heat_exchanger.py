@@ -949,23 +949,23 @@ class HeatExchanger(Component):
 
             \dot{E}_\mathrm{P} =
             \begin{cases}
-            \dot{E}_\mathrm{out,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{in,2}^\mathrm{PH}
+            \dot{E}_\mathrm{out,2}^\mathrm{T} -
+            \dot{E}_\mathrm{in,2}^\mathrm{T}
             & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2} \geq T_0\\
+            T_\mathrm{out,2} > T_0\\
             \dot{E}_\mathrm{out,1}^\mathrm{T} -
             \dot{E}_\mathrm{in,1}^\mathrm{T}
             & T_0 \geq  T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
             T_\mathrm{out,2}\\
             \dot{E}_\mathrm{out,1}^\mathrm{T} +
             \dot{E}_\mathrm{out,2}^\mathrm{T}
-            & T_\mathrm{in,1}, T_\mathrm{out,2} \geq T_0 >
+            & T_\mathrm{in,1}, T_\mathrm{out,2} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}\\
             \dot{E}_\mathrm{out,1}^\mathrm{T}
-            & T_\mathrm{in,1} \geq T_0 >
+            & T_\mathrm{in,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            \text{not defined (nan)}
-            & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
+            0
+            & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{out,2}^\mathrm{T}
             & T_\mathrm{in,1}, T_\mathrm{out,1},
@@ -975,9 +975,11 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{F} =
             \begin{cases}
             \dot{E}_\mathrm{in,1}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{PH}
+            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
+            \dot{E}_\mathrm{in,2}^\mathrm{M} -
+            \dot{E}_\mathrm{out,2}^\mathrm{M}
             & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2} \geq T_0\\
+            T_\mathrm{out,2} > T_0\\
             \dot{E}_\mathrm{in,2}^\mathrm{PH} -
             \dot{E}_\mathrm{out,2}^\mathrm{PH} +
             \dot{E}_\mathrm{in,1}^\mathrm{M} -
@@ -988,19 +990,19 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{in,2}^\mathrm{PH} -
             \dot{E}_\mathrm{out,1}^\mathrm{M} -
             \dot{E}_\mathrm{out,2}^\mathrm{M}
-            & T_\mathrm{in,1}, T_\mathrm{out,2} \geq T_0 >
+            & T_\mathrm{in,1}, T_\mathrm{out,2} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}\\
             \dot{E}_\mathrm{in,1}^\mathrm{PH} +
             \dot{E}_\mathrm{in,2}^\mathrm{PH} -
             \dot{E}_\mathrm{out,2}^\mathrm{PH} -
             \dot{E}_\mathrm{out,1}^\mathrm{M}
-            & T_\mathrm{in,1} \geq T_0 >
+            & T_\mathrm{in,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{in,1}^\mathrm{PH} -
             \dot{E}_\mathrm{out,1}^\mathrm{PH} +
             \dot{E}_\mathrm{in,2}^\mathrm{PH} -
             \dot{E}_\mathrm{out,2}^\mathrm{PH}
-            & T_\mathrm{in,1}, T_\mathrm{out,1} \geq T_0 >
+            & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{in,1}^\mathrm{PH} -
             \dot{E}_\mathrm{out,1}^\mathrm{PH} +
@@ -1010,26 +1012,27 @@ class HeatExchanger(Component):
             T_\mathrm{out,2} \geq T_0 > T_\mathrm{in,2}\\
             \end{cases}
         """
-        if all([c.T.val_SI >= T0 for c in self.inl + self.outl]):
-            self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        if all([c.T.val_SI > T0 for c in self.inl + self.outl]):
+            self.E_P = self.outl[1].Ex_therm - self.inl[1].Ex_therm
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
+                self.inl[1].Ex_mech - self.outl[1].Ex_mech)
         elif all([c.T.val_SI <= T0 for c in self.inl + self.outl]):
             self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
             self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical + (
                 self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif (self.inl[0].T.val_SI >= T0 and self.outl[1].T.val_SI >= T0 and
-              self.outl[0].T.val_SI < T0 and self.inl[1].T.val_SI < T0):
+        elif (self.inl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0 and
+              self.outl[0].T.val_SI <= T0 and self.inl[1].T.val_SI <= T0):
             self.E_P = self.outl[0].Ex_therm + self.outl[1].Ex_therm
             self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
                 self.outl[0].Ex_mech + self.outl[1].Ex_mech)
-        elif (self.inl[0].T.val_SI >= T0 and self.inl[1].T.val_SI < T0 and
-              self.outl[0].T.val_SI < T0 and self.outl[1].T.val_SI < T0):
+        elif (self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
             self.E_P = self.outl[0].Ex_therm
             self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
                 self.outl[1].Ex_physical + self.outl[0].Ex_mech)
-        elif (self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0 and
-              self.inl[1].T.val_SI < T0 and self.outl[1].T.val_SI < T0):
-            self.E_P = np.nan
+        elif (self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0 and
+              self.inl[1].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
+            self.E_P = 0
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_physical)
         else:

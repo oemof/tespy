@@ -26,7 +26,6 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import darcy_friction_factor as dff
 
 
@@ -70,7 +69,6 @@ class HeatExchangerSimple(Component):
     Image
 
         .. image:: _images/Pipe.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -138,6 +136,10 @@ class HeatExchangerSimple(Component):
     kA_group : tespy.tools.data_containers.GroupedComponentProperties
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
+
+    Td_v_min : float, tespy.tools.data_containers.DataContainerSimple
+        Minimal virtual temperature difference to other side of heat exchanger,
+        default value is :math:`Td_\mathrm{v,min}=0`.
 
     Example
     -------
@@ -213,7 +215,7 @@ class HeatExchangerSimple(Component):
             'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(), 'kA_group': dc_gcp(),
-            'kA_char_group': dc_gcp()
+            'kA_char_group': dc_gcp(), 'Td_v_min': dc_simple(val=0)
         }
 
     @staticmethod
@@ -535,13 +537,12 @@ class HeatExchangerSimple(Component):
 
             .. math::
 
-                Re = \frac{4 \cdot |\dot{m}_{in}|}{\pi \cdot D \cdot
-                \frac{\eta_{in}+\eta_{out}}{2}}\\
-
                 0 = p_{in} - p_{out} - \frac{8 \cdot |\dot{m}_{in}| \cdot
                 \dot{m}_{in} \cdot \frac{v_{in}+v_{out}}{2} \cdot L \cdot
                 \lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\
 
+                Re = \frac{4 \cdot |\dot{m}_{in}|}{\pi \cdot D \cdot
+                \frac{\eta_{in}+\eta_{out}}{2}}\\
                 \eta: \text{dynamic viscosity}\\
                 v: \text{specific volume}\\
                 \lambda: \text{darcy friction factor}
@@ -912,86 +913,149 @@ class HeatExchangerSimple(Component):
             self.outl[0].s.val_SI - self.inl[0].s.val_SI) - self.S_Q
         self.T_mQ = (o[2] - i[2]) / (s2_star - s1_star)
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a simple heat exchanger.
 
-        The exergy input of the heat transferred to fluid (the exergy output if
-        the heat transferred away from the fluid respectively) is calculated
-        via solving
+        The exergy of heat is calculated by allocation of thermal and
+        mechanical share of exergy in the physical exergy. Depending on the
+        temperature levels at the inlet and outlet of the heat exchanger as
+        well as the direction of heat transfer (input or output) fuel and
+        product exergy are calculated as follows.
 
-        .. math::
-
-            E_\mathrm{Q}=\left( 1-\frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)
-            \cdot \dot{Q}
-
-        The calculation of the thermodynamic temperature of heat is documented
-        in the
-        :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.entropy_balance`.
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
         If the fluid transfers heat to the ambient, you can specify
         :code:`mysimpleheatexchanger.set_attr(dissipative=False)` if you do
-        NOT want the exergy production to be zero (only in case
-        :math:`\dot{Q}<0`!).
+        NOT want the exergy production nan (only applicable in case
+        :math:`\dot{Q}<0`).
 
         .. math ::
 
-            \dot{E}_\mathrm{P} = \begin{cases}
+            \dot{E}_\mathrm{P} =
             \begin{cases}
-            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
             \begin{cases}
-            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
-            & \text{if not dissipative}\\
-            0 & \text{if dissipative (default)}\\
+            \begin{cases}
+            \text{not defined (nan)} & \text{if dissipative}\\
+            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} &
+            \text{else}\\
+            \end{cases}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
             \end{cases} & \dot{Q} < 0\\
-            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
+
             \begin{cases}
-            |1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}|\cdot \dot{Q}
-            & \dot{Q} > 0\\
-            \text{Impossible, error is raised} & \dot{Q} < 0\\
-            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
+            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
+            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} +
+            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M} +
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases} & \dot{Q} > 0\\
             \end{cases}
 
-            \dot{E}_\mathrm{F} = \begin{cases}
+            \dot{E}_\mathrm{F} =
             \begin{cases}
-            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} < 0\\
-            \left(1 - \frac{T_\mathrm{amb}}{T_\mathrm{m,Q}}\right)\cdot \dot{Q}
-            & \dot{Q} > 0\\
-            \end{cases} & T_\mathrm{amb} \leq T_\mathrm{m,Q}\\
             \begin{cases}
-            \dot{m}_{in} \cdot | e_{ph,out} - e_{ph,in} | & \dot{Q} > 0\\
-            \text{Impossible, error is raised} & \dot{Q} < 0\\
-            \end{cases} & T_\mathrm{amb} > T_\mathrm{m,Q}\\
+            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} +
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{M}
+            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T} +
+            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} +
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases} & \dot{Q} < 0\\
+
+            \begin{cases}
+            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
+            \dot{E}_\mathrm{out}^\mathrm{M}
+            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
+            \dot{E}_\mathrm{in}^\mathrm{T}-\dot{E}_\mathrm{out}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases} & \dot{Q} > 0\\
+            \end{cases}
+
+            \dot{E}_\mathrm{bus} =
+            \begin{cases}
+            \begin{cases}
+            \dot{E}_\mathrm{P} & \text{other cases}\\
+            \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
+            \end{cases} & \dot{Q} < 0\\
+            \dot{E}_\mathrm{F} & \dot{Q} > 0\\
             \end{cases}
         """
-        ex_heat = abs((1 - (Tamb / self.T_mQ)) * self.Q.val)
-        ex_stream = abs(self.outl[0].Ex_physical - self.inl[0].Ex_physical)
-
         if self.Q.val < 0:
-            if Tamb / self.T_mQ <= 1:
-                self.E_F = ex_stream
+            if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 if self.dissipative.val:
-                    self.E_P = 0
+                    self.E_P = np.nan
                 else:
-                    self.E_P = ex_heat
+                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
+                self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+                self.E_bus = self.E_P
+            elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
+                self.E_P = self.outl[0].Ex_therm
+                self.E_F = self.inl[0].Ex_therm + self.outl[0].Ex_therm + (
+                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+                self.E_bus = self.inl[0].Ex_therm + self.outl[0].Ex_therm
+            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+                self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
+                self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (
+                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+                self.E_bus = self.E_P
             else:
-                msg = (
-                    'Transferring heat to the ambient with temperature T=' +
-                    str(round(Tamb)) + ' K is impossible as the temperature '
-                    'of the heat is T=' + str(round(self.T_mQ)) + ' K.')
-                logging.error(msg)
-                raise TESPyComponentError(msg)
+                msg = ('Exergy balance of simple heat exchangers, where '
+                       'outlet temperature is higher than inlet temperature '
+                       'with heat extracted is not implmented.')
+                logging.warning(msg)
+                self.E_P = np.nan
+                self.E_F = np.nan
+                self.E_bus = np.nan
+        elif self.Q.val > 0:
+            if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+                self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
+                self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm
+                self.E_bus = self.E_F
+            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
+                self.E_P = self.outl[0].Ex_therm + self.inl[0].Ex_therm
+                self.E_F = self.inl[0].Ex_therm + (
+                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+                self.E_bus = self.inl[0].Ex_therm
+            elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
+                self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
+                    self.outl[0].Ex_mech - self.inl[0].Ex_mech)
+                self.E_F = self.inl[0].Ex_therm - self.outl[0].Ex_therm
+                self.E_bus = self.E_F
+            else:
+                msg = ('Exergy balance of simple heat exchangers, where '
+                       'inlet temperature is higher than outlet temperature '
+                       'with heat injected is not implmented.')
+                logging.warning(msg)
+                self.E_P = np.nan
+                self.E_F = np.nan
+                self.E_bus = self.E_F
         else:
-            if Tamb / self.T_mQ <= 1:
-                self.E_F = ex_heat
-                self.E_P = ex_stream
-            else:
-                self.E_F = ex_stream
-                self.E_P = ex_heat
+            # this is basically the exergy balance of a valve
+            self.E_P = np.nan
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+            self.E_bus = np.nan
 
-        self.E_D = self.E_F - self.E_P
+        if np.isnan(self.E_P):
+            self.E_D = self.E_F
+        else:
+            self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):

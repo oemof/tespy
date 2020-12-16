@@ -1782,32 +1782,44 @@ def isentropic(inflow, outflow, T0=300):
         return h_mix_ps(outflow, s_mix, T0=T0)
 
 
-def calc_physical_exergy(conn, pamb, Tamb):
+def calc_physical_exergy(conn, p0, T0):
     r"""
     Calculate specific physical exergy.
 
+    Physical exergy is allocated to a thermal and a mechanical share according
+    to :cite:`Morosuk2005`.
+
     Parameters
     ----------
-    conn : tespy.connections.connection
+    conn : tespy.connections.connection.Connection
         Connection to calculate specific physical exergy for.
 
-    pamb : float
-        Ambient pressure pamb / Pa.
+    p0 : float
+        Ambient pressure p0 / Pa.
 
-    Tamb : float
-        Ambient temperature Tamb / K.
+    T0 : float
+        Ambient temperature T0 / K.
 
     Returns
     -------
-    e_ph : float
-        Specific physical exergy e_ph / (J/kg).
+    e_ph : tuple
+        Specific thermal and mechanical exergy
+        (:math:`e^\mathrm{T}`, :math:`e^\mathrm{M}`) in J / kg.
 
         .. math::
 
-            e_\mathrm{ph} = \left( h - h \left( p_\mathrm{amb}, T_\mathrm{amb}
-            \right) \right) - T_\mathrm{amb} \cdot \left(s -
-            s\left(p_\mathrm{amb}, T_\mathrm{amb}\right)\right)
+            e^\mathrm{T} = \left( h - h \left( p, T_0 \right) \right) -
+            T_0 \cdot \left(s - s\left(p, T_0\right)\right)
+
+            e^\mathrm{M}=\left(h\left(p,T_0\right)-h\left(p_0,T_0\right)\right)
+            -T_0\cdot\left(s\left(p, T_0\right)-s\left(p_0,T_0\right)\right)
+
+            e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
-    hamb = h_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
-    samb = s_mix_pT([0, pamb, 0, conn.fluid.val], Tamb)
-    return (conn.h.val_SI - hamb) - Tamb * (conn.s.val_SI - samb)
+    h_T0_p = h_mix_pT([0, conn.p.val_SI, 0, conn.fluid.val], T0)
+    s_T0_p = s_mix_pT([0, conn.p.val_SI, 0, conn.fluid.val], T0)
+    ex_therm = (conn.h.val_SI - h_T0_p) - T0 * (conn.s.val_SI - s_T0_p)
+    h0 = h_mix_pT([0, p0, 0, conn.fluid.val], T0)
+    s0 = s_mix_pT([0, p0, 0, conn.fluid.val], T0)
+    ex_mech = (h_T0_p - h0) - T0 * (s_T0_p - s0)
+    return ex_therm, ex_mech

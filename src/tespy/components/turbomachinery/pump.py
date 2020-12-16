@@ -10,6 +10,8 @@ available from its original location tespy/components/turbomachinery/pump.py
 SPDX-License-Identifier: MIT
 """
 
+import logging
+
 import numpy as np
 
 from tespy.components.component import Component
@@ -52,7 +54,6 @@ class Pump(Turbomachine):
     Image
 
         .. image:: _images/Pump.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -458,20 +459,59 @@ class Pump(Turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a pump.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
         .. math::
 
-            \dot{E}_\mathrm{P} = \dot{m}_\mathrm{in} \cdot \left(
-            e_\mathrm{ph,out} - e_\mathrm{ph,in}\right)\\
-            \dot{E}_\mathrm{F} = P
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
+            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
+            \dot{E}_\mathrm{in}^\mathrm{M}
+            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
+            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases}
+
+            \dot{E}_\mathrm{F} =
+            \begin{cases}
+            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            P + \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
+            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases}
+
+            \dot{E}_\mathrm{bus} = P
         """
-        self.E_P = self.inl[0].m.val_SI * (
-            self.outl[0].ex_physical - self.inl[0].ex_physical)
-        self.E_F = self.P.val
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
+            self.E_F = self.P.val
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
+            self.E_P = self.outl[0].Ex_therm + (
+                self.outl[0].Ex_mech - self.inl[0].Ex_mech)
+            self.E_F = self.P.val + self.inl[0].Ex_therm
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = self.outl[0].Ex_mech - self.inl[0].Ex_mech
+            self.E_F = self.P.val + (
+                self.inl[0].Ex_therm - self.outl[0].Ex_therm)
+        else:
+            msg = ('Exergy balance of a pump, where outlet temperature is '
+                   'smaller than inlet temperature is not implmented.')
+            logging.warning(msg)
+            self.E_P = np.nan
+            self.E_F = np.nan
+
+        self.E_bus = self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

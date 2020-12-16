@@ -54,7 +54,6 @@ class Turbine(Turbomachine):
     Image
 
         .. image:: _images/Turbine.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -474,19 +473,59 @@ class Turbine(Turbomachine):
 
         self.check_parameter_bounds()
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a turbine.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
         .. math::
 
-            \dot{E}_\mathrm{P} = |P| \\
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
-            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            -P + \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
+            -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases}
+
+           \dot{E}_\mathrm{F} =
+           \begin{cases}
+           \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
+           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+           \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
+           \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
+           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+           \end{cases}
+
+           \dot{E}_\mathrm{bus} = -P
         """
-        self.E_P = abs(self.P.val)
-        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.E_P = -self.P.val
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = -self.P.val + self.outl[0].Ex_therm
+            self.E_F = self.inl[0].Ex_therm + (
+                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = -self.P.val + (
+                self.outl[0].Ex_therm - self.inl[0].Ex_therm)
+            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
+        else:
+            msg = ('Exergy balance of a turbine, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logging.warning(msg)
+            self.E_P = np.nan
+            self.E_F = np.nan
+
+        self.E_bus = -self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

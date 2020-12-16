@@ -71,7 +71,6 @@ class Condenser(HeatExchanger):
     Image
 
         .. image:: _images/Condenser.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -223,8 +222,7 @@ class Condenser(HeatExchanger):
             'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
             'subcooling': dc_simple(val=False),
             'kA_char': dc_simple(),
-            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
-            'dissipative': dc_simple(val=False)
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m')
         }
 
     def comp_init(self, nw):
@@ -469,35 +467,3 @@ class Condenser(HeatExchanger):
                         self.label)
 
         self.check_parameter_bounds()
-
-    def exergy_balance(self, Tamb):
-        r"""
-        Calculate exergy balance of a condenser.
-
-        Note
-        ----
-        If you do not want to consider exergy production (exergy of cold side),
-        you can specify :code:`yourcondenser.set_attr(dissipative=True)` to
-        force exergy destruction.
-
-        .. math::
-
-            \dot{E}_\mathrm{P} = \begin{cases}
-            \text{not defined (nan)} & \text{if dissipative} \\
-            \dot{m}_\mathrm{in,2} \cdot \left(
-            e_\mathrm{ph,in,2} - e_\mathrm{ph,out,2}\right) &
-            \text{if not dissipative (default)}\\
-            \end{cases}\\
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
-            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
-        """
-        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-
-        if self.dissipative.val:
-            self.E_P = np.nan
-            self.epsilon = np.nan
-            self.E_D = self.E_F
-        else:
-            self.E_P = self.outl[1].Ex_physical - self.inl[1].Ex_physical
-            self.E_D = self.E_F - self.E_P
-            self.epsilon = self.E_P / self.E_F

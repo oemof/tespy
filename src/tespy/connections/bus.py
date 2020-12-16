@@ -327,15 +327,8 @@ class Bus:
         """
         for c in args:
             if isinstance(c, dict):
-                if 'comp' in c.keys() or 'c' in c.keys():
-                    if 'c' in c.keys():
-                        comp = c['c']
-                        msg = (
-                            'The dictionary keyword "c" will be removed in '
-                            'TESPy version 0.4.0. Please use "comp" instead.')
-                        warnings.warn(msg, FutureWarning, stacklevel=2)
-                    else:
-                        comp = c['comp']
+                if 'comp' in c.keys():
+                    comp = c['comp']
                     # default values
                     if isinstance(comp, Component):
                         self.comps.loc[comp] = [
@@ -350,13 +343,7 @@ class Bus:
                     raise TypeError(msg)
 
                 for k, v in c.items():
-                    if k == 'param' or k == 'p':
-                        if k == 'p':
-                            msg = (
-                                'The dictionary keyword "p" will be removed '
-                                'TESPy version 0.4.0. Please use "param" '
-                                'instead.')
-                            warnings.warn(msg, FutureWarning, stacklevel=2)
+                    if k == 'param':
                         if isinstance(v, str) or v is None:
                             self.comps.loc[comp, 'param'] = v
                         else:

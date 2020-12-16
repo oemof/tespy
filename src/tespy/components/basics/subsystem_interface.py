@@ -45,7 +45,6 @@ class SubsystemInterface(Component):
     Image
 
         .. image:: _images/SubsystemInterface.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

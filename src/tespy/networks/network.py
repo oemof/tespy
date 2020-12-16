@@ -2641,11 +2641,11 @@ class Network:
 
         for cp in self.comps.index:
             cp.exergy_balance(Tamb_SI)
+            self.E_D += cp.E_D
 
-            cp_E_D = cp.E_D
-            cp_E_F = cp.E_F
-            cp_E_P = cp.E_P
-            cp_epsilon = cp.epsilon
+            self.component_exergy_data.loc[cp.label] = [
+                cp.label, cp.E_F, cp.E_P, cp.E_D, cp.epsilon, np.nan, np.nan]
+
             cp_on_num_busses = 0
             for b in E_F + E_P + internal_busses + E_L:
                 if cp in b.comps.index:
@@ -2659,11 +2659,15 @@ class Network:
                         raise hlp.TESPyNetworkError(msg)
 
                     if b.comps.loc[cp, 'base'] == 'bus':
-                        cp_E_F = cp.E_F / cp.calc_bus_efficiency(b)
+                        cp_E_P = cp.E_bus
+                        cp_E_F = cp.E_bus / cp.calc_bus_efficiency(b)
                     else:
-                        cp_E_P = cp.E_P * cp.calc_bus_efficiency(b)
+                        cp_E_P = cp.E_bus * cp.calc_bus_efficiency(b)
+                        cp_E_F = cp.E_bus
+
                     cp_E_D = cp_E_F - cp_E_P
-                    cp_epsilon = cp_E_P / cp_E_F
+                    self.E_D += cp_E_D
+                    epsilon = cp_E_P / cp_E_F
 
                     if b in E_F:
                         if b.comps.loc[cp, 'base'] == 'bus':
@@ -2683,8 +2687,9 @@ class Network:
 
                     cp_on_num_busses += 1
 
-            self.component_exergy_data.loc[cp.label] = [
-                cp.label, cp_E_F, cp_E_P, cp_E_D, cp_epsilon, np.nan, np.nan]
+                    label = cp.label + ' on bus ' + b.label
+                    self.component_exergy_data.loc[label] = [
+                        label, cp_E_F, cp_E_P, cp_E_D, epsilon, np.nan, np.nan]
 
         self.E_D = self.component_exergy_data['E_D'].sum()
         self.E_F = abs(self.E_F)

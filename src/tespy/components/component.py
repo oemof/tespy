@@ -675,10 +675,18 @@ class Component:
         r"""Entropy balance calculation method."""
         return
 
-    def exergy_balance(self, Tamb):
-        r"""Exergy balance calculation method."""
-        self.E_F = np.nan
+    def exergy_balance(self, T0):
+        r"""
+        Exergy balance calculation method.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+        """
         self.E_P = np.nan
+        self.E_F = np.nan
+        self.E_bus = np.nan
         self.E_D = np.nan
         self.epsilon = np.nan
 

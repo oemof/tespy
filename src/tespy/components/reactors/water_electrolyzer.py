@@ -105,7 +105,6 @@ class WaterElectrolyzer(Component):
     Image
 
         .. image:: _images/WaterElectrolyzer.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

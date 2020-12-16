@@ -61,7 +61,6 @@ class SolarCollector(HeatExchangerSimple):
     Image
 
         .. image:: _images/SolarCollector.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

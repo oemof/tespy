@@ -62,7 +62,6 @@ class CombustionChamber(Component):
     Image
 
         .. image:: _images/CombustionChamber.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 

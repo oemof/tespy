@@ -45,7 +45,6 @@ class Merge(Node):
     Image
 
         .. image:: _images/Merge.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -264,9 +263,14 @@ class Merge(Node):
                 i.s.val_SI -
                 s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
 
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a merge.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
@@ -274,18 +278,15 @@ class Merge(Node):
 
         .. math::
 
-            \dot{E}_\mathrm{P} = \sum_{n_\mathrm{cold}=0}^N
-            \dot{m}_{\mathrm{in,}n} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}n} \right)\\
-            \dot{E}_\mathrm{F} = \sum_{m_\mathrm{hot}=0}^M
-            \dot{m}_{\mathrm{in,}m} \cdot \left(
-            e_\mathrm{ph,out} - e_{\mathrm{ph,in,}m} \right)
+            \dot{E}_\mathrm{P} = E_\mathrm{out}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
         """
         self.E_P = self.outl[0].Ex_physical
         self.E_F = 0
         for i in self.inl:
             self.E_F += i.Ex_physical
 
+        self.E_bus = np.nan
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

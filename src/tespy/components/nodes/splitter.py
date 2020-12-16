@@ -44,7 +44,6 @@ class Splitter(Node):
     Image
 
         .. image:: _images/Splitter.svg
-           :scale: 100 %
            :alt: alternative text
            :align: center
 
@@ -288,12 +287,16 @@ class Splitter(Node):
         r"""Entropy balance calculation method."""
         return
 
-    def exergy_balance(self, Tamb):
-        r"""Exergy balance calculation method."""
-        self.E_F = np.nan
-        self.E_P = np.nan
-        self.E_D = np.nan
-        self.epsilon = np.nan
+    def exergy_balance(self, T0):
+        r"""
+        Exergy balance calculation method.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+        """
+        Component.exergy_balance(self, T0)
 
     def get_plotting_data(self):
         return

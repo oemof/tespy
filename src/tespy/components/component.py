@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-
+from collections import OrderedDict
 import numpy as np
 
 from tespy.tools.characteristics import CharLine
@@ -119,7 +119,7 @@ class Component:
         self.printout = True
 
         # add container for components attributes
-        self.variables = self.attr()
+        self.variables = OrderedDict(self.attr().copy())
         self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
@@ -166,18 +166,8 @@ class Component:
                     is_numeric = False
 
                 # data container specification
-                if isinstance(kwargs[key], DataContainer):
-                    if isinstance(kwargs[key], type(self.get_attr(key))):
-                        self.__dict__.update({key: kwargs[key]})
-
-                    else:
-                        msg = (
-                            'The keyword ' + key + ' expects a DataContainer '
-                            'of type ' + str(type(self.get_attr(key))) +
-                            ', a DataContainer of type ' +
-                            str(type(kwargs[key])) + ' was supplied.')
-                        logging.error(msg)
-                        raise TypeError(msg)
+                if isinstance(kwargs[key], dict):
+                    self.get_attr(key).__dict__.update(**kwargs[key])
 
                 # value specification for component properties
                 elif (isinstance(self.get_attr(key), dc_cp) or
@@ -216,7 +206,7 @@ class Component:
                     if (isinstance(kwargs[key], CharLine) or
                             isinstance(kwargs[key], CharMap) or
                             isinstance(kwargs[key], CompressorMap)):
-                        self.get_attr(key).func = kwargs[key]
+                        self.get_attr(key).char_func = kwargs[key]
 
                     # invalid datatype for keyword
                     else:
@@ -344,12 +334,13 @@ class Component:
 
             # characteristics creation
             elif isinstance(val, dc_cc):
-                if self.get_attr(key).func is None:
+                if self.get_attr(key).char_func is None:
                     try:
-                        self.get_attr(key).func = ldc(
+                        self.get_attr(key).char_func = ldc(
                             self.component(), key, 'DEFAULT', CharLine)
                     except KeyError:
-                        self.get_attr(key).func = CharLine(x=[0, 1], y=[1, 1])
+                        self.get_attr(key).char_func = CharLine(
+                            x=[0, 1], y=[1, 1])
 
                     if self.char_warnings:
                         msg = (
@@ -379,8 +370,32 @@ class Component:
     def outlets():
         return []
 
-    def equations(self):
-        return
+    def equations(self, increment_filter, doc=False):
+        self.mandatory_equations()
+        k = self.mandatory_derivatives(increment_filter)
+
+        logging.warning(str(k))
+        for data in self.variables.values():
+            if data.is_set and data.func is not None:
+                residuals = data.func(doc=doc, **data.func_params)
+                try:
+                    num_eq = len(residuals)
+                except TypeError:
+                    num_eq = 1
+                self.residual[k: k + num_eq] = residuals
+
+                if not doc:
+                    data.deriv(increment_filter, k, **data.func_params)
+
+                k += num_eq
+
+        # logging.warning(str(self.jacobian))
+
+    def mandatory_equations(self):
+        return 0
+
+    def mandatory_derivatives(self, increment_filter):
+        return 0
 
     def bus_func(self, bus):
         r"""
@@ -514,9 +529,6 @@ class Component:
             return comp_val * b['char'].evaluate(expr)
         else:
             return comp_val / b['char'].evaluate(expr)
-
-    def derivatives(self, increment_filter):
-        return
 
     def initialise_source(self, c, key):
         r"""
@@ -693,7 +705,14 @@ class Component:
     def get_plotting_data(self):
         return
 
-# %%
+    def genetate_latex(self, eqn, func):
+        latex = (
+            r'\begin{equation}' + '\n' + r'\label{eq:' +
+            self.__class__.__name__ + '_' + func + r'}' + '\n'
+        )
+        latex += eqn + '\n'
+        latex += r'\end{equation}'
+        return latex
 
     def fluid_func(self):
         r"""
@@ -734,8 +753,6 @@ class Component:
                 deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv
 
-# %%
-
     def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.
@@ -773,8 +790,6 @@ class Component:
         for j in range(self.num_o):
             deriv[0, j + i + 1, 0] = -1
         return deriv
-
-# %%
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
         r"""
@@ -863,14 +878,158 @@ class Component:
 
         return deriv
 
-# %%
+    def pr_func(self, pr='', inconn=0, outconn=0, doc=False):
+        r"""
+        Calculate residual value of pressure ratio function.
 
-    def zeta_func(self, zeta='', inconn=0, outconn=0):
+        Parameters
+        ----------
+        pr : str
+            Component parameter to evaluate the pr_func on, e.g.
+            :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        val : float
+            Residual value of function.
+
+            .. math::
+
+                0 = p_{in} \cdot pr - p_{out}
+        """
+        if not doc:
+            pr = self.get_attr(pr)
+            return (self.inl[inconn].p.val_SI * pr.val -
+                    self.outl[outconn].p.val_SI)
+        else:
+            latex = (
+                r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
+                r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
+            )
+            return self.generate_latex(latex, 'pr_func')
+
+    def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
+        r"""
+        Calculate residual value of pressure ratio function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+
+        pr : str
+            Component parameter to evaluate the pr_func on, e.g.
+            :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
+        pr = self.get_attr(pr)
+        self.jacobian[k, inconn, 1] = pr.val
+        self.jacobian[k, self.num_i + outconn, 1] = -1
+        if pr.is_var:
+            pos = self.num_i + self.num_o + pr.var_pos
+            self.jacobian[k, pos, 0] = self.inl[inconn].p.val_SI
+
+    def zeta_func(self, zeta='', inconn=0, outconn=0, doc=False):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
         Parameters
         ----------
+        zeta : str
+            Component parameter to evaluate the zeta_func on, e.g.
+            :code:`zeta1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        res : float
+            Residual value of function.
+
+            .. math::
+
+                0 = \begin{cases}
+                p_{in} - p_{out} & |\dot{m}| < \epsilon \\
+                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}
+                {8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
+                v_{out}}{2}} &
+                |\dot{m}| > \epsilon
+                \end{cases}
+
+        Note
+        ----
+        The zeta value is caluclated on the basis of a given pressure loss at
+        a given flow rate in the design case. As the cross sectional area A
+        will not change, it is possible to handle the equation in this way:
+
+        .. math::
+
+            \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
+            {8 \cdot \dot{m}^2 \cdot v}
+        """
+        if not doc:
+            data = self.get_attr(zeta)
+            i = self.inl[inconn].to_flow()
+            o = self.outl[outconn].to_flow()
+
+            if abs(i[0]) < 1e-4:
+                return i[1] - o[1]
+
+            else:
+                v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
+                v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
+                return (data.val - (i[1] - o[1]) * np.pi ** 2 /
+                        (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+        else:
+            inl = r'_\mathrm{in,' + str(inconn + 1) + r'}'
+            outl = r'_\mathrm{out,' + str(outconn + 1) + r'}'
+            latex = (
+                r'0 = \begin{cases}' + '\n' +
+                r'p_{in} - p_{out} & |\dot{m}| < \delta \\' + '\n' +
+                r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
+                r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
+                r'|\cdot\frac{v' + inl +'v' + outl + r'}{2}}' +
+                r'& |\dot{m}' + inl + r'| \geq \delta' + '\n'
+                r'\end{cases}'
+            )
+            return self.generate_latex(latex, 'pr_func')
+
+    def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
+        r"""
+        Calculate residual value of :math:`\zeta`-function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+
         zeta : str
             Component parameter to evaluate the zeta_func on, e.g.
             :code:`zeta1`.
@@ -907,15 +1066,26 @@ class Component:
             \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
             {8 \cdot \dot{m}^2 \cdot v}
         """
-        zeta = self.get_attr(zeta).val
-        i = self.inl[inconn].to_flow()
-        o = self.outl[outconn].to_flow()
-
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
-
-        else:
-            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
-            return (zeta - (i[1] - o[1]) * np.pi ** 2 /
-                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+        data = self.get_attr(zeta)
+        f = self.zeta_func
+        outpos = self.num_i + outconn
+        if not increment_filter[inconn, 0]:
+            self.jacobian[k, inconn, 0] = self.numeric_deriv(
+                f, 'm', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
+        if not increment_filter[inconn, 2]:
+            self.jacobian[k, inconn, 1] = self.numeric_deriv(
+                f, 'p', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
+        if not increment_filter[inconn, 2]:
+            self.jacobian[k, inconn, 2] = self.numeric_deriv(
+                f, 'h', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
+        if not increment_filter[outpos, 1]:
+            self.jacobian[k, outpos, 1] = self.numeric_deriv(
+                f, 'p', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
+        if not increment_filter[outpos, 2]:
+            self.jacobian[k, outpos, 2] = self.numeric_deriv(
+                f, 'h', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
+        # custom variable zeta
+        if data.is_var:
+            pos = self.num_i + self.num_o + data.var_pos
+            self.jacobian[k, pos, 0] = self.numeric_deriv(
+                f, zeta, 2, zeta=zeta, inconn=inconn, outconn=outconn)

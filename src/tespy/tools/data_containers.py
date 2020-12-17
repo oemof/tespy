@@ -192,7 +192,9 @@ class ComponentCharacteristics(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None}
+        return {
+            'char_func': None, 'is_set': False, 'param': None,
+            'func_params': {}, 'func': None, 'deriv': None}
 
 # %%
 
@@ -226,7 +228,9 @@ class ComponentCharacteristicMaps(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None}
+        return {
+            'char_func': None, 'is_set': False, 'param': None,
+            'func_params': {}, 'func': None, 'deriv': None}
 
 # %%
 
@@ -277,9 +281,11 @@ class ComponentProperties(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
-                'd': 1e-4, 'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
-                'val_ref': 1, 'design': np.nan}
+        return {
+            'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
+            'd': 1e-4, 'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
+            'val_ref': 1, 'design': np.nan,
+            'func_params': {}, 'func': None, 'deriv': None}
 
 # %%
 
@@ -436,4 +442,6 @@ class DataContainerSimple(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': np.nan, 'is_set': False}
+        return {
+            'val': np.nan, 'is_set': False,
+            'func_params': {}, 'func': None, 'deriv': None}

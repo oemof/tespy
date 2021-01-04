@@ -143,7 +143,7 @@ class Network:
     >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
     >>> b.set_attr(printout=False)
     >>> b = Bus('heat bus')
-    >>> b.add_comps({'c': p})
+    >>> b.add_comps({'comp': p})
     >>> nw.add_busses(b)
     >>> b.set_attr(printout=False)
     >>> nw.set_attr(iterinfo=False)

@@ -254,6 +254,18 @@ def test_CombustionChamber_missing_fuel():
     with raises(TESPyComponentError):
         nw.solve('design', init_only=True)
 
+
+def test_CombustionChamber_missing_oxygen():
+    """Test no fuel in network."""
+    nw = Network(['H2O', 'N2', 'Ar', 'CO2', 'CH4'])
+    instance = CombustionChamber('combustion chamber')
+    c1 = Connection(Source('air'), 'out1', instance, 'in1')
+    c2 = Connection(Source('fuel'), 'out1', instance, 'in2')
+    c3 = Connection(instance, 'out1', Sink('flue gas'), 'in1')
+    nw.add_conns(c1, c2, c3)
+    with raises(TESPyComponentError):
+        nw.solve('design', init_only=True)
+
 ##############################################################################
 # CombustionChamberStoich
 

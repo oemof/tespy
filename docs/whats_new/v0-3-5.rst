@@ -56,8 +56,7 @@ API Changes
 New Features
 ############
 - Add methods for exergy and entropy analyses of networks.
-  Examples will follow (`PR #215 <https://github.com/oemof/tespy/pull/215>`_),
-
+  Examples will follow (`PR #215 <https://github.com/oemof/tespy/pull/215>`_).
 - Add a method :code:`get_plotting_data` to each component to export the input
   data required by FluProDia in order to generate the data required to display
   state changes in the components in a fluid property diagram. Each component
@@ -91,7 +90,6 @@ New Features
   For more information see the respective
   :ref:`documentation section <FluProDia_label>`
   (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).
-
 - Add a flag to deactivate calculation of all component equations in every
   iteration. This improves stability in some cases but may reduce calculation
   speed (`PR #226 <https://github.com/oemof/tespy/pull/226>`_). To deactivate
@@ -101,7 +99,6 @@ New Features
   .. code-block:: python
 
       mynetwork.solve('design', always_all_equations=False)
-
 - Add a flag use cuda instead of numpy for matrix inversion. With cuda matrix
   inversion is outsourced to the graphics card. Using cuda additionally
   requires :code:`cupy` installed on your machine
@@ -166,7 +163,6 @@ Other Changes
 - An error message is raised in case the user specifies a fluid vector
   containing fluids, that are not part of the network's fluid list
   (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
-
 - For improved convergence stability of the methods
   :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_func` and
   :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_func`,
@@ -174,6 +170,9 @@ Other Changes
   temperature difference between ambient and inlet and outlet temperature, if
   the terminal temperature differences do not have the same sign
   (`PR #225 <https://github.com/oemof/tespy/pull/225>`_).
+- An understandable error message is raised in case the user misses out on
+  fluids required by components of class CombustionChamber or CombustionEngine
+  (`PR #242 <https://github.com/oemof/tespy/pull/242>`_).
 
 Contributors
 ############

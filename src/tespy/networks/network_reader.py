@@ -219,14 +219,18 @@ def load_network(path):
     >>> inc.set_attr(m=np.nan)
     >>> power.set_attr(P=-1e6)
     >>> nw.solve('design')
-    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
+    >>> nw.lin_dep
+    False
     >>> nw.save('exported_nwk')
+    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
     >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> round(t.eta_s.val, 1)
     0.9
     >>> power.set_attr(P=-0.75e6)
     >>> nw.solve('offdesign', design_path='exported_nwk')
+    >>> nw.lin_dep
+    False
     >>> eta_s_t = round(t.eta_s.val, 3)
     >>> igva = round(c.igva.val, 3)
     >>> eta_s_t
@@ -241,6 +245,8 @@ def load_network(path):
     >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
     >>> imported_nwk.solve('design', init_path='exported_nwk')
+    >>> imported_nwk.lin_dep
+    False
     >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
     True
     >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
@@ -314,17 +320,7 @@ def load_network(path):
 
             cols = [
                 'instance', 'label', 'busses', 'bus_param', 'bus_P_ref',
-                'bus_char']
-            if 'bus_base' in df.columns:
-                cols += ['bus_base']
-            else:
-                msg = (
-                    'The base value of the bus must be part of the exported '
-                    'component data for component of type ' + f[:-4] + '. '
-                    'Please make sure to add the column bus_base to your data '
-                    'or recreate the network export with the TESPy 0.3.x API. '
-                    'This warning will be removed in TESPy version 0.4.0.')
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                'bus_char', 'bus_base']
 
             comps = pd.concat((comps, df[cols]), axis=0)
 
@@ -430,12 +426,15 @@ def construct_comps(c, *args):
         if key in c:
             # component parameters
             if isinstance(value, dc_cp):
-                kwargs[key] = dc_cp(val=c[key], is_set=c[key + '_set'],
-                                    is_var=c[key + '_var'])
+                kwargs[key] = {
+                    'val': c[key],
+                    'is_set': c[key + '_set'],
+                    'is_var': c[key + '_var']}
 
             # component parameters
             elif isinstance(value, dc_simple):
-                kwargs[key] = dc_simple(val=c[key], is_set=c[key + '_set'])
+                instance.get_attr(key).set_attr(
+                    **{'val': c[key], 'is_set': c[key + '_set']})
 
             # component characteristics
             elif isinstance(value, dc_cc):
@@ -458,8 +457,10 @@ def construct_comps(c, *args):
                            ' at component ' + c.label + '.')
                     logging.warning(msg)
 
-                kwargs[key] = dc_cc(is_set=c[key + '_set'],
-                                    param=c[key + '_param'], func=char)
+                kwargs[key] = {
+                    'is_set': c[key + '_set'],
+                    'param': c[key + '_param'],
+                    'char_func': char}
 
             # component characteristics
             elif isinstance(value, dc_cm):
@@ -481,13 +482,14 @@ def construct_comps(c, *args):
                            'characteristic map of component ' + c.label + '!')
                     logging.warning(msg)
 
-                kwargs[key] = dc_cm(is_set=c[key + '_set'],
-                                    param=c[key + '_param'],
-                                    func=char)
+                kwargs[key] = {
+                    'is_set': c[key + '_set'],
+                    'param': c[key + '_param'],
+                    'char_func': char}
 
             # grouped component parameters
             elif isinstance(value, dc_gcp):
-                kwargs[key] = dc_gcp(method=c[key])
+                kwargs[key] = {'method': c[key]}
 
     instance.set_attr(**kwargs)
     return instance

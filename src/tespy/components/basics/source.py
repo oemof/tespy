@@ -19,10 +19,6 @@ class Source(Component):
     r"""
     A flow originates from a Source.
 
-    Equations
-
-        This component is unconstrained.
-
     Parameters
     ----------
     label : str

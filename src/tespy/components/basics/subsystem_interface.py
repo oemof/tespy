@@ -10,7 +10,7 @@ tespy/components/basics/subsystem_interface.py
 
 SPDX-License-Identifier: MIT
 """
-
+import logging
 import numpy as np
 
 from tespy.components.component import Component
@@ -39,14 +39,14 @@ class SubsystemInterface(Component):
 
     Inlets/Outlets
 
-        - Specify number of inlets and outlets with :code:`num_inter`,
-          predefined value: 1.
+    - Specify number of inlets and outlets with :code:`num_inter`,
+      predefined value: 1.
 
     Image
 
-        .. image:: _images/SubsystemInterface.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/SubsystemInterface.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -143,86 +143,110 @@ class SubsystemInterface(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # fluid: num_inter * num_nw_fluids
         # mass flow: num_inter
         # pressure: num_inter
         # enthalpy: num_inter
-        self.num_eq = (self.num_nw_fluids + 3) * self.num_i
+        Component.comp_init(self, nw, num_eq=(len(nw.fluids) + 3) * self.num_i)
+        # all derivatives are constant
+        pos = self.num_nw_fluids * self.num_i
+        self.jacobian[0:pos] = self.fluid_deriv()
+        self.jacobian[pos:pos + self.num_i] = self.mass_flow_deriv()
+        pos += self.num_i
+        self.jacobian[pos:pos + self.num_i] = self.variable_equality_deriv(1)
+        pos += self.num_i
+        self.jacobian[pos:pos + self.num_i] = self.variable_equality_deriv(2)
 
-        self.jacobian = np.zeros((
-            self.num_eq,
-            2 * self.num_i,
-            self.num_nw_vars))
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
 
-        self.residual = np.ones(self.num_eq)
-        stop = self.num_nw_fluids * self.num_i
-        self.jacobian[0:stop] = self.fluid_deriv()
-        start = stop
-        stop = start + self.num_i
-        self.jacobian[start:stop] = self.inout_deriv(0)
-        start = stop
-        stop = start + self.num_i
-        self.jacobian[start:stop] = self.inout_deriv(1)
-        start = stop
-        stop = start + self.num_i
-        self.jacobian[start:stop] = self.inout_deriv(2)
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         k = 0
         ######################################################################
-        # eqations for fluids
-        for i in range(self.num_i):
-            for fluid, x in self.inl[i].fluid.val.items():
-                self.residual[k] = x - self.outl[i].fluid.val[fluid]
-                k += 1
+        # equations for fluids
+        num_eq = self.num_nw_fluids * self.num_i
+        self.residual[k:k + num_eq] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:k + num_eq] = self.fluid_func(doc=doc)
+        k += num_eq
 
         ######################################################################
         # equations for mass flow
-        for i in range(self.num_i):
-            self.residual[k] = self.inl[i].m.val_SI - self.outl[i].m.val_SI
-            k += 1
+        self.residual[k:k + self.num_i] = self.mass_flow_func()
+        if doc:
+            self.equation_docs[k:k + self.num_i] = self.mass_flow_func(doc=doc)
+        k += self.num_i
 
         ######################################################################
-        # equations for pressure
-        for i in range(self.num_i):
-            self.residual[k] = self.inl[i].p.val_SI - self.outl[i].p.val_SI
-            k += 1
+        # equations for pressure and enthalpy:
+        for param in ['p', 'h']:
+            self.residual[k:k + self.num_i] = (
+                self.variable_equality_func(param))
+            if doc:
+                self.equation_docs[k:k + self.num_i] = (
+                    self.variable_equality_func(param, doc=doc))
+            k += self.num_i
 
-        ######################################################################
-        # equations for enthalpy
-        for i in range(self.num_i):
-            self.residual[k] = self.inl[i].h.val_SI - self.outl[i].h.val_SI
-            k += 1
+        return k
 
-        ######################################################################
-
-    def derivatives(self, vek_z):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # all derivatives are static
-
-    def inout_deriv(self, pos):
+    def variable_equality_func(self, param, doc=False):
         r"""
-        Calculate partial derivatives.
+        Calculate the residual value for primary variable equality equation.
 
-        Method applies for all mass flow, pressure and enthalpy equations.
+        This equation makes mass flow, pressure or enthalpy equal at asin inlet
+        and its corresponding outlet.
+
+        Returns
+        -------
+        residual : list
+            Vector with residual values.
+        """
+        if not doc:
+            residual = []
+            for i in range(self.num_i):
+                residual += [
+                    self.inl[i].get_attr(param).val_SI -
+                    self.outl[i].get_attr(param).val_SI]
+            return residual
+        else:
+            indices = list(range(1, self.num_i + 1))
+            if len(indices) > 1:
+                indices = ', '.join(str(idx) for idx in indices)
+            else:
+                indices = str(indices[0])
+            latex = (
+                r'0=' + param + r'_{\mathrm{in,}i}-' + param +
+                r'_{\mathrm{out,}i}\; \forall i \in [' + indices + r']')
+            return (
+                [self.generate_latex(latex, param + '_equality_func')] +
+                (self.num_i - 1) * [''])
+
+    def variable_equality_deriv(self, pos):
+        r"""
+        Calculate partial derivatives for pressure and enthalpy equations.
 
         Parameters
         ----------
         pos : int
             Position of the variable in the matrix of derivatives.
 
-            - mass flow: 0
             - pressure: 1
             - enthalpy: 2
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((self.num_i, 2 * self.num_i, self.num_nw_vars))

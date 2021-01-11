@@ -19,10 +19,6 @@ class Sink(Component):
     r"""
     A flow drains in a Sink.
 
-    Equations
-
-    This component is unconstrained.
-
     Parameters
     ----------
     label : str

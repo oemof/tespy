@@ -22,15 +22,13 @@ class CycleCloser(Component):
     r"""
     Component for closing cycles.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    .. math::
 
-        .. math::
+        0 = p_{in} - p_{out}
 
-            0 = p_{in} - p_{out}
-
-            0 = h_{in} - h_{out}
+        0 = h_{in} - h_{out}
 
     Image not available
 
@@ -118,19 +116,11 @@ class CycleCloser(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # pressure: 1
         # enthalpy: 1
-        self.num_eq = 2
+        Component.comp_init(self, nw, num_eq=2)
 
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.ones(self.num_eq)
         # derivatives for pressure
         self.jacobian[0, 0, 1] = 1
         self.jacobian[0, 1, 1] = -1
@@ -138,23 +128,79 @@ class CycleCloser(Component):
         self.jacobian[1, 0, 2] = 1
         self.jacobian[1, 1, 2] = -1
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         ######################################################################
         # equation for pressure
-        self.residual[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        k += 1
-
+        self.residual[0] = self.pressure_equality_func()
+        if doc:
+            self.equation_docs[0:1] = self.pressure_equality_func(doc=doc)
         ######################################################################
         # equation for enthalpy
-        self.residual[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        k += 1
+        self.residual[1] = self.enthalpy_equality_func()
+        if doc:
+            self.equation_docs[1:2] = self.enthalpy_equality_func(doc=doc)
+        return 2
 
-    def derivatives(self, vek_z):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # all derivatives are static
+    def pressure_equality_func(self, doc=False):
+        r"""
+        Equation for pressure equality.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0=p_{in}-p_{out}
+        """
+        if not doc:
+            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        else:
+            latex = r'0=p_\mathrm{in}-p_\mathrm{out}'
+            return [self.generate_latex(latex, 'pressure_equality_func')]
+
+    def enthalpy_equality_func(self, doc=False):
+        r"""
+        Equation for enthalpy equality.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0=h_{in}-h_{out}
+        """
+        if not doc:
+            return self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        else:
+            latex = r'0=h_\mathrm{in}-h_\mathrm{out}'
+            return [self.generate_latex(latex, 'enthalpy_equality_func')]
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""
@@ -187,7 +233,7 @@ class CycleCloser(Component):
         return
 
     def calc_parameters(self):
-
+        r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow
         self.mass_deviation.val = np.abs(
             self.inl[0].m.val_SI - self.outl[0].m.val_SI)

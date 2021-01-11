@@ -23,36 +23,20 @@ class Turbomachine(Component):
     r"""
     Parent class for compressor, pump and turbine.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        isentropic efficiency equations (optional)
-
-        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.pump.Pump.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.additional_equations`
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Parameters
     ----------
@@ -99,9 +83,15 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
-    @staticmethod
-    def attr():
-        return {'P': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_simple()}
+    def attr(self):
+        return {
+            'P': dc_cp(
+                deriv=self.energy_balance_deriv,
+                func=self.energy_balance_func),
+            'pr': dc_cp(
+                deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr'})
+        }
 
     @staticmethod
     def inlets():
@@ -113,93 +103,87 @@ class Turbomachine(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # fluid balance: num_fl
         # mass flow: 1
-        self.num_eq = self.num_nw_fluids + 1
-        for var in [self.P, self.pr]:
-            if var.is_set:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
+        # place constant derivatives
         pos = self.num_nw_fluids
         self.jacobian[0:pos] = self.fluid_deriv()
         self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         k = 0
         ######################################################################
         # eqations for fluids
-        if (any(np.absolute(self.residual[k:self.num_nw_fluids])) > err ** 2 or
-                self.it % 4 == 0 or self.always_all_equations):
-            self.residual[k:self.num_nw_fluids] = self.fluid_func()
+        self.residual[k:self.num_nw_fluids] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:self.num_nw_fluids] = self.fluid_func(doc=doc)
         k += self.num_nw_fluids
 
         ######################################################################
         # eqations for mass flow balance
-        self.residual[k] = self.mass_flow_func()
+        self.residual[k: k + 1] = self.mass_flow_func()
+        if doc:
+            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
         k += 1
+        return k
 
-        ######################################################################
-        # eqations for specified power
-        if self.P.is_set:
-            self.residual[k] = self.inl[0].m.val_SI * (
+    def energy_balance_func(self, doc=False):
+        r"""
+        Calculate energy balance of a turbomachine.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of turbomachine energy balance
+
+            .. math::
+
+                0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
+        """
+        if not doc:
+            return self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+        else:
+            latex = (
+                r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
+                r'\right)-P')
+            return [self.generate_latex(latex, 'energy_balance_func')]
 
-            k += 1
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance of a turbomachine.
 
-        ######################################################################
-        # eqations for specified pressure ratio
-        if self.pr.is_set:
-            self.residual[k] = (
-                self.pr.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
-            k += 1
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
-        ######################################################################
-        # additional equations
-        self.additional_equations(k)
-
-    def additional_equations(self, k):
-        r"""Calculate results of additional equations."""
-        return
-
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives fluid and mass balance are static
-        k = self.num_nw_fluids + 1
-
-        ######################################################################
-        # derivatives for specified power
-        if self.P.is_set:
-            self.jacobian[k, 0, 0] = (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-            self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
-            k += 1
-
-        ######################################################################
-        # derivatives for specified pressure ratio
-        if self.pr.is_set:
-            self.jacobian[k, 0, 1] = self.pr.val
-            self.jacobian[k, 1, 1] = -1
-            k += 1
-
-        ######################################################################
-        # derivatives for additional equations
-        self.additional_derivatives(increment_filter, k)
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        return
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
 
     def bus_func(self, bus):
         r"""
@@ -212,7 +196,7 @@ class Turbomachine(Component):
 
         Returns
         -------
-        val : float
+        residual : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
             :py:meth:`tespy.components.component.Component.calc_bus_value`
             for value manipulation according to the specified characteristic

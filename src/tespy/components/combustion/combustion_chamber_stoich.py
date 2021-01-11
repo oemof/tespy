@@ -197,13 +197,14 @@ class CombustionChamberStoich(CombustionChamber):
         return 'combustion chamber stoichiometric flue gas'
 
     def attr(self):
-        return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
-                'air': dc_simple(), 'air_alias': dc_simple(),
-                'path': dc_simple(),
-                'lamb': dc_cp(
-                    min_val=1, deriv=self.lambda_deriv, func=self.lambda_func),
-                'ti': dc_cp(
-                    min_val=0, deriv=self.ti_deriv, func=self.ti_func)
+        return {
+            'fuel': dc_simple(), 'fuel_alias': dc_simple(),
+            'air': dc_simple(), 'air_alias': dc_simple(),
+            'path': dc_simple(),
+            'lamb': dc_cp(
+                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func),
+            'ti': dc_cp(
+                min_val=0, deriv=self.ti_deriv, func=self.ti_func)
         }
 
     @staticmethod

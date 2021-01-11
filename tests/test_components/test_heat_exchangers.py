@@ -61,7 +61,7 @@ class TestHeatExchangers:
 
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
-    def test_heat_ex_simple(self):
+    def test_HeatExhangerSimple(self):
         """Test component properties of simple heat exchanger."""
         instance = HeatExchangerSimple('heat exchanger')
         self.setup_HeatExchangerSimple_network(instance)
@@ -319,7 +319,7 @@ class TestHeatExchangers:
         convergence_check(self.nw.lin_dep)
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-    def test_heat_ex(self):
+    def test_HeatExchanger(self):
         """Test component properties of heat exchanger."""
         instance = HeatExchanger('heat exchanger')
         self.setup_HeatExchanger_network(instance)

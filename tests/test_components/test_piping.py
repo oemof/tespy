@@ -18,7 +18,6 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 
 
 def convergence_check(lin_dep):
@@ -68,7 +67,8 @@ class TestPiping:
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
         dp_char = CharLine(x, y)
-        instance.set_attr(zeta=None, dp_char=dc_cc(func=dp_char, is_set=True))
+        instance.set_attr(zeta=None, dp_char={
+            'char_func': dp_char, 'is_set': True})
         m = 11
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=np.nan)

@@ -379,8 +379,8 @@ def test_compressor_missing_char_parameter():
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(func=CharLine([0, 1], [1, 2]),
-                                       is_set=True, param=None))
+    instance.set_attr(eta_s_char={
+        'func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
     with raises(ValueError):
         instance.eta_s_char_func()
@@ -411,8 +411,8 @@ def test_Turbine_missing_char_parameter():
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(func=CharLine([0, 1], [1, 2]),
-                                       is_set=True, param=None))
+    instance.set_attr(eta_s_char={
+        'char_func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
     with raises(ValueError):
         instance.eta_s_char_func()

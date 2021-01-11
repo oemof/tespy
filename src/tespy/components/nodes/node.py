@@ -15,43 +15,37 @@ import logging
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import num_fluids
 
 
-class Node(Component):
+class Node(NodeBase):
     r"""
-    Class Node is the parent class for Splitter, Separator and Merge.
+    Class for merge points with multiple inflows and multiple outflows.
 
-    Equations
+    This class is in experimental state, backflow is possible and taken into
+    account. As backflow alters the system of equations of this component, the
+    usage might be difficult.
 
-        **mandatory equations**
+    **Mandatory Equations**
 
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-        .. math::
-
-            0 = p_{in,1} - p_{out,i}\\
-            \forall i \in \mathrm{outlets}
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.nodes.node.Node.additional_equations`
-        - :py:meth:`tespy.components.nodes.splitter.Splitter.additional_equations`
-        - :py:meth:`tespy.components.nodes.separator.Separator.additional_equations`
-        - :py:meth:`tespy.components.nodes.merge.Merge.additional_equations`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.node.Node.fluid_func`
+    - :py:meth:`tespy.components.nodes.node.Node.energy_balance_func`
 
     Inlets/Outlets
 
-        - specify number of outlets with :code:`num_in` (default value: 2)
-        - specify number of outlets with :code:`num_out` (default value: 2)
+    - specify number of outlets with :code:`num_in` (default value: 2)
+    - specify number of outlets with :code:`num_out` (default value: 2)
 
     Image
 
-        .. image:: _images/Node.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Node.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -174,87 +168,40 @@ class Node(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # mass flow: 1
         # pressure: number of inlets + number of outlets - 1
-        # the number of fluid and enthalpy equations is variable for a node!
-
-        self.num_eq = 1 + self.num_i + self.num_o - 1
-
-        # number of fluid equations
-        self.num_eq += self.num_nw_fluids * self.num_o
-        # number of enthalpy equations
-        self.num_eq += self.num_o
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        # the number of fluid and enthalpy equations is variable for a node,
+        # initial values are:
+        # fluid: number of fluids * number of outlets
+        # energy: number of outlets
+        num_eq = self.num_i + self.num_o * (2 + len(nw.fluids))
+        Component.comp_init(self, nw, num_eq=num_eq)
+        # constant derivatives
         self.jacobian[0:1] = self.mass_flow_deriv()
-        self.jacobian[1:self.num_i + self.num_o] = self.pressure_deriv()
+        pos = self.num_i + self.num_o
+        self.jacobian[1:pos] = self.pressure_equality_deriv()
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
-        ######################################################################
-        # eqation for mass flow balance
-        self.residual[k] = self.mass_flow_func()
-        k += 1
-
-        ######################################################################
-        # equations for pressure
-        inl = []
-        if self.num_i > 1:
-            inl = self.inl[1:]
-        for c in inl + self.outl:
-            self.residual[k] = self.inl[0].p.val_SI - c.p.val_SI
-            k += 1
-
-        ######################################################################
-        # additional eqations
-        self.additional_equations(k)
-
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives for mass and pressure are static
-        k = self.num_i + self.num_o
-        ######################################################################
-        # additional derivatives
-        self.additional_derivatives(increment_filter, k)
-
-    def additional_equations(self, k):
+    def mandatory_equations(self, doc=False):
         r"""
-        Calculate the residual vector of the additional equations.
+        Calculate residual vector of mandatory equations.
 
-        Equations
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
-            **mandatroy equations**
-
-            .. math::
-
-                0 = \sum_i \left(\dot{m}_{i} \cdot x_{i,j}\right) - x_{o,j}
-                \cdot  \sum_i \dot{m}_{i}\\
-                \forall j \in \text{fluids}\\
-                \forall o \in \text{outgoing mass flows}\\
-                \text{i: incoming mass flows}
-
-            .. math::
-
-                0 = \sum_i \dot{m}_{i} \cdot h_{i}
-                - \sum_o \dot{m}_{o} \cdot h_{o}
-                \forall o \in \text{outgoing mass flows}\\
-                \text{i: incoming mass flows}
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
         """
+        k = NodeBase.mandatory_equations(self, doc=doc)
         ######################################################################
         # check for incoming/outgoing mass flows in inlets and outlets
         loc = 0
         # total incoming enthalpy
-        h = 0
+        self.h_inc = 0
         # total incoming mass flow (constant within every iteration)
         self.m_inc = 0
 
@@ -265,10 +212,10 @@ class Node(Component):
             if c.m.val_SI >= 0:
                 self.inc += [[c, loc]]
                 self.m_inc += c.m.val_SI
-                h += c.m.val_SI * c.h.val_SI
+                self.h_inc += c.m.val_SI * c.h.val_SI
             # outgoing
             else:
-                self.outg += [[c, loc]]
+                self.outg += [[c, c.loc]]
             loc += 1
 
         for c in self.outl:
@@ -276,39 +223,120 @@ class Node(Component):
             if c.m.val_SI < 0:
                 self.inc += [[c, loc]]
                 self.m_inc -= c.m.val_SI
-                h -= c.m.val_SI * c.h.val_SI
+                self.h_inc -= c.m.val_SI * c.h.val_SI
             # outgoing
             else:
                 self.outg += [[c, loc]]
             loc += 1
 
+        num_out = len(self.outg)
+
         self.jacobian = self.jacobian[0:k]
         self.jacobian = np.append(self.jacobian, np.zeros((
-            len(self.outg) * (self.num_nw_fluids + 1),
+            num_out * (self.num_nw_fluids + 1),
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars)), axis=0)
 
         ######################################################################
         # equations for fluid composition
-
-        for fluid in self.nw_fluids:
-            m = 0
-            for i in self.inc:
-                m += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
-            for o in self.outg:
-                self.residual[k] = m - o[0].fluid.val[fluid] * self.m_inc
-                k += 1
-
+        num_eq = self.num_nw_fluids * num_out
+        self.residual[k:k + num_eq] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:k + num_eq] = self.fluid_func(doc=doc)
+        k += num_eq
         ######################################################################
         # equations for energy balance
-        for o in self.outg:
-            self.residual[k] = h - o[0].h.val_SI * self.m_inc
-            k += 1
+        self.residual[k:k + num_out] = self.energy_balance_func()
+        if doc:
+            self.equation_docs[k:k + num_out] = (
+                self.energy_balance_func(doc=doc))
+        k += num_out
+        return k
 
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
+    def mandatory_derivatives(self, increment_filter):
+        r"""
+        Calculate partial derivatives for mandatory equations.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
+        k = NodeBase.mandatory_derivatives(self, increment_filter)
+        num_out = len(self.outg)
         ######################################################################
         # derivatives for fluid balance equations
+        self.fluid_deriv(increment_filter, k)
+        k += self.num_nw_fluids * num_out
+        ######################################################################
+        # derivatives for energy balance equations
+        self.energy_balance_deriv(increment_filter, k)
+        k += num_out
+        return k
+
+    def fluid_func(self, doc=False):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+
+            .. math::
+
+                0 = \sum_i \left(|\dot{m}_{inc,i}| \cdot x_{fl,inc,i}\right)
+                - x_{fl,outg,j} \cdot  \sum_i |\dot{m}_{inc,i}|\\
+                \forall fl \in \text{fluids}\\
+                \forall i \in \text{incomning mass flows}\\
+                \forall j \in \text{outgoing mass flows}
+        """
+        if not doc:
+            residual = []
+            for fluid in self.nw_fluids:
+                m = 0
+                for i in self.inc:
+                    m += abs(i[0].m.val_SI) * i[0].fluid.val[fluid]
+                for o in self.outg:
+                    residual += [m - o[0].fluid.val[fluid] * self.m_inc]
+            return residual
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 =& \sum_i \left(|\dot{m}_{\mathrm{inc,}i}| \cdot '
+                r'x_{fl\mathrm{,inc,}i}\right) - x_{fl\mathrm{,outg,}j} \cdot '
+                r'\sum_i |\dot{m}_{\mathrm{inc,}i}|\\' + '\n'
+                r'\forall & fl \in \text{fluids}\\' + '\n'
+                r'\forall & i \in \text{incomning mass flows}\\' + '\n'
+                r'\forall & j \in \text{outgoing mass flows}\\' + '\n'
+                r'\end{split}'
+            )
+            return (
+                [self.generate_latex(latex, 'fluid_func')] +
+                (self.num_nw_fluids - 1) * [''])
+
+    def fluid_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
         j = 0
         for fluid in self.nw_fluids:
             for o in self.outg:
@@ -319,38 +347,62 @@ class Node(Component):
                 k += 1
             j += 1
 
-        ######################################################################
-        # derivatives for energy balance equations
+    def energy_balance_func(self, doc=False):
+        r"""
+        Calculate energy balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Residual value of energy balance.
+
+            .. math::
+
+                0 = \sum_i \left(|\dot{m}_{inc,i}| \cdot h_{inc,i}\right)
+                - h_{outg,j} \cdot  \sum_i |\dot{m}_{inc,i}|\\
+                \forall i \in \text{incomning mass flows}\\
+                \forall j \in \text{outgoing mass flows}
+        """
+        if not doc:
+            residual = []
+            for o in self.outg:
+                residual += [self.h_inc - o[0].h.val_SI * self.m_inc]
+            return residual
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 =& \sum_i \left(|\dot{m}_{\mathrm{inc,}i}| \cdot '
+                r'h_{\mathrm{inc,}i}\right) - h_{\mathrm{outg,}j} \cdot '
+                r'\sum_i |\dot{m}_{\mathrm{inc,}i}|\\' + '\n'
+                r'\forall & i \in \text{incomning mass flows}\\' + '\n'
+                r'\forall & j \in \text{outgoing mass flows}\\' + '\n'
+                r'\end{split}'
+            )
+            return [self.generate_latex(latex, 'energy_balance_func')]
+
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
         for o in self.outg:
             self.jacobian[k, o[1], 2] = -self.m_inc
             for i in self.inc:
                 self.jacobian[k, i[1], 0] = i[0].h.val_SI - o[0].h.val_SI
                 self.jacobian[k, i[1], 2] = abs(i[0].m.val_SI)
             k += 1
-
-        logging.info(str(self.jacobian))
-
-    def pressure_deriv(self):
-        r"""
-        Calculate partial derivatives for all pressure equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((
-            self.num_i + self.num_o - 1,
-            self.num_i + self.num_o,
-            self.num_nw_vars))
-
-        inl = []
-        if self.num_i > 1:
-            inl = self.inl[1:]
-        for k in range(len(inl + self.outl)):
-            deriv[k, 0, 1] = 1
-            deriv[k, k + 1, 1] = -1
-        return deriv
 
     def initialise_fluids(self):
         """Fluid initialisation for fluid mixture at outlet of the node."""
@@ -377,66 +429,6 @@ class Node(Component):
                             i.fluid.val[fluid] = c.fluid.val[fluid]
             for o in self.outl:
                 o.target.propagate_fluid_to_target(o, o.target)
-
-    @staticmethod
-    def initialise_source(c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 1e5
-        elif key == 'h':
-            return 5e5
-
-    @staticmethod
-    def initialise_target(c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at inlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 1e5
-        elif key == 'h':
-            return 5e5
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

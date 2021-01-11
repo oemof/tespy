@@ -13,39 +13,29 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.components.nodes.node import Node
+from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 
 
-class Splitter(Node):
+class Splitter(NodeBase):
     r"""
     Split up a mass flow in parts of identical enthalpy and fluid composition.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
-
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-        .. math::
-
-            0 = p_{in} - p_{out,i} \;
-            \forall i \in \mathrm{outlets}
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.nodes.splitter.Splitter.additional_equations`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
 
     Inlets/Outlets
 
-        - in1
-        - specify number of outlets with :code:`num_out` (default value: 2)
+    - in1
+    - specify number of outlets with :code:`num_out` (default value: 2)
 
     Image
 
-        .. image:: _images/Splitter.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Splitter.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -141,63 +131,90 @@ class Splitter(Node):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # mass flow: 1
         # pressure: number of inlets + number of outlets - 1
         # fluid: number of outlets * number of fluid_set
         # enthalpy: number of outlets
-
-        self.num_eq = self.num_i + self.num_o * (2 + self.num_nw_fluids)
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        num_eq = self.num_i + self.num_o * (2 + len(nw.fluids))
+        Component.comp_init(self, nw, num_eq=num_eq)
+        # constant derivatives
         self.jacobian[0:1] = self.mass_flow_deriv()
         end = self.num_i + self.num_o
-        self.jacobian[1:end] = self.pressure_deriv()
+        self.jacobian[1:end] = self.pressure_equality_deriv()
         start = end
-        end = start + self.num_o * self.num_nw_fluids
+        end += self.num_o * self.num_nw_fluids
         self.jacobian[start:end] = self.fluid_deriv()
         start = end
-        end = start + self.num_o
-        self.jacobian[start:end] = self.enthalpy_deriv()
+        end += self.num_o
+        self.jacobian[start:end] = self.energy_balance_deriv()
 
-    def additional_equations(self, k):
+    def mandatory_equations(self, doc=False):
         r"""
-        Calculate results of additional equations.
+        Calculate residual vector of mandatory equations.
 
-        Equations
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
-            **mandatroy equations**
-
-            .. math:: 0 = fluid_{i,in} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in outlets
-
-            .. math::
-                0 = h_{in} - h_{out,i} \;
-                \forall i \in \mathrm{outlets}\\
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
         """
+        k = NodeBase.mandatory_equations(self, doc=doc)
         ######################################################################
         # equations for fluid balance
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                self.residual[k] = x - o.fluid.val[fluid]
-                k += 1
-
+        num_eq = self.num_o * self.num_nw_fluids
+        self.residual[k:k + num_eq] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:k + num_eq] = self.fluid_func(doc=doc)
+        k += num_eq
         ######################################################################
         # equations for energy balance
-        for o in self.outl:
-            self.residual[k] = self.inl[0].h.val_SI - o.h.val_SI
-            k += 1
+        self.residual[k:k + self.num_o] = self.energy_balance_func()
+        if doc:
+            self.equation_docs[k:k + self.num_o] = (
+                self.energy_balance_func(doc=doc))
+        k += self.num_o
+        return k
 
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        return
+    def fluid_func(self, doc=False):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+
+            .. math::
+
+                0 = x_{fl,in} - x_{fl,out,j} \;
+                \forall fl \in \text{network fluids,} \; \forall j \in
+                \text{outlets}
+        """
+        if not doc:
+            residual = []
+            for o in self.outl:
+                for fluid, x in self.inl[0].fluid.val.items():
+                    residual += [x - o.fluid.val[fluid]]
+            return residual
+        else:
+            latex = (
+                r'0 = x_{fl\mathrm{,in}} - x_{fl\mathrm{,out,}j}'
+                r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
+                r'\text{outlets}'
+            )
+            return (
+                [self.generate_latex(latex, 'fluid_func')] +
+                (self.num_nw_fluids * self.num_o - 1) * [''])
 
     def fluid_deriv(self):
         r"""
@@ -220,9 +237,37 @@ class Splitter(Node):
             k += 1
         return deriv
 
-    def enthalpy_deriv(self):
+    def energy_balance_func(self, doc=False):
         r"""
-        Calculate partial derivatives for enthalpy balance equation.
+        Calculate energy balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Residual value of energy balance.
+
+            .. math::
+
+                0 = h_{in} - h_{out,j} \;
+                \forall j \in \mathrm{outlets}\\
+        """
+        if not doc:
+            residual = []
+            for o in self.outl:
+                residual += [self.inl[0].h.val_SI - o.h.val_SI]
+            return residual
+        else:
+            latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
+            return [self.generate_latex(latex, 'energy_balance_func')]
+
+    def energy_balance_deriv(self):
+        r"""
+        Calculate partial derivatives for energy balance equation.
 
         Returns
         -------
@@ -278,25 +323,3 @@ class Splitter(Node):
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)
-
-    def initialise_fluids(self):
-        """Overwrite parent method."""
-        return
-
-    def entropy_balance(self):
-        r"""Entropy balance calculation method."""
-        return
-
-    def exergy_balance(self, T0):
-        r"""
-        Exergy balance calculation method.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-        """
-        Component.exergy_balance(self, T0)
-
-    def get_plotting_data(self):
-        return

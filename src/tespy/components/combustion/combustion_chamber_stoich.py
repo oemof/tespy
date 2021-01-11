@@ -32,39 +32,32 @@ class CombustionChamberStoich(CombustionChamber):
     r"""
     The class CombustionChamberStoich is a simplified combustion chamber.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.reaction_balance_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance_func`
 
-        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.reaction_balance`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        .. math::
-
-            0 = p_{in,i} - p_{out} \;
-            \forall i \in \mathrm{inlets}
-
-        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance`
-
-        **optional equations**
-
-        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.lambda_func`
-        - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.ti_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.lambda_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.ti_func`
 
     Available fuels
 
-        - methane, ethane, propane, butane, hydrogen
+    - methane, ethane, propane, butane, hydrogen
 
     Inlets/Outlets
 
-        - in1, in2
-        - out1
+    - in1, in2
+    - out1
 
     Image
 
-        .. image:: _images/CombustionChamber.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/CombustionChamber.svg
+       :alt: alternative text
+       :align: center
 
     .. note::
 
@@ -203,14 +196,15 @@ class CombustionChamberStoich(CombustionChamber):
     def component():
         return 'combustion chamber stoichiometric flue gas'
 
-    @staticmethod
-    def attr():
+    def attr(self):
         return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
                 'air': dc_simple(), 'air_alias': dc_simple(),
                 'path': dc_simple(),
-                'lamb': dc_cp(min_val=1),
-                'ti': dc_cp(min_val=0),
-                'S': dc_simple()}
+                'lamb': dc_cp(
+                    min_val=1, deriv=self.lambda_deriv, func=self.lambda_func),
+                'ti': dc_cp(
+                    min_val=0, deriv=self.ti_deriv, func=self.ti_func)
+        }
 
     @staticmethod
     def inlets():
@@ -227,27 +221,17 @@ class CombustionChamberStoich(CombustionChamber):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # reaction balance: num_fl
         # mass flow: 1
         # pressure: 2
         # energy balance: 1
-        self.num_eq = self.num_nw_fluids + 4
-        for var in [self.lamb, self.ti]:
-            if var.is_set is True:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 4)
+        # constant derivatives
         self.jacobian[0:1] = self.mass_flow_deriv()
-        self.jacobian[1:3] = self.pressure_deriv()
+        self.jacobian[1:3] = self.combustion_pressure_deriv()
 
+        logging.error(str(self.fuel.is_set))
         if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = ('You must specify the fuel composition for stoichimetric '
                    'combustion chamber ' + self.label + '.')
@@ -524,69 +508,7 @@ class CombustionChamberStoich(CombustionChamber):
                    self.label + '.')
         logging.debug(msg)
 
-    def derivatives(self, increment_filter):
-        r"""Calculate matrix of partial derivatives for given equations."""
-        ######################################################################
-        # derivatives for mass flow and pressure are static
-        k = 3
-
-        ######################################################################
-        # derivatives for reaction balance
-        for fluid in self.nw_fluids:
-            for i in range(3):
-                if not increment_filter[i, 0]:
-                    self.jacobian[k, i, 0] = self.rb_numeric_deriv(
-                        'm', i, fluid)
-                if not all(increment_filter[i, 3:]):
-                    self.jacobian[k, i, 3:] = self.rb_numeric_deriv(
-                        'fluid', i, fluid)
-            k += 1
-
-        ######################################################################
-        # derivatives for energy balance equations
-        f = self.energy_balance
-        for i in range(3):
-            if not increment_filter[i, 0]:
-                self.jacobian[k, i, 0] = self.numeric_deriv(f, 'm', i)
-            if not increment_filter[i, 1]:
-                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-            if i >= self.num_i:
-                self.jacobian[k, i, 2] = -(
-                    self.inl + self.outl)[i].m.val_SI
-            else:
-                self.jacobian[k, i, 2] = (
-                    self.inl + self.outl)[i].m.val_SI
-        k += 1
-
-        ######################################################################
-        # derivatives for specified lamb
-        if self.lamb.is_set:
-            f = self.lambda_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not all(increment_filter[0, 3:]):
-                self.jacobian[k, 0, 3:] = self.numeric_deriv(f, 'fluid', 0)
-            if not increment_filter[1, 0]:
-                self.jacobian[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
-            if not all(increment_filter[1, 3:]):
-                self.jacobian[k, 1, 3:] = self.numeric_deriv(f, 'fluid', 1)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified thermal input
-        if self.ti.is_set:
-            fuel = self.fuel_alias.val
-            pos = 3 + self.nw_fluids.index(fuel)
-
-            for i in range(2):
-                self.jacobian[k, i, 0] = -self.inl[i].fluid.val[fuel]
-                self.jacobian[k, i, pos] = -self.inl[i].m.val_SI
-            self.jacobian[k, 2, 0] = self.outl[0].fluid.val[fuel]
-            self.jacobian[k, 2, pos] = self.outl[0].m.val_SI
-            self.jacobian[k] *= self.lhv
-            k += 1
-
-    def reaction_balance(self, fluid):
+    def reaction_balance_func(self, fluid, doc=False):
         r"""
         Calculate the reaction balance for one fluid.
 
@@ -644,85 +566,144 @@ class CombustionChamberStoich(CombustionChamber):
         fluid : str
             The fluid to calculate the reation balance for.
 
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
         """
         air = self.air_alias.val
         fuel = self.fuel_alias.val
         flue_gas = self.fuel_alias.val + '_fg'
 
-        ######################################################################
-        # calculate fuel and air mass flow
-        m_fuel = 0
-        for i in self.inl:
-            m_fuel += i.m.val_SI * i.fluid.val[fuel]
+        if not doc:
+            ###################################################################
+            # calculate fuel and air mass flow
+            m_fuel = 0
+            for i in self.inl:
+                m_fuel += i.m.val_SI * i.fluid.val[fuel]
 
-        m_air = 0
-        for i in self.inl:
-            m_air += i.m.val_SI * i.fluid.val[air]
+            m_air = 0
+            for i in self.inl:
+                m_air += i.m.val_SI * i.fluid.val[air]
 
-        m_air_min = self.air_min * m_fuel
+            m_air_min = self.air_min * m_fuel
 
-        ######################################################################
-        # calculate lambda if not specified
-        if not self.lamb.is_set:
-            self.lamb.val = m_air / (self.air_min * m_fuel)
+            ###################################################################
+            # calculate lambda if not specified
+            if not self.lamb.is_set:
+                self.lamb.val = m_air / (self.air_min * m_fuel)
 
-        ######################################################################
-        # calculate excess fuel if lambda is smaller than 1
-        m_fuel_exc = 0
-        if self.lamb.val < 1:
-            m_fuel_exc = m_fuel - m_air / (self.lamb.val * self.air_min)
+            ###################################################################
+            # calculate excess fuel if lambda is smaller than 1
+            m_fuel_exc = 0
+            if self.lamb.val < 1:
+                m_fuel_exc = m_fuel - m_air / (self.lamb.val * self.air_min)
 
-        ######################################################################
-        # equation for air
-        if fluid == air:
-            if self.lamb.val >= 1:
-                dm = -m_air_min
+            ###################################################################
+            # equation for air
+            if fluid == air:
+                if self.lamb.val >= 1:
+                    dm = -m_air_min
+                else:
+                    dm = -m_air
+
+            ###################################################################
+            # equation for fuel
+            elif fluid == fuel:
+                dm = -(m_fuel - m_fuel_exc)
+
+            ###################################################################
+            # equation for flue gas
+            elif fluid == flue_gas:
+                dm = m_air_min + m_fuel
+
+            ###################################################################
+            # equation for other components
             else:
-                dm = -m_air
+                dm = 0
 
-        ######################################################################
-        # equation for fuel
-        elif fluid == fuel:
-            dm = -(m_fuel - m_fuel_exc)
-
-        ######################################################################
-        # equation for flue gas
-        elif fluid == flue_gas:
-            dm = m_air_min + m_fuel
-
-        ######################################################################
-        # equation for other components
+            res = dm
+            for i in self.inl:
+                res += i.fluid.val[fluid] * i.m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            return res
         else:
-            dm = 0
+            in1 = r'\dot{m}_\mathrm{in,1} \cdot x_\mathrm{fluid,in,1}'
+            in2 = r'\dot{m}_\mathrm{in,2} \cdot x_\mathrm{fluid,in,2}'
+            out = r'\dot{m}_\mathrm{out,1} \cdot x_\mathrm{fluid,out,1}'
+            if fluid == air:
+                latex = (
+                    r'0=\Delta\dot{m}_\mathrm{' + fluid + r'} - '
+                    r'\dot{m}_\mathrm{' + fluid + r',stoich}'
+                )
+            elif fluid == fuel:
+                latex = (
+                    r'0=\Delta \dot{m}_\mathrm{' + fluid + r'} - '
+                    r'\dot{m}_\mathrm{' + fluid + r'}'
+                )
+            elif fluid == flue_gas:
+                latex = (
+                    r'0=\Delta \dot{m}_\mathrm{' + fluid.replace('_', ',') +
+                    r'} + \dot{m}_\mathrm{' + fuel + r'} +'
+                    r'\dot{m}_\mathrm{' + air + r',stoich}'
+                )
+            else:
+                latex = r'0 = \Delta \dot{m}_\mathrm{' + fluid + '}'
 
-        res = dm
-        for i in self.inl:
-            res += i.fluid.val[fluid] * i.m.val_SI
-        for o in self.outl:
-            res -= o.fluid.val[fluid] * o.m.val_SI
-        return res
+            if fluid == next(iter(self.inl[0].fluid.val)):
+                balance = (
+                    r'\Delta \dot{m}_\mathrm{fluid} = ' + in1 +
+                    '+' + in2 + '-' + out)
+                m_fluid = r'\dot{m}_\mathrm{fluid} = ' + in1 + '+' + in2
+                m_air_stoich = (
+                    r'\dot{m}_\mathrm{' + air + ',stoich}='
+                    r'\dot{m}_\mathrm{' + fuel + r'} \cdot ' +
+                    str(round(self.air_min, 4)))
+                latex_general_eq = (
+                    r'\begin{split}' + '\n'
+                    r'&' + balance + r'\\' + '\n'
+                    r'&' + m_fluid + r'\\' + '\n'
+                    r'&' + m_air_stoich + r'\\' + '\n'
+                    r'\end{split}'
+                )
+                return [
+                    self.generate_latex(
+                        latex_general_eq, 'reaction_balance_func_general_eq') +
+                    '\n' + self.generate_latex(
+                        latex, 'reaction_balance_func_' + fluid)]
+            else:
+                return [self.generate_latex(
+                    latex, 'reaction_balance_func_' + fluid)]
 
-    def energy_balance(self):
+    def energy_balance_func(self, doc=False):
         r"""
         Calculate the energy balance of the adiabatic combustion chamber.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = \sum_i \dot{m}_{in,i} \cdot
-                \left( h_{in,i} - h_{in,i,ref} \right) - \sum_j \dot{m}_{out,j}
-                \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
-                H_{I,f} \cdot \left(\sum_i \dot{m}_{in,i} \cdot x_{f,i} -
-                \sum_j \dot{m}_{out,j} \cdot x_{f,j} \right)
-                \; \forall i \in \text{inlets}\; \forall j \in \text{outlets}
+                \begin{split}
+                0 = & \sum_i \dot{m}_{in,i} \cdot
+                \left( h_{in,i} - h_{in,i,ref} \right)\\
+                & -\dot{m}_{out,2}\cdot\left( h_{out,1}-h_{out,1,ref} \right)\\
+                & + LHV_{fuel} \cdot\left(\sum_i\dot{m}_{in,i}\cdot
+                x_{fuel,in,i}- \dot{m}_{out,1} \cdot x_{fuel} \right)
+                \end{split}\\
+
+                \forall i \in \text{inlets}
 
         Note
         ----
@@ -733,58 +714,127 @@ class CombustionChamberStoich(CombustionChamber):
         - Reference temperature: 373.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 373.15
-        p_ref = 1e5
+        if not doc:
+            T_ref = 373.15
+            p_ref = 1e5
 
-        res = 0
-        for i in self.inl:
-            res += i.m.val_SI * (
-                i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
-        for o in self.outl:
-            res -= o.m.val_SI * (
-                o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
+            res = 0
+            for i in self.inl:
+                res += i.m.val_SI * (
+                    i.h.val_SI - h_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+            for o in self.outl:
+                res -= o.m.val_SI * (
+                    o.h.val_SI - h_mix_pT([0, p_ref, 0, o.fluid.val], T_ref))
 
-        return res + self.calc_ti()
+            return res + self.calc_ti()
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
+                r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
+                r'\dot{m}_\mathrm{out,1}\cdot\left( h_\mathrm{out,1}'
+                r' - h_\mathrm{out,1,ref}\right)\\' + '\n'
+                r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
+                r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,1} '
+                r'\cdot x_{fuel\mathrm{,out,1}} \right)\\' + '\n'
+                r'& \forall i \in \text{inlets}\\'
+                r'& T_\mathrm{ref}=\unit[373.15]{K}'
+                r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
+                '\n' + r'\end{split}'
+            )
+            return [self.generate_latex(latex, 'energy_balance_func')]
 
-    def lambda_func(self):
+    def lambda_func(self, doc=False):
         r"""
         Calculate the residual for specified lambda.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        val : float
+        residual : float
             Residual value of function.
 
             .. math::
 
-                val = \lambda - \frac{\dot{m}_{air}}{\dot{m}_{air,min}}
+                0 = \lambda - \frac{\dot{m}_{air}}{\dot{m}_{air,min}}
         """
-        air = self.air_alias.val
-        fuel = self.fuel_alias.val
+        if not doc:
+            air = self.air_alias.val
+            fuel = self.fuel_alias.val
 
-        m_air = 0
-        m_fuel = 0
+            m_air = 0
+            m_fuel = 0
 
-        for i in self.inl:
-            m_air += (i.m.val_SI * i.fluid.val[air])
-            m_fuel += (i.m.val_SI * i.fluid.val[fuel])
+            for i in self.inl:
+                m_air += (i.m.val_SI * i.fluid.val[air])
+                m_fuel += (i.m.val_SI * i.fluid.val[fuel])
 
-        return self.lamb.val - m_air / (m_fuel * self.air_min)
+            return self.lamb.val - m_air / (m_fuel * self.air_min)
+        else:
+            latex = (
+                r'0 = \lambda - '
+                r'\frac{\dot{m}_\mathrm{air}}{\dot{m}_\mathrm{air,min}}'
+            )
+            return [self.generate_latex(latex, 'lambda_func')]
 
-    def ti_func(self):
+    def ti_func(self, doc=False):
         r"""
         Calculate the residual for specified thermal input.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        val : float
+        residual : float
             Residual value of function.
 
             .. math::
 
-                val = ti - \dot{m}_f \cdot LHV
+                0 = ti - \dot{m}_f \cdot LHV
         """
-        return self.ti.val - self.calc_ti()
+        if not doc:
+            return self.ti.val - self.calc_ti()
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 = & ti - LHV_\mathrm{fuel} \cdot \left[\sum_i \left('
+                r'\dot{m}_{\mathrm{in,}i}\cdot x_{\mathrm{fuel,in,}i}\right)-'
+                r' \dot{m}_\mathrm{out,1}\cdot '
+                r'x_{\mathrm{fuel,out,1}} \right]\\' + '\n'
+                r'& \forall i \in \text{combustion inlets}\\' + '\n'
+                r'\end{split}'
+            )
+            return [self.generate_latex(latex, 'ti_func')]
+
+    def ti_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivatives of thermal input function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+        """
+        fuel = self.fuel_alias.val
+        pos = 3 + self.nw_fluids.index(fuel)
+
+        for i in range(2):
+            self.jacobian[k, i, 0] = -self.inl[i].fluid.val[fuel]
+            self.jacobian[k, i, pos] = -self.inl[i].m.val_SI
+        self.jacobian[k, 2, 0] = self.outl[0].fluid.val[fuel]
+        self.jacobian[k, 2, pos] = self.outl[0].m.val_SI
+        self.jacobian[k] *= self.lhv
+        k += 1
 
     def calc_ti(self):
         r"""

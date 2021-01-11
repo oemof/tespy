@@ -194,7 +194,8 @@ class ComponentCharacteristics(DataContainer):
         """
         return {
             'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None}
+            'func_params': {}, 'func': None, 'deriv': None,
+            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0}}
 
 # %%
 
@@ -362,7 +363,8 @@ class GroupedComponentProperties(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'is_set': False, 'method': 'default', 'elements': []}
+        return {'is_set': False, 'method': 'default', 'elements': [],
+                'func': None, 'deriv': None, 'func_params': {}}
 
 # %%
 

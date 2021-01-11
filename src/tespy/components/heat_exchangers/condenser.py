@@ -33,46 +33,37 @@ class Condenser(HeatExchanger):
     The condensing fluid is cooled by the cold side fluid. The fluid on the hot
     side of the condenser must be pure. Subcooling is available.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_func`
+    - condensate outlet state, function can be disabled by specifying
+      :code:`set_attr(subcooling=True)`
+      :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.subcooling_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.mass_flow_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_func`
-        - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
-        - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
-
-        .. math::
-
-            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
-            0 = p_{2,in} \cdot pr2 - p_{2,out}
-
-        - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-        - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.additional_equations`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_func`
+    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
+    - hot side :py:meth:`tespy.components.component.Component.pr_func`
+    - cold side :py:meth:`tespy.components.component.Component.pr_func`
+    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
+    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
-        - in1, in2 (index 1: hot side, index 2: cold side)
-        - out1, out2 (index 1: hot side, index 2: cold side)
+    - in1, in2 (index 1: hot side, index 2: cold side)
+    - out1, out2 (index 1: hot side, index 2: cold side)
 
     Image
 
-        .. image:: _images/Condenser.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Condenser.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -212,217 +203,273 @@ class Condenser(HeatExchanger):
     def component():
         return 'condenser'
 
-    @staticmethod
-    def attr():
+    def attr(self):
         return {
-            'Q': dc_cp(max_val=0), 'kA': dc_cp(min_val=0),
+            'Q': dc_cp(
+                max_val=0, func=self.energy_balance_hot_func,
+                deriv=self.energy_balance_hot_deriv),
+            'kA': dc_cp(min_val=0, func=self.kA_func, deriv=self.kA_deriv),
             'td_log': dc_cp(min_val=0),
-            'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
-            'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
-            'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-            'subcooling': dc_simple(val=False),
-            'kA_char': dc_simple(),
-            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m')
+            'ttd_u': dc_cp(
+                min_val=0, func=self.ttd_u_func, deriv=self.ttd_u_deriv),
+            'ttd_l': dc_cp(
+                min_val=0, func=self.ttd_l_func, deriv=self.ttd_l_deriv),
+            'pr1': dc_cp(
+                min_val=1e-4, max_val=1, deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr1'}),
+            'pr2': dc_cp(
+                min_val=1e-4, max_val=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+            'zeta1': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta1'}),
+            'zeta2': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
+            'kA_char': dc_simple(
+                func=self.kA_char_func, deriv=self.kA_char_deriv),
+            'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m'),
+            'subcooling': dc_simple(
+                val=False,
+                deriv=self.subcooling_deriv, func=self.subcooling_func)
         }
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
+        # if subcooling is True, outlet state method must not be calculated
+        self.subcooling.is_set = not self.subcooling.val
         # number of mandatroy equations for
         # fluid balance: num_fl * 2
         # mass flow: 2
         # energy balance: 1
-        self.num_eq = self.num_nw_fluids * 2 + 3
-        # enthalpy hot side outlet (if not subcooling): 1
-        if not self.subcooling.val:
-            self.num_eq += 1
-        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
-                    self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set:
-                self.num_eq += 1
-
-        if self.kA.is_set:
-            msg = (
-                'The usage of the parameter kA has changed for offdesign '
-                'calculation. Specifying kA will keep a constant value for kA '
-                'in the calculation. If you want to use the value adaption of '
-                'kA by the characteristic line, please use kA_char as '
-                'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.4.0.')
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) * 2 + 3)
+        # constant derivatives
         pos = self.num_nw_fluids * 2
         self.jacobian[0:pos] = self.fluid_deriv()
         self.jacobian[pos:pos + 2] = self.mass_flow_deriv()
 
-    def additional_equations(self, k):
+    def subcooling_func(self, doc=False):
         r"""
-        Calculate results of additional equations.
+        Equation for hot side outlet state.
 
-        Equations
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
-            **mandatory equations**
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
 
             .. math::
 
-                0 = h_{1,out} - h\left(p, x=0 \right)\\
-                x: \text{vapour mass fraction}
+                0=h_{out,1} -h\left(p_{out,1}, x=0 \right)
+
+        Note
+        ----
+        This equation is applied in case subcooling is False!
         """
-        ######################################################################
-        # equation for saturated liquid at hot side outlet
-        if not self.subcooling.val:
-            o1 = self.outl[0].to_flow()
-            self.residual[k] = o1[2] - h_mix_pQ(o1, 0)
-            k += 1
+        if not doc:
+            return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].to_flow(), 0)
+        else:
+            latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
+            return [self.generate_latex(latex, 'subcooling_func')]
 
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for saturated liquid at hot side outlet equation
-        if not self.subcooling.val:
-            o1 = self.outl[0].to_flow()
-            self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 0)
-            self.jacobian[k, 2, 2] = 1
-            k += 1
+    def subcooling_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of subcooling function.
 
-    def kA_func(self):
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        self.jacobian[k, 2, 1] = -dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, 2, 2] = 1
+
+    def kA_func(self, doc=False):
         r"""
         Calculate heat transfer from heat transfer coefficient.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot \frac{T_{1,out} -
-                T_{2,in} - T_s \left(p_{1,in}\right) +
-                T_{2,out}}
-                {\ln{\frac{T_{1,out} - T_{2,in}}
-                {T_s \left(p_{1,in}\right) - T_{2,out}}}}
+                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
+                kA \cdot \frac{T_{out,1} -
+                T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
+                {\ln{\frac{T_{out,1} - T_{in,2}}
+                {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
         """
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
+        if not doc:
 
-        T_i1 = T_bp_p(i1.to_flow())
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+            i1 = self.inl[0]
+            i2 = self.inl[1]
+            o1 = self.outl[0]
+            o2 = self.outl[1]
 
-        if T_i1 <= T_o2 and not i1.T.val_set:
-            T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.val_set:
-            T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.val_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.val_set:
-            T_i2 = T_o1 - 1
+            T_i1 = T_bp_p(i1.to_flow())
+            T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+            T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+            T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+            if T_i1 <= T_o2 and not i1.T.val_set:
+                T_i1 = T_o2 + 0.5
+            if T_i1 <= T_o2 and not o2.T.val_set:
+                T_o2 = T_i1 - 0.5
+            if T_o1 <= T_i2 and not o1.T.val_set:
+                T_o1 = T_i2 + 1
+            if T_o1 <= T_i2 and not i2.T.val_set:
+                T_i2 = T_o1 - 1
 
-        return i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
+            td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                      np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-    def kA_char_func(self):
+            return i1.m.val_SI * (
+                o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
+        else:
+            latex = (
+                r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
+                r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
+                r'T_\mathrm{in,2} -T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
+                r'+ T_\mathrm{out,2}}'
+                r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
+                r'{T_\mathrm{sat}\left( p_\mathrm{in,1}\right) -'
+                r'T_\mathrm{out,2}}}}'
+            )
+            return [self.generate_latex(latex, 'kA_func')]
+
+    def kA_char_func(self, doc=False):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA_{ref} \cdot f_{kA} \cdot \frac{T_{1,out} -
-                T_{2,in} - T_s \left(p_{1,in}\right) +
-                T_{2,out}}
-                {\ln{\frac{T_{1,out} - T_{2,in}}
-                {T_s \left(p_{1,in}\right) - T_{2,out}}}}
+                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
+                kA_{design} \cdot f_{kA} \cdot \frac{T_{out,1} -
+                T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
+                {\ln{\frac{T_{out,1} - T_{in,2}}
+                {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
 
-                f_{kA} = \frac{2}{
-                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
-                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
+                f_{kA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
+                \frac{1}{f_2 \left( expr_2\right)}}
 
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
         module :py:mod:`tespy.data`.
-
-        - Calculate temperatures at inlets and outlets.
-        - Perform value manipulation, if temperature levels are physically
-          infeasible.
         """
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
+        p1 = self.kA_char1.param
+        p2 = self.kA_char2.param
+        f1 = self.get_char_expr(p1, doc=doc)
+        f2 = self.get_char_expr(p2, inconn=1, outconn=1, doc=doc)
 
-        T_i1 = T_bp_p(i1.to_flow())
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+        if not doc:
+            i1 = self.inl[0]
+            i2 = self.inl[1]
+            o1 = self.outl[0]
+            o2 = self.outl[1]
 
-        if T_i1 <= T_o2 and not i1.T.val_set:
-            T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.val_set:
-            T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.val_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.val_set:
-            T_i2 = T_o1 - 1
+            # temperature value manipulation for convergence stability
+            T_i1 = T_bp_p(i1.to_flow())
+            T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+            T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+            T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+            if T_i1 <= T_o2 and not i1.T.val_set:
+                T_i1 = T_o2 + 0.5
+            if T_i1 <= T_o2 and not o2.T.val_set:
+                T_o2 = T_i1 - 0.5
+            if T_o1 <= T_i2 and not o1.T.val_set:
+                T_o1 = T_i2 + 1
+            if T_o1 <= T_i2 and not i2.T.val_set:
+                T_i2 = T_o1 - 1
 
-        fkA1 = 1
-        if self.kA_char1.param == 'm':
-            fkA1 = self.kA_char1.func.evaluate(i1.m.val_SI / i1.m.design)
+            td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                      np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-        fkA2 = 1
-        if self.kA_char2.param == 'm':
-            fkA2 = self.kA_char2.func.evaluate(i2.m.val_SI / i2.m.design)
+            fkA1 = self.kA_char1.char_func.evaluate(f1)
+            fkA2 = self.kA_char2.char_func.evaluate(f2)
+            fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        fkA = 2 / (1 / fkA1 + 1 / fkA2)
+            return (
+                i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
+                self.kA.design * fkA * td_log)
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
+                r'h_\mathrm{in,1}\right)\\' + '\n'
+                r'&+kA_\mathrm{design} \cdot '
+                r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
+                r' - T_\mathrm{sat}\left( p_\mathrm{in,1}\right) +'
+                r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
+                r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
+                r'- T_\mathrm{out,2}}}}\\' + '\n'
+                r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(' + f1 +
+                r'\right)}+\frac{1}{f\left(' + f2 + r'\right)}}\\' + '\n'
+                r'\end{split}'
+            )
+            return [self.generate_latex(
+                latex, 'kA_char_func_' + p1 + '_' + p2)]
 
-        return (
-            i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
-            self.kA.design * fkA * td_log)
-
-    def ttd_u_func(self):
+    def ttd_u_func(self, doc=False):
         r"""
         Equation for upper terminal temperature difference.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = ttd_{u} - T_s \left(p_{1,in}\right) + T_{2,out}
+                0 = ttd_{u} - T_{sat} \left(p_{in,1}\right) + T_{out,2}
 
         Note
         ----
         The upper terminal temperature difference ttd_u refers to boiling
         temperature at hot side inlet.
         """
-        i1 = self.inl[0].to_flow()
-        o2 = self.outl[1].to_flow()
-        T_o2 = T_mix_ph(o2, T0=self.outl[1].T.val_SI)
-        return self.ttd_u.val - T_bp_p(i1) + T_o2
+        if not doc:
+            T_i1 = T_bp_p(self.inl[0].to_flow())
+            T_o2 = T_mix_ph(self.outl[1].to_flow(), T0=self.outl[1].T.val_SI)
+            return self.ttd_u.val - T_i1 + T_o2
+        else:
+            latex = (
+                r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
+                r' + T_\mathrm{out,2}')
+            return [self.generate_latex(latex, 'ttd_u_func')]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
@@ -453,17 +500,10 @@ class Condenser(HeatExchanger):
 
         if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
-            if self.kA_char1.param == 'm':
-                if not np.isnan(self.inl[0].m.design):
-                    self.kA_char1.func.get_bound_errors(
-                        self.inl[0].m.val_SI / self.inl[0].m.design,
-                        self.label)
-
+            expr = self.get_char_expr(self.kA_char1.param)
+            self.kA_char1.char_func.get_bound_errors(expr, self.label)
+            expr = self.get_char_expr(self.kA_char2.param, inconn=1, outconn=1)
             # get bound errors for kA copld side characteristics
-            if self.kA_char2.param == 'm':
-                if not np.isnan(self.inl[1].m.design):
-                    self.kA_char2.func.get_bound_errors(
-                        self.inl[1].m.val_SI / self.inl[1].m.design,
-                        self.label)
+            self.kA_char2.char_func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()

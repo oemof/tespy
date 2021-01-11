@@ -28,41 +28,29 @@ class ParabolicTrough(HeatExchangerSimple):
     r"""
     The ParabolicTrough calculates heat output from irradiance.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) -
-            \dot{Q}
-
-            0 = p_{in} \cdot pr - p_{out}
-
-        - :py:meth:`tespy.components.component.Component.zeta_func`
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.darcy_func`
-          or :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hw_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.additional_equations`
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_group_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Image
 
-        .. image:: _images/ParabolicTrough.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/ParabolicTrough.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -229,11 +217,19 @@ class ParabolicTrough(HeatExchangerSimple):
     def component():
         return 'parabolic trough'
 
-    @staticmethod
-    def attr():
+    def attr(self):
         return {
-            'Q': dc_cp(),
-            'pr': dc_cp(min_val=1e-4, max_val=1), 'zeta': dc_cp(min_val=0),
+            'Q': dc_cp(
+                deriv=self.energy_balance_deriv,
+                func=self.energy_balance_func),
+            'pr': dc_cp(
+                min_val=1e-4, max_val=1,
+                deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr'}),
+            'zeta': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta'}),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
@@ -246,162 +242,122 @@ class ParabolicTrough(HeatExchangerSimple):
             'Tamb': dc_simple(),
             'Q_loss': dc_cp(min_val=0),
             'dissipative': dc_simple(val=True),
-            'hydro_group': dc_gcp(), 'energy_group': dc_gcp()
+            'hydro_group': dc_gcp(
+                elements=['L', 'ks', 'D'],
+                func=self.hydro_group_func, deriv=self.hydro_group_deriv),
+            'energy_group': dc_gcp(
+                elements=['E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
+                          'iam_2', 'A', 'Tamb'],
+                func=self.energy_group_func, deriv=self.energy_group_deriv)
         }
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
-        self.Tamb.val_SI = ((self.Tamb.val + nw.T[nw.T_unit][0]) *
-                            nw.T[nw.T_unit][1])
-
-        # parameters for hydro group
-        self.hydro_group.set_attr(elements=[self.L, self.ks, self.D])
-
-        is_set = True
-        for e in self.hydro_group.elements:
-            if not e.is_set:
-                is_set = False
-
-        if is_set:
-            self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set is True:
-            msg = (
-                'All parameters of the component group have to be specified! '
-                'This component group uses the following parameters: L, ks, D '
-                'at ' + self.label + '. Group will be set to False.')
-            logging.warning(msg)
-            self.hydro_group.set_attr(is_set=False)
-        else:
-            self.hydro_group.set_attr(is_set=False)
-
-        # parameters for energy group
-        self.energy_group.set_attr(
-            elements=[
-                self.E, self.eta_opt, self.aoi, self.doc, self.c_1, self.c_2,
-                self.iam_1, self.iam_2, self.A, self.Tamb])
-
-        is_set = True
-        for e in self.energy_group.elements:
-            if not e.is_set:
-                is_set = False
-
-        if is_set:
-            self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set is True:
-            msg = (
-                'All parameters of the component group have to be specified! '
-                'This component group uses the following parameters: E, '
-                'eta_opt, aoi, doc, c_1, c_2, iam_1, iam_2, A, Tamb at ' +
-                self.label + '. Group will be set to False.')
-            logging.warning(msg)
-            self.energy_group.set_attr(is_set=False)
-        else:
-            self.energy_group.set_attr(is_set=False)
-
         # number of mandatroy equations for
         # fluid balance: num_fl
         # mass flow: 1
-        self.num_eq = self.num_nw_fluids + 1
-        for var in [self.Q, self.pr, self.zeta, self.hydro_group,
-                    self.energy_group]:
-            if var.is_set is True:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
+        # place constant derivatives
         pos = self.num_nw_fluids
         self.jacobian[0:pos] = self.fluid_deriv()
         self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
-    def additional_equations(self, k):
-        r"""
-        Calculate results of additional equations.
+        self.Tamb.val_SI = (
+            (self.Tamb.val + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
 
-        Equations
-
-            **optional equations**
-
-            - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_func`
-        """
-        ######################################################################
-        # equation for specified energy-group paremeters
-        if self.energy_group.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.energy_func()
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for specified energy-group paremeters
-        if self.energy_group.is_set:
-            f = self.energy_func
-            self.jacobian[k, 0, 0] = (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            # custom variables for the energy-group
-            for var in self.energy_group.elements:
-                if var == self.Tamb:
-                    continue
-                if var.is_var:
-                    self.jacobian[k, 2 + var.var_pos, 0] = (
-                        self.numeric_deriv(f, self.vars[var], 2))
-            k += 1
-
-    def energy_func(self):
+    def energy_group_func(self, doc=False):
         r"""
         Equation for solar collector energy balance.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
-        Note
-        ----
-        .. math::
+            .. math::
 
-            \begin{split}
-            T_m = & \frac{T_{out} + T_{in}}{2}\\
-            iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\
-            0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
-            & - A \cdot \left[E \cdot \eta_{opt} \cdot doc^{1.5} \cdot
-            iam \right. \\
-            & \left. - c_1 \cdot \left(T_m - T_{amb} \right) -
-            c_2 \cdot \left(T_m - T_{amb}\right)^2
-            \vphantom{ \eta_{opt} \cdot doc^{1.5}} \right]
-            \end{split}
+                \begin{split}
+                T_m = & \frac{T_{out} + T_{in}}{2}\\
+                iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\
+                0 = & \dot{m} \cdot \left( h_{out} - h_{in} \right)\\
+                & - A \cdot \left[E \cdot \eta_{opt} \cdot doc^{1.5} \cdot
+                iam \right. \\
+                & \left. - c_1 \cdot \left(T_m - T_{amb} \right) -
+                c_2 \cdot \left(T_m - T_{amb}\right)^2
+                \vphantom{ \eta_{opt} \cdot doc^{1.5}} \right]
+                \end{split}
 
-        Reference: :cite:`Janotte2014`.
+            Reference: :cite:`Janotte2014`.
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        if not doc:
+            i = self.inl[0].to_flow()
+            o = self.outl[0].to_flow()
 
-        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
-               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+            T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
+                   T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        iam = (
-            1 - self.iam_1.val * abs(self.aoi.val) -
-            self.iam_2.val * self.aoi.val ** 2)
+            iam = (
+                1 - self.iam_1.val * abs(self.aoi.val) -
+                self.iam_2.val * self.aoi.val ** 2)
 
-        return (i[0] * (o[2] - i[2]) -
-                self.A.val * (
+            return (
+                i[0] * (o[2] - i[2]) - self.A.val * (
                     self.E.val * self.eta_opt.val * self.doc.val ** 1.5 * iam -
-                    (T_m - self.Tamb.val_SI) * self.c_1.val -
-                    self.c_2.val * (T_m - self.Tamb.val_SI) ** 2))
+                    (T_m - self.Tamb.val_SI) * self.c_1.val - self.c_2.val *
+                    (T_m - self.Tamb.val_SI) ** 2))
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
+                r'h_\mathrm{in} \right)\\' + '\n'
+                r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} \cdot doc^{1.5}'
+                r'\cdot iam \right. \\' + '\n'
+                r'&\left. -c_1\cdot\left(T_\mathrm{m}-T_\mathrm{amb}\right) -'
+                r'c_2 \cdot \left(T_\mathrm{m} - T_\mathrm{amb}\right)^2'
+                r'\vphantom{\eta_\mathrm{opt}\cdot doc^{1.5}}\right]\\' + '\n'
+                r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
+                '\n'
+                r'iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\' + '\n'
+                r'\end{split}'
+            )
+            return [self.generate_latex(latex, 'energy_group_func')]
+
+    def energy_group_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy group function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.energy_group_func
+        self.jacobian[k, 0, 0] = (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        # custom variables for the energy-group
+        for var in self.energy_group.elements:
+            var = self.get_attr(var)
+            if var == self.Tamb:
+                continue
+            if var.is_var:
+                self.jacobian[k, 2 + var.var_pos, 0] = (
+                    self.numeric_deriv(f, self.vars[var], 2))
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

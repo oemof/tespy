@@ -27,53 +27,41 @@ from tespy.tools.global_vars import err
 
 class HeatExchanger(Component):
     r"""
-    Class HeatExchanger is the parent class for Condenser and Desuperheater.
+    Class for counter current heat exchanger.
 
-    The heat exchanger represents counter current heat exchangers. Both, hot
-    and cold side of the heat exchanger, are simulated.
+    The component HeatExchanger is the parent class for the components:
 
-    Equations
+    - :py:class:`tespy.components.heat_exchangers.condenser.Condenser`
+    - :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`
 
-        **mandatory equations**
+    **Mandatory Equations**
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.mass_flow_func`
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_func`
 
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
-
-        .. math::
-
-            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
-            0 = p_{2,in} \cdot pr2 - p_{2,out}
-
-        - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-        - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.additional_equations`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
+    - hot side :py:meth:`tespy.components.component.Component.pr_func`
+    - cold side :py:meth:`tespy.components.component.Component.pr_func`
+    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
+    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
-        - in1, in2 (index 1: hot side, index 2: cold side)
-        - out1, out2 (index 1: hot side, index 2: cold side)
+    - in1, in2 (index 1: hot side, index 2: cold side)
+    - out1, out2 (index 1: hot side, index 2: cold side)
 
     Image
 
-        .. image:: _images/HeatExchanger.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/HeatExchanger.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -199,16 +187,34 @@ class HeatExchanger(Component):
     def component():
         return 'heat exchanger'
 
-    @staticmethod
-    def attr():
+    def attr(self):
         return {
-            'Q': dc_cp(max_val=0),
-            'kA': dc_cp(min_val=0),
+            'Q': dc_cp(
+                max_val=0, func=self.energy_balance_hot_func,
+                deriv=self.energy_balance_hot_deriv),
+            'kA': dc_cp(min_val=0, func=self.kA_func, deriv=self.kA_deriv),
             'td_log': dc_cp(min_val=0),
-            'ttd_u': dc_cp(min_val=0), 'ttd_l': dc_cp(min_val=0),
-            'pr1': dc_cp(max_val=1), 'pr2': dc_cp(max_val=1),
-            'zeta1': dc_cp(min_val=0), 'zeta2': dc_cp(min_val=0),
-            'kA_char': dc_simple(),
+            'ttd_u': dc_cp(
+                min_val=0, func=self.ttd_u_func, deriv=self.ttd_u_deriv),
+            'ttd_l': dc_cp(
+                min_val=0, func=self.ttd_l_func, deriv=self.ttd_l_deriv),
+            'pr1': dc_cp(
+                min_val=1e-4, max_val=1, deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr1'}),
+            'pr2': dc_cp(
+                min_val=1e-4, max_val=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+            'zeta1': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta1'}),
+            'zeta2': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
+            'kA_char': dc_simple(
+                func=self.kA_char_func, deriv=self.kA_char_deriv),
             'kA_char1': dc_cc(param='m'), 'kA_char2': dc_cc(param='m')
         }
 
@@ -222,140 +228,67 @@ class HeatExchanger(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # fluid balance: num_fl * 2
         # mass flow: 2
         # energy balance: 1
-        self.num_eq = self.num_nw_fluids * 2 + 3
-        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
-                    self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set:
-                self.num_eq += 1
-
-        if self.kA.is_set:
-            msg = (
-                'The usage of the parameter kA has changed for offdesign '
-                'calculation. Specifying kA will keep a constant value for kA '
-                'in the calculation. If you want to use the value adaption of '
-                'kA by the characteristic line, please use kA_char as '
-                'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.4.0.')
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) * 2 + 3)
         pos = self.num_nw_fluids * 2
         self.jacobian[0:pos] = self.fluid_deriv()
         self.jacobian[pos:pos + 2] = self.mass_flow_deriv()
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         k = 0
         ######################################################################
         # equations for fluid balance
         self.residual[k:k + self.num_nw_fluids * 2] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:k + self.num_nw_fluids * 2] = (
+                self.fluid_func(doc=doc))
         k += self.num_nw_fluids * 2
 
         ######################################################################
         # equations for mass flow balance
         self.residual[k:k + 2] = self.mass_flow_func()
+        if doc:
+            self.equation_docs[k:k + 2] = self.mass_flow_func(doc=doc)
         k += 2
 
         ######################################################################
         # equations for energy balance
-        self.residual[k] = self.energy_func()
+        self.residual[k] = self.energy_balance_func()
+        if doc:
+            self.equation_docs[k:k + 1] = self.energy_balance_func(doc=doc)
         k += 1
 
-        ######################################################################
-        # equations for specified heat transfer
-        if self.Q.is_set:
-            self.residual[k] = (
-                self.inl[0].m.val_SI * (
-                    self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val)
-            k += 1
+        return k
 
-        ######################################################################
-        # equations for specified heat transfer coefficient
-        if self.kA.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.kA_func()
-            k += 1
-
-        ######################################################################
-        # equations for specified heat transfer coefficient characteristic
-        if self.kA_char.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.kA_char_func()
-            k += 1
-
-        ######################################################################
-        # equations for specified upper terminal temperature difference
-        if self.ttd_u.is_set:
-            self.residual[k] = self.ttd_u_func()
-            k += 1
-
-        ######################################################################
-        # equations for specified lower terminal temperature difference
-        if self.ttd_l.is_set:
-            self.residual[k] = self.ttd_l_func()
-            k += 1
-
-        ######################################################################
-        # equations for specified pressure ratio at hot side
-        if self.pr1.is_set:
-            self.residual[k] = (
-                self.pr1.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
-            k += 1
-
-        ######################################################################
-        # equations for specified pressure ratio at cold side
-        if self.pr2.is_set:
-            self.residual[k] = (
-                self.pr2.val * self.inl[1].p.val_SI - self.outl[1].p.val_SI)
-            k += 1
-
-        ######################################################################
-        # equations for specified zeta at hot side
-        if self.zeta1.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.zeta_func(
-                    zeta='zeta1', inconn=0, outconn=0)
-            k += 1
-
-        ######################################################################
-        # equations for specified zeta at cold side
-        if self.zeta2.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.zeta_func(
-                    zeta='zeta2', inconn=1, outconn=1)
-            k += 1
-
-        ######################################################################
-        # additional equations
-        self.additional_equations(k)
-
-    def additional_equations(self, k):
-        r"""Calculate results of additional equations."""
-        return
-
-    def derivatives(self, increment_filter):
+    def mandatory_derivatives(self, increment_filter):
         r"""
-        Calculate partial derivatives for given equations.
+        Calculate partial derivatives for mandatory equations.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
         Returns
         -------
-        mat_deriv : ndarray
-            Matrix of partial derivatives.
+        k : int
+            Position of last equation in residual value vector (k-th equation).
         """
         ######################################################################
         # derivatives fluid and mass balance are static
@@ -363,6 +296,55 @@ class HeatExchanger(Component):
 
         ######################################################################
         # derivatives for energy balance equation
+        self.energy_balance_deriv(increment_filter, k)
+        k += 1
+
+        return k
+
+    def energy_balance_func(self, doc=False):
+        r"""
+        Equation for heat exchanger energy balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1} \right) +
+                \dot{m}_{in,2} \cdot \left(h_{out,2} - h_{in,2} \right)
+        """
+        if not doc:
+            return (
+                self.inl[0].m.val_SI * (
+                    self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
+                self.inl[1].m.val_SI * (
+                    self.outl[1].h.val_SI - self.inl[1].h.val_SI))
+        else:
+            latex = (
+                r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} -'
+                r' h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot '
+                r'\left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
+            return [self.generate_latex(latex, 'energy_balance_func')]
+
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of energy balance function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
         for i in range(2):
             self.jacobian[k, i, 0] = (
                 self.outl[i].h.val_SI - self.inl[i].h.val_SI)
@@ -370,335 +352,322 @@ class HeatExchanger(Component):
 
         self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
         self.jacobian[k, 3, 2] = self.inl[1].m.val_SI
-        k += 1
 
-        ######################################################################
-        # derivatives for specified heat transfer
-        if self.Q.is_set:
-            self.jacobian[k, 0, 0] = (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-            self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
-            k += 1
-
-        ######################################################################
-        # derivatives for specified heat transfer coefficient
-        if self.kA.is_set:
-            f = self.kA_func
-            self.jacobian[k, 0, 0] = (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            for i in range(4):
-                if not increment_filter[i, 1]:
-                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                if not increment_filter[i, 2]:
-                    self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified heat transfer coefficient
-        if self.kA_char.is_set:
-            f = self.kA_char_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not increment_filter[1, 0]:
-                self.jacobian[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
-            for i in range(4):
-                if not increment_filter[i, 1]:
-                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                if not increment_filter[i, 2]:
-                    self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified upper terminal temperature difference
-        if self.ttd_u.is_set:
-            f = self.ttd_u_func
-            for i in [0, 3]:
-                if not increment_filter[i, 1]:
-                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                if not increment_filter[i, 2]:
-                    self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified lower terminal temperature difference
-        if self.ttd_l.is_set:
-            f = self.ttd_l_func
-            for i in [1, 2]:
-                if not increment_filter[i, 1]:
-                    self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-                if not increment_filter[i, 2]:
-                    self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified pressure ratio at hot side
-        if self.pr1.is_set:
-            self.jacobian[k, 0, 1] = self.pr1.val
-            self.jacobian[k, 2, 1] = -1
-            k += 1
-
-        ######################################################################
-        # derivatives for specified pressure ratio at cold side
-        if self.pr2.is_set:
-            self.jacobian[k, 1, 1] = self.pr2.val
-            self.jacobian[k, 3, 1] = -1
-            k += 1
-
-        ######################################################################
-        # derivatives for specified zeta at hot side
-        if self.zeta1.is_set:
-            f = self.zeta_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta1', inconn=0, outconn=0)
-            if not increment_filter[2, 1]:
-                self.jacobian[k, 2, 1] = self.numeric_deriv(
-                    f, 'p', 2, zeta='zeta1', inconn=0, outconn=0)
-            if not increment_filter[2, 2]:
-                self.jacobian[k, 2, 2] = self.numeric_deriv(
-                    f, 'h', 2, zeta='zeta1', inconn=0, outconn=0)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified zeta at cold side
-        if self.zeta2.is_set:
-            f = self.zeta_func
-            if not increment_filter[1, 0]:
-                self.jacobian[k, 1, 0] = self.numeric_deriv(
-                    f, 'm', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta2', inconn=1, outconn=1)
-            if not increment_filter[3, 1]:
-                self.jacobian[k, 3, 1] = self.numeric_deriv(
-                    f, 'p', 3, zeta='zeta2', inconn=1, outconn=1)
-            if not increment_filter[3, 2]:
-                self.jacobian[k, 3, 2] = self.numeric_deriv(
-                    f, 'h', 3, zeta='zeta2', inconn=1, outconn=1)
-            k += 1
-
-        ######################################################################
-        # derivatives for additional equations
-        self.additional_derivatives(increment_filter, k)
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        return
-
-    def mass_flow_func(self):
+    def energy_balance_hot_func(self, doc=False):
         r"""
-        Calculate the residual value for mass flow balance equation.
+        Equation for hot side heat exchanger energy balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
         Returns
         -------
-        residual : list
-            Vector with residual value for component's mass flow balance.
-
-            .. math::
-
-                0 = \dot{m}_{in,i} - \dot{m}_{out,i} \;
-                \forall i \in inlets/outlets
-        """
-        residual = []
-        for i in range(self.num_i):
-            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-        return residual
-
-    def mass_flow_deriv(self):
-        r"""
-        Calculate partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the mass flow balance
-            equations.
-        """
-        deriv = np.zeros((2, 4 + self.num_vars, self.num_nw_vars))
-        for i in range(self.num_i):
-            deriv[i, i, 0] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 0] = -1
-        return deriv
-
-    def energy_func(self):
-        r"""
-        Equation for heat exchanger energy balance.
-
-        Returns
-        -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
-                \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
+                0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-h_{in,1}\right)-\dot{Q}
         """
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
-            self.inl[1].m.val_SI * (
-                self.outl[1].h.val_SI - self.inl[1].h.val_SI))
+        if not doc:
+            return self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
+        else:
+            latex = (
+                r'0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-'
+                r'h_{in,1}\right)-\dot{Q}')
+            return [self.generate_latex(latex, 'energy_balance_hot_func')]
 
-    def kA_func(self):
+    def energy_balance_hot_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+        self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
+
+    def kA_func(self, doc=False):
         r"""
         Calculate heat transfer from heat transfer coefficient.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA \cdot \frac{T_{1,out} -
-                T_{2,in} - T_{1,in} + T_{2,out}}
-                {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
-
-        Note
-        ----
-        For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :py:mod:`tespy.data`.
-
-        - Calculate temperatures at inlets and outlets.
-        - Perform value manipulation, if temperature levels are not physically
-          feasible.
+                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
+                kA \cdot \frac{T_{out,1} -
+                T_{in,2} - T_{in,1} + T_{out,2}}
+                {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
+        if not doc:
+            i1 = self.inl[0]
+            i2 = self.inl[1]
+            o1 = self.outl[0]
+            o2 = self.outl[1]
 
-        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+            # temperature value manipulation for convergence stability
 
-        if T_i1 <= T_o2:
-            T_i1 = T_o2 + 0.01
-        if T_i1 <= T_o2:
-            T_o2 = T_i1 - 0.01
-        if T_i1 <= T_o2:
-            T_o1 = T_i2 + 0.02
-        if T_o1 <= T_i2:
-            T_i2 = T_o1 - 0.02
+            T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
+            T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+            T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+            T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+            if T_i1 <= T_o2:
+                T_i1 = T_o2 + 0.01
+            if T_i1 <= T_o2:
+                T_o2 = T_i1 - 0.01
+            if T_i1 <= T_o2:
+                T_o1 = T_i2 + 0.02
+            if T_o1 <= T_i2:
+                T_i2 = T_o1 - 0.02
 
-        return i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
+            td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                      np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-    def kA_char_func(self):
+            return i1.m.val_SI * (
+                o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
+        else:
+            latex = (
+                r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
+                r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
+                r'T_\mathrm{in,2} - T_\mathrm{in,1} + T_\mathrm{out,2}}'
+                r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
+                r'{T_\mathrm{in,1} - T_\mathrm{out,2}}}}'
+            )
+            return [self.generate_latex(latex, 'kA_func')]
+
+    def kA_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of heat transfer coefficient function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.kA_func
+        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        for i in range(4):
+            if not increment_filter[i, 1]:
+                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
+            if not increment_filter[i, 2]:
+                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+
+    def kA_char_func(self, doc=False):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = \dot{m}_{1,in} \cdot \left( h_{1,out} - h_{1,in}\right) +
-                kA_{ref} \cdot f_{kA} \cdot \frac{T_{1,out} -
-                T_{2,in} - T_{1,in} + T_{2,out}}
-                {\ln{\frac{T_{1,out} - T_{2,in}}{T_{1,in} - T_{2,out}}}}
+                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
+                kA_{design} \cdot f_{kA} \cdot \frac{T_{out,1} -
+                T_{in,2} - T_{in,1} + T_{out,2}}
+                {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
 
-                f_{kA} = \frac{2}{
-                \frac{1}{f_1\left(\frac{m_1}{m_{1,ref}}\right)} +
-                \frac{1}{f_2\left(\frac{m_2}{m_{2,ref}}\right)}}
+                f_{kA} = \frac{2}{\frac{1}{f_1\left( expr_1\right)} +
+                \frac{1}{f_2\left( expr_2\right)}}
 
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
         module :py:mod:`tespy.data`.
-
-        - Calculate temperatures at inlets and outlets.
-        - Perform value manipulation, if temperature levels are not physically
-          feasible.
         """
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
+        p1 = self.kA_char1.param
+        p2 = self.kA_char2.param
+        f1 = self.get_char_expr(p1, doc=doc)
+        f2 = self.get_char_expr(p2, inconn=1, outconn=1, doc=doc)
 
-        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+        if not doc:
+            i1 = self.inl[0]
+            i2 = self.inl[1]
+            o1 = self.outl[0]
+            o2 = self.outl[1]
 
-        if T_i1 <= T_o2:
-            T_i1 = T_o2 + 0.01
-        if T_i1 <= T_o2:
-            T_o2 = T_i1 - 0.01
-        if T_i1 <= T_o2:
-            T_o1 = T_i2 + 0.02
-        if T_o1 <= T_i2:
-            T_i2 = T_o1 - 0.02
+            # temperature value manipulation for convergence stability
+            T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
+            T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
+            T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
+            T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+            if T_i1 <= T_o2:
+                T_i1 = T_o2 + 0.01
+            if T_i1 <= T_o2:
+                T_o2 = T_i1 - 0.01
+            if T_i1 <= T_o2:
+                T_o1 = T_i2 + 0.02
+            if T_o1 <= T_i2:
+                T_i2 = T_o1 - 0.02
 
-        fkA1 = 1
-        if self.kA_char1.param == 'm':
-            fkA1 = self.kA_char1.func.evaluate(i1.m.val_SI / i1.m.design)
+            td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
+                      np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
 
-        fkA2 = 1
-        if self.kA_char2.param == 'm':
-            fkA2 = self.kA_char2.func.evaluate(i2.m.val_SI / i2.m.design)
+            fkA1 = self.kA_char1.char_func.evaluate(f1)
+            fkA2 = self.kA_char2.char_func.evaluate(f2)
+            fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        fkA = 2 / (1 / fkA1 + 1 / fkA2)
+            return (
+                i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
+                self.kA.design * fkA * td_log)
+        else:
+            latex = (
+                r'\begin{split}' + '\n'
+                r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
+                r'h_\mathrm{in,1}\right)\\' + '\n'
+                r'&+kA_\mathrm{design} \cdot '
+                r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
+                r' - T_\mathrm{in,1} + T_\mathrm{out,2}}{\ln{'
+                r'\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}{T_\mathrm{in,1} -'
+                r' T_\mathrm{out,2}}}}\\' + '\n'
+                r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(' + f1 +
+                r'\right)}+\frac{1}{f\left(' + f2 + r'\right)}}\\' + '\n'
+                r'\end{split}'
+            )
+            return [self.generate_latex(
+                latex, 'kA_char_func_' + p1 + '_' + p2)]
 
-        return (
-            i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
-            self.kA.design * fkA * td_log)
+    def kA_char_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of heat transfer coefficient characteristic.
 
-    def ttd_u_func(self):
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.kA_char_func
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not increment_filter[1, 0]:
+            self.jacobian[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
+        for i in range(4):
+            if not increment_filter[i, 1]:
+                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
+            if not increment_filter[i, 2]:
+                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+
+    def ttd_u_func(self, doc=False):
         r"""
         Equation for upper terminal temperature difference.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = ttd_{u} - T_{1,in} + T_{2,out}
+                0 = ttd_{u} - T_{in,1} + T_{out,2}
         """
-        T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-        T_o2 = T_mix_ph(self.outl[1].to_flow(), T0=self.outl[1].T.val_SI)
-        return self.ttd_u.val - T_i1 + T_o2
+        if not doc:
+            T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
+            T_o2 = T_mix_ph(self.outl[1].to_flow(), T0=self.outl[1].T.val_SI)
+            return self.ttd_u.val - T_i1 + T_o2
+        else:
+            latex = r'0 = ttd_\mathrm{u} - T_\mathrm{in,1} + T_\mathrm{out,2}'
+            return [self.generate_latex(latex, 'ttd_u_func')]
 
-    def ttd_l_func(self):
+    def ttd_u_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of upper terminal temperature function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.ttd_u_func
+        for i in [0, 3]:
+            if not increment_filter[i, 1]:
+                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
+            if not increment_filter[i, 2]:
+                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+
+    def ttd_l_func(self, doc=False):
         r"""
         Equation for upper terminal temperature difference.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                res = ttd_{l} - T_{1,out} + T_{2,in}
+                0 = ttd_{l} - T_{out,1} + T_{in,2}
         """
-        i2 = self.inl[1].to_flow()
-        o1 = self.outl[0].to_flow()
-        return (self.ttd_l.val - T_mix_ph(o1, T0=self.outl[0].T.val_SI) +
-                T_mix_ph(i2, T0=self.inl[1].T.val_SI))
+        if not doc:
+            T_i2 = T_mix_ph(self.inl[1].to_flow(), T0=self.inl[1].T.val_SI)
+            T_o1 = T_mix_ph(self.outl[0].to_flow(), T0=self.outl[0].T.val_SI)
+            return self.ttd_l.val - T_o1 + T_i2
+        else:
+            latex = r'0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}'
+            return [self.generate_latex(latex, 'ttd_l_func')]
+
+    def ttd_l_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of upper terminal temperature function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.ttd_l_func
+        for i in [1, 2]:
+            if not increment_filter[i, 1]:
+                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
+            if not increment_filter[i, 2]:
+                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
 
     def bus_func(self, bus):
         r"""
@@ -719,8 +688,8 @@ class HeatExchanger(Component):
 
             .. math::
 
-                \dot{E} = \dot{m}_{1,in} \cdot \left(
-                h_{1,out} - h_{1,in} \right)
+                \dot{E} = \dot{m}_{in,1} \cdot \left(
+                h_{out,1} - h_{in,1} \right)
         """
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
@@ -739,7 +708,7 @@ class HeatExchanger(Component):
 
         Returns
         -------
-        mat_deriv : ndarray
+        deriv : ndarray
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 4, self.num_nw_vars))
@@ -850,18 +819,11 @@ class HeatExchanger(Component):
 
         if self.kA_char.is_set:
             # get bound errors for kA hot side characteristics
-            if self.kA_char1.param == 'm':
-                if not np.isnan(self.inl[0].m.design):
-                    self.kA_char1.func.get_bound_errors(
-                        self.inl[0].m.val_SI / self.inl[0].m.design,
-                        self.label)
-
+            expr = self.get_char_expr(self.kA_char1.param)
+            self.kA_char1.char_func.get_bound_errors(expr, self.label)
+            expr = self.get_char_expr(self.kA_char2.param, inconn=1, outconn=1)
             # get bound errors for kA copld side characteristics
-            if self.kA_char2.param == 'm':
-                if not np.isnan(self.inl[1].m.design):
-                    self.kA_char2.func.get_bound_errors(
-                        self.inl[1].m.val_SI / self.inl[1].m.design,
-                        self.label)
+            self.kA_char2.char_func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
 

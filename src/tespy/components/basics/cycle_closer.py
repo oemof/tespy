@@ -24,11 +24,8 @@ class CycleCloser(Component):
 
     **Mandatory Equations**
 
-    .. math::
-
-        0 = p_{in} - p_{out}
-
-        0 = h_{in} - h_{out}
+    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.pressure_equality_func`
+    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.enthalpy_equality_func`
 
     Image not available
 

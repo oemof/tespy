@@ -25,6 +25,8 @@ class Splitter(NodeBase):
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
     - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
 
     Inlets/Outlets
 

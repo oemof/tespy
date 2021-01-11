@@ -20,21 +20,14 @@ class SubsystemInterface(Component):
     r"""
     The subsystem interface does not change fluid properties.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
-
-        .. math:: 0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-            \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
-
-        .. math:: 0 = \dot{m}_{in_{j}} - \dot{m}_{out_{j}} \;
-            \forall j \in inlets/outlets
-
-        .. math:: 0 = p_{in_{j}} - p_{out_{j}} \;
-            \forall j \in inlets/outlets
-
-        .. math:: 0 = h_{in_{j}} - h_{out_{j}} \;
-            \forall j \in inlets/outlets
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - Pressure:
+      :py:meth:`tespy.components.basics.subsystem_interface.SubsystemInterface.variable_equality_func`
+    - Enthalpy:
+      :py:meth:`tespy.components.basics.subsystem_interface.SubsystemInterface.variable_equality_func`
 
     Inlets/Outlets
 
@@ -203,8 +196,8 @@ class SubsystemInterface(Component):
         r"""
         Calculate the residual value for primary variable equality equation.
 
-        This equation makes mass flow, pressure or enthalpy equal at asin inlet
-        and its corresponding outlet.
+        This equation defines equatilty of mass flow, pressure or enthalpy
+        at an inlet and its corresponding outlet.
 
         Returns
         -------

@@ -151,10 +151,11 @@ class Component:
         # set specified values
         for key in kwargs:
             if key in self.variables.keys():
+                data = self.get_attr(key)
                 if kwargs[key] is None:
-                    self.get_attr(key).set_attr(is_set=False)
+                    data.set_attr(is_set=False)
                     try:
-                        self.get_attr(key).set_attr(is_var=False)
+                        data.set_attr(is_var=False)
                     except KeyError:
                         pass
                     continue
@@ -165,32 +166,30 @@ class Component:
                 except (TypeError, ValueError):
                     is_numeric = False
 
-                # data container specification
-                if isinstance(kwargs[key], dict):
-                    self.get_attr(key).__dict__.update(**kwargs[key])
+                # dict specification
+                if (isinstance(kwargs[key], dict) and
+                        not isinstance(data, dc_simple)):
+                    data.set_attr(**kwargs[key])
 
                 # value specification for component properties
-                elif (isinstance(self.get_attr(key), dc_cp) or
-                      isinstance(self.get_attr(key), dc_simple)):
+                elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
                     if is_numeric:
                         if np.isnan(kwargs[key]):
-                            self.get_attr(key).set_attr(is_set=False)
-                            if isinstance(self.get_attr(key), dc_cp):
-                                self.get_attr(key).set_attr(is_var=False)
+                            data.set_attr(is_set=False)
+                            if isinstance(data, dc_cp):
+                                data.set_attr(is_var=False)
 
                         else:
-                            self.get_attr(key).set_attr(
-                                val=kwargs[key], is_set=True)
-                            if isinstance(self.get_attr(key), dc_cp):
-                                self.get_attr(key).set_attr(is_var=False)
+                            data.set_attr(val=kwargs[key], is_set=True)
+                            if isinstance(data, dc_cp):
+                                data.set_attr(is_var=False)
 
                     elif (kwargs[key] == 'var' and
-                          isinstance(self.get_attr(key), dc_cp)):
-                        self.get_attr(key).set_attr(is_set=True, is_var=True)
+                          isinstance(data, dc_cp)):
+                        data.set_attr(is_set=True, is_var=True)
 
-                    elif isinstance(self.get_attr(key), dc_simple):
-                        self.get_attr(key).set_attr(
-                            val=kwargs[key], is_set=True)
+                    elif isinstance(data, dc_simple):
+                        data.set_attr(val=kwargs[key], is_set=True)
 
                     # invalid datatype for keyword
                     else:
@@ -200,13 +199,12 @@ class Component:
                         logging.error(msg)
                         raise TypeError(msg)
 
-                elif (isinstance(self.get_attr(key), dc_cc) or
-                      isinstance(self.get_attr(key), dc_cm)):
+                elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
                     # value specification for characteristics
                     if (isinstance(kwargs[key], CharLine) or
                             isinstance(kwargs[key], CharMap) or
                             isinstance(kwargs[key], CompressorMap)):
-                        self.get_attr(key).char_func = kwargs[key]
+                        data.char_func = kwargs[key]
 
                     # invalid datatype for keyword
                     else:
@@ -216,10 +214,10 @@ class Component:
                         logging.error(msg)
                         raise TypeError(msg)
 
-                elif isinstance(self.get_attr(key), dc_gcp):
+                elif isinstance(data, dc_gcp):
                     # value specification of grouped component parameter method
                     if isinstance(kwargs[key], str):
-                        self.get_attr(key).method = kwargs[key]
+                        data.method = kwargs[key]
 
                     # invalid datatype for keyword
                     else:
@@ -305,7 +303,7 @@ class Component:
             logging.error(msg)
             raise KeyError(msg)
 
-    def comp_init(self, nw):
+    def comp_init(self, nw, num_eq=0):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -321,38 +319,66 @@ class Component:
         self.it = 0
         self.residual = []
         self.jacobian = None
-        self.num_eq = 0
+        self.num_eq = num_eq
         self.vars = {}
         self.num_vars = 0
 
         for key, val in self.variables.items():
+            data = self.get_attr(key)
+            # component properties
             if isinstance(val, dc_cp):
-                if self.get_attr(key).is_var:
-                    self.get_attr(key).var_pos = self.num_vars
+                if data.is_var:
+                    data.var_pos = self.num_vars
                     self.num_vars += 1
-                    self.vars[self.get_attr(key)] = key
+                    self.vars[data] = key
+                if data.is_set and data.func is not None:
+                    self.num_eq += 1
 
-            # characteristics creation
+            # simple component properties
+            elif isinstance(val, dc_simple):
+                if data.is_set and data.func is not None:
+                    self.num_eq += 1
+
+            # component characteristics
             elif isinstance(val, dc_cc):
-                if self.get_attr(key).char_func is None:
+                if data.char_func is None:
                     try:
-                        self.get_attr(key).char_func = ldc(
+                        data.char_func = ldc(
                             self.component(), key, 'DEFAULT', CharLine)
                     except KeyError:
-                        self.get_attr(key).char_func = CharLine(
-                            x=[0, 1], y=[1, 1])
+                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
-                    if self.char_warnings:
-                        msg = (
-                            'Created characteristic line for parameter ' +
-                            key + ' at component ' + self.label + ' from '
-                            'default data.\nYou can specify your own data '
-                            'using component.' + key +
-                            '.set_attr(func=custom_char).\nIf you want to '
-                            'disable these warnings use '
-                            'component.char_warnings=False.')
-                        logging.warning(msg)
+                if data.is_set and data.func is not None:
+                    self.num_eq += 1
 
+            # grouped component properties
+            elif isinstance(val, dc_gcp):
+                is_set = True
+                for e in data.elements:
+                    if not self.get_attr(e).is_set:
+                        is_set = False
+
+                if is_set:
+                    data.set_attr(is_set=True)
+                    self.num_eq += 1
+                elif data.is_set:
+                    start = (
+                        'All parameters of the component group have to be '
+                        'specified! This component group uses the following '
+                        'parameters: ')
+                    end = ' at ' + self.label + '. Group will be set to False.'
+                    logging.warning(start + ', '.join(val.elements) + end)
+                    val.set_attr(is_set=False)
+                else:
+                    val.set_attr(is_set=False)
+
+        # set up Jacobian matrix and residual vector
+        self.jacobian = np.zeros((
+            self.num_eq,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+        self.residual = np.zeros(self.num_eq)
+        # done
         msg = (
             'The component ' + self.label + ' has ' + str(self.num_vars) +
             ' custom variables.')
@@ -370,31 +396,179 @@ class Component:
     def outlets():
         return []
 
-    def equations(self, increment_filter, doc=False):
-        self.mandatory_equations()
-        k = self.mandatory_derivatives(increment_filter)
+    def get_char_expr(self, param, type='rel', inconn=0, outconn=0, doc=False):
+        r"""
+        Generic method to access characteristic function parameters.
 
-        logging.warning(str(k))
-        for data in self.variables.values():
+        Parameters
+        ----------
+        param : str
+            Parameter for characteristic function evaluation.
+
+        type : str ('rel' or 'abs')
+            Type of expression:
+
+            - :code:`rel`: relative to design value
+            - :code:`abs`: absolute value
+
+        inconn : int
+            Index of inlet connection.
+
+        outconn : int
+            Index of outlet connection.
+
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        expr : float, str
+            Value of expression or LaTeX code for documentation if doc is True
+        """
+        if not doc:
+            if type == 'rel':
+                if param == 'm':
+                    return (
+                        self.inl[inconn].m.val_SI / self.inl[inconn].m.design)
+                elif param == 'm_out':
+                    return (
+                        self.outl[outconn].m.val_SI /
+                        self.outl[outconn].m.design)
+                elif param == 'v':
+                    v = self.inl[inconn].m.val_SI * v_mix_ph(
+                        self.inl[inconn].to_flow(),
+                        T0=self.inl[inconn].T.val_SI)
+                    return v / self.inl[inconn].v.design
+                elif param == 'pr':
+                    return (
+                        (self.outl[outconn].p.val_SI *
+                         self.inl[inconn].p.design) /
+                        (self.inl[inconn].p.val_SI *
+                         self.outl[outconn].p.design))
+                else:
+                    msg = (
+                        'The parameter ' + str(param) + ' is not available '
+                        'for characteristic function evaluation.')
+                    logging.error(msg)
+                    raise ValueError(msg)
+            else:
+                if param == 'm':
+                    return self.inl[inconn].m.val_SI
+                elif param == 'm_out':
+                    return self.outl[outconn].m.val_SI
+                elif param == 'v':
+                    return self.inl[inconn].m.val_SI * v_mix_ph(
+                        self.inl[inconn].to_flow(),
+                        T0=self.inl[inconn].T.val_SI)
+                elif param == 'pr':
+                    return (
+                        self.outl[outconn].p.val_SI /
+                        self.inl[inconn].p.val_SI)
+                else:
+                    return False
+        else:
+            if type == 'rel':
+                if param == 'm':
+                    return (
+                        r'\frac{\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}}'
+                        r'{\dot{m}_\mathrm{in,' + str(inconn + 1) +
+                        r',design}}')
+                elif param == 'm_out':
+                    return (
+                        r'\frac{\dot{m}_\mathrm{out,' + str(outconn + 1) +
+                        r'}}{\dot{m}_\mathrm{out,' + str(outconn + 1) +
+                        r',design}}')
+                elif param == 'v':
+                    return (
+                        r'\frac{\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}}'
+                        r'{\dot{V}_\mathrm{in,' + str(inconn + 1) +
+                        r',design}}')
+                elif param == 'pr':
+                    return (
+                        r'\frac{p_\mathrm{out,' + str(outconn + 1) +
+                        r'}\cdot p_\mathrm{in,' + str(inconn + 1) +
+                        r',design}}{p_\mathrm{out,' + str(outconn + 1) +
+                        r',design}\cdot p_\mathrm{in,' + str(inconn + 1) +
+                        r'}}')
+            else:
+                if param == 'm':
+                    return r'\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}'
+                elif param == 'm_out':
+                    return r'\dot{m}_\mathrm{out,' + str(outconn + 1) + r'}'
+                elif param == 'v':
+                    return r'\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}'
+                elif param == 'pr':
+                    return (
+                        r'\frac{p_\mathrm{out,' + str(outconn + 1) +
+                        r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
+
+    def solve(self, increment_filter, doc=False):
+        """
+        Solve equations and calculate partial derivatives of a component.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+        """
+        if doc:
+            self.equation_docs = ['' for i in range(self.num_eq)]
+
+        k = self.mandatory_equations(doc=doc)
+        if not doc:
+            self.mandatory_derivatives(increment_filter)
+
+        for parameter, data in self.variables.items():
             if data.is_set and data.func is not None:
                 residuals = data.func(doc=doc, **data.func_params)
                 try:
                     num_eq = len(residuals)
                 except TypeError:
                     num_eq = 1
-                self.residual[k: k + num_eq] = residuals
 
                 if not doc:
+                    self.residual[k:k + num_eq] = residuals
                     data.deriv(increment_filter, k, **data.func_params)
+                else:
+                    self.equation_docs[k:k + num_eq] = residuals
 
                 k += num_eq
 
-        # logging.warning(str(self.jacobian))
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
 
-    def mandatory_equations(self):
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         return 0
 
     def mandatory_derivatives(self, increment_filter):
+        r"""
+        Calculate partial derivatives for mandatory equations.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
+        # return value is required in some class of parent methods
+        # e.g. desuperheater
         return 0
 
     def bus_func(self, bus):
@@ -408,8 +582,8 @@ class Component:
 
         Returns
         -------
-        val : float
-            :math:`val=0`
+        residual : float
+            Residual value of bus equation.
         """
         return 0
 
@@ -424,7 +598,7 @@ class Component:
 
         Returns
         -------
-        mat_deriv : ndarray
+        deriv : ndarray
             Matrix of partial derivatives.
         """
         return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
@@ -658,24 +832,36 @@ class Component:
         return
 
     def check_parameter_bounds(self):
-        for p, data in self.variables.items():
+        for p in self.variables.keys():
+            data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                val = self.get_attr(p).val
-                if val > data.max_val + err:
+                if data.val > data.max_val + err:
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
-                        str(val) + ' above maximum value (' +
+                        str(data.val) + ' above maximum value (' +
                         str(data.max_val) + ') at component ' + self.label +
                         '.')
                     logging.warning(msg)
 
-                elif val < data.min_val - err:
+                elif data.val < data.min_val - err:
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
-                        str(val) + ' below minimum value (' +
+                        str(data.val) + ' below minimum value (' +
                         str(data.min_val) + ') at component ' + self.label +
                         '.')
                     logging.warning(msg)
+
+            elif isinstance(data, dc_cc) and data.is_set:
+                expr = self.get_char_expr(data.param, **data.char_params)
+                data.char_func.get_bound_errors(expr, self.label)
+
+            elif isinstance(data, dc_cm) and data.is_set:
+                if isinstance(data.char_func, CompressorMap):
+                    x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+                    y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
+                        self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                    self.char_map.char_func.get_bound_errors(
+                        x, y, self.igva.val, self.label)
 
     def initialise_fluids(self):
         return
@@ -705,7 +891,7 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def genetate_latex(self, eqn, func):
+    def generate_latex(self, eqn, func):
         latex = (
             r'\begin{equation}' + '\n' + r'\label{eq:' +
             self.__class__.__name__ + '_' + func + r'}' + '\n'
@@ -714,7 +900,7 @@ class Component:
         latex += r'\end{equation}'
         return latex
 
-    def fluid_func(self):
+    def fluid_func(self, doc=False):
         r"""
         Calculate the vector of residual values for fluid balance equations.
 
@@ -725,15 +911,28 @@ class Component:
 
             .. math::
 
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}} \;
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets/outlets
+                0 = x_{fl,in,i} - x_{fl,out,i} \; \forall fl \in
+                \text{network fluids,} \; \forall i \in \text{inlets}
         """
-        residual = []
-
-        for i in range(self.num_i):
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - self.outl[0].fluid.val[fluid]]
-        return residual
+        if not doc:
+            residual = []
+            for i in range(self.num_i):
+                for fluid, x in self.inl[0].fluid.val.items():
+                    residual += [x - self.outl[0].fluid.val[fluid]]
+            return residual
+        else:
+            indices = list(range(1, self.num_i + 1))
+            if len(indices) > 1:
+                indices = ', '.join(str(idx) for idx in indices)
+            else:
+                indices = str(indices[0])
+            latex = (
+                r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
+                r'\forall fl \in\text{network fluids,}'
+                r'\; \forall i \in [' + indices + r']')
+            return (
+                [self.generate_latex(latex, 'fluid_func')] +
+                (self.num_i - 1) * [''])
 
     def fluid_deriv(self):
         r"""
@@ -741,7 +940,7 @@ class Component:
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
         deriv = np.zeros((self.num_nw_fluids * self.num_i,
@@ -753,7 +952,7 @@ class Component:
                 deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv
 
-    def mass_flow_func(self):
+    def mass_flow_func(self, doc=False):
         r"""
         Calculate the residual value for mass flow balance equation.
 
@@ -763,32 +962,45 @@ class Component:
             Vector with residual value for component's mass flow balance.
 
             .. math::
-                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-                \forall i \in inlets, \forall j \in outlets
+
+                0 = \dot{m}_{in,i} -\dot{m}_{out,i} \;\forall i\in\text{inlets}
         """
-        res = 0
-        for i in self.inl:
-            res += i.m.val_SI
-        for o in self.outl:
-            res -= o.m.val_SI
-        return res
+        if not doc:
+            residual = []
+            for i in range(self.num_i):
+                residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+            return residual
+        else:
+            indices = list(range(1, self.num_i + 1))
+            if len(indices) > 1:
+                indices = ', '.join(str(idx) for idx in indices)
+            else:
+                indices = str(indices[0])
+            latex = (
+                r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
+                r'\; \forall i \in [' + indices + r']')
+            return (
+                [self.generate_latex(latex, 'mass_flow_func')] +
+                (self.num_i - 1) * [''])
 
     def mass_flow_deriv(self):
         r"""
-        Calculate the partial derivatives for all mass flow balance equations.
+        Calculate partial derivatives for all mass flow balance equations.
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((1, self.num_i + self.num_o +
-                          self.num_vars, self.num_nw_vars))
+        deriv = np.zeros((
+            self.num_i,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
         for i in range(self.num_i):
-            deriv[0, i, 0] = 1
+            deriv[i, i, 0] = 1
         for j in range(self.num_o):
-            deriv[0, j + i + 1, 0] = -1
+            deriv[j, j + i + 1, 0] = -1
         return deriv
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
@@ -899,7 +1111,7 @@ class Component:
 
         Returns
         -------
-        val : float
+        residual : float
             Residual value of function.
 
             .. math::
@@ -915,7 +1127,7 @@ class Component:
                 r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
                 r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
             )
-            return self.generate_latex(latex, 'pr_func')
+            return [self.generate_latex(latex, 'pr_func_' + pr)]
 
     def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
         r"""
@@ -967,7 +1179,7 @@ class Component:
 
         Returns
         -------
-        res : float
+        residual : float
             Residual value of function.
 
             .. math::
@@ -1009,18 +1221,19 @@ class Component:
             outl = r'_\mathrm{out,' + str(outconn + 1) + r'}'
             latex = (
                 r'0 = \begin{cases}' + '\n' +
-                r'p_{in} - p_{out} & |\dot{m}| < \delta \\' + '\n' +
+                r'p' + inl + r'- p' + outl + r' & |\dot{m}' + inl +
+                r'| < \unitfrac[0.0001]{kg}{s} \\' + '\n' +
                 r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
                 r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
-                r'|\cdot\frac{v' + inl +'v' + outl + r'}{2}}' +
-                r'& |\dot{m}' + inl + r'| \geq \delta' + '\n'
+                r'|\cdot\frac{v' + inl + r'v' + outl + r'}{2}}' +
+                r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
                 r'\end{cases}'
             )
-            return self.generate_latex(latex, 'pr_func')
+            return [self.generate_latex(latex, 'zeta_func_' + zeta)]
 
     def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
         r"""
-        Calculate residual value of :math:`\zeta`-function.
+        Calculate partial derivatives of zeta function.
 
         Parameters
         ----------
@@ -1039,32 +1252,6 @@ class Component:
 
         outconn : int
             Connection index of outlet.
-
-        Returns
-        -------
-        val : float
-            Residual value of function.
-
-            .. math::
-
-                val = \begin{cases}
-                p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}
-                {8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
-                v_{out}}{2}} &
-                |\dot{m}| > \epsilon
-                \end{cases}
-
-        Note
-        ----
-        The zeta value is caluclated on the basis of a given pressure loss at
-        a given flow rate in the design case. As the cross sectional area A
-        will not change, it is possible to handle the equation in this way:
-
-        .. math::
-
-            \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
-            {8 \cdot \dot{m}^2 \cdot v}
         """
         data = self.get_attr(zeta)
         f = self.zeta_func

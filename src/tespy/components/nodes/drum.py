@@ -10,11 +10,8 @@ available from its original location tespy/components/nodes/drum.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
 from tespy.components.component import Component
 from tespy.components.nodes.droplet_separator import DropletSeparator
-from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
 

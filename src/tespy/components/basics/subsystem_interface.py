@@ -10,7 +10,6 @@ tespy/components/basics/subsystem_interface.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
 import numpy as np
 
 from tespy.components.component import Component

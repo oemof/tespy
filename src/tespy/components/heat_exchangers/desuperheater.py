@@ -10,10 +10,6 @@ tespy/components/heat_exchangers/desuperheater.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
-import warnings
-
-import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger

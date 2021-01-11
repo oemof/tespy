@@ -15,8 +15,6 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
-from tespy.tools.global_vars import err
 
 
 class Turbomachine(Component):

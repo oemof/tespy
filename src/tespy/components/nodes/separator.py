@@ -10,8 +10,6 @@ available from its original location tespy/components/nodes/separator.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
 from tespy.components.component import Component
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple

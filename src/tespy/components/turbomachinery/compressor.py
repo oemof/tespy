@@ -22,10 +22,8 @@ from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.global_vars import err
 
 
 class Compressor(Turbomachine):

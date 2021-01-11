@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 import logging
 
 import CoolProp.CoolProp as CP
-import numpy as np
 
 from tespy.components.combustion.combustion_chamber import CombustionChamber
 from tespy.components.component import Component

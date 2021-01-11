@@ -10,7 +10,6 @@ tespy/components/nodes/droplet_separator.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
 
 import numpy as np
 

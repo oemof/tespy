@@ -10,9 +10,6 @@ tespy/components/heat_exchangers/heat_exchanger.py
 
 SPDX-License-Identifier: MIT
 """
-
-import warnings
-
 import numpy as np
 
 from tespy.components.component import Component
@@ -22,7 +19,6 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.global_vars import err
 
 
 class HeatExchanger(Component):

@@ -143,7 +143,7 @@ class Network:
     >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
     >>> b.set_attr(printout=False)
     >>> b = Bus('heat bus')
-    >>> b.add_comps({'c': p})
+    >>> b.add_comps({'comp': p})
     >>> nw.add_busses(b)
     >>> b.set_attr(printout=False)
     >>> nw.set_attr(iterinfo=False)
@@ -1982,8 +1982,7 @@ class Network:
                 end = (c + 1) * self.num_conn_vars
                 indices += [np.arange(start, end)]
 
-            cp.equations()
-            cp.derivatives(self.increment_filter[np.array(indices)])
+            cp.solve(self.increment_filter[np.array(indices)])
 
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
             deriv = cp.jacobian
@@ -2367,6 +2366,9 @@ class Network:
         for cp in self.comps.index:
             cp.calc_parameters()
             cp.entropy_balance()
+            cp.solve(increment_filter=None, doc=True)
+            # for eq in cp.equation_docs:
+            #     print(eq)
 
         # busses
         for b in self.busses.values():
@@ -3058,7 +3060,7 @@ class Network:
                 # component characteristics container
                 if isinstance(data, dc_cc) or isinstance(data, dc_cm):
                     df[col] = df.apply(
-                        f, axis=1, args=(col, 'func')).astype(str)
+                        f, axis=1, args=(col, 'char_func')).astype(str)
                     df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
                     df[col + '_set'] = df.apply(
                         f, axis=1, args=(col, 'is_set'))
@@ -3131,9 +3133,9 @@ class Network:
 
             for col, data in df.index[0].variables.items():
                 if isinstance(data, dc_cc):
-                    char_lines += [data.func]
+                    char_lines += [data.char_func]
                 elif isinstance(data, dc_cm):
-                    char_maps += [data.func]
+                    char_maps += [data.char_func]
 
         # characteristic lines in busses
         for bus in self.busses.values():

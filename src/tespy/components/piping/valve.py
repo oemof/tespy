@@ -24,38 +24,27 @@ class Valve(Component):
     r"""
     The Valve throttles a fluid without changing enthalpy.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        .. math::
-
-            0 = h_{in} - h_{out}
-
-        **optional equations**
-
-        .. math::
-
-            0 = p_{in} \cdot pr - p_{out}
-
-        - :py:meth:`tespy.components.component.Component.zeta_func`
-
-        - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
-
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Image
 
-        .. image:: _images/Valve.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Valve.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -142,12 +131,20 @@ class Valve(Component):
     def component():
         return 'valve'
 
-    @staticmethod
-    def attr():
+    def attr(self):
         return {
-            'pr': dc_cp(min_val=1e-4, max_val=1),
-            'zeta': dc_cp(min_val=0, max_val=1e15),
-            'dp_char': dc_cc(param='m')
+            'pr': dc_cp(
+                min_val=1e-4, max_val=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr'}),
+            'zeta': dc_cp(
+                min_val=0, max_val=1e15,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta'}),
+            'dp_char': dc_cc(
+                param='m',
+                deriv=self.dp_char_deriv, func=self.dp_char_func,
+                char_params={'type': 'abs'})
         }
 
     @staticmethod
@@ -160,150 +157,152 @@ class Valve(Component):
 
     def comp_init(self, nw):
 
-        Component.comp_init(self, nw)
-
         # number of mandatroy equations for
         # fluid balance: num_fl
         # mass flow: 1
         # enthalpy: 1
-        self.num_eq = self.num_nw_fluids + 2
-        for var in [self.pr, self.zeta, self.dp_char]:
-            if var.is_set:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
+        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 2)
+        # place constant derivatives
         pos = self.num_nw_fluids
         self.jacobian[0:pos] = self.fluid_deriv()
         self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-        self.jacobian[pos + 1:pos + 2] = self.enthalpy_deriv()
+        self.jacobian[pos + 1:pos + 2] = self.energy_balance_deriv()
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
+    def mandatory_equations(self, doc=False):
+        r"""
+        Calculate residual vector of mandatory equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        k : int
+            Position of last equation in residual value vector (k-th equation).
+        """
         k = 0
         ######################################################################
         # eqations for fluids
         self.residual[k:k + self.num_nw_fluids] = self.fluid_func()
+        if doc:
+            self.equation_docs[k:k + self.num_nw_fluids] = (
+                self.fluid_func(doc=doc))
         k += self.num_nw_fluids
 
         ######################################################################
         # eqation for mass flow
-        self.residual[k] = self.mass_flow_func()
+        self.residual[k:k + 1] = self.mass_flow_func()
+        if doc:
+            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
         k += 1
 
         ######################################################################
         # eqation for enthalpy
-        self.residual[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        self.residual[k] = self.energy_balance_func()
+        if doc:
+            self.equation_docs[k:k + 1] = self.energy_balance_func(doc=doc)
         k += 1
+        return k
 
-        ######################################################################
-        # eqation for specified pressure ratio
-        if self.pr.is_set:
-            self.residual[k] = (
-                self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI)
-            k += 1
+    def energy_balance_func(self, doc=False):
+        r"""
+        Calculate residual value of enthalpy equatilty constraint.
 
-        ######################################################################
-        # eqation specified zeta
-        if self.zeta.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.zeta_func(zeta='zeta')
-            k += 1
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
 
-        ######################################################################
-        # equation for specified difference pressure char
-        if self.dp_char.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.dp_char_func()
-            k += 1
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
 
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives fluid, mass flow and enthalpy balance are static
-        k = self.num_nw_fluids + 2
+            .. math::
 
-        ######################################################################
-        # derivatives for specified pressure ratio
-        if self.pr.is_set:
-            self.jacobian[k, 0, 1] = self.pr.val
-            self.jacobian[k, 1, 1] = -1
-            if self.pr.is_var:
-                self.jacobian[k, 2 + self.pr.var_pos, 0] = (
-                    self.inl[0].p.val_SI)
-            k += 1
+                0 = h_{in} - h_{out}
+        """
+        if not doc:
+            return self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        else:
+            latex = r'0=h_\mathrm{in}-h_\mathrm{out}'
+            return [self.generate_latex(latex, 'energy_balance_func')]
 
-        ######################################################################
-        # derivatives for specified zeta
-        if self.zeta.is_set:
-            f = self.zeta_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(
-                    f, 'm', 0, zeta='zeta')
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(
-                    f, 'p', 0, zeta='zeta')
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(
-                    f, 'h', 0, zeta='zeta')
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(
-                    f, 'p', 1, zeta='zeta')
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(
-                    f, 'h', 1, zeta='zeta')
-            if self.zeta.is_var:
-                self.jacobian[k, 2 + self.zeta.var_pos, 0] = (
-                    self.numeric_deriv(f, 'zeta', 2, zeta='zeta'))
-            k += 1
-
-        ######################################################################
-        # derivatives for specified difference pressure
-        if self.dp_char.is_set:
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(
-                    self.dp_char_func, 'm', 0)
-            self.jacobian[k, 0, 1] = 1
-            self.jacobian[k, 1, 1] = -1
-            k += 1
-
-    def enthalpy_deriv(self):
+    def energy_balance_deriv(self):
         r"""
         Calculate matrix of partial derivatives for enthalpy balance equation.
 
         Returns
         -------
-        deriv : list
+        deriv : ndarray
             Matrix of partial derivatives.
         """
         deriv = np.zeros((1, 2 + self.num_vars, self.num_nw_vars))
         deriv[0, 0, 2] = 1
         deriv[0, 1, 2] = -1
-        return deriv.tolist()
+        return deriv
 
-    def dp_char_func(self):
+    def dp_char_func(self, doc=False):
         r"""
         Equation for characteristic line of difference pressure to mass flow.
 
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
         Returns
         -------
-        res : ndarray
+        residual : ndarray
             Residual value of equation.
 
             .. math::
 
-                res =  p_1 - p_2 - f \left( \dot{m} \right)
+                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        p = self.dp_char.param
+        expr = self.get_char_expr(p, type='abs', doc=doc)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'pressure drop to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+        if not doc:
+            return (
+                self.inl[0].p.val_SI - self.outl[0].p.val_SI -
+                self.dp_char.char_func.evaluate(expr))
+        else:
+            latex = (
+                r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
+                r'\right)')
+            return [self.generate_latex(latex, 'dp_char_func_' + p)]
 
-        return i[1] - o[1] - self.dp_char.func.evaluate(i[0])
+    def dp_char_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of difference pressure characteristic.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(
+                self.dp_char_func, 'm', 0)
+        if self.dp_char.param == 'v':
+            self.jacobian[k, 0, 1] = self.numeric_deriv(
+                self.dp_char_func, 'p', 0)
+            self.jacobian[k, 0, 2] = self.numeric_deriv(
+                self.dp_char_func, 'h', 0)
+        else:
+            self.jacobian[k, 0, 1] = 1
+
+        self.jacobian[k, 1, 1] = -1
 
     def initialise_source(self, c, key):
         r"""

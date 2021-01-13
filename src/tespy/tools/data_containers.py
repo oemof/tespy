@@ -194,8 +194,9 @@ class ComponentCharacteristics(DataContainer):
         """
         return {
             'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None,
-            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0}}
+            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
+            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
+            'num_eq': 0}
 
 # %%
 
@@ -230,8 +231,9 @@ class ComponentCharacteristicMaps(DataContainer):
             values.
         """
         return {
-            'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None}
+            'char_func': None, 'is_set': False, 'param': None, 'latex': None,
+            'func_params': {}, 'func': None, 'deriv': None,
+            'num_eq': 0}
 
 # %%
 
@@ -286,7 +288,8 @@ class ComponentProperties(DataContainer):
             'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
             'd': 1e-4, 'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
             'val_ref': 1, 'design': np.nan,
-            'func_params': {}, 'func': None, 'deriv': None}
+            'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
+            'latex': None}
 
 # %%
 
@@ -364,7 +367,8 @@ class GroupedComponentProperties(DataContainer):
             values.
         """
         return {'is_set': False, 'method': 'default', 'elements': [],
-                'func': None, 'deriv': None, 'func_params': {}}
+                'func': None, 'deriv': None, 'func_params': {}, 'num_eq': 0,
+                'latex': None}
 
 # %%
 
@@ -446,4 +450,5 @@ class DataContainerSimple(DataContainer):
         """
         return {
             'val': np.nan, 'is_set': False,
-            'func_params': {}, 'func': None, 'deriv': None}
+            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
+            'num_eq': 0}

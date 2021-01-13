@@ -2366,7 +2366,7 @@ class Network:
         for cp in self.comps.index:
             cp.calc_parameters()
             cp.entropy_balance()
-            cp.solve(increment_filter=None, doc=True)
+            cp.document_equations()
             # for eq in cp.equation_docs:
             #     print(eq)
 

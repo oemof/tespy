@@ -32,7 +32,6 @@ from tespy.components import Drum
 from tespy.components import HeatExchanger
 from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
-from tespy.components import Node
 from tespy.components import ORCEvaporator
 from tespy.components import ParabolicTrough
 from tespy.components import Pipe
@@ -84,7 +83,6 @@ comp_target_classes = {
     'DropletSeparator': DropletSeparator,
     'Drum': Drum,
     'Merge': Merge,
-    'Node': Node,
     'Separator': Separator,
     'Splitter': Splitter,
     'Pipe': Pipe,

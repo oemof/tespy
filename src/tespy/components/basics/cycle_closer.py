@@ -97,10 +97,26 @@ class CycleCloser(Component):
         return 'cycle closer'
 
     @staticmethod
-    def attr():
+    def get_variables():
         return {
             'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
             'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)
+        }
+
+    def get_mandatory_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': 1},
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': 1}
         }
 
     @staticmethod
@@ -110,94 +126,6 @@ class CycleCloser(Component):
     @staticmethod
     def outlets():
         return ['out1']
-
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # pressure: 1
-        # enthalpy: 1
-        Component.comp_init(self, nw, num_eq=2)
-
-        # derivatives for pressure
-        self.jacobian[0, 0, 1] = 1
-        self.jacobian[0, 1, 1] = -1
-        # derivatives for enthalpy
-        self.jacobian[1, 0, 2] = 1
-        self.jacobian[1, 1, 2] = -1
-
-    def mandatory_equations(self, doc=False):
-        r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        ######################################################################
-        # equation for pressure
-        self.residual[0] = self.pressure_equality_func()
-        if doc:
-            self.equation_docs[0:1] = self.pressure_equality_func(doc=doc)
-        ######################################################################
-        # equation for enthalpy
-        self.residual[1] = self.enthalpy_equality_func()
-        if doc:
-            self.equation_docs[1:2] = self.enthalpy_equality_func(doc=doc)
-        return 2
-
-    def pressure_equality_func(self, doc=False):
-        r"""
-        Equation for pressure equality.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0=p_{in}-p_{out}
-        """
-        if not doc:
-            return self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        else:
-            latex = r'0=p_\mathrm{in}-p_\mathrm{out}'
-            return [self.generate_latex(latex, 'pressure_equality_func')]
-
-    def enthalpy_equality_func(self, doc=False):
-        r"""
-        Equation for enthalpy equality.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0=h_{in}-h_{out}
-        """
-        if not doc:
-            return self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        else:
-            latex = r'0=h_\mathrm{in}-h_\mathrm{out}'
-            return [self.generate_latex(latex, 'enthalpy_equality_func')]
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

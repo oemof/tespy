@@ -177,58 +177,43 @@ class SolarCollector(HeatExchangerSimple):
     def component():
         return 'solar collector'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
+                latex=self.energy_balance_func_doc, num_eq=1,
                 func=self.energy_balance_func),
             'pr': dc_cp(
-                min_val=1e-4, max_val=1,
-                deriv=self.pr_deriv,
+                min_val=1e-4, max_val=1, num_eq=1,
+                deriv=self.pr_deriv, latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr'}),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15,
+                min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
+                latex=self.zeta_func_doc,
                 func_params={'zeta': 'zeta'}),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-4, d=1e-8),
+            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
             'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(min_val=0),
+            'Q_loss': dc_cp(max_val=0),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(
-                elements=['L', 'ks', 'D'],
+                elements=['L', 'ks', 'D'], num_eq=1,
+                latex=self.hydro_group_func_doc,
                 func=self.hydro_group_func, deriv=self.hydro_group_deriv),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
+                num_eq=1, latex=self.energy_group_func_doc,
                 func=self.energy_group_func, deriv=self.energy_group_deriv)
         }
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-        self.Tamb.val_SI = (
-            (self.Tamb.val + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
-
-    def energy_group_func(self, doc=False):
+    def energy_group_func(self):
         r"""
         Equation for solar collector energy balance.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -247,31 +232,44 @@ class SolarCollector(HeatExchangerSimple):
 
             Reference: :cite:`Quaschning2013`.
         """
-        if not doc:
-            i = self.inl[0].to_flow()
-            o = self.outl[0].to_flow()
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
 
-            T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
-                   T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
+               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-            return (i[0] * (o[2] - i[2]) -
-                    self.A.val * (
-                        self.E.val * self.eta_opt.val -
-                        (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                        self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
-                r'h_\mathrm{in} \right)\\' + '\n'
-                r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} - \alpha_1 \cdot'
-                r'\left(T_\mathrm{m} - T_\mathrm{amb} \right) - \alpha_2 \cdot'
-                r'\left(T_\mathrm{m} -T_\mathrm{amb}\right)^2 \right]\\' + '\n'
-                r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
-                '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'energy_group_func')]
+        return (i[0] * (o[2] - i[2]) -
+                self.A.val * (
+                    self.E.val * self.eta_opt.val -
+                    (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+                    self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+
+    def energy_group_func_doc(self, label):
+        r"""
+        Equation for solar collector energy balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
+            r'h_\mathrm{in} \right)\\' + '\n'
+            r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} - \alpha_1 \cdot'
+            r'\left(T_\mathrm{m} - T_\mathrm{amb} \right) - \alpha_2 \cdot'
+            r'\left(T_\mathrm{m} -T_\mathrm{amb}\right)^2 \right]\\' + '\n'
+            r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
+            '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def energy_group_deriv(self, increment_filter, k):
         r"""

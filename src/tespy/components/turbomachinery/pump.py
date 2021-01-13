@@ -155,43 +155,37 @@ class Pump(Turbomachine):
     def component():
         return 'pump'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'P': dc_cp(
-                min_val=0,
+                min_val=0, num_eq=1,
                 deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func),
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
             'eta_s': dc_cp(
-                min_val=0, max_val=1,
+                min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
-                func=self.eta_s_func),
+                func=self.eta_s_func,
+                latex=self.eta_s_func_doc),
             'pr': dc_cp(
-                min_val=1,
+                min_val=1, num_eq=1,
                 deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc),
             'eta_s_char': dc_cc(
-                param='v',
+                param='v', num_eq=1,
                 deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func),
+                func=self.eta_s_char_func,
+                latex=self.eta_s_char_func_doc),
             'flow_char': dc_cc(
-                param='v',
+                param='v', num_eq=1,
                 deriv=self.flow_char_deriv,
                 func=self.flow_char_func,
-                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0})
+                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
+                latex=self.flow_char_func_doc)
         }
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-    def eta_s_func(self, doc=False):
+    def eta_s_func(self):
         r"""
         Equation for given isentropic efficiency.
 
@@ -210,17 +204,35 @@ class Pump(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
                 \left( h_{out,s} - h_{in} \right)
         """
-        if not doc:
-            return (
-                -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
-                self.eta_s.val + (isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
-                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
-        else:
-            latex = (
-                r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-                r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-            return [self.generate_latex(latex, 'eta_s_func')]
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
+            self.eta_s.val + (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
+
+    def eta_s_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
+                \left( h_{out,s} - h_{in} \right)
+        """
+        latex = (
+            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
+        return [self.generate_latex(latex, label)]
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -263,28 +275,48 @@ class Pump(Turbomachine):
                 \cdot f\left( expr \right) -\left( h_{out,s} - h_{in} \right)
         """
         p = self.eta_s_char.param
-        expr = self.get_char_expr(p, doc=doc)
+        expr = self.get_char_expr(p, **self.eta_s_char.char_params)
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
 
-        if not doc:
-            i = self.inl[0]
-            o = self.outl[0]
-            return (
-                (o.h.val_SI - i.h.val_SI) * self.eta_s.design *
-                self.eta_s_char.char_func.evaluate(expr) - (
-                    isentropic(
-                        i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
-                    i.h.val_SI))
-        else:
-            latex = (
-                r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-                r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
-                r'\left( h_{out,s} - h_{in} \right)')
-            return [self.generate_latex(latex, 'eta_s_char_func_' + p)]
+        i = self.inl[0]
+        o = self.outl[0]
+        return (
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.design *
+            self.eta_s_char.char_func.evaluate(expr) - (
+                isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+                i.h.val_SI))
+
+    def eta_s_char_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        p = self.eta_s_char.param
+        expr = self.get_char_expr_doc(p, **self.eta_s_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'isentropic efficiency to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+
+        latex = (
+            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
+            r'\left( h_{out,s} - h_{in} \right)')
+        return [self.generate_latex(latex, 'eta_s_char_func_' + p)]
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -329,15 +361,30 @@ class Pump(Turbomachine):
                 0 = p_{out} - p_{in} - f\left( expr \right)
         """
         p = self.flow_char.param
-        expr = self.get_char_expr(p, type='abs', doc=doc)
-        if not doc:
-            return (
-                self.outl[0].p.val_SI - self.inl[0].p.val_SI -
-                self.flow_char.char_func.evaluate(expr))
-        else:
-            latex = (
-                r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(' + expr + r'\right)')
-            return [self.generate_latex(latex, 'flow_char_func_' + p)]
+        expr = self.get_char_expr(p, **self.flow_char.char_params)
+        return (
+            self.outl[0].p.val_SI - self.inl[0].p.val_SI -
+            self.flow_char.char_func.evaluate(expr))
+
+    def flow_char_func_doc(self, label):
+        r"""
+        Equation for given flow characteristic of a pump.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        p = self.flow_char.param
+        expr = self.get_char_expr_doc(p, **self.flow_char.char_params)
+        latex = (
+            r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(' + expr + r'\right)')
+        return [self.generate_latex(latex, label + '_' + p)]
 
     def flow_char_deriv(self, increment_filter, k):
         r"""

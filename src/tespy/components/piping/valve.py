@@ -130,20 +130,38 @@ class Valve(Component):
     def component():
         return 'valve'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'pr': dc_cp(
-                min_val=1e-4, max_val=1,
+                min_val=1e-4, max_val=1, num_eq=1,
                 deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}),
+                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15,
+                min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}),
+                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
             'dp_char': dc_cc(
-                param='m',
+                param='m', num_eq=1,
                 deriv=self.dp_char_deriv, func=self.dp_char_func,
-                char_params={'type': 'abs'})
+                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+        }
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 1},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids},
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': 1}
         }
 
     @staticmethod
@@ -154,96 +172,32 @@ class Valve(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        # enthalpy: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 2)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-        self.jacobian[pos + 1:pos + 2] = self.energy_balance_deriv()
-
-    def mandatory_equations(self, doc=False):
+    def dp_char_func(self):
         r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Equation for characteristic line of difference pressure to mass flow.
 
         Returns
         -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = 0
-        ######################################################################
-        # eqations for fluids
-        self.residual[k:k + self.num_nw_fluids] = self.fluid_func()
-        if doc:
-            self.equation_docs[k:k + self.num_nw_fluids] = (
-                self.fluid_func(doc=doc))
-        k += self.num_nw_fluids
-
-        ######################################################################
-        # eqation for mass flow
-        self.residual[k:k + 1] = self.mass_flow_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
-        k += 1
-
-        ######################################################################
-        # eqation for enthalpy
-        self.residual[k] = self.energy_balance_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.energy_balance_func(doc=doc)
-        k += 1
-        return k
-
-    def energy_balance_func(self, doc=False):
-        r"""
-        Calculate residual value of enthalpy equatilty constraint.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : float
+        residual : ndarray
             Residual value of equation.
 
             .. math::
 
-                0 = h_{in} - h_{out}
+                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
         """
-        if not doc:
-            return self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        else:
-            latex = r'0=h_\mathrm{in}-h_\mathrm{out}'
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        p = self.dp_char.param
+        expr = self.get_char_expr(p, **self.dp_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'pressure drop to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
 
-    def energy_balance_deriv(self):
-        r"""
-        Calculate matrix of partial derivatives for enthalpy balance equation.
+        return (
+            self.inl[0].p.val_SI - self.outl[0].p.val_SI -
+            self.dp_char.char_func.evaluate(expr))
 
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        deriv = np.zeros((1, 2 + self.num_vars, self.num_nw_vars))
-        deriv[0, 0, 2] = 1
-        deriv[0, 1, 2] = -1
-        return deriv
-
-    def dp_char_func(self, doc=False):
+    def dp_char_func_doc(self, label):
         r"""
         Equation for characteristic line of difference pressure to mass flow.
 
@@ -256,27 +210,19 @@ class Valve(Component):
         -------
         residual : ndarray
             Residual value of equation.
-
-            .. math::
-
-                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
         """
         p = self.dp_char.param
-        expr = self.get_char_expr(p, type='abs', doc=doc)
+        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'pressure drop to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
-        if not doc:
-            return (
-                self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-                self.dp_char.char_func.evaluate(expr))
-        else:
-            latex = (
-                r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-                r'\right)')
-            return [self.generate_latex(latex, 'dp_char_func_' + p)]
+
+        latex = (
+            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
+            r'\right)')
+        return [self.generate_latex(latex, 'dp_char_func_' + p)]
 
     def dp_char_deriv(self, increment_filter, k):
         r"""

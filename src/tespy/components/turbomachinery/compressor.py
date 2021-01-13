@@ -150,44 +150,34 @@ class Compressor(Turbomachine):
     def component():
         return 'compressor'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'P': dc_cp(
-                min_val=0,
+                min_val=0, num_eq=1,
                 deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func),
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
             'eta_s': dc_cp(
-                min_val=0, max_val=1,
+                min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
-                func=self.eta_s_func),
+                func=self.eta_s_func, latex=self.eta_s_func_doc),
             'eta_s_char': dc_cc(
-                param='m',
+                param='m', num_eq=1,
                 deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func),
+                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
             'pr': dc_cp(
-                min_val=1,
+                min_val=1, num_eq=1,
                 deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc),
             'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
             'char_map': dc_cm(
-                deriv=self.char_map_deriv,
-                func=self.char_map_func)
+                deriv=self.char_map_deriv, num_eq=2,
+                func=self.char_map_func, latex=self.char_map_func_doc)
         }
 
     def comp_init(self, nw):
-
-        # compressor map does not get handeled by base method
-        num_eq = 0
-        if self.char_map.is_set:
-            num_eq = 2
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1 + num_eq)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+        Component.comp_init(self, nw)
 
         if self.char_map.char_func is None:
             self.char_map.char_func = ldc(
@@ -212,17 +202,30 @@ class Compressor(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
                 \left( h_{out,s} - h_{in} \right)
         """
-        if not doc:
-            return (
-                -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
-                self.eta_s.val + (isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
-                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
-        else:
-            latex = (
-                r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-                r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-            return [self.generate_latex(latex, 'eta_s_func')]
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
+            self.eta_s.val + (isentropic(
+                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
+
+    def eta_s_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency of a compressor.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
+        return [self.generate_latex(latex, label)]
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -265,26 +268,48 @@ class Compressor(Turbomachine):
                 \cdot f\left( expr \right) -\left( h_{out,s} - h_{in} \right)
         """
         p = self.eta_s_char.param
-        expr = self.get_char_expr(p, doc=doc)
+        expr = self.get_char_expr(p, **self.eta_s_char.char_params)
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
-        if not doc:
-            i = self.inl[0]
-            o = self.outl[0]
-            return (
-                self.eta_s.design * self.eta_s_char.char_func.evaluate(expr) *
-                (o.h.val_SI - i.h.val_SI) - (isentropic(
-                    i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
-                 i.h.val_SI))
-        else:
-            latex = (
-                r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-                r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
-                r'\left( h_{out,s} - h_{in} \right)')
-            return [self.generate_latex(latex, 'eta_s_char_func_' + p)]
+
+        i = self.inl[0]
+        o = self.outl[0]
+        return (
+            self.eta_s.design * self.eta_s_char.char_func.evaluate(expr) *
+            (o.h.val_SI - i.h.val_SI) - (isentropic(
+                i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+             i.h.val_SI))
+
+    def eta_s_char_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        p = self.eta_s_char.param
+        expr = self.get_char_expr_doc(p, **self.eta_s_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'isentropic efficiency to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+
+        latex = (
+            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
+            r'\left( h_{out,s} - h_{in} \right)')
+        return [self.generate_latex(latex, label + '_' + p)]
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -310,14 +335,9 @@ class Compressor(Turbomachine):
         if not increment_filter[1, 2]:
             self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
 
-    def char_map_func(self, doc=False):
+    def char_map_func(self):
         r"""
         Equation for characteristic map of compressor.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -342,40 +362,53 @@ class Compressor(Turbomachine):
             0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
             f\left(X,Y,igva\right)
         """
-        if not doc:
-            i = self.inl[0]
-            o = self.outl[0]
-            T = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        i = self.inl[0]
+        o = self.outl[0]
+        T = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
 
-            x = np.sqrt(i.T.design / T)
-            y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        x = np.sqrt(i.T.design / T)
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
-            pr, eta = self.char_map.char_func.evaluate(
-                x, y, igva=self.igva.val)
+        pr, eta = self.char_map.char_func.evaluate(
+            x, y, igva=self.igva.val)
 
-            z1 = (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
-            z2 = (
-                (isentropic(i.to_flow(), o.to_flow(), T0=T) -
-                 i.h.val_SI) / (o.h.val_SI - i.h.val_SI) / self.eta_s.design -
-                eta)
+        z1 = (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
+        z2 = (
+            (isentropic(i.to_flow(), o.to_flow(), T0=T) -
+             i.h.val_SI) / (o.h.val_SI - i.h.val_SI) / self.eta_s.design -
+            eta)
 
-            return np.array([z1, z2])
-        else:
-            latex = (
-                r'\begin{split}'
-                r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-                '\n'
-                r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-                r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-                '\n'
-                r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
-                r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
-                r'f\left(X,Y,igva\right)\\' + '\n'
-                r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
-                r'f\left(X,Y,igva\right)' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'char_map_func'), '']
+        return np.array([z1, z2])
+
+    def char_map_func_doc(self, label):
+        r"""
+        Equation for characteristic map of compressor.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : ndarray
+            Residual values of equations.
+        """
+        latex = (
+            r'\begin{split}'
+            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
+            '\n'
+            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
+            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
+            '\n'
+            r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
+            r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
+            r'f\left(X,Y,igva\right)\\' + '\n'
+            r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
+            r'f\left(X,Y,igva\right)' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label), '']
 
     def char_map_deriv(self, increment_filter, k):
         r"""

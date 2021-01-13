@@ -119,7 +119,7 @@ class Component:
         self.printout = True
 
         # add container for components attributes
-        self.variables = OrderedDict(self.attr().copy())
+        self.variables = OrderedDict(self.get_variables().copy())
         self.__dict__.update(self.variables)
         self.set_attr(**kwargs)
 
@@ -317,27 +317,22 @@ class Component:
         self.always_all_equations = nw.always_all_equations
         self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
-        self.residual = []
-        self.jacobian = None
-        self.num_eq = num_eq
+        self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
+        self.constraints = OrderedDict(self.get_mandatory_constraints().copy())
+        self.__dict__.update(self.constraints)
+
+        for constraint in self.constraints.values():
+            self.num_eq += constraint['num_eq']
 
         for key, val in self.variables.items():
             data = self.get_attr(key)
-            # component properties
             if isinstance(val, dc_cp):
                 if data.is_var:
                     data.var_pos = self.num_vars
                     self.num_vars += 1
                     self.vars[data] = key
-                if data.is_set and data.func is not None:
-                    self.num_eq += 1
-
-            # simple component properties
-            elif isinstance(val, dc_simple):
-                if data.is_set and data.func is not None:
-                    self.num_eq += 1
 
             # component characteristics
             elif isinstance(val, dc_cc):
@@ -348,9 +343,6 @@ class Component:
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
-                if data.is_set and data.func is not None:
-                    self.num_eq += 1
-
             # grouped component properties
             elif isinstance(val, dc_gcp):
                 is_set = True
@@ -360,7 +352,6 @@ class Component:
 
                 if is_set:
                     data.set_attr(is_set=True)
-                    self.num_eq += 1
                 elif data.is_set:
                     start = (
                         'All parameters of the component group have to be '
@@ -372,21 +363,45 @@ class Component:
                 else:
                     val.set_attr(is_set=False)
 
+            # component properties
+            if data.is_set and data.func is not None:
+                self.num_eq += data.num_eq
+
+            # print(key, data.is_set, self.num_eq)
         # set up Jacobian matrix and residual vector
         self.jacobian = np.zeros((
             self.num_eq,
             self.num_i + self.num_o + self.num_vars,
             self.num_nw_vars))
         self.residual = np.zeros(self.num_eq)
+
+        sum_eq = 0
+        for constraint in self.constraints.values():
+            num_eq = constraint['num_eq']
+            if constraint['constant_deriv']:
+                self.jacobian[sum_eq:sum_eq + num_eq] = constraint['deriv']()
+            sum_eq += num_eq
+
         # done
         msg = (
             'The component ' + self.label + ' has ' + str(self.num_vars) +
             ' custom variables.')
         logging.debug(msg)
 
-    @staticmethod
-    def attr():
+    def get_variables(self):
         return {}
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': self.num_i},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids * self.num_i}
+        }
 
     @staticmethod
     def inlets():
@@ -396,7 +411,7 @@ class Component:
     def outlets():
         return []
 
-    def get_char_expr(self, param, type='rel', inconn=0, outconn=0, doc=False):
+    def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
         r"""
         Generic method to access characteristic function parameters.
 
@@ -417,92 +432,139 @@ class Component:
         outconn : int
             Index of outlet connection.
 
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Returns
+        -------
+        expr : float
+            Value of expression
+        """
+        if type == 'rel':
+            if param == 'm':
+                return (
+                    self.inl[inconn].m.val_SI / self.inl[inconn].m.design)
+            elif param == 'm_out':
+                return (
+                    self.outl[outconn].m.val_SI /
+                    self.outl[outconn].m.design)
+            elif param == 'v':
+                v = self.inl[inconn].m.val_SI * v_mix_ph(
+                    self.inl[inconn].to_flow(),
+                    T0=self.inl[inconn].T.val_SI)
+                return v / self.inl[inconn].v.design
+            elif param == 'pr':
+                return (
+                    (self.outl[outconn].p.val_SI *
+                     self.inl[inconn].p.design) /
+                    (self.inl[inconn].p.val_SI *
+                     self.outl[outconn].p.design))
+            else:
+                msg = (
+                    'The parameter ' + str(param) + ' is not available '
+                    'for characteristic function evaluation.')
+                logging.error(msg)
+                raise ValueError(msg)
+        else:
+            if param == 'm':
+                return self.inl[inconn].m.val_SI
+            elif param == 'm_out':
+                return self.outl[outconn].m.val_SI
+            elif param == 'v':
+                return self.inl[inconn].m.val_SI * v_mix_ph(
+                    self.inl[inconn].to_flow(),
+                    T0=self.inl[inconn].T.val_SI)
+            elif param == 'pr':
+                return (
+                    self.outl[outconn].p.val_SI /
+                    self.inl[inconn].p.val_SI)
+            else:
+                return False
+
+    def get_char_expr_doc(self, param, type='rel', inconn=0, outconn=0):
+        r"""
+        Generic method to access characteristic function parameters.
+
+        Parameters
+        ----------
+        param : str
+            Parameter for characteristic function evaluation.
+
+        type : str ('rel' or 'abs')
+            Type of expression:
+
+            - :code:`rel`: relative to design value
+            - :code:`abs`: absolute value
+
+        inconn : int
+            Index of inlet connection.
+
+        outconn : int
+            Index of outlet connection.
 
         Returns
         -------
-        expr : float, str
-            Value of expression or LaTeX code for documentation if doc is True
+        expr : str
+            LaTeX code for documentation
         """
-        if not doc:
-            if type == 'rel':
-                if param == 'm':
-                    return (
-                        self.inl[inconn].m.val_SI / self.inl[inconn].m.design)
-                elif param == 'm_out':
-                    return (
-                        self.outl[outconn].m.val_SI /
-                        self.outl[outconn].m.design)
-                elif param == 'v':
-                    v = self.inl[inconn].m.val_SI * v_mix_ph(
-                        self.inl[inconn].to_flow(),
-                        T0=self.inl[inconn].T.val_SI)
-                    return v / self.inl[inconn].v.design
-                elif param == 'pr':
-                    return (
-                        (self.outl[outconn].p.val_SI *
-                         self.inl[inconn].p.design) /
-                        (self.inl[inconn].p.val_SI *
-                         self.outl[outconn].p.design))
-                else:
-                    msg = (
-                        'The parameter ' + str(param) + ' is not available '
-                        'for characteristic function evaluation.')
-                    logging.error(msg)
-                    raise ValueError(msg)
-            else:
-                if param == 'm':
-                    return self.inl[inconn].m.val_SI
-                elif param == 'm_out':
-                    return self.outl[outconn].m.val_SI
-                elif param == 'v':
-                    return self.inl[inconn].m.val_SI * v_mix_ph(
-                        self.inl[inconn].to_flow(),
-                        T0=self.inl[inconn].T.val_SI)
-                elif param == 'pr':
-                    return (
-                        self.outl[outconn].p.val_SI /
-                        self.inl[inconn].p.val_SI)
-                else:
-                    return False
+        if type == 'rel':
+            if param == 'm':
+                return (
+                    r'\frac{\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}}'
+                    r'{\dot{m}_\mathrm{in,' + str(inconn + 1) +
+                    r',design}}')
+            elif param == 'm_out':
+                return (
+                    r'\frac{\dot{m}_\mathrm{out,' + str(outconn + 1) +
+                    r'}}{\dot{m}_\mathrm{out,' + str(outconn + 1) +
+                    r',design}}')
+            elif param == 'v':
+                return (
+                    r'\frac{\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}}'
+                    r'{\dot{V}_\mathrm{in,' + str(inconn + 1) +
+                    r',design}}')
+            elif param == 'pr':
+                return (
+                    r'\frac{p_\mathrm{out,' + str(outconn + 1) +
+                    r'}\cdot p_\mathrm{in,' + str(inconn + 1) +
+                    r',design}}{p_\mathrm{out,' + str(outconn + 1) +
+                    r',design}\cdot p_\mathrm{in,' + str(inconn + 1) +
+                    r'}}')
         else:
-            if type == 'rel':
-                if param == 'm':
-                    return (
-                        r'\frac{\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}}'
-                        r'{\dot{m}_\mathrm{in,' + str(inconn + 1) +
-                        r',design}}')
-                elif param == 'm_out':
-                    return (
-                        r'\frac{\dot{m}_\mathrm{out,' + str(outconn + 1) +
-                        r'}}{\dot{m}_\mathrm{out,' + str(outconn + 1) +
-                        r',design}}')
-                elif param == 'v':
-                    return (
-                        r'\frac{\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}}'
-                        r'{\dot{V}_\mathrm{in,' + str(inconn + 1) +
-                        r',design}}')
-                elif param == 'pr':
-                    return (
-                        r'\frac{p_\mathrm{out,' + str(outconn + 1) +
-                        r'}\cdot p_\mathrm{in,' + str(inconn + 1) +
-                        r',design}}{p_\mathrm{out,' + str(outconn + 1) +
-                        r',design}\cdot p_\mathrm{in,' + str(inconn + 1) +
-                        r'}}')
-            else:
-                if param == 'm':
-                    return r'\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}'
-                elif param == 'm_out':
-                    return r'\dot{m}_\mathrm{out,' + str(outconn + 1) + r'}'
-                elif param == 'v':
-                    return r'\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}'
-                elif param == 'pr':
-                    return (
-                        r'\frac{p_\mathrm{out,' + str(outconn + 1) +
-                        r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
+            if param == 'm':
+                return r'\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}'
+            elif param == 'm_out':
+                return r'\dot{m}_\mathrm{out,' + str(outconn + 1) + r'}'
+            elif param == 'v':
+                return r'\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}'
+            elif param == 'pr':
+                return (
+                    r'\frac{p_\mathrm{out,' + str(outconn + 1) +
+                    r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
 
     def solve(self, increment_filter, doc=False):
+        """
+        Solve equations and calculate partial derivatives of a component.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+        """
+        sum_eq = 0
+        for constraint in self.constraints.values():
+            num_eq = constraint['num_eq']
+            self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
+            if not constraint['constant_deriv']:
+                constraint['deriv'](increment_filter, sum_eq)
+            sum_eq += num_eq
+
+        for parameter, data in self.variables.items():
+            if data.is_set and data.func is not None:
+                self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
+                    **data.func_params)
+                data.deriv(increment_filter, sum_eq, **data.func_params)
+
+                sum_eq += data.num_eq
+
+    def document_equations(self):
         """
         Solve equations and calculate partial derivatives of a component.
 
@@ -514,62 +576,20 @@ class Component:
         doc : boolean
             Return equation in LaTeX format instead of value.
         """
-        if doc:
-            self.equation_docs = ['' for i in range(self.num_eq)]
+        self.equation_docs = ['' for i in range(self.num_eq)]
 
-        k = self.mandatory_equations(doc=doc)
-        if not doc:
-            self.mandatory_derivatives(increment_filter)
+        sum_eq = 0
+        for name, constraint in self.constraints.items():
+            num_eq = constraint['num_eq']
+            self.equation_docs[sum_eq:sum_eq + num_eq] = (
+                constraint['latex'](name))
+            sum_eq += num_eq
 
         for parameter, data in self.variables.items():
             if data.is_set and data.func is not None:
-                residuals = data.func(doc=doc, **data.func_params)
-                try:
-                    num_eq = len(residuals)
-                except TypeError:
-                    num_eq = 1
-
-                if not doc:
-                    self.residual[k:k + num_eq] = residuals
-                    data.deriv(increment_filter, k, **data.func_params)
-                else:
-                    self.equation_docs[k:k + num_eq] = residuals
-
-                k += num_eq
-
-    def mandatory_equations(self, doc=False):
-        r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        return 0
-
-    def mandatory_derivatives(self, increment_filter):
-        r"""
-        Calculate partial derivatives for mandatory equations.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        # return value is required in some class of parent methods
-        # e.g. desuperheater
-        return 0
+                self.equation_docs[sum_eq:sum_eq + data.num_eq] = data.latex(
+                    parameter + '_function', **data.func_params)
+                sum_eq += data.num_eq
 
     def bus_func(self, bus):
         r"""
@@ -900,7 +920,7 @@ class Component:
         latex += r'\end{equation}'
         return latex
 
-    def fluid_func(self, doc=False):
+    def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
 
@@ -914,25 +934,33 @@ class Component:
                 0 = x_{fl,in,i} - x_{fl,out,i} \; \forall fl \in
                 \text{network fluids,} \; \forall i \in \text{inlets}
         """
-        if not doc:
-            residual = []
-            for i in range(self.num_i):
-                for fluid, x in self.inl[0].fluid.val.items():
-                    residual += [x - self.outl[0].fluid.val[fluid]]
-            return residual
+        residual = []
+        for i in range(self.num_i):
+            for fluid, x in self.inl[0].fluid.val.items():
+                residual += [x - self.outl[0].fluid.val[fluid]]
+        return residual
+
+    def fluid_func_doc(self, label):
+        r"""
+        Get fluid balance equations in LaTeX format.
+
+        Returns
+        -------
+        latex : list
+            List of equations applied.
+        """
+        indices = list(range(1, self.num_i + 1))
+        if len(indices) > 1:
+            indices = ', '.join(str(idx) for idx in indices)
         else:
-            indices = list(range(1, self.num_i + 1))
-            if len(indices) > 1:
-                indices = ', '.join(str(idx) for idx in indices)
-            else:
-                indices = str(indices[0])
-            latex = (
-                r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
-                r'\forall fl \in\text{network fluids,}'
-                r'\; \forall i \in [' + indices + r']')
-            return (
-                [self.generate_latex(latex, 'fluid_func')] +
-                (self.num_i - 1) * [''])
+            indices = str(indices[0])
+        latex = (
+            r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
+            r'\forall fl \in\text{network fluids,}'
+            r'\; \forall i \in [' + indices + r']')
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_i * self.num_nw_fluids - 1) * [''])
 
     def fluid_deriv(self):
         r"""
@@ -943,7 +971,7 @@ class Component:
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_nw_fluids * self.num_i,
+        deriv = np.zeros((self.fluid_constraints['num_eq'],
                           2 * self.num_i + self.num_vars,
                           self.num_nw_vars))
         for i in range(self.num_i):
@@ -952,7 +980,7 @@ class Component:
                 deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
         return deriv
 
-    def mass_flow_func(self, doc=False):
+    def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.
 
@@ -965,23 +993,31 @@ class Component:
 
                 0 = \dot{m}_{in,i} -\dot{m}_{out,i} \;\forall i\in\text{inlets}
         """
-        if not doc:
-            residual = []
-            for i in range(self.num_i):
-                residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-            return residual
+        residual = []
+        for i in range(self.num_i):
+            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+        return residual
+
+    def mass_flow_func_doc(self, label):
+        r"""
+        Get mass flow equations in LaTeX format.
+
+        Returns
+        -------
+        latex : list
+            List of equations applied.
+        """
+        indices = list(range(1, self.num_i + 1))
+        if len(indices) > 1:
+            indices = ', '.join(str(idx) for idx in indices)
         else:
-            indices = list(range(1, self.num_i + 1))
-            if len(indices) > 1:
-                indices = ', '.join(str(idx) for idx in indices)
-            else:
-                indices = str(indices[0])
-            latex = (
-                r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
-                r'\; \forall i \in [' + indices + r']')
-            return (
-                [self.generate_latex(latex, 'mass_flow_func')] +
-                (self.num_i - 1) * [''])
+            indices = str(indices[0])
+        latex = (
+            r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
+            r'\; \forall i \in [' + indices + r']')
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_i - 1) * [''])
 
     def mass_flow_deriv(self):
         r"""
@@ -1001,6 +1037,139 @@ class Component:
             deriv[i, i, 0] = 1
         for j in range(self.num_o):
             deriv[j, j + i + 1, 0] = -1
+        return deriv
+
+    def pressure_equality_func(self):
+        r"""
+        Equation for pressure equality.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = p_{in,i} - p_{out,i} \;\forall i\in\text{inlets}
+        """
+        residual = []
+        for i in range(self.num_i):
+            residual += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
+        return residual
+
+    def pressure_equality_func_doc(self, label):
+        r"""
+        Equation for pressure equality.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        indices = list(range(1, self.num_i + 1))
+        if len(indices) > 1:
+            indices = ', '.join(str(idx) for idx in indices)
+        else:
+            indices = str(indices[0])
+        latex = (
+            r'0=p_{\mathrm{in,}i}-p_{\mathrm{out,}i}'
+            r'\; \forall i \in [' + indices + r']')
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_i - 1) * [''])
+
+    def pressure_equality_deriv(self):
+        r"""
+        Calculate partial derivatives for all mass flow balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the mass flow balance
+            equations.
+        """
+        deriv = np.zeros((
+            self.num_i,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+        for i in range(self.num_i):
+            deriv[i, i, 1] = 1
+        for j in range(self.num_o):
+            deriv[j, j + i + 1, 1] = -1
+        return deriv
+
+    def enthalpy_equality_func(self):
+        r"""
+        Equation for enthalpy equality.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = h_{in,i} - h_{out,i} \;\forall i\in\text{inlets}
+        """
+        residual = []
+        for i in range(self.num_i):
+            residual += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
+        return residual
+
+    def enthalpy_equality_func_doc(self, label):
+        r"""
+        Equation for enthalpy equality.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        indices = list(range(1, self.num_i + 1))
+        if len(indices) > 1:
+            indices = ', '.join(str(idx) for idx in indices)
+        else:
+            indices = str(indices[0])
+        latex = (
+            r'0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}'
+            r'\; \forall i \in [' + indices + r']')
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_i - 1) * [''])
+
+    def enthalpy_equality_deriv(self):
+        r"""
+        Calculate partial derivatives for all mass flow balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the mass flow balance
+            equations.
+        """
+        deriv = np.zeros((
+            self.num_i,
+            self.num_i + self.num_o + self.num_vars,
+            self.num_nw_vars))
+        for i in range(self.num_i):
+            deriv[i, i, 2] = 1
+        for j in range(self.num_o):
+            deriv[j, j + i + 1, 2] = -1
         return deriv
 
     def numeric_deriv(self, func, dx, pos, **kwargs):
@@ -1118,16 +1287,36 @@ class Component:
 
                 0 = p_{in} \cdot pr - p_{out}
         """
-        if not doc:
-            pr = self.get_attr(pr)
-            return (self.inl[inconn].p.val_SI * pr.val -
-                    self.outl[outconn].p.val_SI)
-        else:
-            latex = (
-                r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
-                r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
-            )
-            return [self.generate_latex(latex, 'pr_func_' + pr)]
+        pr = self.get_attr(pr)
+        return (self.inl[inconn].p.val_SI * pr.val -
+                self.outl[outconn].p.val_SI)
+
+    def pr_func_doc(self, label, pr='', inconn=0, outconn=0):
+        r"""
+        Calculate residual value of pressure ratio function.
+
+        Parameters
+        ----------
+        pr : str
+            Component parameter to evaluate the pr_func on, e.g.
+            :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        Returns
+        -------
+        residual : float
+            Residual value of function.
+        """
+        latex = (
+            r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
+            r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
         r"""
@@ -1203,33 +1392,53 @@ class Component:
             \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
             {8 \cdot \dot{m}^2 \cdot v}
         """
-        if not doc:
-            data = self.get_attr(zeta)
-            i = self.inl[inconn].to_flow()
-            o = self.outl[outconn].to_flow()
+        data = self.get_attr(zeta)
+        i = self.inl[inconn].to_flow()
+        o = self.outl[outconn].to_flow()
 
-            if abs(i[0]) < 1e-4:
-                return i[1] - o[1]
+        if abs(i[0]) < 1e-4:
+            return i[1] - o[1]
 
-            else:
-                v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
-                v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
-                return (data.val - (i[1] - o[1]) * np.pi ** 2 /
-                        (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
         else:
-            inl = r'_\mathrm{in,' + str(inconn + 1) + r'}'
-            outl = r'_\mathrm{out,' + str(outconn + 1) + r'}'
-            latex = (
-                r'0 = \begin{cases}' + '\n' +
-                r'p' + inl + r'- p' + outl + r' & |\dot{m}' + inl +
-                r'| < \unitfrac[0.0001]{kg}{s} \\' + '\n' +
-                r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
-                r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
-                r'|\cdot\frac{v' + inl + r'v' + outl + r'}{2}}' +
-                r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
-                r'\end{cases}'
-            )
-            return [self.generate_latex(latex, 'zeta_func_' + zeta)]
+            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
+            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
+            return (data.val - (i[1] - o[1]) * np.pi ** 2 /
+                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+
+    def zeta_func_doc(self, label, zeta='', inconn=0, outconn=0):
+        r"""
+        Calculate residual value of :math:`\zeta`-function.
+
+        Parameters
+        ----------
+        zeta : str
+            Component parameter to evaluate the zeta_func on, e.g.
+            :code:`zeta1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        Returns
+        -------
+        residual : float
+            Residual value of function.
+        """
+        inl = r'_\mathrm{in,' + str(inconn + 1) + r'}'
+        outl = r'_\mathrm{out,' + str(outconn + 1) + r'}'
+        latex = (
+            r'0 = \begin{cases}' + '\n' +
+            r'p' + inl + r'- p' + outl + r' & |\dot{m}' + inl +
+            r'| < \unitfrac[0.0001]{kg}{s} \\' + '\n' +
+            r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
+            r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
+            r'|\cdot\frac{v' + inl + r'v' + outl + r'}{2}}' +
+            r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
+            r'\end{cases}'
+        )
+        return [self.generate_latex(latex, label + '_' + zeta)]
 
     def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
         r"""

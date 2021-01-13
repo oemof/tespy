@@ -169,67 +169,44 @@ class Desuperheater(HeatExchanger):
     def component():
         return 'desuperheater'
 
-    def comp_init(self, nw):
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 2},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids * 2},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': 1},
+            'saturated_gas_constraints': {
+                'func': self.saturated_gas_func,
+                'deriv': self.saturated_gas_deriv,
+                'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
+                'num_eq': 1}
+        }
 
-        # number of mandatroy equations for
-        # fluid balance: num_fl * 2
-        # mass flow: 2
-        # energy balance: 1
-        # enthalpy hot side outlet: 1
-        num_eq = len(nw.fluids) * 2 + 4
-        Component.comp_init(self, nw, num_eq=num_eq)
-        # constant derivatives
-        pos = self.num_nw_fluids * 2
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 2] = self.mass_flow_deriv()
-
-    def mandatory_equations(self, doc=False):
+    def saturated_gas_func(self):
         r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Calculate hot side outlet state.
 
         Returns
         -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0 = h_{out,1} - h\left(p_{out,1}, x=1 \right)
         """
-        k = HeatExchanger.mandatory_equations(self, doc=doc)
-        ######################################################################
-        # equation for saturated gas at hot side outlet
-        self.residual[k] = self.saturated_gas_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.saturated_gas_func(doc=doc)
-        k += 1
-        return k
+        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].to_flow(), 1)
 
-    def mandatory_derivatives(self, increment_filter):
-        r"""
-        Calculate partial derivatives for mandatory equations.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = HeatExchanger.mandatory_derivatives(self, increment_filter)
-        ######################################################################
-        # derivatives for saturated gas at hot side outlet equation
-        o1 = self.outl[0].to_flow()
-        self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 1)
-        self.jacobian[k, 2, 2] = 1
-        k += 1
-        return k
-
-    def saturated_gas_func(self, doc=False):
+    def saturated_gas_func_doc(self, label):
         r"""
         Calculate hot side outlet state.
 
@@ -242,13 +219,22 @@ class Desuperheater(HeatExchanger):
         -------
         residual : float
             Residual value of equation
-
-            .. math::
-
-                0 = h_{out,1} - h\left(p_{out,1}, x=1 \right)
         """
-        if not doc:
-            return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].to_flow(), 1)
-        else:
-            latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
-            return [self.generate_latex(latex, 'saturated_gas_func')]
+        latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
+        return [self.generate_latex(latex, 'saturated_gas_func')]
+
+    def saturated_gas_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of saturated gas at hot side outlet function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        o1 = self.outl[0].to_flow()
+        self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 1)
+        self.jacobian[k, 2, 2] = 1

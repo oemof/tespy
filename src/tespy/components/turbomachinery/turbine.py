@@ -143,41 +143,32 @@ class Turbine(Turbomachine):
     def component():
         return 'turbine'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'P': dc_cp(
-                max_val=0,
+                max_val=0, num_eq=1,
                 deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func),
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
             'eta_s': dc_cp(
-                min_val=0, max_val=1,
+                min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
-                func=self.eta_s_func),
+                func=self.eta_s_func, latex=self.eta_s_func_doc),
             'eta_s_char': dc_cc(
-                param='m',
+                param='m', num_eq=1,
                 deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func),
+                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
             'pr': dc_cp(
-                min_val=0, max_val=1,
+                min_val=0, max_val=1, num_eq=1,
                 deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc),
             'cone': dc_simple(
-                deriv=self.cone_deriv,
-                func=self.cone_func)
+                deriv=self.cone_deriv, num_eq=1,
+                func=self.cone_func, latex=self.cone_func_doc)
         }
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-    def eta_s_func(self, doc=False):
+    def eta_s_func(self):
         r"""
         Equation for given isentropic efficiency of a turbine.
 
@@ -196,18 +187,31 @@ class Turbine(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) +
                 \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
         """
-        if not doc:
-            return (
-                -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
-                    isentropic(
-                        self.inl[0].to_flow(), self.outl[0].to_flow(),
-                        T0=self.inl[0].T.val_SI) -
-                    self.inl[0].h.val_SI) * self.eta_s.val)
-        else:
-            latex = (
-                r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
-                r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
-            return [self.generate_latex(latex, 'eta_s_func')]
+        return (
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
+                isentropic(
+                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    T0=self.inl[0].T.val_SI) -
+                self.inl[0].h.val_SI) * self.eta_s.val)
+
+    def eta_s_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency of a turbine.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
+            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
+        return [self.generate_latex(latex, label)]
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -230,7 +234,7 @@ class Turbine(Turbomachine):
             self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
         self.jacobian[k, 1, 2] = -1
 
-    def cone_func(self, doc=False):
+    def cone_func(self):
         r"""
         Equation for stodolas cone law.
 
@@ -252,26 +256,39 @@ class Turbine(Turbomachine):
                 {1 - \left(\frac{p_{out,ref}}{p_{in,ref}} \right)^{2}}} -
                 \dot{m}_{in}
         """
-        if not doc:
-            n = 1
-            i = self.inl[0]
-            o = self.outl[0]
-            vol = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
-            return (
-                - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
-                np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
-                np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
-                            (1 - (self.pr.design) ** ((n + 1) / n)))))
-        else:
-            latex = (
-                r'0 = \frac{\dot{m}_\mathrm{in,design}\cdot p_\mathrm{in}}'
-                r'{p_\mathrm{in,design}}\cdot\sqrt{\frac{p_\mathrm{in,design}'
-                r'\cdot v_\mathrm{in}}{p_\mathrm{in}\cdot '
-                r'v_\mathrm{in,design}}\cdot\frac{1-\left('
-                r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
-                r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
-                r'\right)^{2}}} -\dot{m}_\mathrm{in}')
-            return [self.generate_latex(latex, 'cone_func')]
+        n = 1
+        i = self.inl[0]
+        o = self.outl[0]
+        vol = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        return (
+            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
+            np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
+            np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
+                        (1 - (self.pr.design) ** ((n + 1) / n)))))
+
+    def cone_func_doc(self, label):
+        r"""
+        Equation for stodolas cone law.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0 = \frac{\dot{m}_\mathrm{in,design}\cdot p_\mathrm{in}}'
+            r'{p_\mathrm{in,design}}\cdot\sqrt{\frac{p_\mathrm{in,design}'
+            r'\cdot v_\mathrm{in}}{p_\mathrm{in}\cdot '
+            r'v_\mathrm{in,design}}\cdot\frac{1-\left('
+            r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
+            r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
+            r'\right)^{2}}} -\dot{m}_\mathrm{in}')
+        return [self.generate_latex(latex, label)]
 
     def cone_deriv(self, increment_filter, k):
         r"""
@@ -294,7 +311,7 @@ class Turbine(Turbomachine):
         if not increment_filter[1, 2]:
             self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
 
-    def eta_s_char_func(self, doc=False):
+    def eta_s_char_func(self):
         r"""
         Equation for given isentropic efficiency characteristic.
 
@@ -315,26 +332,54 @@ class Turbine(Turbomachine):
                 \left(h_\mathrm{out,s}-h_\mathrm{in}\right)
         """
         p = self.eta_s_char.param
-        expr = self.get_char_expr(p, doc=doc)
+        expr = self.get_char_expr(p)
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
-        if not doc:
-            i = self.inl[0]
-            o = self.outl[0]
-            return (
-                -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
-                self.eta_s_char.char_func.evaluate(expr) * (isentropic(
-                    i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
-                    i.h.val_SI))
-        else:
-            latex = (
-                r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
-                r'\eta_\mathrm{s,design}\cdot f \left(' + expr + r'\right)'
-                r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-            return [self.generate_latex(latex, 'eta_s_char_func_' + p)]
+
+        i = self.inl[0]
+        o = self.outl[0]
+        return (
+            -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
+            self.eta_s_char.char_func.evaluate(expr) * (isentropic(
+                i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+                i.h.val_SI))
+
+    def eta_s_char_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = - \left( h_\mathrm{out} - h_\mathrm{in} \right) +
+                \eta_\mathrm{s,design} \cdot f\left( expr \right) \cdot
+                \left(h_\mathrm{out,s}-h_\mathrm{in}\right)
+        """
+        p = self.eta_s_char.param
+        expr = self.get_char_expr_doc(p)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'isentropic efficiency to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
+
+        latex = (
+            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
+            r'\eta_\mathrm{s,design}\cdot f \left(' + expr + r'\right)'
+            r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
+        return [self.generate_latex(latex, label + '_' + p)]
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""

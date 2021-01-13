@@ -81,14 +81,16 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'P': dc_cp(
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func),
+                deriv=self.energy_balance_deriv, num_eq=1,
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
             'pr': dc_cp(
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'})
+                deriv=self.pr_deriv, num_eq=1,
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc)
         }
 
     @staticmethod
@@ -99,55 +101,9 @@ class Turbomachine(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-    def mandatory_equations(self, doc=False):
-        r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = 0
-        ######################################################################
-        # eqations for fluids
-        self.residual[k:self.num_nw_fluids] = self.fluid_func()
-        if doc:
-            self.equation_docs[k:self.num_nw_fluids] = self.fluid_func(doc=doc)
-        k += self.num_nw_fluids
-
-        ######################################################################
-        # eqations for mass flow balance
-        self.residual[k: k + 1] = self.mass_flow_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
-        k += 1
-        return k
-
-    def energy_balance_func(self, doc=False):
+    def energy_balance_func(self):
         r"""
         Calculate energy balance of a turbomachine.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -158,14 +114,27 @@ class Turbomachine(Component):
 
                 0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
         """
-        if not doc:
-            return self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
-        else:
-            latex = (
-                r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
-                r'\right)-P')
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+
+    def energy_balance_func_doc(self, label):
+        r"""
+        Calculate energy balance of a turbomachine.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        latex : str
+            Residual value of turbomachine energy balance
+        """
+        latex = (
+            r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
+            r'\right)-P')
+        return self.generate_latex(latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""

@@ -163,21 +163,6 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl * 2
-        # mass flow: 1
-        # pressure: 3
-        # enthalpy: 1
-        # saturated liquid outlet: 1
-        # saturated gas outlet: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) * 2 + 7)
-        # constant derivatives
-        self.jacobian[0:1] = self.mass_flow_deriv()
-        self.jacobian[1:4] = self.pressure_equality_deriv()
-        self.jacobian[4:4 + self.num_nw_fluids * 2] = self.fluid_deriv()
-
     @staticmethod
     def initialise_source(c, key):
         r"""

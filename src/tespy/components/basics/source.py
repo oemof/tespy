@@ -65,6 +65,10 @@ class Source(Component):
     def outlets():
         return ['out1']
 
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
     def propagate_fluid_to_source(self, outconn, start):
         r"""
         Fluid propagation to source stops here.

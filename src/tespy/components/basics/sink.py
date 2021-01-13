@@ -65,6 +65,10 @@ class Sink(Component):
     def inlets():
         return ['in1']
 
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
     def propagate_fluid_to_target(self, inconn, start):
         r"""
         Fluid propagation to target stops here.

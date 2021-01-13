@@ -133,8 +133,31 @@ class Separator(NodeBase):
         return 'separator'
 
     @staticmethod
-    def attr():
+    def get_variables():
         return {'num_out': dc_simple()}
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 1},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': False, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': self.num_o},
+            'pressure_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i + self.num_o - 1}
+        }
 
     @staticmethod
     def inlets():
@@ -147,85 +170,9 @@ class Separator(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
-    def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # mass flow: 1
-        # pressure: number of inlets + number of outlets - 1
-        # fluid: number of fluids
-        # enthalpy: number of outlets
-        num_eq = self.num_i + self.num_o * 2 + len(nw.fluids)
-        Component.comp_init(self, nw, num_eq=num_eq)
-        # constant derivatives
-        self.jacobian[0:1] = self.mass_flow_deriv()
-        end = self.num_i + self.num_o
-        self.jacobian[1:end] = self.pressure_equality_deriv()
-
-    def mandatory_equations(self, doc=False):
-        r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = NodeBase.mandatory_equations(self, doc=doc)
-        ######################################################################
-        # equations for fluid balance
-        num_eq = self.num_nw_fluids
-        self.residual[k:k + num_eq] = self.fluid_func()
-        if doc:
-            self.equation_docs[k:k + num_eq] = self.fluid_func(doc=doc)
-        k += num_eq
-        ######################################################################
-        # equations for energy balance
-        self.residual[k:k + self.num_o] = self.energy_balance_func()
-        if doc:
-            self.equation_docs[k:k + self.num_o] = (
-                self.energy_balance_func(doc=doc))
-        k += self.num_o
-        return k
-
-    def mandatory_derivatives(self, increment_filter):
-        r"""
-        Calculate partial derivatives for mandatory equations.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = NodeBase.mandatory_derivatives(self, increment_filter)
-        ######################################################################
-        # derivatives for fluid balance equations
-        self.fluid_deriv(increment_filter, k)
-        k += self.num_nw_fluids
-
-        ######################################################################
-        # derivatives for energy balance equations
-        self.energy_balance_deriv(increment_filter, k)
-        k += self.num_o
-        return k
-
-    def fluid_func(self, doc=False):
+    def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -239,24 +186,37 @@ class Separator(NodeBase):
                 \forall fl \in \text{network fluids,}
                 \; \forall j \in \text{outlets}
         """
-        if not doc:
-            residual = []
-            for fluid, x in self.inl[0].fluid.val.items():
-                res = x * self.inl[0].m.val_SI
-                for o in self.outl:
-                    res -= o.fluid.val[fluid] * o.m.val_SI
-                residual += [res]
-            return residual
-        else:
-            latex = (
-                r'0 = \dot{m}_\mathrm{in} \cdot x_{fl\mathrm{,in}} - '
-                r'\dot {m}_{\mathrm{out,}j} \cdot x_{fl\mathrm{,out,}j}'
-                r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-                r'\text{outlets}'
-            )
-            return (
-                [self.generate_latex(latex, 'fluid_func')] +
-                (self.num_nw_fluids - 1) * [''])
+        residual = []
+        for fluid, x in self.inl[0].fluid.val.items():
+            res = x * self.inl[0].m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            residual += [res]
+        return residual
+
+    def fluid_func_doc(self, label):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+        """
+        latex = (
+            r'0 = \dot{m}_\mathrm{in} \cdot x_{fl\mathrm{,in}} - '
+            r'\dot {m}_{\mathrm{out,}j} \cdot x_{fl\mathrm{,out,}j}'
+            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
+            r'\text{outlets}'
+        )
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_nw_fluids - 1) * [''])
 
     def fluid_deriv(self, increment_filter, k):
         r"""
@@ -282,7 +242,27 @@ class Separator(NodeBase):
             k += 1
             i += 1
 
-    def energy_balance_func(self, doc=False):
+    def energy_balance_func(self):
+        r"""
+        Calculate energy balance.
+
+        Returns
+        -------
+        residual : list
+            Residual value of energy balance.
+
+            .. math::
+
+                0 = T_{in} - T_{out,j}\\
+                \forall j \in \text{outlets}
+        """
+        residual = []
+        T_in = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
+        for o in self.outl:
+            residual += [T_in - T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
+        return residual
+
+    def energy_balance_func_doc(self, label):
         r"""
         Calculate energy balance.
 
@@ -295,24 +275,12 @@ class Separator(NodeBase):
         -------
         residual : list
             Residual value of energy balance.
-
-            .. math::
-
-                0 = T_{in} - T_{out,j}\\
-                \forall j \in \text{outlets}
         """
-        if not doc:
-            residual = []
-            T_in = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-            for o in self.outl:
-                residual += [T_in - T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
-            return residual
-        else:
-            latex = (
-                r'0= T_\mathrm{in} - T_{\mathrm{out,}j}'
-                r'\; \forall j \in \text{outlets}'
-            )
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        latex = (
+            r'0= T_\mathrm{in} - T_{\mathrm{out,}j}'
+            r'\; \forall j \in \text{outlets}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""

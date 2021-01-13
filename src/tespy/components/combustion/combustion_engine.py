@@ -42,7 +42,7 @@ class CombustionEngine(CombustionChamber):
       (for cooling water)
     - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.mass_flow_func`
     - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.reaction_balance_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.stoichiometry`
     - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.energy_balance_func`
     - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.tiP_char_func`
     - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q1_char_func`
@@ -249,36 +249,90 @@ class CombustionEngine(CombustionChamber):
     def component():
         return 'combustion engine'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func),
+                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
+                latex=self.lambda_func_doc, num_eq=1),
             'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func),
+                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
+                latex=self.ti_func_doc, num_eq=1),
             'P': dc_cp(val=-1e6, d=1, max_val=-1),
             'Q1': dc_cp(
-                max_val=-1, deriv=self.Q1_deriv, func=self.Q1_func),
+                max_val=-1, deriv=self.Q1_deriv, func=self.Q1_func,
+                num_eq=1, latex=self.Q1_func_doc),
             'Q2': dc_cp(
-                max_val=-1, deriv=self.Q2_deriv, func=self.Q2_func),
+                max_val=-1, deriv=self.Q2_deriv, func=self.Q2_func,
+                num_eq=1, latex=self.Q2_func_doc),
             'Qloss': dc_cp(val=-1e5, d=1, max_val=-1),
             'pr1': dc_cp(
-                min_val=1e-4, max_val=1, deriv=self.pr_deriv,
+                min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
+                latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr1'}),
             'pr2': dc_cp(
-                min_val=1e-4, max_val=1,
+                min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
             'zeta1': dc_cp(
-                min_val=0, max_val=1e15,
+                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta1'}),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15,
+                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
             'tiP_char': dc_cc(), 'Q1_char': dc_cc(), 'Q2_char': dc_cc(),
             'Qloss_char': dc_cc(),
             'eta_mech': dc_simple(val=0.85), 'T_v_inner': dc_simple()}
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 3},
+            'cooling_loop_fuid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': 2 * self.num_nw_fluids},
+            'reactor_pressure_constraints': {
+                'func': self.combustion_pressure_func,
+                'deriv': self.combustion_pressure_deriv,
+                'constant_deriv': True,
+                'latex': self.combustion_pressure_func_doc,
+                'num_eq': 2},
+            'stoichiometry_constraints': {
+                'func': self.stoichiometry_func,
+                'deriv': self.stoichiometry_deriv,
+                'constant_deriv': False,
+                'latex': self.stoichiometry_func_doc,
+                'num_eq': self.num_nw_fluids},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': 1},
+            'power_constraints': {
+                'func': self.tiP_char_func,
+                'deriv': self.tiP_char_deriv,
+                'constant_deriv': False, 'latex': self.tiP_char_func_doc,
+                'num_eq': 1},
+            'heat1_constraints': {
+                'func': self.Q1_char_func,
+                'deriv': self.Q1_char_deriv,
+                'constant_deriv': False, 'latex': self.Q1_char_func_doc,
+                'num_eq': 1},
+            'heat2_constraints': {
+                'func': self.Q2_char_func,
+                'deriv': self.Q2_char_deriv,
+                'constant_deriv': False, 'latex': self.Q2_char_func_doc,
+                'num_eq': 1},
+            'heatloss_constraints': {
+                'func': self.Qloss_char_func,
+                'deriv': self.Qloss_char_deriv,
+                'constant_deriv': False, 'latex': self.Qloss_char_func_doc,
+                'num_eq': 1},
+        }
 
     @staticmethod
     def inlets():
@@ -304,164 +358,13 @@ class CombustionEngine(CombustionChamber):
                    self.label + ' as custom variable of the system.')
             logging.info(msg)
 
-        # number of mandatroy equations for
-        # cooling loops fluid balances: 2 * num_fl
-        # mass flow: 3
-        # pressure: 2
-        # reaction balance: num_fl
-        # energy balance and characteristic functions: 5
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) * 3 + 10)
-
-        pos = self.num_nw_fluids * 2
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 3] = self.mass_flow_deriv()
-        self.jacobian[pos + 3:pos + 5] = self.combustion_pressure_deriv()
+        Component.comp_init(self, nw)
 
         self.setup_reaction_parameters()
 
-    def mandatory_equations(self, doc=False):
-        r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        k = 0
-        ######################################################################
-        # equations for fluids in cooling loops
-        self.residual[k:self.num_nw_fluids * 2] = self.fluid_func()
-        if doc:
-            self.equation_docs[k:self.num_nw_fluids * 2] = (
-                self.fluid_func(doc=doc))
-        k += self.num_nw_fluids * 2
-
-        ######################################################################
-        # equations for mass flow
-        self.residual[k:k + 3] = self.mass_flow_func()
-        if doc:
-            self.equation_docs[k:k + 3] = self.mass_flow_func(doc=doc)
-        k += 3
-
-        ######################################################################
-        # equations for pressure balance in combustion
-        self.residual[k:k + 2] = self.combustion_pressure_func()
-        if doc:
-            self.equation_docs[k:k + 2] = (
-                self.combustion_pressure_func(doc=doc))
-        k += 2
-
-        ######################################################################
-        # equations for fluids in combustion chamber
-        for fluid in self.inl[0].fluid.val.keys():
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.reaction_balance_func(fluid)
-            if doc:
-                self.equation_docs[k:k + 1] = self.reaction_balance_func(
-                    fluid, doc=doc)
-            k += 1
-
-        ######################################################################
-        # equation for combustion engine energy balance
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.energy_balance_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.energy_balance_func(doc=doc)
-        k += 1
-
-        ######################################################################
-        # equation for power to thermal input ratio from characteristic line
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.tiP_char_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.tiP_char_func(doc=doc)
-        k += 1
-
-        ######################################################################
-        # equations for heat outputs from characteristic line
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.Q1_char_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.Q1_char_func(doc=doc)
-        k += 1
-
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.Q2_char_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.Q2_char_func(doc=doc)
-        k += 1
-
-        ######################################################################
-        # equation for heat loss from characteristic line
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.Qloss_char_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.Qloss_char_func(doc=doc)
-        k += 1
-
-        return k
-
-    def mandatory_derivatives(self, increment_filter):
-        r"""
-        Calculate partial derivatives for mandatory equations.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        ######################################################################
-        # derivatives cooling water fluid, mass balance and pressure are static
-        k = self.num_nw_fluids * 2 + 5
-
-        ######################################################################
-        # derivatives for reaction balance
-        self.reaction_balance_deriv(increment_filter, k)
-        k += self.num_nw_fluids
-
-        ######################################################################
-        # derivatives for energy balance
-        self.energy_balance_deriv(increment_filter, k)
-        k += 1
-
-        ######################################################################
-        # derivatives characteristic functions (power, heat1, heat2, heatloss)
-        self.tiP_char_deriv(increment_filter, k)
-        k += 1
-        self.Q1_char_deriv(increment_filter, k)
-        k += 1
-        self.Q2_char_deriv(increment_filter, k)
-        k += 1
-        self.Qloss_char_deriv(increment_filter, k)
-        k += 1
-
-        return k
-
-    def mass_flow_func(self, doc=False):
+    def mass_flow_func(self):
         r"""
         Calculate the residual value for component's mass flow balance.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -474,23 +377,36 @@ class CombustionEngine(CombustionChamber):
                 \forall i \in [1, 2]\\
                 0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
         """
-        if not doc:
-            residual = []
-            for i in range(2):
-                residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-            residual += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
-                         self.outl[2].m.val_SI]
-            return residual
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&\dot{m}_\mathrm{in,1} - \dot{m}_\mathrm{out,1}\\' + '\n'
-                r'0=&\dot{m}_\mathrm{in,2} - \dot{m}_\mathrm{out,2}\\' + '\n'
-                r'0=&\dot{m}_\mathrm{in,3} + \dot{m}_\mathrm{in,3} - '
-                r'\dot{m}_\mathrm{out,3}\\' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'mass_flow_func')] + 2 * ['']
+        residual = []
+        for i in range(2):
+            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
+        residual += [self.inl[2].m.val_SI + self.inl[3].m.val_SI -
+                     self.outl[2].m.val_SI]
+        return residual
+
+    def mass_flow_func_doc(self, label):
+        r"""
+        Calculate the residual value for component's mass flow balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Vector with residual value for component's mass flow balance.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&\dot{m}_\mathrm{in,1} - \dot{m}_\mathrm{out,1}\\' + '\n'
+            r'0=&\dot{m}_\mathrm{in,2} - \dot{m}_\mathrm{out,2}\\' + '\n'
+            r'0=&\dot{m}_\mathrm{in,3} + \dot{m}_\mathrm{in,3} - '
+            r'\dot{m}_\mathrm{out,3}\\' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)] + 2 * ['']
 
     def mass_flow_deriv(self):
         r"""
@@ -511,7 +427,27 @@ class CombustionEngine(CombustionChamber):
         deriv[2, 6, 0] = -1
         return deriv
 
-    def fluid_func(self, doc=False):
+    def fluid_func(self):
+        r"""
+        Calculate the vector of residual values for cooling loop fluid balance.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+
+            .. math::
+
+                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}}\\
+                \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
+        """
+        residual = []
+        for i in range(2):
+            for fluid, x in self.inl[i].fluid.val.items():
+                residual += [x - self.outl[i].fluid.val[fluid]]
+        return residual
+
+    def fluid_func_doc(self, label):
         r"""
         Calculate the vector of residual values for cooling loop fluid balance.
 
@@ -524,25 +460,14 @@ class CombustionEngine(CombustionChamber):
         -------
         residual : list
             Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_{j}} - fluid_{i,out_{j}}\\
-                \forall i \in \mathrm{fluid}, \; \forall j \in [1, 2]
         """
-        if not doc:
-            residual = []
-            for i in range(2):
-                for fluid, x in self.inl[i].fluid.val.items():
-                    residual += [x - self.outl[i].fluid.val[fluid]]
-            return residual
-        else:
-            latex = (
-                r'0=x_{i\mathrm{,in,}j}-x_{i\mathrm{,out,}j}\;'
-                r'\forall i \in\text{network fluids,}'
-                r'\; \forall j \in [1,2]')
-            return (
-                [self.generate_latex(latex, 'fluid_func')] + [''])
+        latex = (
+            r'0=x_{i\mathrm{,in,}j}-x_{i\mathrm{,out,}j}\;'
+            r'\forall i \in\text{network fluids,}'
+            r'\; \forall j \in [1,2]')
+        return (
+            [self.generate_latex(latex, label)] +
+            (self.num_nw_fluids * 2 - 1) * [''])
 
     def fluid_deriv(self):
         r"""
@@ -563,14 +488,9 @@ class CombustionEngine(CombustionChamber):
             deriv[i + 1 + j, 5, j + 3] = -1
         return deriv
 
-    def energy_balance_func(self, doc=False):
+    def energy_balance_func(self):
         r"""
         Calculate the energy balance of the combustion engine.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -601,47 +521,60 @@ class CombustionEngine(CombustionChamber):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        if not doc:
-            T_ref = 298.15
-            p_ref = 1e5
+        T_ref = 298.15
+        p_ref = 1e5
 
-            res = 0
-            for i in self.inl[2:]:
-                res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
-                    [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
+        res = 0
+        for i in self.inl[2:]:
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
 
-            for o in self.outl[2:]:
-                res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
-                    [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+        for o in self.outl[2:]:
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
-            res += self.calc_ti()
+        res += self.calc_ti()
 
-            # cooling
-            for i in range(2):
-                res -= self.inl[i].m.val_SI * (
-                    self.outl[i].h.val_SI - self.inl[i].h.val_SI)
+        # cooling
+        for i in range(2):
+            res -= self.inl[i].m.val_SI * (
+                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
 
-            # power output and heat loss
-            res += self.P.val + self.Qloss.val
+        # power output and heat loss
+        res += self.P.val + self.Qloss.val
 
-            return res
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
-                r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
-                r'\dot{m}_\mathrm{out,3}\cdot\left( h_\mathrm{out,3}'
-                r' - h_\mathrm{out,3,ref}\right)\\' + '\n'
-                r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
-                r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,3} '
-                r'\cdot x_{fuel\mathrm{,out,3}} \right)\\' + '\n'
-                r'& + \dot{Q}_1 + \dot{Q}_2+P + \dot{Q}_\mathrm{loss}\\' + '\n'
-                r'& \forall i \in [3,4]\\'
-                r'& T_\mathrm{ref}=\unit[298.15]{K}'
-                r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
-                '\n' + r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        return res
+
+    def energy_balance_func_doc(self, label):
+        """
+        Calculate the energy balance of the combustion engine.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
+            r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
+            r'\dot{m}_\mathrm{out,3}\cdot\left( h_\mathrm{out,3}'
+            r' - h_\mathrm{out,3,ref}\right)\\' + '\n'
+            r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
+            r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,3} '
+            r'\cdot x_{fuel\mathrm{,out,3}} \right)\\' + '\n'
+            r'& + \dot{Q}_1 + \dot{Q}_2+P + \dot{Q}_\mathrm{loss}\\' + '\n'
+            r'& \forall i \in [3,4]\\'
+            r'& T_\mathrm{ref}=\unit[298.15]{K}'
+            r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
+            '\n' + r'\end{split}'
+        )
+        return [self.generate_latex(latex, 'energy_balance_func')]
 
     def energy_balance_deriv(self, increment_filter, k):
         """
@@ -690,14 +623,9 @@ class CombustionEngine(CombustionChamber):
             self.jacobian[k, 7 + self.Qloss.var_pos, 0] = (
                 self.numeric_deriv(f, 'Qloss', 7))
 
-    def Q1_func(self, doc=False):
+    def Q1_func(self):
         r"""
         Calculate residual value of primary heat loop function.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -711,14 +639,26 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[0]
         o = self.outl[0]
-        if not doc:
-            return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val
-        else:
-            latex = (
-                r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} +'
-                r'h_\mathrm{in,1} \right) + \dot{Q}_1'
-            )
-            return [self.generate_latex(latex, 'Q1_func')]
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val
+
+    def Q1_func_doc(self, label):
+        r"""
+        Calculate residual value of primary heat loop function.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} +'
+            r'h_\mathrm{in,1} \right) + \dot{Q}_1')
+        return [self.generate_latex(latex, label)]
 
     def Q1_deriv(self, increment_filter, k):
         """
@@ -736,14 +676,9 @@ class CombustionEngine(CombustionChamber):
         self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
         self.jacobian[k, 4, 2] = self.inl[0].m.val_SI
 
-    def Q2_func(self, doc=False):
+    def Q2_func(self):
         r"""
         Calculate residual value of secondary heat loop function.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -757,14 +692,26 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[1]
         o = self.outl[1]
-        if not doc:
-            return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val
-        else:
-            latex = (
-                r'0 = \dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} +'
-                r'h_\mathrm{in,2} \right) + \dot{Q}_2'
-            )
-            return [self.generate_latex(latex, 'Q2_func')]
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val
+
+    def Q2_func_doc(self, label):
+        r"""
+        Calculate residual value of secondary heat loop function.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0 = \dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} +'
+            r'h_\mathrm{in,2} \right) + \dot{Q}_2')
+        return [self.generate_latex(latex, label)]
 
     def Q2_deriv(self, increment_filter, k):
         """
@@ -782,14 +729,9 @@ class CombustionEngine(CombustionChamber):
         self.jacobian[k, 1, 2] = -self.inl[1].m.val_SI
         self.jacobian[k, 5, 2] = self.inl[1].m.val_SI
 
-    def tiP_char_func(self, doc=False):
+    def tiP_char_func(self):
         r"""
         Calculate the relation of output power and thermal input.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -808,23 +750,36 @@ class CombustionEngine(CombustionChamber):
         else:
             expr = self.P.val / self.P.design
 
-        if not doc:
-            return (
-                self.calc_ti() + self.tiP_char.char_func.evaluate(expr) *
-                self.P.val)
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&P\cdot f_\mathrm{TI}\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\ ' + '\n'
-                r'&+ LHV_{fuel} \cdot \left[\sum_i \left('
-                r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-                r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-                r'\right]\\' + '\n'
-                r'&\forall i \in [3,4]\\ ' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'tiP_char_func')]
+        return (
+            self.calc_ti() + self.tiP_char.char_func.evaluate(expr) *
+            self.P.val)
+
+    def tiP_char_func_doc(self, label):
+        r"""
+        Calculate the relation of output power and thermal input.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&P\cdot f_\mathrm{TI}\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\ ' + '\n'
+            r'&+ LHV_{fuel} \cdot \left[\sum_i \left('
+            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
+            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
+            r'\right]\\' + '\n'
+            r'&\forall i \in [3,4]\\ ' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def tiP_char_deriv(self, increment_filter, k):
         """
@@ -849,14 +804,9 @@ class CombustionEngine(CombustionChamber):
             self.jacobian[k, 7 + self.P.var_pos, 0] = (
                 self.numeric_deriv(f, 'P', 7))
 
-    def Q1_char_func(self, doc=False):
+    def Q1_char_func(self):
         r"""
         Calculate the relation of heat output 1 and thermal input.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -882,26 +832,40 @@ class CombustionEngine(CombustionChamber):
             expr = 1
         else:
             expr = self.P.val / self.P.design
-        if not doc:
-            return (self.calc_ti() * self.Q1_char.char_func.evaluate(expr) -
-                    self.tiP_char.char_func.evaluate(expr) * i.m.val_SI *
-                    (o.h.val_SI - i.h.val_SI))
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-                r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-                r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-                r'\right] \cdot f_\mathrm{Q1}\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\' + '\n'
-                r'&-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-                r'h_\mathrm{in,1}\right) \cdot f_\mathrm{TI}'
-                r'\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\ ' + '\n'
-                r'&\forall i \in [3,4]\\ ' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'Q1_char_func')]
+
+        return (self.calc_ti() * self.Q1_char.char_func.evaluate(expr) -
+                self.tiP_char.char_func.evaluate(expr) * i.m.val_SI *
+                (o.h.val_SI - i.h.val_SI))
+
+    def Q1_char_func_doc(self, label):
+        r"""
+        Calculate the relation of heat output 1 and thermal input.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
+            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
+            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
+            r'\right] \cdot f_\mathrm{Q1}\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\' + '\n'
+            r'&-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
+            r'h_\mathrm{in,1}\right) \cdot f_\mathrm{TI}'
+            r'\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\ ' + '\n'
+            r'&\forall i \in [3,4]\\ ' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, 'Q1_char_func')]
 
     def Q1_char_deriv(self, increment_filter, k):
         """
@@ -932,14 +896,9 @@ class CombustionEngine(CombustionChamber):
             self.jacobian[k, 7 + self.P.var_pos, 0] = (
                 self.numeric_deriv(f, 'P', 7))
 
-    def Q2_char_func(self, doc=False):
+    def Q2_char_func(self):
         r"""
         Calculate the relation of heat output 2 and thermal input.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -965,26 +924,40 @@ class CombustionEngine(CombustionChamber):
             expr = 1
         else:
             expr = self.P.val / self.P.design
-        if not doc:
-            return (self.calc_ti() * self.Q2_char.char_func.evaluate(expr) -
-                    self.tiP_char.char_func.evaluate(expr) * i.m.val_SI *
-                    (o.h.val_SI - i.h.val_SI))
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-                r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-                r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-                r'\right] \cdot f_\mathrm{Q2}\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\' + '\n'
-                r'&-\dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{out,2} - '
-                r'h_\mathrm{in,2}\right) \cdot f_\mathrm{TI}'
-                r'\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\ ' + '\n'
-                r'&\forall i \in [3,4]\\ ' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'Q2_char_func')]
+
+        return (self.calc_ti() * self.Q2_char.char_func.evaluate(expr) -
+                self.tiP_char.char_func.evaluate(expr) * i.m.val_SI *
+                (o.h.val_SI - i.h.val_SI))
+
+    def Q2_char_func_doc(self, label):
+        r"""
+        Calculate the relation of heat output 2 and thermal input.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
+            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
+            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
+            r'\right] \cdot f_\mathrm{Q2}\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\' + '\n'
+            r'&-\dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{out,2} - '
+            r'h_\mathrm{in,2}\right) \cdot f_\mathrm{TI}'
+            r'\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\ ' + '\n'
+            r'&\forall i \in [3,4]\\ ' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, 'Q2_char_func')]
 
     def Q2_char_deriv(self, increment_filter, k):
         """
@@ -1015,14 +988,9 @@ class CombustionEngine(CombustionChamber):
             self.jacobian[k, 7 + self.P.var_pos, 0] = (
                 self.numeric_deriv(f, 'P', 7))
 
-    def Qloss_char_func(self, doc=False):
+    def Qloss_char_func(self):
         r"""
         Calculate the relation of heat loss and thermal input.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -1046,24 +1014,37 @@ class CombustionEngine(CombustionChamber):
         else:
             expr = self.P.val / self.P.design
 
-        if not doc:
-            return (self.calc_ti() * self.Qloss_char.char_func.evaluate(expr) +
-                    self.tiP_char.char_func.evaluate(expr) * self.Qloss.val)
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-                r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-                r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}\right]'
-                r' \cdot f_\mathrm{QLOSS}\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\' + '\n'
-                r'&+\dot{Q}_\mathrm{loss} \cdot f_\mathrm{TI}'
-                r'\left(\frac{P}{P_\mathrm{design}}'
-                r'\right)\\ ' + '\n'
-                r'&\forall i \in [3,4]\\ ' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'Qloss_char_func')]
+        return (self.calc_ti() * self.Qloss_char.char_func.evaluate(expr) +
+                self.tiP_char.char_func.evaluate(expr) * self.Qloss.val)
+
+    def Qloss_char_func_doc(self, label):
+        r"""
+        Calculate the relation of heat loss and thermal input.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
+            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
+            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}\right]'
+            r' \cdot f_\mathrm{QLOSS}\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\' + '\n'
+            r'&+\dot{Q}_\mathrm{loss} \cdot f_\mathrm{TI}'
+            r'\left(\frac{P}{P_\mathrm{design}}'
+            r'\right)\\ ' + '\n'
+            r'&\forall i \in [3,4]\\ ' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def Qloss_char_deriv(self, increment_filter, k):
         """

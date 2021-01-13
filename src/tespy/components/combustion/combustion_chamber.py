@@ -34,7 +34,7 @@ class CombustionChamber(Component):
 
     - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.mass_flow_func`
     - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.reaction_balance_func`
+    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.stoichiometry`
     - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.energy_balance_func`
 
     **Optional Equations**
@@ -152,12 +152,39 @@ class CombustionChamber(Component):
     def component():
         return 'combustion chamber'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func),
+                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
+                latex=self.lambda_func_doc, num_eq=1),
             'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func)
+                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
+                latex=self.ti_func_doc, num_eq=1)
+        }
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 1},
+            'reactor_pressure_constraints': {
+                'func': self.combustion_pressure_func,
+                'deriv': self.combustion_pressure_deriv,
+                'constant_deriv': True,
+                'latex': self.combustion_pressure_func_doc,
+                'num_eq': 2},
+            'stoichiometry_constraints': {
+                'func': self.stoichiometry_func,
+                'deriv': self.stoichiometry_deriv,
+                'constant_deriv': False,
+                'latex': self.stoichiometry_func_doc,
+                'num_eq': self.num_nw_fluids},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': 1}
         }
 
     @staticmethod
@@ -169,17 +196,7 @@ class CombustionChamber(Component):
         return ['out1']
 
     def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # reaction balance: num_fl
-        # mass flow: 1
-        # pressure: 2
-        # energy balance: 1
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 4)
-        # constant derivatives
-        self.jacobian[0:1] = self.mass_flow_deriv()
-        self.jacobian[1:3] = self.combustion_pressure_deriv()
-
+        Component.comp_init(self, nw)
         self.setup_reaction_parameters()
 
     def setup_reaction_parameters(self):
@@ -269,89 +286,23 @@ class CombustionChamber(Component):
 
         return val
 
-    def mandatory_equations(self, doc=False):
+    def mass_flow_func(self):
         r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Calculate the residual value for component's mass flow balance.
 
         Returns
         -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
+        residual : list
+            Vector with residual value for component's mass flow balance.
+
+            .. math::
+
+                0 = \dot{m}_{in,1} + \dot{m}_{in,2} - \dot{m}_{out,1}
         """
-        k = 0
-        ######################################################################
-        # eqation for mass flow balance
-        self.residual[k] = self.mass_flow_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
-        k += 1
+        return (self.inl[0].m.val_SI + self.inl[1].m.val_SI -
+                self.outl[0].m.val_SI)
 
-        ######################################################################
-        # equations for pressure
-        self.residual[k:k + 2] = self.combustion_pressure_func()
-        if doc:
-            self.equation_docs[k:k + 2] = (
-                self.combustion_pressure_func(doc=doc))
-        k += 2
-
-        ######################################################################
-        # equations for fluids in reaction balance
-        for fluid in self.inl[0].fluid.val.keys():
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 3 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.reaction_balance_func(fluid)
-            if doc:
-                self.equation_docs[k:k + 1] = (
-                    self.reaction_balance_func(fluid, doc=doc))
-            k += 1
-
-        ######################################################################
-        # equation for energy balance
-        if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                self.always_all_equations):
-            self.residual[k] = self.energy_balance_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.energy_balance_func(doc=doc)
-        k += 1
-
-        return k
-
-    def mandatory_derivatives(self, increment_filter):
-        r"""
-        Calculate partial derivatives for mandatory equations.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        Returns
-        -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
-        """
-        ######################################################################
-        # derivatives for mass flow and pressure are static
-        k = 3
-
-        ######################################################################
-        # derivatives for reaction balance
-        self.reaction_balance_deriv(increment_filter, k)
-        k += self.num_nw_fluids
-
-        ######################################################################
-        # derivatives for energy balance equations
-        self.energy_balance_deriv(increment_filter, k)
-        k += 1
-
-        return k
-
-    def mass_flow_func(self, doc=False):
+    def mass_flow_func_doc(self, label):
         r"""
         Calculate the residual value for component's mass flow balance.
 
@@ -364,19 +315,11 @@ class CombustionChamber(Component):
         -------
         residual : list
             Vector with residual value for component's mass flow balance.
-
-            .. math::
-
-                0 = \dot{m}_{in,1} + \dot{m}_{in,2} - \dot{m}_{out,1}
         """
-        if not doc:
-            return (self.inl[0].m.val_SI + self.inl[1].m.val_SI -
-                    self.outl[0].m.val_SI)
-        else:
-            latex = (
-                r'0=\dot{m}_\mathrm{in,1} + \dot{m}_\mathrm{in,2} - '
-                r'\dot{m}_\mathrm{out,1}')
-            return [self.generate_latex(latex, 'mass_flow_func')]
+        latex = (
+            r'0=\dot{m}_\mathrm{in,1} + \dot{m}_\mathrm{in,2} - '
+            r'\dot{m}_\mathrm{out,1}')
+        return [self.generate_latex(latex, label)]
 
     def mass_flow_deriv(self):
         r"""
@@ -393,14 +336,9 @@ class CombustionChamber(Component):
         deriv[0, 2, 0] = -1
         return deriv
 
-    def combustion_pressure_func(self, doc=False):
+    def combustion_pressure_func(self):
         r"""
         Equations for reactor pressure balance.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -414,22 +352,38 @@ class CombustionChamber(Component):
         """
         inl = self.inl[::-1][:2][::-1]
         outl = self.outl[::-1][0]
-        if not doc:
-            return [
-                inl[0].p.val_SI - outl.p.val_SI,
-                inl[0].p.val_SI - inl[1].p.val_SI]
-        else:
-            idx_out = outl.source_id[:3] + ',' + outl.source_id[3:]
-            idx_in1 = inl[0].target_id[:2] + ',' + inl[0].target_id[2:]
-            idx_in2 = inl[1].target_id[:2] + ',' + inl[1].target_id[2:]
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = & p_\mathrm{' + idx_in1 + r'} - p_\mathrm{' + idx_out +
-                r'}\\' + '\n'
-                r'0 = & p_\mathrm{' + idx_in1 + r'} - p_\mathrm{' + idx_in2 +
-                r'}\\' + '\n'
-                r'\end{split}')
-            return [self.generate_latex(latex, 'combustion_pressure_func'), '']
+
+        return [
+            inl[0].p.val_SI - outl.p.val_SI, inl[0].p.val_SI - inl[1].p.val_SI]
+
+    def combustion_pressure_func_doc(self, label):
+        r"""
+        Equations for reactor pressure balance.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : list
+            Residual values of equations.
+        """
+        inl = self.inl[::-1][:2][::-1]
+        outl = self.outl[::-1][0]
+
+        idx_out = outl.source_id[:3] + ',' + outl.source_id[3:]
+        idx_in1 = inl[0].target_id[:2] + ',' + inl[0].target_id[2:]
+        idx_in2 = inl[1].target_id[:2] + ',' + inl[1].target_id[2:]
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = & p_\mathrm{' + idx_in1 + r'} - p_\mathrm{' + idx_out +
+            r'}\\' + '\n'
+            r'0 = & p_\mathrm{' + idx_in1 + r'} - p_\mathrm{' + idx_in2 +
+            r'}\\' + '\n'
+            r'\end{split}')
+        return [self.generate_latex(latex, label), '']
 
     def combustion_pressure_deriv(self):
         r"""
@@ -453,14 +407,30 @@ class CombustionChamber(Component):
         deriv[1, idx_in2, 1] = -1
         return deriv
 
-    def reaction_balance_func(self, fluid, doc=False):
+    def stoichiometry_func(self):
+        r"""
+        Collect residual values for all fluids in stoichiometry.
+
+        Returns
+        -------
+        residual : list
+            Vector with residual values of equations.
+        """
+        # calculate equations
+        residual = []
+        for fluid in self.inl[0].fluid.val.keys():
+            residual += [self.stoichiometry(fluid)]
+
+        return residual
+
+    def stoichiometry(self, fluid):
         r"""
         Calculate the reaction balance for one fluid.
 
         - determine molar mass flows of fuel and oxygen
         - calculate mole number of carbon and hydrogen atoms in fuel
         - calculate molar oxygen flow for stoichiometric combustion
-        - calculate residual value of the fluids balance
+        - calculate residual value for the corresponding fluid
 
         for excess fuel
 
@@ -545,117 +515,125 @@ class CombustionChamber(Component):
         Parameters
         ----------
         fluid : str
-            The fluid to calculate the reation balance for.
+            Fluid to calculate residual value for.
 
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Returns
+        -------
+        residual : float
+            Residual value for corresponding fluid.
+        """
+        # required to work with combustion chamber and engine
+        inl = self.inl[::-1][:2][::-1]
+        outl = self.outl[::-1][0]
+
+        ###################################################################
+        # molar mass flow for fuel and oxygen
+        n_fuel = {}
+        n_oxy_stoich = {}
+        n_h = 0
+        n_c = 0
+        for f in self.fuel_list:
+            n_fuel[f] = 0
+            for i in inl:
+                n = i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                n_fuel[f] += n
+                n_h += n * self.fuels[f]['H']
+                n_c += n * self.fuels[f]['C']
+
+            # stoichiometric oxygen requirement for each fuel
+            n_oxy_stoich[f] = n_fuel[f] * (
+                self.fuels[f]['H'] / 4 + self.fuels[f]['C'])
+
+        n_oxygen = 0
+        for i in inl:
+            n_oxygen += (
+                i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2])
+
+        ###################################################################
+        # calculate stoichiometric oxygen
+        n_oxygen_stoich = n_h / 4 + n_c
+
+        ###################################################################
+        # calculate lambda if not set
+        if not self.lamb.is_set:
+            self.lamb.val = n_oxygen / n_oxygen_stoich
+
+        ###################################################################
+        # calculate excess fuel if lambda is lower than 1
+        if self.lamb.val < 1:
+            n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
+            n_c_exc = (n_oxygen_stoich - n_oxygen)
+        else:
+            n_h_exc = 0
+            n_c_exc = 0
+
+        ###################################################################
+        # equation for carbondioxide
+        if fluid == self.co2:
+            dm = (n_c - n_c_exc) * molar_masses[self.co2]
+
+        ###################################################################
+        # equation for water
+        elif fluid == self.h2o:
+            dm = (n_h - n_h_exc) / 2 * molar_masses[self.h2o]
+
+        ###################################################################
+        # equation for oxygen
+        elif fluid == self.o2:
+            if self.lamb.val < 1:
+                dm = -n_oxygen * molar_masses[self.o2]
+            else:
+                dm = -n_oxygen / self.lamb.val * molar_masses[self.o2]
+
+        ###################################################################
+        # equation for fuel
+        elif fluid in self.fuel_list:
+            if self.lamb.val < 1:
+                n_fuel_exc = (
+                    -(n_oxygen / n_oxygen_stoich - 1) *
+                    n_oxy_stoich[fluid] / (
+                        self.fuels[fluid]['H'] / 4 +
+                        self.fuels[fluid]['C']))
+            else:
+                n_fuel_exc = 0
+            dm = -(n_fuel[fluid] - n_fuel_exc) * molar_masses[fluid]
+
+        ###################################################################
+        # equation for other fluids
+        else:
+            dm = 0
+
+        res = dm
+        for i in inl:
+            res += i.fluid.val[fluid] * i.m.val_SI
+        res -= outl.fluid.val[fluid] * outl.m.val_SI
+        return res
+
+    def stoichiometry_func_doc(self, label):
+        r"""
+        Calculate the reaction balance for one fluid.
 
         Returns
         -------
         residual : float
             Residual value of respective equation.
         """
-        if not doc:
-            # required to work with combustion chamber and engine
-            inl = self.inl[::-1][:2][::-1]
-            outl = self.outl[::-1][0]
+        idx_in1 = str(self.inl.index(self.inl[-2]) + 1)
+        idx_in2 = str(self.inl.index(self.inl[-1]) + 1)
+        idx_out = str(self.outl.index(self.outl[-1]) + 1)
 
-            ###################################################################
-            # molar mass flow for fuel and oxygen
-            n_fuel = {}
-            n_oxy_stoich = {}
-            n_h = 0
-            n_c = 0
-            for f in self.fuel_list:
-                n_fuel[f] = 0
-                for i in inl:
-                    n = i.m.val_SI * i.fluid.val[f] / molar_masses[f]
-                    n_fuel[f] += n
-                    n_h += n * self.fuels[f]['H']
-                    n_c += n * self.fuels[f]['C']
+        in1 = (
+            r'\dot{m}_\mathrm{in,' + idx_in1 + r'} \cdot '
+            r'x_\mathrm{fluid,in,' + idx_in1 + r'} ')
+        in2 = (
+            r'\dot{m}_\mathrm{in,' + idx_in2 + r'} \cdot '
+            r'x_\mathrm{fluid,in,' + idx_in2 + r'}')
+        out = (
+            r'\dot{m}_\mathrm{out,' + idx_out + r'} \cdot '
+            r'x_\mathrm{fluid,out,' + idx_out + r'}')
 
-                # stoichiometric oxygen requirement for each fuel
-                n_oxy_stoich[f] = n_fuel[f] * (
-                    self.fuels[f]['H'] / 4 + self.fuels[f]['C'])
-
-            n_oxygen = 0
-            for i in inl:
-                n_oxygen += (
-                    i.m.val_SI * i.fluid.val[self.o2] / molar_masses[self.o2])
-
-            ###################################################################
-            # calculate stoichiometric oxygen
-            n_oxygen_stoich = n_h / 4 + n_c
-
-            ###################################################################
-            # calculate lambda if not set
-            if not self.lamb.is_set:
-                self.lamb.val = n_oxygen / n_oxygen_stoich
-
-            ###################################################################
-            # calculate excess fuel if lambda is lower than 1
-            if self.lamb.val < 1:
-                n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
-                n_c_exc = (n_oxygen_stoich - n_oxygen)
-            else:
-                n_h_exc = 0
-                n_c_exc = 0
-
-            ###################################################################
-            # equation for carbondioxide
-            if fluid == self.co2:
-                dm = (n_c - n_c_exc) * molar_masses[self.co2]
-
-            ###################################################################
-            # equation for water
-            elif fluid == self.h2o:
-                dm = (n_h - n_h_exc) / 2 * molar_masses[self.h2o]
-
-            ###################################################################
-            # equation for oxygen
-            elif fluid == self.o2:
-                if self.lamb.val < 1:
-                    dm = -n_oxygen * molar_masses[self.o2]
-                else:
-                    dm = -n_oxygen / self.lamb.val * molar_masses[self.o2]
-
-            ###################################################################
-            # equation for fuel
-            elif fluid in self.fuel_list:
-                if self.lamb.val < 1:
-                    n_fuel_exc = (
-                        -(n_oxygen / n_oxygen_stoich - 1) *
-                        n_oxy_stoich[fluid] / (
-                            self.fuels[fluid]['H'] / 4 +
-                            self.fuels[fluid]['C']))
-                else:
-                    n_fuel_exc = 0
-                dm = -(n_fuel[fluid] - n_fuel_exc) * molar_masses[fluid]
-
-            ###################################################################
-            # equation for other fluids
-            else:
-                dm = 0
-
-            res = dm
-            for i in inl:
-                res += i.fluid.val[fluid] * i.m.val_SI
-            res -= outl.fluid.val[fluid] * outl.m.val_SI
-            return res
-        else:
-            idx_in1 = str(self.inl.index(self.inl[-2]) + 1)
-            idx_in2 = str(self.inl.index(self.inl[-1]) + 1)
-            idx_out = str(self.outl.index(self.outl[-1]) + 1)
-
-            in1 = (
-                r'\dot{m}_\mathrm{in,' + idx_in1 + r'} \cdot '
-                r'x_\mathrm{fluid,in,' + idx_in1 + r'} ')
-            in2 = (
-                r'\dot{m}_\mathrm{in,' + idx_in2 + r'} \cdot '
-                r'x_\mathrm{fluid,in,' + idx_in2 + r'}')
-            out = (
-                r'\dot{m}_\mathrm{out,' + idx_out + r'} \cdot '
-                r'x_\mathrm{fluid,out,' + idx_out + r'}')
+        equations = []
+        for fluid in self.inl[0].fluid.val:
             if fluid == self.o2:
                 latex = (
                     r'0=\Delta\dot{m}_\mathrm{' + fluid + r'}-'
@@ -713,16 +691,16 @@ class CombustionChamber(Component):
                     r'&' + m_o2_molar_stoich + r'\\' + '\n'
                     r'\end{split}'
                 )
-                return [
+                equations += [
                     self.generate_latex(
-                        latex_general_eq, 'reaction_balance_func_general_eq') +
-                    '\n' + self.generate_latex(
-                        latex, 'reaction_balance_func_' + fluid)]
+                        latex_general_eq, label + '_general_eq') +
+                    '\n' + self.generate_latex(latex, label + '_' + fluid)]
             else:
-                return [self.generate_latex(
-                    latex, 'reaction_balance_func_' + fluid)]
+                equations += [self.generate_latex(latex, label + fluid)]
 
-    def reaction_balance_deriv(self, increment_filter, k):
+        return equations
+
+    def stoichiometry_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives of the reaction balance.
 
@@ -738,7 +716,7 @@ class CombustionChamber(Component):
         inl = self.inl[::-1][:2][::-1]
         outl = self.outl[::-1][0]
 
-        f = self.reaction_balance_func
+        f = self.stoichiometry
         for fluid in self.nw_fluids:
             for conn in inl + [outl]:
                 i = (self.inl + self.outl).index(conn)
@@ -750,14 +728,9 @@ class CombustionChamber(Component):
                         f, 'fluid', i, fluid=fluid)
             k += 1
 
-    def energy_balance_func(self, doc=False):
+    def energy_balance_func(self):
         r"""
         Calculate the energy balance of the adiabatic combustion chamber.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -780,46 +753,56 @@ class CombustionChamber(Component):
         ----
         The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
-        referring to the lower heating value, the necessary enthalpy
-        difference for evaporation is added. The stoichiometric combustion
-        chamber uses a different reference, you will find it in the
-        :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance_func`
-        documentation.
+        referring to the lower heating value, the state of the water in the
+        flue gas is fored to gaseous.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        if not doc:
-            T_ref = 298.15
-            p_ref = 1e5
+        T_ref = 298.15
+        p_ref = 1e5
 
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
-                    [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
+        res = 0
+        for i in self.inl:
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
 
-            for o in self.outl:
-                res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
-                    [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+        for o in self.outl:
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
-            res += self.calc_ti()
-            return res
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
-                r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
-                r'\dot{m}_\mathrm{out,1}\cdot\left( h_\mathrm{out,1}'
-                r' - h_\mathrm{out,1,ref}\right)\\' + '\n'
-                r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
-                r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,1} '
-                r'\cdot x_{fuel\mathrm{,out,1}} \right)\\' + '\n'
-                r'& \forall i \in \text{inlets}\\'
-                r'& T_\mathrm{ref}=\unit[298.15]{K}'
-                r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
-                '\n' + r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        res += self.calc_ti()
+        return res
+
+    def energy_balance_func_doc(self, label):
+        r"""
+        Calculate the energy balance of the adiabatic combustion chamber.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
+            r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
+            r'\dot{m}_\mathrm{out,1}\cdot\left( h_\mathrm{out,1}'
+            r' - h_\mathrm{out,1,ref}\right)\\' + '\n'
+            r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
+            r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,1} '
+            r'\cdot x_{fuel\mathrm{,out,1}} \right)\\' + '\n'
+            r'& \forall i \in \text{inlets}\\'
+            r'& T_\mathrm{ref}=\unit[298.15]{K}'
+            r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
+            '\n' + r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def energy_balance_deriv(self, increment_filter, k):
         """
@@ -844,14 +827,9 @@ class CombustionChamber(Component):
             else:
                 self.jacobian[k, i, 2] = (self.inl + self.outl)[i].m.val_SI
 
-    def lambda_func(self, doc=False):
+    def lambda_func(self):
         r"""
         Calculate the residual for specified lambda.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -866,37 +844,50 @@ class CombustionChamber(Component):
                 \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
                 {M_{fluid}}\\ \forall i \in inlets
         """
-        if not doc:
-            # required to work with combustion chamber and engine
-            inl = self.inl[::-1][:2][::-1]
-            n_h = 0
-            n_c = 0
-            for f in self.fuel_list:
-                n_fuel = 0
-                for i in inl:
-                    n_fuel += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
-                    n_h += n_fuel * self.fuels[f]['H']
-                    n_c += n_fuel * self.fuels[f]['C']
-
-            n_oxygen = 0
+        # required to work with combustion chamber and engine
+        inl = self.inl[::-1][:2][::-1]
+        n_h = 0
+        n_c = 0
+        for f in self.fuel_list:
+            n_fuel = 0
             for i in inl:
-                n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
-                             molar_masses[self.o2])
+                n_fuel += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
+                n_h += n_fuel * self.fuels[f]['H']
+                n_c += n_fuel * self.fuels[f]['C']
 
-            n_oxygen_stoich = n_h / 4 + n_c
+        n_oxygen = 0
+        for i in inl:
+            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
+                         molar_masses[self.o2])
 
-            return n_oxygen / n_oxygen_stoich - self.lamb.val
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = \frac{\dot{m}_\mathrm{fuel,m}}{\dot{m}_\mathrm{O_2,m} '
-                r'\cdot \left(n_\mathrm{C,fuel} + 0.25 \cdot n_\mathrm{H,fuel}'
-                r'\right)} - \lambda \\' + '\n'
-                r'\dot{m}_\mathrm{fluid,m} = \frac{x_\mathrm{fluid} \cdot '
-                r'\dot{m}}{M_\mathrm{fluid}}\\' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'lambda_func')]
+        n_oxygen_stoich = n_h / 4 + n_c
+
+        return n_oxygen / n_oxygen_stoich - self.lamb.val
+
+    def lambda_func_doc(self, label):
+        r"""
+        Calculate the residual for specified lambda.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = \frac{\dot{m}_\mathrm{fuel,m}}{\dot{m}_\mathrm{O_2,m} '
+            r'\cdot \left(n_\mathrm{C,fuel} + 0.25 \cdot n_\mathrm{H,fuel}'
+            r'\right)} - \lambda \\' + '\n'
+            r'\dot{m}_\mathrm{fluid,m} = \frac{x_\mathrm{fluid} \cdot '
+            r'\dot{m}}{M_\mathrm{fluid}}\\' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, 'lambda_func')]
 
     def lambda_deriv(self, increment_filter, k):
         """
@@ -920,7 +911,22 @@ class CombustionChamber(Component):
             if not all(increment_filter[i, 3:]):
                 self.jacobian[k, i, 3:] = self.numeric_deriv(f, 'fluid', i)
 
-    def ti_func(self, doc=False):
+    def ti_func(self):
+        r"""
+        Calculate the residual for specified thermal input.
+
+        Returns
+        -------
+        residual : float
+            Residual value of function.
+
+            .. math::
+
+                0 = ti - \dot{m}_{fuel} \cdot LHV
+        """
+        return self.ti.val - self.calc_ti()
+
+    def ti_func_doc(self, label):
         r"""
         Calculate the residual for specified thermal input.
 
@@ -931,27 +937,20 @@ class CombustionChamber(Component):
 
         Returns
         -------
-        val : float
-            Residual value of function.
-
-            .. math::
-
-                0 = ti - \dot{m}_{fuel} \cdot LHV
+        latex : str
+            LaTeX string of equations.
         """
-        if not doc:
-            return self.ti.val - self.calc_ti()
-        else:
-            idx = str(self.outl.index(self.outl[-1]) + 1)
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = & ti - LHV_\mathrm{fuel} \cdot \left[\sum_i \left('
-                r'\dot{m}_{\mathrm{in,}i}\cdot x_{\mathrm{fuel,in,}i}\right)-'
-                r' \dot{m}_\mathrm{out,' + idx + r'}\cdot '
-                r'x_{\mathrm{fuel,out,}' + idx + r'} \right]\\' + '\n'
-                r'& \forall i \in \text{combustion inlets}\\' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'ti_func')]
+        idx = str(self.outl.index(self.outl[-1]) + 1)
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = & ti - LHV_\mathrm{fuel} \cdot \left[\sum_i \left('
+            r'\dot{m}_{\mathrm{in,}i}\cdot x_{\mathrm{fuel,in,}i}\right)-'
+            r' \dot{m}_\mathrm{out,' + idx + r'}\cdot '
+            r'x_{\mathrm{fuel,out,}' + idx + r'} \right]\\' + '\n'
+            r'& \forall i \in \text{combustion inlets}\\' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def ti_deriv(self, increment_filter, k):
         """

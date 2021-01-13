@@ -188,18 +188,20 @@ class HeatExchangerSimple(Component):
     def component():
         return 'heat exchanger simple'
 
-    def attr(self):
+    def get_variables(self):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
+                latex=self.energy_balance_func_doc, num_eq=1,
                 func=self.energy_balance_func),
             'pr': dc_cp(
-                min_val=1e-4, max_val=1,
-                deriv=self.pr_deriv,
+                min_val=1e-4, max_val=1, num_eq=1,
+                deriv=self.pr_deriv, latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr'}),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15,
+                min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
+                latex=self.zeta_func_doc,
                 func_params={'zeta': 'zeta'}),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
@@ -208,13 +210,16 @@ class HeatExchangerSimple(Component):
             'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(
-                elements=['L', 'ks', 'D'],
+                elements=['L', 'ks', 'D'], num_eq=1,
+                latex=self.hydro_group_func_doc,
                 func=self.hydro_group_func, deriv=self.hydro_group_deriv),
             'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'],
+                elements=['kA', 'Tamb'], num_eq=1,
+                latex=self.kA_group_func_doc,
                 func=self.kA_group_func, deriv=self.kA_group_deriv),
             'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'],
+                elements=['kA_char', 'Tamb'], num_eq=1,
+                latex=self.kA_char_group_func_doc,
                 func=self.kA_char_group_func, deriv=self.kA_char_group_deriv)
         }
 
@@ -227,52 +232,28 @@ class HeatExchangerSimple(Component):
         return ['out1']
 
     def comp_init(self, nw):
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
         Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
-        # place constant derivatives
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
 
         self.Tamb.val_SI = (
             (self.Tamb.val + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
 
-    def mandatory_equations(self, doc=False):
+    def energy_balance_func(self):
         r"""
-        Calculate residual vector of mandatory equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        Equation for pressure drop calculation.
 
         Returns
         -------
-        k : int
-            Position of last equation in residual value vector (k-th equation).
+        residual : float
+            Residual value of equation:
+
+            .. math::
+
+                0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        k = 0
-        ######################################################################
-        # equations for fluid balance
-        self.residual[k:k + self.num_nw_fluids] = self.fluid_func()
-        if doc:
-            self.equation_docs[k:k + self.num_nw_fluids] = (
-                self.fluid_func(doc=doc))
-        k += self.num_nw_fluids
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
 
-        ######################################################################
-        # equations for mass flow balance
-        self.residual[k: k + 1] = self.mass_flow_func()
-        if doc:
-            self.equation_docs[k:k + 1] = self.mass_flow_func(doc=doc)
-        k += 1
-
-        return k
-
-    def energy_balance_func(self, doc=False):
+    def energy_balance_func_doc(self, label):
         r"""
         Equation for pressure drop calculation.
 
@@ -285,20 +266,12 @@ class HeatExchangerSimple(Component):
         -------
         residual : float
             Residual value of equation:
-
-            .. math::
-
-                0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        if not doc:
-            return self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
-        else:
-            latex = (
-                r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-                r'h_\mathrm{in} \right) -\dot{Q}'
-            )
-            return [self.generate_latex(latex, 'energy_balance_func')]
+        latex = (
+            r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
+            r'h_\mathrm{in} \right) -\dot{Q}'
+        )
+        return [self.generate_latex(latex, 'energy_balance_func')]
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -320,7 +293,26 @@ class HeatExchangerSimple(Component):
         if self.Q.is_var:
             self.jacobian[k, 2 + self.Q.var_pos, 0] = -1
 
-    def hydro_group_func(self, doc=False):
+    def hydro_group_func(self):
+        r"""
+        Equation for pressure drop calculation.
+
+        Returns
+        -------
+        residual : float
+            Residual value of corresponding equation:
+
+            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.darcy_func`
+            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hazen_williams_func`
+        """
+        # hazen williams equation
+        if self.hydro_group.method == 'HW':
+            return self.hazen_williams_func()
+        # darcy friction factor
+        else:
+            return self.darcy_func()
+
+    def hydro_group_func_doc(self, label):
         r"""
         Equation for pressure drop calculation.
 
@@ -333,16 +325,13 @@ class HeatExchangerSimple(Component):
         -------
         residual : float
             Residual value of corresponding equation:
-
-            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.darcy_func`
-            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hazen_williams_func`
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':
-            return self.hazen_williams_func(doc=doc)
+            return self.hazen_williams_func_doc(label + '_hazen_williams')
         # darcy friction factor
         else:
-            return self.darcy_func(doc=doc)
+            return self.darcy_func_doc(label + '_darcy_weisbach')
 
     def hydro_group_deriv(self, increment_filter, k):
         r"""
@@ -379,14 +368,9 @@ class HeatExchangerSimple(Component):
                 self.jacobian[k, 2 + var.var_pos, 0] = (
                     self.numeric_deriv(func, self.vars[var], 2))
 
-    def darcy_func(self, doc=False):
+    def darcy_func(self):
         r"""
         Equation for pressure drop calculation from darcy friction factor.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -405,43 +389,51 @@ class HeatExchangerSimple(Component):
                 v: \text{specific volume}\\
                 \lambda: \text{darcy friction factor}
         """
-        if not doc:
-            i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
-            if abs(i[0]) < 1e-4:
-                return i[1] - o[1]
+        if abs(i[0]) < 1e-4:
+            return i[1] - o[1]
 
-            visc_i = visc_mix_ph(i, T0=self.inl[0].T.val_SI)
-            visc_o = visc_mix_ph(o, T0=self.outl[0].T.val_SI)
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
+        visc_i = visc_mix_ph(i, T0=self.inl[0].T.val_SI)
+        visc_o = visc_mix_ph(o, T0=self.outl[0].T.val_SI)
+        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
+        v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
 
-            Re = 4 * abs(i[0]) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
+        Re = 4 * abs(i[0]) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
 
-            return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
-                    self.L.val * dff(Re, self.ks.val, self.D.val) /
-                    (np.pi ** 2 * self.D.val ** 5))
-        else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0 = &p_\mathrm{in}-p_\mathrm{out}-'
-                r'\frac{8\cdot|\dot{m}_\mathrm{in}| \cdot\dot{m}_\mathrm{in}'
-                r'\cdot \frac{v_\mathrm{in}+v_\mathrm{out}}{2} \cdot L \cdot'
-                r'\lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\' + '\n'
-                r'Re =&\frac{4 \cdot |\dot{m}_\mathrm{in}|}{\pi \cdot D \cdot'
-                r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'darcy_func')]
+        return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
+                self.L.val * dff(Re, self.ks.val, self.D.val) /
+                (np.pi ** 2 * self.D.val ** 5))
 
-    def hazen_williams_func(self, doc=False):
+    def darcy_func_doc(self, label):
         r"""
-        Equation for pressure drop calculation from Hazen-Williams equation.
+        Equation for pressure drop calculation from darcy friction factor.
 
         Parameters
         ----------
         doc : boolean
             Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 = &p_\mathrm{in}-p_\mathrm{out}-'
+            r'\frac{8\cdot|\dot{m}_\mathrm{in}| \cdot\dot{m}_\mathrm{in}'
+            r'\cdot \frac{v_\mathrm{in}+v_\mathrm{out}}{2} \cdot L \cdot'
+            r'\lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\' + '\n'
+            r'Re =&\frac{4 \cdot |\dot{m}_\mathrm{in}|}{\pi \cdot D \cdot'
+            r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
+
+    def hazen_williams_func(self):
+        r"""
+        Equation for pressure drop calculation from Hazen-Williams equation.
 
         Returns
         -------
@@ -464,36 +456,44 @@ class HeatExchangerSimple(Component):
         ----
         Gravity :math:`g` is set to :math:`9.81 \frac{m}{s^2}`
         """
-        if not doc:
-            i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
-            if abs(i[0]) < 1e-4:
-                return i[1] - o[1]
+        if abs(i[0]) < 1e-4:
+            return i[1] - o[1]
 
-            v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
+        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
+        v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
 
-            return ((i[1] - o[1]) * np.sign(i[0]) -
-                    (10.67 * abs(i[0]) ** 1.852 * self.L.val /
-                     (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
-                    (9.81 * ((v_i + v_o) / 2) ** 0.852))
-        else:
-            latex = (
-                r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
-                r'\frac{10.67 \cdot |\dot{m}_\mathrm{in}| ^ {1.852}'
-                r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
-                r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
-            )
-            return [self.generate_latex(latex, 'hazen_williams_func')]
+        return ((i[1] - o[1]) * np.sign(i[0]) -
+                (10.67 * abs(i[0]) ** 1.852 * self.L.val /
+                 (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
+                (9.81 * ((v_i + v_o) / 2) ** 0.852))
 
-    def kA_group_func(self, doc=False):
+    def hazen_williams_func_doc(self, label):
         r"""
-        Calculate heat transfer from heat transfer coefficient.
+        Equation for pressure drop calculation from Hazen-Williams equation.
 
         Parameters
         ----------
         doc : boolean
             Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
+            r'\frac{10.67 \cdot |\dot{m}_\mathrm{in}| ^ {1.852}'
+            r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
+            r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
+        )
+        return [self.generate_latex(latex, label)]
+
+    def kA_group_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -515,42 +515,55 @@ class HeatExchangerSimple(Component):
 
                 T_{amb}: \text{ambient temperature}
         """
-        if not doc:
-            i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
-            ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-            ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
-            # For numerical stability: If temperature differences have
-            # different sign use mean difference to avoid negative logarithm.
-            if (ttd_1 / ttd_2) < 0:
-                td_log = (ttd_2 + ttd_1) / 2
-            elif ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
-            elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
-            else:
-                td_log = 0
-
-            return i[0] * (o[2] - i[2]) + self.kA.val * td_log
+        # For numerical stability: If temperature differences have
+        # different sign use mean difference to avoid negative logarithm.
+        if (ttd_1 / ttd_2) < 0:
+            td_log = (ttd_2 + ttd_1) / 2
+        elif ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+        elif ttd_1 < ttd_2:
+            td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-                r'h_\mathrm{in}\right)+kA \cdot \Delta T_\mathrm{log}\\' + '\n'
-                r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-                r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-                r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-                r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-                r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-                r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-                r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-                r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-                r'\end{cases}\\' + '\n'
-                r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-                r'\end{split}'
-            )
-            return self.generate_latex(latex, 'kA_group_func')
+            td_log = 0
+
+        return i[0] * (o[2] - i[2]) + self.kA.val * td_log
+
+    def kA_group_func_doc(self, label):
+        r"""
+        Calculate heat transfer from heat transfer coefficient.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
+            r'h_\mathrm{in}\right)+kA \cdot \Delta T_\mathrm{log}\\' + '\n'
+            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
+            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
+            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
+            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
+            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
+            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
+            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
+            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
+            r'\end{cases}\\' + '\n'
+            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label)]
 
     def kA_group_deriv(self, increment_filter, k):
         r"""
@@ -579,14 +592,9 @@ class HeatExchangerSimple(Component):
             self.jacobian[k, 2 + self.kA.var_pos, 0] = (
                 self.numeric_deriv(f, self.vars[self.kA], 2))
 
-    def kA_char_group_func(self, doc=False):
+    def kA_char_group_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -616,50 +624,65 @@ class HeatExchangerSimple(Component):
         :py:mod:`tespy.data`.
         """
         p = self.kA_char.param
-        expr = self.get_char_expr(p, doc=doc)
+        expr = self.get_char_expr(p, **self.kA_char.char_params)
+        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
 
-        if not doc:
-            i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        # For numerical stability: If temperature differences have
+        # different sign use mean difference to avoid negative logarithm.
 
-            # For numerical stability: If temperature differences have
-            # different sign use mean difference to avoid negative logarithm.
+        ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
 
-            ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-            ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
-
-            if (ttd_1 / ttd_2) < 0:
-                td_log = (ttd_2 + ttd_1) / 2
-            elif ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
-            elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
-            else:
-                td_log = 0
-
-            fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
-
-            return i[0] * (o[2] - i[2]) + self.kA.design * fkA * td_log
+        if (ttd_1 / ttd_2) < 0:
+            td_log = (ttd_2 + ttd_1) / 2
+        elif ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+        elif ttd_1 < ttd_2:
+            td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            latex = (
-                r'\begin{split}' + '\n'
-                r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-                r'h_\mathrm{in}\right)+kA_\mathrm{design} \cdot f_\mathrm{kA}'
-                r' \cdot \Delta T_\mathrm{log}\\' + '\n'
-                r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-                r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-                r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-                r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-                r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-                r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-                r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-                r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-                r'\end{cases}\\' + '\n'
-                r'f_{kA}=&\frac{2}{1 + frac{1}{f\left(' + expr +
-                r'}\right)}}\\' + '\n'
-                r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-                r'\end{split}'
-            )
-            return [self.generate_latex(latex, 'kA_char_group_func_' + p)]
+            td_log = 0
+
+        fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
+
+        return i[0] * (o[2] - i[2]) + self.kA.design * fkA * td_log
+
+    def kA_char_group_func_doc(self, label):
+        r"""
+        Calculate heat transfer from heat transfer coefficient characteristic.
+
+        Parameters
+        ----------
+        doc : boolean
+            Return equation in LaTeX format instead of value.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+        """
+        p = self.kA_char.param
+        expr = self.get_char_expr_doc(p, **self.kA_char.char_params)
+
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
+            r'h_\mathrm{in}\right)+kA_\mathrm{design} \cdot f_\mathrm{kA}'
+            r' \cdot \Delta T_\mathrm{log}\\' + '\n'
+            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
+            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
+            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
+            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
+            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
+            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
+            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
+            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
+            r'\end{cases}\\' + '\n'
+            r'f_{kA}=&\frac{2}{1 + frac{1}{f\left(' + expr +
+            r'}\right)}}\\' + '\n'
+            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
+            r'\end{split}'
+        )
+        return [self.generate_latex(latex, label + '_' + p)]
 
     def kA_char_group_deriv(self, increment_filter, k):
         r"""

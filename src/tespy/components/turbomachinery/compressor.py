@@ -408,7 +408,7 @@ class Compressor(Turbomachine):
             r'f\left(X,Y,igva\right)' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label), '']
+        return self.generate_latex(latex, label)
 
     def char_map_deriv(self, increment_filter, k):
         r"""

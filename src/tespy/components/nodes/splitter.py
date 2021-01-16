@@ -194,9 +194,7 @@ class Splitter(NodeBase):
             r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
             r'\text{outlets}'
         )
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_nw_fluids * self.num_o - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -253,7 +251,7 @@ class Splitter(NodeBase):
             Residual value of energy balance.
         """
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_balance_deriv(self):
         r"""

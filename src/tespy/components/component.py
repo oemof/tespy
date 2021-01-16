@@ -25,6 +25,7 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
@@ -883,6 +884,13 @@ class Component:
                     self.char_map.char_func.get_bound_errors(
                         x, y, self.igva.val, self.label)
 
+            elif isinstance(data, dc_gcc) and data.is_set:
+                for char in data.elements:
+                    char_data = self.get_attr(char)
+                    expr = self.get_char_expr(
+                        char_data.param, **char_data.char_params)
+                    char_data.char_func.get_bound_errors(expr, self.label)
+
     def initialise_fluids(self):
         return
 
@@ -911,14 +919,26 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def generate_latex(self, eqn, func):
+    def get_inputs(self, param):
+        if param.is_set:
+            if isinstance(param, dc_cp):
+                return param.val
+            else:
+                return True
+        else:
+            return np.nan
+
+    def generate_latex(self, eqn, label):
         latex = (
             r'\begin{equation}' + '\n' + r'\label{eq:' +
-            self.__class__.__name__ + '_' + func + r'}' + '\n'
+            self.__class__.__name__ + '_' + label + r'}' + '\n'
         )
         latex += eqn + '\n'
         latex += r'\end{equation}'
         return latex
+
+    def get_latex_label(self, label):
+        return 'eq:' + self.__class__.__name__ + '_' + label + '}'
 
     def fluid_func(self):
         r"""
@@ -958,9 +978,7 @@ class Component:
             r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
             r'\forall fl \in\text{network fluids,}'
             r'\; \forall i \in [' + indices + r']')
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_i * self.num_nw_fluids - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -1015,9 +1033,7 @@ class Component:
         latex = (
             r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_i - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -1079,9 +1095,7 @@ class Component:
         latex = (
             r'0=p_{\mathrm{in,}i}-p_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_i - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def pressure_equality_deriv(self):
         r"""
@@ -1148,9 +1162,7 @@ class Component:
         latex = (
             r'0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_i - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def enthalpy_equality_deriv(self):
         r"""
@@ -1316,7 +1328,7 @@ class Component:
             r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
             r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
         r"""
@@ -1438,7 +1450,7 @@ class Component:
             r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
             r'\end{cases}'
         )
-        return [self.generate_latex(latex, label + '_' + zeta)]
+        return self.generate_latex(latex, label + '_' + zeta)
 
     def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
         r"""

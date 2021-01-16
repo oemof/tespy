@@ -232,7 +232,7 @@ class Pump(Turbomachine):
         latex = (
             r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
             r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return [self.generate_latex(latex, label)]
+        return (self.generate_latex(latex, label))
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -304,19 +304,11 @@ class Pump(Turbomachine):
         residual : float
             Residual value of equation.
         """
-        p = self.eta_s_char.param
-        expr = self.get_char_expr_doc(p, **self.eta_s_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
-            raise ValueError(msg)
-
         latex = (
             r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
+            r'\eta_\mathrm{s,design}\cdot f\left( X \right)-'
             r'\left( h_{out,s} - h_{in} \right)')
-        return [self.generate_latex(latex, 'eta_s_char_func_' + p)]
+        return (self.generate_latex(latex, label))
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -380,11 +372,9 @@ class Pump(Turbomachine):
         residual : float
             Residual value of equation.
         """
-        p = self.flow_char.param
-        expr = self.get_char_expr_doc(p, **self.flow_char.char_params)
         latex = (
-            r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(' + expr + r'\right)')
-        return [self.generate_latex(latex, label + '_' + p)]
+            r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
+        return (self.generate_latex(latex, label))
 
     def flow_char_deriv(self, increment_filter, k):
         r"""

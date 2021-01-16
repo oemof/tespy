@@ -16,6 +16,7 @@ from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
@@ -215,7 +216,8 @@ class HeatExchanger(Component):
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
-            'kA_char': dc_simple(
+            'kA_char': dc_gcc(
+                elements=['kA_char1', 'kA_char2'],
                 num_eq=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
                 deriv=self.kA_char_deriv),
             'kA_char1': dc_cc(param='m'),
@@ -287,7 +289,7 @@ class HeatExchanger(Component):
             r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} -'
             r' h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot '
             r'\left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -342,7 +344,7 @@ class HeatExchanger(Component):
         latex = (
             r'0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-'
             r'h_{in,1}\right)-\dot{Q}')
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_balance_hot_deriv(self, increment_filter, k):
         r"""
@@ -382,7 +384,6 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         # temperature value manipulation for convergence stability
-
         T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
         T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
         T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
@@ -424,7 +425,7 @@ class HeatExchanger(Component):
             r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
             r'{T_\mathrm{in,1} - T_\mathrm{out,2}}}}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def kA_deriv(self, increment_filter, k):
         r"""
@@ -534,11 +535,11 @@ class HeatExchanger(Component):
             r' - T_\mathrm{in,1} + T_\mathrm{out,2}}{\ln{'
             r'\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}{T_\mathrm{in,1} -'
             r' T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(' + f1 +
-            r'\right)}+\frac{1}{f\left(' + f2 + r'\right)}}\\' + '\n'
+            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
+            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label + '_' + p1 + '_' + p2)]
+        return self.generate_latex(latex, label)
 
     def kA_char_deriv(self, increment_filter, k):
         r"""
@@ -595,7 +596,7 @@ class HeatExchanger(Component):
             Residual value of equation.
         """
         latex = r'0 = ttd_\mathrm{u} - T_\mathrm{in,1} + T_\mathrm{out,2}'
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def ttd_u_deriv(self, increment_filter, k):
         """
@@ -648,7 +649,7 @@ class HeatExchanger(Component):
             Residual value of equation.
         """
         latex = r'0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}'
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def ttd_l_deriv(self, increment_filter, k):
         """
@@ -816,14 +817,6 @@ class HeatExchanger(Component):
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))
             self.kA.val = -self.Q.val / self.td_log.val
-
-        if self.kA_char.is_set:
-            # get bound errors for kA hot side characteristics
-            expr = self.get_char_expr(self.kA_char1.param)
-            self.kA_char1.char_func.get_bound_errors(expr, self.label)
-            expr = self.get_char_expr(self.kA_char2.param, inconn=1, outconn=1)
-            # get bound errors for kA copld side characteristics
-            self.kA_char2.char_func.get_bound_errors(expr, self.label)
 
         self.check_parameter_bounds()
 

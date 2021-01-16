@@ -285,7 +285,7 @@ class Condenser(HeatExchanger):
             Residual value of equation.
         """
         latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def subcooling_deriv(self, increment_filter, k):
         """
@@ -366,7 +366,7 @@ class Condenser(HeatExchanger):
             r'{T_\mathrm{sat}\left( p_\mathrm{in,1}\right) -'
             r'T_\mathrm{out,2}}}}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def kA_char_func(self):
         r"""
@@ -457,11 +457,11 @@ class Condenser(HeatExchanger):
             r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
             r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
             r'- T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(' + f1 +
-            r'\right)}+\frac{1}{f\left(' + f2 + r'\right)}}\\' + '\n'
+            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_2\right)}+'
+            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label + '_' + p1 + '_' + p2)]
+        return self.generate_latex(latex, label)
 
     def ttd_u_func(self):
         r"""
@@ -502,7 +502,7 @@ class Condenser(HeatExchanger):
         latex = (
             r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
             r' + T_\mathrm{out,2}')
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

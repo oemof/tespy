@@ -205,13 +205,11 @@ class Merge(NodeBase):
         """
         latex = (
             r'0=\sum_i \dot{m}_{\mathrm{in,}i} \cdot x_{fl\mathrm{,in,}i}'
-            r'- \dot {m}_{out} \cdot x_{fl,out}'
+            r'- \dot {m}_\mathrm{out} \cdot x_{fl\mathrm{,out}}'
             r'\; \forall fl \in \text{network fluids,} \; \forall i \in'
             r'\text{inlets}'
         )
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_nw_fluids - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def fluid_deriv(self, increment_filter, k):
         r"""
@@ -276,7 +274,7 @@ class Merge(NodeBase):
             r'\right) - \dot{m}_\mathrm{out} \cdot h_\mathrm{out} '
             r'\; \forall i \in \text{inlets}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""

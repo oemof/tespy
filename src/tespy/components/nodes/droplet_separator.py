@@ -215,9 +215,7 @@ class DropletSeparator(NodeBase):
             r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
             r'\text{outlets}'
         )
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_nw_fluids * 2 - 1) * [''])
+        return self.generate_latex(latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -278,7 +276,7 @@ class DropletSeparator(NodeBase):
             r'h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;'
             r'\forall j \in \text{outlets}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -341,7 +339,7 @@ class DropletSeparator(NodeBase):
             r'0 =&h_\mathrm{out,2} -h\left(p_\mathrm{out,2}, x=1\right)\\'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, 'outlet_states_func'), '']
+        return self.generate_latex(latex, label)
 
     def outlet_states_deriv(self, increment_filter, k):
         r"""

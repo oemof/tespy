@@ -199,7 +199,7 @@ class SolarCollector(HeatExchangerSimple):
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_simple(),
-            'Q_loss': dc_cp(max_val=0),
+            'Q_loss': dc_cp(max_val=0, val=0),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq=1,
@@ -269,7 +269,7 @@ class SolarCollector(HeatExchangerSimple):
             '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def energy_group_deriv(self, increment_filter, k):
         r"""
@@ -314,6 +314,6 @@ class SolarCollector(HeatExchangerSimple):
             4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
             ))
         if self.energy_group.is_set:
-            self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+            self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
 
         self.check_parameter_bounds()

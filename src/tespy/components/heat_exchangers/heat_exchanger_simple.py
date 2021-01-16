@@ -24,6 +24,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
+from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 
 
@@ -234,8 +235,7 @@ class HeatExchangerSimple(Component):
     def comp_init(self, nw):
         Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
 
-        self.Tamb.val_SI = (
-            (self.Tamb.val + nw.T[nw.T_unit][0]) * nw.T[nw.T_unit][1])
+        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, nw.T_unit)
 
     def energy_balance_func(self):
         r"""
@@ -271,7 +271,7 @@ class HeatExchangerSimple(Component):
             r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
             r'h_\mathrm{in} \right) -\dot{Q}'
         )
-        return [self.generate_latex(latex, 'energy_balance_func')]
+        return (self.generate_latex(latex, 'energy_balance_func'))
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -429,7 +429,7 @@ class HeatExchangerSimple(Component):
             r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def hazen_williams_func(self):
         r"""
@@ -489,7 +489,7 @@ class HeatExchangerSimple(Component):
             r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
             r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def kA_group_func(self):
         r"""
@@ -563,7 +563,7 @@ class HeatExchangerSimple(Component):
             r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def kA_group_deriv(self, increment_filter, k):
         r"""
@@ -682,7 +682,7 @@ class HeatExchangerSimple(Component):
             r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label + '_' + p)]
+        return self.generate_latex(latex, label + '_' + p)
 
     def kA_char_group_deriv(self, increment_filter, k):
         r"""

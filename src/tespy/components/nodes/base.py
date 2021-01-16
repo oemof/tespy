@@ -56,7 +56,7 @@ class NodeBase(Component):
         latex = (
             r'0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}'
             r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
-        return [self.generate_latex(latex, label)]
+        return self.generate_latex(latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -124,9 +124,7 @@ class NodeBase(Component):
             r'& \; \forall j \in \text{outlets}\\' + '\n'
             r'\end{split}'
         )
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_i + self.num_o - 2) * [''])
+        return self.generate_latex(latex, label)
 
     def pressure_equality_deriv(self):
         r"""

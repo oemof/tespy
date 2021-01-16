@@ -211,7 +211,7 @@ class Turbine(Turbomachine):
         latex = (
             r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
             r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
-        return [self.generate_latex(latex, label)]
+        return (self.generate_latex(latex, label))
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -288,7 +288,7 @@ class Turbine(Turbomachine):
             r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
             r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
             r'\right)^{2}}} -\dot{m}_\mathrm{in}')
-        return [self.generate_latex(latex, label)]
+        return (self.generate_latex(latex, label))
 
     def cone_deriv(self, increment_filter, k):
         r"""
@@ -360,26 +360,12 @@ class Turbine(Turbomachine):
         -------
         residual : float
             Residual value of equation.
-
-            .. math::
-
-                0 = - \left( h_\mathrm{out} - h_\mathrm{in} \right) +
-                \eta_\mathrm{s,design} \cdot f\left( expr \right) \cdot
-                \left(h_\mathrm{out,s}-h_\mathrm{in}\right)
         """
-        p = self.eta_s_char.param
-        expr = self.get_char_expr_doc(p)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
-            raise ValueError(msg)
-
         latex = (
             r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
-            r'\eta_\mathrm{s,design}\cdot f \left(' + expr + r'\right)'
+            r'\eta_\mathrm{s,design}\cdot f \left(X\right)'
             r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return [self.generate_latex(latex, label + '_' + p)]
+        return (self.generate_latex(latex, label))
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""

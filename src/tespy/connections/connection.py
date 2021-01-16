@@ -146,12 +146,6 @@ class Connection:
     - a list (for attributes design and offdesign).
 
     >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
-
-    Individual specification of pressure with a data container. Setting the
-    unit individually will overwrite the network's unit specification for this
-    connection.
-
-    >>> p = dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
     >>> so_si2.set_attr(m=Ref(so_si1, 2, -5), p=p, h0=700, T=200,
     ... fluid={'N2': 1}, fluid_balance=True)
 
@@ -168,6 +162,8 @@ class Connection:
 
     >>> so_si1.m.val0
     10
+    >>> so_si1.m.val_set
+    False
     >>> so_si1.m.get_attr('val_set')
     False
     >>> type(so_si2.m.ref)
@@ -247,8 +243,14 @@ class Connection:
             logging.error(msg)
             raise ValueError(msg)
 
-        self.label = (
+        default_label = (
             comp1.label + ':' + outlet_id + '_' + comp2.label + ':' + inlet_id)
+        self.label = kwargs.get('label', default_label)
+
+        if not isinstance(self.label, str):
+            msg = 'Please provide the label as string.'
+            logging.error(msg)
+            raise TypeError(msg)
 
         # set specified values
         self.source = comp1
@@ -343,10 +345,6 @@ class Connection:
 
         printout : boolean
             Include this connection in the network's results printout.
-
-        label : str
-            Label of the connection. The default value is:
-            :code:`'source:source_id_target:target_id'`.
 
         Note
         ----
@@ -513,15 +511,6 @@ class Connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
-            # label
-            elif key == 'label':
-                if isinstance(kwargs[key], str):
-                    self.__dict__.update({key: kwargs[key]})
-                else:
-                    msg = 'Please provide the label as string.'
-                    logging.error(msg)
-                    raise TypeError(msg)
-
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'
@@ -626,17 +615,17 @@ class Ref:
 
     .. math::
 
-        \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
+        \dot{m} = \dot{m}_\mathrm{ref} \cdot \mathrm{factor} + \mathrm{delta}
 
     Parameters
     ----------
     obj : tespy.connections.connection.Connection
         Connection to be referenced.
 
-    f : float
+    factor : float
         Factor to multiply specified property with.
 
-    d : float
+    delta : float
         Delta to add after multiplication.
     """
 
@@ -658,11 +647,12 @@ class Ref:
             raise TypeError(msg)
 
         self.obj = ref_obj
-        self.f = factor
-        self.d = delta
+        self.factor = factor
+        self.delta = delta
+        self.delta_SI = None
 
-        msg = ('Created reference object with factor ' + str(self.f) +
-               ' and delta ' + str(self.d) + ' referring to connection ' +
+        msg = ('Created reference object with factor ' + str(self.factor) +
+               ' and delta ' + str(self.delta) + ' referring to connection ' +
                ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
                ref_obj.target.label + ' (' + ref_obj.target_id + ').')
         logging.debug(msg)

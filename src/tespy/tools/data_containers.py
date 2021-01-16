@@ -367,8 +367,41 @@ class GroupedComponentProperties(DataContainer):
             values.
         """
         return {'is_set': False, 'method': 'default', 'elements': [],
-                'func': None, 'deriv': None, 'func_params': {}, 'num_eq': 0,
-                'latex': None}
+                'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
+                'func_params': {}}
+
+# %%
+
+
+class GroupedComponentCharacteristics(DataContainer):
+    r"""
+    Data container for grouped component characteristics.
+
+    Parameters
+    ----------
+    is_set : boolean
+        Should the equation for this parameter group be applied?
+        default: is_set=False.
+
+    elements : list
+        Which component properties are part of this component group?
+        default elements=[].
+    """
+
+    @staticmethod
+    def attr():
+        r"""
+        Return the available attributes for a GroupedComponentCharacteristics
+        type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {'is_set': False, 'elements': [], 'func': None, 'deriv': None,
+                'num_eq': 0, 'latex': None, 'func_params': {}}
 
 # %%
 
@@ -420,8 +453,7 @@ class FluidProperties(DataContainer):
             values.
         """
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
-                'ref': None, 'ref_set': False,
-                'unit': None, 'unit_set': False, 'design': np.nan}
+                'ref': None, 'ref_set': False, 'unit': None, 'design': np.nan}
 
 
 class DataContainerSimple(DataContainer):

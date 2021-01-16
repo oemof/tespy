@@ -33,9 +33,11 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
+from tespy.tools.global_vars import fluid_property_data as fpd
 
 # Only require cupy if Cuda shall be used
 try:
@@ -91,6 +93,9 @@ class Network:
 
     vol_unit : str
         Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
+
+    x_unit : str
+        Specify the unit for steam mass fraction: '-', '%'.
 
     Note
     ----
@@ -185,54 +190,14 @@ class Network:
         self.design_path = None
         self.iterinfo = True
 
-        # written propteries
-        self.props = {
-            'm': 'mass flow', 'v': 'volumetric flow', 'p': 'pressure',
-            'h': 'enthalpy', 'T': 'temperature', 'vol': 'specific volume',
-            'x': 'vapour mass fraction', 's': 'entropy'
-        }
-
-        # available unit systems
-        # mass flow
-        self.m = {'kg / s': 1, 't / h': 3.6}
-        # pressure
-        self.p = {'Pa': 1, 'psi': 6.8948e3, 'bar': 1e5, 'MPa': 1e6}
-        # specific enthalpy
-        self.h = {'J / kg': 1, 'kJ / kg': 1e3, 'MJ / kg': 1e6}
-        # specific volume
-        self.vol = {'m3 / kg': 1, 'l / kg': 1e-3}
-        # specific entropy
-        self.s = {'J / kgK': 1, 'kJ / kgK': 1e3, 'MJ / kgK': 1e6}
-        # temperature
-        self.T = {
-            'C': [273.15, 1], 'F': [459.67, 5 / 9], 'K': [0, 1],
-            'R': [0, 5 / 9]
-        }
-        # volumetric flow
-        self.v = {
-            'm3 / s': 1, 'l / s': 1e-3, 'm3 / h': 1 / 3600, 'l / h': 1 / 3.6
-        }
-        # vapor mass fraction
-        self.x = {'-': 1, '%': 1e-2}
-
-        # SI unit specification
-        self.SI_units = {
-            'm': 'kg / s', 'v': 'm3 / s', 'p': 'Pa', 'h': 'J / kg', 'T': 'K',
-            'vol': 'm3 / kg', 'x': '-', 's': 'J / kgK'
-        }
-
-        for prop in self.props.keys():
+        msg = 'Default unit specifications:\n'
+        for prop, data in fpd.items():
             # standard unit set
-            self.__dict__.update({prop + '_unit': self.SI_units[prop]})
+            self.__dict__.update({prop + '_unit': data['SI_unit']})
+            msg += data['text'] + ': ' + data['SI_unit'] + '\n'
 
-        msg = (
-            'Default unit specifications: mass flow: ' + self.m_unit + ', ' +
-            'pressure: ' + self.p_unit + ', ' + 'enthalpy: ' + self.h_unit +
-            ', ' + 'temperature: ' + self.T_unit + ', ' + 'specific volume: ' +
-            self.vol_unit + ', ' + 'entropy: ' + self.s_unit + ', ' +
-            'vapour mass fraction: ' + self.x_unit + ', ' +
-            'volumetric flow: ' + self.v_unit + '.')
-        logging.debug(msg)
+        # don't need the last newline
+        logging.debug(msg[:-1])
 
         # generic value range
         self.m_range_SI = np.array([-1e12, 1e12])
@@ -242,9 +207,10 @@ class Network:
         for prop in ['m', 'p', 'h']:
             limits = self.get_attr(prop + '_range_SI')
             msg = (
-                'Default ' + self.props[prop] + ' limits, min: ' +
-                str(limits[0]) + ' ' + self.SI_units[prop] + ', max: ' +
-                str(limits[1]) + ' ' + self.SI_units[prop] + '.')
+                'Default ' + fpd[prop]['text'] + ' limits\n'
+                'min: ' + str(limits[0]) + ' ' +
+                self.get_attr(prop + '_unit') + '\n'
+                'max: ' + str(limits[1]) + ' ' + self.get_attr(prop + '_unit'))
             logging.debug(msg)
 
     def set_fluid_back_ends(self, memorise_fluid_properties):
@@ -318,45 +284,50 @@ class Network:
             Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
         """
         # unit sets
-        for prop in self.SI_units.keys():
+        for prop in fpd.keys():
             unit = prop + '_unit'
             if unit in kwargs.keys():
-                if kwargs[unit] not in self.get_attr(prop).keys():
-                    msg = ('Allowed units for ' + self.props[prop] + ' are: ' +
-                           str(self.get_attr(prop).keys()))
+                if kwargs[unit] in fpd[prop]['units'].keys():
+                    self.__dict__.update({unit: kwargs[unit]})
+                    msg = (
+                        'Setting ' + fpd[prop]['text'] +
+                        ' unit: ' + kwargs[unit] + '.')
+                    logging.debug(msg)
+                else:
+                    keys = ', '.join(fpd[prop]['units'].keys())
+                    msg = (
+                        'Allowed units for ' +
+                        fpd[prop]['text'] + ' are: ' + keys)
                     logging.error(msg)
                     raise ValueError(msg)
-                else:
-                    self.__dict__.update({unit: kwargs[unit]})
-                    msg = ('Setting ' + self.props[prop] + ' unit: ' +
-                           kwargs[unit] + '.')
-                    logging.debug(msg)
 
         for prop in ['m', 'p', 'h']:
             if prop + '_range' in kwargs.keys():
-                if not isinstance(kwargs[prop + '_range'], list):
+                if isinstance(kwargs[prop + '_range'], list):
+                    self.__dict__.update(
+                        {prop + '_range_SI':
+                         np.array(kwargs[prop + '_range']) *
+                         self.get_attr(prop)[self.get_attr(prop + '_unit')]})
+                else:
                     msg = (
                         'Specify the value range as list: [' + prop +
                         '_min, ' + prop + '_max]')
                     logging.error(msg)
                     raise TypeError(msg)
-                else:
-                    self.__dict__.update(
-                        {prop + '_range_SI':
-                         np.array(kwargs[prop + '_range']) *
-                         self.get_attr(prop)[self.get_attr(prop + '_unit')]})
 
                 limits = self.get_attr(prop + '_range_SI')
                 msg = (
-                    'Setting ' + self.props[prop] + ' limits, min: ' +
-                    str(limits[0]) + ' ' + self.SI_units[prop] + ', max: ' +
-                    str(limits[1]) + ' ' + self.SI_units[prop] + '.')
+                    'Setting ' + fpd[prop]['text'] +
+                    ' limits\nmin: ' + str(limits[0]) + ' ' +
+                    self.get_attr(prop + '_unit') + '\n'
+                    'max: ' + str(limits[1]) + ' ' +
+                    self.get_attr(prop + '_unit'))
                 logging.debug(msg)
 
         # update non SI value ranges
         for prop in ['m', 'p', 'h']:
             self.__dict__.update({
-                prop + '_range': self.convert_from_SI(
+                prop + '_range': hlp.convert_from_SI(
                     prop, self.get_attr(prop + '_range_SI'),
                     self.get_attr(prop + '_unit')
                 )
@@ -369,63 +340,28 @@ class Network:
             logging.error(msg)
             raise TypeError(msg)
 
-    def convert_to_SI(self, property, value, unit):
+    def latex_unit(self, unit):
         r"""
-        Convert a value to its SI value.
+        Convert unit to LaTeX.
 
         Parameters
         ----------
-        property : str
-            Fluid property to convert.
-
-        value : float
-            Value to convert.
-
         unit : str
-            Unit of the value.
+            Value of unit for input, e.g. :code:`m3 / kg`.
 
         Returns
         -------
-        SI_value : float
-            Specified fluid property in SI value.
-        """
-        if property == 'T':
-            return (value + self.T[unit][0]) * self.T[unit][1]
-
-        elif property == 'Td_bp':
-            return value * self.T[unit][1]
-
-        else:
-            return value * self.get_attr(property)[unit]
-
-    def convert_from_SI(self, property, SI_value, unit):
-        r"""
-        Get a value in the network's unit system from SI value.
-
-        Parameters
-        ----------
-        property : str
-            Fluid property to convert.
-
-        SI_value : float
-            SI value to convert.
-
         unit : str
-            Unit of the value.
-
-        Returns
-        -------
-        value : float
-            Specified fluid property value in network's unit system.
+            Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
         """
-        if property == 'T':
-            return SI_value / self.T[unit][1] - self.T[unit][0]
-
-        elif property == 'Td_bp':
-            return SI_value / self.T[unit][1]
-
+        if '/' in unit:
+            numerator = unit.split('/')[0]
+            denominator = unit.split('/')[1]
+            return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
         else:
-            return SI_value / self.get_attr(property)[unit]
+            if unit == 'C':
+                unit = r'^\circ C'
+            return r'$\unit[]{' + unit + '}$'
 
     def get_attr(self, key):
         r"""
@@ -777,14 +713,13 @@ class Network:
 
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
                 # read unit specifications
-                if not c.get_attr(key).unit_set:
-                    if key == 'Td_bp':
-                        c.get_attr(key).unit = self.get_attr('T_unit')
-                    else:
-                        c.get_attr(key).unit = self.get_attr(key + '_unit')
+                if key == 'Td_bp':
+                    c.get_attr(key).unit = self.get_attr('T_unit')
+                else:
+                    c.get_attr(key).unit = self.get_attr(key + '_unit')
                 # set SI value
                 if c.get_attr(key).val_set:
-                    c.get_attr(key).val_SI = self.convert_to_SI(
+                    c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
 
             # fluid vector specification
@@ -1105,7 +1040,7 @@ class Network:
             # read connection information
             conn_id = conn.index[0]
             for var in ['m', 'p', 'h', 'v', 'x', 'T', 'Td_bp']:
-                c.get_attr(var).design = self.convert_to_SI(
+                c.get_attr(var).design = hlp.convert_to_SI(
                     var, df.loc[conn_id, var], df.loc[conn_id, var + '_unit'])
             c.vol.design = c.v.design / c.m.design
             for fluid in self.fluids:
@@ -1279,7 +1214,7 @@ class Network:
                 if not c.good_starting_values:
                     self.init_val0(c, key)
                 if not c.get_attr(key).val_set:
-                    c.get_attr(key).val_SI = self.convert_to_SI(
+                    c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit)
 
             self.init_count_connections_parameters(c)
@@ -1289,9 +1224,13 @@ class Network:
                 for key in ['m', 'p', 'h', 'T']:
                     if (c.get_attr(key).ref_set and
                             not c.get_attr(key).val_set):
+                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                            key, c.get_attr(key).ref.delta,
+                            c.get_attr(key).unit)
                         c.get_attr(key).val_SI = (
                                 c.get_attr(key).ref.obj.get_attr(key).val_SI *
-                                c.get_attr(key).ref.f + c.get_attr(key).ref.d)
+                                c.get_attr(key).ref.factor +
+                                c.get_attr(key).ref.delta_SI)
 
                 self.init_precalc_properties(c)
 
@@ -1394,7 +1333,7 @@ class Network:
                     c.get_attr(key).val0 = (val_s + val_t) / 2
 
                 # change value according to specified unit system
-                c.get_attr(key).val0 = self.convert_from_SI(
+                c.get_attr(key).val0 = hlp.convert_from_SI(
                     key, c.get_attr(key).val0, self.get_attr(key + '_unit'))
 
     @staticmethod
@@ -1829,10 +1768,10 @@ class Network:
             Debugging message.
         """
         msg = (
-            self.props[prop][0].upper() + self.props[prop][1:] +
+            fpd[prop]['text'][0].upper() + fpd[prop]['text'][1:] +
             ' out of fluid property range at connection ' + c.label +
             ' adjusting value to ' + str(c.get_attr(prop).val_SI) +
-            ' ' + self.SI_units[prop] + '.')
+            ' ' + fpd[prop]['SI_unit'] + '.')
         return msg
 
     def solve_check_props(self, c):
@@ -2166,9 +2105,10 @@ class Network:
                     ref_col = ref.obj.conn_loc * self.num_conn_vars
                     self.residual[k] = (
                         c.get_attr(var).val_SI - (
-                            ref.obj.get_attr(var).val_SI * ref.f + ref.d))
+                            ref.obj.get_attr(var).val_SI * ref.factor +
+                            ref.delta_SI))
                     self.jacobian[k, col + pos] = 1
-                    self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.f
+                    self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.factor
                     k += 1
 
             # temperature
@@ -2195,7 +2135,7 @@ class Network:
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
                 self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
                     fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
-                    ref.f + ref.d)
+                    ref.factor + ref.delta_SI)
 
                 self.jacobian[k, col + 1] = (
                     fp.dT_mix_dph(flow, T0=c.T.val_SI))
@@ -2203,9 +2143,9 @@ class Network:
                     fp.dT_mix_pdh(flow, T0=c.T.val_SI))
 
                 self.jacobian[k, ref_col + 1] = -(
-                    fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
+                    fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
                 self.jacobian[k, ref_col + 2] = -(
-                    fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.f)
+                    fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
 
                 # dT / dFluid
                 if len(self.fluids) != 1:
@@ -2353,8 +2293,8 @@ class Network:
                 if fluid is not None and not c.x.val_set:
                     c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
 
-            for prop in self.props.keys():
-                c.get_attr(prop).val = self.convert_from_SI(
+            for prop in fpd.keys():
+                c.get_attr(prop).val = hlp.convert_from_SI(
                     prop, c.get_attr(prop).val_SI, c.get_attr(prop).unit)
 
             c.m.val0 = c.m.val
@@ -2611,8 +2551,8 @@ class Network:
         >>> connections = nw.connection_exergy_data
 
         """
-        pamb_SI = self.convert_to_SI('p', pamb, self.p_unit)
-        Tamb_SI = self.convert_to_SI('T', Tamb, self.T_unit)
+        pamb_SI = hlp.convert_to_SI('p', pamb, self.p_unit)
+        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.T_unit)
 
         self.component_exergy_data = pd.DataFrame(
             columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
@@ -2795,6 +2735,166 @@ class Network:
                 print('##### RESULTS (' + b.label + ') #####')
                 print(tabulate(df, headers='keys', tablefmt='psql',
                                floatfmt='.3e'))
+
+    def latex_table(self, df, caption):
+        latex = ''
+        latex += r'\begin{table}[H]\begin{center}' + '\n'
+        latex += df.to_latex(
+            index=False, escape=False, na_rep='-', float_format='%.3f')
+        latex += r'\caption{' + caption + '}' + '\n'
+        latex += r'\end{center}\end{table}' + '\n'
+        return latex
+
+    def document_model(self):
+        latex = ''
+
+        conn_data = OrderedDict({
+            'Specified values': [],
+            'Specified fluids': []})
+        params = ['m', 'p', 'h', 'T', 'v', 'x']
+
+        ref_data = {'m': [], 'p': [], 'h': []}
+        ref_params = ['m', 'p', 'h']
+
+        for c in self.conns.index:
+            data_dict = {'label': c.label.replace('_', r'\_')}
+            fluid_dict = data_dict.copy()
+
+            data_dict.update(
+                {param + ' in ' +
+                 self.latex_unit(self.get_attr(param + '_unit')):
+                 c.get_attr(param).val for param in params
+                 if c.get_attr(param).val_set})
+
+            conn_data['Specified values'] += [data_dict]
+
+            for param in ref_params:
+                if c.get_attr(param).ref_set:
+                    ref_dict = {'label': c.label.replace('_', r'\_')}
+                    ref_dict.update(
+                        {'reference':
+                         c.get_attr(param).ref.obj.label.replace('_', r'\_'),
+                         'factor in -': c.get_attr(param).ref.factor,
+                         'delta in ' + self.latex_unit(
+                            self.get_attr(param + '_unit')):
+                         c.get_attr(param).ref.delta})
+
+                    ref_data[param] += [ref_dict]
+
+            fluid_dict.update(
+                {fluid: c.fluid.val[fluid] for fluid in self.fluids
+                 if c.fluid.val_set[fluid]})
+            if c.fluid.balance:
+                fluid_dict.update({'balance': c.fluid.balance})
+
+            conn_data['Specified fluids'] += [fluid_dict]
+
+        latex += r'\section{Connection parameter specifications}' + '\n\n'
+
+        for label, data in conn_data.items():
+            df = pd.DataFrame(data).astype(float, errors='ignore')
+            to_drop = [n for n in df.columns if n != 'label']
+            df.dropna(subset=to_drop, how='all', axis=0, inplace=True)
+
+            if len(df) > 0:
+                latex += r'\subsection{' + label + '}' + '\n\n'
+                latex += self.latex_table(df, label)
+
+        for label, data in ref_data.items():
+            df = pd.DataFrame(data).astype(float, errors='ignore')
+            to_drop = [n for n in df.columns if n != 'label']
+            df.dropna(subset=to_drop, how='all', axis=0, inplace=True)
+
+            label = fpd[label]['text']
+            if len(df) > 0:
+                caption = 'Referenced values for ' + label
+                latex += (
+                    r'\subsection{Referenced values for ' + label + '}' + '\n')
+                latex += self.latex_table(df, caption)
+
+        for cp in self.comps['comp_type'].unique():
+            component_list = self.comps[self.comps['comp_type'] == cp]
+
+            num_mandatory_eq = 0
+            mandatory_eq = ''
+            for label, data in component_list.index[0].constraints.items():
+                mandatory_eq += data['latex'](label) + '\n'
+                num_mandatory_eq += 1
+
+            if num_mandatory_eq > 0:
+                latex += r'\section{Components of type ' + cp + '}\n'
+                latex += r'\subsection{Mandatory constraints}' + '\n'
+                latex += mandatory_eq + '\n'
+
+            cp_data = []
+            data_dict_gcp = {}
+
+            for component in component_list.index:
+                data_dict = {'label': component.label.replace('_', r'\_')}
+                for param, data in component.variables.items():
+                    if data.latex is not None:
+                        data_dict[param] = component.get_inputs(data)
+
+                        if isinstance(data, dc_gcp) and data.is_set:
+                            gcp_data = {
+                                'label': component.label.replace('_', r'\_')}
+                            gcp_data.update(
+                                {element.replace('_', r'\_'):
+                                 component.get_attr(element).val
+                                 for element in data.elements})
+
+                            if param in data_dict_gcp.keys():
+                                data_dict_gcp[param] += [gcp_data]
+                            else:
+                                data_dict_gcp[param] = [gcp_data]
+
+                cp_data += [data_dict]
+
+            df_data = pd.DataFrame(cp_data).astype(float, errors='ignore')
+            df_data.dropna(how='all', axis=1, inplace=True)
+            if len(df_data.columns) < 2:
+                continue
+
+            equations = ''
+            for col in df_data.columns:
+                if col == 'label':
+                    continue
+                equations += component.get_attr(col).latex(col) + '\n\n'
+                col_header = (
+                    col.replace('_', r'\_') + ' ('
+                    r'\ref{eq:' + cp + '_' + col + '})')
+                df_data.rename(columns={col: col_header}, inplace=True)
+
+            caption = 'Parameters of components of type ' + cp
+            latex += '\n\n' + r'\subsection{Inputs specified}' + '\n\n'
+            latex += self.latex_table(df_data, caption)
+
+            for param, data in data_dict_gcp.items():
+                df_data_gcp = pd.DataFrame(data).astype(float, errors='ignore')
+                caption = 'Parametergroup ' + param.replace('_', r'\_')
+                latex += self.latex_table(df_data_gcp, caption)
+
+            latex += '\n\n' + r'\subsection{Equations applied}' + '\n\n'
+            latex += equations
+
+        with open('report.tex', 'w') as f:
+            f.write(latex)
+            f.close()
+
+    def get_latex_equation(c, param):
+        data = c.name.get_attr(param)
+        if data.is_set:
+            if isinstance(data, dc_gcp):
+                values = {}
+                for element in data.elements:
+                    values[element] = c.name.get_attr(element).val
+                return values
+            elif isinstance(data, dc_simple) or isinstance(data, dc_gcc):
+                return True
+            else:
+                return data.val
+        else:
+            return np.nan
 
     def print_components(c, *args):
         param, colored = args

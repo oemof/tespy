@@ -488,20 +488,6 @@ class Compressor(Turbomachine):
             LaTeX code of equations applied.
         """
         latex = (
-            r'\begin{split}' + '\n'
-            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-            '\n'
-            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-            '\n'
-            r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
-            r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
-            r'f\left(X,Y,igva\right)\\' + '\n'
-            r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
-            r'f\left(X,Y,igva\right)' + '\n'
-            r'\end{split}'
-        )
-        latex = (
             r'\begin{split}'
             r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
             '\n'

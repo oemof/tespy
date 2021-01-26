@@ -331,13 +331,13 @@ def document_components(nw, path):
 
         component_list = nw.comps[nw.comps['comp_type'] == cp]
 
-        latex += get_component_mandatory_constraints(cp, component_list)
+        latex += get_component_mandatory_constraints(cp, component_list, path)
         latex += get_component_specifications(cp, component_list, path)
 
     return latex
 
 
-def get_component_mandatory_constraints(cp, component_list):
+def get_component_mandatory_constraints(cp, component_list, path):
     """Get latex code for mandatory constraints of component type cp.
 
     Parameters
@@ -357,7 +357,24 @@ def get_component_mandatory_constraints(cp, component_list):
 
     num_mandatory_eq = 0
     mandatory_eq = ''
+    figures = []
     for label, data in component_list.index[0].constraints.items():
+        if 'char' in data.keys():
+            for component in component_list.index:
+                local_path = (
+                    'figures/' + cp + '_CharLine_' + label + '_' +
+                    component.label.replace(' ', '_') + '.pdf')
+                figname = path + local_path
+                xlabel = r'$X$'
+                ylabel = r'$f\left(X\right)$'
+                component.get_attr(data['char']).char_func.plot(
+                    figname, '', xlabel, ylabel)
+                figures += [create_latex_figure(
+                    local_path,
+                    'Characteristics of ' + component.label +
+                    r' (eq. \ref{eq:' + cp + '_' + label + '})',
+                    'CharLine_' + label + '_' +
+                    component.label.replace('_', r'\_'))]
         mandatory_eq += data['latex'](label) + '\n\n'
         num_mandatory_eq += 1
 
@@ -365,6 +382,7 @@ def get_component_mandatory_constraints(cp, component_list):
         latex += r'\subsection{Components of type ' + cp + '}\n\n'
         latex += r'\subsubsection{Mandatory constraints}' + '\n\n'
         latex += mandatory_eq
+        latex += place_figures(figures)
 
     return latex
 

@@ -316,22 +316,22 @@ class CombustionEngine(CombustionChamber):
                 'func': self.tiP_char_func,
                 'deriv': self.tiP_char_deriv,
                 'constant_deriv': False, 'latex': self.tiP_char_func_doc,
-                'num_eq': 1},
+                'num_eq': 1, 'char': 'tiP_char'},
             'heat1_constraints': {
                 'func': self.Q1_char_func,
                 'deriv': self.Q1_char_deriv,
                 'constant_deriv': False, 'latex': self.Q1_char_func_doc,
-                'num_eq': 1},
+                'num_eq': 1, 'char': 'Q1_char'},
             'heat2_constraints': {
                 'func': self.Q2_char_func,
                 'deriv': self.Q2_char_deriv,
                 'constant_deriv': False, 'latex': self.Q2_char_func_doc,
-                'num_eq': 1},
+                'num_eq': 1, 'char': 'Q2_char'},
             'heatloss_constraints': {
                 'func': self.Qloss_char_func,
                 'deriv': self.Qloss_char_deriv,
                 'constant_deriv': False, 'latex': self.Qloss_char_func_doc,
-                'num_eq': 1},
+                'num_eq': 1, 'char': 'Qloss_char'},
         }
 
     @staticmethod

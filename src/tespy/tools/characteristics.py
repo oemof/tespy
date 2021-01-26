@@ -19,6 +19,8 @@ import logging
 import os
 
 import numpy as np
+
+from matplotlib import pyplot as plt
 from pkg_resources import resource_filename
 
 from tespy.tools.helpers import extend_basic_path
@@ -126,7 +128,7 @@ class CharLine:
         yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
         return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
 
-    def get_bound_errors(self, x, c):
+    def get_domain_errors(self, x, c):
         r"""
         Prompt error messages, if x value is out of bounds.
 
@@ -134,11 +136,6 @@ class CharLine:
         ----------
         x : float
             Input value for linear interpolation.
-
-        Returns
-        -------
-        msg : str
-            Error message.
         """
         if x > self.x[-1]:
             msg = ('Operating point above characteristic line range: '
@@ -172,6 +169,22 @@ class CharLine:
             logging.error(msg)
             raise KeyError(msg)
 
+    def plot(self, path, title, xlabel, ylabel):
+
+        # plotting
+        fig = plt.figure()
+        ax = plt.subplot()
+        ax.plot(self.x, self.y, 'x', mew=2)
+        plt.grid(linestyle='dotted')
+        # formatting
+        plt.tight_layout()
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        # export
+        fig.savefig(path, bbox_inches='tight')
+        plt.close(fig)
+
 # %%
 
 
@@ -202,38 +215,35 @@ class CharMap:
     """
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z1=np.ones((2, 2)), z2=np.ones((2, 2))):
+                 z=np.ones((2, 2))):
 
         self.x = x
         self.y = y
-        self.z1 = z1
-        self.z2 = z2
+        self.z = z
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
         if isinstance(self.y, list):
             self.y = np.array(self.y, dtype=object)
-        if isinstance(self.z1, list):
-            self.z1 = np.array(self.z1, dtype=object)
-        if isinstance(self.z2, list):
-            self.z2 = np.array(self.z2, dtype=object)
+        if isinstance(self.z, list):
+            self.z = np.array(self.z, dtype=object)
 
         self.x = self.x.astype(float)
         self.y = self.y.astype(float)
-        self.z1 = self.z1.astype(float)
-        self.z2 = self.z2.astype(float)
+        self.z = self.z.astype(float)
 
         if self.x.shape[0] != self.y.shape[0]:
-            msg = ('The number of x-values determines the number of dimension '
-                   'for the characteristic map. You have provided ' +
-                   str(len(self.x)) + 'x-values. Thus, the y-, z1- and '
-                   'z2-arrays must have ' + str(len(self.x)) +
-                   ' number of dimensions.')
+            msg = (
+                'The number of x-values determines the number of dimension '
+                'for the characteristic map. You have provided ' +
+                str(len(self.x)) + 'x-values. Thus, the y- and z-arrays must '
+                'have ' + str(len(self.x)) + ' number of dimensions.')
             logging.error(msg)
             raise ValueError(msg)
-        elif self.y.shape != self.z1.shape or self.y.shape != self.z2.shape:
-            msg = ('Make sure that the number of dimensions and the number of '
-                   'values in the y-, z1- and z2-arrays are identical!')
+        elif self.y.shape != self.z.shape:
+            msg = (
+                'Make sure that the number of dimensions and the number of '
+                'values in the y-, z-arrays are identical!')
             logging.error(msg)
             raise ValueError(msg)
 
@@ -266,23 +276,19 @@ class CharMap:
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
             yarr = self.y[xpos - 1]
-            z1arr = self.z1[xpos - 1]
-            z2arr = self.z2[xpos - 1]
+            zarr = self.z[xpos - 1]
         elif xpos == 0:
             yarr = self.y[0]
-            z1arr = self.z1[0]
-            z2arr = self.z2[0]
+            zarr = self.z[0]
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
             yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-            z1arr = self.z1[xpos - 1] + yfrac * (self.z1[xpos] -
-                                                 self.z1[xpos - 1])
-            z2arr = self.z2[xpos - 1] + yfrac * (self.z2[xpos] -
-                                                 self.z2[xpos - 1])
+            zarr = self.z[xpos - 1] + yfrac * (
+                self.z[xpos] - self.z[xpos - 1])
 
-        return yarr, z1arr, z2arr
+        return yarr, zarr
 
-    def evaluate_y(self, y, yarr, z1arr, z2arr):
+    def evaluate_y(self, y, yarr, zarr):
         r"""
         Evaluate CharMap for y inputs.
 
@@ -295,26 +301,20 @@ class CharMap:
             Second dimension array of CharMap calculated from first dimension
             input.
 
-        z1arr : ndarray
-            First dimension output array of CharMap calculated from first
-            dimension input.
-
-        z2arr : ndarray
-            Second dimension output array of CharMap calculated from first
-            dimension input.
+        zarr : ndarray
+            Output array of CharMap calculated from first dimension input.
         """
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr):
-            return z1arr[ypos - 1], z2arr[ypos - 1]
+            return zarr[ypos - 1]
         elif ypos == 0:
-            return z1arr[0], z2arr[0]
+            return zarr[0]
         else:
             zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
-            z1 = z1arr[ypos - 1] + zfrac * (z1arr[ypos] - z1arr[ypos - 1])
-            z2 = z2arr[ypos - 1] + zfrac * (z2arr[ypos] - z2arr[ypos - 1])
-            return z1, z2
+            z = zarr[ypos - 1] + zfrac * (zarr[ypos] - zarr[ypos - 1])
+            return z
 
-    def evaluate(self, x, y, **kwargs):
+    def evaluate(self, x, y):
         r"""
         Evaluate CharMap for x and y inputs.
 
@@ -328,43 +328,31 @@ class CharMap:
 
         Returns
         -------
-        z1 : float
-            Resulting z1 value.
 
-        z2 : float
-            Resulting z2 value.
+        z : float
+            Resulting z value.
 
         Note
         ----
-        This methods checks for the value range first. If the x-value is
-        outside of the specified range, the function will return the arrays
-        for :math:`y`, :math:`z1` and :math:`z2`.
-
         .. math::
 
             \vec{y} = \vec{y_0} + \frac{x-x_0}{x_1-x_0} \cdot
             \left(\vec{y_1}-\vec{y_0} \right)\\
-            \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot
-            \left(\vec{z1_1}-\vec{z1_0} \right)\\
-            \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x_1-x_0} \cdot
-            \left(\vec{z2_1}-\vec{z2_0}\right)
+            \vec{z} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot
+            \left(\vec{z_1}-\vec{z_0} \right)
 
-        The index :math:`x_0` represents the lower and :math:`x_1` the
+        The index :code:`0` represents the lower and :code:`1` the
         upper adjacent x-value. Using the y-value as second input dimension
-        the corresponding z1- and z2-values are calculated, again using linear
+        the corresponding z-values are calculated, again using linear
         interpolation.
 
         .. math::
 
-            z1 = z1_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z1_1-z1_0 \right)\\
-            z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
+            z = z_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z_1-z_0 \right)
         """
-        yarr, z1arr, z2arr = self.evaluate_x(x)
-        z1, z2 = self.evaluate_y(y, yarr, z1arr, z2arr)
+        return self.evaluate_y(y, *self.evaluate_x(x))
 
-        return z1, z2
-
-    def get_bound_errors_x(self, x, c):
+    def get_domain_errors_x(self, x, c):
         r"""
         Prompt error message, if operation is out bounds in first dimension.
 
@@ -385,13 +373,13 @@ class CharMap:
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x) and x != self.x[-1]:
             yarr = self.y[xpos - 1]
-            msg = ('Operating point above compressor map range: '
+            msg = ('Operating point above CharMap range: '
                    'X=' + str(round(x, 3)) + ' with maximum of ' +
                    str(self.x[-1]) + ' at component ' + c + '.')
             logging.warning(msg)
         elif xpos == 0 and x != self.x[0]:
             yarr = self.y[0]
-            msg = ('Operating point below compressor map range: '
+            msg = ('Operating point below CharMap range: '
                    'X=' + str(round(x, 3)) + ' with minimum of ' +
                    str(self.x[0]) + ' at component ' + c + '.')
             logging.warning(msg)
@@ -401,7 +389,7 @@ class CharMap:
 
         return yarr
 
-    def get_bound_errors_y(self, y, yarr, c):
+    def get_domain_errors_y(self, y, yarr, c):
         r"""
         Prompt error message, if operation is out bounds in second dimension.
 
@@ -419,18 +407,19 @@ class CharMap:
         """
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr) and y != yarr[-1]:
-            msg = ('Operating point above compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with maximum of ' +
-                   str(yarr[-1]) + ' at component ' + c + '.')
+            msg = (
+                'Operating point above compressor map range: Y=' +
+                str(round(y, 3)) + ' with maximum of ' + str(yarr[-1]) +
+                ' at component ' + c + '.')
             logging.warning(msg)
-            return msg
         elif ypos == 0 and y != yarr[0]:
-            msg = ('Operating point below compressor map range: '
-                   'Y=' + str(round(y, 3)) + ' with minimum of ' +
-                   str(yarr[0]) + ' at component ' + c + '.')
+            msg = (
+                'Operating point below compressor map range: Y=' +
+                str(round(y, 3)) + ' with minimum of ' + str(yarr[0]) +
+                ' at component ' + c + '.')
             logging.warning(msg)
 
-    def get_bound_errors(self, x, y, c):
+    def get_domain_errors(self, x, y, c):
         r"""
         Check the CharMap for bound violations.
 
@@ -442,8 +431,8 @@ class CharMap:
         y : float
             Input for second dimension of CharMap.
         """
-        yarr = self.get_bound_errors_x(x, c)
-        self.get_bound_errors_y(y, yarr, c)
+        yarr = self.get_domain_errors_x(x, c)
+        self.get_domain_errors_y(y, yarr, c)
 
     def get_attr(self, key):
         r"""
@@ -466,104 +455,22 @@ class CharMap:
             logging.error(msg)
             raise KeyError(msg)
 
+    def plot(self, path, title, xlabel, ylabel):
 
-class CompressorMap(CharMap):
-    r"""
-    Class for compressor maps.
-
-    Parameters
-    ----------
-    x : ndarray
-        An array for the first dimension input of the map.
-
-    y : ndarray
-        A two-dimensional array of the second dimension input of the map.
-
-    z1 : ndarray
-        A two-dimensional array of the first dimension output of the map.
-
-    z2 : ndarray
-        A two-dimensional array of the second dimension output of the map.
-
-    Note
-    ----
-    Ìn contrast to the :py:class:`tespy.tools.characteristics.CharMap` this
-    classes output is manipulated with the inlet guide vane angle
-    :code:`igva`.
-    """
-
-    def evaluate(self, x, y, **kwargs):
-        r"""
-        Evaluate CompressorMap for x and y inputs.
-
-        This method is different from the base method. The second dimension
-        array is manipulated by the inlet guide vane angle igva.
-
-        Parameters
-        ----------
-        x : float
-            Input for first dimension of CharMap.
-
-        y : float
-            Input for second dimension of CharMap.
-
-        igva : float
-            Inlet guide vane angle of the compressor.
-
-        Returns
-        -------
-        z1 : float
-            Pressure ratio of compressor.
-
-        z2 : float
-            Isentropic efficiency of compressor.
-
-        Note
-        ----
-        In contrast to the :py:class:`tespy.tools.characteristics.CharMap`
-        the values are manipulated by the inlet guide vane angle (igva):
-
-        .. math::
-
-            \vec{y} = \vec{y} \cdot \left( 1 - \frac{igva}{100} \right)\\
-            \vec{z1} = \vec{z1} \cdot \left( 1 - \frac{igva}{100} \right)\\
-            \vec{z2} = \vec{z2} \cdot \left(
-            1 - \left(\frac{igva}{100}\right)^2 \right)
-
-        Reference: :cite:`GasTurb2018`.
-        """
-        yarr, z1arr, z2arr = self.evaluate_x(x)
-        igva = kwargs.get('igva', 0)
-
-        yarr *= (1 - igva / 100)
-        z1arr *= (1 - igva / 100)
-        z2arr *= (1 - igva ** 2 / 10000)
-
-        z1, z2 = self.evaluate_y(y, yarr, z1arr, z2arr)
-
-        return z1, z2
-
-    def get_bound_errors(self, x, y, igva, c):
-        r"""
-        Check the CompressorMap for bound violations.
-
-        This method is different from the base method. The second dimension
-        array is manipulated by the inlet guide vane angle igva.
-
-        Parameters
-        ----------
-        x : float
-            Input for first dimension of CharMap.
-
-        y : float
-            Input for second dimension of CharMap.
-
-        igva : float
-            Inlet guide vane angle of the compressor.
-        """
-        yarr = self.get_bound_errors_x(x, c)
-        yarr *= (1 - igva / 100)
-        self.get_bound_errors_y(y, yarr, c)
+        # plotting
+        fig = plt.figure()
+        ax = plt.subplot()
+        for datapoint in range(len(self.x)):
+            ax.plot(self.y[datapoint], self.z[datapoint], 'x', mew=2)
+        plt.grid(linestyle='dotted')
+        # formatting
+        plt.tight_layout()
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        # export
+        fig.savefig(path, bbox_inches='tight')
+        plt.close(fig)
 
 
 def load_default_char(component, parameter, function_name, char_type):
@@ -587,7 +494,7 @@ def load_default_char(component, parameter, function_name, char_type):
     Returns
     -------
     obj : object
-        The characteristics (CharLine, CharMap, CompressorMap) object.
+        The characteristics (CharLine, CharMap) object.
     """
     if char_type == CharLine:
         path = resource_filename('tespy.data', 'char_lines.json')
@@ -600,14 +507,13 @@ def load_default_char(component, parameter, function_name, char_type):
     if char_type == CharLine:
         x = data[component][parameter][function_name]['x']
         y = data[component][parameter][function_name]['y']
-        obj = char_type(x, y)
+        obj = CharLine(x, y)
 
     else:
         x = data[component][parameter][function_name]['x']
         y = data[component][parameter][function_name]['y']
-        z1 = data[component][parameter][function_name]['z1']
-        z2 = data[component][parameter][function_name]['z2']
-        obj = char_type(x, y, z1, z2)
+        z = data[component][parameter][function_name]['z']
+        obj = CharMap(x, y, z)
 
     return obj
 
@@ -627,7 +533,7 @@ def load_custom_char(name, char_type):
     Returns
     -------
     obj : object
-        The characteristics (CharLine, CharMap, CompressorMap) object.
+        The characteristics (CharLine, CharMap) object.
     """
     path = extend_basic_path('data')
 
@@ -644,14 +550,13 @@ def load_custom_char(name, char_type):
         if char_type == CharLine:
             x = data[name]['x']
             y = data[name]['y']
-            obj = char_type(x, y)
+            obj = CharLine(x, y)
 
         else:
             x = data[name]['x']
             y = data[name]['y']
-            z1 = data[name]['z1']
-            z2 = data[name]['z2']
-            obj = char_type(x, y, z1, z2)
+            z = data[name]['z']
+            obj = CharMap(x, y, z)
 
         return obj
 

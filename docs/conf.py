@@ -42,7 +42,7 @@ def plot_line(component, parameter, name, data):
     ylabel = r'$f\left(X\right)$'
 
     path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
-    char.plot(path, title, xlabel, ylabel)
+    char.plot(path.replace(' ', '_'), title, xlabel, ylabel)
 
 
 def plot_map(component, parameter, name, data):
@@ -56,7 +56,7 @@ def plot_map(component, parameter, name, data):
     ylabel = r'$f\left(X,Y\right)$'
 
     path = './api/_images/' + component + '_' + parameter + '_' + name + '.svg'
-    char.plot(path, title, xlabel, ylabel)
+    char.plot(path.replace(' ', '_'), title, xlabel, ylabel)
 
 
 def generate_api_doc(component, parameter, name, char_type, ref):
@@ -100,7 +100,6 @@ for component, params in get_char_data('char_lines').items():
     rst += '**' + component + '**\n\n'
     for param, lines in params.items():
         for line, data in lines.items():
-            component = component.replace(' ', '_')
             plot_line(component, param, line, data)
             rst += generate_api_doc(
                 component, param, line, 'line', data['ref'])
@@ -114,7 +113,6 @@ for component, params in get_char_data('char_maps').items():
     rst += '**' + component + '**\n\n'
     for param, chars in params.items():
         for char, data in chars.items():
-            component = component.replace(' ', '_')
             plot_map(component, param, char, data)
             rst += generate_api_doc(component, param, char, 'map', data['ref'])
 

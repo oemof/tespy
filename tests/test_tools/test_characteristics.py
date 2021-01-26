@@ -188,77 +188,34 @@ def test_CharMap_evaluation():
     # create a characteristc line with values of y=(x-2)^2
     x = [1, 2, 3]
     y = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
-    z1 = y ** 0.5
-    z2 = y ** 2
-    map = CharMap(x=x, y=y, z1=z1, z2=z2)
+    z = y ** 0.5
+    map = CharMap(x=x, y=y, z=z)
 
     # test evaluation at x=2 and y=3, result: z1=1.73, z2=9
     x = 2
     y = 3
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.73, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 1.73, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 9.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 9.0, msg
-
-    # test evaluation at x=0 and y=0 for lower value range limit,
-    # result: z1=1, z2=1
-    x = 0
-    y = 0
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.0, but is ' + str(round(z1, 1)) + '.')
-    assert round(z1, 1) == 1.0, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 1.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 1.0, msg
-
-    # test evaluation at x=4 and y=6 for upper value range limit,
-    # result: z1=2.24, z2=25
-    x = 4
-    y = 6
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 2.24, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 2.24, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 25.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 25.0, msg
-
-    # check, if bound errors go through
-    map.get_bound_errors(x, y, 'Componentlabel')
-
-
-def test_CharMap_evaluation():
-    """Test the characteristc compressor map evaluation."""
-
-    x = [1, 2, 3]
-    y = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
-    z = y ** 0.5
-    map = CharMap(x=x, y=y, z=z)
-
-    x = 2
-    y = 3
     z = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
            'must be 1.73, but is ' + str(round(z, 2)) + '.')
     assert round(z, 2) == 1.73, msg
 
+    # test evaluation at x=0 and y=0 for lower value range limit,
+    # result: z=1
     x = 0
     y = 0
     z = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1, but is ' + str(round(z, 1)) + '.')
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
+           'must be 1.0, but is ' + str(round(z, 1)) + '.')
     assert round(z, 1) == 1.0, msg
 
+    # test evaluation at x=4 and y=6 for upper value range limit,
+    # result: z=2.24
     x = 4
     y = 6
     z = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
            'must be 2.24, but is ' + str(round(z, 2)) + '.')
     assert round(z, 2) == 2.24, msg
+
+    # check, if bound errors go through
+    map.get_domain_errors(x, y, 'Componentlabel')

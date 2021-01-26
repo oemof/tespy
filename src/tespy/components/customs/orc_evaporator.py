@@ -635,8 +635,6 @@ class ORCEvaporator(Component):
                     (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
                 ))
 
-        self.check_parameter_bounds()
-
     def entropy_balance(self):
         r"""
         Calculate entropy balance of the two-phase orc evaporator.

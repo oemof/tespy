@@ -17,8 +17,6 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
-from tespy.tools.characteristics import CharMap
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -418,10 +416,8 @@ class Compressor(Turbomachine):
         if not increment_filter[0, 0]:
             self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
         if not increment_filter[0, 1]:
-            p11 = self.numeric_deriv(f, 'p', 0)
             self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
         if not increment_filter[0, 2]:
-            h11 = self.numeric_deriv(f, 'h', 0)
             self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
 
         if not increment_filter[1, 1]:
@@ -539,10 +535,8 @@ class Compressor(Turbomachine):
         if not increment_filter[0, 0]:
             self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
         if not increment_filter[0, 1]:
-            p11 = self.numeric_deriv(f, 'p', 0)
             self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
         if not increment_filter[0, 2]:
-            h11 = self.numeric_deriv(f, 'h', 0)
             self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
 
         if not increment_filter[1, 1]:
@@ -646,16 +640,17 @@ class Compressor(Turbomachine):
                 T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
 
-        # elif isinstance(data, dc_cm) and data.is_set:
-        #     if isinstance(data.char_func, CharMap):
-        #         x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-        #         y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-        #             self.inl[0].m.design * self.inl[0].p.val_SI * x)
-        #         yarr = data.char_func.get_domain_errors_x(x, self.label)
-        #         yarr *= (1 - self.igva.val / 100)
-        #         data.char_func.get_domain_errors_y(y, yarr, self.label)
+    def check_parameter_bounds(self):
+        r"""Check parameter value limits."""
+        Component.check_parameter_bounds(self)
 
-        self.check_parameter_bounds()
+        for data in [self.char_map_pr, self.char_map_eta_s]:
+            x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+            y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
+                self.inl[0].m.design * self.inl[0].p.val_SI * x)
+            yarr = data.char_func.get_domain_errors_x(x, self.label)
+            yarr *= (1 - self.igva.val / 100)
+            data.char_func.get_domain_errors_y(y, yarr, self.label)
 
     def exergy_balance(self, T0):
         r"""

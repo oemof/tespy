@@ -168,5 +168,3 @@ class CycleCloser(Component):
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
         self.fluid_deviation.val = np.linalg.norm(diff)
-
-        self.check_parameter_bounds()

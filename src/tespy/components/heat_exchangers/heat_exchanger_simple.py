@@ -873,8 +873,6 @@ class HeatExchangerSimple(Component):
 
             self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
 
-        self.check_parameter_bounds()
-
     def entropy_balance(self):
         r"""
         Calculate entropy balance of a simple heat exchanger.

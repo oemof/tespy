@@ -17,12 +17,10 @@ import ast
 import json
 import logging
 import os
-import sys
 from collections import Counter
 from collections import OrderedDict
 from time import time
 
-import CoolProp as CP
 import numpy as np
 import pandas as pd
 from numpy.linalg import norm
@@ -35,12 +33,9 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data as fpd
-from tespy.tools.logger import check_version
-from tespy.tools.logger import check_git_branch
 
 # Only require cupy if Cuda shall be used
 try:
@@ -2292,6 +2287,7 @@ class Network:
         # components
         for cp in self.comps.index:
             cp.calc_parameters()
+            cp.check_parameter_bounds()
             cp.entropy_balance()
 
         # busses

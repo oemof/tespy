@@ -444,10 +444,6 @@ class Condenser(HeatExchanger):
         latex : str
             LaTeX code of equations applied.
         """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
-        f1 = self.get_char_expr_doc(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr_doc(p2, **self.kA_char2.char_params)
         latex = (
             r'\begin{split}' + '\n'
             r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
@@ -531,5 +527,3 @@ class Condenser(HeatExchanger):
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))
             self.kA.val = -self.Q.val / self.td_log.val
-
-        self.check_parameter_bounds()

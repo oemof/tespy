@@ -623,12 +623,25 @@ class Component:
         return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
 
     def calc_bus_expr(self, bus):
+        r"""
+        Return the busses' characteristic line input expression.
 
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            Bus to calculate the characteristic function expression for.
+
+        Returns
+        -------
+        expr : float
+            Ratio of power to power design depending on the bus base
+            specification.
+        """
         b = bus.comps.loc[self]
-        comp_val = self.bus_func(b)
         if np.isnan(b['P_ref']) or b['P_ref'] == 0:
             return 1
         else:
+            comp_val = self.bus_func(b)
             if b['base'] == 'component':
                 return abs(comp_val / b['P_ref'])
             else:
@@ -671,8 +684,7 @@ class Component:
         iteration is used to find the bus value satisfying the corresponding
         equation (case 1).
         """
-        b = bus.comps.loc[self]
-        return b['char'].evaluate(self.calc_bus_expr(bus))
+        return bus.comps.loc[self, 'char'].evaluate(self.calc_bus_expr(bus))
 
     def calc_bus_value(self, bus):
         r"""
@@ -708,19 +720,7 @@ class Component:
         """
         b = bus.comps.loc[self]
         comp_val = self.bus_func(b)
-        if np.isnan(b['P_ref']):
-            expr = 1
-        else:
-            if b['base'] == 'component':
-                expr = abs(comp_val / b['P_ref'])
-            else:
-                bus_value = newton(
-                    bus_char_evaluation,
-                    bus_char_derivative,
-                    [comp_val, b['P_ref'], b['char']], 0,
-                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
-                return bus_value
-
+        expr = self.calc_bus_expr(bus)
         if b['base'] == 'component':
             return comp_val * b['char'].evaluate(expr)
         else:
@@ -854,6 +854,7 @@ class Component:
         return
 
     def check_parameter_bounds(self):
+        r"""Check parameter value limits."""
         for p in self.variables.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):

@@ -970,8 +970,6 @@ class CombustionChamberStoich(CombustionChamber):
             ti += i.m.val_SI * i.fluid.val[fuel] * self.lhv
         self.ti.val = ti
 
-        self.check_parameter_bounds()
-
     def entropy_balance(self):
         r"""Entropy balance calculation method."""
         return

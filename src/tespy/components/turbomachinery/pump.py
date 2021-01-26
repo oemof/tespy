@@ -14,7 +14,6 @@ import logging
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -481,8 +480,6 @@ class Pump(Turbomachine):
                 self.inl[0].get_flow(), self.outl[0].get_flow(),
                 T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
-
-        self.check_parameter_bounds()
 
     def exergy_balance(self, T0):
         r"""

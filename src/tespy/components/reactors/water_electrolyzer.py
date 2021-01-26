@@ -1274,5 +1274,3 @@ class WaterElectrolyzer(Component):
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
             4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
             ))
-
-        self.check_parameter_bounds()

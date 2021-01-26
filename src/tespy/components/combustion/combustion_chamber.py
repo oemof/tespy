@@ -20,7 +20,6 @@ from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
@@ -1310,7 +1309,6 @@ class CombustionChamber(Component):
         n_oxygen_stoich = n_h / 4 + n_c
 
         self.lamb.val = n_oxygen / n_oxygen_stoich
-        self.check_parameter_bounds()
 
     def entropy_balance(self):
         r"""

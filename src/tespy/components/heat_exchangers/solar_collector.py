@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -316,5 +315,3 @@ class SolarCollector(HeatExchangerSimple):
             ))
         if self.energy_group.is_set:
             self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
-
-        self.check_parameter_bounds()

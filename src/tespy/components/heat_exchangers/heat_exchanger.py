@@ -15,7 +15,6 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
@@ -524,11 +523,6 @@ class HeatExchanger(Component):
         latex : str
             LaTeX code of equations applied.
         """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
-        f1 = self.get_char_expr_doc(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr_doc(p2, **self.kA_char2.char_params)
-
         latex = (
             r'\begin{split}' + '\n'
             r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
@@ -815,8 +809,6 @@ class HeatExchanger(Component):
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))
             self.kA.val = -self.Q.val / self.td_log.val
-
-        self.check_parameter_bounds()
 
     def entropy_balance(self):
         r"""

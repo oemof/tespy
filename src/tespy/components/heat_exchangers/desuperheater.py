@@ -11,7 +11,6 @@ tespy/components/heat_exchangers/desuperheater.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ

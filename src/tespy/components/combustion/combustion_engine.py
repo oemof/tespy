@@ -23,7 +23,6 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.document_models import generate_latex_eq
 
@@ -1477,6 +1476,11 @@ class CombustionEngine(CombustionChamber):
         self.P.val = self.calc_P()
         self.Qloss.val = self.calc_Qloss()
 
+        CombustionChamber.calc_parameters(self)
+
+    def check_parameter_bounds(self):
+        r"""Check parameter value limits."""
+        Component.check_parameter_bounds(self)
         # get bound errors for characteristic lines
         if np.isnan(self.P.design):
             expr = 1
@@ -1486,8 +1490,6 @@ class CombustionEngine(CombustionChamber):
         self.Qloss_char.char_func.get_domain_errors(expr, self.label)
         self.Q1_char.char_func.get_domain_errors(expr, self.label)
         self.Q2_char.char_func.get_domain_errors(expr, self.label)
-
-        CombustionChamber.calc_parameters(self)
 
     def entropy_balance(self):
         r"""

@@ -113,7 +113,6 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
-    set_attr_TypeError(conn, label=5)
     set_attr_TypeError(conn, state='f')
 
     set_attr_TypeError(nw, m_range=5)
@@ -184,8 +183,12 @@ def test_Connection_creation_ValueError():
 def test_Connection_creation_TypeError():
     """Test TypeErrors creating connections."""
     comb = CombustionEngine('combustion engine')
+    pipeline = Pipe('pipeline')
     with raises(TypeError):
         Connection(comb, 'out1', 7, 'in1')
+
+    with raises(TypeError):
+        Connection(comb, 'out1', pipeline, 'in1', label=5)
 
 
 def test_Connection_creation_TESPyConnectionError():
@@ -660,8 +663,7 @@ def test_CharMap_number_of_dimensions():
 def test_CharMap_y_z_dimension_mismatch():
     with raises(ValueError):
         CharMap(x=[0, 1], y=[[1, 2, 3, 4], [1, 2, 3, 4]],
-                z1=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
-                z2=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+                z=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
 
 
 def test_missing_CharLine_files():

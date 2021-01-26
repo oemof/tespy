@@ -169,7 +169,7 @@ class TestHeatExchangers:
             1 - instance.iam_1.val * abs(instance.aoi.val) -
             instance.iam_2.val * instance.aoi.val ** 2)
 
-        Q_loss = round(instance.A.val * (
+        Q_loss = -round(instance.A.val * (
             instance.E.val * (
                 1 - instance.eta_opt.val * instance.doc.val ** 1.5 * iam
             ) + T_diff * instance.c_1.val + T_diff ** 2 * instance.c_2.val), 0)
@@ -269,7 +269,7 @@ class TestHeatExchangers:
         # heat loss must be identical to E * A - Q (internal heat loss
         # calculation)
         T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
-        Q_loss = round(instance.A.val * (
+        Q_loss = -round(instance.A.val * (
             instance.E.val * (1 - instance.eta_opt.val) +
             T_diff * instance.lkf_lin.val +
             T_diff ** 2 * instance.lkf_quad.val), 0)
@@ -470,7 +470,7 @@ class TestHeatExchangers:
 
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
-        ttd_u = round(T_bp_p(self.c1.to_flow()) - self.c4.T.val_SI, 1)
+        ttd_u = round(T_bp_p(self.c1.get_flow()) - self.c4.T.val_SI, 1)
         p = round(self.c1.p.val_SI, 5)
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +

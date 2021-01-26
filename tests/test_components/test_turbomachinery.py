@@ -22,7 +22,7 @@ from tespy.components.turbomachinery.turbomachine import Turbomachine
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
-from tespy.tools.characteristics import CompressorMap
+from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import s_mix_ph
@@ -61,7 +61,7 @@ class TestTurbomachinery:
 
         # test isentropic efficiency value
         eta_s_d = (
-            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -74,7 +74,7 @@ class TestTurbomachinery:
 
         # test calculated value
         eta_s = (
-            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -83,9 +83,14 @@ class TestTurbomachinery:
         # remove pressure at outlet, use characteristic map for pressure
         # rise calculation
         self.c2.set_attr(p=np.nan)
-        instance.set_attr(char_map={'char_func': ldc(
-            'compressor', 'char_map', 'DEFAULT', CompressorMap),
-            'is_set': True}, eta_s=np.nan)
+        instance.set_attr(
+            char_map_pr={'char_func': ldc(
+                'compressor', 'char_map_pr', 'DEFAULT', CharMap),
+                'is_set': True},
+            char_map_eta_s={'char_func': ldc(
+                'compressor', 'char_map_eta_s', 'DEFAULT', CharMap),
+                'is_set': True},
+            eta_s=np.nan, igva=0)
 
         # offdesign test, efficiency value should be at design value
         self.nw.solve('offdesign', design_path='tmp')
@@ -101,7 +106,7 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
 
         # should be value
-        eta_s = eta_s_d * instance.char_map.char_func.z2[6, 0]
+        eta_s = eta_s_d * instance.char_map_eta_s.char_func.z[6, 0]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                ') must be at (' + str(round(eta_s, 4)) + ').')
         assert round(eta_s, 4) == round(instance.eta_s.val, 4), msg
@@ -112,7 +117,7 @@ class TestTurbomachinery:
         self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
         convergence_check(self.nw.lin_dep)
         # should be value
-        eta_s = eta_s_d * instance.char_map.char_func.z2[0, 9]
+        eta_s = eta_s_d * instance.char_map_eta_s.char_func.z[0, 9]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                ') must be at (' + str(round(eta_s, 4)) + ').')
         assert round(eta_s, 4) == round(instance.eta_s.val, 4), msg
@@ -125,7 +130,8 @@ class TestTurbomachinery:
         instance.set_attr(eta_s_char={'char_func': ldc(
             'compressor', 'eta_s_char', 'DEFAULT', CharLine),
             'is_set': True, 'param': 'm'})
-        instance.char_map.is_set = False
+        instance.char_map_eta_s.is_set = False
+        instance.char_map_pr.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
@@ -170,7 +176,7 @@ class TestTurbomachinery:
 
         # test calculated value for efficiency
         eta_s = (
-            (isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -178,8 +184,8 @@ class TestTurbomachinery:
 
         # isentropic efficiency of 1 means inlet and outlet entropy are
         # identical
-        s1 = round(s_mix_ph(self.c1.to_flow()), 4)
-        s2 = round(s_mix_ph(self.c2.to_flow()), 4)
+        s1 = round(s_mix_ph(self.c1.get_flow()), 4)
+        s2 = round(s_mix_ph(self.c2.get_flow()), 4)
         msg = ('Value of entropy must be identical for inlet (' + str(s1) +
                ') and outlet (' + str(s2) +
                ') at 100 % isentropic efficiency.')
@@ -264,7 +270,7 @@ class TestTurbomachinery:
         # design value of isentropic efficiency
         eta_s_d = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' +
                str(round(eta_s_d, 3)) + ', is ' + str(instance.eta_s.val) +
@@ -277,7 +283,7 @@ class TestTurbomachinery:
         convergence_check(self.nw.lin_dep)
         eta_s = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.to_flow(), self.c2.to_flow()) -
+                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')

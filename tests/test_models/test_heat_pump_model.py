@@ -230,23 +230,23 @@ class TestHeatPump:
         c_in_cd.set_attr(fluid={'water': 0, 'NH3': 1}, p=60)
         rp_cd.set_attr(T=60, fluid={'water': 1, 'NH3': 0}, p=10)
         self.cd_cons.set_attr(T=105)
-        cd_va.set_attr(p=Ref(c_in_cd, 1, -1000), Td_bp=-5, design=['Td_bp'])
+        cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), Td_bp=-5, design=['Td_bp'])
 
         # evaporator system cold side
         pu_ev.set_attr(m=Ref(va_dr, 10, 0), p0=5)
         dr_su.set_attr(p0=5, T=5)
-        su_cp1.set_attr(p=Ref(dr_su, 1, -5000), Td_bp=5, design=['Td_bp', 'p'])
+        su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
 
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1, 'NH3': 0})
-        su_ev.set_attr(p=Ref(self.amb_in_su, 1, -100), design=['p'])
+        su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
         ev_amb_out.set_attr()
 
         # compressor-system
         cp1_he.set_attr(p=15)
-        he_cp2.set_attr(T=40, p=Ref(cp1_he, 1, -1000), design=['T', 'p'])
+        he_cp2.set_attr(T=40, p=Ref(cp1_he, 1, -0.01), design=['T', 'p'])
         ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1, 'NH3': 0})
-        he_ic_out.set_attr(p=Ref(ic_in_he, 1, -200), design=['p'])
+        he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
     def test_model(self):
         """

@@ -100,6 +100,7 @@ for component, params in get_char_data('char_lines').items():
     rst += '**' + component + '**\n\n'
     for param, lines in params.items():
         for line, data in lines.items():
+            component = component.replace(' ', '_')
             plot_line(component, param, line, data)
             rst += generate_api_doc(
                 component, param, line, 'line', data['ref'])
@@ -113,6 +114,7 @@ for component, params in get_char_data('char_maps').items():
     rst += '**' + component + '**\n\n'
     for param, chars in params.items():
         for char, data in chars.items():
+            component = component.replace(' ', '_')
             plot_map(component, param, char, data)
             rst += generate_api_doc(component, param, char, 'map', data['ref'])
 

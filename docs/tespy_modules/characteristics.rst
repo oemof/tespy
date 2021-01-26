@@ -32,45 +32,34 @@ Characteristic maps
 
 The characteristic maps use linear interpolation as well. First step is
 interpolation on the x-dimension similar to the characteristic line
-functionality. As the y, z1 and z2 data are two-dimensional, **each row of**
+functionality. As the y and z data are two-dimensional, **each row of**
 **the data corresponds to one x value**. Thus, the result of the first step is
-a vector for each dimension (y, z1 and z2).
+a vector for each dimension (y and z).
 
 .. math::
 
     \vec{y} = \vec{y_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{y_1}-
     \vec{y_0} \right)
 
-    \vec{z1} = \vec{z1_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z1_1}-
-    \vec{z1_0} \right)
+    \vec{z} = \vec{z_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z_1}-
+    \vec{z_0} \right)
 
-    \vec{z2} = \vec{z2_0} + \frac{x-x_0}{x_1-x_0} \cdot \left(\vec{z2_1}-
-    \vec{z2_0}\right)
-
-Using the y value as second input dimension the corresponding z1 and z2 values
-are calculated, again using linear interpolation.
+Using the y value as second input dimension the corresponding z values are
+calculated, again using linear interpolation.
 
 .. math::
 
-    z1 = z1_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z1_1-z1_0 \right)
-
-    z2 = z2_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z2_1-z2_0 \right)
+    z = z_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z_1-z_0 \right)
 
 .. note::
 
-    Using compressor maps :math:`\vec{y}`, :math:`\vec{z1}` and
-    :math:`\vec{z2}` are manipulated with by the value of the inlet guide vane
-    angle:
-
-    .. math::
-
-        \vec{y} = \vec{y} \cdot \left(1-\frac{igva}{100}\right)\\
-        \vec{z1} = \vec{z1} \cdot \left(1-\frac{igva}{100}\right)\\
-        \vec{z2} = \vec{z2} \cdot \left(1-\frac{igva}{100}^2\right)
-
-    Also see the corresponding
-    :py:class:`tespy.tools.characteristics.CompressorMap` in the API
-    documentation.
+    Using compressors map functions :math:`\vec{y}` and :math:`\vec{z}` are
+    manipulated with by the value of the inlet guide vane angle. Also see the
+    corresponding methods
+    :py:class:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`
+    and
+    :py:class:`tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func`
+    in the API documentation.
 
 .. _import_custom_characteristics_label:
 
@@ -78,13 +67,16 @@ Import your own characteristics
 -------------------------------
 
 It is possible to import your own characteristic lines or maps instead of
-writing the x, y (z1 and z2) data into your python script, for example:
+writing the x, y (and z) data into your python script, for example:
 
 .. code-block:: python
 
-    from tespy.tools.characteristics import load_custom_char, CharLine
+    from tespy.tools.characteristics import CharLine
+    from tespy.tools.characteristics import load_custom_char
+    from tespy.tools.characteristics import CharMap
 
     gen_char = load_custom_char('generator', CharLine)
+    gen_char = load_custom_char('custom_map', CharMap)
 
 
 For the imports to work in the way shown, navigate to your .tespy folder in
@@ -123,9 +115,9 @@ stated as list.
 
 The :code:`char_maps.json` should also have names for identification of the
 characteristic lines on the first level. On the second level we additionally
-need z1 and z2 data. The x data are a list of values, the y, z1 and z2 data
-are arrays with a list of values for each dimension of the x data. The example
-below has 3 x values, thus the y, z1 and z2 data must contain 3 sets of values.
+need z data. The x data are a list of values, the y and z data are arrays with
+a list of values for each dimension of the x data. The example below has 3 x
+values, thus the y and z data must contain 3 sets of values.
 
 .. code-block:: json
 
@@ -135,11 +127,8 @@ below has 3 x values, thus the y, z1 and z2 data must contain 3 sets of values.
             "y": [[0.93, 0.943, 0.953, 0.961, 0.962, 0.963],
                   [0.987, 0.995, 1.0, 1.002, 1.005, 1.005],
                   [1.02, 1.023, 1.026,1.028, 1.03, 1.032]],
-            "z1": [[0.982, 0.939, 0.895, 0.851, 0.806, 0.762],
+            "z": [[0.982, 0.939, 0.895, 0.851, 0.806, 0.762],
                    [1.102, 1.052, 1.0, 0.951, 0.9, 0.85],
-                   [1.213, 1.149, 1.085, 1.022, 0.958, 0.894]],
-            "z2": [[0.981, 0.995, 1.007, 1.002, 0.981, 0.961],
-                   [0.969, 0.984, 1.0, 0.985, 0.967, 0.95],
-                   [0.962, 0.949, 0.935, 0.922, 0.908, 0.895]]
+                   [1.213, 1.149, 1.085, 1.022, 0.958, 0.894]]
         }
     }

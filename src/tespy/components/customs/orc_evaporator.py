@@ -18,6 +18,7 @@ from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.document_models import generate_latex_eq
 
 
 class ORCEvaporator(Component):
@@ -302,13 +303,13 @@ class ORCEvaporator(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -320,7 +321,7 @@ class ORCEvaporator(Component):
             r'&+ \dot{m}_\mathrm{in,3} \cdot \left(h_\mathrm{out,3} - '
             r'h_\mathrm{in,3} \right)' + '\n'
             r'\end{split}')
-        return [self.generate_latex(latex, 'subcooling_func')]
+        return generate_latex_eq(self, latex, latex)
 
     def energy_balance_deriv(self, increment_filter, k):
         """
@@ -363,18 +364,18 @@ class ORCEvaporator(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 =\dot{m}_{in,3} \cdot \left(h_{out,3}-'
             r'h_{in,3}\right)+\dot{Q}')
-        return [self.generate_latex(latex, label)]
+        return [generate_latex_eq(self, latex, label)]
 
     def energy_balance_cold_deriv(self, increment_filter, k):
         """
@@ -409,7 +410,7 @@ class ORCEvaporator(Component):
         ----
         This equation is applied in case subcooling is False!
         """
-        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].to_flow(), 0)
+        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].get_flow(), 0)
 
     def subcooling_func_doc(self, label):
         r"""
@@ -417,16 +418,16 @@ class ORCEvaporator(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def subcooling_deriv(self, increment_filter, k):
         """
@@ -440,7 +441,7 @@ class ORCEvaporator(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 3, 1] = -dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, 3, 1] = -dh_mix_dpQ(self.outl[0].get_flow(), 0)
         self.jacobian[k, 3, 2] = 1
 
     def overheating_func(self):
@@ -460,7 +461,7 @@ class ORCEvaporator(Component):
         ----
         This equation is applied in case overheating is False!
         """
-        return self.outl[2].h.val_SI - h_mix_pQ(self.outl[2].to_flow(), 1)
+        return self.outl[2].h.val_SI - h_mix_pQ(self.outl[2].get_flow(), 1)
 
     def overheating_func_doc(self, label):
         r"""
@@ -468,16 +469,11 @@ class ORCEvaporator(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
+        label : str
+            Label for equation.
         """
         latex = r'0=h_\mathrm{out,3} -h\left(p_\mathrm{out,3}, x=1 \right)'
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def overheating_deriv(self, increment_filter, k):
         """
@@ -491,7 +487,7 @@ class ORCEvaporator(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 5, 1] = -dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, 5, 1] = -dh_mix_dpQ(self.outl[0].get_flow(), 0)
         self.jacobian[k, 5, 2] = 1
 
     def bus_func(self, bus):
@@ -516,11 +512,8 @@ class ORCEvaporator(Component):
                 \dot{E} = -\dot{m}_{in,3} \cdot \left(
                 h_{out,3} - h_{in,3} \right)
         """
-        i = self.inl[2].to_flow()
-        o = self.outl[2].to_flow()
-        val = -i[0] * (o[2] - i[2])
-
-        return val
+        return -self.inl[2].m.val_SI * (
+            self.outl[2].h.val_SI - self.inl[2].h.val_SI)
 
     def bus_deriv(self, bus):
         r"""
@@ -575,16 +568,15 @@ class ORCEvaporator(Component):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            flow = c.to_flow()
             if c.source_id == 'out1':
                 T = 200 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             elif c.source_id == 'out2':
                 T = 200 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 250 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
 
     def initialise_target(self, c, key):
         r"""
@@ -618,16 +610,15 @@ class ORCEvaporator(Component):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            flow = c.to_flow()
             if c.target_id == 'in1':
                 T = 300 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             elif c.target_id == 'in2':
                 T = 300 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 220 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

@@ -15,6 +15,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Turbomachine(Component):
@@ -123,18 +124,18 @@ class Turbomachine(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
         latex : str
-            Residual value of turbomachine energy balance
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
             r'\right)-P')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -173,11 +174,26 @@ class Turbomachine(Component):
 
                 \dot{E} = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        val = i[0] * (o[2] - i[2])
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-        return val
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        return (
+            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
+            r'h_\mathrm{in} \right)')
 
     def bus_deriv(self, bus):
         r"""

@@ -10,6 +10,8 @@ available from its original location tespy/components/nodes/separator.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import Component
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -17,6 +19,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import dT_mix_ph_dfluid
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Separator(NodeBase):
@@ -200,13 +203,13 @@ class Separator(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector of residual values for component's fluid balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in} \cdot x_{fl\mathrm{,in}} - '
@@ -214,9 +217,7 @@ class Separator(NodeBase):
             r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
             r'\text{outlets}'
         )
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_nw_fluids - 1) * [''])
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self, increment_filter, k):
         r"""
@@ -257,9 +258,9 @@ class Separator(NodeBase):
                 \forall j \in \text{outlets}
         """
         residual = []
-        T_in = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
+        T_in = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
         for o in self.outl:
-            residual += [T_in - T_mix_ph(o.to_flow(), T0=o.T.val_SI)]
+            residual += [T_in - T_mix_ph(o.get_flow(), T0=o.T.val_SI)]
         return residual
 
     def energy_balance_func_doc(self, label):
@@ -268,19 +269,19 @@ class Separator(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Residual value of energy balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0= T_\mathrm{in} - T_{\mathrm{out,}j}'
             r'\; \forall j \in \text{outlets}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -294,19 +295,19 @@ class Separator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        i = self.inl[0].to_flow()
+        i = self.inl[0].get_flow()
         dT_dp_in = dT_mix_dph(i)
         dT_dh_in = dT_mix_pdh(i)
         dT_dfluid_in = dT_mix_ph_dfluid(i)
         j = 0
         for c in self.outl:
-            o = c.to_flow()
+            o = c.get_flow()
             self.jacobian[k, 0, 1] = dT_dp_in
             self.jacobian[k, 0, 2] = dT_dh_in
             self.jacobian[k, 0, 3:] = dT_dfluid_in
             self.jacobian[k, j + 1, 1] = -dT_mix_dph(o)
             self.jacobian[k, j + 1, 2] = -dT_mix_pdh(o)
-            self.jacobian[k, j + 1, 3:] = -1 * dT_mix_ph_dfluid(o)
+            self.jacobian[k, j + 1, 3:] = -np.array(dT_mix_ph_dfluid(o))
             j += 1
             k += 1
 

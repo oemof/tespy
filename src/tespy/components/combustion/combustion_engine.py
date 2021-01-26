@@ -25,6 +25,7 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
+from tespy.tools.document_models import generate_latex_eq
 
 
 class CombustionEngine(CombustionChamber):
@@ -390,13 +391,13 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector with residual value for component's mass flow balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -406,7 +407,7 @@ class CombustionEngine(CombustionChamber):
             r'\dot{m}_\mathrm{out,3}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)] + 2 * ['']
+        return generate_latex_eq(self, latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -453,21 +454,19 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector of residual values for component's fluid balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=x_{i\mathrm{,in,}j}-x_{i\mathrm{,out,}j}\;'
             r'\forall i \in\text{network fluids,}'
             r'\; \forall j \in [1,2]')
-        return (
-            [self.generate_latex(latex, label)] +
-            (self.num_nw_fluids * 2 - 1) * [''])
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -551,13 +550,13 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -574,7 +573,7 @@ class CombustionEngine(CombustionChamber):
             r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
             '\n' + r'\end{split}'
         )
-        return [self.generate_latex(latex, 'energy_balance_func')]
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         """
@@ -647,18 +646,18 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} +'
             r'h_\mathrm{in,1} \right) + \dot{Q}_1')
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def Q1_deriv(self, increment_filter, k):
         """
@@ -700,18 +699,18 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} +'
             r'h_\mathrm{in,2} \right) + \dot{Q}_2')
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def Q2_deriv(self, increment_filter, k):
         """
@@ -760,13 +759,13 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -779,7 +778,7 @@ class CombustionEngine(CombustionChamber):
             r'&\forall i \in [3,4]\\ ' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def tiP_char_deriv(self, increment_filter, k):
         """
@@ -843,13 +842,13 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -865,7 +864,7 @@ class CombustionEngine(CombustionChamber):
             r'&\forall i \in [3,4]\\ ' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, 'Q1_char_func')]
+        return generate_latex_eq(self, latex, label)
 
     def Q1_char_deriv(self, increment_filter, k):
         """
@@ -935,13 +934,13 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -957,7 +956,7 @@ class CombustionEngine(CombustionChamber):
             r'&\forall i \in [3,4]\\ ' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, 'Q2_char_func')]
+        return generate_latex_eq(self, latex, label)
 
     def Q2_char_deriv(self, increment_filter, k):
         """
@@ -1023,13 +1022,8 @@ class CombustionEngine(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
+        label : str
+            Label for equation.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -1044,7 +1038,7 @@ class CombustionEngine(CombustionChamber):
             r'&\forall i \in [3,4]\\ ' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def Qloss_char_deriv(self, increment_filter, k):
         """
@@ -1488,10 +1482,10 @@ class CombustionEngine(CombustionChamber):
             expr = 1
         else:
             expr = self.P.val / self.P.design
-        self.tiP_char.char_func.get_bound_errors(expr, self.label)
-        self.Qloss_char.char_func.get_bound_errors(expr, self.label)
-        self.Q1_char.char_func.get_bound_errors(expr, self.label)
-        self.Q2_char.char_func.get_bound_errors(expr, self.label)
+        self.tiP_char.char_func.get_domain_errors(expr, self.label)
+        self.Qloss_char.char_func.get_domain_errors(expr, self.label)
+        self.Q1_char.char_func.get_domain_errors(expr, self.label)
+        self.Q2_char.char_func.get_domain_errors(expr, self.label)
 
         CombustionChamber.calc_parameters(self)
 

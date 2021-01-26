@@ -193,9 +193,9 @@ class Drum(DropletSeparator):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
             else:
-                return h_mix_pQ(c.to_flow(), 1)
+                return h_mix_pQ(c.get_flow(), 1)
 
     @staticmethod
     def initialise_target(c, key):
@@ -227,9 +227,9 @@ class Drum(DropletSeparator):
             return 10e5
         elif key == 'h':
             if c.target_id == 'in1':
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
             else:
-                return h_mix_pQ(c.to_flow(), 0.7)
+                return h_mix_pQ(c.get_flow(), 0.7)
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

@@ -15,6 +15,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Splitter(NodeBase):
@@ -181,20 +182,20 @@ class Splitter(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector of residual values for component's fluid balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = x_{fl\mathrm{,in}} - x_{fl\mathrm{,out,}j}'
             r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
             r'\text{outlets}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -242,16 +243,11 @@ class Splitter(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
-        Returns
-        -------
-        residual : list
-            Residual value of energy balance.
+        label : str
+            Label for equation.
         """
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self):
         r"""

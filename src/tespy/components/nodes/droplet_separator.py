@@ -17,6 +17,7 @@ from tespy.components.component import Component
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.document_models import generate_latex_eq
 
 
 class DropletSeparator(NodeBase):
@@ -129,7 +130,7 @@ class DropletSeparator(NodeBase):
     >>> nw.solve('design')
     >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
     0.95
-    >>> T_boil = T_bp_p(so_ds.to_flow())
+    >>> T_boil = T_bp_p(so_ds.get_flow())
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
@@ -202,20 +203,20 @@ class DropletSeparator(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector of residual values for component's fluid balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = x_{fl\mathrm{,in,1}} - x_{fl\mathrm{,out,}j}'
             r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
             r'\text{outlets}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -262,13 +263,13 @@ class DropletSeparator(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of energy balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
@@ -276,7 +277,7 @@ class DropletSeparator(NodeBase):
             r'h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;'
             r'\forall j \in \text{outlets}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -316,8 +317,8 @@ class DropletSeparator(NodeBase):
                 0 = h_{out,2} - h\left(p, x=1 \right)
         """
         return [
-            h_mix_pQ(self.outl[0].to_flow(), 0) - self.outl[0].h.val_SI,
-            h_mix_pQ(self.outl[1].to_flow(), 1) - self.outl[1].h.val_SI]
+            h_mix_pQ(self.outl[0].get_flow(), 0) - self.outl[0].h.val_SI,
+            h_mix_pQ(self.outl[1].get_flow(), 1) - self.outl[1].h.val_SI]
 
     def outlet_states_func_doc(self, label):
         r"""
@@ -325,13 +326,13 @@ class DropletSeparator(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Residual values of outlet state equations.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -339,7 +340,7 @@ class DropletSeparator(NodeBase):
             r'0 =&h_\mathrm{out,2} -h\left(p_\mathrm{out,2}, x=1\right)\\'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def outlet_states_deriv(self, increment_filter, k):
         r"""
@@ -353,10 +354,10 @@ class DropletSeparator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, self.num_i, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
+        self.jacobian[k, self.num_i, 1] = dh_mix_dpQ(self.outl[0].get_flow(), 0)
         self.jacobian[k, self.num_i, 2] = -1
         self.jacobian[k + 1, self.num_i + 1, 1] = (
-            dh_mix_dpQ(self.outl[1].to_flow(), 1))
+            dh_mix_dpQ(self.outl[1].get_flow(), 1))
         self.jacobian[k + 1, self.num_i + 1, 2] = -1
 
     def propagate_fluid_to_target(self, inconn, start):
@@ -431,9 +432,9 @@ class DropletSeparator(NodeBase):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.to_flow(), 1)
+                return h_mix_pQ(c.get_flow(), 1)
             else:
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
 
     @staticmethod
     def initialise_target(c, key):
@@ -463,7 +464,7 @@ class DropletSeparator(NodeBase):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            return h_mix_pQ(c.to_flow(), 0.5)
+            return h_mix_pQ(c.get_flow(), 0.5)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

@@ -26,6 +26,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
+from tespy.tools.document_models import generate_latex_eq
 
 
 class HeatExchangerSimple(Component):
@@ -208,7 +209,7 @@ class HeatExchangerSimple(Component):
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
             'kA': dc_cp(min_val=0, d=1),
-            'kA_char': dc_cc(param='m'), 'Tamb': dc_simple(),
+            'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq=1,
@@ -259,19 +260,19 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation:
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
             r'h_\mathrm{in} \right) -\dot{Q}'
         )
-        return (self.generate_latex(latex, 'energy_balance_func'))
+        return generate_latex_eq(self, latex, 'energy_balance_func')
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -318,13 +319,13 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of corresponding equation:
+        latex : str
+            LaTeX code of equations applied.
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':
@@ -389,7 +390,7 @@ class HeatExchangerSimple(Component):
                 v: \text{specific volume}\\
                 \lambda: \text{darcy friction factor}
         """
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
@@ -411,13 +412,13 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -429,7 +430,7 @@ class HeatExchangerSimple(Component):
             r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def hazen_williams_func(self):
         r"""
@@ -456,7 +457,7 @@ class HeatExchangerSimple(Component):
         ----
         Gravity :math:`g` is set to :math:`9.81 \frac{m}{s^2}`
         """
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
@@ -475,13 +476,13 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
@@ -489,7 +490,7 @@ class HeatExchangerSimple(Component):
             r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
             r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def kA_group_func(self):
         r"""
@@ -515,7 +516,7 @@ class HeatExchangerSimple(Component):
 
                 T_{amb}: \text{ambient temperature}
         """
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
 
         ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
         ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
@@ -539,13 +540,13 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -563,7 +564,7 @@ class HeatExchangerSimple(Component):
             r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def kA_group_deriv(self, increment_filter, k):
         r"""
@@ -625,7 +626,7 @@ class HeatExchangerSimple(Component):
         """
         p = self.kA_char.param
         expr = self.get_char_expr(p, **self.kA_char.char_params)
-        i, o = self.inl[0].to_flow(), self.outl[0].to_flow()
+        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
@@ -652,13 +653,13 @@ class HeatExchangerSimple(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         p = self.kA_char.param
         expr = self.get_char_expr_doc(p, **self.kA_char.char_params)
@@ -682,7 +683,7 @@ class HeatExchangerSimple(Component):
             r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label + '_' + p)
+        return generate_latex_eq(self, latex, label)
 
     def kA_char_group_deriv(self, increment_filter, k):
         r"""
@@ -729,11 +730,26 @@ class HeatExchangerSimple(Component):
 
                 \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        val = i[0] * (o[2] - i[2])
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-        return val
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        return (
+            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
+            r'h_\mathrm{in} \right)')
 
     def bus_deriv(self, bus):
         r"""
@@ -835,8 +851,8 @@ class HeatExchangerSimple(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[0].get_flow()
+        o = self.outl[0].get_flow()
 
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]
@@ -896,8 +912,8 @@ class HeatExchangerSimple(Component):
             \right) - \text{S\_Q}\\
             \text{T\_mQ}=\frac{\dot{Q}}{\text{S\_Q}}
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[0].get_flow()
+        o = self.outl[0].get_flow()
 
         p1_star = i[1] * (o[1] / i[1]) ** 0.5
         s1_star = s_mix_ph([0, p1_star, i[2], i[3]], T0=self.inl[0].T.val_SI)

@@ -17,6 +17,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Valve(Component):
@@ -203,13 +204,13 @@ class Valve(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : ndarray
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         p = self.dp_char.param
         expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
@@ -222,7 +223,7 @@ class Valve(Component):
         latex = (
             r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
             r'\right)')
-        return [self.generate_latex(latex, 'dp_char_func_' + p)]
+        return generate_latex_eq(self, latex, label)
 
     def dp_char_deriv(self, increment_filter, k):
         r"""
@@ -309,8 +310,8 @@ class Valve(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[0].get_flow()
+        o = self.outl[0].get_flow()
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
             4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)

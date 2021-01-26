@@ -19,7 +19,6 @@ import numpy as np
 
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
-from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
@@ -31,6 +30,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import newton
 
 # %%
@@ -203,8 +203,7 @@ class Component:
                 elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
                     # value specification for characteristics
                     if (isinstance(kwargs[key], CharLine) or
-                            isinstance(kwargs[key], CharMap) or
-                            isinstance(kwargs[key], CompressorMap)):
+                            isinstance(kwargs[key], CharMap)):
                         data.char_func = kwargs[key]
 
                     # invalid datatype for keyword
@@ -344,6 +343,15 @@ class Component:
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
+            # component characteristics
+            elif isinstance(val, dc_cm):
+                if data.char_func is None:
+                    try:
+                        data.char_func = ldc(
+                            self.component(), key, 'DEFAULT', CharMap)
+                    except KeyError:
+                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+
             # grouped component properties
             elif isinstance(val, dc_gcp):
                 is_set = True
@@ -353,6 +361,7 @@ class Component:
 
                 if is_set:
                     data.set_attr(is_set=True)
+                    logging.info(str(data.is_set) + ' key')
                 elif data.is_set:
                     start = (
                         'All parameters of the component group have to be '
@@ -421,7 +430,7 @@ class Component:
         param : str
             Parameter for characteristic function evaluation.
 
-        type : str ('rel' or 'abs')
+        type : str
             Type of expression:
 
             - :code:`rel`: relative to design value
@@ -448,7 +457,7 @@ class Component:
                     self.outl[outconn].m.design)
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].to_flow(),
+                    self.inl[inconn].get_flow(),
                     T0=self.inl[inconn].T.val_SI)
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
@@ -470,7 +479,7 @@ class Component:
                 return self.outl[outconn].m.val_SI
             elif param == 'v':
                 return self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].to_flow(),
+                    self.inl[inconn].get_flow(),
                     T0=self.inl[inconn].T.val_SI)
             elif param == 'pr':
                 return (
@@ -488,7 +497,7 @@ class Component:
         param : str
             Parameter for characteristic function evaluation.
 
-        type : str ('rel' or 'abs')
+        type : str
             Type of expression:
 
             - :code:`rel`: relative to design value
@@ -540,7 +549,7 @@ class Component:
                     r'\frac{p_\mathrm{out,' + str(outconn + 1) +
                     r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
 
-    def solve(self, increment_filter, doc=False):
+    def solve(self, increment_filter):
         """
         Solve equations and calculate partial derivatives of a component.
 
@@ -565,33 +574,6 @@ class Component:
 
                 sum_eq += data.num_eq
 
-    def document_equations(self):
-        """
-        Solve equations and calculate partial derivatives of a component.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-        """
-        self.equation_docs = ['' for i in range(self.num_eq)]
-
-        sum_eq = 0
-        for name, constraint in self.constraints.items():
-            num_eq = constraint['num_eq']
-            self.equation_docs[sum_eq:sum_eq + num_eq] = (
-                constraint['latex'](name))
-            sum_eq += num_eq
-
-        for parameter, data in self.variables.items():
-            if data.is_set and data.func is not None:
-                self.equation_docs[sum_eq:sum_eq + data.num_eq] = data.latex(
-                    parameter + '_function', **data.func_params)
-                sum_eq += data.num_eq
-
     def bus_func(self, bus):
         r"""
         Base method for calculation of the value of the bus function.
@@ -608,6 +590,22 @@ class Component:
         """
         return 0
 
+    def bus_func_doc(self, bus):
+        r"""
+        Base method for LaTeX equation generation of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            Bus function in LaTeX format.
+        """
+        return None
+
     def bus_deriv(self, bus):
         r"""
         Base method for partial derivatives of the bus function.
@@ -623,6 +621,23 @@ class Component:
             Matrix of partial derivatives.
         """
         return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
+
+    def calc_bus_expr(self, bus):
+
+        b = bus.comps.loc[self]
+        comp_val = self.bus_func(b)
+        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
+            return 1
+        else:
+            if b['base'] == 'component':
+                return abs(comp_val / b['P_ref'])
+            else:
+                bus_value = newton(
+                    bus_char_evaluation,
+                    bus_char_derivative,
+                    [comp_val, b['P_ref'], b['char']], 0,
+                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                return bus_value / b['P_ref']
 
     def calc_bus_efficiency(self, bus):
         r"""
@@ -657,21 +672,7 @@ class Component:
         equation (case 1).
         """
         b = bus.comps.loc[self]
-        comp_val = self.bus_func(b)
-        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
-            expr = 1
-        else:
-            if b['base'] == 'component':
-                expr = abs(comp_val / b['P_ref'])
-            else:
-                bus_value = newton(
-                    bus_char_evaluation,
-                    bus_char_derivative,
-                    [comp_val, b['P_ref'], b['char']], 0,
-                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
-                expr = bus_value / b['P_ref']
-
-        return b['char'].evaluate(expr)
+        return b['char'].evaluate(self.calc_bus_expr(bus))
 
     def calc_bus_value(self, bus):
         r"""
@@ -874,22 +875,14 @@ class Component:
 
             elif isinstance(data, dc_cc) and data.is_set:
                 expr = self.get_char_expr(data.param, **data.char_params)
-                data.char_func.get_bound_errors(expr, self.label)
-
-            elif isinstance(data, dc_cm) and data.is_set:
-                if isinstance(data.char_func, CompressorMap):
-                    x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-                    y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-                        self.inl[0].m.design * self.inl[0].p.val_SI * x)
-                    self.char_map.char_func.get_bound_errors(
-                        x, y, self.igva.val, self.label)
+                data.char_func.get_domain_errors(expr, self.label)
 
             elif isinstance(data, dc_gcc) and data.is_set:
                 for char in data.elements:
                     char_data = self.get_attr(char)
                     expr = self.get_char_expr(
                         char_data.param, **char_data.char_params)
-                    char_data.char_func.get_bound_errors(expr, self.label)
+                    char_data.char_func.get_domain_errors(expr, self.label)
 
     def initialise_fluids(self):
         return
@@ -919,27 +912,6 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def get_inputs(self, param):
-        if param.is_set:
-            if isinstance(param, dc_cp):
-                return param.val
-            else:
-                return True
-        else:
-            return np.nan
-
-    def generate_latex(self, eqn, label):
-        latex = (
-            r'\begin{equation}' + '\n' + r'\label{eq:' +
-            self.__class__.__name__ + '_' + label + r'}' + '\n'
-        )
-        latex += eqn + '\n'
-        latex += r'\end{equation}'
-        return latex
-
-    def get_latex_label(self, label):
-        return 'eq:' + self.__class__.__name__ + '_' + label + '}'
-
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
@@ -964,10 +936,15 @@ class Component:
         r"""
         Get fluid balance equations in LaTeX format.
 
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
         Returns
         -------
-        latex : list
-            List of equations applied.
+        latex : str
+            LaTeX code of equations applied.
         """
         indices = list(range(1, self.num_i + 1))
         if len(indices) > 1:
@@ -978,7 +955,7 @@ class Component:
             r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
             r'\forall fl \in\text{network fluids,}'
             r'\; \forall i \in [' + indices + r']')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -1020,10 +997,15 @@ class Component:
         r"""
         Get mass flow equations in LaTeX format.
 
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
         Returns
         -------
-        latex : list
-            List of equations applied.
+        latex : str
+            LaTeX code of equations applied.
         """
         indices = list(range(1, self.num_i + 1))
         if len(indices) > 1:
@@ -1033,7 +1015,7 @@ class Component:
         latex = (
             r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -1079,13 +1061,13 @@ class Component:
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         indices = list(range(1, self.num_i + 1))
         if len(indices) > 1:
@@ -1095,7 +1077,7 @@ class Component:
         latex = (
             r'0=p_{\mathrm{in,}i}-p_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def pressure_equality_deriv(self):
         r"""
@@ -1121,15 +1103,10 @@ class Component:
         r"""
         Equation for enthalpy equality.
 
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        residual : list
+            Residual values of equations.
 
             .. math::
 
@@ -1146,13 +1123,13 @@ class Component:
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         indices = list(range(1, self.num_i + 1))
         if len(indices) > 1:
@@ -1162,7 +1139,7 @@ class Component:
         latex = (
             r'0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}'
             r'\; \forall i \in [' + indices + r']')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def enthalpy_equality_deriv(self):
         r"""
@@ -1271,7 +1248,7 @@ class Component:
 
         return deriv
 
-    def pr_func(self, pr='', inconn=0, outconn=0, doc=False):
+    def pr_func(self, pr='', inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
 
@@ -1286,9 +1263,6 @@ class Component:
 
         outconn : int
             Connection index of outlet.
-
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -1328,7 +1302,7 @@ class Component:
             r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
             r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
         r"""
@@ -1359,7 +1333,7 @@ class Component:
             pos = self.num_i + self.num_o + pr.var_pos
             self.jacobian[k, pos, 0] = self.inl[inconn].p.val_SI
 
-    def zeta_func(self, zeta='', inconn=0, outconn=0, doc=False):
+    def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
@@ -1374,9 +1348,6 @@ class Component:
 
         outconn : int
             Connection index of outlet.
-
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -1405,8 +1376,8 @@ class Component:
             {8 \cdot \dot{m}^2 \cdot v}
         """
         data = self.get_attr(zeta)
-        i = self.inl[inconn].to_flow()
-        o = self.outl[outconn].to_flow()
+        i = self.inl[inconn].get_flow()
+        o = self.outl[outconn].get_flow()
 
         if abs(i[0]) < 1e-4:
             return i[1] - o[1]
@@ -1446,11 +1417,11 @@ class Component:
             r'| < \unitfrac[0.0001]{kg}{s} \\' + '\n' +
             r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
             r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
-            r'|\cdot\frac{v' + inl + r'v' + outl + r'}{2}}' +
+            r'|\cdot\frac{v' + inl + r' + v' + outl + r'}{2}}' +
             r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
             r'\end{cases}'
         )
-        return self.generate_latex(latex, label + '_' + zeta)
+        return generate_latex_eq(self, latex, label)
 
     def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
         r"""

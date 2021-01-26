@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools.document_models import generate_latex_eq
 
 
 class NodeBase(Component):
@@ -45,18 +46,18 @@ class NodeBase(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        res : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}'
             r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -74,14 +75,9 @@ class NodeBase(Component):
             deriv[0, j + i + 1, 0] = -1
         return deriv
 
-    def pressure_equality_func(self, doc=False):
+    def pressure_equality_func(self):
         r"""
         Calculate the residual values of pressure equality equations.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -107,13 +103,13 @@ class NodeBase(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector with residual value for pressure equality equations.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -124,7 +120,7 @@ class NodeBase(Component):
             r'& \; \forall j \in \text{outlets}\\' + '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def pressure_equality_deriv(self):
         r"""

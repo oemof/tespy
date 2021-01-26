@@ -21,6 +21,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Turbine(Turbomachine):
@@ -172,11 +173,6 @@ class Turbine(Turbomachine):
         r"""
         Equation for given isentropic efficiency of a turbine.
 
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
         Returns
         -------
         residual : float
@@ -190,7 +186,7 @@ class Turbine(Turbomachine):
         return (
             -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
                 isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    self.inl[0].get_flow(), self.outl[0].get_flow(),
                     T0=self.inl[0].T.val_SI) -
                 self.inl[0].h.val_SI) * self.eta_s.val)
 
@@ -200,18 +196,18 @@ class Turbine(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
             r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -238,11 +234,6 @@ class Turbine(Turbomachine):
         r"""
         Equation for stodolas cone law.
 
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
         Returns
         -------
         residual : float
@@ -259,7 +250,7 @@ class Turbine(Turbomachine):
         n = 1
         i = self.inl[0]
         o = self.outl[0]
-        vol = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        vol = v_mix_ph(i.get_flow(), T0=self.inl[0].T.val_SI)
         return (
             - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
             np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
@@ -272,13 +263,13 @@ class Turbine(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \frac{\dot{m}_\mathrm{in,design}\cdot p_\mathrm{in}}'
@@ -288,7 +279,7 @@ class Turbine(Turbomachine):
             r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
             r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
             r'\right)^{2}}} -\dot{m}_\mathrm{in}')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def cone_deriv(self, increment_filter, k):
         r"""
@@ -315,11 +306,6 @@ class Turbine(Turbomachine):
         r"""
         Equation for given isentropic efficiency characteristic.
 
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
         Returns
         -------
         residual : float
@@ -344,7 +330,7 @@ class Turbine(Turbomachine):
         return (
             -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
             self.eta_s_char.char_func.evaluate(expr) * (isentropic(
-                i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
                 i.h.val_SI))
 
     def eta_s_char_func_doc(self, label):
@@ -353,19 +339,19 @@ class Turbine(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
             r'\eta_\mathrm{s,design}\cdot f \left(X\right)'
             r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -485,7 +471,7 @@ class Turbine(Turbomachine):
         self.eta_s.val = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
                 isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    self.inl[0].get_flow(), self.outl[0].get_flow(),
                     T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
         self.check_parameter_bounds()

@@ -19,6 +19,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.document_models import generate_latex_eq
 
 
 class SolarCollector(HeatExchangerSimple):
@@ -198,7 +199,7 @@ class SolarCollector(HeatExchangerSimple):
             'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
             'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
-            'Tamb': dc_simple(),
+            'Tamb': dc_cp(),
             'Q_loss': dc_cp(max_val=0, val=0),
             'dissipative': dc_simple(val=True),
             'hydro_group': dc_gcp(
@@ -232,8 +233,8 @@ class SolarCollector(HeatExchangerSimple):
 
             Reference: :cite:`Quaschning2013`.
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[0].get_flow()
+        o = self.outl[0].get_flow()
 
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
@@ -250,13 +251,13 @@ class SolarCollector(HeatExchangerSimple):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -269,7 +270,7 @@ class SolarCollector(HeatExchangerSimple):
             '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_group_deriv(self, increment_filter, k):
         r"""
@@ -305,8 +306,8 @@ class SolarCollector(HeatExchangerSimple):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
+        i = self.inl[0].get_flow()
+        o = self.outl[0].get_flow()
 
         self.Q.val = i[0] * (o[2] - i[2])
         self.pr.val = o[1] / i[1]

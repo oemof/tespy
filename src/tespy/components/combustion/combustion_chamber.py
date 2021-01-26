@@ -24,6 +24,7 @@ from tespy.tools.global_vars import err
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
+from tespy.tools.document_models import generate_latex_eq
 
 
 class CombustionChamber(Component):
@@ -308,18 +309,18 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector with residual value for component's mass flow balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\dot{m}_\mathrm{in,1} + \dot{m}_\mathrm{in,2} - '
             r'\dot{m}_\mathrm{out,1}')
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def mass_flow_deriv(self):
         r"""
@@ -362,13 +363,13 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Residual values of equations.
+        latex : str
+            LaTeX code of equations applied.
         """
         inl = self.inl[::-1][:2][::-1]
         outl = self.outl[::-1][0]
@@ -383,7 +384,7 @@ class CombustionChamber(Component):
             r'0 = & p_\mathrm{' + idx_in1 + r'} - p_\mathrm{' + idx_in2 +
             r'}\\' + '\n'
             r'\end{split}')
-        return [self.generate_latex(latex, label), '']
+        return generate_latex_eq(self, latex, label)
 
     def combustion_pressure_deriv(self):
         r"""
@@ -611,12 +612,17 @@ class CombustionChamber(Component):
 
     def stoichiometry_func_doc(self, label):
         r"""
-        Calculate the reaction balance for one fluid.
+        Generate stoichiometry LaTeX equations.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of respective equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         idx_in1 = str(self.inl.index(self.inl[-2]) + 1)
         idx_in2 = str(self.inl.index(self.inl[-1]) + 1)
@@ -632,7 +638,7 @@ class CombustionChamber(Component):
             r'\dot{m}_\mathrm{out,' + idx_out + r'} \cdot '
             r'x_\mathrm{fluid,out,' + idx_out + r'}')
 
-        equations = []
+        equations = ''
         for fluid in self.inl[0].fluid.val:
             if fluid == self.o2:
                 latex = (
@@ -691,14 +697,15 @@ class CombustionChamber(Component):
                     r'&' + m_o2_molar_stoich + r'\\' + '\n'
                     r'\end{split}'
                 )
-                equations += [
-                    self.generate_latex(
-                        latex_general_eq, label + '_general_eq') +
-                    '\n' + self.generate_latex(latex, label + '_' + fluid)]
+                equations += (
+                    generate_latex_eq(
+                        self, latex_general_eq, label + '_general_eq') + '\n' +
+                    generate_latex_eq(self, latex, label + '_' + fluid) + '\n')
             else:
-                equations += [self.generate_latex(latex, label + fluid)]
-
-        return equations
+                equations += (
+                    generate_latex_eq(self, latex, label + '_' + fluid) + '\n')
+        # remove last newline
+        return equations[:-1]
 
     def stoichiometry_deriv(self, increment_filter, k):
         r"""
@@ -780,13 +787,13 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -802,7 +809,7 @@ class CombustionChamber(Component):
             r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
             '\n' + r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         """
@@ -870,13 +877,13 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -887,7 +894,7 @@ class CombustionChamber(Component):
             r'\dot{m}}{M_\mathrm{fluid}}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, 'lambda_func')]
+        return generate_latex_eq(self, latex, label)
 
     def lambda_deriv(self, increment_filter, k):
         """
@@ -932,13 +939,13 @@ class CombustionChamber(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
         latex : str
-            LaTeX string of equations.
+            LaTeX code of equations applied.
         """
         idx = str(self.outl.index(self.outl[-1]) + 1)
         latex = (
@@ -950,7 +957,7 @@ class CombustionChamber(Component):
             r'& \forall i \in \text{combustion inlets}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def ti_deriv(self, increment_filter, k):
         """

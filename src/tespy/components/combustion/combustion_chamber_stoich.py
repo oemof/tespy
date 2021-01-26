@@ -24,6 +24,7 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import molar_mass_flow
 
 
@@ -625,19 +626,19 @@ class CombustionChamberStoich(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         air = self.air_alias.val
         fuel = self.fuel_alias.val
         flue_gas = self.fuel_alias.val + '_fg'
 
-        equations = []
+        equations = ''
         for fluid in self.inl[0].fluid.val.keys():
 
             in1 = r'\dot{m}_\mathrm{in,1} \cdot x_\mathrm{fluid,in,1}'
@@ -679,14 +680,15 @@ class CombustionChamberStoich(CombustionChamber):
                     r'&' + m_air_stoich + r'\\' + '\n'
                     r'\end{split}'
                 )
-                equations += [
-                    self.generate_latex(
-                        latex_general_eq, label + '_general_eq') +
-                    '\n' + self.generate_latex(latex, label + '_' + fluid)]
+                equations += (
+                    generate_latex_eq(
+                        self, latex_general_eq, label + '_general_eq') + '\n' +
+                    generate_latex_eq(self, latex, label + '_' + fluid) + '\n')
             else:
-                equations += [self.generate_latex(latex, label + '_' + fluid)]
-
-        return equations
+                equations += (
+                    generate_latex_eq(self, latex, label + '_' + fluid) + '\n')
+        # remove last newline
+        return equations[:-1]
 
     def energy_balance_func(self):
         r"""
@@ -737,13 +739,13 @@ class CombustionChamberStoich(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -759,7 +761,7 @@ class CombustionChamberStoich(CombustionChamber):
             r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
             '\n' + r'\end{split}'
         )
-        return [self.generate_latex(latex, 'energy_balance_func')]
+        return generate_latex_eq(self, latex, label)
 
     def lambda_func(self):
         r"""
@@ -792,19 +794,19 @@ class CombustionChamberStoich(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of function.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \lambda - '
             r'\frac{\dot{m}_\mathrm{air}}{\dot{m}_\mathrm{air,min}}'
         )
-        return [self.generate_latex(latex, 'lambda_func')]
+        return generate_latex_eq(self, latex, label)
 
     def ti_func(self):
         r"""
@@ -827,13 +829,13 @@ class CombustionChamberStoich(CombustionChamber):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of function.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'\begin{split}' + '\n'
@@ -844,7 +846,7 @@ class CombustionChamberStoich(CombustionChamber):
             r'& \forall i \in \text{combustion inlets}\\' + '\n'
             r'\end{split}'
         )
-        return [self.generate_latex(latex, label)]
+        return generate_latex_eq(self, latex, label)
 
     def ti_deriv(self, increment_filter, k):
         """

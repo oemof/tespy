@@ -16,6 +16,7 @@ from tespy.components.component import Component
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import num_fluids
 
 
@@ -195,13 +196,13 @@ class Merge(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : list
-            Vector of residual values for component's fluid balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\sum_i \dot{m}_{\mathrm{in,}i} \cdot x_{fl\mathrm{,in,}i}'
@@ -209,7 +210,7 @@ class Merge(NodeBase):
             r'\; \forall fl \in \text{network fluids,} \; \forall i \in'
             r'\text{inlets}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self, increment_filter, k):
         r"""
@@ -261,20 +262,20 @@ class Merge(NodeBase):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of energy balance.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
             r'\right) - \dot{m}_\mathrm{out} \cdot h_\mathrm{out} '
             r'\; \forall i \in \text{inlets}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""

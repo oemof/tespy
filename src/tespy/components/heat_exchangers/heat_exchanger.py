@@ -20,6 +20,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.document_models import generate_latex_eq
 
 
 class HeatExchanger(Component):
@@ -135,6 +136,7 @@ class HeatExchanger(Component):
     >>> from tespy.components import Sink, Source, HeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
+    >>> from tespy.tools import document_model
     >>> import shutil
     >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', iterinfo=False)
@@ -173,6 +175,7 @@ class HeatExchanger(Component):
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
+    >>> document_model(nw)
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)
@@ -277,19 +280,19 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} -'
             r' h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot '
             r'\left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -333,18 +336,18 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-'
             r'h_{in,1}\right)-\dot{Q}')
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_hot_deriv(self, increment_filter, k):
         r"""
@@ -384,10 +387,10 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         # temperature value manipulation for convergence stability
-        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+        T_i1 = T_mix_ph(i1.get_flow(), T0=i1.T.val_SI)
+        T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -410,13 +413,13 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
@@ -425,7 +428,7 @@ class HeatExchanger(Component):
             r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
             r'{T_\mathrm{in,1} - T_\mathrm{out,2}}}}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def kA_deriv(self, increment_filter, k):
         r"""
@@ -482,10 +485,10 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         # temperature value manipulation for convergence stability
-        T_i1 = T_mix_ph(i1.to_flow(), T0=i1.T.val_SI)
-        T_i2 = T_mix_ph(i2.to_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.to_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.to_flow(), T0=o2.T.val_SI)
+        T_i1 = T_mix_ph(i1.get_flow(), T0=i1.T.val_SI)
+        T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
+        T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
+        T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -513,13 +516,13 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param
@@ -539,7 +542,7 @@ class HeatExchanger(Component):
             r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
             r'\end{split}'
         )
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def kA_char_deriv(self, increment_filter, k):
         r"""
@@ -577,8 +580,8 @@ class HeatExchanger(Component):
 
                 0 = ttd_{u} - T_{in,1} + T_{out,2}
         """
-        T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
-        T_o2 = T_mix_ph(self.outl[1].to_flow(), T0=self.outl[1].T.val_SI)
+        T_i1 = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
+        T_o2 = T_mix_ph(self.outl[1].get_flow(), T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_i1 + T_o2
 
     def ttd_u_func_doc(self, label):
@@ -587,16 +590,16 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = r'0 = ttd_\mathrm{u} - T_\mathrm{in,1} + T_\mathrm{out,2}'
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def ttd_u_deriv(self, increment_filter, k):
         """
@@ -630,8 +633,8 @@ class HeatExchanger(Component):
 
                 0 = ttd_{l} - T_{out,1} + T_{in,2}
         """
-        T_i2 = T_mix_ph(self.inl[1].to_flow(), T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(self.outl[0].to_flow(), T0=self.outl[0].T.val_SI)
+        T_i2 = T_mix_ph(self.inl[1].get_flow(), T0=self.inl[1].T.val_SI)
+        T_o1 = T_mix_ph(self.outl[0].get_flow(), T0=self.outl[0].T.val_SI)
         return self.ttd_l.val - T_o1 + T_i2
 
     def ttd_l_func_doc(self, label):
@@ -640,16 +643,16 @@ class HeatExchanger(Component):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = r'0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}'
-        return self.generate_latex(latex, label)
+        return generate_latex_eq(self, latex, label)
 
     def ttd_l_deriv(self, increment_filter, k):
         """
@@ -692,11 +695,8 @@ class HeatExchanger(Component):
                 \dot{E} = \dot{m}_{in,1} \cdot \left(
                 h_{out,1} - h_{in,1} \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        val = i[0] * (o[2] - i[2])
-
-        return val
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
     def bus_deriv(self, bus):
         r"""
@@ -747,13 +747,12 @@ class HeatExchanger(Component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = c.to_flow()
             if c.source_id == 'out1':
                 T = 200 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 250 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
 
     def initialise_target(self, c, key):
         r"""
@@ -783,13 +782,12 @@ class HeatExchanger(Component):
         if key == 'p':
             return 50e5
         elif key == 'h':
-            flow = c.to_flow()
             if c.target_id == 'in1':
                 T = 300 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 220 + 273.15
-                return h_mix_pT(flow, T)
+                return h_mix_pT(c.get_flow(), T)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

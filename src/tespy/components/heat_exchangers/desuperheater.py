@@ -15,6 +15,7 @@ from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Desuperheater(HeatExchanger):
@@ -204,7 +205,7 @@ class Desuperheater(HeatExchanger):
 
                 0 = h_{out,1} - h\left(p_{out,1}, x=1 \right)
         """
-        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].to_flow(), 1)
+        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].get_flow(), 1)
 
     def saturated_gas_func_doc(self, label):
         r"""
@@ -212,16 +213,16 @@ class Desuperheater(HeatExchanger):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
-        return [self.generate_latex(latex, 'saturated_gas_func')]
+        return generate_latex_eq(self, latex, label)
 
     def saturated_gas_deriv(self, increment_filter, k):
         r"""
@@ -235,6 +236,6 @@ class Desuperheater(HeatExchanger):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        o1 = self.outl[0].to_flow()
+        o1 = self.outl[0].get_flow()
         self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 1)
         self.jacobian[k, 2, 2] = 1

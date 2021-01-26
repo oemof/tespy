@@ -20,6 +20,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Pump(Turbomachine):
@@ -189,11 +190,6 @@ class Pump(Turbomachine):
         r"""
         Equation for given isentropic efficiency.
 
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
-
         Returns
         -------
         residual : float
@@ -207,7 +203,7 @@ class Pump(Turbomachine):
         return (
             -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
             self.eta_s.val + (isentropic(
-                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                self.inl[0].get_flow(), self.outl[0].get_flow(),
                 T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
     def eta_s_func_doc(self, label):
@@ -216,23 +212,18 @@ class Pump(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
-                \left( h_{out,s} - h_{in} \right)
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
             r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def eta_s_deriv(self, increment_filter, k):
         r"""
@@ -255,14 +246,9 @@ class Pump(Turbomachine):
             self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
         self.jacobian[k, 1, 2] = -self.eta_s.val
 
-    def eta_s_char_func(self, doc=False):
+    def eta_s_char_func(self):
         r"""
         Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -286,8 +272,8 @@ class Pump(Turbomachine):
         o = self.outl[0]
         return (
             (o.h.val_SI - i.h.val_SI) * self.eta_s.design *
-            self.eta_s_char.char_func.evaluate(expr) - (
-                isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+            self.eta_s_char.char_func.evaluate(expr) - (isentropic(
+                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
                 i.h.val_SI))
 
     def eta_s_char_func_doc(self, label):
@@ -296,19 +282,19 @@ class Pump(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
             r'\eta_\mathrm{s,design}\cdot f\left( X \right)-'
             r'\left( h_{out,s} - h_{in} \right)')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -334,14 +320,9 @@ class Pump(Turbomachine):
         if not increment_filter[1, 2]:
             self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
 
-    def flow_char_func(self, doc=False):
+    def flow_char_func(self):
         r"""
         Equation for given flow characteristic of a pump.
-
-        Parameters
-        ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
 
         Returns
         -------
@@ -364,17 +345,17 @@ class Pump(Turbomachine):
 
         Parameters
         ----------
-        doc : boolean
-            Return equation in LaTeX format instead of value.
+        label : str
+            Label for equation.
 
         Returns
         -------
-        residual : float
-            Residual value of equation.
+        latex : str
+            LaTeX code of equations applied.
         """
         latex = (
             r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
-        return (self.generate_latex(latex, label))
+        return generate_latex_eq(self, latex, label)
 
     def flow_char_deriv(self, increment_filter, k):
         r"""
@@ -420,14 +401,14 @@ class Pump(Turbomachine):
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
         if self.flow_char.is_set:
-            expr = i[0].m.val_SI * v_mix_ph(i[0].to_flow(), T0=i[0].T.val_SI)
+            expr = i[0].m.val_SI * v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI)
 
             if expr > self.flow_char.char_func.x[-1] and not i[0].m.val_set:
                 i[0].m.val_SI = (self.flow_char.char_func.x[-1] /
-                                 v_mix_ph(i[0].to_flow(), T0=i[0].T.val_SI))
+                                 v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
             elif expr < self.flow_char.char_func.x[1] and not i[0].m.val_set:
                 i[0].m.val_SI = (self.flow_char.char_func.x[0] /
-                                 v_mix_ph(i[0].to_flow(), T0=i[0].T.val_SI))
+                                 v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
             else:
                 pass
 
@@ -497,9 +478,8 @@ class Pump(Turbomachine):
 
         self.eta_s.val = (
             (isentropic(
-                self.inl[0].to_flow(), self.outl[0].to_flow(),
-                T0=self.inl[0].T.val_SI) -
-             self.inl[0].h.val_SI) /
+                self.inl[0].get_flow(), self.outl[0].get_flow(),
+                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
 
         self.check_parameter_bounds()

@@ -356,7 +356,9 @@ class Memorise:
             Memorise.visc_ph[fl] = np.empty((0, num_fl + 4), float)
             Memorise.s_ph[fl] = np.empty((0, num_fl + 4), float)
 
-            msg = 'Added fluids ' + str(fl) + ' to memorise lookup tables.'
+            msg = (
+                'Added fluids ' + ', '.join(fl) +
+                ' to memorise lookup tables.')
             logging.debug(msg)
 
         for f, back_end in fluids.items():
@@ -478,7 +480,7 @@ class Memorise:
             Memorise.visc_ph[fl][:, -1] = 0
 
             msg = ('Dropping not frequently used fluid property values from '
-                   'memorise class for fluids ' + str(fl) + '.')
+                   'memorise class for fluids ' + ', '.join(fl) + '.')
             logging.debug(msg)
         except KeyError:
             pass
@@ -686,7 +688,7 @@ def dT_mix_ph_dfluid(flow, T0=300):
         else:
             vec_deriv += [0]
 
-    return np.asarray(vec_deriv)
+    return vec_deriv
 
 # %%
 

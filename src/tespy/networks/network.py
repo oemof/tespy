@@ -17,10 +17,12 @@ import ast
 import json
 import logging
 import os
+import sys
 from collections import Counter
 from collections import OrderedDict
 from time import time
 
+import CoolProp as CP
 import numpy as np
 import pandas as pd
 from numpy.linalg import norm
@@ -35,9 +37,10 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.global_vars import coloring
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.logger import check_version
+from tespy.tools.logger import check_git_branch
 
 # Only require cupy if Cuda shall be used
 try:
@@ -305,9 +308,9 @@ class Network:
             if prop + '_range' in kwargs.keys():
                 if isinstance(kwargs[prop + '_range'], list):
                     self.__dict__.update(
-                        {prop + '_range_SI':
-                         np.array(kwargs[prop + '_range']) *
-                         self.get_attr(prop)[self.get_attr(prop + '_unit')]})
+                        {prop + '_range_SI': hlp.convert_to_SI(
+                            prop, np.array(kwargs[prop + '_range']),
+                            self.get_attr(prop + '_unit'))})
                 else:
                     msg = (
                         'Specify the value range as list: [' + prop +
@@ -339,29 +342,6 @@ class Network:
             msg = ('Network parameter iterinfo must be True or False!')
             logging.error(msg)
             raise TypeError(msg)
-
-    def latex_unit(self, unit):
-        r"""
-        Convert unit to LaTeX.
-
-        Parameters
-        ----------
-        unit : str
-            Value of unit for input, e.g. :code:`m3 / kg`.
-
-        Returns
-        -------
-        unit : str
-            Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
-        """
-        if '/' in unit:
-            numerator = unit.split('/')[0]
-            denominator = unit.split('/')[1]
-            return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
-        else:
-            if unit == 'C':
-                unit = r'^\circ C'
-            return r'$\unit[]{' + unit + '}$'
 
     def get_attr(self, key):
         r"""
@@ -721,6 +701,15 @@ class Network:
                 if c.get_attr(key).val_set:
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
+                if c.get_attr(key).ref_set:
+                    if key == 'T':
+                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                            'Td_bp', c.get_attr(key).ref.delta,
+                            c.get_attr(key).unit)
+                    else:
+                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                            key, c.get_attr(key).ref.delta,
+                            c.get_attr(key).unit)
 
             # fluid vector specification
             tmp = c.fluid.val
@@ -1224,9 +1213,6 @@ class Network:
                 for key in ['m', 'p', 'h', 'T']:
                     if (c.get_attr(key).ref_set and
                             not c.get_attr(key).val_set):
-                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).ref.delta,
-                            c.get_attr(key).unit)
                         c.get_attr(key).val_SI = (
                                 c.get_attr(key).ref.obj.get_attr(key).val_SI *
                                 c.get_attr(key).ref.factor +
@@ -1242,12 +1228,12 @@ class Network:
                     not c.h.val_set):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
                         (c.state.val == 'g' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.to_flow(), 1)
+                    h = fp.h_mix_pQ(c.get_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
                       (c.state.val == 'l' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.to_flow(), 0)
+                    h = fp.h_mix_pQ(c.get_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
 
@@ -1286,13 +1272,13 @@ class Network:
         # starting values for specified vapour content or temperature
         if c.x.val_set and not c.h.val_set:
             try:
-                c.h.val_SI = fp.h_mix_pQ(c.to_flow(), c.x.val_SI)
+                c.h.val_SI = fp.h_mix_pQ(c.get_flow(), c.x.val_SI)
             except ValueError:
                 pass
 
         if c.T.val_set and not c.h.val_set:
             try:
-                c.h.val_SI = fp.h_mix_pT(c.to_flow(), c.T.val_SI)
+                c.h.val_SI = fp.h_mix_pT(c.get_flow(), c.T.val_SI)
             except ValueError:
                 pass
 
@@ -1829,13 +1815,13 @@ class Network:
                     not c.h.val_set and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
                         (c.state.val == 'g' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.to_flow(), 1)
+                    h = fp.h_mix_pQ(c.get_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.01
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
                       (c.state.val == 'l' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.to_flow(), 0)
+                    h = fp.h_mix_pQ(c.get_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.99
                         logging.debug(self.property_range_message(c, 'h'))
@@ -1881,7 +1867,7 @@ class Network:
         c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
-        flow = c.to_flow()
+        flow = c.get_flow()
         Tmin = max(
             [fp.Memorise.value_range[f][2] for
              f in flow[3].keys() if flow[3][f] > err]
@@ -2095,7 +2081,7 @@ class Network:
         primary_vars = {'m': 0, 'p': 1, 'h': 2}
         k = self.num_comp_eq
         for c in self.conns.index:
-            flow = c.to_flow()
+            flow = c.get_flow()
             col = c.conn_loc * self.num_conn_vars
 
             # referenced mass flow, pressure or enthalpy
@@ -2113,25 +2099,25 @@ class Network:
 
             # temperature
             if c.T.val_set:
-                self.residual[k] = c.T.val_SI - fp.T_mix_ph(
-                    flow, T0=c.T.val_SI)
+                self.residual[k] = fp.T_mix_ph(
+                    flow, T0=c.T.val_SI) - c.T.val_SI
 
                 self.jacobian[k, col + 1] = (
-                    -fp.dT_mix_dph(flow, T0=c.T.val_SI))
+                    fp.dT_mix_dph(flow, T0=c.T.val_SI))
                 self.jacobian[k, col + 2] = (
-                    -fp.dT_mix_pdh(flow, T0=c.T.val_SI))
+                    fp.dT_mix_pdh(flow, T0=c.T.val_SI))
                 if len(self.fluids) != 1:
                     col_s = c.conn_loc * self.num_conn_vars + 3
                     col_e = (c.conn_loc + 1) * self.num_conn_vars
                     if not all(self.increment_filter[col_s:col_e]):
-                        self.jacobian[k, col_s:col_e] = -fp.dT_mix_ph_dfluid(
+                        self.jacobian[k, col_s:col_e] = fp.dT_mix_ph_dfluid(
                             flow, T0=c.T.val_SI)
                 k += 1
 
             # referenced temperature
             if c.T.ref_set:
                 ref = c.T.ref
-                flow_ref = ref.obj.to_flow()
+                flow_ref = ref.obj.get_flow()
                 ref_col = ref.obj.conn_loc * self.num_conn_vars
                 self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
                     fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
@@ -2157,8 +2143,9 @@ class Network:
                         self.jacobian[k, col_s:col_e] = (
                             fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
                     if not all(self.increment_filter[ref_col_s:ref_col_e]):
-                        self.jacobian[k, ref_col_s:ref_col_e] = -(
-                            fp.dT_mix_ph_dfluid(flow_ref, T0=ref.obj.T.val_SI))
+                        self.jacobian[k, ref_col_s:ref_col_e] = -np.array([
+                            fp.dT_mix_ph_dfluid(
+                                flow_ref, T0=ref.obj.T.val_SI)])
                 k += 1
 
             # saturated steam fraction
@@ -2178,12 +2165,12 @@ class Network:
                 if (np.absolute(self.residual[k]) > err ** 2 or
                         self.iter % 2 == 0 or self.always_all_equations):
                     self.residual[k] = (
-                        c.v.val_SI - fp.v_mix_ph(flow, T0=c.T.val_SI) *
-                        c.m.val_SI)
-                self.jacobian[k, col] = -fp.v_mix_ph(flow, T0=c.T.val_SI)
-                self.jacobian[k, col + 1] = -(
+                        fp.v_mix_ph(flow, T0=c.T.val_SI) * c.m.val_SI -
+                        c.v.val_SI)
+                self.jacobian[k, col] = fp.v_mix_ph(flow, T0=c.T.val_SI)
+                self.jacobian[k, col + 1] = (
                     fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
-                self.jacobian[k, col + 2] = -(
+                self.jacobian[k, col + 2] = (
                     fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
                 k += 1
 
@@ -2267,7 +2254,7 @@ class Network:
         r"""Calculate connection, bus and component parameters."""
         # connections
         for c in self.conns.index:
-            flow = c.to_flow()
+            flow = c.get_flow()
             c.good_starting_values = True
             c.T.val_SI = fp.T_mix_ph(flow, T0=c.T.val_SI)
             fluid = hlp.single_fluid(c.fluid.val)
@@ -2306,9 +2293,6 @@ class Network:
         for cp in self.comps.index:
             cp.calc_parameters()
             cp.entropy_balance()
-            cp.document_equations()
-            # for eq in cp.equation_docs:
-            #     print(eq)
 
         # busses
         for b in self.busses.values():
@@ -2316,6 +2300,7 @@ class Network:
             for cp in b.comps.index:
                 # get components bus func value
                 val = cp.calc_bus_value(b)
+                b.comps.loc[cp, 'char'].get_domain_errors(cp.calc_bus_expr(b), cp.label)
                 b.P.val += val
                 # save as reference value
                 if self.mode == 'design':
@@ -2557,7 +2542,8 @@ class Network:
         self.component_exergy_data = pd.DataFrame(
             columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
 
-        self.connection_exergy_data = pd.DataFrame(columns=['e_PH', 'E_PH'])
+        self.connection_exergy_data = pd.DataFrame(
+            columns=['label', 'e_PH', 'E_PH'])
 
         self.E_P = 0
         self.E_F = 0
@@ -2576,8 +2562,8 @@ class Network:
         # physical exergy of connections
         for conn in self.conns.index:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
-            self.connection_exergy_data.loc[conn.label] = [
-                conn.ex_physical, conn.Ex_physical]
+            self.connection_exergy_data.loc[conn] = [
+                conn.label, conn.ex_physical, conn.Ex_physical]
 
         # exergy balance of components
 
@@ -2657,24 +2643,32 @@ class Network:
 
 # %% printing and plotting
 
-    def print_results(self, colored=True):
+    def print_results(self, colored=True, colors={}):
         r"""Print the calculations results to prompt."""
+        # Define colors for highlighting values in result table
+        coloring = {
+            'end': '\033[0m',
+            'set': '\033[94m',
+            'err': '\033[31m',
+            'var': '\033[32m'
+        }
+        coloring.update(colors)
 
         for cp in self.comps['comp_type'].unique():
             df = self.comps[self.comps['comp_type'] == cp].copy()
 
             # gather parameters to print for components of type c
             cols = []
-            for col, val in df.index[0].variables.items():
-                if isinstance(val, dc_cp):
-                    if val.get_attr('printout'):
-                        cols += [col]
+            for col, data in df.index[0].variables.items():
+                if isinstance(data, dc_cp):
+                    cols += [col]
 
             # are there any parameters to print?
             if len(cols) > 0:
                 for col in cols:
                     df[col] = df.apply(
-                        Network.print_components, axis=1, args=(col, colored))
+                        Network.print_components, axis=1,
+                        args=(col, colored, coloring))
 
                 df.drop(['comp_type'], axis=1, inplace=True)
                 df.set_index('label', inplace=True)
@@ -2736,168 +2730,8 @@ class Network:
                 print(tabulate(df, headers='keys', tablefmt='psql',
                                floatfmt='.3e'))
 
-    def latex_table(self, df, caption):
-        latex = ''
-        latex += r'\begin{table}[H]\begin{center}' + '\n'
-        latex += df.to_latex(
-            index=False, escape=False, na_rep='-', float_format='%.3f')
-        latex += r'\caption{' + caption + '}' + '\n'
-        latex += r'\end{center}\end{table}' + '\n'
-        return latex
-
-    def document_model(self):
-        latex = ''
-
-        conn_data = OrderedDict({
-            'Specified values': [],
-            'Specified fluids': []})
-        params = ['m', 'p', 'h', 'T', 'v', 'x']
-
-        ref_data = {'m': [], 'p': [], 'h': []}
-        ref_params = ['m', 'p', 'h']
-
-        for c in self.conns.index:
-            data_dict = {'label': c.label.replace('_', r'\_')}
-            fluid_dict = data_dict.copy()
-
-            data_dict.update(
-                {param + ' in ' +
-                 self.latex_unit(self.get_attr(param + '_unit')):
-                 c.get_attr(param).val for param in params
-                 if c.get_attr(param).val_set})
-
-            conn_data['Specified values'] += [data_dict]
-
-            for param in ref_params:
-                if c.get_attr(param).ref_set:
-                    ref_dict = {'label': c.label.replace('_', r'\_')}
-                    ref_dict.update(
-                        {'reference':
-                         c.get_attr(param).ref.obj.label.replace('_', r'\_'),
-                         'factor in -': c.get_attr(param).ref.factor,
-                         'delta in ' + self.latex_unit(
-                            self.get_attr(param + '_unit')):
-                         c.get_attr(param).ref.delta})
-
-                    ref_data[param] += [ref_dict]
-
-            fluid_dict.update(
-                {fluid: c.fluid.val[fluid] for fluid in self.fluids
-                 if c.fluid.val_set[fluid]})
-            if c.fluid.balance:
-                fluid_dict.update({'balance': c.fluid.balance})
-
-            conn_data['Specified fluids'] += [fluid_dict]
-
-        latex += r'\section{Connection parameter specifications}' + '\n\n'
-
-        for label, data in conn_data.items():
-            df = pd.DataFrame(data).astype(float, errors='ignore')
-            to_drop = [n for n in df.columns if n != 'label']
-            df.dropna(subset=to_drop, how='all', axis=0, inplace=True)
-
-            if len(df) > 0:
-                latex += r'\subsection{' + label + '}' + '\n\n'
-                latex += self.latex_table(df, label)
-
-        for label, data in ref_data.items():
-            df = pd.DataFrame(data).astype(float, errors='ignore')
-            to_drop = [n for n in df.columns if n != 'label']
-            df.dropna(subset=to_drop, how='all', axis=0, inplace=True)
-
-            label = fpd[label]['text']
-            if len(df) > 0:
-                caption = 'Referenced values for ' + label
-                latex += (
-                    r'\subsection{Referenced values for ' + label + '}' + '\n')
-                latex += self.latex_table(df, caption)
-
-        for cp in self.comps['comp_type'].unique():
-            component_list = self.comps[self.comps['comp_type'] == cp]
-
-            num_mandatory_eq = 0
-            mandatory_eq = ''
-            for label, data in component_list.index[0].constraints.items():
-                mandatory_eq += data['latex'](label) + '\n'
-                num_mandatory_eq += 1
-
-            if num_mandatory_eq > 0:
-                latex += r'\section{Components of type ' + cp + '}\n'
-                latex += r'\subsection{Mandatory constraints}' + '\n'
-                latex += mandatory_eq + '\n'
-
-            cp_data = []
-            data_dict_gcp = {}
-
-            for component in component_list.index:
-                data_dict = {'label': component.label.replace('_', r'\_')}
-                for param, data in component.variables.items():
-                    if data.latex is not None:
-                        data_dict[param] = component.get_inputs(data)
-
-                        if isinstance(data, dc_gcp) and data.is_set:
-                            gcp_data = {
-                                'label': component.label.replace('_', r'\_')}
-                            gcp_data.update(
-                                {element.replace('_', r'\_'):
-                                 component.get_attr(element).val
-                                 for element in data.elements})
-
-                            if param in data_dict_gcp.keys():
-                                data_dict_gcp[param] += [gcp_data]
-                            else:
-                                data_dict_gcp[param] = [gcp_data]
-
-                cp_data += [data_dict]
-
-            df_data = pd.DataFrame(cp_data).astype(float, errors='ignore')
-            df_data.dropna(how='all', axis=1, inplace=True)
-            if len(df_data.columns) < 2:
-                continue
-
-            equations = ''
-            for col in df_data.columns:
-                if col == 'label':
-                    continue
-                equations += component.get_attr(col).latex(col) + '\n\n'
-                col_header = (
-                    col.replace('_', r'\_') + ' ('
-                    r'\ref{eq:' + cp + '_' + col + '})')
-                df_data.rename(columns={col: col_header}, inplace=True)
-
-            caption = 'Parameters of components of type ' + cp
-            latex += '\n\n' + r'\subsection{Inputs specified}' + '\n\n'
-            latex += self.latex_table(df_data, caption)
-
-            for param, data in data_dict_gcp.items():
-                df_data_gcp = pd.DataFrame(data).astype(float, errors='ignore')
-                caption = 'Parametergroup ' + param.replace('_', r'\_')
-                latex += self.latex_table(df_data_gcp, caption)
-
-            latex += '\n\n' + r'\subsection{Equations applied}' + '\n\n'
-            latex += equations
-
-        with open('report.tex', 'w') as f:
-            f.write(latex)
-            f.close()
-
-    def get_latex_equation(c, param):
-        data = c.name.get_attr(param)
-        if data.is_set:
-            if isinstance(data, dc_gcp):
-                values = {}
-                for element in data.elements:
-                    values[element] = c.name.get_attr(element).val
-                return values
-            elif isinstance(data, dc_simple) or isinstance(data, dc_gcc):
-                return True
-            else:
-                return data.val
-        else:
-            return np.nan
-
     def print_components(c, *args):
-        param, colored = args
+        param, colored, coloring = args
         if c.name.printout:
             val = float(c.name.get_attr(param).val)
             if not colored:
@@ -2915,21 +2749,12 @@ class Network:
             return np.nan
 
     def print_connection_exergy_data(self):
-        r"""Print the calculations results of the (specific) physical exergy of
-        the connections to prompt.
-        """
-        df = pd.DataFrame(columns=['e_PH / (kJ / kg)', 'E_PH / MW'])
-        for c in self.conns.index:
-            row = (c.source.label + ':' + c.source_id + ' -> ' +
-                   c.target.label + ':' + c.target_id)
-            row_data = [c.ex_physical/10**3, c.Ex_physical/10**6]
-            df.loc[row] = row_data
-
-        self.df_exergy_conns = df
-
-        print('\n##### RESULTS (connections) Specific physical exergy and ' +
+        r"""Print (specific) physical exergy of the connections to prompt."""
+        print('##### RESULTS (connections) Specific physical exergy and ' +
               'physical exergy #####')
-        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.4f'))
+        print(tabulate(
+            self.connection_exergy_data, headers='keys',
+            tablefmt='psql', floatfmt='.3e', showindex=False))
 
     def print_exergy_analysis(self, E_D_min=1000, sort_desc=True):
         r"""Print the results of the exergy analysis to prompt.
@@ -3066,6 +2891,7 @@ class Network:
         # design and offdesign properties
         cols = ['design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign', 'label']
+
         for key in cols:
             df[key] = self.conns.apply(f, axis=1, args=(key,))
 
@@ -3075,24 +2901,19 @@ class Network:
             # values and units
             df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
             df[key + '_unit'] = self.conns.apply(f, axis=1, args=(key, 'unit'))
-
-            # connection parametrisation
-            df[key + '_unit_set'] = self.conns.apply(f, axis=1,
-                                                     args=(key, 'unit_set'))
             df[key + '0'] = self.conns.apply(f, axis=1, args=(key, 'val0'))
-            df[key + '_set'] = self.conns.apply(f, axis=1,
-                                                args=(key, 'val_set'))
-            df[key + '_ref'] = self.conns.apply(f, axis=1,
-                                                args=(key, 'ref', 'obj',)
-                                                ).astype(str)
-            df[key + '_ref'] = df[key + '_ref'].str.extract(r' at (.*?)>',
-                                                            expand=False)
-            df[key + '_ref_f'] = self.conns.apply(f, axis=1,
-                                                  args=(key, 'ref', 'f',))
-            df[key + '_ref_d'] = self.conns.apply(f, axis=1,
-                                                  args=(key, 'ref', 'd',))
-            df[key + '_ref_set'] = self.conns.apply(f, axis=1,
-                                                    args=(key, 'ref_set',))
+            df[key + '_set'] = self.conns.apply(
+                f, axis=1, args=(key, 'val_set'))
+            df[key + '_ref'] = self.conns.apply(
+                f, axis=1, args=(key, 'ref', 'obj',)).astype(str)
+            df[key + '_ref'] = df[key + '_ref'].str.extract(
+                r' at (.*?)>', expand=False)
+            df[key + '_ref_f'] = self.conns.apply(
+                f, axis=1, args=(key, 'ref', 'factor',))
+            df[key + '_ref_d'] = self.conns.apply(
+                f, axis=1, args=(key, 'ref', 'delta',))
+            df[key + '_ref_set'] = self.conns.apply(
+                f, axis=1, args=(key, 'ref_set',))
 
         # state property
         key = 'state'
@@ -3267,7 +3088,7 @@ class Network:
             df['id'] = df.apply(Network.get_id, axis=1)
             df['type'] = df.apply(Network.get_class_base, axis=1)
 
-            cols = ['x', 'y', 'z1', 'z2']
+            cols = ['x', 'y', 'z']
             for val in cols:
                 df[val] = df.apply(Network.get_props, axis=1, args=(val,))
 

@@ -101,6 +101,30 @@ def convert_from_SI(property, SI_value, unit):
         return SI_value / fluid_property_data[property]['units'][unit]
 
 
+def latex_unit(unit):
+    r"""
+    Convert unit to LaTeX.
+
+    Parameters
+    ----------
+    unit : str
+        Value of unit for input, e.g. :code:`m3 / kg`.
+
+    Returns
+    -------
+    unit : str
+        Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
+    """
+    if '/' in unit:
+        numerator = unit.split('/')[0].replace(' ', '')
+        denominator = unit.split('/')[1].replace(' ', '')
+        return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
+    else:
+        if unit == 'C':
+            unit = r'^\circ C'
+        return r'$\unit[]{' + unit + '}$'
+
+
 def newton(func, deriv, params, y, **kwargs):
     r"""
     Find zero crossings with 1-D newton algorithm.

@@ -27,10 +27,12 @@ https://guides.github.com/activities/hello-world/
 
 Key Features
 ============
-* **Open** Source and Open Access
+* **Open** Source
 * **Generic** thermal engineering applications
 * **Automatic** model documentation in LaTeX for high transparency and
   reproducibility
+* **Extendable** framework for the implementation of custom components and
+  component groups
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 .. contents::

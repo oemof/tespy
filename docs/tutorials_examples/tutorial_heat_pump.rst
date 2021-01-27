@@ -179,7 +179,7 @@ state at the consumer's outlet is the same as at the pump's inlet.
 
     cons.set_attr(Q=-230e3)
 
-    .. note::
+.. note::
 
     In TESPy there are two different types of calculations: design point and
     offdesign calculation. All parameters specified in the design attribute of

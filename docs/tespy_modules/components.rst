@@ -374,6 +374,48 @@ Characteristics are available for the following components and parameters:
 For more information on how the characteristic functions work
 :ref:`click here <using_tespy_characteristics_label>`.
 
+Extend components with new equations
+------------------------------------
+
+You can easily add custom equations to the existing components. In order to do
+this, you need to implement four changes to the desired component class:
+
+- modify the :code:`get_variables(self)` method.
+- add a method, that returns the result of your equation.
+- add a method, that places the partial derivatives in the jacobian matrix of
+  your component.
+- add a method, that returns the LaTeX code of your equation for the automatic
+  documentation feature.
+
+In the :code:`get_variables(self)` method, add an entry for your new equation.
+If the equation uses a single parameter, use the :code:`ComponentProperties`
+type DataContainer (or the :code:`ComponentCharacteristics` type in case you
+only apply a characteristic curve). If your equations requires multiple
+parameters, add these parameters as :code:`ComponentProperties` or
+:code:`ComponentCharacteristics` respectively and add a
+:code:`GroupedComponentProperties` type DataContainer holding the information,
+e.g. like the :code:`hydro_group` parameter of the
+:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+class shown below.
+
+.. code:: python
+
+    # [...]
+    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
+    'L': dc_cp(min_val=1e-1, d=1e-3),
+    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+    'hydro_group': dc_gcp(
+        elements=['L', 'ks', 'D'], num_eq=1,
+        latex=self.hydro_group_func_doc,
+        func=self.hydro_group_func, deriv=self.hydro_group_deriv),
+    # [...]
+
+:code:`latex`, :code:`func` and :code:`deriv` are pointing to the method that
+should be applied for the corresponding purpose. For more information on
+defining the equations, derivatives and the LaTeX equation you will find the
+information in the next section on custom components.
+
+
 Custom components
 -----------------
 

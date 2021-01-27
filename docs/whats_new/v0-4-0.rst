@@ -41,7 +41,7 @@ API Changes
   isentropic efficiency to design value of the turbine. Say, you want to
   specify these data as :py:class:`tespy.tools.characteristics.CharLine` and
   the characteristics should be applied. In order to do that, pass a dictionary
-  that contains the :code:`CharLine` object as :code:'char_func' and set
+  that contains the :code:`CharLine` object as :code:`'char_func'` and set
   :code:`is_set` to :code:`True`:
 
   .. code-block:: python

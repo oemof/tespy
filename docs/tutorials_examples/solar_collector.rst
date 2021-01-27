@@ -17,7 +17,7 @@ the collector fluid. The TESPy component
 inherits from the
 :py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
 component. An energy balance is applied according to the
-:py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_func`
+:py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func`
 method, which takes the collector's
 
 - surface area :code:`A`,

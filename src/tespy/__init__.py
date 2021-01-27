@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.4.0 - Gibbs\' Gallery'
+__version__ = '0.4.1 - dev'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

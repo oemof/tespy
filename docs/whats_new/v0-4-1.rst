@@ -1,0 +1,17 @@
+v0.4.1 - Someversion (Somemonth, Someday, Someyear)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+
+Documentation
+#############
+
+Bug Fixes
+#########
+
+Other Changes
+#############
+
+Contributors
+############

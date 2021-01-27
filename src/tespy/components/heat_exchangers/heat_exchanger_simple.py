@@ -272,7 +272,7 @@ class HeatExchangerSimple(Component):
             r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
             r'h_\mathrm{in} \right) -\dot{Q}'
         )
-        return generate_latex_eq(self, latex, 'energy_balance_func')
+        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k):
         r"""
@@ -329,10 +329,10 @@ class HeatExchangerSimple(Component):
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':
-            return self.hazen_williams_func_doc(label + '_hazen_williams')
+            return self.hazen_williams_func_doc(label)
         # darcy friction factor
         else:
-            return self.darcy_func_doc(label + '_darcy_weisbach')
+            return self.darcy_func_doc(label)
 
     def hydro_group_deriv(self, increment_filter, k):
         r"""
@@ -661,9 +661,6 @@ class HeatExchangerSimple(Component):
         latex : str
             LaTeX code of equations applied.
         """
-        p = self.kA_char.param
-        expr = self.get_char_expr_doc(p, **self.kA_char.char_params)
-
         latex = (
             r'\begin{split}' + '\n'
             r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
@@ -678,8 +675,7 @@ class HeatExchangerSimple(Component):
             r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
             r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
             r'\end{cases}\\' + '\n'
-            r'f_{kA}=&\frac{2}{1 + frac{1}{f\left(' + expr +
-            r'}\right)}}\\' + '\n'
+            r'f_{kA}=&\frac{2}{1 + \frac{1}{f\left(X\right)}}\\' + '\n'
             r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
             r'\end{split}'
         )

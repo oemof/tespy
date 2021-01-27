@@ -515,6 +515,24 @@ class ORCEvaporator(Component):
         return -self.inl[2].m.val_SI * (
             self.outl[2].h.val_SI - self.inl[2].h.val_SI)
 
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        return (
+            r'-\dot{m}_\mathrm{in,3} \cdot \left(h_\mathrm{out,3} - '
+            r'h_\mathrm{in,3} \right)')
+
     def bus_deriv(self, bus):
         r"""
         Calculate the matrix of partial derivatives of the bus function.

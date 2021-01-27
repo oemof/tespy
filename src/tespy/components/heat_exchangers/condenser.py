@@ -18,6 +18,7 @@ from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_bp_p
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -234,7 +235,8 @@ class Condenser(HeatExchanger):
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
-            'kA_char': dc_simple(
+            'kA_char': dc_gcc(
+                elements=['kA_char1', 'kA_char2'],
                 num_eq=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
                 deriv=self.kA_char_deriv),
             'kA_char1': dc_cc(param='m'),

@@ -1179,7 +1179,7 @@ class CombustionEngine(CombustionChamber):
                 \dot{E} = \begin{cases}
                 LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
                 P & \text{key = 'P'}\\
-                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) +
+                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)
                 -\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
                 \text{key = 'Q'}\\
                 -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
@@ -1236,6 +1236,57 @@ class CombustionEngine(CombustionChamber):
             raise ValueError(msg)
 
         return val
+
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        ######################################################################
+        # value for bus parameter of thermal input (TI)
+        if bus['param'] == 'TI':
+            return CombustionChamber.bus_func_doc(self, bus)
+
+        ######################################################################
+        # value for bus parameter of power output (P)
+        elif bus['param'] == 'P':
+            return 'P'
+
+        ######################################################################
+        # value for bus parameter of total heat production (Q)
+        elif bus['param'] == 'Q':
+            return (
+                r'-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} -'
+                r'h_\mathrm{in,1} \right) - \dot{m}_\mathrm{in,2} \cdot '
+                r'\left( h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
+
+        ######################################################################
+        # value for bus parameter of heat production 1 (Q1)
+        elif bus['param'] == 'Q1':
+            return (
+                r'-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} -'
+                r'h_\mathrm{in,1} \right)')
+
+        ######################################################################
+        # value for bus parameter of heat production 2 (Q2)
+        elif bus['param'] == 'Q2':
+            return (
+                r'- \dot{m}_\mathrm{in,2} \cdot '
+                r'\left( h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
+
+        ######################################################################
+        # value for bus parameter of heat loss (Qloss)
+        elif bus['param'] == 'Qloss':
+            return r'\dot{Q}_\mathrm{loss}'
 
     def bus_deriv(self, bus):
         r"""

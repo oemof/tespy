@@ -692,6 +692,24 @@ class HeatExchanger(Component):
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        return (
+            r'\dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - '
+            r'h_\mathrm{in,1} \right)')
+
     def bus_deriv(self, bus):
         r"""
         Calculate partial derivatives of the bus function.

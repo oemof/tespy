@@ -1,5 +1,5 @@
-v0.4.0 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.4.0 - Gibbs' Gallery (January, 27, 2021)
++++++++++++++++++++++++++++++++++++++++++++
 
 API Changes
 ###########
@@ -18,6 +18,9 @@ API Changes
       from tespy.connections import Ref
       from tespy.networks import Network
       from tespy.tools.characteristics import CharLine
+
+      # but keep e.g.
+      from tespy.networks import load_network
 
   The examples in the online documentation and the
   `examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
@@ -106,7 +109,7 @@ New Features
 
 - IF97 back end for properties of water is now supported. A fix was implemented
   in TESPy to solve convergence issues near saturation in region 1. You can use
-  the back end by adding 'IF97::water' to your network's fluid list
+  the back end by adding :code:`'IF97::water'` to your network's fluid list
   (`PR #238 <https://github.com/oemof/tespy/pull/238>`_, also see
   `CoolProp Issue #1918 <https://github.com/CoolProp/CoolProp/issues/1918>`_).
 
@@ -225,6 +228,10 @@ Other Changes
 - An error message is raised in case the user specifies a fluid vector
   containing fluids, that are not part of the network's fluid list
   (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
+
+- An understandable error message is raised in case the user misses out on
+  fluids required by components of class CombustionChamber or CombustionEngine
+  (`#7adff43a <https://github.com/oemof/tespy/commit/7adff43>`_).
 
 - For improved convergence stability of the methods
   :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_group_func` and

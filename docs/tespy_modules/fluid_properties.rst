@@ -19,8 +19,9 @@ to choose from the following back ends:
 - :code:`INCOMP`: Back end for incompressible fluids.
 - :code:`IF97`: Back end for the IAPWS-IF97 of water, very accurate and much
   higher calculation speed than :code:`HEOS`. Due to a bug in the CoolProp
-  back end this option is not available at the moment, for more information
-  see this `github issue <https://github.com/CoolProp/CoolProp/issues/1918/>`_.
+  back end this option is available with a fix (not the original
+  implementation), for more information see the
+  `CoolProp issue #1918 <https://github.com/CoolProp/CoolProp/issues/1918/>`_.
 
 For more information on the Back ends please visit the CoolProp online
 documentation.

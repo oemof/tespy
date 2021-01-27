@@ -104,6 +104,12 @@ New Features
   For further information also check the corresponding section in the online
   documentation (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
 
+- IF97 back end for properties of water is now supported. A fix was implemented
+  in TESPy to solve convergence issues near saturation in region 1. You can use
+  the back end by adding 'IF97::water' to your network's fluid list
+  (`PR #238 <https://github.com/oemof/tespy/pull/238>`_, also see
+  `CoolProp Issue #1918 <https://github.com/CoolProp/CoolProp/issues/1918>`_).
+
 - An automatic exergy analysis has been added. The method reliably works for
   temperature values that are larger than the ambient temperature. An
   implementation for temperature values crossing or below the ambient

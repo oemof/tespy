@@ -25,6 +25,16 @@ please fork the TESPy repository to your own github account and make
 changes as described in the github guidelines:
 https://guides.github.com/activities/hello-world/
 
+Key Features
+============
+* **Open** Source
+* **Generic** thermal engineering applications
+* **Automatic** model documentation in LaTeX for high transparency and
+  reproducibility
+* **Extendable** framework for the implementation of custom components and
+  component groups
+* **Postprocessing** features like exergy analysis and fluid property plotting
+
 .. contents::
     :depth: 1
     :local:
@@ -68,10 +78,6 @@ As TESPy is a free software, we kindly ask that you add a reference to TESPy
 if you use the software for your scientific work. Please cite the article with
 the BibTeX citation below.
 
-Additionally, you have the possibility to cite a specific version of TESPy to
-make your work reproducible. The source code of every version is published on
-zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
-
 BibTeX citation::
 
     @article{Witte2020,
@@ -85,6 +91,10 @@ BibTeX citation::
         title = {{TESPy}: {T}hermal {E}ngineering {S}ystems in {P}ython},
         journal = {Journal of Open Source Software}
     }
+
+Additionally, you have the possibility to cite a specific version of TESPy to
+make your work reproducible. The source code of every version is published on
+zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 License
 =======

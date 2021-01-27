@@ -26,7 +26,6 @@ from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.global_vars import err
-from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -192,14 +191,16 @@ class TestClausiusRankine:
             self.pamb, self.Tamb,
             E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
         )
-        eps = self.nw.component_exergy_data.loc['pump', 'epsilon']
+        label = 'pump on bus feed water pump power'
+        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
         msg = (
             'Pump exergy efficiency must be 0.98 but is ' +
             str(round(eps, 4)) + ' .')
         assert round(eps, 4) == 0.98, msg
 
-        eps = self.nw.component_exergy_data.loc[
-            'feed water pump turbine', 'epsilon']
+        label = 'feed water pump turbine on bus feed water pump power'
+        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
+        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
         msg = (
             'Feed water pump turbine exergy efficiency must be 0.99 but is ' +
             str(round(eps, 4)) + ' .')
@@ -243,7 +244,7 @@ class TestRefrigerator:
         # create busses
         # power output bus
         self.power = Bus('power input')
-        self.power.add_comps({'comp': cp, 'char': 0.97, 'base': 'bus'})
+        self.power.add_comps({'comp': cp, 'char': 1, 'base': 'bus'})
         # cooling bus
         self.cool = Bus('heat from fridge')
         self.cool.add_comps({'comp': eva})
@@ -267,7 +268,7 @@ class TestRefrigerator:
 
         # connection parameters
         cc_cp.set_attr(m=1, x=1, T=-25, fluid={'R134a': 1})
-        cond_va.set_attr(x=0, T=self.Tamb)
+        cond_va.set_attr(x=0, T=self.Tamb + 1)
 
         # solve network
         self.nw.solve('design')
@@ -278,6 +279,7 @@ class TestRefrigerator:
         # no exergy losses in this case
         self.nw.exergy_analysis(
             self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
+        self.nw.print_exergy_analysis()
 
         exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
         msg = (
@@ -285,13 +287,6 @@ class TestRefrigerator:
             str(err ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
         assert abs(exergy_balance) <= err ** 0.5, msg
-
-    def test_exergy_analysis_heat_transfer_to_higher_temperature(self):
-        """Test error with heat transfer to higher temperature."""
-        # we do not need to recalculate when changing only ambient temperature
-        with raises(TESPyComponentError):
-            self.nw.exergy_analysis(
-                self.pamb, self.Tamb + 100, E_P=[self.cool], E_F=[self.power])
 
 
 class TestCompressedAirIn:

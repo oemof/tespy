@@ -14,49 +14,42 @@ import logging
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.global_vars import err
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Turbine(Turbomachine):
     r"""
     Class for gas or steam turbines.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.additional_equations`
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
+    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
+    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Image
 
-        .. image:: _images/Turbine.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Turbine.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -150,128 +143,30 @@ class Turbine(Turbomachine):
     def component():
         return 'turbine'
 
-    @staticmethod
-    def attr():
+    def get_variables(self):
         return {
-            'P': dc_cp(max_val=0),
-            'eta_s': dc_cp(min_val=0, max_val=1),
-            'eta_s_char': dc_cc(param='m'),
-            'pr': dc_cp(min_val=0, max_val=1),
-            'cone': dc_simple(),
-            'Sirr': dc_simple()
+            'P': dc_cp(
+                max_val=0, num_eq=1,
+                deriv=self.energy_balance_deriv,
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
+            'eta_s': dc_cp(
+                min_val=0, max_val=1, num_eq=1,
+                deriv=self.eta_s_deriv,
+                func=self.eta_s_func, latex=self.eta_s_func_doc),
+            'eta_s_char': dc_cc(
+                param='m', num_eq=1,
+                deriv=self.eta_s_char_deriv,
+                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
+            'pr': dc_cp(
+                min_val=0, max_val=1, num_eq=1,
+                deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc),
+            'cone': dc_simple(
+                deriv=self.cone_deriv, num_eq=1,
+                func=self.cone_func, latex=self.cone_func_doc)
         }
-
-    def comp_init(self, nw):
-
-        Component.comp_init(self, nw)
-
-        if ((nw.mode == 'offdesign' or self.local_offdesign) and
-                not self.local_design):
-            self.dh_s_ref = (
-                isentropic(
-                    self.inl[0].to_flow_design(),
-                    self.outl[0].to_flow_design(),
-                    T0=self.inl[0].T.val_SI) - self.inl[0].h.design)
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        self.num_eq = self.num_nw_fluids + 1
-        for var in [self.P, self.pr, self.eta_s, self.eta_s_char, self.cone]:
-            if var.is_set:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-    def additional_equations(self, k):
-        r"""
-        Calculate results of additional equations.
-
-        Equations
-
-            **optional equations**
-
-            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
-            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
-            - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`
-        """
-        ######################################################################
-        # eqations for specified isentropic efficiency
-        if self.eta_s.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.eta_s_func()
-            k += 1
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.eta_s_char_func()
-            k += 1
-
-        ######################################################################
-        # equation for specified cone law
-        if self.cone.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.cone_func()
-            k += 1
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for specified isentropic efficiency
-        if self.eta_s.is_set:
-            f = self.eta_s_func
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.jacobian[k, 1, 2] = -1
-            k += 1
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            f = self.eta_s_char_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified cone law
-        if self.cone.is_set:
-            f = self.cone_func
-            self.jacobian[k, 0, 0] = -1
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
-            k += 1
-
-        return
 
     def eta_s_func(self):
         r"""
@@ -279,7 +174,7 @@ class Turbine(Turbomachine):
 
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
@@ -290,9 +185,49 @@ class Turbine(Turbomachine):
         return (
             -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
                 isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    self.inl[0].get_flow(), self.outl[0].get_flow(),
                     T0=self.inl[0].T.val_SI) -
                 self.inl[0].h.val_SI) * self.eta_s.val)
+
+    def eta_s_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency of a turbine.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
+            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
+        return generate_latex_eq(self, latex, label)
+
+    def eta_s_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for isentropic efficiency function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.eta_s_func
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        self.jacobian[k, 1, 2] = -1
 
     def cone_func(self):
         r"""
@@ -300,7 +235,7 @@ class Turbine(Turbomachine):
 
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
@@ -314,11 +249,57 @@ class Turbine(Turbomachine):
         n = 1
         i = self.inl[0]
         o = self.outl[0]
-        v_i = v_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
-        return (- i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
-                np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * v_i)) *
-                np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
-                            (1 - (self.pr.design) ** ((n + 1) / n)))))
+        vol = v_mix_ph(i.get_flow(), T0=self.inl[0].T.val_SI)
+        return (
+            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
+            np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
+            np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
+                        (1 - (self.pr.design) ** ((n + 1) / n)))))
+
+    def cone_func_doc(self, label):
+        r"""
+        Equation for stodolas cone law.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0 = \frac{\dot{m}_\mathrm{in,design}\cdot p_\mathrm{in}}'
+            r'{p_\mathrm{in,design}}\cdot\sqrt{\frac{p_\mathrm{in,design}'
+            r'\cdot v_\mathrm{in}}{p_\mathrm{in}\cdot '
+            r'v_\mathrm{in,design}}\cdot\frac{1-\left('
+            r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
+            r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
+            r'\right)^{2}}} -\dot{m}_\mathrm{in}')
+        return generate_latex_eq(self, latex, label)
+
+    def cone_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for stodolas cone law.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.cone_func
+        self.jacobian[k, 0, 0] = -1
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
 
     def eta_s_char_func(self):
         r"""
@@ -326,39 +307,74 @@ class Turbine(Turbomachine):
 
         Returns
         -------
-        res : ndarray
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                0 = - \left( h_{out} - h_{in} \right) + \eta_{s,e,0} \cdot
-                f\left( expr \right) \cdot \Delta h_{s}
+                0 = - \left( h_\mathrm{out} - h_\mathrm{in} \right) +
+                \eta_\mathrm{s,design} \cdot f\left( expr \right) \cdot
+                \left(h_\mathrm{out,s}-h_\mathrm{in}\right)
         """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        if self.eta_s_char.param == 'dh_s':
-            expr = np.sqrt(self.dh_s_ref / (
-                isentropic(i.to_flow(), o.to_flow(), T0=i.T.val_SI) -
-                i.h.val_SI))
-        elif self.eta_s_char.param == 'm':
-            expr = i.m.val_SI / i.m.design
-        elif self.eta_s_char.param == 'v':
-            vol = v_mix_ph(i.to_flow(), T0=i.T.val_SI)
-            expr = i.m.val_SI * vol / self.inl[0].v.design
-        elif self.eta_s_char.param == 'pr':
-            expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
-        else:
-            msg = ('Please choose the parameter, you want to link the '
-                   'isentropic efficiency to.')
+        p = self.eta_s_char.param
+        expr = self.get_char_expr(p)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'isentropic efficiency to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
 
+        i = self.inl[0]
+        o = self.outl[0]
         return (
             -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
-            self.eta_s_char.func.evaluate(expr) * (
-                isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
+            self.eta_s_char.char_func.evaluate(expr) * (isentropic(
+                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
                 i.h.val_SI))
+
+    def eta_s_char_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
+            r'\eta_\mathrm{s,design}\cdot f \left(X\right)'
+            r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
+        return generate_latex_eq(self, latex, label)
+
+    def eta_s_char_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.eta_s_char_func
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
 
     def convergence_check(self):
         r"""
@@ -454,39 +470,62 @@ class Turbine(Turbomachine):
         self.eta_s.val = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
                 isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
+                    self.inl[0].get_flow(), self.outl[0].get_flow(),
                     T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
 
-        if self.eta_s_char.is_set:
-            # get bound errors for isentropic efficiency characteristics
-            if self.eta_s_char.param == 'dh_s':
-                expr = np.sqrt(self.dh_s_ref / (isentropic(
-                    self.inl[0].to_flow(), self.outl[0].to_flow(),
-                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
-            elif self.eta_s_char.param == 'm':
-                expr = self.inl[0].m.val_SI / self.inl[0].m.design
-            elif self.eta_s_char.param == 'v':
-                expr = self.inl[0].v.val_SI / self.inl[0].v.design
-            elif self.eta_s_char.param == 'pr':
-                expr = self.pr.val / self.pr.design
-
-            self.eta_s_char.func.get_bound_errors(expr, self.label)
-
-        self.check_parameter_bounds()
-
-    def exergy_balance(self, Tamb):
+    def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a turbine.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
 
         Note
         ----
         .. math::
 
-            \dot{E}_\mathrm{P} = |P| \\
-            \dot{E}_\mathrm{F} = \dot{m}_\mathrm{in} \cdot \left(
-            e_\mathrm{ph,in} - e_\mathrm{ph,out} \right)
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+            -P + \dot{E}_\mathrm{out}^\mathrm{T}
+            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
+            -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
+            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+            \end{cases}
+
+           \dot{E}_\mathrm{F} =
+           \begin{cases}
+           \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
+           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
+           \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
+           \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
+           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
+           & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
+           \end{cases}
+
+           \dot{E}_\mathrm{bus} = -P
         """
-        self.E_P = abs(self.P.val)
-        self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.E_P = -self.P.val
+            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
+        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = -self.P.val + self.outl[0].Ex_therm
+            self.E_F = self.inl[0].Ex_therm + (
+                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.E_P = -self.P.val + (
+                self.outl[0].Ex_therm - self.inl[0].Ex_therm)
+            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
+        else:
+            msg = ('Exergy balance of a turbine, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logging.warning(msg)
+            self.E_P = np.nan
+            self.E_F = np.nan
+
+        self.E_bus = -self.P.val
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

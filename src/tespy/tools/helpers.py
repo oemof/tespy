@@ -15,6 +15,7 @@ import CoolProp as CP
 import numpy as np
 
 from tespy.tools.global_vars import err
+from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
 
 # %%
@@ -37,7 +38,91 @@ class TESPyComponentError(Exception):
 
     pass
 
-# %%
+
+def convert_to_SI(property, value, unit):
+    r"""
+    Convert a value to its SI value.
+
+    Parameters
+    ----------
+    property : str
+        Fluid property to convert.
+
+    value : float
+        Value to convert.
+
+    unit : str
+        Unit of the value.
+
+    Returns
+    -------
+    SI_value : float
+        Specified fluid property in SI value.
+    """
+    if property == 'T':
+        converters = fluid_property_data['T']['units'][unit]
+        return (value + converters[0]) * converters[1]
+
+    elif property == 'Td_bp':
+        return value * fluid_property_data['T']['units'][unit][1]
+
+    else:
+        return value * fluid_property_data[property]['units'][unit]
+
+
+def convert_from_SI(property, SI_value, unit):
+    r"""
+    Get a value in the network's unit system from SI value.
+
+    Parameters
+    ----------
+    property : str
+        Fluid property to convert.
+
+    SI_value : float
+        SI value to convert.
+
+    unit : str
+        Unit of the value.
+
+    Returns
+    -------
+    value : float
+        Specified fluid property value in network's unit system.
+    """
+    if property == 'T':
+        converters = fluid_property_data['T']['units'][unit]
+        return SI_value / converters[1] - converters[0]
+
+    elif property == 'Td_bp':
+        return SI_value / fluid_property_data['T']['units'][unit][1]
+
+    else:
+        return SI_value / fluid_property_data[property]['units'][unit]
+
+
+def latex_unit(unit):
+    r"""
+    Convert unit to LaTeX.
+
+    Parameters
+    ----------
+    unit : str
+        Value of unit for input, e.g. :code:`m3 / kg`.
+
+    Returns
+    -------
+    unit : str
+        Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
+    """
+    if '/' in unit:
+        numerator = unit.split('/')[0].replace(' ', '')
+        denominator = unit.split('/')[1].replace(' ', '')
+        return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
+    else:
+        if unit == 'C':
+            unit = r'^\circ C'
+        return r'$\unit[]{' + unit + '}$'
 
 
 def newton(func, deriv, params, y, **kwargs):

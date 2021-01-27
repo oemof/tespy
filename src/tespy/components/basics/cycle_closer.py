@@ -22,15 +22,10 @@ class CycleCloser(Component):
     r"""
     Component for closing cycles.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
-
-        .. math::
-
-            0 = p_{in} - p_{out}
-
-            0 = h_{in} - h_{out}
+    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.pressure_equality_func`
+    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.enthalpy_equality_func`
 
     Image not available
 
@@ -102,10 +97,26 @@ class CycleCloser(Component):
         return 'cycle closer'
 
     @staticmethod
-    def attr():
+    def get_variables():
         return {
-            'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
-            'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)
+            'mass_deviation': dc_cp(val=0, max_val=1e-3),
+            'fluid_deviation': dc_cp(val=0, max_val=1e-5)
+        }
+
+    def get_mandatory_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': 1},
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': 1}
         }
 
     @staticmethod
@@ -115,46 +126,6 @@ class CycleCloser(Component):
     @staticmethod
     def outlets():
         return ['out1']
-
-    def comp_init(self, nw):
-
-        Component.comp_init(self, nw)
-
-        # number of mandatroy equations for
-        # pressure: 1
-        # enthalpy: 1
-        self.num_eq = 2
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.ones(self.num_eq)
-        # derivatives for pressure
-        self.jacobian[0, 0, 1] = 1
-        self.jacobian[0, 1, 1] = -1
-        # derivatives for enthalpy
-        self.jacobian[1, 0, 2] = 1
-        self.jacobian[1, 1, 2] = -1
-
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
-        ######################################################################
-        # equation for pressure
-        self.residual[k] = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        k += 1
-
-        ######################################################################
-        # equation for enthalpy
-        self.residual[k] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        k += 1
-
-    def derivatives(self, vek_z):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # all derivatives are static
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""
@@ -187,7 +158,7 @@ class CycleCloser(Component):
         return
 
     def calc_parameters(self):
-
+        r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow
         self.mass_deviation.val = np.abs(
             self.inl[0].m.val_SI - self.outl[0].m.val_SI)
@@ -197,5 +168,3 @@ class CycleCloser(Component):
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
         self.fluid_deviation.val = np.linalg.norm(diff)
-
-        self.check_parameter_bounds()

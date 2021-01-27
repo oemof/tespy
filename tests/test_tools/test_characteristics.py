@@ -18,7 +18,6 @@ from pkg_resources import resource_filename
 
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
-from tespy.tools.characteristics import CompressorMap
 from tespy.tools.characteristics import load_custom_char
 from tespy.tools.characteristics import load_default_char
 from tespy.tools.helpers import extend_basic_path
@@ -87,18 +86,17 @@ def test_custom_CharMap_import():
     with open(data_path) as f:
         raw_data = json.loads(f.read())
 
-    data = raw_data['compressor']['char_map']
+    data = raw_data['compressor']['char_map_pr']
     with open(os.path.join(path, 'char_maps.json'), 'w') as outfile:
         json.dump(data, outfile)
 
-    char_original = load_default_char('compressor', 'char_map',
-                                      'DEFAULT', CompressorMap)
-    char_custom = load_custom_char('DEFAULT', CompressorMap)
+    char_original = load_default_char(
+        'compressor', 'char_map_pr', 'DEFAULT', CharMap)
+    char_custom = load_custom_char('DEFAULT', CharMap)
 
     x_cond = np.array_equal(char_original.x, char_custom.x)
     y_cond = np.array_equal(char_original.y, char_custom.y)
-    z1_cond = np.array_equal(char_original.z1, char_custom.z1)
-    z2_cond = np.array_equal(char_original.z2, char_custom.z2)
+    z_cond = np.array_equal(char_original.z, char_custom.z)
 
     shutil.rmtree(path, ignore_errors=True)
 
@@ -121,17 +119,11 @@ def test_custom_CharMap_import():
            'as these have been duplicated before load.')
     assert y_cond is True, msg
 
-    msg = ('The z1 values from the custom characteristic line ' +
-           str(char_custom.z1) + ' must be identical to the z1 values from '
-           'the default characteristic line ' + str(char_original.z1) + ' '
+    msg = ('The z values from the custom characteristic line ' +
+           str(char_custom.z) + ' must be identical to the z values from '
+           'the default characteristic line ' + str(char_original.z) + ' '
            'as these have been duplicated before load.')
-    assert z1_cond is True, msg
-
-    msg = ('The z2 values from the custom characteristic line ' +
-           str(char_custom.z2) + ' must be identical to the z2 values from '
-           'the default characteristic line ' + str(char_original.z2) + ' '
-           'as these have been duplicated before load.')
-    assert z2_cond is True, msg
+    assert z_cond is True, msg
 
 
 def test_CharLine_evaluation():
@@ -196,106 +188,34 @@ def test_CharMap_evaluation():
     # create a characteristc line with values of y=(x-2)^2
     x = [1, 2, 3]
     y = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
-    z1 = y ** 0.5
-    z2 = y ** 2
-    map = CharMap(x=x, y=y, z1=z1, z2=z2)
+    z = y ** 0.5
+    map = CharMap(x=x, y=y, z=z)
 
     # test evaluation at x=2 and y=3, result: z1=1.73, z2=9
     x = 2
     y = 3
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.73, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 1.73, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 9.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 9.0, msg
+    z = map.evaluate(x=x, y=y)
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
+           'must be 1.73, but is ' + str(round(z, 2)) + '.')
+    assert round(z, 2) == 1.73, msg
 
     # test evaluation at x=0 and y=0 for lower value range limit,
-    # result: z1=1, z2=1
+    # result: z=1
     x = 0
     y = 0
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.0, but is ' + str(round(z1, 1)) + '.')
-    assert round(z1, 1) == 1.0, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 1.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 1.0, msg
+    z = map.evaluate(x=x, y=y)
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
+           'must be 1.0, but is ' + str(round(z, 1)) + '.')
+    assert round(z, 1) == 1.0, msg
 
     # test evaluation at x=4 and y=6 for upper value range limit,
-    # result: z1=2.24, z2=25
+    # result: z=2.24
     x = 4
     y = 6
-    z1, z2 = map.evaluate(x=x, y=y)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 2.24, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 2.24, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 25.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 25.0, msg
+    z = map.evaluate(x=x, y=y)
+    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z '
+           'must be 2.24, but is ' + str(round(z, 2)) + '.')
+    assert round(z, 2) == 2.24, msg
 
     # check, if bound errors go through
-    map.get_bound_errors(x, y, 'Componentlabel')
-
-
-def test_CompressorMap_evaluation():
-    """Test the characteristc compressor map evaluation."""
-
-    # create a characteristc line with values of y=(x-2)^2
-    x = [1, 2, 3]
-    y = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
-    z1 = y ** 0.5
-    z2 = y ** 2
-    map = CompressorMap(x=x, y=y, z1=z1, z2=z2)
-    igva = 20
-
-    # test evaluation at x=2 and y=3, result: z1=1.55, z2=13.7
-    # f_igva1  = (1 - igva / 100)
-    # -->      = 0.8
-    # f_igva2  = (1 - igva ** 2 / 10000)
-    # -->      = 0.96
-    # --> yarr = yarr * f_igva
-    # -->      = [1.6, 2.4, 3.2] with y=3
-    # --> z1, z2 between second and third value at 0.75 (3-2.4)/(3.2-2.4)
-    # --> z1 0.75 * (2 - 3 ** 0.5) * 0.8 + 3 ** 0.5 * 0.8
-    # --> z2 0.75 * (16 - 9) * 0.96 + 9 * 0.96
-    x = 2
-    y = 3
-    z1, z2 = map.evaluate(x=x, y=y, igva=igva)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.55, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 1.55, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 13.7, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 2) == 13.68, msg
-
-    # test evaluation at x=0 and y=0 for lower value range limit,
-    # result: z1=0.8, z2=0.96
-    x = 0
-    y = 0
-    z1, z2 = map.evaluate(x=x, y=y, igva=igva)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 0.8, but is ' + str(round(z1, 1)) + '.')
-    assert round(z1, 1) == 0.8, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 0.96, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 2) == 0.96, msg
-
-    # test evaluation at x=4 and y=6 for upper value range limit,
-    # result: z1=1.79, z2=24
-    x = 4
-    y = 6
-    z1, z2 = map.evaluate(x=x, y=y, igva=igva)
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z1 '
-           'must be 1.79, but is ' + str(round(z1, 2)) + '.')
-    assert round(z1, 2) == 1.79, msg
-
-    msg = ('The evaluation of x=' + str(x) + ' and y=' + str(y) + ' for z2 '
-           'must be 24.0, but is ' + str(round(z2, 1)) + '.')
-    assert round(z2, 1) == 24.0, msg
+    map.get_domain_errors(x, y, 'Componentlabel')

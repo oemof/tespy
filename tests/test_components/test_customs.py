@@ -133,8 +133,8 @@ class TestOrcEvaporator:
         self.nw.solve('offdesign', design_path='tmp')
         convergence_check(self.nw.lin_dep)
 
-        T_steam = T_bp_p(self.c2.to_flow()) - dT
-        T_isop = T_bp_p(self.c6.to_flow()) + dT
+        T_steam = T_bp_p(self.c2.get_flow()) - dT
+        T_isop = T_bp_p(self.c6.get_flow()) + dT
 
         msg = ('Temperature of working fluid outlet must be ' +
                str(round(T_isop, 1)) + ', is ' +

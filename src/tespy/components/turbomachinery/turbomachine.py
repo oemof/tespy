@@ -15,44 +15,27 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
-from tespy.tools.global_vars import err
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Turbomachine(Component):
     r"""
     Parent class for compressor, pump and turbine.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        isentropic efficiency equations (optional)
-
-        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
-        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.pump.Pump.additional_equations`
-        - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.additional_equations`
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Parameters
     ----------
@@ -99,9 +82,17 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
-    @staticmethod
-    def attr():
-        return {'P': dc_cp(), 'pr': dc_cp(), 'Sirr': dc_simple()}
+    def get_variables(self):
+        return {
+            'P': dc_cp(
+                deriv=self.energy_balance_deriv, num_eq=1,
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
+            'pr': dc_cp(
+                deriv=self.pr_deriv, num_eq=1,
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc)
+        }
 
     @staticmethod
     def inlets():
@@ -111,95 +102,56 @@ class Turbomachine(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
+    def energy_balance_func(self):
+        r"""
+        Calculate energy balance of a turbomachine.
 
-        Component.comp_init(self, nw)
+        Returns
+        -------
+        residual : float
+            Residual value of turbomachine energy balance
 
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        self.num_eq = self.num_nw_fluids + 1
-        for var in [self.P, self.pr]:
-            if var.is_set:
-                self.num_eq += 1
+            .. math::
 
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
+                0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
+        """
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
 
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
+    def energy_balance_func_doc(self, label):
+        r"""
+        Calculate energy balance of a turbomachine.
 
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
-        ######################################################################
-        # eqations for fluids
-        if (any(np.absolute(self.residual[k:self.num_nw_fluids])) > err ** 2 or
-                self.it % 4 == 0 or self.always_all_equations):
-            self.residual[k:self.num_nw_fluids] = self.fluid_func()
-        k += self.num_nw_fluids
+        Parameters
+        ----------
+        label : str
+            Label for equation.
 
-        ######################################################################
-        # eqations for mass flow balance
-        self.residual[k] = self.mass_flow_func()
-        k += 1
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
+            r'\right)-P')
+        return generate_latex_eq(self, latex, label)
 
-        ######################################################################
-        # eqations for specified power
-        if self.P.is_set:
-            self.residual[k] = self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance of a turbomachine.
 
-            k += 1
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
-        ######################################################################
-        # eqations for specified pressure ratio
-        if self.pr.is_set:
-            self.residual[k] = (
-                self.pr.val * self.inl[0].p.val_SI - self.outl[0].p.val_SI)
-            k += 1
-
-        ######################################################################
-        # additional equations
-        self.additional_equations(k)
-
-    def additional_equations(self, k):
-        r"""Calculate results of additional equations."""
-        return
-
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives fluid and mass balance are static
-        k = self.num_nw_fluids + 1
-
-        ######################################################################
-        # derivatives for specified power
-        if self.P.is_set:
-            self.jacobian[k, 0, 0] = (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-            self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
-            k += 1
-
-        ######################################################################
-        # derivatives for specified pressure ratio
-        if self.pr.is_set:
-            self.jacobian[k, 0, 1] = self.pr.val
-            self.jacobian[k, 1, 1] = -1
-            k += 1
-
-        ######################################################################
-        # derivatives for additional equations
-        self.additional_derivatives(increment_filter, k)
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        return
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
 
     def bus_func(self, bus):
         r"""
@@ -212,7 +164,7 @@ class Turbomachine(Component):
 
         Returns
         -------
-        val : float
+        residual : float
             Value of energy transfer :math:`\dot{E}`. This value is passed to
             :py:meth:`tespy.components.component.Component.calc_bus_value`
             for value manipulation according to the specified characteristic
@@ -222,11 +174,26 @@ class Turbomachine(Component):
 
                 \dot{E} = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right)
         """
-        i = self.inl[0].to_flow()
-        o = self.outl[0].to_flow()
-        val = i[0] * (o[2] - i[2])
+        return self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-        return val
+    def bus_func_doc(self, bus):
+        r"""
+        Return LaTeX string of the bus function.
+
+        Parameters
+        ----------
+        bus : tespy.connections.bus.Bus
+            TESPy bus object.
+
+        Returns
+        -------
+        latex : str
+            LaTeX string of bus function.
+        """
+        return (
+            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
+            r'h_\mathrm{in} \right)')
 
     def bus_deriv(self, bus):
         r"""

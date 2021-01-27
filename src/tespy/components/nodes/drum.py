@@ -10,49 +10,32 @@ available from its original location tespy/components/nodes/drum.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
-from tespy.components.component import Component
-from tespy.tools.fluid_properties import dh_mix_dpQ
+from tespy.components.nodes.droplet_separator import DropletSeparator
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
-class Drum(Component):
+class Drum(DropletSeparator):
     r"""
     A drum separates saturated gas from saturated liquid.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
-
-        - :py:meth:`tespy.components.nodes.drum.Drum.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-        .. math::
-
-            0 = \sum_i \left(\dot{m}_{i,in} \cdot h_{i,in} \right) -
-            \sum_j \left(\dot{m}_{j,out} \cdot h_{j,out} \right)\\
-            \forall i \in inlets, \; \forall j \in outlet
-
-            0 = p_{in,1} - p_{out,i}\\
-            \forall i \in \mathrm{outlets}
-
-            0 = h_{1,out} - h\left(p, x=0 \right)
-
-            0 = h_{2,out} - h\left(p, x=1 \right)\\
-            x: \text{vapour mass fraction}
+    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
 
     Inlets/Outlets
 
-        - in1, in2 (index 1: from economiser, index 2: from evaporator)
-        - out1, out2 (index 1: to evaporator, index 2: to superheater)
+    - in1, in2 (index 1: from economiser, index 2: from evaporator)
+    - out1, out2 (index 1: saturated liquid, index 2: saturated gas)
 
     Image
 
-        .. image:: _images/Drum.svg
-           :scale: 100 %
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Drum.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -179,151 +162,6 @@ class Drum(Component):
     def outlets():
         return ['out1', 'out2']
 
-    def comp_init(self, nw):
-
-        Component.comp_init(self, nw)
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl * 2
-        # mass flow: 1
-        # pressure: 3
-        # enthalpy: 1
-        # saturated liquid outlet: 1
-        # saturated gas outlet: 1
-        self.num_eq = self.num_nw_fluids * 2 + 7
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids * 2
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-        self.jacobian[pos + 1:pos + 4] = self.pressure_deriv()
-
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
-        ######################################################################
-        # eqations for fluid balance
-        self.residual[k:k + self.num_nw_fluids * 2] = self.fluid_func()
-        k += self.num_nw_fluids * 2
-
-        ######################################################################
-        # eqations for mass flow balance
-        self.residual[k] = self.mass_flow_func()
-        k += 1
-
-        ######################################################################
-        # eqations for pressure
-        p = self.inl[0].p.val_SI
-        for c in [self.inl[1]] + self.outl:
-            self.residual[k] = p - c.p.val_SI
-            k += 1
-
-        ######################################################################
-        # eqations for enthalpy
-        val = 0
-        for i in self.inl:
-            val += i.m.val_SI * i.h.val_SI
-        for o in self.outl:
-            val -= o.m.val_SI * o.h.val_SI
-        self.residual[k] = val
-        k += 1
-
-        ######################################################################
-        # eqations for staturated fluid state at outlets
-        self.residual[k] = h_mix_pQ(
-            self.outl[0].to_flow(), 0) - self.outl[0].h.val_SI
-        k += 1
-        self.residual[k] = h_mix_pQ(
-            self.outl[1].to_flow(), 1) - self.outl[1].h.val_SI
-        k += 1
-
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives fluid, mass flow and pressure balance are static
-        k = self.num_nw_fluids * 2 + 4
-
-        ######################################################################
-        # derivatives for energy balance equation
-        i = 0
-        for inl in self.inl:
-            self.jacobian[k, i, 0] = inl.h.val_SI
-            self.jacobian[k, i, 2] = inl.m.val_SI
-            i += 1
-        j = 0
-        for outl in self.outl:
-            self.jacobian[k, j + i, 0] = -outl.h.val_SI
-            self.jacobian[k, j + i, 2] = -outl.m.val_SI
-            j += 1
-        k += 1
-
-        ######################################################################
-        # derivatives of equations for saturated states at outlets
-        self.jacobian[k, 2, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
-        self.jacobian[k, 2, 2] = -1
-        k += 1
-        self.jacobian[k, 3, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
-        self.jacobian[k, 3, 2] = -1
-        k += 1
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in_1} - fluid_{i,out_{j}}\\
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets
-
-        """
-        residual = []
-
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - o.fluid.val[fluid]]
-        return residual
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((2 * self.num_nw_fluids, 4, self.num_nw_vars))
-        for k in range(2):
-            for i in range(self.num_nw_fluids):
-                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + 2, i + 3] = -1
-        return deriv
-
-    def pressure_deriv(self):
-        r"""
-        Calculate partial derivatives for pressure equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the pressure equations.
-        """
-        deriv = np.zeros((3, 4, self.num_nw_vars))
-        for k in range(3):
-            deriv[k, 0, 1] = 1
-            deriv[k, k + 1, 1] = -1
-        return deriv
-
     @staticmethod
     def initialise_source(c, key):
         r"""
@@ -354,9 +192,9 @@ class Drum(Component):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
             else:
-                return h_mix_pQ(c.to_flow(), 1)
+                return h_mix_pQ(c.get_flow(), 1)
 
     @staticmethod
     def initialise_target(c, key):
@@ -388,9 +226,9 @@ class Drum(Component):
             return 10e5
         elif key == 'h':
             if c.target_id == 'in1':
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
             else:
-                return h_mix_pQ(c.to_flow(), 0.7)
+                return h_mix_pQ(c.get_flow(), 0.7)
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""
@@ -439,7 +277,8 @@ class Drum(Component):
                 inconn.source.propagate_fluid_to_source(inconn, start)
 
     def get_plotting_data(self):
-        """Generate a dictionary containing FluProDia plotting information.
+        """
+        Generate a dictionary containing FluProDia plotting information.
 
         Returns
         -------

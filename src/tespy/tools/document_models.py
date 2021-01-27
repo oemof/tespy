@@ -371,10 +371,10 @@ def get_component_mandatory_constraints(cp, component_list, path):
                     figname, '', xlabel, ylabel)
                 figures += [create_latex_figure(
                     local_path,
-                    'Characteristics of ' + component.label +
+                    'Characteristics of ' +
+                    component.label.replace('_', r'\_') +
                     r' (eq. \ref{eq:' + cp + '_' + label + '})',
-                    'CharLine_' + label + '_' +
-                    component.label.replace('_', r'\_'))]
+                    'CharLine_' + label + '_' + component.label)]
         mandatory_eq += data['latex'](label) + '\n\n'
         num_mandatory_eq += 1
 
@@ -443,7 +443,7 @@ def get_component_specifications(cp, component_list, path):
                 elif isinstance(data, dc_gcc) and data.is_set:
                     for element in data.elements:
                         element_data = component.get_attr(element)
-                        figures += [get_char_specification(
+                        figures += [create_latex_CharLine(
                             component, element, element_data, path,
                             group=param)]
 
@@ -530,9 +530,9 @@ def document_busses(nw, path):
                     chars_plotted[key] = {
                         'path':
                             'figures/Bus_CharLine_' +
-                            cp.label.replace(' ', '_') + '.pdf',
+                            cp.label.replace(' ', '_') + nw.mode + '.pdf',
                         'label':
-                            'Bus_CharLine_' + cp.label.replace('_', r'\_')
+                            'Bus_CharLine_' + cp.label + nw.mode
                     }
                     figname = path + chars_plotted[key]['path']
                     if nw.mode == 'design':
@@ -733,9 +733,9 @@ def create_latex_CharLine(component, param, data, path, group=None):
     data.char_func.plot(figname, '', xlabel, ylabel)
     return create_latex_figure(
         local_path,
-        'Characteristics of ' + component.label + r' (eq. \ref{eq:' + cp +
-        '_' + group + '})',
-        'CharLine_' + param + '_' + component.label.replace('_', r'\_'))
+        'Characteristics of ' + component.label.replace('_', r'\_') +
+        r' (eq. \ref{eq:' + cp + '_' + group + '})',
+        'CharLine_' + param + '_' + component.label)
 
 
 def create_latex_CharMap(component, param, data, path, group=None):
@@ -775,9 +775,9 @@ def create_latex_CharMap(component, param, data, path, group=None):
     data.char_func.plot(figname, '', xlabel, ylabel)
     return create_latex_figure(
         local_path,
-        'Characteristics of ' + component.label + r' (eq. \ref{eq:' + cp +
-        '_' + group + '})',
-        'CharMap_' + param + '_' + component.label.replace('_', r'\_'))
+        'Characteristics of ' + component.label.replace('_', r'\_') +
+        r' (eq. \ref{eq:' + cp + '_' + group + '})',
+        'CharMap_' + param + '_' + component.label)
 
 
 def place_figures(figures):

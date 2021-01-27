@@ -288,19 +288,11 @@ class Compressor(Turbomachine):
         latex : str
             LaTeX code of equations applied.
         """
-        p = self.eta_s_char.param
-        expr = self.get_char_expr_doc(p, **self.eta_s_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
-            raise ValueError(msg)
-
         latex = (
             r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left( ' + expr + r' \right)-'
+            r'\eta_\mathrm{s,design}\cdot f\left(X\right)-'
             r'\left( h_{out,s} - h_{in} \right)')
-        return generate_latex_eq(self, latex, label + '_' + p)
+        return generate_latex_eq(self, latex, label)
 
     def eta_s_char_deriv(self, increment_filter, k):
         r"""
@@ -631,12 +623,13 @@ class Compressor(Turbomachine):
         Component.check_parameter_bounds(self)
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
-            x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-            y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-                self.inl[0].m.design * self.inl[0].p.val_SI * x)
-            yarr = data.char_func.get_domain_errors_x(x, self.label)
-            yarr *= (1 - self.igva.val / 100)
-            data.char_func.get_domain_errors_y(y, yarr, self.label)
+            if data.is_set:
+                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+                y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
+                    self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                yarr = data.char_func.get_domain_errors_x(x, self.label)
+                yarr *= (1 - self.igva.val / 100)
+                data.char_func.get_domain_errors_y(y, yarr, self.label)
 
     def exergy_balance(self, T0):
         r"""

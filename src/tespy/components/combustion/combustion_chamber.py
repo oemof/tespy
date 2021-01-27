@@ -1056,7 +1056,6 @@ class CombustionChamber(Component):
             r' \dot{m}_\mathrm{out,' + idx + r'}\cdot '
             r'x_{\mathrm{fuel,out,}' + idx + r'} \right]'
         )
-        return generate_latex_eq(self, latex, label)
 
     def bus_deriv(self, bus):
         r"""

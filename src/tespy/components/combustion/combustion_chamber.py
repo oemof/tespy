@@ -220,14 +220,23 @@ class CombustionChamber(Component):
                    self.component() + ' are: ' + str(self.fuel_list) + '.')
             logging.debug(msg)
 
-        self.o2 = [x for x in self.nw_fluids if x in [
-            a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
-        self.co2 = [x for x in self.nw_fluids if x in [
-            a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
-        self.h2o = [x for x in self.nw_fluids if x in [
-            a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
-        self.n2 = [x for x in self.nw_fluids if x in [
-            a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
+        for fluid in ['o2', 'co2', 'h2o', 'n2']:
+            try:
+                setattr(
+                    self, fluid, [x for x in self.nw_fluids if x in [
+                        a.replace(' ', '') for a in
+                        CP.get_aliases(fluid.upper())
+                    ]][0])
+            except IndexError:
+                msg = (
+                    'The component ' + self.label + ' (class ' +
+                    self.__class__.__name__ + ') requires that the fluid '
+                    '[fluid] is in the network\'s list of fluids.')
+                aliases = ', '.join(CP.get_aliases(fluid.upper()))
+                msg = msg.replace(
+                    '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
+                logging.error(msg)
+                raise TESPyComponentError(msg)
 
         self.fuels = {}
         for f in self.fuel_list:

@@ -11,40 +11,39 @@ SPDX-License-Identifier: MIT
 """
 import shutil
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.combustion import combustion_chamber
-from tespy.components.combustion import combustion_chamber_stoich
-from tespy.components.turbomachinery import compressor
-from tespy.components.turbomachinery import turbine
-from tespy.connections import connection
-from tespy.networks.networks import network
+from tespy.components import CombustionChamber
+from tespy.components import CombustionChamberStoich
+from tespy.components import Compressor
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Turbine
+from tespy.connections import Connection
+from tespy.networks import Network
 
 
 class TestGasturbine:
 
-    def setup_combustion_chamber_model(self):
+    def setup_CombustionChamber_model(self):
         """Set up the model using the combustion chamber."""
         # %% network setup
         fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-        self.nw1 = network(
-            fluids=fluid_list, p_unit='bar', T_unit='C',
-            p_range=[0.5, 20], T_range=[10, 2000])
+        self.nw1 = Network(
+            fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 20])
 
         # %% components
-        amb = source('ambient')
-        sf = source('fuel')
-        cc = combustion_chamber('combustion')
-        cp = compressor('compressor')
-        gt = turbine('turbine')
-        fg = sink('flue gas outlet')
+        amb = Source('ambient')
+        sf = Source('fuel')
+        cc = CombustionChamber('combustion')
+        cp = Compressor('compressor')
+        gt = Turbine('turbine')
+        fg = Sink('flue gas outlet')
 
         # %% connections
-        amb_cp = connection(amb, 'out1', cp, 'in1')
-        cp_cc = connection(cp, 'out1', cc, 'in1')
-        sf_cc = connection(sf, 'out1', cc, 'in2')
-        cc_gt = connection(cc, 'out1', gt, 'in1', label='flue gas after cc')
-        gt_fg = connection(gt, 'out1', fg, 'in1', label='flue gas after gt')
+        amb_cp = Connection(amb, 'out1', cp, 'in1')
+        cp_cc = Connection(cp, 'out1', cc, 'in1')
+        sf_cc = Connection(sf, 'out1', cc, 'in2')
+        cc_gt = Connection(cc, 'out1', gt, 'in1', label='flue gas after cc')
+        gt_fg = Connection(gt, 'out1', fg, 'in1', label='flue gas after gt')
 
         self.nw1.add_conns(amb_cp, cp_cc, sf_cc, cc_gt, gt_fg)
 
@@ -67,28 +66,28 @@ class TestGasturbine:
         mode = 'design'
         self.nw1.solve(mode=mode)
 
-    def setup_combustion_chamber_stoich_model(self):
+    def setup_CombustionChamberStoich_model(self):
         """Set up the model using the stoichimetric combustion chamber."""
         # %% network setup
         fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
-        self.nw2 = network(
+        self.nw2 = Network(
             fluids=fluid_list, p_unit='bar', T_unit='C',
             p_range=[0.5, 20], T_range=[10, 2000])
 
         # %% components
-        amb = source('ambient')
-        sf = source('fuel')
-        cc = combustion_chamber_stoich('combustion')
-        cp = compressor('compressor')
-        gt = turbine('turbine')
-        fg = sink('flue gas outlet')
+        amb = Source('ambient')
+        sf = Source('fuel')
+        cc = CombustionChamberStoich('combustion')
+        cp = Compressor('compressor')
+        gt = Turbine('turbine')
+        fg = Sink('flue gas outlet')
 
         # %% connections
-        amb_cp = connection(amb, 'out1', cp, 'in1')
-        cp_cc = connection(cp, 'out1', cc, 'in1')
-        sf_cc = connection(sf, 'out1', cc, 'in2')
-        cc_gt = connection(cc, 'out1', gt, 'in1', label='flue gas after cc')
-        gt_fg = connection(gt, 'out1', fg, 'in1', label='flue gas after gt')
+        amb_cp = Connection(amb, 'out1', cp, 'in1')
+        cp_cc = Connection(cp, 'out1', cc, 'in1')
+        sf_cc = Connection(sf, 'out1', cc, 'in2')
+        cc_gt = Connection(cc, 'out1', gt, 'in1', label='flue gas after cc')
+        gt_fg = Connection(gt, 'out1', fg, 'in1', label='flue gas after gt')
 
         self.nw2.add_conns(amb_cp, cp_cc, sf_cc, cc_gt, gt_fg)
 
@@ -112,8 +111,8 @@ class TestGasturbine:
 
     def test_models(self):
         """Tests the results of both gas turbine models."""
-        self.setup_combustion_chamber_model()
-        self.setup_combustion_chamber_stoich_model()
+        self.setup_CombustionChamber_model()
+        self.setup_CombustionChamberStoich_model()
         m1 = round(self.nw1.connections['flue gas after cc'].m.val, 6)
         m2 = round(self.nw2.connections['flue gas after cc'].m.val, 6)
         msg = (

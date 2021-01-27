@@ -157,7 +157,7 @@ def get_version():
     try:
         return check_git_branch()
     except FileNotFoundError:
-        return "{0}".format(check_version())
+        return '{0}'.format(check_version())
 
 
 def check_version():

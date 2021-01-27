@@ -15,16 +15,16 @@ import shutil
 import numpy as np
 import pytest
 
-from tespy.components import condenser
-from tespy.components import cycle_closer
-from tespy.components import heat_exchanger_simple
-from tespy.components import pipe
-from tespy.components import pump
-from tespy.components import sink
-from tespy.components import source
-from tespy.components import turbine
-from tespy.connections import connection
-from tespy.networks import network
+from tespy.components import Condenser
+from tespy.components import CycleCloser
+from tespy.components import HeatExchangerSimple
+from tespy.components import Pipe
+from tespy.components import Pump
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Turbine
+from tespy.connections import Connection
+from tespy.networks import Network
 from tespy.tools import fluid_properties as fp
 
 
@@ -37,8 +37,8 @@ def convergence_check(lin_dep):
 class TestFluidProperties:
 
     def setup(self):
-        fp.memorise.add_fluids({'Air': 'HEOS'})
-        fp.memorise.add_fluids({
+        fp.Memorise.add_fluids({'Air': 'HEOS'})
+        fp.Memorise.add_fluids({
             'N2': 'HEOS', 'O2': 'HEOS', 'Ar': 'HEOS', 'CO2': 'HEOS'})
 
         mix = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
@@ -150,7 +150,7 @@ class TestFluidProperties:
                         assert d_rel < d_rel_max, self.errormsg + msg
 
 
-def test_tespy_fluid_mixture():
+def test_TESPyFluid_mixture():
     """
     Test the mixture of a tespy fluid with a third fluid.
 
@@ -170,7 +170,7 @@ def test_tespy_fluid_mixture():
 
     # As the tespy fluid is part of a mixture, the minimum pressure for lookup
     # table creation must be much lower than the actual pressure range tested.
-    fp.tespy_fluid(
+    fp.TESPyFluid(
         alias='partial', fluid=partial_mix,
         p_range=[pmin / 3, pmax], T_range=[Tmin, Tmax])
 
@@ -179,8 +179,8 @@ def test_tespy_fluid_mixture():
     p_range = np.linspace(pmin, pmax, 40)
     T_range = np.linspace(Tmin, Tmax, 40)
     # the backend specification does not matter in this case!
-    fp.memorise.add_fluids({'partial': 'HEOS'})
-    fp.memorise.add_fluids({fluid: 'HEOS' for fluid in full_mix.keys()})
+    fp.Memorise.add_fluids({'partial': 'HEOS'})
+    fp.Memorise.add_fluids({fluid: 'HEOS' for fluid in full_mix.keys()})
 
     funcs = {
         'h': fp.h_mix_pT,
@@ -226,72 +226,74 @@ class TestFluidPropertyBackEnds:
 
     def setup_clausius_rankine(self, fluid_list):
         """Setup a Clausius-Rankine cycle."""
-        self.nw = network(fluids=fluid_list)
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+        self.nw = Network(fluids=fluid_list)
+        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=True)
 
         # %% components
 
         # main components
-        turb = turbine('turbine')
-        con = condenser('condenser')
-        pu = pump('pump')
-        steam_generator = heat_exchanger_simple('steam generator')
-        closer = cycle_closer('cycle closer')
+        turb = Turbine('turbine')
+        con = Condenser('condenser')
+        pu = Pump('pump')
+        steam_generator = HeatExchangerSimple('steam generator')
+        closer = CycleCloser('cycle closer')
 
         # cooling water
-        so_cw = source('cooling water inlet')
-        si_cw = sink('cooling water outlet')
+        so_cw = Source('cooling water inlet')
+        si_cw = Sink('cooling water outlet')
 
         # %% connections
 
         # main cycle
-        fs_in = connection(closer, 'out1', turb, 'in1', label='livesteam')
-        ws = connection(turb, 'out1', con, 'in1', label='wastesteam')
-        cond = connection(con, 'out1', pu, 'in1', label='condensate')
-        fw = connection(pu, 'out1', steam_generator, 'in1', label='feedwater')
-        fs_out = connection(steam_generator, 'out1', closer, 'in1')
+        fs_in = Connection(closer, 'out1', turb, 'in1', label='livesteam')
+        ws = Connection(turb, 'out1', con, 'in1', label='wastesteam')
+        cond = Connection(con, 'out1', pu, 'in1', label='condensate')
+        fw = Connection(pu, 'out1', steam_generator, 'in1', label='feedwater')
+        fs_out = Connection(steam_generator, 'out1', closer, 'in1')
         self.nw.add_conns(fs_in, ws, cond, fw, fs_out)
 
         # cooling water
-        cw_in = connection(so_cw, 'out1', con, 'in2')
-        cw_out = connection(con, 'out2', si_cw, 'in1')
+        cw_in = Connection(so_cw, 'out1', con, 'in2')
+        cw_out = Connection(con, 'out2', si_cw, 'in1')
         self.nw.add_conns(cw_in, cw_out)
 
         # %% parametrization of components
 
         turb.set_attr(eta_s=0.9)
         con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
-        pu.set_attr(eta_s=0.7)
         steam_generator.set_attr(pr=0.9)
 
         # %% parametrization of connections
 
         fs_in.set_attr(p=100, T=500, m=100, fluid={self.nw.fluids[0]: 1})
-
+        fw.set_attr(h=200e3)
         cw_in.set_attr(T=20, p=5, fluid={self.nw.fluids[0]: 1})
         cw_out.set_attr(T=30)
 
         # %% solving
         self.nw.solve('design')
+        pu.set_attr(eta_s=0.7)
+        fw.set_attr(h=None)
+        self.nw.solve('design')
 
     def setup_pipeline_network(self, fluid_list):
         """Setup a pipeline network."""
-        self.nw = network(fluids=fluid_list)
+        self.nw = Network(fluids=fluid_list)
         self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
 
         # %% components
 
         # main components
-        pu = pump('pump')
-        pi = pipe('pipeline')
-        es = heat_exchanger_simple('energy balance closing')
+        pu = Pump('pump')
+        pi = Pipe('pipeline')
+        es = HeatExchangerSimple('energy balance closing')
 
-        closer = cycle_closer('cycle closer')
+        closer = CycleCloser('cycle closer')
 
-        pu_pi = connection(pu, 'out1', pi, 'in1')
-        pi_es = connection(pi, 'out1', es, 'in1')
-        es_closer = connection(es, 'out1', closer, 'in1')
-        closer_pu = connection(closer, 'out1', pu, 'in1')
+        pu_pi = Connection(pu, 'out1', pi, 'in1')
+        pi_es = Connection(pi, 'out1', es, 'in1')
+        es_closer = Connection(es, 'out1', closer, 'in1')
+        closer_pu = Connection(closer, 'out1', pu, 'in1')
         self.nw.add_conns(pu_pi, pi_es, es_closer, closer_pu)
 
         # %% parametrization of components
@@ -314,15 +316,13 @@ class TestFluidPropertyBackEnds:
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
-        back_ends = ['HEOS', 'BICUBIC', 'TTSE']
-        # the IF97 back end is buggy on the CoolProp side, therefore not
-        # supported at the moment
-        # back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
+        back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
         results = {}
         for back_end in back_ends:
             # delete the fluid from the memorisation class
-            if fluid in fp.memorise.state.keys():
-                del fp.memorise.state[fluid]
+            if fluid in fp.Memorise.state.keys():
+                del fp.Memorise.state[fluid]
+                del fp.Memorise.back_end[fluid]
             self.setup_clausius_rankine([back_end + '::' + fluid])
             results[back_end] = (
                 1 - abs(self.nw.components['condenser'].Q.val) /
@@ -330,19 +330,20 @@ class TestFluidPropertyBackEnds:
 
         efficiency = results['HEOS']
 
+        if fluid in fp.Memorise.state.keys():
+            del fp.Memorise.state[fluid]
+            del fp.Memorise.back_end[fluid]
         for back_end in back_ends:
             if back_end == 'HEOS':
                 continue
 
-            d_rel = (
-                abs(results[back_end] - efficiency) /
-                efficiency)
+            d_rel = (abs(results[back_end] - efficiency) / efficiency)
 
             msg = (
                 'The deviation in thermal efficiency of the Clausius-Rankine '
                 'cycle calculated with ' + back_end + ' back end is ' +
-                str(d_rel) + ' but should not be larger than 1e-6.')
-            assert d_rel <= 1e-6, msg
+                str(d_rel) + ' but should not be larger than 1e-4.')
+            assert d_rel <= 1e-4, msg
 
     def test_pipeline_network(self):
         """Test a pipeline network with fluids from different back ends."""
@@ -350,8 +351,8 @@ class TestFluidPropertyBackEnds:
 
         for fluid, back_end in fluids_back_ends.items():
             # delete the fluid from the memorisation class
-            if fluid in fp.memorise.state.keys():
-                del fp.memorise.state[fluid]
+            if fluid in fp.Memorise.state.keys():
+                del fp.Memorise.state[fluid]
             self.setup_pipeline_network([back_end + '::' + fluid])
             convergence_check(self.nw.lin_dep)
 

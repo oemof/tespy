@@ -23,25 +23,25 @@ It is possible to specify values, starting values, references and data
 containers. The data containers for connections are dc_prop for fluid
 properties (mass flow, pressure, enthalpy, temperature and vapor mass
 fraction) and dc_flu for fluid composition. If you want to specify
-data_containers, you need to import them from the :code:`tespy.tools` module.
+data_containers, you need to import them from the :py:mod:`tespy.tools` module.
 
 In order to create the connections we create the components to connect first.
 
 .. code-block:: python
 
-    from tespy.tools import dc_prop
-    from tespy.connections import connection, ref
-    from tespy.components import sink, source
+    from tespy.tools import FluidProperties as dc_prop
+    from tespy.connections import Connection, Ref
+    from tespy.components import Sink, Source
 
     # create components
-    source1 = source('source 1')
-    source2 = source('source 2')
-    sink1 = sink('sink 1')
-    sink2 = sink('sink 2')
+    source1 = Source('source 1')
+    source2 = Source('source 2')
+    sink1 = Sink('sink 1')
+    sink2 = Sink('sink 2')
 
     # create connections
-    myconn = connection(source1, 'out1', sink1, 'in1')
-    myotherconn = connection(source2, 'out1', sink2, 'in1')
+    myconn = Connection(source1, 'out1', sink1, 'in1')
+    myotherconn = Connection(source2, 'out1', sink2, 'in1')
 
     # set pressure and vapor mass fraction by value, temperature and enthalpy
     # analogously
@@ -57,16 +57,13 @@ In order to create the connections we create the components to connect first.
     myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15),
                     h=dc_prop(val0=100))
 
-    # specify a value in a different unit for a specific parameter
-    myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True)
-
     # specify a referenced value: pressure of myconn is 1.2 times pressure at
-    # myotherconn minus 5 Pa (always SI unit here)
-    myconn.set_attr(p=ref(myotherconn, 1.2, -5))
+    # myotherconn minus 5 (unit is the network's corresponding unit)
+    myconn.set_attr(p=Ref(myotherconn, 1.2, -5))
 
     # specify value and reference at the same time
     myconn.set_attr(p=dc_prop(val=7, val_set=True,
-                    ref=ref(myotherconn, 1.2, -5), ref_set=True))
+                    ref=Ref(myotherconn, 1.2, -5), ref_set=True))
 
     # possibilities to unset values
     myconn.set_attr(p=np.nan)
@@ -82,13 +79,13 @@ If you want to specify the fluid vector you can do it in the following way.
 
 .. code-block:: python
 
-    from tespy.tools import dc_flu
+    from tespy.tools import FluidComposition as dc_flu
 
     # set both elements of the fluid vector
     myconn.set_attr(fluid={'water': 1, 'air': 0})
     # same thing, but using data container
     myconn.set_attr(fluid=dc_flu(val={'water': 1, 'air': 0},
-                    val_set:{'water': True, 'air': True}))
+                    val_set={'water': True, 'air': True}))
 
     # set starting values
     myconn.set_attr(fluid0={'water': 1, 'air': 0})
@@ -96,7 +93,7 @@ If you want to specify the fluid vector you can do it in the following way.
     myconn.set_attr(fluid=dc_flu(val0={'water': 1, 'air': 0}))
 
     # unset full fluid vector
-    myconn.set_attr(fluid=None)
+    myconn.set_attr(fluid={})
     # unset part of fluid vector
     myconn.fluid.set_attr(val_set={'water': False})
 
@@ -178,7 +175,7 @@ a bus and to output the bus value of the component using
     - If you specify a numeric value for char, the efficiency factor will be
       equal to that value independent of the load.
     - If you want to specify a characteristic line, provide
-      a :py:class:`char_line <tespy.tools.characteristics.char_line>`
+      a :py:class:`CharLine <tespy.tools.characteristics.CharLine>`
       object.
     - Specify :code:`'base': 'bus'` if you want to change from the default base
       to the bus as base. This means, that the definition of the efficiency
@@ -215,14 +212,14 @@ consumption.
 
 .. code-block:: python
 
-    from tespy.networks import network
-    from tespy.components import pump, turbine, combustion_engine
-    from tespy.connections import bus
+    from tespy.networks import Network
+    from tespy.components import Pump, Turbine, CombustionEngine
+    from tespy.connections import Bus
 
     # the total power on this bus must be zero
     # this way we can make sure the power of the turbine has the same value as
     # the pump's power but with negative sign
-    fwp_bus = bus('feed water pump bus', P=0)
+    fwp_bus = Bus('feed water pump bus', P=0)
     fwp_bus.add_comps({'comp': turbine_fwp}, {'comp': fwp})
     my_network.add_busses(fwp_bus)
 
@@ -234,7 +231,7 @@ power output.
     # the total power on this bus must be zero, too
     # we make sure the two turbines yield the same power output by adding the char
     # parameter for the second turbine and using -1 as char
-    turbine_bus = bus('turbines', P=0)
+    turbine_bus = Bus('turbines', P=0)
     turbine_bus.add_comps({'comp': turbine_1}, {'comp': turbine_2, 'char': -1})
     my_network.add_busses(turbine_bus)
 
@@ -246,12 +243,11 @@ to the bus.
 
     # bus for postprocessing, no power (or heat flow) specified but with variable
     # conversion efficiency
-    power_bus = bus('power output')
+    power_bus = Bus('power output')
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
     # create a characteristic line for a generator
-    gen1 = char_line(x=x, y=y)
-    gen2 = char_line(x=x, y=y)
+    gen = CharLine(x=x, y=y)
     power.add_comps(
         {'comp': turbine_hp, 'char': gen1},
         {'comp': turbine_lp, 'char': gen2})
@@ -264,34 +260,30 @@ power output.
 .. code:: python
 
     # bus for combustion engine power
-    x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
-    y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-    # create a characteristic line for a generator
-    gen = char_line(x=x, y=y)
-    el_power_bus = bus('combustion engine power', P=10e6)
+    el_power_bus = Bus('combustion engine power', P=-10e6)
     el_power_bus.add_comps({'comp': comb_engine, 'param': 'P', 'char': gen})
 
 Create a bus for the electrical power input of a pump :code:`pu` with
-:code:`'bus'` and with :code:`'component'` as base. In both cases. the value of
+:code:`'bus'` and with :code:`'component'` as base. In both cases, the value of
 the component power will be identical. Due to the different efficiency
 definitions the value of the bus power will differ in part load.
 
 .. code:: python
 
     import numpy as np
-    from tespy.components import pump, sink, source
-    from tespy.connections import bus, connection
-    from tespy.networks import network
-    from tespy.tools.characteristics import char_line
+    from tespy.components import Pump, Sink, Source
+    from tespy.connections import Bus, Connection
+    from tespy.networks import Network
+    from tespy.tools.characteristics import CharLine
 
-    nw = network(fluids=['H2O'], p_unit='bar', T_unit='C')
+    nw = Network(fluids=['H2O'], p_unit='bar', T_unit='C')
 
-    si = sink('sink')
-    so = source('source')
-    pu = pump('pump')
+    si = Sink('sink')
+    so = Source('source')
+    pu = Pump('pump')
 
-    so_pu = connection(so, 'out1', pu, 'in1')
-    pu_si = connection(pu, 'out1', si, 'in1')
+    so_pu = Connection(so, 'out1', pu, 'in1')
+    pu_si = Connection(pu, 'out1', si, 'in1')
 
     nw.add_conns(so_pu, pu_si)
 
@@ -299,13 +291,13 @@ definitions the value of the bus power will differ in part load.
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
     # create a characteristic line for a generator
-    mot_bus_based = char_line(x=x, y=y)
-    mot_comp_based = char_line(x=x, y=1 / y)
-    bus1 = bus('pump power bus based')
+    mot_bus_based = CharLine(x=x, y=y)
+    mot_comp_based = CharLine(x=x, y=1 / y)
+    bus1 = Bus('pump power bus based')
     bus1.add_comps({'comp': pu, 'char': mot_bus_based, 'base': 'bus'})
     # the keyword 'base': 'component' is the default value, therefore it does
     # not need to be passed
-    bus2 = bus('pump power component based')
+    bus2 = Bus('pump power component based')
     bus2.add_comps({'comp': pu, 'char': mot_comp_based})
 
     nw.add_busses(bus1, bus2)

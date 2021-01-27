@@ -1,0 +1,253 @@
+v0.4.0 - Gibbs' Gallery (January, 27, 2021)
++++++++++++++++++++++++++++++++++++++++++++
+
+API Changes
+###########
+- In order to stick closer to the
+  `PEP 8 style guide <https://www.python.org/dev/peps/pep-0008/>`_ we changed
+  the names of all classes in TESPy to :code:`CamelCase` instead of
+  :code:`snake_case` as the latter is reserved for methods. This means, you
+  need to change your import like in the following examples:
+
+  .. code-block:: python
+
+      from tespy.components import Turbine, CombustionEngine
+      from tespy.components import HeatExchanger, HeatExchangerSimple
+      from tespy.connections import Connection
+      from tespy.connections import Bus
+      from tespy.connections import Ref
+      from tespy.networks import Network
+      from tespy.tools.characteristics import CharLine
+
+      # but keep e.g.
+      from tespy.networks import load_network
+
+  The examples in the online documentation and the
+  `examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
+  repository have been adjusted accordingly
+  (`PR #237 <https://github.com/oemof/tespy/pull/237>`_).
+- The definition of power and heat transfer of the components
+  :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+  and :py:class:`tespy.components.customs.orc_evaporator.ORCEvaporator` as well
+  as the heat loss values of the components
+  :py:class:`tespy.components.heat_exchangers.solar_collector.SolarCollector`
+  and
+  :py:class:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough`
+  have been changed to negative sign as all values are energy output streams
+  (`PR #215 <https://github.com/oemof/tespy/pull/215>`_) and
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+- Specification of characteristics has changed. Use a dictionary instead of
+  DataContainer specification if you want to update more than just the
+  characteristic function. E.g. if you have the measurement data for the
+  isentropic efficiency of a turbine like below. X-data are ratio of actual
+  mass flow to design mass flow and y values are the ratio of actual
+  isentropic efficiency to design value of the turbine. Say, you want to
+  specify these data as :py:class:`tespy.tools.characteristics.CharLine` and
+  the characteristics should be applied. In order to do that, pass a dictionary
+  that contains the :code:`CharLine` object as :code:`'char_func'` and set
+  :code:`is_set` to :code:`True`:
+
+  .. code-block:: python
+
+      from tespy.components import Turbine
+      from tespy.tools.characteristics import CharLine
+      import numpy as np
+
+      t = Turbine('myturbine')
+      # ... design specs
+      # ... design calculation
+      # offdesign case, use char line
+      line = CharLine(
+        x=[0.1, 0.3, 0.5, 0.7, 0.9, 1, 1.1],
+        y=np.array([0.6, 0.65, 0.75, 0.82, 0.85, 0.855, 0.79]) / 0.855)
+      t.set_attr(eta_s_char={'char_func': line, 'is_set': True})
+
+  More information on characteristics specification and a fully working example
+  can be found in the corresponding section in the online
+  :ref:`documentation <component_characteristic_specification_label>`
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+- Characteristic Maps behave differently: Instead of two output dimensions
+  :code:`z1` and :code:`z2` they do now only hold one output dimension
+  :code:`z`. The calculation of z as function of x and y does not change
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+- The :code:`char_map` parameter of the component
+  :py:class:`tespy.components.turbomachinery.compressor.Compressor` has been
+  split up into two separate parameters:
+
+  - :code:`char_map_eta_s`: Map linking non-dimensional mass flow and speed
+    line to isentropic efficiency.
+  - :code:`char_map_pr`: Map linking non-dimensional mass flow and speed line
+    to pressure ratio.
+
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+- Remove class Node (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+- For reference specification, the :code:`delta` parameter must be specified
+  in the corresponding network unit, e.g. if your pressure unit is set to
+  :code:`bar`, the :code:`delta` will be interpreted in bar, too
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+
+New Features
+############
+- Automatic TESPy model documentation: You can generate an automatic model
+  report in LaTeX format after a simulation. The document will contain all
+  input parameters specified as well as all equations and characteristics
+  applied in your previous simulation. Import and function call are implemented
+  as follows. This feature will be under future development, driven by user
+  requirements. If you have any feedback or suggestions or want to add new data
+  you are very welcome to submit an issue in the GitHub repository or even open
+  a pull request. The documentation code is located in the
+  :py:mod:`tespy.tools.document_models` module.
+
+  .. code-block:: python
+
+      from tespy.tools import document_model
+
+      document_model(mynetwork)
+
+  For further information also check the corresponding section in the online
+  documentation (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+
+- IF97 back end for properties of water is now supported. A fix was implemented
+  in TESPy to solve convergence issues near saturation in region 1. You can use
+  the back end by adding :code:`'IF97::water'` to your network's fluid list
+  (`PR #238 <https://github.com/oemof/tespy/pull/238>`_, also see
+  `CoolProp Issue #1918 <https://github.com/CoolProp/CoolProp/issues/1918>`_).
+
+- An automatic exergy analysis has been added. The method reliably works for
+  temperature values that are larger than the ambient temperature. An
+  implementation for temperature values crossing or below the ambient
+  temperature is in the making. Also, combustion processes are not covered for
+  now (`PR #215 <https://github.com/oemof/tespy/pull/215>`_). If you like to
+  contribute, you are welcome to submit an issue in the GitHub repository.
+
+- Add a method :code:`get_plotting_data` to each component to export the input
+  data required by FluProDia in order to generate the data required to display
+  state changes in the components in a fluid property diagram. Each component
+  returns a nested dictionary containing the respective data. E.g. the return
+  value of a :code:`valve`:
+
+  .. code-block:: bash
+
+      {1: {
+          'isoline_property': 'h',
+          'isoline_value': 773.8970004397456,
+          'isoline_value_end': 773.8970004397456,
+          'starting_point_property': 'p',
+          'starting_point_value': 51.164150405253665,
+          'ending_point_property': 'p',
+          'ending_point_value': 6.831002318100345
+     }}
+
+  The diagrams could look like this:
+
+  .. figure:: api/_images/logph_diagram_states.svg
+      :align: center
+
+      Figure: logph diagram of NH3 with a simple heat pump cycle.
+
+  .. figure:: api/_images/Ts_diagram_states.svg
+      :align: center
+
+      Figure: Ts diagram of NH3 with a simple heat pump cycle.
+
+  For more information see the respective
+  :ref:`documentation section <FluProDia_label>`
+  (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).
+
+- Add a flag to deactivate calculation of all component equations in every
+  iteration. This improves stability in some cases but may reduce calculation
+  speed (`PR #226 <https://github.com/oemof/tespy/pull/226>`_). To deactivate
+  simply specify on calling the
+  :py:meth:`tespy.networks.network.Network.solve` method:
+
+  .. code-block:: python
+
+      mynetwork.solve('design', always_all_equations=False)
+
+- Add a flag use cuda instead of numpy for matrix inversion. With cuda matrix
+  inversion is outsourced to the graphics card. Using cuda additionally
+  requires :code:`cupy` installed on your machine
+  (`PR #226 <https://github.com/oemof/tespy/pull/226>`_). To activate simply
+  specify on calling the
+  :py:meth:`tespy.networks.network.Network.solve` method:
+
+  .. code-block:: python
+
+      mynetwork.solve('design', use_cuda=True)
+
+  For more information on :code:`cupy` visit the online
+  `documentation <https://docs.cupy.dev/en/stable/index.html>`_.
+
+  .. note::
+
+      In general, calculation time depends on many factors of your local
+      machine. You should try and check, if using cuda or disabling always all
+      equations benefits your calculation times individually.
+
+Documentation
+#############
+- Fix several broken links and typos
+  (`PR #236 <https://github.com/oemof/tespy/pull/236>`_).
+
+Bug Fixes
+#########
+- Fix a bug, where checking if parameters are numeric in the :code:`set_attr()`
+  methods of classes connection, bus and component failed in case special numpy
+  number types were passed
+  (`#daa1ecb <https://github.com/oemof/tespy/commit/daa1ecb>`_,
+  `#b420396 <https://github.com/oemof/tespy/commit/b420396>`_).
+
+Other Changes
+#############
+.. list-table:: Adjust value limits for some component parameters
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - component
+     - parameter
+     - new value
+   * - heat_exchanger_simple
+     - :code:`zeta.max_val`
+     - 1e15
+   * -
+     - :code:`ks.max_val` (for Hazen-Williams equation)
+     - 200
+   * - valve
+     - :code:`zeta.max_val`
+     - 1e15
+
+- On some machines the coloring of the results printout does not work and
+  displaces the table in an ugly way. To avoid this, the coloring is changed to
+  optional (`PR #229 <https://github.com/oemof/tespy/pull/229>`_). Use the
+  following line for non-colored printouts:
+
+  .. code-block:: python
+
+      mynetwork.print_results(colored=False)
+
+- An error message is raised in case the user specifies a fluid vector
+  containing fluids, that are not part of the network's fluid list
+  (`PR #233 <https://github.com/oemof/tespy/pull/233>`_).
+
+- An understandable error message is raised in case the user misses out on
+  fluids required by components of class CombustionChamber or CombustionEngine
+  (`#7adff43a <https://github.com/oemof/tespy/commit/7adff43>`_).
+
+- For improved convergence stability of the methods
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_group_func` and
+  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_group_func`,
+  the logarithmic temperature difference is calculated based on the mean
+  temperature difference between ambient and inlet and outlet temperature, if
+  the terminal temperature differences do not have the same sign
+  (`PR #225 <https://github.com/oemof/tespy/pull/225>`_).
+
+- Changes in the equation management of components for much easier maintenance
+  and future development
+  (`PR #243 <https://github.com/oemof/tespy/pull/243>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@juliusmeier <https://github.com/juliusmeier>`_
+- `@jbueck <https://github.com/jbueck>`_
+- Markus Brandt (`@MarBrandt <https://github.com/MarBrandt>`_)

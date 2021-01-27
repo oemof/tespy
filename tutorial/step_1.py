@@ -1,48 +1,50 @@
-from tespy.components import condenser
-from tespy.components import cycle_closer
-from tespy.components import heat_exchanger_simple
-from tespy.components import pump
-from tespy.components import sink
-from tespy.components import source
-from tespy.connections import connection
-from tespy.networks import network
+# -*- coding: utf-8 -*-
+
+from tespy.components import Condenser
+from tespy.components import CycleCloser
+from tespy.components import HeatExchangerSimple
+from tespy.components import Pump
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.connections import Connection
+from tespy.networks import Network
 
 # %% network
 
-nw = network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
+nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
              h_unit='kJ / kg', m_unit='kg / s')
 
 # %% components
 
 # sources & sinks
 
-c_in = source('coolant in')
-cons_closer = cycle_closer('consumer cycle closer')
+c_in = Source('coolant in')
+cons_closer = CycleCloser('consumer cycle closer')
 
-va = sink('valve')
+va = Sink('valve')
 
 # consumer system
 
-cd = condenser('condenser')
-rp = pump('recirculation pump')
-cons = heat_exchanger_simple('consumer')
+cd = Condenser('condenser')
+rp = Pump('recirculation pump')
+cons = HeatExchangerSimple('consumer')
 
 # %% connections
 
 # consumer system
 
-c_in_cd = connection(c_in, 'out1', cd, 'in1')
+c_in_cd = Connection(c_in, 'out1', cd, 'in1')
 
-close_rp = connection(cons_closer, 'out1', rp, 'in1')
-rp_cd = connection(rp, 'out1', cd, 'in2')
-cd_cons = connection(cd, 'out2', cons, 'in1')
-cons_close = connection(cons, 'out1', cons_closer, 'in1')
+close_rp = Connection(cons_closer, 'out1', rp, 'in1')
+rp_cd = Connection(rp, 'out1', cd, 'in2')
+cd_cons = Connection(cd, 'out2', cons, 'in1')
+cons_close = Connection(cons, 'out1', cons_closer, 'in1')
 
 nw.add_conns(c_in_cd, close_rp, rp_cd, cd_cons, cons_close)
 
 # connection condenser - evaporator system
 
-cd_va = connection(cd, 'out1', va, 'in1')
+cd_va = Connection(cd, 'out1', va, 'in1')
 
 nw.add_conns(cd_va)
 

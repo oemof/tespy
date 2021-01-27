@@ -11,8 +11,8 @@ In the example section we provide a variety of TESPy applications, among
 others:
 
 * a very basic model of the clausius rankine process,
-* the calculation of backpressure lines of a chp at different loads and feed
-  flow temperature levels,
+* the calculation of backpressure lines of a combined heat and power cycle at
+  different loads and feed flow temperature levels,
 * modeling approach for a district heating system with various consumers and
   system infrastructure as well as
 * the COP of a heat pump dependent on load, ambient temperature and heat
@@ -23,9 +23,9 @@ You can find all examples in the
 on github. Additional small examples can be found in the API-documentation.
 
 * :py:mod:`Components <tespy.components>`
-* :py:mod:`Connections and busses <tespy.connections>`
-* :py:mod:`Networks <tespy.networks.networks>`
-* :py:mod:`Exporting/Importing networks <tespy.networks.network_reader>`
+* :py:mod:`Connections and Busses <tespy.connections>`
+* :py:mod:`Networks <tespy.networks.network>`
+* :py:mod:`Importing Networks <tespy.networks.network_reader>`
 
 .. contents:: `Examples`
     :depth: 1

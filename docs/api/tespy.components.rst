@@ -1,91 +1,248 @@
 tespy.components module
 =======================
 
-tespy.components.basics module
-------------------------------
-
-.. automodule:: tespy.components.basics
+.. automodule:: tespy.components
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.combustion module
-----------------------------------
+tespy.components.component module
+---------------------------------
 
-.. automodule:: tespy.components.combustion
+.. automodule:: tespy.components.component
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.components module
-----------------------------------
+tespy.components.subsystem module
+---------------------------------
 
-.. automodule:: tespy.components.components
+.. automodule:: tespy.components.subsystem
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.customs module
--------------------------------
+tespy.components.basics.cycle_closer module
+-------------------------------------------
 
-.. automodule:: tespy.components.customs
+.. automodule:: tespy.components.basics.cycle_closer
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers module
----------------------------------------
+tespy.components.basics.sink module
+-----------------------------------
 
-.. automodule:: tespy.components.heat_exchangers
+.. automodule:: tespy.components.basics.sink
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.nodes module
------------------------------
+tespy.components.basics.source module
+-------------------------------------
 
-.. automodule:: tespy.components.nodes
+.. automodule:: tespy.components.basics.source
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.piping module
-------------------------------
+tespy.components.basics.subsystem_interface module
+--------------------------------------------------
 
-.. automodule:: tespy.components.piping
+.. automodule:: tespy.components.basics.subsystem_interface
     :members:
     :undoc-members:
     :show-inheritance:
 
+tespy.components.combustion.combustion_chamber module
+-----------------------------------------------------
 
-tespy.components.reactors module
---------------------------------
-
-.. automodule:: tespy.components.reactors
+.. automodule:: tespy.components.combustion.combustion_chamber
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.subsystems module
-----------------------------------
+tespy.components.combustion.combustion_chamber_stoich module
+------------------------------------------------------------
 
-.. automodule:: tespy.components.subsystems
+.. automodule:: tespy.components.combustion.combustion_chamber_stoich
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery module
+tespy.components.combustion.combustion_engine module
+-----------------------------------------------------
+
+.. automodule:: tespy.components.combustion.combustion_engine
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.customs.orc_evaporator module
+----------------------------------------------
+
+.. automodule:: tespy.components.customs.orc_evaporator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.condenser module
+-------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.condenser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.desuperheater module
+-----------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.desuperheater
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.heat_exchanger module
+------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.heat_exchanger
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.heat_exchanger_simple module
+-------------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.heat_exchanger_simple
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.parabolic_trough module
+--------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.parabolic_trough
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.solar_collector module
+-------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.solar_collector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.base module
 --------------------------------------
 
-.. automodule:: tespy.components.turbomachinery
+.. automodule:: tespy.components.nodes.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-Module contents
----------------
 
-.. automodule:: tespy.components
+tespy.components.nodes.droplet_separator module
+-----------------------------------------------
+
+.. automodule:: tespy.components.nodes.droplet_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+tespy.components.nodes.drum module
+----------------------------------
+
+.. automodule:: tespy.components.nodes.drum
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.merge module
+-----------------------------------
+
+.. automodule:: tespy.components.nodes.merge
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.node module
+----------------------------------
+
+.. automodule:: tespy.components.nodes.node
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.separator module
+---------------------------------------
+
+.. automodule:: tespy.components.nodes.separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.splitter module
+--------------------------------------
+
+.. automodule:: tespy.components.nodes.splitter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.piping.pipe module
+-----------------------------------
+
+.. automodule:: tespy.components.piping.pipe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.piping.valve module
+------------------------------------
+
+.. automodule:: tespy.components.piping.valve
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+tespy.components.reactors.water_electrolyzer module
+---------------------------------------------------
+
+.. automodule:: tespy.components.reactors.water_electrolyzer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.compressor module
+-------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.compressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.pump module
+-------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.pump
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.turbine module
+----------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.turbine
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.turbomachine module
+---------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.turbomachine
     :members:
     :undoc-members:
     :show-inheritance:

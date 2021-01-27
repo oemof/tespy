@@ -15,6 +15,7 @@ import CoolProp as CP
 import numpy as np
 
 from tespy.tools.global_vars import err
+from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
 
 # %%
@@ -37,7 +38,91 @@ class TESPyComponentError(Exception):
 
     pass
 
-# %%
+
+def convert_to_SI(property, value, unit):
+    r"""
+    Convert a value to its SI value.
+
+    Parameters
+    ----------
+    property : str
+        Fluid property to convert.
+
+    value : float
+        Value to convert.
+
+    unit : str
+        Unit of the value.
+
+    Returns
+    -------
+    SI_value : float
+        Specified fluid property in SI value.
+    """
+    if property == 'T':
+        converters = fluid_property_data['T']['units'][unit]
+        return (value + converters[0]) * converters[1]
+
+    elif property == 'Td_bp':
+        return value * fluid_property_data['T']['units'][unit][1]
+
+    else:
+        return value * fluid_property_data[property]['units'][unit]
+
+
+def convert_from_SI(property, SI_value, unit):
+    r"""
+    Get a value in the network's unit system from SI value.
+
+    Parameters
+    ----------
+    property : str
+        Fluid property to convert.
+
+    SI_value : float
+        SI value to convert.
+
+    unit : str
+        Unit of the value.
+
+    Returns
+    -------
+    value : float
+        Specified fluid property value in network's unit system.
+    """
+    if property == 'T':
+        converters = fluid_property_data['T']['units'][unit]
+        return SI_value / converters[1] - converters[0]
+
+    elif property == 'Td_bp':
+        return SI_value / fluid_property_data['T']['units'][unit][1]
+
+    else:
+        return SI_value / fluid_property_data[property]['units'][unit]
+
+
+def latex_unit(unit):
+    r"""
+    Convert unit to LaTeX.
+
+    Parameters
+    ----------
+    unit : str
+        Value of unit for input, e.g. :code:`m3 / kg`.
+
+    Returns
+    -------
+    unit : str
+        Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
+    """
+    if '/' in unit:
+        numerator = unit.split('/')[0].replace(' ', '')
+        denominator = unit.split('/')[1].replace(' ', '')
+        return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
+    else:
+        if unit == 'C':
+            unit = r'^\circ C'
+        return r'$\unit[]{' + unit + '}$'
 
 
 def newton(func, deriv, params, y, **kwargs):
@@ -71,6 +156,20 @@ def newton(func, deriv, params, y, **kwargs):
     max_iter : int
         Maximum number of iterations, default: max_iter=10.
 
+    tol_rel : float
+        Maximum relative tolerance :math:`|\frac{y - f(x)}{f(x)}|`, default
+        value: 1e-6.
+
+    tol_abs : float
+        Maximum absolute tolerance :math:`|y - f(x)|`, default value: 1e-6.
+
+    tol_mode : str
+        Check for relative, absolute or both tolerances:
+
+        - :code:`tol_mode='abs'` (default)
+        - :code:`tol_mode='rel'`
+        - :code:`tol_mode='both'`
+
     Returns
     -------
     val : float
@@ -90,11 +189,14 @@ def newton(func, deriv, params, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
+    tol_rel = kwargs.get('tol_rel', err)
+    tol_abs = kwargs.get('tol_abs', err)
+    tol_mode = kwargs.get('tol_mode', 'abs')
 
     # start newton loop
-    res = 1
+    expr = True
     i = 0
-    while abs(res) >= err:
+    while expr:
         # calculate function residual and new value
         res = y - func(params, x)
         x += res / deriv(params, x)
@@ -114,6 +216,12 @@ def newton(func, deriv, params, y, **kwargs):
             logging.debug(msg)
 
             break
+        if tol_mode == 'abs':
+            expr = abs(res) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(res / y) >= tol_rel
+        else:
+            expr = abs(res / y) >= tol_rel or abs(res) >= tol_abs
 
     return x
 
@@ -202,12 +310,8 @@ def bus_char_derivative(params, bus_value):
     char_func = params[2]
     d = 1e-3
     return (1 - (
-        1 / char_func.evaluate(
-            (bus_value + d) / reference_value) -
-        1 / char_func.evaluate(
-            (bus_value - d) / reference_value)) / (2 * d))
-
-# %%
+        1 / char_func.evaluate((bus_value + d) / reference_value) -
+        1 / char_func.evaluate((bus_value - d) / reference_value)) / (2 * d))
 
 
 def molar_mass_flow(flow):
@@ -222,12 +326,12 @@ def molar_mass_flow(flow):
 
     Returns
     -------
-    mm : float
-        Molar mass flow mm / (mol/s).
+    m_m : float
+        Molar mass flow m_m / (mol/s).
 
         .. math::
 
-            mm = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
+            \dot{m}_\mathrm{m} = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
     """
     mm = 0
     for fluid, x in flow.items():
@@ -330,7 +434,7 @@ def fluid_structure(fluid):
 # %%
 
 
-def lamb(re, ks, d):
+def darcy_friction_factor(re, ks, d):
     r"""
     Calculate the Darcy friction factor.
 
@@ -347,8 +451,8 @@ def lamb(re, ks, d):
 
     Returns
     -------
-    lamb : float
-        Darcy friction factor lamb / 1
+    darcy_friction_factor : float
+        Darcy friction factor :math:`\lambda` / 1
 
     Note
     ----
@@ -386,7 +490,7 @@ def lamb(re, ks, d):
     -------
     Calculate the Darcy friction factor at different hydraulic states.
 
-    >>> from tespy.tools.helpers import lamb
+    >>> from tespy.tools.helpers import darcy_friction_factor
     >>> ks = 5e-5
     >>> d = 0.05
     >>> re_laminar = 2000
@@ -398,17 +502,17 @@ def lamb(re, ks, d):
     >>> d_very_high = 1
     >>> ks_low = 1e-5
     >>> ks_rough = 1e-3
-    >>> lamb(re_laminar, ks, d)
+    >>> darcy_friction_factor(re_laminar, ks, d)
     0.032
-    >>> round(lamb(re_turb_smooth, ks, d), 3)
+    >>> round(darcy_friction_factor(re_turb_smooth, ks, d), 3)
     0.027
-    >>> round(lamb(re_turb_trans, ks, d), 3)
+    >>> round(darcy_friction_factor(re_turb_trans, ks, d), 3)
     0.023
-    >>> round(lamb(re_turb_trans, ks_rough, d), 3)
+    >>> round(darcy_friction_factor(re_turb_trans, ks_rough, d), 3)
     0.049
-    >>> round(lamb(re_high, ks, d_high), 3)
+    >>> round(darcy_friction_factor(re_high, ks, d_high), 3)
     0.012
-    >>> round(lamb(re_very_high, ks_low, d_very_high), 3)
+    >>> round(darcy_friction_factor(re_very_high, ks_low, d_very_high), 3)
     0.009
     """
     if re <= 2320:
@@ -416,23 +520,23 @@ def lamb(re, ks, d):
     else:
         if re * ks / d < 65:
             if re <= 5e4:
-                return lamb_blasius(re)
+                return blasius(re)
             elif re < 1e6:
-                return lamb_hanakov(re)
+                return hanakov(re)
             else:
                 l0 = 0.02
                 return newton(
-                    lamb_prandtl_karman, lamb_prandtl_karman_derivative, [re],
+                    prandtl_karman, prandtl_karman_derivative, [re],
                     0, val0=l0, valmin=0.00001, valmax=0.2)
 
         else:
             l0 = 0.002
             return newton(
-                lamb_colebrook, lamb_colebrook_derivative, [re, ks, d], 0,
+                colebrook, colebrook_derivative, [re, ks, d], 0,
                 val0=l0, valmin=0.0001, valmax=0.2)
 
 
-def lamb_blasius(re):
+def blasius(re):
     """
     Calculate friction coefficient according to Blasius.
 
@@ -443,13 +547,13 @@ def lamb_blasius(re):
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     return 0.3164 * re ** (-0.25)
 
 
-def lamb_hanakov(re):
+def hanakov(re):
     """
     Calculate friction coefficient according to Hanakov.
 
@@ -460,13 +564,13 @@ def lamb_hanakov(re):
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     return (1.8 * np.log10(re) - 1.5) ** (-2)
 
 
-def lamb_prandtl_karman(params, lamb):
+def prandtl_karman(params, darcy_friction_factor):
     """
     Calculate friction coefficient according to Prandtl and v. Kármán.
 
@@ -477,24 +581,28 @@ def lamb_prandtl_karman(params, lamb):
     re : float
         Reynolds number.
 
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     re = params[0]
-    return 2 * np.log10(re * lamb ** 0.5) - 0.8 - 1 / lamb ** 0.5
+    return (
+        2 * np.log10(re * darcy_friction_factor ** 0.5) - 0.8 -
+        1 / darcy_friction_factor ** 0.5)
 
 
-def lamb_prandtl_karman_derivative(params, lamb):
+def prandtl_karman_derivative(params, darcy_friction_factor):
     """Calculate derivative for Prandtl and v. Kármán equation."""
-    return 1 / (lamb * np.log(10)) + 1 / 2 * lamb ** (-1.5)
+    return (
+        1 / (darcy_friction_factor * np.log(10)) +
+        1 / 2 * darcy_friction_factor ** (-1.5))
 
 
-def lamb_colebrook(params, lamb):
+def colebrook(params, darcy_friction_factor):
     """
     Calculate friction coefficient accroding to Colebrook-White equation.
 
@@ -511,24 +619,26 @@ def lamb_colebrook(params, lamb):
     d : float
         Pipe's diameter.
 
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
 
     Returns
     -------
-    lamb : float
+    darcy_friction_factor : float
         Darcy friction factor.
     """
     re, ks, d = params[0], params[1], params[2]
-    return (2 * np.log10(2.51 / (re * lamb ** 0.5) + ks / (3.71 * d)) +
-            1 / lamb ** 0.5)
+    return (
+        2 * np.log10(
+            2.51 / (re * darcy_friction_factor ** 0.5) + ks / (3.71 * d)) +
+        1 / darcy_friction_factor ** 0.5)
 
 
-def lamb_colebrook_derivative(params, lamb):
+def colebrook_derivative(params, darcy_friction_factor):
     """Calculate derivative for Colebrook-White equation."""
     d = 0.001
-    return (lamb_colebrook(params, lamb + d) -
-            lamb_colebrook(params, lamb - d)) / (2 * d)
+    return (colebrook(params, darcy_friction_factor + d) -
+            colebrook(params, darcy_friction_factor - d)) / (2 * d)
 
 # %%
 

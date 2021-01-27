@@ -13,15 +13,15 @@ import shutil
 
 import numpy as np
 
-from tespy.components.basics import sink
-from tespy.components.basics import source
-from tespy.components.combustion import combustion_chamber
-from tespy.components.turbomachinery import compressor
-from tespy.components.turbomachinery import turbine
-from tespy.connections import bus
-from tespy.connections import connection
-from tespy.networks.networks import network
-from tespy.tools.characteristics import char_line
+from tespy.components import CombustionChamber
+from tespy.components import Compressor
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Turbine
+from tespy.connections import Bus
+from tespy.connections import Connection
+from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
 
 
 class TestBusses:
@@ -30,24 +30,23 @@ class TestBusses:
         """Set up the model."""
         # %% network setup
         fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-        self.nw = network(
-            fluids=fluid_list, p_unit='bar', T_unit='C',
-            p_range=[0.5, 20], T_range=[10, 2000])
+        self.nw = Network(
+            fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 20])
 
         # %% components
-        amb = source('ambient')
-        sf = source('fuel')
-        cc = combustion_chamber('combustion')
-        cp = compressor('compressor')
-        gt = turbine('turbine')
-        fg = sink('flue gas outlet')
+        amb = Source('ambient')
+        sf = Source('fuel')
+        cc = CombustionChamber('combustion')
+        cp = Compressor('compressor')
+        gt = Turbine('turbine')
+        fg = Sink('flue gas outlet')
 
         # %% connections
-        amb_cp = connection(amb, 'out1', cp, 'in1', label='ambient air flow')
-        cp_cc = connection(cp, 'out1', cc, 'in1')
-        sf_cc = connection(sf, 'out1', cc, 'in2')
-        cc_gt = connection(cc, 'out1', gt, 'in1')
-        gt_fg = connection(gt, 'out1', fg, 'in1')
+        amb_cp = Connection(amb, 'out1', cp, 'in1', label='ambient air flow')
+        cp_cc = Connection(cp, 'out1', cc, 'in1')
+        sf_cc = Connection(sf, 'out1', cc, 'in2')
+        cc_gt = Connection(cc, 'out1', gt, 'in1')
+        gt_fg = Connection(gt, 'out1', fg, 'in1')
 
         self.nw.add_conns(amb_cp, cp_cc, sf_cc, cc_gt, gt_fg)
 
@@ -76,8 +75,8 @@ class TestBusses:
              0.9318, 0.9443, 0.9546, 0.9638, 0.9724, 0.9806, 0.9878, 0.9938,
              0.9982, 0.999, 0.9995, 0.9999, 1, 0.9977, 0.9947, 0.9909, 0.9853,
              0.9644]) * 0.975
-        self.motor_bus_based = char_line(x=x, y=y)
-        self.motor_comp_based = char_line(x=x, y=1 / y)
+        self.motor_bus_based = CharLine(x=x, y=y)
+        self.motor_comp_based = CharLine(x=x, y=1 / y)
 
         # generator efficiency
         x = np.array(
@@ -86,21 +85,21 @@ class TestBusses:
         y = np.array(
             [0.976, 0.989, 0.990, 0.991, 0.992, 0.993, 0.994, 0.995, 0.996,
              0.997, 0.998, 0.999, 1.000, 0.999, 0.99]) * 0.975
-        self.generator = char_line(x=x, y=y)
+        self.generator = CharLine(x=x, y=y)
 
-        power_bus_total = bus('total power output')
+        power_bus_total = Bus('total power output')
         power_bus_total.add_comps(
             {'comp': cp, 'char': self.motor_bus_based, 'base': 'bus'},
             {'comp': gt, 'char': self.generator})
 
-        thermal_input = bus('thermal input')
+        thermal_input = Bus('thermal input')
         thermal_input.add_comps({'comp': cc})
 
-        compressor_power_comp = bus('compressor power input')
+        compressor_power_comp = Bus('compressor power input')
         compressor_power_comp.add_comps(
             {'comp': cp, 'char': self.motor_comp_based})
 
-        compressor_power_bus = bus('compressor power input bus based')
+        compressor_power_bus = Bus('compressor power input bus based')
         compressor_power_bus.add_comps(
             {'comp': cp, 'char': self.motor_bus_based, 'base': 'bus'})
 

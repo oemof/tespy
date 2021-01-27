@@ -3,8 +3,8 @@
 Developing TESPy
 ================
 
-TESPy has been developed mainly by Francesco Witte at the university of applied
-sciences Flensburg. We hope that many people can make use of this project and
+TESPy has been developed mainly by Francesco Witte at the University of Applied
+Sciences Flensburg. We hope that many people can make use of this project and
 that it will be a community driven project in the future, as users might demand
 special components or flexible implementations of characteristics, custom
 equations, basically what ever you can think of.
@@ -44,11 +44,13 @@ Install the developer version
 It is recommenden to use
 `virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for
 the development process. Fork the repository and clone your forked tespy github
-repository.
+repository and install development requirements with pip.
 
 .. code:: bash
 
 	git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
+    cd tespy
+    pip install -e .[dev]
 
 In order to stay in sync with the oemof/tespy base repository, add the link to
 the oemof/tespy repository as remote to your local copy of tespy. We will call
@@ -60,8 +62,9 @@ the example below).
 
    git remote add upstream https://github.com/oemof/tespy.git
    git fetch upstream
-   git pull upstream dev
+   git pull upstream dev --rebase
 
+Use the :code:`--rebase` comand to avoid merge commits fo every upstream pull.
 If you want to make changes to tespy, checkout a new branch from your local dev
 branch. Make your changes, commit them and create a PR on the oemof/tespy dev
 branch.
@@ -145,18 +148,27 @@ The tests in TESPy are split up in two different parts:
 * doc-tests (also used as examples for classes and methods/functions)
 * software tests (defined in the tests folder).
 
-The tests contain code examples that expect a certain
-outcome. If the outcome is as expected a test will pass, if the outcome is
-different, the test will fail. You can run the tests locally by navigating into
-your local github clone. The command :code:`check` tests PEP guidelines, the
-command :code:`py3X` runs the software tests in the selected Python version.
+The tests contain code examples that expect a certain outcome. If the outcome
+is as expected a test will pass, if the outcome is different, the test will
+fail. You can run the tests locally by navigating into your local github clone.
+The command :code:`check` tests PEP guidelines, the command :code:`docs`
+tests building the documentation, and the command :code:`py3X` runs the
+software tests in the selected Python version.
 
 .. code:: bash
 
+    python -m tox -e docs
     python -m tox -e check
     python -m tox -e py36
     python -m tox -e py37
     python -m tox -e py38
+
+If you want to have a look at the documentation build on your local machine use
+the following command from the local tespy clone:
+
+.. code:: bash
+
+    python -m sphinx docs/ path/to/html_output
 
 Additionally, all tests will run automatically when you push changes to a
 branch that has a pull request opened.
@@ -268,5 +280,5 @@ Documentation
 
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
-The files can be found in the folder */tespy/doc*. For further information on
+The files can be found in the folder *docs*. For further information on
 restructured text see: https://docutils.sourceforge.io/rst.html.

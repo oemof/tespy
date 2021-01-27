@@ -2,7 +2,7 @@
 
 """Module for data container classes.
 
-The data_container class and its subclasses are used to store component or
+The DataContainer class and its subclasses are used to store component or
 connection properties.
 
 
@@ -21,29 +21,40 @@ import numpy as np
 # %%
 
 
-class data_container:
-    r"""
-    The data_container is parent class for all data_containers.
+class DataContainer:
+    """
+    The DataContainer is parent class for all data containers.
 
     Parameters
     ----------
     **kwargs :
-        See the class documentation of desired data_container for available
+        See the class documentation of desired DataContainer for available
         keywords.
 
     Note
     ----
-    The initialisation method (__init__), setter method (set_attr) and getter
-    method (get_attr) are used for instances of class data_container and its
-    children. TESPy uses different data_containers for specific tasks:
-    Component characteristics (dc_cc), component maps (dc_cm), component
-    properties (dc_cp), grouped component properites (dc_gcp), fluid
-    composition (dc_flu), fluid properties (dc_prop).
+    The initialisation method (:code:`__init__`), setter method
+    (:code:`set_attr`) and getter method (:code:`get_attr`) are used for
+    instances of class DataContainer and its children. TESPy uses different
+    :code:`DataContainer` classes for specific objectives:
+
+    - component characteristics
+      :py:class:`tespy.tools.data_containers.ComponentCharacteristics`
+    - component characteristic maps
+      :py:class:`tespy.tools.data_containers.ComponentCharacteristicMaps`
+    - component properties
+      :py:class:`tespy.tools.data_containers.ComponentProperties`
+    - grouped component properites
+      :py:class:`tespy.tools.data_containers.GroupedComponentProperties`
+    - fluid composition
+      :py:class:`tespy.tools.data_containers.FluidComposition`
+    - fluid properties
+      :py:class:`tespy.tools.data_containers.FluidProperties`
 
     Grouped component properties are used, if more than one component property
     has to be specified in order to apply one equation, e.g. pressure drop in
     pipes by specified length, diameter and roughness. If you specify all three
-    of these properties, the data_container for the group will be created
+    of these properties, the DataContainer for the group will be created
     automatically!
 
     For the full list of available parameters for each data container, see its
@@ -51,32 +62,35 @@ class data_container:
 
     Example
     -------
-    The examples below show the different (sub-)classes of data_containers
+    The examples below show the different (sub-)classes of DataContainers
     available.
 
-    >>> from tespy.tools.data_containers import (dc_cc, dc_cm, dc_cp, dc_flu,
-    ... dc_gcp, dc_prop, dc_simple)
-    >>> from tespy.components.piping import pipe
-    >>> type(dc_cm(is_set=True))
-    <class 'tespy.tools.data_containers.dc_cm'>
-    >>> type(dc_cc(is_set=True, param='m'))
-    <class 'tespy.tools.data_containers.dc_cc'>
-    >>> type(dc_cp(val=100, is_set=True, is_var=True, printout=True,
+    >>> from tespy.tools.data_containers import (
+    ... ComponentCharacteristics, ComponentCharacteristicMaps,
+    ... ComponentProperties, FluidComposition, GroupedComponentProperties,
+    ... FluidProperties, DataContainerSimple)
+    >>> from tespy.components import Pipe
+    >>> type(ComponentCharacteristicMaps(is_set=True))
+    <class 'tespy.tools.data_containers.ComponentCharacteristicMaps'>
+    >>> type(ComponentCharacteristics(is_set=True, param='m'))
+    <class 'tespy.tools.data_containers.ComponentCharacteristics'>
+    >>> type(ComponentProperties(val=100, is_set=True, is_var=True,
     ...      max_val=1000, min_val=1))
-    <class 'tespy.tools.data_containers.dc_cp'>
-    >>> pipe = pipe('testpipe', L=100, D=0.5, ks=5e-5)
-    >>> type(dc_gcp(is_set=True, elements=[pipe.L, pipe.D, pipe.ks],
-    ...      method='default'))
-    <class 'tespy.tools.data_containers.dc_gcp'>
-    >>> type(dc_flu(val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
-    ...      val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
-    ...      balance=False))
-    <class 'tespy.tools.data_containers.dc_flu'>
-    >>> type(dc_prop(val=5, val_SI=500000, val_set=True, unit='bar',
-    ...      unit_set=False, ref=None, ref_set=False))
-    <class 'tespy.tools.data_containers.dc_prop'>
-    >>> type(dc_simple(val=5, is_set=False))
-    <class 'tespy.tools.data_containers.dc_simple'>
+    <class 'tespy.tools.data_containers.ComponentProperties'>
+    >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
+    >>> type(GroupedComponentProperties(is_set=True,
+    ...      elements=[pi.L, pi.D, pi.ks], method='default'))
+    <class 'tespy.tools.data_containers.GroupedComponentProperties'>
+    >>> type(FluidComposition(
+    ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
+    ... val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
+    ... balance=False))
+    <class 'tespy.tools.data_containers.FluidComposition'>
+    >>> type(FluidProperties(val=5, val_SI=500000, val_set=True, unit='bar',
+    ...      ref=None, ref_set=False))
+    <class 'tespy.tools.data_containers.FluidProperties'>
+    >>> type(DataContainerSimple(val=5, is_set=False))
+    <class 'tespy.tools.data_containers.DataContainerSimple'>
     """
 
     def __init__(self, **kwargs):
@@ -90,13 +104,13 @@ class data_container:
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
-        r"""
-        Sets, resets or unsets attributes of a data_container type object.
+        """
+        Sets, resets or unsets attributes of a DataContainer type object.
 
         Parameters
         ----------
         **kwargs :
-            See the class documentation of desired data_container for available
+            See the class documentation of desired DataContainer for available
             keywords.
         """
         var = self.attr()
@@ -112,8 +126,8 @@ class data_container:
                 raise KeyError(msg)
 
     def get_attr(self, key):
-        r"""
-        Get the value of a data_container's attribute.
+        """
+        Get the value of a DataContainer's attribute.
 
         Parameters
         ----------
@@ -135,8 +149,8 @@ class data_container:
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a DataContainer type object.
 
         Returns
         -------
@@ -146,11 +160,9 @@ class data_container:
         """
         return {}
 
-# %%
 
-
-class dc_cc(data_container):
-    r"""
+class ComponentCharacteristics(DataContainer):
+    """
     Data container for component characteristics.
 
     Parameters
@@ -168,8 +180,9 @@ class dc_cc(data_container):
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a ComponentCharacteristics
+        type object.
 
         Returns
         -------
@@ -177,13 +190,15 @@ class dc_cc(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None}
+        return {
+            'char_func': None, 'is_set': False, 'param': None,
+            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
+            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
+            'num_eq': 0}
 
-# %%
 
-
-class dc_cm(data_container):
-    r"""
+class ComponentCharacteristicMaps(DataContainer):
+    """
     Data container for characteristic maps.
 
     Parameters
@@ -201,8 +216,9 @@ class dc_cm(data_container):
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a ComponentCharacteristicMaps type
+        object.
 
         Returns
         -------
@@ -210,13 +226,14 @@ class dc_cm(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'func': None, 'is_set': False, 'param': None}
+        return {
+            'char_func': None, 'is_set': False, 'param': None, 'latex': None,
+            'func_params': {}, 'func': None, 'deriv': None,
+            'num_eq': 0}
 
-# %%
 
-
-class dc_cp(data_container):
-    r"""
+class ComponentProperties(DataContainer):
+    """
     Data container for component properties.
 
     Parameters
@@ -245,15 +262,12 @@ class dc_cp(data_container):
     max_val : float
         Maximum value for this attribute, used if attribute is part of the
         system variables, default: max_val=1e12.
-
-    printout : boolean
-        Should the value of this attribute be printed in the results overview?
     """
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a ComponentProperties type object.
 
         Returns
         -------
@@ -261,15 +275,16 @@ class dc_cp(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': 1, 'val_SI': 0, 'is_set': False, 'printout': True,
-                'd': 1e-4, 'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
-                'val_ref': 1, 'design': np.nan}
+        return {
+            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
+            'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
+            'val_ref': 1, 'design': np.nan,
+            'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
+            'latex': None}
 
-# %%
 
-
-class dc_flu(data_container):
-    r"""
+class FluidComposition(DataContainer):
+    """
     Data container for fluid composition.
 
     Parameters
@@ -294,8 +309,8 @@ class dc_flu(data_container):
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a FluidComposition type object.
 
         Returns
         -------
@@ -306,11 +321,9 @@ class dc_flu(data_container):
         return {'val': {}, 'val0': {}, 'val_set': {},
                 'design': collections.OrderedDict(), 'balance': False}
 
-# %%
 
-
-class dc_gcp(data_container):
-    r"""
+class GroupedComponentProperties(DataContainer):
+    """
     Data container for grouped component parameters.
 
     Parameters
@@ -330,8 +343,9 @@ class dc_gcp(data_container):
 
     @staticmethod
     def attr():
-        r"""
-        Return the available attributes for a data_container type object.
+        """
+        Return the available attributes for a GroupedComponentProperties type
+        object.
 
         Returns
         -------
@@ -339,13 +353,44 @@ class dc_gcp(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'is_set': False, 'method': 'default', 'elements': []}
+        return {'is_set': False, 'method': 'default', 'elements': [],
+                'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
+                'func_params': {}}
 
-# %%
+
+class GroupedComponentCharacteristics(DataContainer):
+    """
+    Data container for grouped component characteristics.
+
+    Parameters
+    ----------
+    is_set : boolean
+        Should the equation for this parameter group be applied?
+        default: is_set=False.
+
+    elements : list
+        Which component properties are part of this component group?
+        default elements=[].
+    """
+
+    @staticmethod
+    def attr():
+        """
+        Return the available attributes for a GroupedComponentCharacteristics
+        type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {'is_set': False, 'elements': [], 'func': None, 'deriv': None,
+                'num_eq': 0, 'latex': None, 'func_params': {}}
 
 
-class dc_prop(data_container):
-    r"""
+class FluidProperties(DataContainer):
+    """
     Data container for fluid properties.
 
     Parameters
@@ -377,16 +422,12 @@ class dc_prop(data_container):
     unit : boolean
         Has the unit for this property been specified manually by the user?
         default: unit_set=False.
-
-    Example
-    -------
-    See :func:`tespy.tools.data_containers.data_container`
     """
 
     @staticmethod
     def attr():
         r"""
-        Return the available attributes for a data_container type object.
+        Return the available attributes for a FluidProperties type object.
 
         Returns
         -------
@@ -395,21 +436,17 @@ class dc_prop(data_container):
             values.
         """
         return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
-                'ref': None, 'ref_set': False,
-                'unit': None, 'unit_set': False, 'design': np.nan}
-
-# %%
+                'ref': None, 'ref_set': False, 'unit': None, 'design': np.nan}
 
 
-class dc_simple(data_container):
-    r"""
+class DataContainerSimple(DataContainer):
+    """
     Simple data container without data type restrictions to val field.
 
     Parameters
     ----------
     val : no specific datatype
-        Value for the property, no predefined datatype. Unset this property by
-        stating val=np.nan.
+        Value for the property, no predefined datatype.
 
     is_set : boolean
         Has the value for this property been set? default: val_set=False.
@@ -418,7 +455,7 @@ class dc_simple(data_container):
     @staticmethod
     def attr():
         r"""
-        Return the available attributes for a data_container type object.
+        Return the available attributes for a DataContainerSimple type object.
 
         Returns
         -------
@@ -426,4 +463,7 @@ class dc_simple(data_container):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': np.nan, 'is_set': False}
+        return {
+            'val': np.nan, 'is_set': False,
+            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
+            'num_eq': 0}

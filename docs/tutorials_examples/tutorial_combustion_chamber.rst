@@ -35,13 +35,13 @@ we are using Air for the combustion - Nitrogen.
 
 .. code-block:: python
 
-    from tespy.networks import network
+    from tespy.networks import Network
 
     # define full fluid list for the network's variable space
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
 
     # define unit systems
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
 As components there are two sources required, one for the fresh air, one for
 the fuel, a sink for the flue gas and the combustion chamber. Connect the
@@ -49,23 +49,23 @@ components and add the connections to your network afterwards.
 
 .. code-block:: python
 
-    from tespy.components import sink, source, combustion_chamber
+    from tespy.components import Sink, Source, CombustionChamber
 
     # sinks & sources
-    amb = source('ambient')
-    sf = source('fuel')
-    fg = sink('flue gas outlet')
+    amb = Source('ambient')
+    sf = Source('fuel')
+    fg = Sink('flue gas outlet')
 
     # combustion chamber
-    comb=combustion_chamber(label='combustion chamber')
+    comb = CombustionChamber(label='combustion chamber')
 
 .. code-block:: python
 
-    from tespy.connections import connection
+    from tespy.connections import Connection
 
-    amb_comb = connection(amb, 'out1', comb, 'in1')
-    sf_comb = connection(sf, 'out1', comb, 'in2')
-    comb_fg = connection(comb, 'out1', fg, 'in1')
+    amb_comb = Connection(amb, 'out1', comb, 'in1')
+    sf_comb = Connection(sf, 'out1', comb, 'in2')
+    comb_fg = Connection(comb, 'out1', fg, 'in1')
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
 
@@ -103,7 +103,7 @@ Finally run the code:
 
 Of course, you can change the parametrisation in any desired way. For example
 instead of stating the thermal input, you could choose any of the mass flows,
-or instead of the air to stoichometric air ratio you could specify the flue
+or instead of the air to stoichiometric air ratio you could specify the flue
 gas temperature. It is also possible to make modifications on the fluid
 composition, for example stating the oxygen content in the flue gas or to
 change the fuel composition. Make sure, all desired fuels of your fuel mixture
@@ -112,30 +112,30 @@ hydrogen to the fuel mixture.
 
 .. code-block:: python
 
-    from tespy.networks import network
-    from tespy.components import sink, source, combustion_chamber
-    from tespy.connections import connection
+    from tespy.networks import Network
+    from tespy.components import Sink, Source, CombustionChamber
+    from tespy.connections import Connection
 
     # %% network
 
     fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
     # %% components
 
     # sinks & sources
-    amb = source('ambient')
-    sf = source('fuel')
-    fg = sink('flue gas outlet')
+    amb = Source('ambient')
+    sf = Source('fuel')
+    fg = Sink('flue gas outlet')
 
     # combustion chamber
-    comb=combustion_chamber(label='combustion chamber')
+    comb = CombustionChamber(label='combustion chamber')
 
     # %% connections
 
-    amb_comb = connection(amb, 'out1', comb, 'in1')
-    sf_comb = connection(sf, 'out1', comb, 'in2')
-    comb_fg = connection(comb, 'out1', fg, 'in1')
+    amb_comb = Connection(amb, 'out1', comb, 'in1')
+    sf_comb = Connection(sf, 'out1', comb, 'in2')
+    comb_fg = Connection(comb, 'out1', fg, 'in1')
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
 
@@ -174,13 +174,13 @@ component, we will explain later, why it is.
 
 .. code-block:: python
 
-    from tespy.networks import network
+    from tespy.networks import Network
 
     # define full fluid list for the network's variable space
     fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
 
     # define unit systems and fluid property ranges
-    nw = network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
 
 The components required are then the same as in the first tutorial, the
 stoichiometric combustion chamber's class is called
@@ -191,37 +191,42 @@ afterwards.
 
 .. code-block:: python
 
-    from tespy.components import sink, source, combustion_chamber_stoich
+    from tespy.components import Sink, Source, CombustionChamberStoich
 
     # sinks & sources
-    amb = source('ambient')
-    sf = source('fuel')
-    fg = sink('flue gas outlet')
+    amb = Source('ambient')
+    sf = Source('fuel')
+    fg = Sink('flue gas outlet')
 
     # combustion chamber
-    comb = combustion_chamber_stoich('stoichiometric combustion chamber')
+    comb = CombustionChamberStoich('stoichiometric combustion chamber')
 
 .. code-block:: python
 
-    from tespy.connections import connection
+    from tespy.connections import Connection
 
-    amb_comb = connection(amb, 'out1', comb, 'in1')
-    sf_comb = connection(sf, 'out1', comb, 'in2')
-    comb_fg = connection(comb, 'out1', fg, 'in1')
+    amb_comb = Connection(amb, 'out1', comb, 'in1')
+    sf_comb = Connection(sf, 'out1', comb, 'in2')
+    comb_fg = Connection(comb, 'out1', fg, 'in1')
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
 
 The basic parametrisation of the stoichiometric combustion chamber is different
 compared to the normal combustion chamber: We need to specify the air and the
 fuel composition, and additionally, aliases for the these fluids. Since air and
-fuel usually are mixtures of different gases, **TESPy will create lookup tables
-for the fluid properties of the specified air and fuel composition and a third
-lookup table for the flue gas**. TESPy will therefore calculate the
-stoichiometric flue gas composition. The fluids will then be accessible with
-the following aliases: **"youraliasforair", "youraliasforfuel"
-and "youraliasforfuel_fg"**. The creation of the lookup tables will use
-your network's settings: **The fluid properties will be calculated within the
-network's specified value range for pressure.**
+fuel usually are mixtures of different gases, **TESPy will create lookup**
+**tables for the fluid properties of the specified air and fuel composition**
+**and a third lookup table for the flue gas**. TESPy will therefore calculate
+the stoichiometric flue gas composition. The fluids will then be accessible
+with the following aliases:
+
+- :code:`"youraliasforair"`
+- :code:`"youraliasforfuel"`
+- :code:`"youraliasforfuel_fg"`
+
+The creation of the lookup tables will use your network's settings:
+**The fluid properties will be calculated within the network's specified**
+**value range for pressure.**
 
 A folder called "LUT" will be created in your working directory containing all
 fluid property lookup tables. As the creation of the lookup tables does take

@@ -13,7 +13,7 @@ You will find the source code `in this repository
 
 .. figure:: api/_images/heat_pump_example.svg
     :align: center
-	
+
     Figure: Topology of the heat pump unit.
 
 After the plant has been designed, the consumer's heat demand and the ambient
@@ -29,15 +29,15 @@ convergence issues. The figures below show the COP of the heat pump for two
 different heat sources at different temperature levels and at different loads:
 In the first figure water is used as heat source, in the second one air.
 Obviously, the heat pump using air performs much worse. This is mainly to the
-high power consumption of fan, as for the same amount of heat to be
+high power consumption of the fan, as for the same amount of heat to be
 transferred, a much higher volume has to be moved.
-    
+
 .. figure:: api/_images/heat_pump_COP_water.svg
     :align: center
-	
-    Figure: COP of the heat pump using water as heat source. 
-	
+
+    Figure: COP of the heat pump using water as heat source.
+
 .. figure:: api/_images/heat_pump_COP_air.svg
     :align: center
-	
+
     Figure: COP of the heat pump using air as heat source.

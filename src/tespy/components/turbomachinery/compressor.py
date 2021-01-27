@@ -17,49 +17,42 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.turbomachinery.turbomachine import Turbomachine
-from tespy.tools.characteristics import CompressorMap
-from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.global_vars import err
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Compressor(Turbomachine):
     r"""
     Class for axial or radial compressor.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right) - P\\
-            0 = pr \cdot p_{in} - p_{out}
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.additional_equations`
+    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
+    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
+    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1
+    - in1
+    - out1
 
     Image
 
-        .. image:: _images/Compressor.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/Compressor.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -139,7 +132,7 @@ class Compressor(Turbomachine):
     volumetric flow.
 
     >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'],
-    ... offdesign=['char_map'])
+    ... offdesign=['char_map_pr', 'char_map_eta_s'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -157,154 +150,39 @@ class Compressor(Turbomachine):
     def component():
         return 'compressor'
 
-    @staticmethod
-    def attr():
+    def get_variables(self):
         return {
-            'P': dc_cp(min_val=0),
-            'eta_s': dc_cp(min_val=0, max_val=1),
-            'eta_s_char': dc_cc(param='m'),
-            'pr': dc_cp(min_val=1),
+            'P': dc_cp(
+                min_val=0, num_eq=1,
+                deriv=self.energy_balance_deriv,
+                func=self.energy_balance_func,
+                latex=self.energy_balance_func_doc),
+            'eta_s': dc_cp(
+                min_val=0, max_val=1, num_eq=1,
+                deriv=self.eta_s_deriv,
+                func=self.eta_s_func, latex=self.eta_s_func_doc),
+            'eta_s_char': dc_cc(
+                param='m', num_eq=1,
+                deriv=self.eta_s_char_deriv,
+                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
+            'pr': dc_cp(
+                min_val=1, num_eq=1,
+                deriv=self.pr_deriv,
+                func=self.pr_func, func_params={'pr': 'pr'},
+                latex=self.pr_func_doc),
             'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
-            'char_map': dc_cm(),
-            'Sirr': dc_simple()
+            'char_map_eta_s': dc_cm(),
+            'char_map_eta_s_group': dc_gcp(
+                elements=['char_map_eta_s', 'igva'], num_eq=1,
+                latex=self.char_map_eta_s_func_doc,
+                func=self.char_map_eta_s_func,
+                deriv=self.char_map_eta_s_deriv),
+            'char_map_pr': dc_cm(),
+            'char_map_pr_group': dc_gcp(
+                elements=['char_map_pr', 'igva'],
+                deriv=self.char_map_pr_deriv, num_eq=1,
+                func=self.char_map_pr_func, latex=self.char_map_pr_func_doc)
         }
-
-    def comp_init(self, nw):
-
-        Component.comp_init(self, nw)
-
-        if self.char_map.func is None:
-            self.char_map.func = ldc(
-                self.component(), 'char_map', 'DEFAULT', CompressorMap)
-
-            if self.char_warnings:
-                msg = ('Created characteristic map for parameter char_map '
-                       'at component ' + self.label + ' from default data.\n'
-                       'You can specify your own data using component.char_map'
-                       '.set_attr(func=custom_char).\n'
-                       'If you want to disable these warnings use '
-                       'component.char_warnings=False.')
-                logging.warning(msg)
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl
-        # mass flow: 1
-        self.num_eq = self.num_nw_fluids + 1
-        # characteristic map delivers two equations
-        for var in [self.P, self.pr, self.eta_s, self.char_map, self.char_map,
-                    self.eta_s_char]:
-            if var.is_set:
-                self.num_eq += 1
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-
-    def additional_equations(self, k):
-        r"""
-        Calculate results of additional equations.
-
-        Equations
-
-            **optional equations**
-
-            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
-            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
-            - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_func`
-        """
-        ######################################################################
-        # eqations for specified isentropic efficiency
-        if self.eta_s.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.eta_s_func()
-            k += 1
-
-        ######################################################################
-        # equation for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            if (np.absolute(self.residual[k]) > err ** 2 or self.it % 4 == 0 or
-                    self.always_all_equations):
-                self.residual[k] = self.eta_s_char_func()
-            k += 1
-
-        ######################################################################
-        # equations for specified characteristic map
-        if self.char_map.is_set:
-            if (any(np.absolute(self.residual[k:k + 2])) > err ** 2 or
-                    self.it % 4 == 0 or self.always_all_equations):
-                self.residual[k:k + 2] = self.char_map_func()
-            k += 2
-
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for specified isentropic efficiency
-        if self.eta_s.is_set:
-            f = self.eta_s_func
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            self.jacobian[k, 1, 2] = -self.eta_s.val
-            k += 1
-
-        ######################################################################
-        # derivatives for specified isentropic efficiency characteristics
-        if self.eta_s_char.is_set:
-            f = self.eta_s_char_func
-            if not increment_filter[0, 0]:
-                self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-            if not increment_filter[0, 1]:
-                self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-            if not increment_filter[1, 1]:
-                self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-            if not increment_filter[0, 2]:
-                self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-            if not increment_filter[1, 2]:
-                self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
-            k += 1
-
-        ######################################################################
-        # derivatives for specified characteristic map
-        if self.char_map.is_set:
-            f = self.char_map_func
-            if not increment_filter[0, 0]:
-                m11 = self.numeric_deriv(f, 'm', 0)
-                self.jacobian[k, 0, 0] = m11[0]
-                self.jacobian[k + 1, 0, 0] = m11[1]
-            if not increment_filter[0, 1]:
-                p11 = self.numeric_deriv(f, 'p', 0)
-                self.jacobian[k, 0, 1] = p11[0]
-                self.jacobian[k + 1, 0, 1] = p11[1]
-            if not increment_filter[0, 2]:
-                h11 = self.numeric_deriv(f, 'h', 0)
-                self.jacobian[k, 0, 2] = h11[0]
-                self.jacobian[k + 1, 0, 2] = h11[1]
-
-            if not increment_filter[1, 1]:
-                p21 = self.numeric_deriv(f, 'p', 1)
-                self.jacobian[k, 1, 1] = p21[0]
-                self.jacobian[k + 1, 1, 1] = p21[1]
-            if not increment_filter[1, 2]:
-                h21 = self.numeric_deriv(f, 'h', 1)
-                self.jacobian[k, 1, 2] = h21[0]
-                self.jacobian[k + 1, 1, 2] = h21[1]
-
-            if self.igva.is_var:
-                igva = self.numeric_deriv(f, 'igva', 1)
-                if self.igva.is_var:
-                    self.jacobian[k, 2 + self.igva.var_pos, 0] = igva[0]
-                    self.jacobian[k + 1, 2 + self.igva.var_pos, 0] = igva[1]
-            k += 2
 
     def eta_s_func(self):
         r"""
@@ -312,19 +190,59 @@ class Compressor(Turbomachine):
 
         Returns
         -------
-        res : float
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s,c} +
+                0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
                 \left( h_{out,s} - h_{in} \right)
         """
         return (
-            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) * self.eta_s.val +
-            (isentropic(
-                self.inl[0].to_flow(), self.outl[0].to_flow(),
+            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
+            self.eta_s.val + (isentropic(
+                self.inl[0].get_flow(), self.outl[0].get_flow(),
                 T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
+
+    def eta_s_func_doc(self, label):
+        r"""
+        Equation for given isentropic efficiency of a compressor.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
+        return generate_latex_eq(self, latex, label)
+
+    def eta_s_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for isentropic efficiency.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.eta_s_func
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        self.jacobian[k, 1, 2] = -self.eta_s.val
 
     def eta_s_char_func(self):
         r"""
@@ -332,85 +250,281 @@ class Compressor(Turbomachine):
 
         Returns
         -------
-        res : ndarray
+        residual : float
             Residual value of equation.
 
             .. math::
 
-                0 = \left( h_{out} - h_{in} \right) \cdot
-                \frac{\Delta h_{s,ref}}{\Delta h_{ref}}
-                \cdot char\left( \dot{m}_{in} \cdot v_{in} \right) -
-                \left( h_{out,s} - h_{in} \right)
+                0 = \left(h_{out}-h_{in}\right) \cdot \eta_{s,design}
+                \cdot f\left( expr \right) -\left( h_{out,s} - h_{in} \right)
         """
-        # actual values
-        i = self.inl[0]
-        o = self.outl[0]
-        expr = 1
-        if self.eta_s_char.param == 'm':
-            if not np.isnan(i.m.design):
-                expr = i.m.val_SI / i.m.design
-        elif self.eta_s_char.param == 'pr':
-            if not np.isnan(self.pr.design):
-                expr = (o.p.val_SI / i.p.val_SI) / self.pr.design
-        else:
-            msg = ('Must provide a parameter for eta_s_char at component ' +
-                   self.label + '.')
+        p = self.eta_s_char.param
+        expr = self.get_char_expr(p, **self.eta_s_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'isentropic efficiency to at component ' + self.label + '.')
             logging.error(msg)
             raise ValueError(msg)
 
+        i = self.inl[0]
+        o = self.outl[0]
         return (
-            self.eta_s.design * self.eta_s_char.func.evaluate(expr) *
+            self.eta_s.design * self.eta_s_char.char_func.evaluate(expr) *
             (o.h.val_SI - i.h.val_SI) - (isentropic(
-                i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
-             i.h.val_SI))
+                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
+                i.h.val_SI))
 
-    def char_map_func(self):
+    def eta_s_char_func_doc(self, label):
         r"""
-        Equation for characteristic map of compressor.
+        Equation for given isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
 
         Returns
         -------
-        res : ndarray (Z1, Z2)
-            Residual values of equations.
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
+            r'\eta_\mathrm{s,design}\cdot f\left(X\right)-'
+            r'\left( h_{out,s} - h_{in} \right)')
+        return generate_latex_eq(self, latex, label)
+
+    def eta_s_char_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for isentropic efficiency characteristic.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.eta_s_char_func
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+
+    def char_map_pr_func(self):
+        r"""
+        Calculate pressure ratio from characteristic map.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equations.
 
         Note
         ----
         - X: speedline index (rotational speed is constant)
         - Y: nondimensional mass flow
-        - Z1: pressure ratio equation
-        - Z2: isentropic efficiency equation
-        - igva: variable inlet guide vane angle (assumed 0° if not
-          specified)
+        - igva: variable inlet guide vane angle for value manipulation
+          according to :cite:`GasTurb2018`.
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{1,ref}}{T_\mathrm{1}}}
-
-            Y = \frac{\dot{m}_\mathrm{1} \cdot p_\mathrm{1,ref}}
-            {\dot{m}_\mathrm{1,ref} \cdot p_\mathrm{1} \cdot X}
-
-            Z1 = \frac{p_2 \cdot p_\mathrm{1,ref}}
-            {p_1 \cdot p_\mathrm{2,ref}}-
-            pr_{c}(char(m, igva))
-
-            Z2 = \frac{\eta_\mathrm{s,c}}{\eta_\mathrm{s,c,ref}} -
-            \eta_{s,c}(char(m, igva))
+            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
+            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
+            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
+            \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
+            0 = \frac{p_{out} \cdot p_{in,design}}
+            {p_\mathrm{in} \cdot p_\mathrm{out,design}}-
+            f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
         o = self.outl[0]
-        T_i = T_mix_ph(i.to_flow(), T0=self.inl[0].T.val_SI)
+        T = T_mix_ph(i.get_flow(), T0=i.T.val_SI)
 
-        x = np.sqrt(i.T.design / T_i)
+        x = np.sqrt(i.T.design / T)
         y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
-        pr, eta = self.char_map.func.evaluate(x, y, igva=self.igva.val)
+        yarr, zarr = self.char_map_pr.char_func.evaluate_x(x)
+        # value manipulation with igva
+        yarr *= (1 - self.igva.val / 100)
+        zarr *= (1 - self.igva.val / 100)
+        pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
 
-        z1 = (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
-        z2 = ((
-            isentropic(i.to_flow(), o.to_flow(), T0=self.inl[0].T.val_SI) -
-            i.h.val_SI) / (o.h.val_SI - i.h.val_SI) / self.eta_s.design - eta)
+        return (o.p.val_SI / i.p.val_SI) / self.pr.design - pr
 
-        return np.array([z1, z2])
+    def char_map_pr_func_doc(self, label):
+        r"""
+        Get LaTeX equation for pressure ratio from characteristic map.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
+            '\n'
+            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
+            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
+            '\n'
+            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
+            r'\\' + '\n'
+            r'\vec{Z} = &'
+            r'f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\' + '\n'
+            r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
+            r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
+            r'f\left(Y,\vec{Y},\vec{Z}\right)\\' + '\n'
+            r'\end{split}'
+        )
+        return generate_latex_eq(self, latex, label)
+
+    def char_map_pr_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for compressor map characteristic.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.char_map_pr_func
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+
+        if self.igva.is_var:
+            self.jacobian[k, 2 + self.igva.var_pos, 0] = self.numeric_deriv(
+                f, 'igva', 1)
+
+    def char_map_eta_s_func(self):
+        r"""
+        Calculate isentropic efficiency from characteristic map.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+        Note
+        ----
+        - X: speedline index (rotational speed is constant)
+        - Y: nondimensional mass flow
+        - igva: variable inlet guide vane angle for value manipulation
+          according to :cite:`GasTurb2018`.
+
+        .. math::
+
+            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
+            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
+            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
+            \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
+            0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
+            f\left(Y,\vec{Y},\vec{Z}\right)
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        T = T_mix_ph(i.get_flow(), T0=i.T.val_SI)
+
+        x = np.sqrt(i.T.design / T)
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+
+        yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
+        # value manipulation with igva
+        yarr *= (1 - self.igva.val / 100)
+        zarr *= (1 - self.igva.val ** 2 / 10000)
+        eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
+
+        return (
+            (isentropic(i.get_flow(), o.get_flow(), T0=T) -
+             i.h.val_SI) / (o.h.val_SI - i.h.val_SI) / self.eta_s.design -
+            eta)
+
+    def char_map_eta_s_func_doc(self, label):
+        r"""
+        Get LaTeX equation for isentropic efficiency from characteristic map.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'\begin{split}'
+            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
+            '\n'
+            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
+            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
+            '\n'
+            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
+            r'\\' + '\n'
+            r'\vec{Z} = &'
+            r'f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\'
+            '\n'
+            r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
+            r'f\left(Y,\vec{Y},\vec{Z}\right)' + '\n'
+            r'\end{split}'
+        )
+        return generate_latex_eq(self, latex, label)
+
+    def char_map_eta_s_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for compressor map characteristic.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.char_map_eta_s_func
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
+        if not increment_filter[0, 1]:
+            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
+        if not increment_filter[0, 2]:
+            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
+
+        if not increment_filter[1, 1]:
+            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        if not increment_filter[1, 2]:
+            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+
+        if self.igva.is_var:
+            self.jacobian[k, 2 + self.igva.var_pos, 0] = self.numeric_deriv(
+                f, 'igva', 1)
 
     def convergence_check(self):
         r"""
@@ -500,31 +614,22 @@ class Compressor(Turbomachine):
 
         self.eta_s.val = (
             (isentropic(
-                self.inl[0].to_flow(), self.outl[0].to_flow(),
+                self.inl[0].get_flow(), self.outl[0].get_flow(),
                 T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
 
-        if self.char_map.is_set:
-            # get bound errors for characteristic map
-            x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-            y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-                self.inl[0].m.design * self.inl[0].p.val_SI * x)
-            self.char_map.func.get_bound_errors(
-                x, y, self.igva.val, self.label)
+    def check_parameter_bounds(self):
+        r"""Check parameter value limits."""
+        Component.check_parameter_bounds(self)
 
-        if self.eta_s_char.is_set:
-            # get bound errors for isentropic efficiency characteristics
-            expr = 1
-            if self.eta_s_char.param == 'm':
-                if not np.isnan(self.inl[0].m.design):
-                    expr = self.inl[0].m.val_SI / self.inl[0].m.design
-            elif self.eta_s_char.param == 'pr':
-                if not np.isnan(self.pr.design):
-                    expr = self.pr.val / self.pr.design
-
-            self.eta_s_char.func.get_bound_errors(expr, self.label)
-
-        self.check_parameter_bounds()
+        for data in [self.char_map_pr, self.char_map_eta_s]:
+            if data.is_set:
+                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+                y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
+                    self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                yarr = data.char_func.get_domain_errors_x(x, self.label)
+                yarr *= (1 - self.igva.val / 100)
+                data.char_func.get_domain_errors_y(y, yarr, self.label)
 
     def exergy_balance(self, T0):
         r"""

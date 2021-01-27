@@ -19,10 +19,6 @@ class Sink(Component):
     r"""
     A flow drains in a Sink.
 
-    Equations
-
-    This component is unconstrained.
-
     Parameters
     ----------
     label : str
@@ -68,6 +64,10 @@ class Sink(Component):
     @staticmethod
     def inlets():
         return ['in1']
+
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

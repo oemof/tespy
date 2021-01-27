@@ -111,11 +111,12 @@ or via subsystems using the corresponding methods:
     via the added connections. After having set up your network and added all
     required elements, you can start the calculation.
 
-Busses: power connections
+Busses: Energy Connectors
 +++++++++++++++++++++++++
-Another type of connection is the bus: Busses are power connections for e.g.
-turbomachines or heat exchangers. They can be used to model motors or
-generators, too. Add them to your network with the following method:
+Another type of connection is the bus: Busses are connections for massless
+transfer of energy e.g. in turbomachines or heat exchangers. They can be used
+to model motors or generators, too. Add them to your network with the following
+method:
 
 .. code-block:: python
 
@@ -569,11 +570,62 @@ for other users!
 Postprocessing
 --------------
 A postprocessing is performed automatically after the calculation finished. You
-have two further options:
+have further options:
 
- * print the results to prompt (:code:`myplant.print_results()`) and
- * save the results in a .csv-file (:code:`myplant.save('savename')`).
+- Automatically create a documentation of your model.
+- Print the results to prompt (:code:`print_results()`).
+- Save the results in structure of .csv-files (:code:`save()`).
+- Generate fluid property diagrams with an external tool.
 
+Model documentation
+^^^^^^^^^^^^^^^^^^^
+Using the automatic TESPy model documentation you can create an overview of
+all input parameters, specifications and equations as well as characteristics
+applied in LaTeX format. This enables high
+
+- **transparency**,
+- **readability** and
+- **reproducibility**.
+
+In order to use the model documentation, you need to import the corresponding
+method and pass your network information. At the moment, you can the following
+optional arguments to the method:
+
+- :code:`path`: Basepath, where the LaTeX data and figures are exported to.
+- :code:`filename`: Filename of the report.
+- :code:`draft`: Show or hide the first part of the Software Information
+  section.
+
+.. code-block:: python
+
+    from tespy.tools import document_model
+
+    document_model(mynetwork)
+
+After having exported the LaTeX code, you can simply use :code:`\input{}`
+in your main LaTeX document to include the documentation of your model. In
+order to compile correctly you need to load the following LaTeX packages:
+
+   -  graphicx
+   -  float
+   -  hyperref
+   -  booktabs
+   -  amsmath
+   -  units
+   -  cleveref
+
+For generating different file formats, like markdown, html or
+restructuredtext, you could try the `pandoc <https://pandoc.org/>`_ library.
+For examples, of how the reports look you can have a look at the
+`examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
+repository, or just try it yourself :).
+
+This feature is introduced in version 0.4.0 and still subject to changes. If
+you have any suggestions, ideas or feedback, you are very welcome to submit an
+issue on our GitHub or even open a pull request.
+
+Results printing
+^^^^^^^^^^^^^^^^
 To print the results in your console use the :code:`print_results()` method.
 It will print tables containing the component, connection and bus properties.
 Some of the results will be colored, the colored results indicate
@@ -583,23 +635,14 @@ Some of the results will be colored, the colored results indicate
  * if a component parameter was set to :code:`'var'` in your calculation.
 
 The color for each of those categories is different and might depend on the
-console settings of your machine. You can change the colors using
-`ANSI escape codes <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_,
-for example changing the color for user specified values to blue:
-
-.. code-block:: python
-
-      from tespy.tools.global_vars import coloring
-      coloring['set'] = '\034[0m'
-
-If you do not want the results to be colored you can instead call the method
-the following way:
+console settings of your machine. If you do not want the results to be colored
+you can instead call the method the following way:
 
 .. code-block:: python
 
     myplant.print_results(colored=False)
 
-If you want to limit your prinouts to a specific subset of components,
+If you want to limit your printouts to a specific subset of components,
 connections and busses, you can specify the :code:`printout` parameter to block
 individual result printout.
 
@@ -621,6 +664,8 @@ If you want to prevent all printouts of a subsystem, add something like this:
     for c in mysubsystem.comps.values():
         c.set_attr(printout=False)
 
+Save your results
+^^^^^^^^^^^^^^^^^
 If you choose to save your results the specified folder will be created
 containing information about the network, all connections, busses, components
 and characteristics.
@@ -653,7 +698,7 @@ respective API documentation.
 .. _FluProDia_label:
 
 Creating fluid property diagrams
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. figure:: api/_images/logph_diagram_states.svg
     :align: center
@@ -698,11 +743,11 @@ install the package with pip.
          - state from
          - state to
          - id
-       * - components with one mass flow
+       * - components with one inlet and one outlet only
          - :code:`in1`
          - :code:`out1`
          - :code:`1`
-       * - class heat_exchanger and subclasses
+       * - class HeatExchanger and subclasses
          - :code:`in1`
          - :code:`out1`
          - :code:`1`
@@ -710,7 +755,7 @@ install the package with pip.
          - :code:`in2`
          - :code:`out2`
          - :code:`2`
-       * - class orc_evaporator
+       * - class ORCEvaporator
          - :code:`in1`
          - :code:`out1`
          - :code:`1`
@@ -722,7 +767,7 @@ install the package with pip.
          - :code:`in3`
          - :code:`out3`
          - :code:`3`
-       * - class merge
+       * - class Merge
          - :code:`in1`
          - :code:`out1`
          - :code:`1`
@@ -730,14 +775,6 @@ install the package with pip.
          - :code:`in2`
          - :code:`out1`
          - :code:`2`
-       * -
-         - ...
-         - ...
-         - ...
-       * - class node
-         - :code:`in1` if :math:`\dot{m}>0`
-         - :code:`out1` if :math:`\dot{m}>0`
-         - :code:`1`
        * -
          - ...
          - ...
@@ -761,7 +798,7 @@ save the network first.
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,
-characteristics) holding the parametrization of that network. You can reimport
+characteristics) holding the parametrization of that network. You can re-import
 the network using following code with the path to the saved documents. The
 generated network object contains the same information as a TESPy network
 created by a python script. Thus, it is possible to set your parameters in the

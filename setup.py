@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.3.5.dev0',
+    version='0.4.0.dev0',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -65,6 +65,7 @@ setup(
     python_requires='>=3.6, <3.9',
     install_requires=[
         'CoolProp>=6.4,<7',
+        'matplotlib>=3.2.1,<4',
         'numpy>=1.13.3,<2',
         'pandas>=0.19.2,!=1.0.0,<2',
         'scipy>=0.19.1,<2',

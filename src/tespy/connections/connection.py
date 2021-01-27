@@ -18,7 +18,7 @@ from tespy.components.component import Component
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.fluid_properties import calc_physical_exergy
+from tespy.tools import fluid_properties as fp
 from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger
@@ -31,25 +31,25 @@ class Connection:
 
     Parameters
     ----------
-    m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+    m : float, tespy.connections.connection.Ref
         Mass flow specification.
 
     m0 : float
         Starting value specification for mass flow.
 
-    p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+    p : float, tespy.connections.connection.Ref
         Pressure specification.
 
     p0 : float
         Starting value specification for pressure.
 
-    h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+    h : float, tespy.connections.connection.Ref
         Enthalpy specification.
 
     h0 : float
         Starting value specification for enthalpy.
 
-    fluid : dict, tespy.tools.data_containers.FluidComposition
+    fluid : dict
         Fluid compostition specification.
 
     fluid0 : dict
@@ -58,17 +58,17 @@ class Connection:
     fluid_balance : boolean
         Fluid balance equation specification.
 
-    x : float, tespy.tools.data_containers.FluidProperties
+    x : float
         Gas phase mass fraction specification.
 
-    T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+    T : float, tespy.connections.connection.Ref
         Temperature specification.
 
-    Td_bp : float, tespy.tools.data_containers.FluidProperties
+    Td_bp : float
         Temperature difference to boiling point at pressure corresponding
         pressure of this connection in K.
 
-    v : float, tespy.tools.data_containers.FluidProperties
+    v : float
         Volumetric flow specification.
 
     state : str
@@ -127,8 +127,12 @@ class Connection:
     >>> so2 = Source('source2')
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')
-    >>> so_si1 = Connection(so1, 'out1', si1, 'in1')
+    >>> so_si1 = Connection(so1, 'out1', si1, 'in1', label='connection 1')
     >>> so_si2 = Connection(so2, 'out1', si2, 'in1')
+    >>> so_si1.label
+    'connection 1'
+    >>> so_si2.label
+    'source2:out1_sink2:in1'
 
     There are different ways of setting parameters on connections: Specify
 
@@ -139,21 +143,14 @@ class Connection:
     - a boolean value (for attributes fluid_balance, local_design,
       local_offdesign).
     - a referenced value (mass flow, pressure, temperature, enthalpy).
-    - a data_container (for attributes fluid and fluid0 dc_flu, for other
-      fluid propertie attributes dc_prop).
     - numpy.nan or None (unsetting a value).
-    - a string (for attributes design_paht and state).
+    - a string (for attributes design_path and state).
     - a list (for attributes design and offdesign).
 
     >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
-
-    Individual specification of pressure with a data container. Setting the
-    unit individually will overwrite the network's unit specification for this
-    connection.
-
-    >>> p = dc_prop(val=50, val_set=True, unit='bar', unit_set=True)
-    >>> so_si2.set_attr(m=Ref(so_si1, 2, -5), p=p, h0=700, T=200,
-    ... fluid={'N2': 1}, fluid_balance=True)
+    >>> so_si2.set_attr(m=Ref(so_si1, 2, -5), h0=700, T=200,
+    ... fluid={'N2': 1}, fluid_balance=True,
+    ... design=['T'], offdesign=['m', 'v'])
 
     The set_attr method automatically converts your input in data_container
     information.
@@ -168,13 +165,15 @@ class Connection:
 
     >>> so_si1.m.val0
     10
+    >>> so_si1.m.val_set
+    False
     >>> so_si1.m.get_attr('val_set')
     False
     >>> type(so_si2.m.ref)
     <class 'tespy.connections.connection.Ref'>
     >>> so_si2.fluid.get_attr('balance')
     True
-    >>> so_si2.m.ref.get_attr('d')
+    >>> so_si2.m.ref.get_attr('delta')
     -5
     >>> so_si2.m.ref_set
     True
@@ -210,12 +209,10 @@ class Connection:
     >>> so_si2.set_attr(state=None)
     >>> so_si2.state.is_set
     False
-    >>> so_si2.set_attr(label='myconnection')
-    >>> so_si2.label
-    'myconnection'
     """
 
-    def __init__(self, comp1, outlet_id, comp2, inlet_id, **kwargs):
+    def __init__(self, comp1, outlet_id, comp2, inlet_id,
+                 label=None, **kwargs):
 
         # check input parameters
         if not (isinstance(comp1, Component) and
@@ -247,8 +244,17 @@ class Connection:
             logging.error(msg)
             raise ValueError(msg)
 
-        self.label = (
-            comp1.label + ':' + outlet_id + '_' + comp2.label + ':' + inlet_id)
+        if label is None:
+            self.label = (
+                comp1.label + ':' + outlet_id + '_' +
+                comp2.label + ':' + inlet_id)
+        else:
+            self.label = label
+
+        if not isinstance(self.label, str):
+            msg = 'Please provide the label as string.'
+            logging.error(msg)
+            raise TypeError(msg)
 
         # set specified values
         self.source = comp1
@@ -282,25 +288,25 @@ class Connection:
 
         Parameters
         ----------
-        m : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+        m : float, tespy.connections.connection.Ref
             Mass flow specification.
 
         m0 : float
             Starting value specification for mass flow.
 
-        p : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+        p : float, tespy.connections.connection.Ref
             Pressure specification.
 
         p0 : float
             Starting value specification for pressure.
 
-        h : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+        h : float, tespy.connections.connection.Ref
             Enthalpy specification.
 
         h0 : float
             Starting value specification for enthalpy.
 
-        fluid : dict, tespy.tools.data_containers.FluidComposition
+        fluid : dict
             Fluid compostition specification.
 
         fluid0 : dict
@@ -309,17 +315,17 @@ class Connection:
         fluid_balance : boolean
             Fluid balance equation specification.
 
-        x : float, tespy.tools.data_containers.FluidProperties
+        x : float
             Gas phase mass fraction specification.
 
-        T : float, tespy.connections.connection.Ref, tespy.tools.data_containers.FluidProperties
+        T : float, tespy.connections.connection.Ref
             Temperature specification.
 
-        Td_bp : float, tespy.tools.data_containers.FluidProperties
+        Td_bp : float
             Temperature difference to boiling point at pressure corresponding
             pressure of this connection in K.
 
-        v : float, tespy.tools.data_containers.FluidProperties
+        v : float
             Volumetric flow specification.
 
         state : str
@@ -344,10 +350,6 @@ class Connection:
         printout : boolean
             Include this connection in the network's results printout.
 
-        label : str
-            Label of the connection. The default value is:
-            :code:`'source:source_id_target:target_id'`.
-
         Note
         ----
         - The fluid balance parameter applies a balancing of the fluid vector
@@ -368,14 +370,19 @@ class Connection:
         """
         # set specified values
         for key in kwargs:
-            if key in self.variables.keys() or key in self.variables0:
+            if key == 'label':
+                # bad datatype
+                msg = 'Label can only be specified on instance creation.'
+                logging.error(msg)
+                raise TESPyConnectionError(msg)
+            elif key in self.variables.keys() or key in self.variables0:
                 # fluid specification
                 try:
                     float(kwargs[key])
                     is_numeric = True
                 except (TypeError, ValueError):
                     is_numeric = False
-                if 'fluid' in key:
+                if 'fluid' in key and key != 'fluid_balance':
                     if isinstance(kwargs[key], dict):
                         # starting values
                         if key in self.variables0:
@@ -386,23 +393,17 @@ class Connection:
                             self.fluid.set_attr(
                                 val_set={f: True for f in kwargs[key].keys()})
 
-                    elif isinstance(kwargs[key], dc_flu):
-                        # data container for fluids
-                        self.__dict__.update({key: kwargs[key]})
-
                     else:
                         # bad datatype
                         msg = (
                             'Datatype for fluid vector specification must be '
-                            'tespy.tools.data_containers.FluidComposition or dict.')
+                            'dict.')
                         logging.error(msg)
                         raise TypeError(msg)
 
                 elif key == 'state':
                     if kwargs[key] in ['l', 'g']:
                         self.state.set_attr(val=kwargs[key], is_set=True)
-                    elif isinstance(kwargs[key], dc_simple):
-                        self.state = kwargs[key]
                     elif kwargs[key] is None:
                         self.state.set_attr(is_set=False)
                     elif is_numeric:
@@ -453,10 +454,6 @@ class Connection:
                         self.get_attr(key).set_attr(ref=kwargs[key])
                         self.get_attr(key).set_attr(ref_set=True)
 
-                # data container specification
-                elif isinstance(kwargs[key], dc_prop):
-                    self.__dict__.update({key: kwargs[key]})
-
                 # invalid datatype for keyword
                 else:
                     msg = 'Bad datatype for keyword argument ' + key + '.'
@@ -483,9 +480,10 @@ class Connection:
                 elif set(kwargs[key]).issubset(self.variables.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
+                    params = ', '.join(self.variables.keys())
                     msg = (
                         'Available parameters for (off-)design specification '
-                        'are: ' + str(self.variables.keys()) + '.')
+                        'are: ' + params + '.')
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -512,15 +510,6 @@ class Connection:
                     raise TypeError(msg)
                 else:
                     self.__dict__.update({key: kwargs[key]})
-
-            # label
-            elif key == 'label':
-                if isinstance(kwargs[key], str):
-                    self.__dict__.update({key: kwargs[key]})
-                else:
-                    msg = 'Please provide the label as string.'
-                    logging.error(msg)
-                    raise TypeError(msg)
 
             # invalid keyword
             else:
@@ -564,7 +553,7 @@ class Connection:
                 's': dc_prop(),
                 'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()}
 
-    def to_flow(self):
+    def get_flow(self):
         r"""
         Return the SI-values for the network variables.
 
@@ -574,17 +563,6 @@ class Connection:
             List of mass flow and fluid property information.
         """
         return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
-
-    def to_flow_design(self):
-        r"""
-        Return the SI-values for the network variables at design point.
-
-        Returns
-        -------
-        out : list
-            List of mass flow and fluid property information.
-        """
-        return [self.m.design, self.p.design, self.h.design, self.fluid.design]
 
     def get_physical_exergy(self, p0, T0):
         r"""
@@ -609,7 +587,7 @@ class Connection:
                 E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}
                 E^\mathrm{PH} = \dot{m} \cdot e^\mathrm{PH}
         """
-        self.ex_therm, self.ex_mech = calc_physical_exergy(self, p0, T0)
+        self.ex_therm, self.ex_mech = fp.calc_physical_exergy(self, p0, T0)
         self.Ex_therm = self.ex_therm * self.m.val_SI
         self.Ex_mech = self.ex_mech * self.m.val_SI
 
@@ -626,17 +604,17 @@ class Ref:
 
     .. math::
 
-        \dot{m} = \dot{m}_\mathrm{ref} \cdot f + d
+        \dot{m} = \dot{m}_\mathrm{ref} \cdot \mathrm{factor} + \mathrm{delta}
 
     Parameters
     ----------
     obj : tespy.connections.connection.Connection
         Connection to be referenced.
 
-    f : float
+    factor : float
         Factor to multiply specified property with.
 
-    d : float
+    delta : float
         Delta to add after multiplication.
     """
 
@@ -658,11 +636,12 @@ class Ref:
             raise TypeError(msg)
 
         self.obj = ref_obj
-        self.f = factor
-        self.d = delta
+        self.factor = factor
+        self.delta = delta
+        self.delta_SI = None
 
-        msg = ('Created reference object with factor ' + str(self.f) +
-               ' and delta ' + str(self.d) + ' referring to connection ' +
+        msg = ('Created reference object with factor ' + str(self.factor) +
+               ' and delta ' + str(self.delta) + ' referring to connection ' +
                ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
                ref_obj.target.label + ' (' + ref_obj.target_id + ').')
         logging.debug(msg)

@@ -17,8 +17,8 @@ import ast
 import json
 import logging
 import os
-import warnings
 
+import numpy as np
 import pandas as pd
 
 from tespy.components import CombustionChamber
@@ -33,7 +33,6 @@ from tespy.components import Drum
 from tespy.components import HeatExchanger
 from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
-from tespy.components import Node
 from tespy.components import ORCEvaporator
 from tespy.components import ParabolicTrough
 from tespy.components import Pipe
@@ -53,7 +52,6 @@ from tespy.connections import Ref
 from tespy.networks.network import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
-from tespy.tools.characteristics import CompressorMap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -85,7 +83,6 @@ comp_target_classes = {
     'DropletSeparator': DropletSeparator,
     'Drum': Drum,
     'Merge': Merge,
-    'Node': Node,
     'Separator': Separator,
     'Splitter': Splitter,
     'Pipe': Pipe,
@@ -94,12 +91,6 @@ comp_target_classes = {
     'Compressor': Compressor,
     'Pump': Pump,
     'Turbine': Turbine
-}
-
-
-map_target_classes = {
-    'CharMap': CharMap,
-    'CompressorMap': CompressorMap
 }
 
 # %% network loading
@@ -192,7 +183,7 @@ def load_network(path):
     vs. mass flow) is selected for the compressor. Fuel is Methane.
 
     >>> c.set_attr(pr=10, eta_s=0.88, design=['eta_s', 'pr'],
-    ... offdesign=['char_map'])
+    ... offdesign=['char_map_eta_s', 'char_map_pr'])
     >>> t.set_attr(eta_s=0.9, design=['eta_s'],
     ... offdesign=['eta_s_char', 'cone'])
     >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'CH4': 0,
@@ -219,14 +210,18 @@ def load_network(path):
     >>> inc.set_attr(m=np.nan)
     >>> power.set_attr(P=-1e6)
     >>> nw.solve('design')
-    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
+    >>> nw.lin_dep
+    False
     >>> nw.save('exported_nwk')
+    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
     >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> round(t.eta_s.val, 1)
     0.9
     >>> power.set_attr(P=-0.75e6)
     >>> nw.solve('offdesign', design_path='exported_nwk')
+    >>> nw.lin_dep
+    False
     >>> eta_s_t = round(t.eta_s.val, 3)
     >>> igva = round(c.igva.val, 3)
     >>> eta_s_t
@@ -241,6 +236,8 @@ def load_network(path):
     >>> imported_nwk = load_network('exported_nwk')
     >>> imported_nwk.set_attr(iterinfo=False)
     >>> imported_nwk.solve('design', init_path='exported_nwk')
+    >>> imported_nwk.lin_dep
+    False
     >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
     True
     >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
@@ -286,11 +283,10 @@ def load_network(path):
         char_maps = pd.read_csv(fn, sep=';', decimal='.',
                                 converters={'x': ast.literal_eval,
                                             'y': ast.literal_eval,
-                                            'z1': ast.literal_eval,
-                                            'z2': ast.literal_eval})
+                                            'z': ast.literal_eval})
 
     except FileNotFoundError:
-        char_maps = pd.DataFrame(columns=['id', 'type', 'x', 'y', 'z1', 'z2'])
+        char_maps = pd.DataFrame(columns=['id', 'type', 'x', 'y', 'z'])
 
     # load components
     comps = pd.DataFrame()
@@ -314,17 +310,7 @@ def load_network(path):
 
             cols = [
                 'instance', 'label', 'busses', 'bus_param', 'bus_P_ref',
-                'bus_char']
-            if 'bus_base' in df.columns:
-                cols += ['bus_base']
-            else:
-                msg = (
-                    'The base value of the bus must be part of the exported '
-                    'component data for component of type ' + f[:-4] + '. '
-                    'Please make sure to add the column bus_base to your data '
-                    'or recreate the network export with the TESPy 0.3.x API. '
-                    'This warning will be removed in TESPy version 0.4.0.')
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                'bus_char', 'bus_base']
 
             comps = pd.concat((comps, df[cols]), axis=0)
 
@@ -424,18 +410,25 @@ def construct_comps(c, *args):
     for key in ['design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign']:
         if key in c:
-            kwargs[key] = c[key]
+            try:
+                if np.isnan(c[key]):
+                    kwargs[key] = None
+            except TypeError:
+                kwargs[key] = c[key]
 
     for key, value in instance.variables.items():
         if key in c:
             # component parameters
             if isinstance(value, dc_cp):
-                kwargs[key] = dc_cp(val=c[key], is_set=c[key + '_set'],
-                                    is_var=c[key + '_var'])
+                kwargs[key] = {
+                    'val': c[key],
+                    'is_set': c[key + '_set'],
+                    'is_var': c[key + '_var']}
 
             # component parameters
             elif isinstance(value, dc_simple):
-                kwargs[key] = dc_simple(val=c[key], is_set=c[key + '_set'])
+                instance.get_attr(key).set_attr(
+                    **{'val': c[key], 'is_set': c[key + '_set']})
 
             # component characteristics
             elif isinstance(value, dc_cc):
@@ -458,8 +451,10 @@ def construct_comps(c, *args):
                            ' at component ' + c.label + '.')
                     logging.warning(msg)
 
-                kwargs[key] = dc_cc(is_set=c[key + '_set'],
-                                    param=c[key + '_param'], func=char)
+                kwargs[key] = {
+                    'is_set': c[key + '_set'],
+                    'param': c[key + '_param'],
+                    'char_func': char}
 
             # component characteristics
             elif isinstance(value, dc_cm):
@@ -469,25 +464,23 @@ def construct_comps(c, *args):
                 try:
                     x = list(args[1][values].x.values[0])
                     y = list(args[1][values].y.values[0])
-                    z1 = list(args[1][values].z1.values[0])
-                    z2 = list(args[1][values].z2.values[0])
-                    target_class = map_target_classes[
-                        args[1][values].type.values[0]]
-                    char = target_class(x=x, y=y, z1=z1, z2=z2)
+                    z = list(args[1][values].z.values[0])
+                    char = CharMap(x=x, y=y, z=z)
 
                 except IndexError:
                     char = None
-                    msg = ('Could not find x, y, z1 and z2 values for '
+                    msg = ('Could not find x, y and z values for '
                            'characteristic map of component ' + c.label + '!')
                     logging.warning(msg)
 
-                kwargs[key] = dc_cm(is_set=c[key + '_set'],
-                                    param=c[key + '_param'],
-                                    func=char)
+                kwargs[key] = {
+                    'is_set': c[key + '_set'],
+                    'param': c[key + '_param'],
+                    'char_func': char}
 
             # grouped component parameters
             elif isinstance(value, dc_gcp):
-                kwargs[key] = dc_gcp(method=c[key])
+                kwargs[key] = {'method': c[key]}
 
     instance.set_attr(**kwargs)
     return instance
@@ -549,26 +542,25 @@ def construct_conns(c, *args):
     conn = Connection(args[0].instance[c.source], c.source_id,
                       args[0].instance[c.target], c.target_id)
 
-    kwargs = {}
     # read basic properties
     for key in ['design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign', 'label']:
         if key in c:
-            kwargs[key] = c[key]
+            try:
+                if np.isnan(c[key]):
+                    setattr(conn, key, None)
+            except TypeError:
+                setattr(conn, key, c[key])
 
     # read fluid properties
     for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']:
         if key in c:
-            if key in c:
-                kwargs[key] = dc_prop(val=c[key], val0=c[key + '0'],
-                                      val_set=c[key + '_set'],
-                                      unit=c[key + '_unit'],
-                                      unit_set=c[key + '_unit_set'],
-                                      ref=None, ref_set=c[key + '_ref_set'])
+            setattr(conn, key, dc_prop(
+                val=c[key], val0=c[key + '0'], val_set=c[key + '_set'],
+                unit=c[key + '_unit'], ref=None, ref_set=c[key + '_ref_set']))
 
-    key = 'state'
-    if key in c:
-        kwargs[key] = dc_simple(val=c[key], is_set=c[key + '_set'])
+    if 'state' in c:
+        conn.state = dc_simple(val=c[key], is_set=c[key + '_set'])
 
     # read fluid vector
     val = {}
@@ -580,11 +572,10 @@ def construct_conns(c, *args):
             val0[key] = c[key + '0']
             val_set[key] = c[key + '_set']
 
-    kwargs['fluid'] = dc_flu(val=val, val0=val0, val_set=val_set,
-                             balance=c['balance'])
+    conn.fluid = dc_flu(
+        val=val, val0=val0, val_set=val_set, balance=c['balance'])
 
     # write properties to connection and return connection object
-    conn.set_attr(**kwargs)
     return conn
 
 # %% set references on connections

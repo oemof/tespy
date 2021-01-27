@@ -134,6 +134,15 @@ tespy.components.heat_exchangers.solar_collector module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.nodes.base module
+--------------------------------------
+
+.. automodule:: tespy.components.nodes.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 tespy.components.nodes.droplet_separator module
 -----------------------------------------------
 
@@ -141,7 +150,6 @@ tespy.components.nodes.droplet_separator module
     :members:
     :undoc-members:
     :show-inheritance:
-
 tespy.components.nodes.drum module
 ----------------------------------
 

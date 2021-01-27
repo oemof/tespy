@@ -13,46 +13,36 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
+from tespy.components.nodes.base import NodeBase
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.document_models import generate_latex_eq
 
 
-class DropletSeparator(Component):
+class DropletSeparator(NodeBase):
     r"""
     Separate liquid phase from gas phase of a single fluid.
 
-    Equations
+    This component is the parent component of the Drum.
 
-        **mandatory equations**
+    **Mandatory Equations**
 
-        - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
-        - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot h_{in} -
-            \sum_j \left(\dot{m}_{j,out} \cdot h_{j,out} \right)\\
-            \forall j \in outlet
-
-            0 = p_{in} - p_{out,i}\\
-            \forall i \in \mathrm{outlets}
-
-            0 = h_{1,out} - h\left(p, x=1 \right)
-
-            0 = h_{2,out} - h\left(p, x=0 \right)\\
-            x: \text{vapour mass fraction}
+    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
 
     Inlets/Outlets
 
-        - in1
-        - out1, out2 (index 1: gas phase, index 2: liquid phase)
+    - in1
+    - out1, out2 (index 1: saturated liquid, index 2: saturated gas)
 
     Image
 
-        .. image:: _images/DropletSeparator.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/DropletSeparator.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -80,16 +70,6 @@ class DropletSeparator(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    Note
-    ----
-    If you are using a drum in a network with multiple fluids, it is likely
-    the fluid propagation causes trouble. If this is the case, try to
-    specify the fluid composition at another connection of your network.
-
-    This component assumes, that the fluid composition between outlet 1 and
-    inlet 2 does not change, thus there is no equation for the fluid mass
-    fraction at the inlet 2!
-
     Example
     -------
     The droplet separator separates gas from liquid phase. From a stream of
@@ -109,8 +89,8 @@ class DropletSeparator(Component):
     >>> ds.component()
     'droplet separator'
     >>> so_ds = Connection(so, 'out1', ds, 'in1')
-    >>> ds_sig = Connection(ds, 'out1', sig, 'in1')
-    >>> ds_sil = Connection(ds, 'out2', sil, 'in1')
+    >>> ds_sig = Connection(ds, 'out2', sig, 'in1')
+    >>> ds_sil = Connection(ds, 'out1', sil, 'in1')
     >>> nw.add_conns(so_ds, ds_sig, ds_sil)
 
     We specify the fluid's state at the inlet. At the gas outflow saturated
@@ -120,11 +100,11 @@ class DropletSeparator(Component):
 
     .. math::
 
-        \dot{m}_\mathrm{out,1} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
-        \dot{m}_\mathrm{in}
-
-        \dot{m}_\mathrm{out,2} = \left(1 - \frac{h_\mathrm{in} - h'}{h'' - h'}
+        \dot{m}_\mathrm{out,1} = \left(1 - \frac{h_\mathrm{in} - h'}{h'' - h'}
         \right) \cdot \dot{m}_\mathrm{in}
+
+        \dot{m}_\mathrm{out,2} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
+        \dot{m}_\mathrm{in}
 
     >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
     >>> nw.solve('design')
@@ -149,7 +129,7 @@ class DropletSeparator(Component):
     >>> nw.solve('design')
     >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
     0.95
-    >>> T_boil = T_bp_p(so_ds.to_flow())
+    >>> T_boil = T_bp_p(so_ds.get_flow())
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
@@ -158,6 +138,35 @@ class DropletSeparator(Component):
     def component():
         return 'droplet separator'
 
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 1},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids * 2},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': 1},
+            'pressure_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i + self.num_o - 1},
+            'outlet_constraints': {
+                'func': self.outlet_states_func,
+                'deriv': self.outlet_states_deriv,
+                'constant_deriv': False,
+                'latex': self.outlet_states_func_doc,
+                'num_eq': 2}
+        }
+
     @staticmethod
     def inlets():
         return ['in1']
@@ -165,95 +174,6 @@ class DropletSeparator(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
-
-    def comp_init(self, nw):
-
-        Component.comp_init(self, nw)
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl * 2
-        # mass flow: 1
-        # pressure: 2
-        # enthalpy: 1
-        # saturated liquid outlet: 1
-        # saturated gas outlet: 1
-        self.num_eq = self.num_nw_fluids * 2 + 6
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids * 2
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 1] = self.mass_flow_deriv()
-        self.jacobian[pos + 1:pos + 3] = self.pressure_deriv()
-
-    def equations(self):
-        r"""Calculate residual vector with results of equations."""
-        k = 0
-        ######################################################################
-        # eqations for fluid balance
-        self.residual[k:k + self.num_nw_fluids * 2] = self.fluid_func()
-        k += self.num_nw_fluids * 2
-
-        ######################################################################
-        # eqations for mass flow balance
-        self.residual[k] = self.mass_flow_func()
-        k += 1
-
-        ######################################################################
-        # eqations for pressure
-        p = self.inl[0].p.val_SI
-        for c in self.outl:
-            self.residual[k] = p - c.p.val_SI
-            k += 1
-
-        ######################################################################
-        # eqations for enthalpy
-        val = 0
-        for i in self.inl:
-            val += i.m.val_SI * i.h.val_SI
-        for o in self.outl:
-            val -= o.m.val_SI * o.h.val_SI
-        self.residual[k] = val
-        k += 1
-
-        ######################################################################
-        # eqations for staturated fluid state at outlets
-        self.residual[k] = h_mix_pQ(
-            self.outl[0].to_flow(), 1) - self.outl[0].h.val_SI
-        k += 1
-        self.residual[k] = h_mix_pQ(
-            self.outl[1].to_flow(), 0) - self.outl[1].h.val_SI
-        k += 1
-
-    def derivatives(self, increment_filter):
-        r"""Calculate partial derivatives for given equations."""
-        ######################################################################
-        # derivatives fluid, mass flow and pressure balance are static
-        k = self.num_nw_fluids * 2 + 3
-
-        ######################################################################
-        # derivatives for energy balance equation
-        self.jacobian[k, 0, 0] = self.inl[0].h.val_SI
-        self.jacobian[k, 0, 2] = self.inl[0].m.val_SI
-        j = 0
-        for outl in self.outl:
-            self.jacobian[k, j + 1, 0] = -outl.h.val_SI
-            self.jacobian[k, j + 1, 2] = -outl.m.val_SI
-            j += 1
-        k += 1
-
-        ######################################################################
-        # derivatives of equations for saturated states at outlets
-        self.jacobian[k, 1, 1] = dh_mix_dpQ(self.outl[0].to_flow(), 0)
-        self.jacobian[k, 1, 2] = -1
-        k += 1
-        self.jacobian[k, 2, 1] = dh_mix_dpQ(self.outl[1].to_flow(), 1)
-        self.jacobian[k, 2, 2] = -1
-        k += 1
 
     def fluid_func(self):
         r"""
@@ -266,16 +186,36 @@ class DropletSeparator(Component):
 
             .. math::
 
-                0 = fluid_{i,in_1} - fluid_{i,out_{j}}\\
-                \forall i \in \mathrm{fluid}, \; \forall j \in inlets
-
+                0 = fluid_{i,in,1} - fluid_{i,out,j}\\
+                \forall i \in \text{network fluids}, \; \forall j \in
+                \text{outlets}
         """
         residual = []
-
         for o in self.outl:
             for fluid, x in self.inl[0].fluid.val.items():
                 residual += [x - o.fluid.val[fluid]]
         return residual
+
+    def fluid_func_doc(self, label):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0 = x_{fl\mathrm{,in,1}} - x_{fl\mathrm{,out,}j}'
+            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
+            r'\text{outlets}'
+        )
+        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
         r"""
@@ -286,27 +226,138 @@ class DropletSeparator(Component):
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((2 * self.num_nw_fluids, 3, self.num_nw_vars))
+        deriv = np.zeros((
+            2 * self.num_nw_fluids, self.num_i + self.num_o, self.num_nw_vars))
         for k in range(2):
             for i in range(self.num_nw_fluids):
                 deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
+                deriv[i + k * self.num_nw_fluids, k + self.num_i, i + 3] = -1
         return deriv
 
-    def pressure_deriv(self):
+    def energy_balance_func(self):
         r"""
-        Calculate partial derivatives for pressure equations.
+        Calculate energy balance.
 
         Returns
         -------
-        deriv : list
-            Matrix with partial derivatives for the pressure equations.
+        residual : float
+            Residual value of energy balance.
+
+            .. math::
+
+                0 = \sum_i \left(\dot{m}_{in,i} \cdot h_{in,i} \right) -
+                \sum_j \left(\dot{m}_{out,j} \cdot h_{out,j} \right)\\
+                \forall i \in \text{inlets} \; \forall j \in \text{outlets}
         """
-        deriv = np.zeros((2, 3, self.num_nw_vars))
-        for k in range(2):
-            deriv[k, 0, 1] = 1
-            deriv[k, k + 1, 1] = -1
-        return deriv
+        res = 0
+        for i in self.inl:
+            res += i.m.val_SI * i.h.val_SI
+        for o in self.outl:
+            res -= o.m.val_SI * o.h.val_SI
+        return res
+
+    def energy_balance_func_doc(self, label):
+        r"""
+        Calculate energy balance.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
+            r'\right) - \sum_j \left(\dot{m}_{\mathrm{out,}j} \cdot '
+            r'h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;'
+            r'\forall j \in \text{outlets}'
+        )
+        return generate_latex_eq(self, latex, label)
+
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        j = 0
+        for i in self.inl:
+            self.jacobian[k, j, 0] = i.h.val_SI
+            self.jacobian[k, j, 2] = i.m.val_SI
+            j += 1
+        j = 0
+        for o in self.outl:
+            self.jacobian[k, j + self.num_i, 0] = -o.h.val_SI
+            self.jacobian[k, j + self.num_i, 2] = -o.m.val_SI
+            j += 1
+
+    def outlet_states_func(self):
+        r"""
+        Calculate energy balance.
+
+        Returns
+        -------
+        residual : list
+            Residual values of outlet state equations.
+
+            .. math::
+
+                0 = h_{out,1} - h\left(p, x=0 \right)\\
+                0 = h_{out,2} - h\left(p, x=1 \right)
+        """
+        return [
+            h_mix_pQ(self.outl[0].get_flow(), 0) - self.outl[0].h.val_SI,
+            h_mix_pQ(self.outl[1].get_flow(), 1) - self.outl[1].h.val_SI]
+
+    def outlet_states_func_doc(self, label):
+        r"""
+        Calculate energy balance.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 =&h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0\right)\\'
+            r'0 =&h_\mathrm{out,2} -h\left(p_\mathrm{out,2}, x=1\right)\\'
+            r'\end{split}'
+        )
+        return generate_latex_eq(self, latex, label)
+
+    def outlet_states_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of outlet states.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        self.jacobian[k, self.num_i, 1] = dh_mix_dpQ(self.outl[0].get_flow(), 0)
+        self.jacobian[k, self.num_i, 2] = -1
+        self.jacobian[k + 1, self.num_i + 1, 1] = (
+            dh_mix_dpQ(self.outl[1].get_flow(), 1))
+        self.jacobian[k + 1, self.num_i + 1, 2] = -1
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""
@@ -380,9 +431,9 @@ class DropletSeparator(Component):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.to_flow(), 1)
+                return h_mix_pQ(c.get_flow(), 1)
             else:
-                return h_mix_pQ(c.to_flow(), 0)
+                return h_mix_pQ(c.get_flow(), 0)
 
     @staticmethod
     def initialise_target(c, key):
@@ -412,7 +463,7 @@ class DropletSeparator(Component):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            return h_mix_pQ(c.to_flow(), 0.5)
+            return h_mix_pQ(c.get_flow(), 0.5)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

@@ -11,59 +11,45 @@ tespy/components/heat_exchangers/desuperheater.py
 SPDX-License-Identifier: MIT
 """
 
-import warnings
-
-import numpy as np
-
-from tespy.components.component import Component
 from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.document_models import generate_latex_eq
 
 
 class Desuperheater(HeatExchanger):
     r"""
     The Desuperheater cools a fluid to the saturated gas state.
 
-    Equations
+    **Mandatory Equations**
 
-        **mandatory equations**
+    - :py:meth:`tespy.components.component.Component.fluid_func`
+    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
-        - :py:meth:`tespy.components.component.Component.fluid_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.mass_flow_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_func`
+    **Optional Equations**
 
-        **optional equations**
-
-        .. math::
-
-            0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
-        - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
-
-        .. math::
-
-            0 = p_{1,in} \cdot pr1 - p_{1,out}\\
-            0 = p_{2,in} \cdot pr2 - p_{2,out}
-
-        - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-        - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-
-        **additional equations**
-
-        - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.additional_equations`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
+    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
+    - hot side :py:meth:`tespy.components.component.Component.pr_func`
+    - cold side :py:meth:`tespy.components.component.Component.pr_func`
+    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
+    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
-        - in1, in2 (index 1: hot side, index 2: cold side)
-        - out1, out2 (index 1: hot side, index 2: cold side)
+    - in1, in2 (index 1: hot side, index 2: cold side)
+    - out1, out2 (index 1: hot side, index 2: cold side)
 
     Image
 
-        .. image:: _images/HeatExchanger.svg
-           :alt: alternative text
-           :align: center
+    .. image:: _images/HeatExchanger.svg
+       :alt: alternative text
+       :align: center
 
     Parameters
     ----------
@@ -183,64 +169,72 @@ class Desuperheater(HeatExchanger):
     def component():
         return 'desuperheater'
 
-    def comp_init(self, nw):
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'num_eq': 2},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': True, 'latex': self.fluid_func_doc,
+                'num_eq': self.num_nw_fluids * 2},
+            'energy_balance_constraints': {
+                'func': self.energy_balance_func,
+                'deriv': self.energy_balance_deriv,
+                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+                'num_eq': 1},
+            'saturated_gas_constraints': {
+                'func': self.saturated_gas_func,
+                'deriv': self.saturated_gas_deriv,
+                'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
+                'num_eq': 1}
+        }
 
-        Component.comp_init(self, nw)
-
-        # number of mandatroy equations for
-        # fluid balance: num_fl * 2
-        # mass flow: 2
-        # energy balance: 1
-        # enthalpy hot side outlet: 1
-        self.num_eq = self.num_nw_fluids * 2 + 4
-        for var in [self.Q, self.kA, self.kA_char, self.ttd_u, self.ttd_l,
-                    self.pr1, self.pr2, self.zeta1, self.zeta2]:
-            if var.is_set:
-                self.num_eq += 1
-
-        if self.kA.is_set:
-            msg = (
-                'The usage of the parameter kA has changed for offdesign '
-                'calculation. Specifying kA will keep a constant value for kA '
-                'in the calculation. If you want to use the value adaption of '
-                'kA by the characteristic line, please use kA_char as '
-                'parameter instead (occurred at ' + self.label + '). This '
-                'warning will disappear in TESPy version 0.4.0.')
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-
-        self.residual = np.zeros(self.num_eq)
-        pos = self.num_nw_fluids * 2
-        self.jacobian[0:pos] = self.fluid_deriv()
-        self.jacobian[pos:pos + 2] = self.mass_flow_deriv()
-
-    def additional_equations(self, k):
+    def saturated_gas_func(self):
         r"""
-        Calculate results of additional equations.
+        Calculate hot side outlet state.
 
-        Equations
-
-            **mandatory equations**
+        Returns
+        -------
+        residual : float
+            Residual value of equation
 
             .. math::
 
-                0 = h_{1,out} - h\left(p, x=1 \right)\\
-                x: \text{vapour mass fraction}
+                0 = h_{out,1} - h\left(p_{out,1}, x=1 \right)
         """
-        ######################################################################
-        # equation for saturated gas at hot side outlet
-        o1 = self.outl[0].to_flow()
-        self.residual[k] = o1[2] - h_mix_pQ(o1, 1)
+        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].get_flow(), 1)
 
-    def additional_derivatives(self, increment_filter, k):
-        r"""Calculate partial derivatives for given additional equations."""
-        ######################################################################
-        # derivatives for saturated gas at hot side outlet equation
-        o1 = self.outl[0].to_flow()
+    def saturated_gas_func_doc(self, label):
+        r"""
+        Calculate hot side outlet state.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
+        return generate_latex_eq(self, latex, label)
+
+    def saturated_gas_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of saturated gas at hot side outlet function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        o1 = self.outl[0].get_flow()
         self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 1)
         self.jacobian[k, 2, 2] = 1
-        k += 1

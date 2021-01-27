@@ -19,10 +19,6 @@ class Source(Component):
     r"""
     A flow originates from a Source.
 
-    Equations
-
-        This component is unconstrained.
-
     Parameters
     ----------
     label : str
@@ -68,6 +64,10 @@ class Source(Component):
     @staticmethod
     def outlets():
         return ['out1']
+
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
 
     def propagate_fluid_to_source(self, outconn, start):
         r"""

@@ -57,11 +57,8 @@ In order to create the connections we create the components to connect first.
     myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15),
                     h=dc_prop(val0=100))
 
-    # specify a value in a different unit for a specific parameter
-    myconn.set_attr(p=dc_prop(val=7, val_set=True, unit='MPa', unit_set=True))
-
     # specify a referenced value: pressure of myconn is 1.2 times pressure at
-    # myotherconn minus 5 Pa (always SI unit here)
+    # myotherconn minus 5 (unit is the network's corresponding unit)
     myconn.set_attr(p=Ref(myotherconn, 1.2, -5))
 
     # specify value and reference at the same time
@@ -250,8 +247,7 @@ to the bus.
     x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
     y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
     # create a characteristic line for a generator
-    gen1 = CharLine(x=x, y=y)
-    gen2 = CharLine(x=x, y=y)
+    gen = CharLine(x=x, y=y)
     power.add_comps(
         {'comp': turbine_hp, 'char': gen1},
         {'comp': turbine_lp, 'char': gen2})
@@ -264,10 +260,6 @@ power output.
 .. code:: python
 
     # bus for combustion engine power
-    x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
-    y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
-    # create a characteristic line for a generator
-    gen = CharLine(x=x, y=y)
     el_power_bus = Bus('combustion engine power', P=-10e6)
     el_power_bus.add_comps({'comp': comb_engine, 'param': 'P', 'char': gen})
 

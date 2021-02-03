@@ -9,9 +9,12 @@ Documentation
 
 Bug Fixes
 #########
+- Fix RuntimeError in CombustionChamberStoich class
+  (`PR #244 <https://github.com/oemof/tespy/pull/244>`_).
 
 Other Changes
 #############
 
 Contributors
 ############
+- `@govind-menon110 <https://github.com/govind-menon110>`_

@@ -1189,51 +1189,41 @@ class Component:
 
                 \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
         """
-        dm, dp, dh, df = 0, 0, 0, 0
-        if dx == 'm':
-            dm = 1e-4
-        elif dx == 'p':
-            dp = 1e-1
-        elif dx == 'h':
-            dh = 1e-1
-        else:
-            df = 1e-5
-
         if dx == 'fluid':
+            d = 1e-5
+            conns = self.inl + self.outl
             deriv = []
-            for f in self.inl[0].fluid.val.keys():
-                val = (self.inl + self.outl)[pos].fluid.val[f]
-                exp = 0
-                if (self.inl + self.outl)[pos].fluid.val[f] + df <= 1:
-                    (self.inl + self.outl)[pos].fluid.val[f] += df
+            for f in conns[0].fluid.val.keys():
+                val = conns[pos].fluid.val[f]
+                if conns[pos].fluid.val[f] + d <= 1:
+                    conns[pos].fluid.val[f] += d
                 else:
-                    (self.inl + self.outl)[pos].fluid.val[f] = 1
-                exp += func(**kwargs)
-                if (self.inl + self.outl)[pos].fluid.val[f] - 2 * df >= 0:
-                    (self.inl + self.outl)[pos].fluid.val[f] -= 2 * df
+                    conns[pos].fluid.val[f] = 1
+                exp = func(**kwargs)
+                if conns[pos].fluid.val[f] - 2 * d >= 0:
+                    conns[pos].fluid.val[f] -= 2 * d
                 else:
-                    (self.inl + self.outl)[pos].fluid.val[f] = 0
+                    conns[pos].fluid.val[f] = 0
                 exp -= func(**kwargs)
-                (self.inl + self.outl)[pos].fluid.val[f] = val
+                conns[pos].fluid.val[f] = val
 
-                deriv += [exp / (2 * (dm + dp + dh + df))]
+                deriv += [exp / (2 * d)]
 
         elif dx in ['m', 'p', 'h']:
-            exp = 0
-            (self.inl + self.outl)[pos].m.val_SI += dm
-            (self.inl + self.outl)[pos].p.val_SI += dp
-            (self.inl + self.outl)[pos].h.val_SI += dh
-            exp += func(**kwargs)
 
-            (self.inl + self.outl)[pos].m.val_SI -= 2 * dm
-            (self.inl + self.outl)[pos].p.val_SI -= 2 * dp
-            (self.inl + self.outl)[pos].h.val_SI -= 2 * dh
+            if dx == 'm':
+                d = 1e-4
+            else:
+                d = 1e-1
+            conns = self.inl + self.outl
+            conns[pos].get_attr(dx).val_SI += d
+            exp = func(**kwargs)
+
+            conns[pos].get_attr(dx).val_SI -= 2 * d
             exp -= func(**kwargs)
-            deriv = exp / (2 * (dm + dp + dh + df))
+            deriv = exp / (2 * d)
 
-            (self.inl + self.outl)[pos].m.val_SI += dm
-            (self.inl + self.outl)[pos].p.val_SI += dp
-            (self.inl + self.outl)[pos].h.val_SI += dh
+            conns[pos].get_attr(dx).val_SI += d
 
         else:
             d = self.get_attr(dx).d

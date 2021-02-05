@@ -178,6 +178,8 @@ class Network:
         self.connections = {}
         # component dictionary for fast access
         self.components = {}
+        # user defined function dictionary for fast access
+        self.user_defined_functions = {}
         # bus dictionary
         self.busses = OrderedDict()
 
@@ -460,6 +462,50 @@ class Network:
                 'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
+
+    def add_udf(self, *args):
+        r"""
+        Add a user defined function to the network.
+
+        Parameters
+        ----------
+        c : tespy.tools.helpers.UserDefinedFunction
+            The objects to be added to the network, UserDefinedFunction objects
+            ci :code:`del_conns(c1, c2, c3, ...)`.
+        """
+        for c in args:
+            if not isinstance(c, hlp.UserDefinedFunction):
+                msg = ('Must provide tespy.connections.connection.Connection '
+                       'objects as parameters.')
+                logging.error(msg)
+                raise TypeError(msg)
+
+            elif c.label in self.user_defined_functions.keys():
+                msg = (
+                    'There is already a UserDefinedFunction with the label ' +
+                    c.label + '. The UserDefinedFunction labels must be '
+                    'unique within a network')
+                logging.error(msg)
+                raise ValueError(msg)
+
+            self.user_defined_functions[c.label] = c
+            msg = 'Added UserDefinedFunction ' + c.label + ' to network.'
+            logging.debug(msg)
+
+    def del_udf(self, *args):
+        """
+        Remove a user defined function from the network.
+
+        Parameters
+        ----------
+        c : tespy.tools.helpers.UserDefinedFunction
+            The objects to be added deleted from the network,
+            UserDefinedFunction objects ci :code:`del_conns(c1, c2, c3, ...)`.
+        """
+        for c in args:
+            del self.user_defined_functions[c.label]
+            msg = 'Deleted UserDefinedFunction ' + c.label + ' from network.'
+            logging.debug(msg)
 
     def add_busses(self, *args):
         r"""
@@ -1528,6 +1574,14 @@ class Network:
         # number of variables per connection
         self.num_conn_vars = len(self.fluids) + 3
 
+        # number of user defined functions
+        self.num_udf_eq = len(self.user_defined_functions)
+
+        for func in self.user_defined_functions.values():
+            func.jacobian = {
+                c: np.zeros(self.num_conn_vars)
+                for c in func.conns}
+
         # total number of variables
         self.num_vars = (
             self.num_conn_vars * len(self.conns.index) + self.num_comp_vars)
@@ -1541,6 +1595,9 @@ class Network:
         msg = 'Number of component equations: ' + str(self.num_comp_eq) + '.'
         logging.debug(msg)
 
+        msg = 'Number of user defined equations: ' + str(self.num_udf_eq) + '.'
+        logging.debug(msg)
+
         msg = 'Total number of variables: ' + str(self.num_vars) + '.'
         logging.debug(msg)
         msg = 'Number of component variables: ' + str(self.num_comp_vars) + '.'
@@ -1549,7 +1606,9 @@ class Network:
                str(self.num_conn_vars * len(self.conns.index)) + '.')
         logging.debug(msg)
 
-        n = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
+        n = (
+            self.num_comp_eq + self.num_conn_eq +
+            self.num_bus_eq + self.num_udf_eq)
         if n > self.num_vars:
             msg = ('You have provided too many parameters: ' +
                    str(self.num_vars) + ' required, ' + str(n) +
@@ -1661,6 +1720,7 @@ class Network:
         self.solve_components()
         self.solve_busses()
         self.solve_connections()
+        self.solve_user_defined_functions()
         self.matrix_inversion()
 
         # check for linear dependency
@@ -1927,6 +1987,25 @@ class Network:
                 sum_eq += cp.num_eq
             cp.it += 1
 
+    def solve_user_defined_functions(self):
+        """
+        Calculate the residual and jacobian of user defined equations.
+
+        - Iterate through user defined functions and calculate residual value
+          and corresponding jacobian.
+        - Place residual values in residual value vector of the network.
+        - Place partial derivatives regarding connection parameters in jacobian
+          matrix of the network.
+        """
+        row = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
+        for udf in self.user_defined_functions.values():
+            self.residual[row] = udf.func(udf)
+            jacobian = udf.deriv(udf)
+            for c, derivative in jacobian.items():
+                col = c.conn_loc * self.num_conn_vars
+                self.jacobian[row, col:col + self.num_conn_vars] = derivative
+            row += 1
+
     def solve_connections(self):
         r"""
         Calculate the residual and derivatives of connection equations.
@@ -1996,7 +2075,7 @@ class Network:
 
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
             -\frac{\partial T_{j}}{\partial p_{j}}\\
-            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
             -\frac{\partial T_{j}}{\partial h_{j}}\\
             J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
             - \frac{\partial T_{j}}{\partial fluid_{j,k}}
@@ -2012,7 +2091,7 @@ class Network:
             -v \left( p_{j}, h_{j} \right)\\
             J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
             -\frac{\partial v_{j}}{\partial p_{j}} \cdot \dot{m}_j\\
-            J(\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
+            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
             -\frac{\partial v_{j}}{\partial h_{j}} \cdot \dot{m}_j\\
 
             \forall k \in \text{fluid components}\\
@@ -2073,8 +2152,8 @@ class Network:
             \; , \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
         """
-        primary_vars = {'m': 0, 'p': 1, 'h': 2}
         k = self.num_comp_eq
+        primary_vars = {'m': 0, 'p': 1, 'h': 2}
         for c in self.conns.index:
             flow = c.get_flow()
             col = c.conn_loc * self.num_conn_vars

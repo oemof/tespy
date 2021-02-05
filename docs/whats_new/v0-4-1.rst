@@ -3,6 +3,14 @@ v0.4.1 - Someversion (Somemonth, Someday, Someyear)
 
 New Features
 ############
+- Add functionalities for user defined functions. The user can define
+  individual functions that can be applied on connection parameters. E.g. in
+  order to couple mass flow values at some point of the network to temperature
+  values at a different point. Generic equations can be applied: There are no
+  restrictions as long as the partial derivatives are provided correctly. For
+  an extensive example have a lookt at the API documentation of class
+  :py:class:`tespy.tools.helpers.UserDefinedFunction`
+  (`PR #245 <https://github.com/oemof/tespy/pull/245>`_).
 
 Documentation
 #############

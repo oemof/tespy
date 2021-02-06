@@ -189,18 +189,18 @@ class UserDefinedEquation:
         flow as input values and temperature drop as output values. The
         function should look like this:
 
-        >>> def myfunc(udf):
-        ...    char = udf.params['char']
+        >>> def myfunc(ude):
+        ...    char = ude.params['char']
         ...    return (
-        ...        T_mix_ph(udf.conns[0].get_flow()) -
-        ...        T_mix_ph(udf.conns[1].get_flow()) - char.evaluate(
-        ...            udf.conns[0].m.val_SI *
-        ...            v_mix_ph(udf.conns[0].get_flow()))
+        ...        T_mix_ph(ude.conns[0].get_flow()) -
+        ...        T_mix_ph(ude.conns[1].get_flow()) - char.evaluate(
+        ...            ude.conns[0].m.val_SI *
+        ...            v_mix_ph(ude.conns[0].get_flow()))
         ...    )
 
-        The function does only take one parameter, we name it udf in this case.
-        This parameter will hold all relevant information you pass to your
-        UserDefinedEquation later, i.e. a list of the connections
+        The function does only take one parameter, we name it :code:`ude` in
+        this case. This parameter will hold all relevant information you pass
+        to your UserDefinedEquation later, i.e. a list of the connections
         (:code:`.conns`) required by the UserDefinedEquation as well as
         a dictionary of arbitrary parameters required for your function
         (:code:`.params`). The index of the :code:`.conns` indicates the
@@ -229,13 +229,13 @@ class UserDefinedEquation:
         passing the variable ('m', 'p', 'h', 'fluid') as well as the
         connection's index.
 
-        >>> def myjacobian(udf):
-        ...    udf.jacobian[udf.conns[0]][0] = udf.numeric_deriv('m', 0)
-        ...    udf.jacobian[udf.conns[0]][1] = udf.numeric_deriv('p', 0)
-        ...    udf.jacobian[udf.conns[0]][2] = udf.numeric_deriv('h', 0)
-        ...    udf.jacobian[udf.conns[1]][1] = udf.numeric_deriv('p', 1)
-        ...    udf.jacobian[udf.conns[1]][2] = udf.numeric_deriv('h', 1)
-        ...    return udf.jacobian
+        >>> def myjacobian(ude):
+        ...    ude.jacobian[ude.conns[0]][0] = ude.numeric_deriv('m', 0)
+        ...    ude.jacobian[ude.conns[0]][1] = ude.numeric_deriv('p', 0)
+        ...    ude.jacobian[ude.conns[0]][2] = ude.numeric_deriv('h', 0)
+        ...    ude.jacobian[ude.conns[1]][1] = ude.numeric_deriv('p', 1)
+        ...    ude.jacobian[ude.conns[1]][2] = ude.numeric_deriv('h', 1)
+        ...    return ude.jacobian
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -247,10 +247,10 @@ class UserDefinedEquation:
         ...    x=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0],
         ...    y=[17, 12, 9, 6.5, 4.5, 3, 2, 1.5, 1.25, 1.125, 1.1, 1.05],
         ...    extrapolate=True)
-        >>> my_udf = UserDefinedEquation(
-        ...    'myudflabel', myfunc, myjacobian, [inflow, outflow],
+        >>> my_ude = UserDefinedEquation(
+        ...    'myudelabel', myfunc, myjacobian, [inflow, outflow],
         ...    params={'char': char})
-        >>> nw.add_udf(my_udf)
+        >>> nw.add_ude(my_ude)
         >>> nw.solve('design')
 
         Clearly the result is obvious here as the volumetric flow is exactly

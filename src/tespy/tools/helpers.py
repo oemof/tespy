@@ -125,11 +125,11 @@ def latex_unit(unit):
         return r'$\unit[]{' + unit + '}$'
 
 
-class UserDefinedFunction:
+class UserDefinedEquation:
 
     def __init__(self, label, func, deriv, conns, params={}):
         r"""
-        A UserDefinedFunction can individually be applied.
+        A UserDefinedEquation allows use of generic user specified equations.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class UserDefinedFunction:
         Consider a pipeline transporting hot water with measurement data on
         temperature reduction in the pipeline as function of volumetric flow.
         First, we set up the TESPy model. Additionally, we will import the
-        :py:class:`tespy.tools.helpers.UserDefinedFunction` class as well as
+        :py:class:`tespy.tools.helpers.UserDefinedEquation` class as well as
         some fluid property functions. We specify fluid property information
         for the inflow and assume that no pressure losses occur in the
         pipeline.
@@ -162,7 +162,7 @@ class UserDefinedFunction:
         >>> from tespy.components import Source, Sink, Pipe
         >>> from tespy.networks import Network
         >>> from tespy.connections import Connection
-        >>> from tespy.tools.helpers import UserDefinedFunction
+        >>> from tespy.tools.helpers import UserDefinedEquation
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
         >>> nw = Network(fluids=['water'], p_unit='bar', T_unit='C')
@@ -200,12 +200,12 @@ class UserDefinedFunction:
 
         The function does only take one parameter, we name it udf in this case.
         This parameter will hold all relevant information you pass to your
-        UserDefinedFunction later, i.e. a list of the connections
-        (:code:`.conns`) required by the UserDefinedFunction as well as
+        UserDefinedEquation later, i.e. a list of the connections
+        (:code:`.conns`) required by the UserDefinedEquation as well as
         a dictionary of arbitrary parameters required for your function
         (:code:`.params`). The index of the :code:`.conns` indicates the
         position of the connection in the list of connections required for the
-        UserDefinedFunction (see below).
+        UserDefinedEquation (see below).
 
         On top of the equation the solver requires its derivatives with respect
         to all relevant primary variables of the network, which are mass flow
@@ -222,10 +222,10 @@ class UserDefinedFunction:
         - 0: mass flow
         - 1: pressure
         - 2: enthalpy
-        - 3 until end (code:`3:`): fluid composition
+        - 3 until end (:code:`3:`): fluid composition
 
         We can calculate the derivatives numerically, if an easy analytical
-        solution is not available. Simply use the :code:`ǹumeric_deriv` method
+        solution is not available. Simply use the :code:`numeric_deriv` method
         passing the variable ('m', 'p', 'h', 'fluid') as well as the
         connection's index.
 
@@ -239,7 +239,7 @@ class UserDefinedFunction:
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
-        UserDefinedFunction instance and add it to the network. Its equation
+        UserDefinedEquation instance and add it to the network. Its equation
         is automatically applied. We apply extrapolation for the characteristic
         line as it helps with convergence, in case a paramter
 
@@ -247,7 +247,7 @@ class UserDefinedFunction:
         ...    x=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0],
         ...    y=[17, 12, 9, 6.5, 4.5, 3, 2, 1.5, 1.25, 1.125, 1.1, 1.05],
         ...    extrapolate=True)
-        >>> my_udf = UserDefinedFunction(
+        >>> my_udf = UserDefinedEquation(
         ...    'myudflabel', myfunc, myjacobian, [inflow, outflow],
         ...    params={'char': char})
         >>> nw.add_udf(my_udf)
@@ -259,7 +259,7 @@ class UserDefinedFunction:
         >>> round(inflow.T.val - outflow.T.val, 3)
         1.125
 
-        So now, let's say, we want to calculate the volumetric flow to supply
+        So now, let's say, we want to calculate the volumetric flow necessary
         to at least maintain a specific temperature at the outflow.
 
         >>> inflow.set_attr(v=None)
@@ -268,7 +268,7 @@ class UserDefinedFunction:
         >>> round(inflow.v.val, 3)
         0.267
 
-        Or calculate volumetric flow or temperature drop corresponding to a
+        Or calculate volumetric flow and/or temperature drop corresponding to a
         specified heat loss.
 
         >>> outflow.set_attr(T=None)
@@ -280,7 +280,7 @@ class UserDefinedFunction:
         if isinstance(label, str):
             self.label = label
         else:
-            msg = 'Label of UserDefinedFunction object must be of type String.'
+            msg = 'Label of UserDefinedEquation object must be of type String.'
             logging.error(msg)
             raise TypeError(msg)
 

@@ -463,18 +463,18 @@ class Network:
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def add_udf(self, *args):
+    def add_ude(self, *args):
         r"""
         Add a user defined function to the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedFunction
-            The objects to be added to the network, UserDefinedFunction objects
+        c : tespy.tools.helpers.UserDefinedEquation
+            The objects to be added to the network, UserDefinedEquation objects
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            if not isinstance(c, hlp.UserDefinedFunction):
+            if not isinstance(c, hlp.UserDefinedEquation):
                 msg = ('Must provide tespy.connections.connection.Connection '
                        'objects as parameters.')
                 logging.error(msg)
@@ -482,29 +482,29 @@ class Network:
 
             elif c.label in self.user_defined_functions.keys():
                 msg = (
-                    'There is already a UserDefinedFunction with the label ' +
-                    c.label + '. The UserDefinedFunction labels must be '
+                    'There is already a UserDefinedEquation with the label ' +
+                    c.label + '. The UserDefinedEquation labels must be '
                     'unique within a network')
                 logging.error(msg)
                 raise ValueError(msg)
 
             self.user_defined_functions[c.label] = c
-            msg = 'Added UserDefinedFunction ' + c.label + ' to network.'
+            msg = 'Added UserDefinedEquation ' + c.label + ' to network.'
             logging.debug(msg)
 
-    def del_udf(self, *args):
+    def del_ude(self, *args):
         """
         Remove a user defined function from the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedFunction
+        c : tespy.tools.helpers.UserDefinedEquation
             The objects to be added deleted from the network,
-            UserDefinedFunction objects ci :code:`del_conns(c1, c2, c3, ...)`.
+            UserDefinedEquation objects ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
             del self.user_defined_functions[c.label]
-            msg = 'Deleted UserDefinedFunction ' + c.label + ' from network.'
+            msg = 'Deleted UserDefinedEquation ' + c.label + ' from network.'
             logging.debug(msg)
 
     def add_busses(self, *args):
@@ -1575,7 +1575,7 @@ class Network:
         self.num_conn_vars = len(self.fluids) + 3
 
         # number of user defined functions
-        self.num_udf_eq = len(self.user_defined_functions)
+        self.num_ude_eq = len(self.user_defined_functions)
 
         for func in self.user_defined_functions.values():
             func.jacobian = {
@@ -1595,7 +1595,7 @@ class Network:
         msg = 'Number of component equations: ' + str(self.num_comp_eq) + '.'
         logging.debug(msg)
 
-        msg = 'Number of user defined equations: ' + str(self.num_udf_eq) + '.'
+        msg = 'Number of user defined equations: ' + str(self.num_ude_eq) + '.'
         logging.debug(msg)
 
         msg = 'Total number of variables: ' + str(self.num_vars) + '.'
@@ -1608,7 +1608,7 @@ class Network:
 
         n = (
             self.num_comp_eq + self.num_conn_eq +
-            self.num_bus_eq + self.num_udf_eq)
+            self.num_bus_eq + self.num_ude_eq)
         if n > self.num_vars:
             msg = ('You have provided too many parameters: ' +
                    str(self.num_vars) + ' required, ' + str(n) +
@@ -1998,9 +1998,9 @@ class Network:
           matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
-        for udf in self.user_defined_functions.values():
-            self.residual[row] = udf.func(udf)
-            jacobian = udf.deriv(udf)
+        for ude in self.user_defined_functions.values():
+            self.residual[row] = ude.func(ude)
+            jacobian = ude.deriv(ude)
             for c, derivative in jacobian.items():
                 col = c.conn_loc * self.num_conn_vars
                 self.jacobian[row, col:col + self.num_conn_vars] = derivative

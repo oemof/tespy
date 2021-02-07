@@ -1,5 +1,5 @@
-v0.4.1 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.4.1 - User's Universe (February, 7, 2021)
+++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############

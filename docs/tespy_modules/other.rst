@@ -77,7 +77,7 @@ equation in a function which returns the residual value of the equation.
     of the equation:
 
     - connections required in the equation
-    - jacobian matrix to place the partial derivatives
+    - Jacobian matrix to place the partial derivatives
     - automatic numerical derivatives
     - other (external) parameters (e.g. the CharLine in the API docs example of
       :py:class:`tespy.tools.helpers.UserDefinedEquation`)
@@ -91,8 +91,8 @@ equation in a function which returns the residual value of the equation.
 The second step is to define the derivatives with respect to all primary
 variables of the network, i.e. mass flow, pressure, enthalpy and fluid
 composition of every connection. The derivatives have to be passed to the
-jacobian. In order to do this, we create a function that updates the values
-inside the jacobian of the :code:`UserDefinedEquation` and returns it:
+Jacobian. In order to do this, we create a function that updates the values
+inside the Jacobian of the :code:`UserDefinedEquation` and returns it:
 
 - :code:`self.jacobian` is a dictionary containing numpy arrays for every
   connection required by the :code:`UserDefinedEquation`.
@@ -105,7 +105,7 @@ inside the jacobian of the :code:`UserDefinedEquation` and returns it:
 - derivatives to **fluid composition** are placed in the remaining elements
   beginning at the fourth element of the numpy array (**indices 3:**)
 
-If calculate the derivatives of our equation, it is easy to find, that only
+If we calculate the derivatives of our equation, it is easy to find, that only
 derivatives to mass flow are not zero.
 
 - The derivative to mass flow of connection :code:`c1` is equal to :math:`1`
@@ -124,7 +124,7 @@ the network. The class requires four mandatory arguments to be passed:
 
 - :code:`label` of type String.
 - :code:`func` which is the function holding the equation to be applied.
-- :code:`deriv` which is the function holding the calculation of the jacobian.
+- :code:`deriv` which is the function holding the calculation of the Jacobian.
 - :code:`conns` which is a list of the connections required by the equation.
   The order of the connections specified in the list is equal to the accessing
   order in the equation and derivative calculation.
@@ -163,7 +163,13 @@ the logarithmic value.
     def my_ude(self):
         return (
             T_mix_ph(self.conns[1].get_flow()) ** 0.5 -
-            np.log(self.conns[0].p.val_SI ** 2 / self.conns[0].m.val_SI))
+            np.log(abs(self.conns[0].p.val_SI ** 2 / self.conns[0].m.val_SI)))
+
+.. note::
+
+    We use the absolute value inside of the logarithm expression to avoid
+    ValueErrors within the solution process as the mass flow is not restricted
+    to positive values.
 
 The derivatives can be determined analytically for the pressure and mass flow
 of the first stream easily. For the temperature value, you can use the
@@ -246,12 +252,42 @@ One more example (using a CharLine for datapoint interpolation) can be found in
 the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
 
+Document your equations
+-----------------------
+
+For the automatic documentation of your models just pass the :code:`latex`
+keyword on creation of the UserDefinedEquation instance. It should contain the
+latex equation string. For example, the last equation from above:
+
+.. code-block:: python
+
+    latex = (
+        r'0 = a \cdot \left(h_2 - h_1 \right) - '
+        r'\left(h_2 - h\left(p_1, x=b \right)\right)')
+
+    ude = UserDefinedEquation(
+        'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
+        latex={'equation': latex})
+
+The documentation will also create figures of :code:`CharLine` and
+:code:`CharMap` objects provided. To add these, adjust the code like this.
+Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
+
+.. code-block:: python
+
+    ude = UserDefinedEquation(
+        'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
+        latex={
+            'equation': latex,
+            'lines': [charline1, charline2],
+            'maps': [map1]})
+
 How can TESPy contribute to your energy system calculations?
 ============================================================
 
 In this part you learn how you can use TESPy for your energy system
 calculations: In energy system calculations, for instance in oemof-solph,
-plants are usually modelled as abstract components on a much lower level of
+plants are usually modeled as abstract components on a much lower level of
 detail. In order to represent a plant within an abstract component it is
 possible to supply characteristics establishing a connection between your
 energy system model and a specific plant model. Thus the characteristics are a

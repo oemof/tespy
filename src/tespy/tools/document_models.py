@@ -64,6 +64,7 @@ def document_model(nw, path='report', filename='report.tex', draft=True):
 
     latex = document_software_info(draft)
     latex += document_connections(nw)
+    latex += document_ude(nw, path)
     latex += document_components(nw, path)
     latex += document_busses(nw, path)
 
@@ -310,6 +311,69 @@ def document_connection_ref(df, property, c):
     return latex
 
 
+def document_ude(nw, path):
+    """Document UserDefinedEquation specifications.
+
+    Parameters
+    ----------
+    nw : tespy.networks.network.Network
+        TESPy model.
+
+    path : str
+        Basepath of the report.
+
+    Returns
+    -------
+    latex : str
+        LaTeX code for all UserDefinedEquations.
+    """
+    latex = (
+        r'\section{User defined equations in ' + nw.mode + ' mode}' + '\n\n')
+    for label, ude_data in nw.user_defined_eq.items():
+
+        eq_label = (
+            r'(\ref{eq:UserDefinedEquation_' + label.replace(' ', '_') + '})')
+        latex += (
+            r'\subsection{Equation for ``' + label + '\'\'' + eq_label +
+            r'}' + '\n\n')
+
+        latex += generate_latex_eq(
+            ude_data, ude_data.latex['equation'], label.replace(' ', '_'))
+        figures = []
+        i = 1
+        for line in ude_data.latex['lines']:
+            local_path = (
+                'figures/UDE_CharLine_' +
+                ude_data.label.replace(' ', '_') + '_' + str(i) + '.pdf')
+            figname = path + local_path
+            label = 'UDE_CharLine_' + ude_data.label + '_' + str(i)
+            xlabel = '$X$'
+            ylabel = r'$f\left(X\right)$'
+            line.plot(figname, '', xlabel, ylabel)
+            figures += [create_latex_figure(
+                local_path, 'CharLine ' + str(i) + ' of ' + ude_data.label +
+                ' ' + eq_label, label)]
+            i += 1
+
+        i = 1
+        for map in ude_data.latex['maps']:
+            local_path = (
+                'figures/UDE_CharMap_' +
+                ude_data.label.replace(' ', '_') + '_' + str(i) + '.pdf')
+            figname = path + local_path
+            label = 'UDE_CharLine_' + ude_data.label + '_' + str(i)
+            xlabel = '$Y$'
+            ylabel = r'$f\left(Y,\vec{Y},\vec{Z}\right)$'
+            map.plot(figname, '', xlabel, ylabel)
+            figures += [create_latex_figure(
+                local_path, 'CharMap ' + str(i) + ' of ' + ude_data.label +
+                ' ' + eq_label, label)]
+            i += 1
+
+        latex += place_figures(figures)
+    return latex
+
+
 def document_components(nw, path):
     """Document component specifications.
 
@@ -326,13 +390,17 @@ def document_components(nw, path):
     latex : str
         LaTeX code for all components.
     """
-    latex = r'\section{Components in ' + nw.mode + ' mode}' + '\n\n'
+    latex = ''
     for cp in nw.comps['comp_type'].unique():
 
         component_list = nw.comps[nw.comps['comp_type'] == cp]
 
         latex += get_component_mandatory_constraints(cp, component_list, path)
         latex += get_component_specifications(cp, component_list, path)
+
+    if latex != '':
+        latex = (
+            r'\section{Components in ' + nw.mode + ' mode}' + '\n\n' + latex)
 
     return latex
 

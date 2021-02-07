@@ -1,0 +1,30 @@
+v0.4.1 - User's Universe (February, 7, 2021)
+++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- Add functionalities for user defined equations. The user can define
+  individual functions that can be applied on connection parameters. E.g. in
+  order to couple mass flow values at some point of the network to temperature
+  values at a different point. Generic equations can be applied: There are no
+  restrictions as long as the partial derivatives are provided correctly. For
+  extensive examples have a look at the API documentation of class
+  :py:class:`tespy.tools.helpers.UserDefinedEquation` or in the respective
+  section in the online :ref:`documentation <tespy_other_label>`
+  (`PR #245 <https://github.com/oemof/tespy/pull/245>`_).
+
+Documentation
+#############
+
+Bug Fixes
+#########
+- Fix RuntimeError in CombustionChamberStoich class
+  (`PR #244 <https://github.com/oemof/tespy/pull/244>`_).
+
+Other Changes
+#############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@govind-menon110 <https://github.com/govind-menon110>`_

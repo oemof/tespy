@@ -26,4 +26,5 @@ simulation with TESPy.
 .. include:: tespy_modules/characteristics.rst
 .. _tespy_fluid_properties_label:
 .. include:: tespy_modules/fluid_properties.rst
+.. _tespy_other_label:
 .. include:: tespy_modules/other.rst

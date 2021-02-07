@@ -125,6 +125,269 @@ def latex_unit(unit):
         return r'$\unit[]{' + unit + '}$'
 
 
+class UserDefinedEquation:
+
+    def __init__(self, label, func, deriv, conns, params={},
+                 latex={}):
+        r"""
+        A UserDefinedEquation allows use of generic user specified equations.
+
+        Parameters
+        ----------
+        label : str
+            Label of the user defined function.
+
+        func : function
+            Equation to evaluate.
+
+        deriv : function
+            Partial derivatives of the equation.
+
+        conns : list
+            List of connections used by the function.
+
+        params : dict
+            Dictionary containing keyword arguments required by the function
+            and/or derivative.
+
+        latex : dict
+            Dictionary holding LaTeX string of the equation as well as
+            CharLine and CharMap instances applied in the equation for the
+            automatic model documentation module.
+
+        Example
+        -------
+        Consider a pipeline transporting hot water with measurement data on
+        temperature reduction in the pipeline as function of volumetric flow.
+        First, we set up the TESPy model. Additionally, we will import the
+        :py:class:`tespy.tools.helpers.UserDefinedEquation` class as well as
+        some fluid property functions. We specify fluid property information
+        for the inflow and assume that no pressure losses occur in the
+        pipeline.
+
+        >>> from tespy.components import Source, Sink, Pipe
+        >>> from tespy.networks import Network
+        >>> from tespy.connections import Connection
+        >>> from tespy.tools.helpers import UserDefinedEquation
+        >>> from tespy.tools import CharLine
+        >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
+        >>> nw = Network(fluids=['water'], p_unit='bar', T_unit='C')
+        >>> nw.set_attr(iterinfo=False)
+        >>> so = Source('source')
+        >>> si = Sink('sink')
+        >>> pipeline = Pipe('pipeline')
+        >>> inflow = Connection(so, 'out1', pipeline, 'in1')
+        >>> outflow = Connection(pipeline, 'out1', si, 'in1')
+        >>> nw.add_conns(inflow, outflow)
+        >>> inflow.set_attr(T=120, p=10, v=1, fluid={'water': 1})
+        >>> pipeline.set_attr(pr=1)
+
+        Let's assume, the temperature reduction is measured from inflow and
+        outflow temperature. The mathematical description of the relation
+        we want the model to follow therefore is:
+
+        .. math::
+
+            0 = T_{in} - T_{out} + f \left( \dot{m}_{in} \cdot v_{in} \right)
+
+        We can define a function, describing exactly that relation using a
+        :py:class:`tespy.tools.characteristics.CharLine` object with volumetric
+        flow as input values and temperature drop as output values. The
+        function should look like this:
+
+        >>> def myfunc(ude):
+        ...    char = ude.params['char']
+        ...    return (
+        ...        T_mix_ph(ude.conns[0].get_flow()) -
+        ...        T_mix_ph(ude.conns[1].get_flow()) - char.evaluate(
+        ...            ude.conns[0].m.val_SI *
+        ...            v_mix_ph(ude.conns[0].get_flow()))
+        ...    )
+
+        The function does only take one parameter, we name it :code:`ude` in
+        this case. This parameter will hold all relevant information you pass
+        to your UserDefinedEquation later, i.e. a list of the connections
+        (:code:`.conns`) required by the UserDefinedEquation as well as
+        a dictionary of arbitrary parameters required for your function
+        (:code:`.params`). The index of the :code:`.conns` indicates the
+        position of the connection in the list of connections required for the
+        UserDefinedEquation (see below).
+
+        On top of the equation the solver requires its derivatives with respect
+        to all relevant primary variables of the network, which are mass flow
+        pressure, enthalpy and fluid composition. In this case, the derivatives
+        to the mass flow, pressure and enthalpy of the inflow as well as the
+        derivatives to the pressure and enthalpy of the outflow will be
+        required. Similar to the equation definition, define a function
+        returning the corresponding jacobian matrix. The jacobian is a
+        dictionary containing numpy arrays for every connection. Therefore
+        the first key is the connection you want to calculate the derivative
+        for and the second key is the index of the variable in the jacobian.
+        The indices correspond to
+
+        - 0: mass flow
+        - 1: pressure
+        - 2: enthalpy
+        - 3 until end (:code:`3:`): fluid composition
+
+        We can calculate the derivatives numerically, if an easy analytical
+        solution is not available. Simply use the :code:`numeric_deriv` method
+        passing the variable ('m', 'p', 'h', 'fluid') as well as the
+        connection's index.
+
+        >>> def myjacobian(ude):
+        ...    ude.jacobian[ude.conns[0]][0] = ude.numeric_deriv('m', 0)
+        ...    ude.jacobian[ude.conns[0]][1] = ude.numeric_deriv('p', 0)
+        ...    ude.jacobian[ude.conns[0]][2] = ude.numeric_deriv('h', 0)
+        ...    ude.jacobian[ude.conns[1]][1] = ude.numeric_deriv('p', 1)
+        ...    ude.jacobian[ude.conns[1]][2] = ude.numeric_deriv('h', 1)
+        ...    return ude.jacobian
+
+        After that, we only need to th specify the characteristic line we want
+        out temperature drop to follow as well as create the
+        UserDefinedEquation instance and add it to the network. Its equation
+        is automatically applied. We apply extrapolation for the characteristic
+        line as it helps with convergence, in case a paramter
+
+        >>> char = CharLine(
+        ...    x=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0],
+        ...    y=[17, 12, 9, 6.5, 4.5, 3, 2, 1.5, 1.25, 1.125, 1.1, 1.05],
+        ...    extrapolate=True)
+        >>> my_ude = UserDefinedEquation(
+        ...    'myudelabel', myfunc, myjacobian, [inflow, outflow],
+        ...    params={'char': char})
+        >>> nw.add_ude(my_ude)
+        >>> nw.solve('design')
+
+        Clearly the result is obvious here as the volumetric flow is exactly
+        at one of the supporting points.
+
+        >>> round(inflow.T.val - outflow.T.val, 3)
+        1.125
+
+        So now, let's say, we want to calculate the volumetric flow necessary
+        to at least maintain a specific temperature at the outflow.
+
+        >>> inflow.set_attr(v=None)
+        >>> outflow.set_attr(T=110)
+        >>> nw.solve('design')
+        >>> round(inflow.v.val, 3)
+        0.267
+
+        Or calculate volumetric flow and/or temperature drop corresponding to a
+        specified heat loss.
+
+        >>> outflow.set_attr(T=None)
+        >>> pipeline.set_attr(Q=-5e6)
+        >>> nw.solve('design')
+        >>> round(inflow.v.val, 3)
+        0.067
+        """
+        if isinstance(label, str):
+            self.label = label
+        else:
+            msg = 'Label of UserDefinedEquation object must be of type String.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        if isinstance(conns, list):
+            self.conns = conns
+        else:
+            msg = (
+                'Parameter conns must be a list of '
+                'tespy.connections.connection.Connection objects.')
+            logging.error(msg)
+            raise TypeError(msg)
+
+        self.func = func
+        self.deriv = deriv
+
+        if isinstance(params, dict):
+            self.params = params
+        else:
+            msg = 'The parameter params must be passed as dictionary.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        self.latex = {
+            'equation': r'\text{equation string not available}',
+            'lines': [],
+            'maps': []
+        }
+        if isinstance(latex, dict):
+            self.latex.update(latex)
+        else:
+            msg = 'The parameter latex must be passed as dictionary.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+    def numeric_deriv(self, param, idx):
+        r"""
+        Calculate partial derivative of the function func to dx numerically.
+
+        Parameters
+        ----------
+        param : str
+            Parameter to calculate partial derivative for.
+
+        idx : int
+            Position of the connection to calculate the partial derivative for
+            within the list of the connections :code:`conns`.
+
+        Returns
+        -------
+        deriv : float/list
+            Partial derivative(s) of the function :math:`f` to variable(s)
+            :math:`x`.
+
+            .. math::
+
+                \frac{\partial f}{\partial x}=\frac{f(x+d)+f(x-d)}{2\cdot d}
+        """
+        if param == 'fluid':
+            d = 1e-5
+            deriv = []
+            for f in self.conns[0].fluid.val.keys():
+                val = self.conns[pos].fluid.val[f]
+                if self.conns[pos].fluid.val[f] + d <= 1:
+                    self.conns[pos].fluid.val[f] += d
+                else:
+                    self.conns[pos].fluid.val[f] = 1
+                exp = self.func(self)
+                if self.conns[pos].fluid.val[f] - 2 * d >= 0:
+                    self.conns[pos].fluid.val[f] -= 2 * d
+                else:
+                    self.conns[pos].fluid.val[f] = 0
+                exp -= self.func(self)
+                self.conns[pos].fluid.val[f] = val
+
+                deriv += [exp / (2 * d)]
+
+        elif param in ['m', 'p', 'h']:
+
+            if param == 'm':
+                d = 1e-4
+            else:
+                d = 1e-1
+
+            self.conns[idx].get_attr(param).val_SI += d
+            exp = self.func(self)
+            self.conns[idx].get_attr(param).val_SI -= 2 * d
+            exp -= self.func(self)
+            self.conns[idx].get_attr(param).val_SI += d
+
+            deriv = exp / (2 * d)
+
+        else:
+            msg = (
+                'Can only calculate numerical derivative to primary variables.'
+                'Please specify "m", "p", "h" or "fluid" as param.')
+            logging.error(msg)
+            raise ValueError(msg)
+
+        return deriv
+
+
 def newton(func, deriv, params, y, **kwargs):
     r"""
     Find zero crossings with 1-D newton algorithm.

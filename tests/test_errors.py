@@ -40,6 +40,7 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.fluid_properties import Memorise
 from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
@@ -95,6 +96,7 @@ def test_set_attr_errors():
     set_attr_ValueError(conn, state=5)
 
     # TypeErrors
+    set_attr_TypeError(comb, P=[5])
     set_attr_TypeError(comb, P=[5])
     set_attr_TypeError(comb, tiP_char=7)
     set_attr_TypeError(comb, design='f')
@@ -238,6 +240,22 @@ def test_Bus_add_comps_errors():
 
     with raises(ValueError):
         mybus.add_comps({'comp': comb, 'base': 5})
+
+##############################################################################
+# test errors of UserDefinedEquation
+
+
+def udf_dummy():
+    return
+
+
+def test_UserDefinedEquation_errors():
+    with raises(TypeError):
+        UserDefinedEquation(7, udf_dummy, udf_dummy, [])
+    with raises(TypeError):
+        UserDefinedEquation('label', udf_dummy, udf_dummy, 'connections')
+    with raises(TypeError):
+        UserDefinedEquation('label', udf_dummy, udf_dummy, [], params=[])
 
 ##############################################################################
 # test errors of component classes

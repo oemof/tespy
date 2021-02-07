@@ -127,7 +127,8 @@ def latex_unit(unit):
 
 class UserDefinedEquation:
 
-    def __init__(self, label, func, deriv, conns, params={}):
+    def __init__(self, label, func, deriv, conns, params={},
+                 latex={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -137,10 +138,10 @@ class UserDefinedEquation:
             Label of the user defined function.
 
         func : function
-            Function :math:`f` to calculate the partial derivative for.
+            Equation to evaluate.
 
         deriv : function
-            Function :math:`f` to calculate the partial derivative for.
+            Partial derivatives of the equation.
 
         conns : list
             List of connections used by the function.
@@ -148,6 +149,11 @@ class UserDefinedEquation:
         params : dict
             Dictionary containing keyword arguments required by the function
             and/or derivative.
+
+        latex : dict
+            Dictionary holding LaTeX string of the equation as well as
+            CharLine and CharMap instances applied in the equation for the
+            automatic model documentation module.
 
         Example
         -------
@@ -300,6 +306,18 @@ class UserDefinedEquation:
             self.params = params
         else:
             msg = 'The parameter params must be passed as dictionary.'
+            logging.error(msg)
+            raise TypeError(msg)
+
+        self.latex = {
+            'equation': r'\text{equation string not available}',
+            'lines': [],
+            'maps': []
+        }
+        if isinstance(latex, dict):
+            self.latex.update(latex)
+        else:
+            msg = 'The parameter latex must be passed as dictionary.'
             logging.error(msg)
             raise TypeError(msg)
 

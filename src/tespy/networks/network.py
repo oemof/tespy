@@ -179,7 +179,7 @@ class Network:
         # component dictionary for fast access
         self.components = {}
         # user defined function dictionary for fast access
-        self.user_defined_functions = {}
+        self.user_defined_eq = {}
         # bus dictionary
         self.busses = OrderedDict()
 
@@ -480,7 +480,7 @@ class Network:
                 logging.error(msg)
                 raise TypeError(msg)
 
-            elif c.label in self.user_defined_functions.keys():
+            elif c.label in self.user_defined_eq.keys():
                 msg = (
                     'There is already a UserDefinedEquation with the label ' +
                     c.label + '. The UserDefinedEquation labels must be '
@@ -488,7 +488,7 @@ class Network:
                 logging.error(msg)
                 raise ValueError(msg)
 
-            self.user_defined_functions[c.label] = c
+            self.user_defined_eq[c.label] = c
             msg = 'Added UserDefinedEquation ' + c.label + ' to network.'
             logging.debug(msg)
 
@@ -503,7 +503,7 @@ class Network:
             UserDefinedEquation objects ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            del self.user_defined_functions[c.label]
+            del self.user_defined_eq[c.label]
             msg = 'Deleted UserDefinedEquation ' + c.label + ' from network.'
             logging.debug(msg)
 
@@ -1575,9 +1575,9 @@ class Network:
         self.num_conn_vars = len(self.fluids) + 3
 
         # number of user defined functions
-        self.num_ude_eq = len(self.user_defined_functions)
+        self.num_ude_eq = len(self.user_defined_eq)
 
-        for func in self.user_defined_functions.values():
+        for func in self.user_defined_eq.values():
             func.jacobian = {
                 c: np.zeros(self.num_conn_vars)
                 for c in func.conns}
@@ -1720,7 +1720,7 @@ class Network:
         self.solve_components()
         self.solve_busses()
         self.solve_connections()
-        self.solve_user_defined_functions()
+        self.solve_user_defined_eq()
         self.matrix_inversion()
 
         # check for linear dependency
@@ -1987,7 +1987,7 @@ class Network:
                 sum_eq += cp.num_eq
             cp.it += 1
 
-    def solve_user_defined_functions(self):
+    def solve_user_defined_eq(self):
         """
         Calculate the residual and jacobian of user defined equations.
 
@@ -1998,7 +1998,7 @@ class Network:
           matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
-        for ude in self.user_defined_functions.values():
+        for ude in self.user_defined_eq.values():
             self.residual[row] = ude.func(ude)
             jacobian = ude.deriv(ude)
             for c, derivative in jacobian.items():

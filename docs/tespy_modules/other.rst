@@ -148,7 +148,7 @@ first stream.
 
 .. math::
 
-    0 = \sqrt{T_1} - \ln\left(\frac{p_1^2}{\dot{m}_1}\right)
+    0 = \sqrt{T_2} - \ln\left(\frac{p_1^2}{\dot{m}_1}\right)
 
 In order to access the temperature within the iteration process, we need to
 calculate it with the respective method. We can import it from the

@@ -149,7 +149,7 @@ def document_connections(nw):
 
     fluid_data = []
 
-    for c in nw.conns.index:
+    for c in nw.conns['object']:
         data_dict = {'label': c.label.replace('_', r'\_')}
         fluid_dict = data_dict.copy()
 
@@ -426,9 +426,9 @@ def get_component_mandatory_constraints(cp, component_list, path):
     num_mandatory_eq = 0
     mandatory_eq = ''
     figures = []
-    for label, data in component_list.index[0].constraints.items():
+    for label, data in component_list['object'][0].constraints.items():
         if 'char' in data.keys():
-            for component in component_list.index:
+            for component in component_list['object']:
                 local_path = (
                     'figures/' + cp + '_CharLine_' + label + '_' +
                     component.label.replace(' ', '_') + '.pdf')
@@ -479,7 +479,7 @@ def get_component_specifications(cp, component_list, path):
     figures = []
 
     # loop through all components of type cp in component_list
-    for component in component_list.index:
+    for component in component_list['object']:
         data_dict = {'label': component.label.replace('_', r'\_')}
         for param, data in component.variables.items():
             if data.latex is not None:

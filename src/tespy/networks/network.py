@@ -3149,17 +3149,11 @@ class Network:
         fn : str
             Path/filename for the file.
         """
-        # components
-        df_comps = self.comps.copy()
-        df_comps.set_index('object', inplace=True)
-
         # characteristic lines in components
         char_lines = []
         char_maps = []
-        for c in df_comps['comp_type'].unique():
-            df = df_comps[df_comps['comp_type'] == c]
-
-            for col, data in df.index[0].variables.items():
+        for c in self.comps['object']:
+            for col, data in c.variables.items():
                 if isinstance(data, dc_cc):
                     char_lines += [data.char_func]
                 elif isinstance(data, dc_cm):

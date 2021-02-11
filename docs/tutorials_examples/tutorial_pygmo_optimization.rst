@@ -226,12 +226,14 @@ return the cycle efficiency.
 
         def calculate_efficiency(self, x):
             # set extraction pressure
-            self.nw.connections['extraction1'].set_attr(p=x[0])
-            self.nw.connections['extraction2'].set_attr(p=x[1])
+            self.nw.get_conn('extraction1').set_attr(p=x[0])
+            self.nw.get_conn('extraction2').set_attr(p=x[1])
 
             self.nw.solve('design')
 
-            for cp in self.nw.components.values():
+            # components are saved in a DataFrame, column 'object' holds the
+            # component instances
+            for cp in self.nw.comps['object']:
                 if isinstance(cp, Condenser) or isinstance(cp, Desuperheater):
                     if cp.Q.val > 0:
                         return np.nan
@@ -379,9 +381,9 @@ In our run, we got:
 
 .. code:: bash
 
-    Efficiency: 44.852 %
-    Extraction 1: 26.62 bar
-    Extraction 2: 2.825 bar
+    Efficiency: 44.8596 %
+    Extraction 1: 25.8585 bar
+    Extraction 2: 2.6903 bar
 
 
 .. figure:: api/_images/scatterplot_efficiency_optimization.svg

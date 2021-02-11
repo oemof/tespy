@@ -1,17 +1,12 @@
 v0.4.2 - Someversion (Somemonth, Someday, Someyear)
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-New Features
-############
-
-Documentation
-#############
-
 Bug Fixes
 #########
-
-Other Changes
-#############
+- Saving data of characteristics and reloading from the .csv file structure
+  was broken if more than one component of the same class was part of the
+  network (`PR #246 <https://github.com/oemof/tespy/pull/246>`_).
 
 Contributors
 ############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

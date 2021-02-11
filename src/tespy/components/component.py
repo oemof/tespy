@@ -26,11 +26,11 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import newton
 
 # %%

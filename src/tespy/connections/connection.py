@@ -15,10 +15,10 @@ import logging
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools import fluid_properties as fp
 from tespy.tools.helpers import TESPyConnectionError
 
 # pass the warning messages to the logger

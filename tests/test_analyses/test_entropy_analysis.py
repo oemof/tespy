@@ -95,14 +95,14 @@ class TestClausiusRankine:
             'steam generator', 'pump'
         ]
         for label in labels:
-            cp = self.nw.components[label]
+            cp = self.nw.get_comp(label)
             msg = (
                 'Entropy production due to irreversibility must be 0 for all '
                 'components in this test but is ' + str(round(cp.S_irr, 4)) +
                 ' at component ' + label + ' of type ' + cp.component() + '.')
             assert round(cp.S_irr, 4) == 0, msg
-        sg = self.nw.components['steam generator']
-        cd = self.nw.components['condenser']
+        sg = self.nw.get_comp('steam generator')
+        cd = self.nw.get_comp('condenser')
         msg = (
             'Value of entropy production due to heat input at steam generator '
             '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '

@@ -40,10 +40,10 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.fluid_properties import Memorise
 from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import extend_basic_path
 
 ##############################################################################

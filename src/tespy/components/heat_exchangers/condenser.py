@@ -19,11 +19,11 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_bp_p
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.document_models import generate_latex_eq
 
 
 class Condenser(HeatExchanger):

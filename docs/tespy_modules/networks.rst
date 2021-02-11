@@ -815,8 +815,8 @@ created network.
 
     Imported busses, components and connections are accessible by their label,
     e.g. :code:`imported_plant.busses['total heat output']`,
-    :code:`imported_plant.components['condenser']` and
-    :code:`imported_plant.connections['myconnectionlabel']` respectively. If
+    :code:`imported_plant.get_comp('condenser')` and
+    :code:`imported_plant.get_conn('myconnectionlabel')` respectively. If
     you did not provide labels for your connections, by default, the
     connection's label will be according to this principle:
     :code:`'source-label:source-id_target-label:target-id'`, where source and

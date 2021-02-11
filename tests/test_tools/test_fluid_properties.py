@@ -313,10 +313,10 @@ class TestFluidPropertyBackEnds:
         os.environ.get('TRAVIS') == 'true',
         reason='Travis CI cannot handle the tabular CoolProp back ends, '
         'skipping this test. The test should run on your local machine.')
-    def test_clausius_rankine(self):
+    def test_clausius_rankine_tabular(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
-        back_ends = ['HEOS', 'BICUBIC', 'TTSE', 'IF97']
+        back_ends = ['HEOS', 'BICUBIC', 'TTSE']
         results = {}
         for back_end in back_ends:
             # delete the fluid from the memorisation class
@@ -325,8 +325,40 @@ class TestFluidPropertyBackEnds:
                 del fp.Memorise.back_end[fluid]
             self.setup_clausius_rankine([back_end + '::' + fluid])
             results[back_end] = (
-                1 - abs(self.nw.components['condenser'].Q.val) /
-                self.nw.components['steam generator'].Q.val)
+                1 - abs(self.nw.get_comp('condenser').Q.val) /
+                self.nw.get_comp('steam generator').Q.val)
+
+        efficiency = results['HEOS']
+
+        if fluid in fp.Memorise.state.keys():
+            del fp.Memorise.state[fluid]
+            del fp.Memorise.back_end[fluid]
+        for back_end in back_ends:
+            if back_end == 'HEOS':
+                continue
+
+            d_rel = (abs(results[back_end] - efficiency) / efficiency)
+
+            msg = (
+                'The deviation in thermal efficiency of the Clausius-Rankine '
+                'cycle calculated with ' + back_end + ' back end is ' +
+                str(d_rel) + ' but should not be larger than 1e-4.')
+            assert d_rel <= 1e-4, msg
+
+    def test_clausius_rankine(self):
+        """Test the Clausius-Rankine cycle with different back ends."""
+        fluid = 'water'
+        back_ends = ['HEOS', 'IF97']
+        results = {}
+        for back_end in back_ends:
+            # delete the fluid from the memorisation class
+            if fluid in fp.Memorise.state.keys():
+                del fp.Memorise.state[fluid]
+                del fp.Memorise.back_end[fluid]
+            self.setup_clausius_rankine([back_end + '::' + fluid])
+            results[back_end] = (
+                1 - abs(self.nw.get_comp('condenser').Q.val) /
+                self.nw.get_comp('steam generator').Q.val)
 
         efficiency = results['HEOS']
 
@@ -356,12 +388,12 @@ class TestFluidPropertyBackEnds:
             self.setup_pipeline_network([back_end + '::' + fluid])
             convergence_check(self.nw.lin_dep)
 
-            value = round(self.nw.components['pipeline'].pr.val, 5)
+            value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (
                 'The pressure ratio of the pipeline must be at 0.95, but '
                 'is at ' + str(value) + ' for the fluid ' + fluid + '.')
             assert value == 0.95, msg
-            value = round(self.nw.components['pump'].pr.val, 5)
+            value = round(self.nw.get_comp('pump').pr.val, 5)
             msg = (
                 'The pressure ratio of the pipeline must be at ' +
                 str(round(1 / 0.95, 5)) + ', but is at ' + str(value) +

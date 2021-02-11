@@ -59,8 +59,8 @@ class TestReactors:
         """Test component properties of water electrolyzer."""
         # check bus function:
         # power output on component and bus must be indentical
-        self.nw.connections['h2o'].set_attr(T=25, p=1)
-        self.nw.connections['h2'].set_attr(T=25)
+        self.nw.get_conn('h2o').set_attr(T=25, p=1)
+        self.nw.get_conn('h2').set_attr(T=25)
         power = Bus('power')
         power.add_comps({'comp': self.instance, 'param': 'P', 'base': 'bus'})
         power.set_attr(P=2.5e6)
@@ -81,8 +81,8 @@ class TestReactors:
 
         # reset power, change efficiency value and specify heat bus value
         power.set_attr(P=np.nan)
-        self.nw.connections['h2o'].set_attr(T=25, p=1)
-        self.nw.connections['h2'].set_attr(T=50)
+        self.nw.get_conn('h2o').set_attr(T=25, p=1)
+        self.nw.get_conn('h2').set_attr(T=50)
         self.instance.set_attr(eta=0.8)
         # check bus function:
         # heat output on component and bus must be indentical
@@ -112,7 +112,7 @@ class TestReactors:
         self.nw.del_busses(heat, power)
 
         # test efficiency vs. specific energy consumption
-        self.nw.connections['h2'].set_attr(m=0.1)
+        self.nw.get_conn('h2').set_attr(m=0.1)
         self.instance.set_attr(eta=0.9, e='var')
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

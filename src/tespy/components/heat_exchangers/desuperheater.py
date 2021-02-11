@@ -12,9 +12,9 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.document_models import generate_latex_eq
 
 
 class Desuperheater(HeatExchanger):

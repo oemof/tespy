@@ -527,20 +527,20 @@ DataContainers instead of dictionaries, e.g. for the Valve:
 .. code:: python
 
     def get_variables(self):
-    return {
-        'pr': dc_cp(
-            min_val=1e-4, max_val=1, num_eq=1,
-            deriv=self.pr_deriv, func=self.pr_func,
-            func_params={'pr': 'pr'}, latex=self.pr_func_doc),
-        'zeta': dc_cp(
-            min_val=0, max_val=1e15, num_eq=1,
-            deriv=self.zeta_deriv, func=self.zeta_func,
-            func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
-        'dp_char': dc_cc(
-            param='m', num_eq=1,
-            deriv=self.dp_char_deriv, func=self.dp_char_func,
-            char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
-    }
+        return {
+            'pr': dc_cp(
+                min_val=1e-4, max_val=1, num_eq=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'zeta': dc_cp(
+                min_val=0, max_val=1e15, num_eq=1,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+            'dp_char': dc_cc(
+                param='m', num_eq=1,
+                deriv=self.dp_char_deriv, func=self.dp_char_func,
+                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+        }
 
 
 Inlets and outlets
@@ -580,81 +580,81 @@ equation, too. The Valve's dp_char parameter methods are the following.
 .. code:: python
 
     def dp_char_func(self):
-    r"""
-    Equation for characteristic line of difference pressure to mass flow.
+        r"""
+        Equation for characteristic line of difference pressure to mass flow.
 
-    Returns
-    -------
-    residual : ndarray
-        Residual value of equation.
+        Returns
+        -------
+        residual : ndarray
+            Residual value of equation.
 
-        .. math::
+            .. math::
 
-            0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
-    """
-    p = self.dp_char.param
-    expr = self.get_char_expr(p, **self.dp_char.char_params)
-    if not expr:
-        msg = ('Please choose a valid parameter, you want to link the '
-               'pressure drop to at component ' + self.label + '.')
-        logging.error(msg)
-        raise ValueError(msg)
+                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
+        """
+        p = self.dp_char.param
+        expr = self.get_char_expr(p, **self.dp_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'pressure drop to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
 
-    return (
-        self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-        self.dp_char.char_func.evaluate(expr))
+        return (
+            self.inl[0].p.val_SI - self.outl[0].p.val_SI -
+            self.dp_char.char_func.evaluate(expr))
 
     def dp_char_func_doc(self, label):
-    r"""
-    Equation for characteristic line of difference pressure to mass flow.
+        r"""
+        Equation for characteristic line of difference pressure to mass flow.
 
-    Parameters
-    ----------
-    label : str
-        Label for equation.
+        Parameters
+        ----------
+        label : str
+            Label for equation.
 
-    Returns
-    -------
-    latex : str
-        LaTeX code of equations applied.
-    """
-    p = self.dp_char.param
-    expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
-    if not expr:
-        msg = ('Please choose a valid parameter, you want to link the '
-               'pressure drop to at component ' + self.label + '.')
-        logging.error(msg)
-        raise ValueError(msg)
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        p = self.dp_char.param
+        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
+        if not expr:
+            msg = ('Please choose a valid parameter, you want to link the '
+                   'pressure drop to at component ' + self.label + '.')
+            logging.error(msg)
+            raise ValueError(msg)
 
-    latex = (
-        r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-        r'\right)')
-    return generate_latex_eq(self, latex, label)
+        latex = (
+            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
+            r'\right)')
+        return generate_latex_eq(self, latex, label)
 
     def dp_char_deriv(self, increment_filter, k):
-    r"""
-    Calculate partial derivatives of difference pressure characteristic.
+        r"""
+        Calculate partial derivatives of difference pressure characteristic.
 
-    Parameters
-    ----------
-    increment_filter : ndarray
-        Matrix for filtering non-changing variables.
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
-    k : int
-        Position of derivatives in Jacobian matrix (k-th equation).
-    """
-    if not increment_filter[0, 0]:
-        self.jacobian[k, 0, 0] = self.numeric_deriv(
-            self.dp_char_func, 'm', 0)
-    if self.dp_char.param == 'v':
-        self.jacobian[k, 0, 1] = self.numeric_deriv(
-            self.dp_char_func, 'p', 0)
-        self.jacobian[k, 0, 2] = self.numeric_deriv(
-            self.dp_char_func, 'h', 0)
-    else:
-        self.jacobian[k, 0, 1] = 1
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        if not increment_filter[0, 0]:
+            self.jacobian[k, 0, 0] = self.numeric_deriv(
+                self.dp_char_func, 'm', 0)
+        if self.dp_char.param == 'v':
+            self.jacobian[k, 0, 1] = self.numeric_deriv(
+                self.dp_char_func, 'p', 0)
+            self.jacobian[k, 0, 2] = self.numeric_deriv(
+                self.dp_char_func, 'h', 0)
+        else:
+            self.jacobian[k, 0, 1] = 1
 
-    self.jacobian[k, 1, 1] = -1
+        self.jacobian[k, 1, 1] = -1
 
 For the derivative, the partial derivatives to all variables of the network
 are required. This means, that you have to calculate the partial derivatives

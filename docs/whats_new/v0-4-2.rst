@@ -1,0 +1,49 @@
+v0.4.2 - Fixes for User's Universe (February, 11, 2021)
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+API Fixes/Changes
+#################
+- Due to a bug/double structure in the network properties of a model,
+  specification of component or connection parameters when the component or
+  connection instance was accessed via its label within the network, the wrong
+  copy of the instance was accessed when using PyGMO in some cases.
+  The method off accessing components and connections via label has therefore
+  changed in the following way.
+
+  **Old method:**
+
+  .. code-block:: python
+
+      conn = mynetwork.connections['connection label']
+      comp = mynetwork.components['component label']
+
+  **New method:**
+
+  .. code-block:: python
+
+      conn = mynetwork.get_conn('connection label')
+      comp = mynetwork.get_comp('component label')
+
+  To iterate through all components or connections of the network use something
+  like:
+
+  .. code-block:: python
+
+      for conn in mynetwork.conns['object']:
+          print(conn.label)
+
+      for comp in mynetwork.comps['object']:
+          print(comp.label)
+
+  **Accessing busses remains untouched**
+  (`PR #247 <https://github.com/oemof/tespy/pull/247>`_)
+
+Bug Fixes
+#########
+- Saving data of characteristics and reloading from the .csv file structure
+  was broken if more than one component of the same class was part of the
+  network (`PR #246 <https://github.com/oemof/tespy/pull/246>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

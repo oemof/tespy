@@ -527,20 +527,20 @@ DataContainers instead of dictionaries, e.g. for the Valve:
 .. code:: python
 
     def get_variables(self):
-    return {
-        'pr': dc_cp(
-            min_val=1e-4, max_val=1, num_eq=1,
-            deriv=self.pr_deriv, func=self.pr_func,
-            func_params={'pr': 'pr'}, latex=self.pr_func_doc),
-        'zeta': dc_cp(
-            min_val=0, max_val=1e15, num_eq=1,
-            deriv=self.zeta_deriv, func=self.zeta_func,
-            func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
-        'dp_char': dc_cc(
-            param='m', num_eq=1,
-            deriv=self.dp_char_deriv, func=self.dp_char_func,
-            char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
-    }
+        return {
+            'pr': dc_cp(
+                min_val=1e-4, max_val=1, num_eq=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'zeta': dc_cp(
+                min_val=0, max_val=1e15, num_eq=1,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+            'dp_char': dc_cc(
+                param='m', num_eq=1,
+                deriv=self.dp_char_deriv, func=self.dp_char_func,
+                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+        }
 
 
 Inlets and outlets

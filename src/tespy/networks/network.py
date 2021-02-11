@@ -439,7 +439,8 @@ class Network:
 
             c.good_starting_values = False
 
-            self.conns.loc[c.label] = [c, c.source, c.source_id, c.target, c.target_id]
+            self.conns.loc[c.label] = [
+                c, c.source, c.source_id, c.target, c.target_id]
 
             msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)

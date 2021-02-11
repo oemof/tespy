@@ -1,5 +1,5 @@
-v0.4.2 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.4.2 - Fixes for User's Universe (February, 11, 2021)
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 API Fixes/Changes
 #################

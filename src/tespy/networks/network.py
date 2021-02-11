@@ -173,11 +173,7 @@ class Network:
         """Set default network properties."""
         # connection dataframe
         self.conns = pd.DataFrame(
-            columns=['source', 'source_id', 'target', 'target_id'])
-        # connection dictionary for fast access
-        self.connections = {}
-        # component dictionary for fast access
-        self.components = {}
+            columns=['object', 'source', 'source_id', 'target', 'target_id'])
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -375,6 +371,48 @@ class Network:
             for c in subsys.conns.values():
                 self.add_conns(c)
 
+    def get_conn(self, label):
+        r"""
+        Get Connection via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the Connection object.
+
+        Returns
+        -------
+        c : tespy.connections.connection.Connection
+            Connection object with specified label, None if no Connection of
+            the network has this label.
+        """
+        try:
+            return self.conns.loc[label, 'object']
+        except KeyError:
+            logging.warning('Connection with label ' + label + ' not found.')
+            return None
+
+    def get_comp(self, label):
+        r"""
+        Get Component via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the Component object.
+
+        Returns
+        -------
+        c : tespy.components.component.Component
+            Component object with specified label, None if no Component of
+            the network has this label.
+        """
+        try:
+            return self.comps.loc[label, 'object']
+        except KeyError:
+            logging.warning('Component with label ' + label + ' not found.')
+            return None
+
     def add_conns(self, *args):
         r"""
         Add one or more connections to the network.
@@ -392,7 +430,7 @@ class Network:
                 logging.error(msg)
                 raise TypeError(msg)
 
-            elif c.label in self.connections.keys():
+            elif c.label in self.conns.index:
                 msg = (
                     'There is already a connection with the label ' +
                     c.label + '. The connection labels must be unique!')
@@ -401,9 +439,8 @@ class Network:
 
             c.good_starting_values = False
 
-            self.conns.loc[c] = [c.source, c.source_id, c.target, c.target_id]
-            # for fast access
-            self.connections[c.label] = c
+            self.conns.loc[c.label] = [
+                c, c.source, c.source_id, c.target, c.target_id]
 
             msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)
@@ -421,8 +458,7 @@ class Network:
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            self.conns = self.conns.drop(c)
-            del self.connections[c.label]
+            self.conns = self.conns.drop(c.label)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
@@ -432,11 +468,11 @@ class Network:
         r"""Check connections for multiple usage of inlets or outlets."""
         dub = self.conns.loc[
             self.conns.duplicated(['source', 'source_id']) == True]  # noqa: E712
-        for c in dub.index:
+        for c in dub['object']:
             targets = ''
             for conns in self.conns[
                     (self.conns['source'] == c.source) &
-                    (self.conns['source_id'] == c.source_id)].index:
+                    (self.conns['source_id'] == c.source_id)]['object']:
                 targets += conns.target.label + ' (' + conns.target_id + '); '
 
             msg = (
@@ -449,11 +485,11 @@ class Network:
 
         dub = self.conns.loc[
             self.conns.duplicated(['target', 'target_id']) == True]  # noqa: E712
-        for c in dub.index:
+        for c in dub['object']:
             sources = ''
             for conns in self.conns[
                     (self.conns['target'] == c.target) &
-                    (self.conns['target_id'] == c.target_id)].index:
+                    (self.conns['target_id'] == c.target_id)]['object']:
                 sources += conns.source.label + ' (' + conns.source_id + '); '
 
             msg = (
@@ -571,6 +607,19 @@ class Network:
 
     def check_network(self):
         r"""Check if components are connected properly within the network."""
+        if len(self.conns) == 0:
+            msg = (
+                'No connections have been added to the network, please make '
+                'sure to add your connections with the .add_conns() method.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        if len(self.fluids) == 0:
+            msg = ('Network has no fluids, please specify a list with fluids '
+                   'on network creation.')
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
         self.check_conns()
         # get unique components in connections dataframe
         comps = pd.unique(self.conns[['source', 'target']].values.ravel())
@@ -578,7 +627,7 @@ class Network:
         self.init_components(comps)
         # count number of incoming and outgoing connections and compare to
         # expected values
-        for comp in self.comps.index:
+        for comp in self.comps['object']:
             num_o = (self.conns[['source', 'target']] == comp).sum().source
             num_i = (self.conns[['source', 'target']] == comp).sum().target
             if num_o != comp.num_o:
@@ -621,32 +670,33 @@ class Network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame(index=comps)
+        self.comps = pd.DataFrame()
 
         labels = []
         for comp in comps:
             # this is required for printing and saving
             self.comps.loc[comp, 'comp_type'] = comp.__class__.__name__
             self.comps.loc[comp, 'label'] = comp.label
-            # get for incoming and outgoing connections of a component
+            # get incoming and outgoing connections of a component
             sources = self.conns[self.conns['source'] == comp]
             sources = sources['source_id'].sort_values().index.tolist()
             targets = self.conns[self.conns['target'] == comp]
             targets = targets['target_id'].sort_values().index.tolist()
             # save the incoming and outgoing as well as the number of
             # connections as component attribute
-            comp.inl = targets
-            comp.outl = sources
+            comp.inl = self.conns.loc[targets, 'object'].tolist()
+            comp.outl = self.conns.loc[sources, 'object'].tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
             labels += [comp.label]
-            # for fast access
-            self.components[comp.label] = comp
 
             # save the connection locations to the components
             comp.conn_loc = []
             for c in comp.inl + comp.outl:
-                comp.conn_loc += [self.conns.index.get_loc(c)]
+                comp.conn_loc += [self.conns.index.get_loc(c.label)]
+
+        self.comps = self.comps.reset_index().set_index('label')
+        self.comps.rename(columns={'index': 'object'}, inplace=True)
 
         # check for duplicates in the component labels
         if len(labels) != len(list(set(labels))):
@@ -672,19 +722,6 @@ class Network:
         - Set component and connection design point properties.
         - Switch from design/offdesign parameter specification.
         """
-        if len(self.conns) == 0:
-            msg = (
-                'No connections have been added to the network, please make '
-                'sure to add your connections with the .add_conns() method.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids '
-                   'on network creation.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
         # keep track of the number of bus, component and connection equations
         # as well as number of component variables
         self.num_bus_eq = 0
@@ -724,13 +761,11 @@ class Network:
     def init_set_properties(self):
         """Specification of SI values for user set values."""
         # fluid property values
-        for c in self.conns.index:
-            # reindex connections dictionary
-            self.connections[c.label] = c
+        for c in self.conns['object']:
             if not self.init_previous:
                 c.good_starting_values = False
 
-            c.conn_loc = self.conns.index.get_loc(c)
+            c.conn_loc = self.conns.index.get_loc(c.label)
 
             for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
                 # read unit specifications
@@ -813,7 +848,7 @@ class Network:
         unset, the offdesign values set.
         """
         # connections
-        for c in self.conns.index:
+        for c in self.conns['object']:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
             if c.local_offdesign:
@@ -869,9 +904,7 @@ class Network:
                 b.comps.loc[cp, 'P_ref'] = np.nan
 
         series = pd.Series(dtype=np.float64)
-        for cp in self.comps.index:
-            # reindex components dicitonary
-            self.components[cp.label] = cp
+        for cp in self.comps['object']:
             # read design point information of components with
             # local_offdesign activated from their respective design path
             if cp.local_offdesign:
@@ -954,8 +987,6 @@ class Network:
             'subsystem_interface', 'droplet_separator']
         # fetch all components, reindex with label
         df_comps = self.comps.copy()
-        df_comps['comp_obj'] = df_comps.index
-        df_comps.set_index('label', inplace=True)
         df_comps = df_comps[~df_comps['comp_type'].isin(not_required)]
 
         # iter through unique types of components (class names)
@@ -975,7 +1006,7 @@ class Network:
             df.set_index('label', inplace=True)
             # iter through all components of this type and set data
             for c_label in df.index:
-                comp = df_comps.loc[c_label, 'comp_obj']
+                comp = df_comps.loc[c_label, 'object']
                 # read data of components with individual design_path
                 if comp.design_path is not None:
                     path_c = hlp.modify_path_os(
@@ -1004,7 +1035,7 @@ class Network:
         logging.debug(msg)
 
         # iter through connections
-        for c in self.conns.index:
+        for c in self.conns['object']:
 
             # read data of connections with individual design_path
             if c.design_path is not None:
@@ -1107,7 +1138,7 @@ class Network:
         :code:`cp.offdesign` will be set instead. This does also affect
         referenced values!
         """
-        for c in self.conns.index:
+        for c in self.conns['object']:
             if not c.local_design:
                 # switch connections to offdesign mode
                 for var in c.design:
@@ -1123,9 +1154,7 @@ class Network:
         msg = 'Switched connections from design to offdesign.'
         logging.debug(msg)
 
-        for cp in self.comps.index:
-            # reindex components dicitonary
-            self.components[cp.label] = cp
+        for cp in self.comps['object']:
             if not cp.local_design:
                 # unset variables provided in .design attribute
                 for var in cp.design:
@@ -1183,13 +1212,13 @@ class Network:
             return
 
         # fluid propagation from set values
-        for c in self.conns.index:
+        for c in self.conns['object']:
             if any(c.fluid.val_set.values()):
                 c.target.propagate_fluid_to_target(c, c.target)
                 c.source.propagate_fluid_to_source(c, c.source)
 
         # fluid starting value generation for components
-        for cp in self.comps.index:
+        for cp in self.comps['object']:
             cp.initialise_fluids()
 
         msg = 'Fluid initialisation done.'
@@ -1211,7 +1240,7 @@ class Network:
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
-        for c in self.conns.index:
+        for c in self.conns['object']:
             if self.init_path is not None:
                 conn = df.loc[
                     df['source'].isin([c.source.label]) &
@@ -1249,7 +1278,7 @@ class Network:
 
             self.init_count_connections_parameters(c)
 
-        for c in self.conns.index:
+        for c in self.conns['object']:
             if not c.good_starting_values:
                 for key in ['m', 'p', 'h', 'T']:
                     if (c.get_attr(key).ref_set and
@@ -1432,12 +1461,12 @@ class Network:
         """
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
-            for c in self.conns.index:
+            for c in self.conns['object']:
                 if c.new_design:
                     self.new_design = True
                     break
             if not self.new_design:
-                for cp in self.comps.index:
+                for cp in self.comps['object']:
                     if cp.new_design:
                         self.new_design = True
                         break
@@ -1578,6 +1607,10 @@ class Network:
         self.num_ude_eq = len(self.user_defined_eq)
 
         for func in self.user_defined_eq.values():
+            # remap connection objects
+            func.conns = [
+                self.conns.loc[c.label, 'object'] for c in func.conns]
+            # remap jacobian
             func.jacobian = {
                 c: np.zeros(self.num_conn_vars)
                 for c in func.conns}
@@ -1729,7 +1762,7 @@ class Network:
 
         # add the increment
         i = 0
-        for c in self.conns.index:
+        for c in self.conns['object']:
             # mass flow, pressure and enthalpy
             if not c.m.val_set:
                 c.m.val_SI += self.increment[i * (self.num_conn_vars)]
@@ -1767,7 +1800,7 @@ class Network:
         # increment for the custom variables
         if self.num_comp_vars > 0:
             sum_c_var = 0
-            for cp in self.comps.index:
+            for cp in self.comps['object']:
                 for var in cp.vars.keys():
                     pos = var.var_pos
 
@@ -1785,10 +1818,10 @@ class Network:
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
-            for cp in self.comps.index:
+            for cp in self.comps['object']:
                 cp.convergence_check()
 
-            for c in self.conns.index:
+            for c in self.conns['object']:
                 self.solve_check_props(c)
 
     def property_range_message(self, c, prop):
@@ -1954,7 +1987,7 @@ class Network:
         # fetch component equation residuals and component partial derivatives
         sum_eq = 0
         sum_c_var = 0
-        for cp in self.comps.index:
+        for cp in self.comps['object']:
 
             indices = []
             for c in cp.conn_loc:
@@ -2154,7 +2187,7 @@ class Network:
         """
         k = self.num_comp_eq
         primary_vars = {'m': 0, 'p': 1, 'h': 2}
-        for c in self.conns.index:
+        for c in self.conns['object']:
             flow = c.get_flow()
             col = c.conn_loc * self.num_conn_vars
 
@@ -2277,7 +2310,7 @@ class Network:
 
         # equations and derivatives for specified primary variables are static
         if self.iter == 0:
-            for c in self.conns.index:
+            for c in self.conns['object']:
                 col = c.conn_loc * self.num_conn_vars
 
                 # specified mass flow, pressure and enthalpy
@@ -2327,7 +2360,7 @@ class Network:
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
         # connections
-        for c in self.conns.index:
+        for c in self.conns['object']:
             flow = c.get_flow()
             c.good_starting_values = True
             c.T.val_SI = fp.T_mix_ph(flow, T0=c.T.val_SI)
@@ -2364,7 +2397,7 @@ class Network:
             c.fluid.val0 = c.fluid.val.copy()
 
         # components
-        for cp in self.comps.index:
+        for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
             cp.entropy_balance()
@@ -2635,14 +2668,14 @@ class Network:
             raise hlp.TESPyNetworkError(msg)
 
         # physical exergy of connections
-        for conn in self.conns.index:
+        for conn in self.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
             self.connection_exergy_data.loc[conn] = [
                 conn.label, conn.ex_physical, conn.Ex_physical]
 
         # exergy balance of components
 
-        for cp in self.comps.index:
+        for cp in self.comps['object']:
             cp.exergy_balance(Tamb_SI)
             self.E_D += cp.E_D
 
@@ -2731,6 +2764,7 @@ class Network:
 
         for cp in self.comps['comp_type'].unique():
             df = self.comps[self.comps['comp_type'] == cp].copy()
+            df.set_index('object', inplace=True)
 
             # gather parameters to print for components of type c
             cols = []
@@ -2746,7 +2780,6 @@ class Network:
                         args=(col, colored, coloring))
 
                 df.drop(['comp_type'], axis=1, inplace=True)
-                df.set_index('label', inplace=True)
                 df.dropna(how='all', inplace=True)
 
                 if len(df) > 0:
@@ -2761,7 +2794,7 @@ class Network:
             'p / (' + self.p_unit + ')',
             'h / (' + self.h_unit + ')',
             'T / (' + self.T_unit + ')'])
-        for c in self.conns.index:
+        for c in self.conns['object']:
             if c.printout:
                 row = (c.source.label + ':' + c.source_id + ' -> ' +
                        c.target.label + ':' + c.target_id)
@@ -2951,63 +2984,61 @@ class Network:
             Path/filename for the file.
         """
         f = Network.get_props
-        df = pd.DataFrame()
+        df = self.conns.copy()
+        df.set_index('object', inplace=True)
         # connection id
-        df['id'] = self.conns.apply(Network.get_id, axis=1)
+        df['id'] = df.apply(Network.get_id, axis=1)
+        cols = df.columns.tolist()
+        df = df[cols[-1:] + cols[:-1]]
 
         # general connection parameters
         # source
-        df['source'] = self.conns.apply(f, axis=1, args=('source', 'label'))
-        df['source_id'] = self.conns['source_id']
+        df['source'] = df.apply(f, axis=1, args=('source', 'label'))
         # target
-        df['target'] = self.conns.apply(f, axis=1, args=('target', 'label'))
-        df['target_id'] = self.conns['target_id']
+        df['target'] = df.apply(f, axis=1, args=('target', 'label'))
 
         # design and offdesign properties
-        cols = ['design', 'offdesign', 'design_path', 'local_design',
+        cols = ['label', 'design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign', 'label']
 
         for key in cols:
-            df[key] = self.conns.apply(f, axis=1, args=(key,))
+            df[key] = df.apply(f, axis=1, args=(key,))
 
         # fluid properties
         cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
         for key in cols:
             # values and units
-            df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-            df[key + '_unit'] = self.conns.apply(f, axis=1, args=(key, 'unit'))
-            df[key + '0'] = self.conns.apply(f, axis=1, args=(key, 'val0'))
-            df[key + '_set'] = self.conns.apply(
-                f, axis=1, args=(key, 'val_set'))
-            df[key + '_ref'] = self.conns.apply(
+            df[key] = df.apply(f, axis=1, args=(key, 'val'))
+            df[key + '_unit'] = df.apply(f, axis=1, args=(key, 'unit'))
+            df[key + '0'] = df.apply(f, axis=1, args=(key, 'val0'))
+            df[key + '_set'] = df.apply(f, axis=1, args=(key, 'val_set'))
+            df[key + '_ref'] = df.apply(
                 f, axis=1, args=(key, 'ref', 'obj',)).astype(str)
             df[key + '_ref'] = df[key + '_ref'].str.extract(
                 r' at (.*?)>', expand=False)
-            df[key + '_ref_f'] = self.conns.apply(
+            df[key + '_ref_f'] = df.apply(
                 f, axis=1, args=(key, 'ref', 'factor',))
-            df[key + '_ref_d'] = self.conns.apply(
+            df[key + '_ref_d'] = df.apply(
                 f, axis=1, args=(key, 'ref', 'delta',))
-            df[key + '_ref_set'] = self.conns.apply(
-                f, axis=1, args=(key, 'ref_set',))
+            df[key + '_ref_set'] = df.apply(f, axis=1, args=(key, 'ref_set',))
 
         # state property
         key = 'state'
-        df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'is_set'))
+        df[key] = df.apply(f, axis=1, args=(key, 'val'))
+        df[key + '_set'] = df.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
         for val in self.fluids:
             # fluid mass fraction
-            df[val] = self.conns.apply(f, axis=1, args=('fluid', 'val', val))
+            df[val] = df.apply(f, axis=1, args=('fluid', 'val', val))
 
             # fluid mass fraction parametrisation
-            df[val + '0'] = self.conns.apply(f, axis=1,
-                                             args=('fluid', 'val0', val))
-            df[val + '_set'] = self.conns.apply(f, axis=1,
-                                                args=('fluid', 'val_set', val))
+            df[val + '0'] = df.apply(f, axis=1, args=('fluid', 'val0', val))
+            df[val + '_set'] = df.apply(
+                f, axis=1, args=('fluid', 'val_set', val))
 
         # fluid balance
-        df['balance'] = self.conns.apply(f, axis=1, args=('fluid', 'balance'))
+        df['balance'] = df.apply(f, axis=1, args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
         logging.debug('Connection information saved to ' + fn + '.')
@@ -3031,6 +3062,7 @@ class Network:
         # create / overwrite csv file
 
         df_comps = self.comps.copy()
+        df_comps.set_index('object', inplace=True)
 
         # busses
         df_comps['busses'] = df_comps.apply(
@@ -3121,7 +3153,7 @@ class Network:
         # characteristic lines in components
         char_lines = []
         char_maps = []
-        for c in self.comps.index:
+        for c in self.comps['object']:
             for col, data in c.variables.items():
                 if isinstance(data, dc_cc):
                     char_lines += [data.char_func]

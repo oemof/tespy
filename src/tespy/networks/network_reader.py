@@ -133,13 +133,14 @@ def load_network(path):
     The imported network has the following additional features:
 
     - Connections are accessible by label, e.g.
-      :code:`myimportednetwork.connections['myconnection']`. The default label
+      :code:`myimportednetwork.get_conn('myconnection')`. The default label
       logic is :code:`source:source_id_target:target_id`, where the source
       means the label of the component the connection originates from and
       target means the label of the component, the connections targets on.
     - Components are accessible by label as well, e.g. for a component
-      'heat exchanger' :code:`myimportednetwork.components['heat exchanger']`.
-    - Busses are accessible by label, too, e.g. for a bus 'power input'
+      'heat exchanger' :code:`myimportednetwork.get_comp('heat exchanger')`.
+    - Busses are stored in a dict like structure, therefore accessible like
+      follows, e.g. a bus labeld 'power input'
       :code:`myimportednetwork.busses['power input']`.
 
     Example
@@ -213,7 +214,7 @@ def load_network(path):
     >>> nw.lin_dep
     False
     >>> nw.save('exported_nwk')
-    >>> mass_flow = round(nw.connections['ambient air'].m.val_SI, 1)
+    >>> mass_flow = round(nw.get_conn('ambient air').m.val_SI, 1)
     >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='exported_nwk')
     >>> round(t.eta_s.val, 1)
@@ -238,19 +239,19 @@ def load_network(path):
     >>> imported_nwk.solve('design', init_path='exported_nwk')
     >>> imported_nwk.lin_dep
     False
-    >>> round(imported_nwk.connections['ambient air'].m.val_SI, 1) == mass_flow
+    >>> round(imported_nwk.get_conn('ambient air').m.val_SI, 1) == mass_flow
     True
-    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
     0.9
-    >>> imported_nwk.components['compressor'].set_attr(igva='var')
+    >>> imported_nwk.get_comp('compressor').set_attr(igva='var')
     >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
-    >>> round(imported_nwk.components['turbine'].eta_s.val, 3)
+    >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
     0.9
     >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
     >>> imported_nwk.solve('offdesign', design_path='exported_nwk')
-    >>> round(imported_nwk.components['turbine'].eta_s.val, 3) == eta_s_t
+    >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
     True
-    >>> round(imported_nwk.components['compressor'].igva.val, 3) == igva
+    >>> round(imported_nwk.get_comp('compressor').igva.val, 3) == igva
     True
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     """

@@ -113,8 +113,8 @@ class TestGasturbine:
         """Tests the results of both gas turbine models."""
         self.setup_CombustionChamber_model()
         self.setup_CombustionChamberStoich_model()
-        m1 = round(self.nw1.connections['flue gas after cc'].m.val, 6)
-        m2 = round(self.nw2.connections['flue gas after cc'].m.val, 6)
+        m1 = round(self.nw1.get_conn('flue gas after cc').m.val, 6)
+        m2 = round(self.nw2.get_conn('flue gas after cc').m.val, 6)
         msg = (
             'The outlet mass flow of the combustion chamber model is ' +
             str(m1) + ' while the outlet mass flow of the combustion chamber '
@@ -122,8 +122,8 @@ class TestGasturbine:
 
         assert m1 == m2, msg
 
-        T1 = self.nw1.connections['flue gas after cc'].T.val_SI
-        T2 = self.nw2.connections['flue gas after cc'].T.val_SI
+        T1 = self.nw1.get_conn('flue gas after cc').T.val_SI
+        T2 = self.nw2.get_conn('flue gas after cc').T.val_SI
         d_rel = abs(T2 - T1) / T1
         msg = (
             'The relative deviation in temperature after combustion is ' +
@@ -131,8 +131,8 @@ class TestGasturbine:
 
         assert d_rel <= 1e-3, msg
 
-        T1 = self.nw1.connections['flue gas after gt'].T.val_SI
-        T2 = self.nw2.connections['flue gas after gt'].T.val_SI
+        T1 = self.nw1.get_conn('flue gas after gt').T.val_SI
+        T2 = self.nw2.get_conn('flue gas after gt').T.val_SI
         d_rel = abs(T2 - T1) / T1
         msg = (
             'The relative deviation in temperature after the turbine is ' +

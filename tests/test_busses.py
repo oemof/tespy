@@ -118,9 +118,9 @@ class TestBusses:
         cpi = self.nw.busses['compressor power input']
         cpibb = self.nw.busses['compressor power input bus based']
 
-        cp = self.nw.components['compressor']
-        gt = self.nw.components['turbine']
-        cc = self.nw.components['combustion']
+        cp = self.nw.get_comp('compressor')
+        gt = self.nw.get_comp('turbine')
+        cc = self.nw.get_comp('combustion')
 
         # test results of design case
 
@@ -169,7 +169,7 @@ class TestBusses:
         # test partload for bus functions
         # first test in identical conditions
 
-        self.nw.connections['ambient air flow'].set_attr(m=None)
+        self.nw.get_conn('ambient air flow').set_attr(m=None)
         P_design = cpibb.P.val
         cpibb.set_attr(P=P_design)
         self.nw.solve('offdesign', design_path='tmp')

@@ -134,14 +134,14 @@ class TestClausiusRankine:
             'steam generator', 'pump'
         ]
         for label in labels:
-            cp = self.nw.components[label]
+            cp = self.nw.get_comp(label)
             msg = (
                 'Entropy production due to irreversibility must be 0 for all '
                 'components in this test but is ' + str(round(cp.S_irr, 4)) +
                 ' at component ' + label + ' of type ' + cp.component() + '.')
             assert round(cp.S_irr, 4) == 0, msg
-        sg = self.nw.components['steam generator']
-        cd = self.nw.components['condenser']
+        sg = self.nw.get_comp('steam generator')
+        cd = self.nw.get_comp('condenser')
         msg = (
             'Value of entropy production due to heat input at steam generator '
             '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
@@ -155,9 +155,9 @@ class TestClausiusRankine:
         self.nw.del_busses(self.fwp_power)
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.components['feed water pump turbine'],
+            {'comp': self.nw.get_comp('feed water pump turbine'),
              'char': 0.99},
-            {'comp': self.nw.components['pump'], 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -180,9 +180,9 @@ class TestClausiusRankine:
         self.nw.del_busses(self.fwp_power)
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.components['feed water pump turbine'],
+            {'comp': self.nw.get_comp('feed water pump turbine'),
              'char': 0.99},
-            {'comp': self.nw.components['pump'], 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -416,7 +416,7 @@ class TestCompressedAirOut:
             str(round(self.nw.epsilon, 4)) + '.')
         assert round(self.nw.epsilon, 4) == 1, msg
 
-        c = self.nw.connections['outlet']
+        c = self.nw.get_conn('outlet')
         c.set_attr(T=self.Tamb - 20)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

@@ -348,18 +348,18 @@ class UserDefinedEquation:
             d = 1e-5
             deriv = []
             for f in self.conns[0].fluid.val.keys():
-                val = self.conns[pos].fluid.val[f]
-                if self.conns[pos].fluid.val[f] + d <= 1:
-                    self.conns[pos].fluid.val[f] += d
+                val = self.conns[idx].fluid.val[f]
+                if self.conns[idx].fluid.val[f] + d <= 1:
+                    self.conns[idx].fluid.val[f] += d
                 else:
-                    self.conns[pos].fluid.val[f] = 1
+                    self.conns[idx].fluid.val[f] = 1
                 exp = self.func(self)
-                if self.conns[pos].fluid.val[f] - 2 * d >= 0:
-                    self.conns[pos].fluid.val[f] -= 2 * d
+                if self.conns[idx].fluid.val[f] - 2 * d >= 0:
+                    self.conns[idx].fluid.val[f] -= 2 * d
                 else:
-                    self.conns[pos].fluid.val[f] = 0
+                    self.conns[idx].fluid.val[f] = 0
                 exp -= self.func(self)
-                self.conns[pos].fluid.val[f] = val
+                self.conns[idx].fluid.val[f] = val
 
                 deriv += [exp / (2 * d)]
 

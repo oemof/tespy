@@ -10,12 +10,14 @@ SPDX-License-Identifier: MIT
 """
 import os
 import sys
+
 import CoolProp as CP
 import numpy as np
 import pandas as pd
+
 from tespy.tools import helpers as hlp
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp

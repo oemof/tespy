@@ -8,7 +8,6 @@ Discover noteable new features and improvements in each release
     :local:
     :backlinks: top
 
-.. include::  whats_new/v0-4-3.rst
 .. include::  whats_new/v0-4-2.rst
 .. include::  whats_new/v0-4-1.rst
 .. include::  whats_new/v0-4-0.rst

@@ -361,7 +361,6 @@ class Component:
 
                 if is_set:
                     data.set_attr(is_set=True)
-                    logging.info(str(data.is_set) + ' key')
                 elif data.is_set:
                     start = (
                         'All parameters of the component group have to be '

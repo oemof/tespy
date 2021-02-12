@@ -7,5 +7,11 @@ New Features
 Bug Fixes
 #########
 
+Other Changes
+#############
+- Add a timestamp for the automatic model documentation feature
+  (`PR #247 <https://github.com/oemof/tespy/pull/247>`_)
+
 Contributors
 ############
+- `@jfreissmann <https://github.com/jfreissmann>`_

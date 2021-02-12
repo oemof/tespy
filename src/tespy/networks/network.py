@@ -2764,6 +2764,7 @@ class Network:
 
         for cp in self.comps['comp_type'].unique():
             df = self.comps[self.comps['comp_type'] == cp].copy()
+            df['label'] = df.index
             df.set_index('object', inplace=True)
 
             # gather parameters to print for components of type c
@@ -2780,6 +2781,7 @@ class Network:
                         args=(col, colored, coloring))
 
                 df.drop(['comp_type'], axis=1, inplace=True)
+                df.set_index('label', inplace=True)
                 df.dropna(how='all', inplace=True)
 
                 if len(df) > 0:

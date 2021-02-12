@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 import os
 import sys
+from datetime import date
 
 import CoolProp as CP
 import numpy as np
@@ -124,6 +125,8 @@ def document_software_info(draft):
     latex += 'Commit:&' + git + r'\\' + '\n'
     latex += 'CoolProp version:&' + CP.__version__ + r'\\' + '\n'
     latex += 'Python version:&' + sys.version + r'\\' + '\n'
+    timestamp = date.today().strftime('%B %d, %Y')
+    latex += 'Documentation generated:&' + timestamp + r'\\' + '\n'
     latex += r'\end{tabular}' + '\n'
     latex += r'\end{table}' + '\n'
 

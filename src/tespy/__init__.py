@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.4.2-001 - User\'s Universe'
+__version__ = '0.4.3 - dev'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

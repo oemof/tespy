@@ -779,12 +779,14 @@ install the package with pip.
          - ...
          - ...
          - ...
+       * - class Drum
+         - :code:`out1`
+         - :code:`out2`
+         - :code:`1`
 
     - All other components do not return any information as either there is no
       change in state or the state change is accompanied by a change in fluid
       composition.
-    - For class node the state change is from connections with incoming mass
-      flow connections with outgoing mass flow.
 
 Network reader
 ==============

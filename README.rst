@@ -7,6 +7,9 @@ plants, district heating systems or heat pumps. It is an external extension
 module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
 can be used as a standalone package.
 
+.. figure:: https://raw.githubusercontent.com/oemof/tespy/9915f013c40fe418947a6e4c1fd0cd0eba45893c/docs/api/_images/logo_tespy_big.svg
+    :align: center
+
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of thermal energy systems. From that point it is possible
 to simulate the offdesign behavior of your plant using underlying
@@ -32,8 +35,7 @@ https://guides.github.com/activities/hello-world/
     * - tests
       - |travis| |coveralls|
     * - package
-      - | |version| |wheel| |supported-versions|
-        | |commits-since|
+      - | |version| |wheel| |supported-versions| |commits-since|
     * - reference
       - |joss| |zenodo|
 

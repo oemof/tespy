@@ -25,6 +25,16 @@ please fork the TESPy repository to your own github account and make changes
 as described in the github guidelines:
 https://guides.github.com/activities/hello-world/
 
+Key Features
+============
+* **Open** Source
+* **Generic** thermal engineering applications
+* **Automatic** model documentation in LaTeX for high transparency and
+  reproducibility
+* **Extendable** framework for the implementation of custom components and
+  component groups
+* **Postprocessing** features like exergy analysis and fluid property plotting
+
 .. start-badges
 
 .. list-table::

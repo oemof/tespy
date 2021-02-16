@@ -456,7 +456,7 @@ class Condenser(HeatExchanger):
             r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
             r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
             r'- T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_2\right)}+'
+            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
             r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
             r'\end{split}'
         )

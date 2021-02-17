@@ -2400,7 +2400,6 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
-            cp.entropy_balance()
 
         # busses
         for b in self.busses.values():

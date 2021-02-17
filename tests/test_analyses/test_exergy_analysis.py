@@ -127,28 +127,6 @@ class TestClausiusRankine:
             '. Product exergy value: ' + str(round(self.nw.E_P, 4)) + '.')
         assert round(abs(self.nw.E_F - self.nw.E_P), 4) < err ** 0.5, msg
 
-    def test_entropy_perfect_cycle(self):
-        """Test entropy values in the perfect clausius rankine cycle."""
-        labels = [
-            'turbine', 'feed water pump turbine', 'condenser',
-            'steam generator', 'pump'
-        ]
-        for label in labels:
-            cp = self.nw.get_comp(label)
-            msg = (
-                'Entropy production due to irreversibility must be 0 for all '
-                'components in this test but is ' + str(round(cp.S_irr, 4)) +
-                ' at component ' + label + ' of type ' + cp.component() + '.')
-            assert round(cp.S_irr, 4) == 0, msg
-        sg = self.nw.get_comp('steam generator')
-        cd = self.nw.get_comp('condenser')
-        msg = (
-            'Value of entropy production due to heat input at steam generator '
-            '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
-            'value of entropy reduction in condenser (S_Q=' +
-            str(round(cd.S_Q, 4)) + ').')
-        assert round(sg.S_Q, 4) == -round(cd.S_Q, 4), msg
-
     def test_exergy_analysis_violated_balance(self):
         """Test exergy analysis with violated balance."""
         # specify efficiency values for the internal bus

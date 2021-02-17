@@ -320,7 +320,6 @@ class TestFluidPropertyBackEnds:
         logging.error(str(os.environ))
         back_ends = ['HEOS', 'BICUBIC', 'TTSE']
         results = {}
-        s
         for back_end in back_ends:
             # delete the fluid from the memorisation class
             if fluid in fp.Memorise.state.keys():

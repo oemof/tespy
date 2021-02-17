@@ -43,7 +43,7 @@ Key Features
     * - docs
       - |docs|
     * - tests
-      - |pytests| |coveralls| |checks| |packaging|
+      - |pytests| |checks| |packaging| |coveralls|
     * - package
       - | |version| |wheel| |supported-versions| |commits-since|
     * - reference
@@ -53,15 +53,15 @@ Key Features
     :target: https://readthedocs.org/projects/tespy
     :alt: Documentation Status
 
-.. |pytests| .. image:: https://github.com/oemof/tespy/workflows/tox%20pytests/badge.svg
+.. |pytests| image:: https://github.com/oemof/tespy/workflows/tox%20pytests/badge.svg
     :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+pytests%22
     :alt: tox pytest
 
-.. |checks| .. image:: https://github.com/oemof/tespy/workflows/tox%20checks/badge.svg
+.. |checks| image:: https://github.com/oemof/tespy/workflows/tox%20checks/badge.svg
     :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+checks%22
     :alt: tox checks
 
-.. |packaging| .. image:: https://github.com/oemof/tespy/workflows/packaging/badge.svg
+.. |packaging| image:: https://github.com/oemof/tespy/workflows/packaging/badge.svg
     :target: https://github.com/oemof/tespy/actions?query=workflow%3Apackaging
     :alt: packaging
 

@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 """
 import os
 import shutil
+import logging
 
 import numpy as np
 import pytest
@@ -311,13 +312,15 @@ class TestFluidPropertyBackEnds:
 
     @pytest.mark.skipif(
         os.environ.get('TRAVIS') == 'true',
-        reason='Travis CI cannot handle the tabular CoolProp back ends, '
+        reason='GitHub actions cannot handle the tabular CoolProp back ends, '
         'skipping this test. The test should run on your local machine.')
     def test_clausius_rankine_tabular(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
+        logging.error(str(os.environ))
         back_ends = ['HEOS', 'BICUBIC', 'TTSE']
         results = {}
+        s
         for back_end in back_ends:
             # delete the fluid from the memorisation class
             if fluid in fp.Memorise.state.keys():

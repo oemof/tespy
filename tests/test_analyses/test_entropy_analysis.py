@@ -86,6 +86,8 @@ class TestClausiusRankine:
 
         # solve network
         self.nw.solve('design')
+        for cp in self.nw.comps['object']:
+            cp.entropy_balance()
         convergence_check(self.nw.lin_dep)
 
     def test_entropy_perfect_cycle(self):

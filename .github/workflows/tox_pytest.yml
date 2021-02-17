@@ -1,0 +1,45 @@
+name: tox pytests
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 6"  # 5:00 UTC every Saturday
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install xmllint
+      run: sudo apt install coinor-cbc
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions coverage coveralls
+    - name: Test with tox
+      run: tox
+
+    - name: Check test coverage
+      run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 89 || 90 }}
+
+    - name: Report to coveralls
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_SERVICE_NAME: github

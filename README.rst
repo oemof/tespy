@@ -43,7 +43,7 @@ Key Features
     * - docs
       - |docs|
     * - tests
-      - |travis| |coveralls|
+      - |pytests| |coveralls| |checks| |packaging|
     * - package
       - | |version| |wheel| |supported-versions| |commits-since|
     * - reference
@@ -53,9 +53,17 @@ Key Features
     :target: https://readthedocs.org/projects/tespy
     :alt: Documentation Status
 
-.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=master
-    :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/oemof/tespy
+.. |pytests| .. image:: https://github.com/oemof/tespy/workflows/tox%20pytests/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+pytests%22
+    :alt: tox pytest
+
+.. |checks| .. image:: https://github.com/oemof/tespy/workflows/tox%20checks/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+checks%22
+    :alt: tox checks
+
+.. |packaging| .. image:: https://github.com/oemof/tespy/workflows/packaging/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3Apackaging
+    :alt: packaging
 
 .. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=master&service=github
     :alt: Coverage Status

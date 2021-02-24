@@ -150,6 +150,7 @@ tespy.components.nodes.droplet_separator module
     :members:
     :undoc-members:
     :show-inheritance:
+
 tespy.components.nodes.drum module
 ----------------------------------
 
@@ -162,14 +163,6 @@ tespy.components.nodes.merge module
 -----------------------------------
 
 .. automodule:: tespy.components.nodes.merge
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tespy.components.nodes.node module
-----------------------------------
-
-.. automodule:: tespy.components.nodes.node
     :members:
     :undoc-members:
     :show-inheritance:

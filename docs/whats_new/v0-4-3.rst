@@ -6,6 +6,8 @@ New Features
 
 Bug Fixes
 #########
+- Add missing exergy balance method of class Drum
+  (`#1eb92e3 <https://github.com/oemof/tespy/commit/1eb92e3>`_).
 
 Other Changes
 #############

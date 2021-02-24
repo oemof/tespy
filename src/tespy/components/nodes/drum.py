@@ -10,6 +10,8 @@ available from its original location tespy/components/nodes/drum.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.nodes.droplet_separator import DropletSeparator
 from tespy.tools.fluid_properties import h_mix_pQ
 
@@ -275,6 +277,31 @@ class Drum(DropletSeparator):
                         inconn.fluid.val[fluid] = x
 
                 inconn.source.propagate_fluid_to_source(inconn, start)
+
+    def exergy_balance(self, T0):
+        r"""
+        Calculate exergy balance of a merge.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
+        Note
+        ----
+        Please note, that the exergy balance accounts for physical exergy only.
+
+        .. math::
+
+            \dot{E}_\mathrm{P} = E_\mathrm{out}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
+        """
+        self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
+        self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical
+
+        self.E_bus = np.nan
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
 
     def get_plotting_data(self):
         """

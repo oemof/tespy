@@ -63,9 +63,6 @@ def convert_to_SI(property, value, unit):
         converters = fluid_property_data['T']['units'][unit]
         return (value + converters[0]) * converters[1]
 
-    elif property == 'Td_bp':
-        return value * fluid_property_data['T']['units'][unit][1]
-
     else:
         return value * fluid_property_data[property]['units'][unit]
 
@@ -94,9 +91,6 @@ def convert_from_SI(property, SI_value, unit):
         converters = fluid_property_data['T']['units'][unit]
         return SI_value / converters[1] - converters[0]
 
-    elif property == 'Td_bp':
-        return SI_value / fluid_property_data['T']['units'][unit][1]
-
     else:
         return SI_value / fluid_property_data[property]['units'][unit]
 
@@ -120,8 +114,8 @@ def latex_unit(unit):
         denominator = unit.split('/')[1].replace(' ', '')
         return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
     else:
-        if unit == 'C':
-            unit = r'^\circ C'
+        if unit == 'C' or unit == 'F':
+            unit = r'^\circ ' + unit
         return r'$\unit[]{' + unit + '}$'
 
 

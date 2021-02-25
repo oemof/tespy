@@ -59,6 +59,14 @@ fluid_property_data = {
         },
         'latex_eq': r'0 = T \left(p, h \right) - T_\mathrm{spec}'
     },
+    'Td_bp': {
+        'text': 'temperature difference to boiling point',
+        'SI_unit': 'K',
+        'units': {
+            'K': 1, 'R': 5 / 9, 'C': 1, 'F': 5 / 9
+        },
+        'latex_eq': r'0 = \Delta T_\mathrm{spec}- T_\mathrm{sat}\left(p\right)'
+    },
     'vol': {
         'text': 'specific volume',
         'SI_unit': 'm3 / kg',

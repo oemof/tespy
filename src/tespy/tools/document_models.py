@@ -230,9 +230,13 @@ def document_connection_params(nw, df, c):
             continue
         equations += generate_latex_eq(
             c, fpd[col]['latex_eq'], fpd[col]['text']) + '\n\n'
+
+        unit = col + '_unit'
+        if col == 'Td_bp':
+            unit = 'T_unit'
         col_header = (
             col.replace('_', r'\_') + ' in ' +
-            hlp.latex_unit(nw.get_attr(col + '_unit')) + ' ('
+            hlp.latex_unit(nw.get_attr(unit)) + ' ('
             r'\ref{eq:Connection_' + fpd[col]['text'] + '})')
         df.rename(columns={col: col_header}, inplace=True)
 

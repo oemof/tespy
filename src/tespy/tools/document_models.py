@@ -52,16 +52,13 @@ def document_model(nw, path='report', filename='report.tex', draft=True):
     # prepare filestructure
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
+
     path = hlp.modify_path_os(path)
-    # creat path, if non existent
+    fig_path = hlp.modify_path_os(path + 'figures/')
+
+    # creat paths, if non existent
     if not os.path.exists(path):
         os.makedirs(path)
-
-    fig_path = path + 'figures'
-    if fig_path[-1] != '/' and fig_path[-1] != '\\':
-        fig_path += '/'
-    fig_path = hlp.modify_path_os(fig_path)
-    # creat path, if non existent
     if not os.path.exists(fig_path):
         os.makedirs(fig_path)
 

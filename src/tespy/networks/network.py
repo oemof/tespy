@@ -2672,9 +2672,45 @@ class Network:
             self.connection_exergy_data.loc[conn] = [
                 conn.label, conn.ex_physical, conn.Ex_physical]
 
-        # exergy balance of components
+        self.fkt_group_data = {}
+        reserved_group_names = (
+            ['E_P', 'E_F', 'E_D', 'E_L'] +
+            [b.label for b in internal_busses + E_F + E_P + E_L])
 
+        for label in reserved_group_names:
+            self.fkt_group_data[label] = {}
+            self.fkt_group_data[label]['components'] = []
+            self.fkt_group_data[label]['targets'] = pd.Series(dtype='float64')
+
+        # exergy balance of components
         for cp in self.comps['object']:
+            try:
+                if cp.fkt_group in self.fkt_group_data.keys():
+                    self.fkt_group_data[cp.fkt_group]['components'] += [
+                        cp.label]
+                    new_group = False
+                else:
+                    new_group = True
+            except AttributeError:
+                # labels are unique, therefore if there is no functional group
+                # for the component, it is automatically the only member
+                cp.fkt_group = cp.label
+                new_group = True
+
+            if cp.fkt_group in reserved_group_names:
+                msg = (
+                    'The labels ' + ', '.join(reserved_group_names) +
+                    ' are cannot be used by components or component '
+                    'groups in the exergy analysis.')
+                raise ValueError(msg)
+
+            elif new_group:
+                self.fkt_group_data[cp.fkt_group] = {}
+                self.fkt_group_data[cp.fkt_group]['components'] = [cp.label]
+                self.fkt_group_data[cp.fkt_group]['targets'] = pd.Series(
+                    dtype='float64')
+                self.fkt_group_data[cp.fkt_group]['targets'].loc['E_D'] = 0
+
             cp.exergy_balance(Tamb_SI)
             self.E_D += cp.E_D
 
@@ -2696,9 +2732,21 @@ class Network:
                     if b.comps.loc[cp, 'base'] == 'bus':
                         cp_E_P = cp.E_bus
                         cp_E_F = cp.E_bus / cp.calc_bus_efficiency(b)
+                        if cp.fkt_group in self.fkt_group_data[b.label]['targets'].index:
+                            self.fkt_group_data[b.label]['targets'].loc[
+                                cp.fkt_group] += cp_E_F
+                        else:
+                            self.fkt_group_data[b.label]['targets'].loc[
+                                cp.fkt_group] = cp_E_F
                     else:
                         cp_E_P = cp.E_bus * cp.calc_bus_efficiency(b)
                         cp_E_F = cp.E_bus
+                        if b.label in self.fkt_group_data[cp.fkt_group]['targets'].index:
+                            self.fkt_group_data[cp.fkt_group]['targets'].loc[
+                                b.label] += cp_E_P
+                        else:
+                            self.fkt_group_data[cp.fkt_group]['targets'].loc[
+                                b.label] = cp_E_P
 
                     cp_E_D = cp_E_F - cp_E_P
                     self.E_D += cp_E_D
@@ -2726,7 +2774,76 @@ class Network:
                     self.component_exergy_data.loc[label] = [
                         label, cp_E_F, cp_E_P, cp_E_D, epsilon, np.nan, np.nan]
 
+        sankey_threshold = 1e-3
+        # establish connections for fuel exergy via bus balance
+        for b in E_F:
+            input_value = self.find_group_value_in_targets(b.label)
+            if input_value > sankey_threshold:
+                self.fkt_group_data['E_F']['targets'].loc[b.label] = (
+                    self.fkt_group_data[b.label]['targets'].sum() - input_value)
+            else:
+                self.fkt_group_data['E_F']['targets'] = self.fkt_group_data[b.label]['targets']
+                del self.fkt_group_data[b.label]
+
+        # establish connections for product exergy via bus balance
+        for b in E_P:
+            input_value = self.find_group_value_in_targets(b.label)
+            self.fkt_group_data[b.label]['targets'].loc['E_P'] = (
+                input_value - self.fkt_group_data[b.label]['targets'].sum())
+            if len(self.fkt_group_data[b.label]['targets']) == 1:
+                # find the inputs for the product exergy bus here
+                del self.fkt_group_data[b.label]
+
+        # establish connections for exergy loss via bus balance
+        for b in E_L:
+            input_value = self.find_group_value_in_targets(b.label)
+            self.fkt_group_data[b.label]['targets'].loc['E_L'] = (
+                input_value - self.fkt_group_data[b.label]['targets'].sum())
+            if len(self.fkt_group_data[b.label]['targets']) == 1:
+                # find the inputs for the exergy loss bus here
+                del self.fkt_group_data[b.label]
+
+        for fkt_group, data in self.fkt_group_data.items():
+            if fkt_group not in reserved_group_names:
+                for comp in data['components']:
+                    comp_obj = self.get_comp(comp)
+                    sources = self.conns[self.conns['source'] == comp_obj]
+                    for conn in sources['object']:
+                        if conn.target.label not in data['components']:
+                            target_group = self.find_comp_in_groups(
+                                conn.target.label, fkt_group)
+                            target_value = conn.Ex_physical
+                            if target_group in data['targets'].index:
+                                self.fkt_group_data[fkt_group]['targets'].loc[
+                                    target_group] += target_value
+                            else:
+                                self.fkt_group_data[fkt_group]['targets'].loc[
+                                    target_group] = target_value
+
+        E_D_total = 0
+        for fkt_group, data in self.fkt_group_data.items():
+            if fkt_group not in reserved_group_names:
+                # set the E_D value negative to the target values
+                self.fkt_group_data[fkt_group]['targets']['E_D'] -= (
+                    data['targets'].sum())
+                self.fkt_group_data[fkt_group]['targets']['E_D'] += (
+                    self.find_group_value_in_targets(fkt_group))
+                E_D_total += self.fkt_group_data[fkt_group]['targets']['E_D']
+            filter = (
+                self.fkt_group_data[fkt_group]['targets'] >= sankey_threshold)
+            self.fkt_group_data[fkt_group]['targets'] = (
+                self.fkt_group_data[fkt_group]['targets'][filter])
+
         self.E_D = self.component_exergy_data['E_D'].sum()
+
+        if abs(E_D_total - self.E_D) > err ** 0.5:
+            msg = (
+                'The total exergy destruction calculated from sankey '
+                'component group data is not equal to the sum of exergy '
+                'destruction of all components. Difference is ' +
+                str(round(E_D_total - self.E_D, 3)) + '.')
+            logging.warning(msg)
+
         self.E_F = abs(self.E_F)
         self.E_P = abs(self.E_P)
 
@@ -2747,6 +2864,27 @@ class Network:
                 'network exergy data and check, if network is properly setup '
                 'for the exergy analysis.')
             logging.warning(msg)
+
+    def find_group_value_in_targets(self, group_label):
+        """"""
+        value = 0
+        for fkt_group, data in self.fkt_group_data.items():
+            if group_label in data['targets'].index:
+                value += data['targets'].loc[group_label]
+
+        return value
+
+    def find_comp_in_groups(self, component, current_group):
+        """"""
+        for fkt_group, values in self.fkt_group_data.items():
+            if fkt_group == current_group:
+                continue
+            elif component in values['components']:
+                return fkt_group
+
+        msg = 'Target group not found for component ' + component + '.'
+        logging.error(msg)
+        raise TESPyNetworkError(msg)
 
 # %% printing and plotting
 

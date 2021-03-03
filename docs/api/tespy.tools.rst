@@ -6,6 +6,14 @@ tespy.tools module
     :undoc-members:
     :show-inheritance:
 
+tespy.tools.analyses module
+--------------------------
+
+.. automodule:: tespy.tools.analyses
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.tools.characteristics module
 ----------------------------------
 

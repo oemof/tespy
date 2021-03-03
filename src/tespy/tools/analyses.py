@@ -27,61 +27,33 @@ from tespy.tools.global_vars import err
 
 
 class ExergyAnalysis:
-    r"""
-    Class for exergy analysis.
+    r"""Class for exergy analysis of TESPy models.
 
     Parameters
     ----------
-    x : ndarray
-        An array for the x-values of the lookup table. Number of x and y
-        values must be identical.
+    E_F : float
+        List containing busses which represent fuel exergy input of the
+        network, e.g. heat exchangers of the steam generator.
 
-    y : ndarray
-        The corresponding y-values for the lookup table. Number of x and y
-        values must be identical.
+    E_P : list
+        List containing busses which represent exergy production of the
+        network, e.g. the motors and generators of a power plant.
 
-    extrapolate : boolean
-        If :code:`True` linear extrapolation is performed when the x value is
-        out of the defined value range.
+    E_L : list
+        Optional: List containing busses which represent exergy loss
+        streams of the network to the ambient, e.g. flue gases of a gas
+        turbine.
 
-    Note
-    ----
-    This class generates a lookup table from the given input data x and y,
-    then performs linear interpolation. The x and y values may be specified by
-    the user. There are some default characteristic lines for different
-    components, see the :py:mod:`tespy.data` module. If you neither specify the
-    method to use from the defaults nor specify x and y values, the
-    characteristic line generated will be
-    :code:`x = [0, 1], y = [1, 1]`.
+    internal_busses : list
+        Optional: List containing internal busses that represent exergy
+        transfer within your network but neither exergy production or
+        exergy fuel, e.g. a steam turbine driven feed water pump. The
+        conversion factors of the bus are applied to calculate exergy
+        destruction which is allocated to the respective components.
     """
 
     def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[]):
         r"""Exergy analysis class.
-
-        - Calculate the values of physical exergy on all connections.
-        - Calculate exergy balance for all components. The individual exergy
-          balance methods are documented in the API-documentation of the
-          respective components.
-
-          - Components for which no exergy balance has yet been implemented,
-            :code:`nan` (not defined) is assigned for fuel and product
-            exergy as well as exergy destruction and exergetic efficiency.
-          - Dissipative components do not have product exergy (:code:`nan`) per
-            definition.
-
-        - Calculate network fuel exergy and product exergy from data provided
-          from the busses passed to this method.
-        - Component fuel and product exergy of components passed within the
-          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
-          adjusted to consider the bus conversion factor, too.
-        - Calculate network exergetic efficiency.
-        - Calculate exergy destruction ratios for components.
-
-          - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
-            component to the exergy rate of the fuel provided to the overall
-            system.
-          - :math:`y^*_\mathrm{D}` compare the component exergy destruction
-            rate to the total exergy destruction rate within the system.
 
         Parameters
         ----------
@@ -109,6 +81,31 @@ class ExergyAnalysis:
         ----
         The nomenclature of the variables used in the exergy analysis is
         according to :cite:`Tsatsaronis2007`.
+
+        - Calculate the values of physical exergy on all connections.
+        - Calculate exergy balance for all components. The individual exergy
+          balance methods are documented in the API-documentation of the
+          respective components.
+
+          - Components for which no exergy balance has yet been implemented,
+            :code:`nan` (not defined) is assigned for fuel and product
+            exergy as well as exergy destruction and exergetic efficiency.
+          - Dissipative components do not have product exergy (:code:`nan`) per
+            definition.
+
+        - Calculate network fuel exergy and product exergy from data provided
+          from the busses passed to this method.
+        - Component fuel and product exergy of components passed within the
+          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
+          adjusted to consider the bus conversion factor, too.
+        - Calculate network exergetic efficiency.
+        - Calculate exergy destruction ratios for components.
+
+          - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
+            component to the exergy rate of the fuel provided to the overall
+            system.
+          - :math:`y^*_\mathrm{D}` compare the component exergy destruction
+            rate to the total exergy destruction rate within the system.
 
         .. math::
 
@@ -308,7 +305,7 @@ class ExergyAnalysis:
         self.grassmann_diagram = {}
 
     def analyse(self, pamb, Tamb):
-        """Analyse the network.
+        """Run the exergy analysis.
 
         Parameters
         ----------
@@ -395,6 +392,13 @@ class ExergyAnalysis:
         self.create_group_data()
 
     def evaluate_busses(self, cp):
+        """Evaluate the exergy balances of busses.
+
+        Parameters
+        ----------
+        cp : tespy.components.component.Component
+            Component to analyse the bus exergy balance of.
+        """
         cp_on_num_busses = 0
         for b in self.E_F + self.E_P + self.internal_busses + self.E_L:
             if cp in b.comps.index:
@@ -445,36 +449,8 @@ class ExergyAnalysis:
         self.bus_data['E_D'] = self.bus_data['E_F'] - self.bus_data['E_P']
         self.bus_data['epsilon'] = self.bus_data['E_P'] / self.bus_data['E_F']
 
-    def create_component_groups(self, cp):
-        # groups for grassmann
-        new_group = True
-        try:
-            if cp.fkt_group in self.group_data.keys():
-                new_group = False
-        except AttributeError:
-            cp.fkt_group = cp.label
-
-        if cp.fkt_group in self.reserved_fkt_groups:
-            msg = (
-                'The labels ' + ', '.join(self.reserved_fkt_groups) + ' '
-                'cannot be used by components (if no group was assigned) '
-                'or component groups in the exergy analysis.')
-            raise ValueError(msg)
-
-        # generate/update datastructure
-        if new_group:
-            self.group_data[cp.fkt_group] = {}
-            self.group_data[cp.fkt_group]['components'] = [cp.label]
-            self.group_data[cp.fkt_group]['targets'] = pd.Series(
-                dtype='float64')
-            self.group_data[cp.fkt_group]['targets'].loc['E_D'] = 0
-        else:
-            self.group_data[cp.fkt_group]['components'] += [cp.label]
-
-        self.component_data.loc[cp.label, 'group'] = cp.fkt_group
-
     def create_group_data(self):
-
+        """Collect the component group exergy data."""
         for group in self.group_data.keys():
             E_D = 0
             for df in [self.component_data, self.bus_data]:
@@ -483,19 +459,19 @@ class ExergyAnalysis:
 
         # establish connections for fuel exergy via bus balance
         for b in self.E_F:
-            input_value = self.find_group_value_in_targets(b.label)
+            input_value = self.calculate_group_input_value(b.label)
             self.group_data['E_F'].loc[b.label] = (
                 self.group_data[b.label].sum() - input_value)
 
         # establish connections for product exergy via bus balance
         for b in self.E_P:
-            input_value = self.find_group_value_in_targets(b.label)
+            input_value = self.calculate_group_input_value(b.label)
             self.group_data[b.label].loc['E_P'] = (
                 input_value - self.group_data[b.label].sum())
 
         # establish connections for exergy loss via bus balance
         for b in self.E_L:
-            input_value = self.find_group_value_in_targets(b.label)
+            input_value = self.calculate_group_input_value(b.label)
             self.group_data[b.label].loc['E_L'] = (
                 input_value - self.group_data[b.label].sum())
 
@@ -507,8 +483,8 @@ class ExergyAnalysis:
                 sources = self.nw.conns[self.nw.conns['source'] == comp_obj]
                 for conn in sources['object']:
                     if conn.target.label not in comps:
-                        target_group = self.find_comp_in_groups(
-                            conn.target.label, fkt_group)
+                        target_group = self.component_data.loc[
+                            conn.target.label, 'group']
                         target_value = conn.Ex_physical
                         if target_group in data.index:
                             self.group_data[fkt_group].loc[target_group] += (
@@ -520,7 +496,7 @@ class ExergyAnalysis:
         self.group_overview = pd.DataFrame(columns=['E_F', 'E_P', 'E_D'])
         for fkt_group in self.component_data['group'].unique():
             self.group_overview.loc[fkt_group, 'E_F'] = (
-                self.find_group_value_in_targets(fkt_group))
+                self.calculate_group_input_value(fkt_group))
             self.group_overview.loc[fkt_group, 'E_D'] = (
                 self.group_data[fkt_group].loc['E_D'])
 
@@ -533,27 +509,14 @@ class ExergyAnalysis:
         self.group_overview['y*_Dk'] = (
             self.group_overview['E_D'] / self.network_data.loc['E_D'])
 
-    def find_group_value_in_targets(self, group_label):
-        """"""
+    def calculate_group_input_value(self, group_label):
+        """Calculate the total exergy input of a component group."""
         value = 0
         for fkt_group, data in self.group_data.items():
             if group_label in data.index:
                 value += data.loc[group_label]
 
         return value
-
-    def find_comp_in_groups(self, component, current_group):
-        """"""
-        for fkt_group, values in self.group_data.items():
-            if fkt_group == current_group:
-                continue
-            elif component in self.component_data[
-                    self.component_data['group'] == fkt_group].index:
-                return fkt_group
-
-        msg = 'Target group not found for component ' + component + '.'
-        logging.error(msg)
-        raise hlp.TESPyNetworkError(msg)
 
     def print_results(
             self, E_D_min=1000, sort_desc=True,

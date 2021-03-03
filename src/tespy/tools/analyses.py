@@ -629,4 +629,5 @@ class ExergyAnalysis:
             print('##### RESULTS: Network exergy analysis #####')
             print(tabulate(
                 self.network_data.to_frame().transpose(),
-                headers='keys', tablefmt='psql', floatfmt='.3e', showindex=False))
+                headers='keys', tablefmt='psql', floatfmt='.3e',
+                showindex=False))

@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 
 from matplotlib import cm
-from matplotlib.colors import to_hex
 from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
@@ -428,9 +427,12 @@ class ExergyAnalysis:
                     elif b in self.E_L:
                         self.network_data.loc['E_L'] -= E_F
                         cat = 'E_L'
+                    else:
+                        cat = b.label
 
                     if cp.fkt_group in self.group_data[b.label].index:
-                        self.group_data[b.label].loc[cp.fkt_group, 'value'] += E_F
+                        self.group_data[b.label].loc[
+                            cp.fkt_group, 'value'] += E_F
                     else:
                         self.group_data[b.label].loc[cp.fkt_group] = [E_F, cat]
                 else:
@@ -446,9 +448,12 @@ class ExergyAnalysis:
                     elif b in self.E_L:
                         self.network_data.loc['E_L'] += E_P
                         cat = 'E_L'
+                    else:
+                        cat = b.label
 
                     if b.label in self.group_data[cp.fkt_group].index:
-                        self.group_data[cp.fkt_group].loc[b.label, 'value'] += E_P
+                        self.group_data[cp.fkt_group].loc[
+                            b.label, 'value'] += E_P
                     else:
                         self.group_data[cp.fkt_group].loc[b.label] = [E_P, cat]
 
@@ -506,6 +511,7 @@ class ExergyAnalysis:
                             self.group_data[fkt_group].loc[target_group] = [
                                 target_value, cat]
 
+        # create overview of component groups
         self.group_overview = pd.DataFrame(columns=['E_F', 'E_P', 'E_D'])
         for fkt_group in self.component_data['group'].unique():
             self.group_overview.loc[fkt_group, 'E_F'] = (
@@ -513,6 +519,7 @@ class ExergyAnalysis:
             self.group_overview.loc[fkt_group, 'E_D'] = (
                 self.group_data[fkt_group].loc['E_D', 'value'])
 
+        # calculate missing values
         self.group_overview['E_P'] = (
             self.group_overview['E_F'] - self.group_overview['E_D'])
         self.group_overview['epsilon'] = (

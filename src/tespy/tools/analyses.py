@@ -283,6 +283,16 @@ class ExergyAnalysis:
         busses are allocated to the component groups in this case.
 
         >>> groups = ean.group_overview
+
+        Lastly, the tool offers an automatically generated data input for the
+        sankey plotting functionalities of the plotly library to create a
+        Grassmann diagram of your network. For more information on the usage
+        of the functionality look up the corresponding method documentation:
+        :py:meth:`tespy.tools.analyses.ExergyAnalysis.generate_plotly_sankey_input`.
+        The method returns a dictionary containting the links for the sankey
+        as well as a list of the nodes.
+
+        >>> links, nodes = ean.generate_plotly_sankey_input()
         """
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
@@ -538,8 +548,52 @@ class ExergyAnalysis:
 
         return value
 
-    def generate_plotly_sankey_input(self, node_order=[], colors={}):
+    def single_group_input(self, group_label, group_data):
+        """Calculate the total exergy input of a component group."""
+        inputs = []
+        for fkt_group, data in group_data.items():
+            if group_label in data.index and fkt_group != group_label:
+                inputs += [fkt_group]
+            if len(inputs) > 1:
+                return None
+
+        if len(inputs) == 0:
+            return None
+        else:
+            return inputs[0]
+
+    def remove_transit_groups(self, group_data):
+        """Remove transit only component groups from sankey display.
+
+        Method is recursively called if a group was removed from display to
+        catch cases, where multiple groups are attached in line without
+        any streams leaving the line.
+
+        Parameters
+        ----------
+        group_data : dict
+            Dictionary containing the modified component group data.
+        """
+        for fkt_group, data in group_data.copy().items():
+            source_group = self.single_group_input(fkt_group, group_data)
+            if source_group is not None and len(group_data[fkt_group]) == 1:
+                target_group = group_data[fkt_group].index[0]
+                target_value = group_data[fkt_group].loc[target_group]
+                group_data[source_group].loc[target_group] = target_value
+                group_data[source_group].loc[target_group] = target_value
+                group_data[source_group].drop(fkt_group, inplace=True)
+                del group_data[fkt_group]
+                # recursive call in case multiple components are attached in
+                # a line without any conversion
+                self.remove_transit_groups(group_data)
+
+    def generate_plotly_sankey_input(
+            self, node_order=[], colors={}, display_thresold=1e-3):
         """Generate input data for sankey plots.
+
+        Only exergy flow above the display threshold is included. All
+        component groups with transit only (one input and one output) are cut
+        out of the display.
 
         Parameters
         ----------
@@ -555,6 +609,7 @@ class ExergyAnalysis:
             - :code:`E_F`, :code:`E_P`, :code:`E_L`, :code:`E_D`
             - names of the pure fluids of the tespy Network
             - :code:`mix` (used in case of any gas mixture)
+            - labels of internal busses
 
             In case no colors are passed, the matplotlib :code:`Set1` colormap
             will be applied.
@@ -565,11 +620,20 @@ class ExergyAnalysis:
             Tuple containing the links and node_order for the plotly sankey
             diagram.
         """
+        group_data = self.group_data.copy()
+
+        for fkt_group, data in self.group_data.items():
+            group_data[fkt_group] = group_data[fkt_group][
+                data['value'].abs() >= display_thresold]
+
+        self.remove_transit_groups(group_data)
+
         if len(node_order) == 0:
             node_order = (
                 ['E_F'] + [b.label for b in self.E_F] +
                 [fkt_group for fkt_group in self.group_overview.index] +
-                [b.label for b in self.E_P + self.E_L] + ['E_P', 'E_L', 'E_D'])
+                [b.label for b in self.internal_busses + self.E_P + self.E_L] +
+                ['E_P', 'E_L', 'E_D'])
 
         if len(colors) == 0:
             cmap = cm.get_cmap('Set1')(np.linspace(0.0, 1.0, 10))
@@ -593,6 +657,9 @@ class ExergyAnalysis:
             for f in self.nw.fluids:
                 colors[f] = rgba_list[i]
                 i += 1
+            for b in self.internal_busses:
+                colors[b.label] = rgba_list[i]
+                i += 1
 
         links = {
             'source': [],
@@ -601,7 +668,7 @@ class ExergyAnalysis:
             'color': []
         }
 
-        for fkt_group, data in self.group_data.items():
+        for fkt_group, data in group_data.items():
             source_id = node_order.index(fkt_group)
             links['source'] += [source_id for i in range(len(data))]
             links['target'] += [

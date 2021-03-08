@@ -132,6 +132,57 @@ class TestClausiusRankine:
         delta = round(abs(ean.network_data.E_F - ean.network_data.E_P), 4)
         assert delta < err ** 0.5, msg
 
+    def test_exergy_analysis_plotting_data(self):
+        """Test exergy analysis plotting."""
+        self.nw.get_comp('steam generator').set_attr(pr=0.9)
+        self.nw.get_comp('turbine').set_attr(eta_s=0.9)
+        self.nw.get_comp('feed water pump turbine').set_attr(eta_s=0.85)
+        self.nw.get_comp('pump').set_attr(eta_s=0.75)
+        self.nw.get_conn('cond').set_attr(T=self.Tamb + 3)
+
+        # specify efficiency values for the internal bus and power bus
+        self.nw.del_busses(self.fwp_power, self.power)
+
+        self.fwp_power = Bus('feed water pump power', P=0)
+        self.fwp_power.add_comps(
+            {'comp': self.nw.get_comp('feed water pump turbine'),
+             'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+        self.power = Bus('power_output')
+        self.power.add_comps(
+            {'comp': self.nw.get_comp('turbine'), 'char': 0.98})
+
+        self.nw.add_busses(self.fwp_power, self.power)
+
+        # solve network
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power], E_F=[self.heat],
+            internal_busses=[self.fwp_power])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+        nodes = [
+            'E_F', 'steam generator', 'splitter 1', 'feed water pump turbine',
+            'turbine', 'merge 1', 'condenser', 'pump', 'E_D', 'E_P']
+
+        links, nodes = ean.generate_plotly_sankey_input(node_order=nodes)
+        # checksum for targets and source
+        checksum = sum(links['target'] + links['source'])
+        msg = (
+            'The checksum of all target and source values in the link lists'
+            'must be 148, but is ' + str(checksum) + '.')
+        assert 148 == checksum, msg
+
     def test_exergy_analysis_violated_balance(self):
         """Test exergy analysis with violated balance."""
         # specify efficiency values for the internal bus

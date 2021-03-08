@@ -3,6 +3,22 @@ v0.4.3 - Someversion (Somemonth, Someday, Someyear)
 
 New Features
 ############
+- Automatic provision of input data for the sankey diagram class of the
+  `plotly library <https://plotly.com/python/sankey-diagram/>`_ to generate
+  Grassmann diagrams. For example, the Grassmann diagram of the example
+  presented in the API documentation of class
+  :py:class:`tespy.tools.analyses.ExergyAnalysis`:
+
+  .. figure:: api/_images/Grassmann.svg
+      :align: center
+
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
+
+Documentation
+#############
+- An own chapter for the 
+  :ref:`exergy analysis toolbox <tespy_analyses_exergy_label>` has been added
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
 
 Bug Fixes
 #########
@@ -14,6 +30,7 @@ Bug Fixes
 
 Other Changes
 #############
+
 - Add a timestamp for the automatic model documentation feature
   (`PR #248 <https://github.com/oemof/tespy/pull/248>`_).
 

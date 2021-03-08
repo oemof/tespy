@@ -1846,7 +1846,7 @@ def calc_physical_exergy(conn, p0, T0):
     Calculate specific physical exergy.
 
     Physical exergy is allocated to a thermal and a mechanical share according
-    to :cite:`Morosuk2005`.
+    to :cite:`Morosuk2019`.
 
     Parameters
     ----------

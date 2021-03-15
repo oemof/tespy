@@ -702,8 +702,8 @@ class Network:
         if len(labels) != len(list(set(labels))):
             duplicates = [
                 item for item, count in Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: ' +
-                   str(duplicates) + '.')
+            msg = ('All Components must have unique labels, duplicate labels '
+                   'are: "' + '", "'.join(duplicates) + '".')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 

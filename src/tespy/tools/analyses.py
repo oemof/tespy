@@ -758,7 +758,7 @@ class ExergyAnalysis:
             if sort_desc:
                 df.sort_values(by=['E_D'], ascending=False, inplace=True)
 
-            print('##### RESULTS: Bus exergy analysis #####')
+            print('##### RESULTS: Component group exergy analysis #####')
             print(tabulate(
                 df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 

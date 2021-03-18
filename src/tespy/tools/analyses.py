@@ -29,34 +29,10 @@ from tespy.tools.global_vars import err
 
 
 class ExergyAnalysis:
-    r"""Class for exergy analysis of TESPy models.
-
-    Parameters
-    ----------
-    E_F : float
-        List containing busses which represent fuel exergy input of the
-        network, e.g. heat exchangers of the steam generator.
-
-    E_P : list
-        List containing busses which represent exergy production of the
-        network, e.g. the motors and generators of a power plant.
-
-    E_L : list
-        Optional: List containing busses which represent exergy loss
-        streams of the network to the ambient, e.g. flue gases of a gas
-        turbine.
-
-    internal_busses : list
-        Optional: List containing internal busses that represent exergy
-        transfer within your network but neither exergy production or
-        exergy fuel, e.g. a steam turbine driven feed water pump. The
-        conversion factors of the bus are applied to calculate exergy
-        destruction which is allocated to the respective components.
-    """
+    r"""Class for exergy analysis of TESPy models."""
 
     def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[]):
-        r"""Exergy analysis class.
-
+        r"""
         Parameters
         ----------
         E_F : float
@@ -84,7 +60,11 @@ class ExergyAnalysis:
         The nomenclature of the variables used in the exergy analysis is
         according to :cite:`Tsatsaronis2007`.
 
-        - Calculate the values of physical exergy on all connections.
+        The analysis is carried out by the
+        :py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse` method. Given
+        the ambient state (pressure and temperature), it will
+
+        - Calculate the values of physical exergy on all connections
         - Calculate exergy balance for all components. The individual exergy
           balance methods are documented in the API-documentation of the
           respective components.
@@ -95,11 +75,10 @@ class ExergyAnalysis:
           - Dissipative components do not have product exergy (:code:`nan`) per
             definition.
 
-        - Calculate network fuel exergy and product exergy from data provided
-          from the busses passed to this method.
-        - Component fuel and product exergy of components passed within the
-          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
-          adjusted to consider the bus conversion factor, too.
+        - Calculate exergy balances for busses passed to ExergyAnalysis class
+          instance.
+        - Calculate network fuel exergy, product exergy as well as exergy loss
+          from data provided by the busses passed to the instance.
         - Calculate network exergetic efficiency.
         - Calculate exergy destruction ratios for components.
 

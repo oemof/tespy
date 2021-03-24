@@ -11,6 +11,9 @@ Bug Fixes
 - Add missing specified values of temperature difference to boiling point to
   connection report
   (`PR #250 <https://github.com/oemof/tespy/pull/250>`_).
+- Fix Reynolds value ranges for Hanakov and Blasius equations in calculation of
+  Darcy friction factor
+  (`#ce6bef9 <https://github.com/oemof/tespy/commit/ce6bef9>`_).
 
 Other Changes
 #############

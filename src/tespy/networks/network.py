@@ -2359,7 +2359,21 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-        # connections
+        self.results = {}
+
+        self.process_connections()
+        self.process_components()
+        self.process_busses()
+
+        msg = 'Postprocessing complete.'
+        logging.info(msg)
+
+    def process_connections(self):
+        """Process the Connection results."""
+        cols = (['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x'] + self.fluids)
+
+        self.results['Connection'] = pd.DataFrame(columns=cols)
+
         for c in self.conns['object']:
             flow = c.get_flow()
             c.good_starting_values = True
@@ -2378,7 +2392,7 @@ class Network:
                     'at connection ' + c.label + '. The values for '
                     'temperature, specific volume, volumetric flow and '
                     'entropy are set to nan.')
-                logging.warning(msg)
+                logging.error(msg)
 
             else:
                 c.vol.val_SI = fp.v_mix_ph(flow, T0=c.T.val_SI)
@@ -2396,29 +2410,63 @@ class Network:
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
 
+            self.results['Connection'].loc[c.label] = (
+                [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
+                 c.s.val, c.x.val] + [f for f in c.fluid.val.values()])
+
+    def process_components(self):
+        """Process the component results."""
         # components
         for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
 
+            key = cp.__class__.__name__
+
+            if key not in self.results.keys():
+                cols = [col for col, data in cp.variables.items()
+                        if isinstance(data, dc_cp)]
+                self.results[key] = pd.DataFrame(columns=cols, dtype='float64')
+
+            for param in self.results[key].columns:
+                p = cp.get_attr(param)
+                if p.func is not None or (p.func is None and p.is_set):
+                    self.results[key].loc[cp.label, param] = p.val
+
+    def process_busses(self):
+        """Process the bus results."""
         # busses
         for b in self.busses.values():
-            b.P.val = 0
+            self.results[b.label] = pd.DataFrame(
+                columns=[
+                    'component value', 'bus value', 'efficiency',
+                    'design value'],
+                dtype='float64')
             for cp in b.comps.index:
                 # get components bus func value
-                val = cp.calc_bus_value(b)
-                b.comps.loc[cp, 'char'].get_domain_errors(cp.calc_bus_expr(b), cp.label)
-                b.P.val += val
+                bus_val = cp.calc_bus_value(b)
+                eff = cp.calc_bus_efficiency(b)
+                cmp_val = cp.bus_func(b.comps.loc[cp])
+
+                b.comps.loc[cp, 'char'].get_domain_errors(
+                    cp.calc_bus_expr(b), cp.label)
+
                 # save as reference value
                 if self.mode == 'design':
                     if b.comps.loc[cp, 'base'] == 'component':
-                        b.comps.loc[cp, 'P_ref'] = (
-                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                        design_value = cmp_val
                     else:
-                        b.comps.loc[cp, 'P_ref'] = val
+                        design_value = bus_val
 
-        msg = 'Postprocessing complete.'
-        logging.info(msg)
+                    b.comps.loc[cp, 'P_ref'] = design_value
+
+                else:
+                    design_value = b.comps.loc[cp, 'P_ref']
+
+                self.results[b.label].loc[cp.label] = (
+                    [cmp_val, bus_val, eff, design_value])
+
+            b.P.val = self.results[b.label]['bus value'].sum()
 
 # %% printing and plotting
 
@@ -2434,25 +2482,16 @@ class Network:
         coloring.update(colors)
 
         for cp in self.comps['comp_type'].unique():
-            df = self.comps[self.comps['comp_type'] == cp].copy()
-            df['label'] = df.index
-            df.set_index('object', inplace=True)
-
-            # gather parameters to print for components of type c
-            cols = []
-            for col, data in df.index[0].variables.items():
-                if isinstance(data, dc_cp):
-                    cols += [col]
+            df = self.results[cp].copy()
 
             # are there any parameters to print?
+            cols = df.columns
             if len(cols) > 0:
                 for col in cols:
                     df[col] = df.apply(
-                        Network.print_components, axis=1,
+                        self.print_components, axis=1,
                         args=(col, colored, coloring))
 
-                df.drop(['comp_type'], axis=1, inplace=True)
-                df.set_index('label', inplace=True)
                 df.dropna(how='all', inplace=True)
 
                 if len(df) > 0:
@@ -2462,68 +2501,78 @@ class Network:
                         df, headers='keys', tablefmt='psql', floatfmt='.2e'))
 
         # connection properties
-        df = pd.DataFrame(columns=[
-            'm / (' + self.m_unit + ')',
-            'p / (' + self.p_unit + ')',
-            'h / (' + self.h_unit + ')',
-            'T / (' + self.T_unit + ')'])
-        for c in self.conns['object']:
-            if c.printout:
-                row = (c.source.label + ':' + c.source_id + ' -> ' +
-                       c.target.label + ':' + c.target_id)
+        df = self.results['Connection'].copy()
+        df.drop(
+            ['v', 'vol', 's', 'x'] + [f for f in self.fluids], axis=1,
+            inplace=True)
+        for c in df.index:
+            if not self.get_conn(c).printout:
+                df.drop([c], axis=0, inplace=True)
 
-                row_data = []
-                for var in ['m', 'p', 'h', 'T']:
-                    if c.get_attr(var).val_set and colored:
-                        row_data += [
-                            coloring['set'] + str(c.get_attr(var).val) +
-                            coloring['end']
-                        ]
-                    else:
-                        row_data += [str(c.get_attr(var).val)]
+            elif colored:
+                conn = self.get_conn(c)
+                for col in df.columns:
+                    if conn.get_attr(col).val_set:
+                        df.loc[c, col] = (
+                            coloring['set'] + str(conn.get_attr(col).val) +
+                            coloring['end'])
 
-                df.loc[row] = row_data
         if len(df) > 0:
-            print('##### RESULTS (connections) #####')
+            print('##### RESULTS (Connection) #####')
             print(
                 tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
         for b in self.busses.values():
-            df = pd.DataFrame(columns=[
-                'component', 'comp value', 'bus value', 'efficiency'])
             if b.printout:
-                df['cp'] = b.comps.index
-                df['base'] = b.comps['base'].values
-                df['component'] = df['cp'].apply(lambda x: x.label)
-                df['bus value'] = df['cp'].apply(lambda x: x.calc_bus_value(b))
-                df['efficiency'] = df['cp'].apply(
-                    lambda x: x.calc_bus_efficiency(b))
-                df.loc[df['base'] == 'component', 'comp value'] = (
-                    df['bus value'] / df['efficiency'])
-                df.loc[df['base'] == 'bus', 'comp value'] = (
-                    df['bus value'] * df['efficiency'])
-                df.drop(['cp', 'base'], axis=1, inplace=True)
+                df = self.results[b.label].copy()
+                df.drop(['design value'], axis=1, inplace=True)
                 df.loc['total'] = df.sum()
                 df.loc['total', 'efficiency'] = np.nan
-                df.loc['total', 'component'] = 'total'
-                df.set_index('component', inplace=True)
-                print('##### RESULTS (' + b.label + ') #####')
+                if colored and b.P.is_set:
+                    df.loc['total', 'bus value'] = (
+                        coloring['set'] + str(df.loc['total', 'bus value']) +
+                        coloring['end'])
+                print('##### RESULTS (Bus: ' + b.label + ') #####')
                 print(tabulate(df, headers='keys', tablefmt='psql',
                                floatfmt='.3e'))
 
-    def print_components(c, *args):
+    def print_components(self, c, *args):
+        """
+        Get the print values for the component data.
+
+        Parameters
+        ----------
+        c : pandas.core.series.Series
+            Series containing the component data.
+
+        param : str
+            Component parameter to print.
+
+        colored : booloean
+            Color the printout.
+
+        coloring : dict
+            Coloring information for colored printout.
+
+        Returns
+        ----------
+        value : str
+            String representation of the value to print.
+        """
         param, colored, coloring = args
-        if c.name.printout:
-            val = float(c.name.get_attr(param).val)
+        comp = self.get_comp(c.name)
+        if comp.printout:
+            # select parameter from results DataFrame
+            val = c[param]
             if not colored:
                 return str(val)
             # else part
-            if (val < c.name.get_attr(param).min_val - err or
-                    val > c.name.get_attr(param).max_val + err):
+            if (val < comp.get_attr(param).min_val - err or
+                    val > comp.get_attr(param).max_val + err):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
-            if c.name.get_attr(args[0]).is_var:
+            if comp.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
-            if c.name.get_attr(args[0]).is_set:
+            if comp.get_attr(args[0]).is_set:
                 return coloring['set'] + ' ' + str(val) + ' ' + coloring['end']
             return str(val)
         else:

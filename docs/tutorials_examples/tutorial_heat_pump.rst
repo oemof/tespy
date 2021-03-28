@@ -57,14 +57,15 @@ Components
 
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From figure 1 you can determine the components of the
-consumer system: condenser, pump and the consumer (HeatExchangerSimple).
-Additionally we need a source and a sink for the consumer and the heat pump
+consumer system: condenser, pump and the consumer (
+:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+). Additionally we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
-first step, so the imports will not need further adjustment
+first step, so the imports will not need further adjustment.
 
 We label the sink for the coolant "valve", as for our next calculation the
 valve (labeled "valve") will be attached there. In this way, the fluid
-properties can be initialised by .csv at the interface-connection, too.
+properties can be initialized by .csv at the interface-connection, too.
 
 .. code-block:: python
 

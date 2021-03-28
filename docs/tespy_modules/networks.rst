@@ -673,7 +673,7 @@ and characteristics.
 In order to perform calculations based on your results, you can access all
 components' and connections' parameters:
 
-For the components use something like this
+The easiest way to access the results of one specific component looks like this
 
 .. code:: python
 
@@ -691,6 +691,29 @@ and similar for connection parameters:
     specific_entropy = myconn.s.val  # value in specified network unit
     volumetric_flow = myconn.v.val  # value in specified network unit
     specific_exergy = myconn.ex_physical  # SI value only
+
+On top of that, you can access pandas DataFrames containing grouped results
+for the components, connections and busses. The instance of class Network
+provides a results dictionary.
+
+.. code:: python
+
+    # key for connections is 'Connection'
+    results_for_conns = myplant.results['Connection']
+    # keys for components are the respective class name, e.g.
+    results_for_turbines = myplant.results['Turbine']
+    results_for_heat_exchangers = myplant.results['HeatExchanger']
+    # keys for busses are the labels, e.g. a Bus labeled 'power input'
+    results_for_mybus = myplant.results['power input']
+
+The index of the DataFrames is the connection's or component's label.
+
+.. code:: python
+
+    results_for_specific_conn = myplant.results['Connection'].loc['myconn']
+    results_for_specific_turbine = myplant.results['Turbine'].loc['turbine 1']
+    results_for_component_on_bus = myplant.results['power input'].loc['turbine 1']
+
 
 The full list of connection and component parameters can be obtained from the
 respective API documentation.

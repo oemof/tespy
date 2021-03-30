@@ -4,8 +4,7 @@ Exergy analysis
 Introduction
 ------------
 
-- Advantages of exergy analysis, what does it enable?
-- Fundamentals of exergy ???
+- Fundamentals of exergy analysis :cite:`Bejan1996`
 - Terminology :cite:`Tsatsaronis2007`
 - Spitting exergy :cite:`Morosuk2019`
 - Exergy balances of heat exchangers and simple heat exchangers :cite:`Sayadi2019`
@@ -113,14 +112,19 @@ rounding errors).
 .. note::
 
     An error will be printed to the console, in case the exergy analysis found
-    a mismatch in the above equation. That means, the exergy analysis has not
-    been set up correctly. You should check, if the definition of the exergy
-    streams :code:`E_F`, :code:`E_P`, :code:`E_L` and :code:`internal_busses`
-    is correct.
+    a mismatch in the above equation. That means:
+
+    - Either, the exergy analysis has not been set up correctly. You should
+      check, if the definition of the exergy streams :code:`E_F`, :code:`E_P`,
+      :code:`E_L` and :code:`internal_busses` is correct.
+    - Or, the simulation of you plant did not converge.
+
+    If you suspect a bug in the calculation, you are welcome submit an issue on
+    our GitHub page.
 
 Printing the results is possible with the
 :py:meth:`tespy.tools.analyses.ExergyAnalysis.print_results` method. The
-results is printed in five individual tables:
+results are printed in five individual tables:
 
 - connections
 - components

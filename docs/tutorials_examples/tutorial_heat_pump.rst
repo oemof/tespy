@@ -154,7 +154,7 @@ consumers heat demand. We marked this setting as "key parameter".
 .. code-block:: python
 
     cd.set_attr(pr1=1, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
-                offdesign=['zeta2', 'kA'])
+                offdesign=['zeta2', 'kA_char'])
     rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
@@ -320,9 +320,9 @@ at a different operation point.
 
     ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
                 kA_char1=kA_char1, kA_char2=kA_char2,
-                design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
+                design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
     su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2, design=['pr1', 'pr2', 'ttd_u'],
-                offdesign=['zeta1', 'zeta2', 'kA'])
+                offdesign=['zeta1', 'zeta2', 'kA_char'])
     pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
 Next step is the connection parametrization: The pressure in the drum and the
@@ -455,14 +455,14 @@ The parametrization of all other components remains identical.
     cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
     he.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-                offdesign=['zeta1', 'zeta2', 'kA'])
+                offdesign=['zeta1', 'zeta2', 'kA_char'])
 
 Regarding the connections, on the hot side after the intercooler we set the
 temperature. For the cold side of the heat exchanger we set the temperature,
 the pressure and the fluid on the inlet flow, at the outlet we specify the
 temperature as a design parameter. In offdesign calculation, this will be a
 result from the given heat transfer coefficient (see parametrisation of
-intercooler, kA is an offdesign parameter). Last, make sure the fluid
+intercooler, kA_char is an offdesign parameter). Last, make sure the fluid
 properties after the compressor outlet are identical to those at the condenser
 inlet using the references.
 

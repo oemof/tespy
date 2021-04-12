@@ -144,8 +144,8 @@ cd_cons.set_attr(T=90)
 
 # evaporator system cold side
 
-pu_ev.set_attr(m=Ref(va_dr, 0.75, 0), p0=5)
-su_cp1.set_attr(p0=5, state='g')
+pu_ev.set_attr(m=Ref(va_dr, 0.75, 0))
+su_cp1.set_attr(state='g')
 
 # evaporator system hot side
 

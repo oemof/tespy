@@ -354,7 +354,7 @@ the superheater's hot side.
 
     # evaporator system cold side
 
-    pu_ev.set_attr(m=Ref(va_dr, 0.75, 0), p0=5)
+    pu_ev.set_attr(m=Ref(va_dr, 0.75, 0))
     su_cp1.set_attr(state='g')
 
     # evaporator system hot side
@@ -383,16 +383,17 @@ Components
 
 This part contains two compressors with an intercooler between them. The cold
 side of the intercooler requires a source and a sink. Again, remember
-redefining the former sink "cp1" to a compressor. We will now replace the
-source for the coolant :code:`c_in` at the condenser with another cycle closer
-:code:`cool_closer`, to make sure the fluid properties after the second
-compressor are identical to the fluid properties at the condenser inlet.
+redefining the former sink :code:`"cp1"` to a compressor. We will now replace
+the source for the coolant :code:`c_in` at the condenser with another cycle
+closer (:code:`cool_closer`), to make sure the fluid properties after the
+second compressor are identical to the fluid properties at the condenser inlet.
 
 .. note::
 
     The intercooling leads to a lower COP but may be necessary depending on
     your temperature level requirement on the consumer's side. In a single
-    stage compression, the outlet temperature of the coolant might be very high.
+    stage compression, the outlet temperature of the coolant might violated
+    technical boundary conditions of the real-world component.
 
 .. code-block:: python
 
@@ -487,9 +488,9 @@ Solve
 +++++
 
 Here again, using the saved results from previous calculations is always
-favorable, but with the manually adjusted starting values, the calculation
-should still converge. If you want to use the previous part to initialise start
-the solver with
+favorable, but with manually adjusted starting values and the :code:`state`
+specifier, the calculation should still converge. If you want to use the
+previous part to initialise start the solver with
 
 .. code-block:: python
 

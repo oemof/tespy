@@ -67,7 +67,7 @@ class Merge(NodeBase):
     printout : boolean
         Include this component in the network's results printout.
 
-    num_in : float, tespy.tools.data_containers.DataContainerSimple
+    num_in : float, dict
         Number of inlets for this component, default value: 2.
 
     Example

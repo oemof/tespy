@@ -65,7 +65,7 @@ class SubsystemInterface(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    num_inter : float, tespy.tools.data_containers.DataContainerSimple
+    num_inter : float, dict
         Number of interfaces for subsystem.
 
     Note

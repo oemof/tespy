@@ -80,26 +80,26 @@ class Compressor(Turbomachine):
     printout : boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.ComponentProperties
+    P : float, dict
         Power, :math:`P/\text{W}`
 
-    eta_s : float, tespy.tools.data_containers.ComponentProperties
+    eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    char_map : tespy.tools.characteristics.CompressorMap, tespy.tools.data_containers.ComponentCharacteristicMaps
+    char_map : tespy.tools.characteristics.CompressorMap, dict
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
         :py:class:`tespy.tools.characteristics.CompressorMap` for further
         information. Provide a CompressorMap as function :code:`func`.
 
-    igva : str, float, tespy.tools.data_containers.ComponentProperties
+    igva : float, dict, :code:`"var"`
         Inlet guide vane angle, :math:`igva/^\circ`.
 
     Example

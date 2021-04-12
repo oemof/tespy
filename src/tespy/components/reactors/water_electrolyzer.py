@@ -91,26 +91,26 @@ class WaterElectrolyzer(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.ComponentProperties
+    P : float, dict, :code:`"var"`
         Power input, :math:`P/\text{W}`.
 
-    Q : float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict
         Heat output of cooling, :math:`Q/\text{W}`
 
-    e : str, float, tespy.tools.data_containers.ComponentProperties
+    e : float, dict, :code:`"var"`
         Electrolysis specific energy consumption,
         :math:`e/(\text{J}/\text{m}^3)`.
 
-    eta : float, tespy.tools.data_containers.ComponentProperties
+    eta : float, dict
         Electrolysis efficiency, :math:`\eta/1`.
 
-    eta_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    eta_char : tespy.tools.characteristics.CharLine, dict
         Electrolysis efficiency characteristic line.
 
-    pr : float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : float, tespy.tools.data_containers.ComponentProperties
+    zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

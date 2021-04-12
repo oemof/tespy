@@ -7,7 +7,10 @@ New Features
 
 Documentation
 #############
-- fix some typos in the code of heat pump tutorial 
+- Fix some typos in the code of heat pump tutorial
+  (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).
+- Update component parameter data type specifications according to 0.4.x API
+  in docs and add missing parameters in HeatExchanger classes
   (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).
 
 Bug Fixes

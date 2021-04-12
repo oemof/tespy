@@ -479,8 +479,8 @@ allowed to set the temperature at the condenser's hot inlet anymore.
 
     # compressor-system
 
-    he_cp2.set_attr(T=40, p0=10, design=['T'])
-    ic_in_he.set_attr(p=1, T=20, fluid={'water': 1, 'NH3': 0})
+    he_cp2.set_attr(T=40, p0=10)
+    ic_in_he.set_attr(p=5, T=20, fluid={'water': 1, 'NH3': 0})
     he_ic_out.set_attr(T=30, design=['T'])
 
 Solve

@@ -75,54 +75,54 @@ class SolarCollector(HeatExchangerSimple):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict, :code:`"var"`
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str, float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str, float, tespy.tools.data_containers.ComponentProperties
+    D : float, dict, :code:`"var"`
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str, float, tespy.tools.data_containers.ComponentProperties
+    L : float, dict, :code:`"var"`
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str, float, tespy.tools.data_containers.ComponentProperties
+    ks : float, dict, :code:`"var"`
         Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str, tespy.tools.data_containers.GroupedComponentProperties
+    hydro_group : str, dict
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    E : str, float, tespy.tools.data_containers.ComponentProperties
+    E : float, dict, :code:`"var"`
         irradiance at tilted collector surface area,
         :math:`E/\frac{\text{W}}{\text{m}^2}`.
 
-    eta_opt : str, float, tespy.tools.data_containers.ComponentProperties
+    eta_opt : float, dict, :code:`"var"`
         optical loss at surface cover,
         :math:`\eta_{opt}`.
 
-    lkf_lin : str, float, tespy.tools.data_containers.ComponentProperties
+    lkf_lin : float, dict, :code:`"var"`
         Linear thermal loss key figure,
         :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
 
-    lkf_quad : str, float, tespy.tools.data_containers.ComponentProperties
+    lkf_quad : float, dict, :code:`"var"`
         Quadratic thermal loss key figure,
         :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
 
-    A : str, float, tespy.tools.data_containers.ComponentProperties
+    A : float, dict, :code:`"var"`
         Collector surface area :math:`A/\text{m}^2`.
 
-    Tamb : float, tespy.tools.data_containers.DataContainerSimple
+    Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature unit.
 
-    energy_group : tespy.tools.data_containers.GroupedComponentProperties
+    energy_group : str, dict
         Parametergroup for energy balance of solarthermal collector.
 
     Example

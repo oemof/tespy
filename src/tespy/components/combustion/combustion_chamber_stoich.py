@@ -106,12 +106,11 @@ class CombustionChamberStoich(CombustionChamber):
     path : str
         Path to existing fluid property table.
 
-    lamb : float, tespy.tools.data_containers.ComponentProperties
+    lamb : float, dict
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.ComponentProperties
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`ti/\text{W}`.
+    ti : float, dict
+        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
 
     Note
     ----

@@ -96,30 +96,30 @@ class ORCEvaporator(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : float, tespy.tools.data_containers.ComponentProperties
+    pr1 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at hot side 1 (steam),
         :math:`pr/1`.
 
-    pr2 : float, tespy.tools.data_containers.ComponentProperties
+    pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at hot side 2 (brine),
         :math:`pr/1`.
 
-    pr3 : float, tespy.tools.data_containers.ComponentProperties
+    pr3 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side (working fluid),
         :math:`pr/1`.
 
-    zeta1 : float, tespy.tools.data_containers.ComponentProperties
+    zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side 1 (steam),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, tespy.tools.data_containers.ComponentProperties
+    zeta2 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side 2 (brine),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta3 : float, tespy.tools.data_containers.ComponentProperties
+    zeta3 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side (working fluid),
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

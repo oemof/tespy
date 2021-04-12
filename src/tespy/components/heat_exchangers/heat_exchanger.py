@@ -86,34 +86,40 @@ class HeatExchanger(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str, float, tespy.tools.data_containers.ComponentProperties
+    pr1 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str, float, tespy.tools.data_containers.ComponentProperties
+    pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta2 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : float, tespy.tools.data_containers.ComponentProperties
+    ttd_l : float, dict
+        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+
+    ttd_u : float, dict
+        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+
+    kA : float, dict
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.data_containers.DataContainerSimple
+    kA_char : dict
         Area independent heat transition coefficient characteristic.
 
-    kA_char1 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    kA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    kA_char2 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for cold side heat transfer coefficient.
 
     Note

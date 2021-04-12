@@ -88,12 +88,11 @@ class CombustionChamber(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    lamb : float, tespy.tools.data_containers.ComponentProperties
+    lamb : float, dict
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.ComponentProperties
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`ti/\text{W}`.
+    ti : float, dict
+        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
 
     Note
     ----

@@ -74,7 +74,7 @@ class Separator(NodeBase):
     printout : boolean
         Include this component in the network's results printout.
 
-    num_out : float, tespy.tools.data_containers.DataContainerSimple
+    num_out : float, dict
         Number of outlets for this component, default value: 2.
 
     Example

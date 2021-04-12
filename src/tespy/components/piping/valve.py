@@ -72,14 +72,14 @@ class Valve(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    pr : str, float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    zeta : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    dp_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    dp_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line for difference pressure to mass flow.
 
     Example

@@ -6,15 +6,32 @@ Introduction
 
 - Fundamentals of exergy analysis :cite:`Bejan1996`
 - Terminology :cite:`Tsatsaronis2007`
-- Spitting exergy :cite:`Morosuk2019`
+- Splitting exergy :cite:`Morosuk2019`
 - Exergy balances of heat exchangers and simple heat exchangers :cite:`Sayadi2019`
 
 - Requirements for this type of analysis
 - What restrictions are there currently:
 
   - physical exergy, therefore no reaction processes
+  - changes in kinetic and potential energy are neglected
   - T >= T0 tested
 
+Fundamentals of exergy analysis
+-------------------------------
+
+Energy is a concept of the first law of thermodynamics. It cannot be destroyed. 
+But regarding the design and analysis of thermal systems, the idea that something can be destroyed is useful. 
+According to the second law of thermodynamics, the conversion of heat and internal energy into work is limited. 
+This constraint and the idea of destruction are applied to introduce a new concept: exergy. 
+Exergy can be destroyed due to irreversibilities and is able to describe the quality of different energy forms. 
+The difference in quality of different forms of energy shall be illustrated by the following example. 
+1 kJ of electrical energy is clearly more valuable than 1 kJ of energy in a glass of water at ambient temperature. :cite:`Bejan1996`
+In literature, exergy is defined as follows:
+“The exergy of a system is the maximum theoretical useful work (wave work or electrical energy) 
+that is obtained when the system is brought into complete thermal, mechanical and chemical equilibrium 
+with the thermodynamic environment and there are interactions only with this environment. “ :cite:`ET1`
+
+  
 Tutorial
 --------
 

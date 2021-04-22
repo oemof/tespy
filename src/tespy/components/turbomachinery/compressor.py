@@ -41,7 +41,8 @@ class Compressor(Turbomachine):
     - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_func`
+    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`
+    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func`
 
     Inlets/Outlets
 
@@ -93,10 +94,10 @@ class Compressor(Turbomachine):
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    char_map : tespy.tools.characteristics.CompressorMap, dict
+    char_map : tespy.tools.characteristics.CharMap, dict
         Characteristic map for pressure rise and isentropic efficiency vs.
         nondimensional mass flow, see
-        :py:class:`tespy.tools.characteristics.CompressorMap` for further
+        :py:class:`tespy.tools.characteristics.CharMap` for further
         information. Provide a CompressorMap as function :code:`func`.
 
     igva : float, dict, :code:`"var"`

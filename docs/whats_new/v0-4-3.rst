@@ -12,6 +12,9 @@ Documentation
 - Update component parameter data type specifications according to 0.4.x API
   in docs and add missing parameters in HeatExchanger classes
   (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).
+- Fix broken links to characteristic map functions of class
+  :py:class:`tespy.components.turbomachinery.compressor.Compressor`
+  (`PR #263 <https://github.com/oemof/tespy/pull/263>`_).
 
 Bug Fixes
 #########

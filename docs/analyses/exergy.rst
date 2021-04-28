@@ -44,7 +44,7 @@ Since the current version of the exergy analysis in TESPy only focuses on physic
 reaction processes yet, chemical exergy is not considered. 
 Changes in kinetic and potential exergy are neglected and therefore not considered. 
     
-    .. list-table:: Comparison
+    .. list-table:: Terminology
        :widths: 20 20 10 50
        :header-rows: 1
        :class: tight-table

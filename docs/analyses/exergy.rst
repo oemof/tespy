@@ -4,18 +4,6 @@ Exergy analysis
 Introduction
 ------------
 
-- Fundamentals of exergy analysis :cite:`Bejan1996`
-- Terminology :cite:`Tsatsaronis2007`
-- Splitting exergy :cite:`Morosuk2019`
-- Exergy balances of heat exchangers and simple heat exchangers :cite:`Sayadi2019`
-
-- Requirements for this type of analysis
-- What restrictions are there currently:
-
-  - physical exergy, therefore no reaction processes
-  - changes in kinetic and potential energy are neglected
-  - T >= T0 tested
-
 Fundamentals of exergy analysis
 -------------------------------
 test
@@ -52,10 +40,10 @@ the topology of the model.
     :align: center
     :alt: Topology of the Solar Energy Generating System (SEGS)
 
-The input data are based on literature :cite:``, which provides measured data.
-Some parameters are however taken from a follow-up publication, as the original
-data show some inconsistencies, e.g. higher enthalpy at the low pressure
-turbine's last stage outlet than at its inlet :cite:``.
+The input data are based on literature :cite:`Kearney1988`, which provides
+measured data. Some parameters are however taken from a follow-up publication,
+as the original data show some inconsistencies, e.g. higher enthalpy at the low
+pressure turbine's last stage outlet than at its inlet :cite:`Lippke1995`.
 
 TESPy model
 ^^^^^^^^^^^
@@ -152,8 +140,7 @@ exergy streams is passed when creating the ExergyAnalysis instance.
 
 .. code-block:: python
 
-    ean = ExergyAnalysis(
-        nw, E_P=[power], E_F=[heat_input_bus], E_L=[exergy_loss_bus])
+    ean = ExergyAnalysis(SEGSvi, E_P=[power], E_F=[heat_input_bus], E_L=[exergy_loss_bus])
 
 In this case, the Bus :code:`power` represents the product exergy, the Bus
 :code:`heat_input_bus` the fuel exergy of the solar field and the Bus
@@ -340,8 +327,8 @@ handle the data by yourself.
 Conclusion
 ----------
 An additional example is available in the API documentation of the
-:py:class:`tespy.tools.analyses.exergy_analysis.ExergyAnalysis` class. Full
-testing of exergy analysis at temperature levels below the ambient temperature
-will be implemented soon. Regarding the implementation of chemical exergy as
-well as exergo-economical methods, further work is required. If you are
-interested in contributing, please file an issue at our GitHub page.
+:py:class:`tespy.tools.analyses.ExergyAnalysis` class. Full testing of exergy
+analysis at temperature levels below the ambient temperature will be
+implemented soon. Regarding the implementation of chemical exergy as well as
+exergo-economical methods, further work is required. If you are interested in
+contributing, please file an issue at our GitHub page.

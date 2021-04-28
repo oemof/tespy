@@ -58,8 +58,11 @@ Other Changes
 - Specified Bus values are now colored in the
   :py:meth:`tespy.networks.network.Network.print_results` method
   (`PR #255 <https://github.com/oemof/tespy/pull/255>`_).
+- Remove building figures for characteristics from docs generation
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@juliusmeier <https://github.com/juliusmeier>`_
 - `@jfreissmann <https://github.com/jfreissmann>`_

@@ -455,3 +455,7 @@ epub_exclude_files = ['search.html']
 
 # If false, no index is generated.
 #epub_use_index = True
+
+# To create a table without scrollbar in Read The Docs
+def setup(app):
+   app.add_stylesheet('css/custom.css')

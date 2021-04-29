@@ -76,22 +76,21 @@ class Pump(Turbomachine):
     printout : boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.ComponentProperties
+    P : float, dict
         Power, :math:`P/\text{W}`
 
-    eta_s : float, tespy.tools.data_containers.ComponentProperties
+    eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`
 
-    eta_s_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    flow_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
-        Characteristic curve for pressure rise vs. volumetric flow rate,
-        provide CharLine as function :code:`func`.
+    flow_char : tespy.tools.characteristics.CharLine, dict
+        Characteristic curve for pressure rise as function of volumetric flow
         :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
 
     Example

@@ -86,34 +86,40 @@ class HeatExchanger(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : str, float, tespy.tools.data_containers.ComponentProperties
+    pr1 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : str, float, tespy.tools.data_containers.ComponentProperties
+    pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta2 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    kA : float, tespy.tools.data_containers.ComponentProperties
+    ttd_l : float, dict
+        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+
+    ttd_u : float, dict
+        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+
+    kA : float, dict
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.data_containers.DataContainerSimple
+    kA_char : dict
         Area independent heat transition coefficient characteristic.
 
-    kA_char1 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    kA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    kA_char2 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for cold side heat transfer coefficient.
 
     Note
@@ -927,7 +933,7 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{out,1}^\mathrm{T}
             & T_\mathrm{in,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            0
+            \text{not defined (nan)}
             & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{out,2}^\mathrm{T}
@@ -995,7 +1001,7 @@ class HeatExchanger(Component):
                 self.outl[1].Ex_physical + self.outl[0].Ex_mech)
         elif (self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0 and
               self.inl[1].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
-            self.E_P = 0
+            self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_physical)
         else:

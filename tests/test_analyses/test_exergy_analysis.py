@@ -25,6 +25,7 @@ from tespy.components import Valve
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
+from tespy.tools import ExergyAnalysis
 from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyNetworkError
 
@@ -99,22 +100,24 @@ class TestClausiusRankine:
 
     def test_exergy_analysis_perfect_cycle(self):
         """Test exergy analysis in the perfect clausius rankine cycle."""
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb,
-            E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
-        )
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power], E_F=[self.heat],
+            internal_busses=[self.fwp_power])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
         msg = (
             'Exergy destruction of this network must be 0 (smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
-            str(round(abs(self.nw.E_D), 4)) + ' .')
-        assert abs(self.nw.E_D) <= err ** 0.5, msg
+            str(round(abs(ean.network_data.E_D), 4)) + ' .')
+        assert abs(ean.network_data.E_D) <= err ** 0.5, msg
 
         msg = (
             'Exergy efficiency of this network must be 1 for this test but '
-            'is ' + str(round(self.nw.epsilon, 4)) + ' .')
-        assert round(self.nw.epsilon, 4) == 1, msg
+            'is ' + str(round(ean.network_data.epsilon, 4)) + ' .')
+        assert round(ean.network_data.epsilon, 4) == 1, msg
 
-        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -123,31 +126,62 @@ class TestClausiusRankine:
 
         msg = (
             'Fuel exergy and product exergy must be identical for this test. '
-            'Fuel exergy value: ' + str(round(self.nw.E_F, 4)) +
-            '. Product exergy value: ' + str(round(self.nw.E_P, 4)) + '.')
-        assert round(abs(self.nw.E_F - self.nw.E_P), 4) < err ** 0.5, msg
+            'Fuel exergy value: ' + str(round(ean.network_data.E_F, 4)) +
+            '. Product exergy value: ' + str(round(ean.network_data.E_P, 4)) +
+            '.')
+        delta = round(abs(ean.network_data.E_F - ean.network_data.E_P), 4)
+        assert delta < err ** 0.5, msg
 
-    def test_entropy_perfect_cycle(self):
-        """Test entropy values in the perfect clausius rankine cycle."""
-        labels = [
-            'turbine', 'feed water pump turbine', 'condenser',
-            'steam generator', 'pump'
-        ]
-        for label in labels:
-            cp = self.nw.get_comp(label)
-            msg = (
-                'Entropy production due to irreversibility must be 0 for all '
-                'components in this test but is ' + str(round(cp.S_irr, 4)) +
-                ' at component ' + label + ' of type ' + cp.component() + '.')
-            assert round(cp.S_irr, 4) == 0, msg
-        sg = self.nw.get_comp('steam generator')
-        cd = self.nw.get_comp('condenser')
+    def test_exergy_analysis_plotting_data(self):
+        """Test exergy analysis plotting."""
+        self.nw.get_comp('steam generator').set_attr(pr=0.9)
+        self.nw.get_comp('turbine').set_attr(eta_s=0.9)
+        self.nw.get_comp('feed water pump turbine').set_attr(eta_s=0.85)
+        self.nw.get_comp('pump').set_attr(eta_s=0.75)
+        self.nw.get_conn('cond').set_attr(T=self.Tamb + 3)
+
+        # specify efficiency values for the internal bus and power bus
+        self.nw.del_busses(self.fwp_power, self.power)
+
+        self.fwp_power = Bus('feed water pump power', P=0)
+        self.fwp_power.add_comps(
+            {'comp': self.nw.get_comp('feed water pump turbine'),
+             'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+        self.power = Bus('power_output')
+        self.power.add_comps(
+            {'comp': self.nw.get_comp('turbine'), 'char': 0.98})
+
+        self.nw.add_busses(self.fwp_power, self.power)
+
+        # solve network
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power], E_F=[self.heat],
+            internal_busses=[self.fwp_power])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
-            'Value of entropy production due to heat input at steam generator '
-            '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
-            'value of entropy reduction in condenser (S_Q=' +
-            str(round(cd.S_Q, 4)) + ').')
-        assert round(sg.S_Q, 4) == -round(cd.S_Q, 4), msg
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + ' .')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+        nodes = [
+            'E_F', 'steam generator', 'splitter 1', 'feed water pump turbine',
+            'turbine', 'merge 1', 'condenser', 'pump', 'E_D', 'E_P']
+
+        links, nodes = ean.generate_plotly_sankey_input(node_order=nodes)
+        # checksum for targets and source
+        checksum = sum(links['target'] + links['source'])
+        msg = (
+            'The checksum of all target and source values in the link lists'
+            'must be 148, but is ' + str(checksum) + '.')
+        assert 148 == checksum, msg
 
     def test_exergy_analysis_violated_balance(self):
         """Test exergy analysis with violated balance."""
@@ -162,12 +196,13 @@ class TestClausiusRankine:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         # miss out on internal bus in exergy_analysis
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb,
-            E_P=[self.power], E_F=[self.heat]
-        )
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power], E_F=[self.heat])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
-        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be violated for this test (larger than ' +
             str(err ** 0.5) + ') but is ' +
@@ -187,20 +222,20 @@ class TestClausiusRankine:
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
         # no exergy losses in this case
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb,
-            E_P=[self.power], E_F=[self.heat], internal_busses=[self.fwp_power]
-        )
-        label = 'pump on bus feed water pump power'
-        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power], E_F=[self.heat],
+            internal_busses=[self.fwp_power])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
+        label = 'pump'
+        eps = ean.bus_data.loc[label, 'epsilon']
         msg = (
             'Pump exergy efficiency must be 0.98 but is ' +
             str(round(eps, 4)) + ' .')
         assert round(eps, 4) == 0.98, msg
 
-        label = 'feed water pump turbine on bus feed water pump power'
-        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
-        eps = self.nw.component_exergy_data.loc[label, 'epsilon']
+        label = 'feed water pump turbine'
+        eps = ean.bus_data.loc[label, 'epsilon']
         msg = (
             'Feed water pump turbine exergy efficiency must be 0.99 but is ' +
             str(round(eps, 4)) + ' .')
@@ -209,19 +244,17 @@ class TestClausiusRankine:
     def test_exergy_analysis_missing_E_F_E_P_information(self):
         """Test exergy analysis errors with missing information."""
         with raises(TESPyNetworkError):
-            self.nw.exergy_analysis(
-                self.pamb, self.Tamb, E_P=[self.power], E_F=[])
+            ExergyAnalysis(self.nw, E_P=[self.power], E_F=[])
 
         with raises(TESPyNetworkError):
-            self.nw.exergy_analysis(
-                self.pamb, self.Tamb, E_P=[], E_F=[self.heat])
+            ExergyAnalysis(self.nw, E_P=[], E_F=[self.heat])
 
     def test_exergy_analysis_component_on_two_busses(self):
         """Test exergy analysis errors with components on more than one bus."""
         with raises(TESPyNetworkError):
-            self.nw.exergy_analysis(
-                self.pamb, self.Tamb, E_P=[self.power],
-                E_F=[self.heat, self.power])
+            ean = ExergyAnalysis(
+                self.nw, E_P=[self.power], E_F=[self.heat, self.power])
+            ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
 
 class TestRefrigerator:
@@ -277,11 +310,12 @@ class TestRefrigerator:
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
         # no exergy losses in this case
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.cool], E_F=[self.power])
-        self.nw.print_exergy_analysis()
+        ean = ExergyAnalysis(self.nw, E_P=[self.cool], E_F=[self.power])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
-        exergy_balance = self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -335,11 +369,12 @@ class TestCompressedAirIn:
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.cas_in], E_F=[self.power_in])
+        ean = ExergyAnalysis(self.nw, E_P=[self.cas_in], E_F=[self.power_in])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
         exergy_balance = (
-            self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D)
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -399,12 +434,14 @@ class TestCompressedAirOut:
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out],
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.power_out], E_F=[self.cas_out],
             E_L=[self.ex_loss])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
         exergy_balance = (
-            self.nw.E_F - self.nw.E_P - self.nw.E_L - self.nw.E_D)
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -413,24 +450,23 @@ class TestCompressedAirOut:
 
         msg = (
             'Exergy efficiency must be equal to 1.0 for this test but is ' +
-            str(round(self.nw.epsilon, 4)) + '.')
-        assert round(self.nw.epsilon, 4) == 1, msg
+            str(round(ean.network_data.epsilon, 4)) + '.')
+        assert round(ean.network_data.epsilon, 4) == 1, msg
 
         c = self.nw.get_conn('outlet')
         c.set_attr(T=self.Tamb - 20)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
 
-        self.nw.exergy_analysis(
-            self.pamb, self.Tamb, E_P=[self.power_out], E_F=[self.cas_out],
-            E_L=[self.ex_loss])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
         msg = (
             'Exergy destruction must be equal to 0.0 for this test but is ' +
-            str(round(self.nw.E_D, 4)) + '.')
-        assert round(self.nw.E_D, 4) == 0, msg
+            str(round(ean.network_data.E_D, 4)) + '.')
+        assert round(ean.network_data.E_D, 4) == 0, msg
 
         msg = (
             'Exergy loss must be equal to ' + str(round(c.Ex_physical, 4)) +
-            ' for this test but is ' + str(round(self.nw.E_L, 4)) + '.')
-        assert round(self.nw.E_L, 4) == round(c.Ex_physical, 4), msg
+            ' for this test but is ' + str(round(ean.network_data.E_L, 4)) +
+            '.')
+        assert round(ean.network_data.E_L, 4) == round(c.Ex_physical, 4), msg

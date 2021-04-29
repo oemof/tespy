@@ -63,10 +63,10 @@ class Turbomachine(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    P : float, tespy.tools.data_containers.ComponentProperties
+    P : float, dict
         Power, :math:`P/\text{W}`
 
-    pr : float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     Example

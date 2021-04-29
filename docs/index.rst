@@ -1,10 +1,10 @@
-Welcome to TESPy's documentation!
-=================================
+.. _tespy_label:
 
-TESPy (Thermal Engineering Systems in Python) provides a powerful simulation
-package for thermal processes.
+.. include:: introduction.rst
 
-Contents:
+
+Contents
+========
 
 ..  toctree::
     :maxdepth: 2
@@ -14,6 +14,7 @@ Contents:
     first_steps
     tutorials_examples
     tespy_modules
+    tespy_analyses
     developing_tespy
     whats_new
     zliterature

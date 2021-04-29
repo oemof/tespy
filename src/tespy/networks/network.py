@@ -702,8 +702,8 @@ class Network:
         if len(labels) != len(list(set(labels))):
             duplicates = [
                 item for item, count in Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicates are: ' +
-                   str(duplicates) + '.')
+            msg = ('All Components must have unique labels, duplicate labels '
+                   'are: "' + '", "'.join(duplicates) + '".')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -2359,7 +2359,21 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-        # connections
+        self.results = {}
+
+        self.process_connections()
+        self.process_components()
+        self.process_busses()
+
+        msg = 'Postprocessing complete.'
+        logging.info(msg)
+
+    def process_connections(self):
+        """Process the Connection results."""
+        cols = (['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x'] + self.fluids)
+
+        self.results['Connection'] = pd.DataFrame(columns=cols)
+
         for c in self.conns['object']:
             flow = c.get_flow()
             c.good_starting_values = True
@@ -2378,7 +2392,7 @@ class Network:
                     'at connection ' + c.label + '. The values for '
                     'temperature, specific volume, volumetric flow and '
                     'entropy are set to nan.')
-                logging.warning(msg)
+                logging.error(msg)
 
             else:
                 c.vol.val_SI = fp.v_mix_ph(flow, T0=c.T.val_SI)
@@ -2396,358 +2410,63 @@ class Network:
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
 
+            self.results['Connection'].loc[c.label] = (
+                [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
+                 c.s.val, c.x.val] + [f for f in c.fluid.val.values()])
+
+    def process_components(self):
+        """Process the component results."""
         # components
         for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
-            cp.entropy_balance()
 
+            key = cp.__class__.__name__
+
+            if key not in self.results.keys():
+                cols = [col for col, data in cp.variables.items()
+                        if isinstance(data, dc_cp)]
+                self.results[key] = pd.DataFrame(columns=cols, dtype='float64')
+
+            for param in self.results[key].columns:
+                p = cp.get_attr(param)
+                if p.func is not None or (p.func is None and p.is_set):
+                    self.results[key].loc[cp.label, param] = p.val
+
+    def process_busses(self):
+        """Process the bus results."""
         # busses
         for b in self.busses.values():
-            b.P.val = 0
+            self.results[b.label] = pd.DataFrame(
+                columns=[
+                    'component value', 'bus value', 'efficiency',
+                    'design value'],
+                dtype='float64')
             for cp in b.comps.index:
                 # get components bus func value
-                val = cp.calc_bus_value(b)
-                b.comps.loc[cp, 'char'].get_domain_errors(cp.calc_bus_expr(b), cp.label)
-                b.P.val += val
+                bus_val = cp.calc_bus_value(b)
+                eff = cp.calc_bus_efficiency(b)
+                cmp_val = cp.bus_func(b.comps.loc[cp])
+
+                b.comps.loc[cp, 'char'].get_domain_errors(
+                    cp.calc_bus_expr(b), cp.label)
+
                 # save as reference value
                 if self.mode == 'design':
                     if b.comps.loc[cp, 'base'] == 'component':
-                        b.comps.loc[cp, 'P_ref'] = (
-                            val / abs(b.comps.loc[cp, 'char'].evaluate(1)))
+                        design_value = cmp_val
                     else:
-                        b.comps.loc[cp, 'P_ref'] = val
+                        design_value = bus_val
 
-        msg = 'Postprocessing complete.'
-        logging.info(msg)
+                    b.comps.loc[cp, 'P_ref'] = design_value
 
-    def exergy_analysis(self, pamb, Tamb, E_F, E_P, E_L=[],
-                        internal_busses=[]):
-        r"""Perform exergy analysis.
+                else:
+                    design_value = b.comps.loc[cp, 'P_ref']
 
-        - Calculate the values of physical exergy on all connections.
-        - Calculate exergy balance for all components. The individual exergy
-          balance methods are documented in the API-documentation of the
-          respective components.
+                self.results[b.label].loc[cp.label] = (
+                    [cmp_val, bus_val, eff, design_value])
 
-          - Components for which no exergy balance has yet been implemented,
-            :code:`nan` (not defined) is assigned for fuel and product
-            exergy as well as exergy destruction and exergetic efficiency.
-          - Dissipative components do not have product exergy (:code:`nan`) per
-            definition.
-
-        - Calculate network fuel exergy and product exergy from data provided
-          from the busses passed to this method.
-        - Component fuel and product exergy of components passed within the
-          busses of :code:`E_F`, :code:`E_P` and :code:`internal_busses` are
-          adjusted to consider the bus conversion factor, too.
-        - Calculate network exergetic efficiency.
-        - Calculate exergy destruction ratios for components.
-
-          - :math:`y_\mathrm{D}` compare the rate of exergy destruction in a
-            component to the exergy rate of the fuel provided to the overall
-            system.
-          - :math:`y^*_\mathrm{D}` compare the component exergy destruction
-            rate to the total exergy destruction rate within the system.
-
-        Parameters
-        ----------
-        pamb : float
-            Ambient pressure in network's pressure unit.
-
-        Tamb : float
-            Ambient temperature in network's temperature unit.
-
-        E_F : float
-            List containing busses which represent fuel exergy input of the
-            network, e.g. heat exchangers of the steam generator.
-
-        E_P : list
-            List containing busses which represent exergy production of the
-            network, e.g. the motors and generators of a power plant.
-
-        E_L : list
-            List containing busses which represent exergy loss streams of the
-            network to the ambient, e.g. flue gases of a gas turbine.
-
-        internal_busses : list
-            Optional: List containing internal busses that represent exergy
-            transfer within your network but neither exergy production or
-            exergy fuel, e.g. a steam turbine driven feed water pump. The
-            conversion factors of the bus are applied to calculate exergy
-            destruction which is allocated to the respective components.
-
-        Note
-        ----
-        The nomenclature of the variables used in the exergy analysis is
-        according to :cite:`Tsatsaronis2007`.
-
-        .. math::
-
-            \begin{split}
-            E_{\mathrm{D},comp} = E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
-            \;& \\
-            \varepsilon_{\mathrm{comp}} =
-            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} \;& \\
-            E_{\mathrm{D}} = \sum_{comp} E_{\mathrm{D},comp} \;&
-            \forall comp \in \text{ network components}\\
-            E_{\mathrm{P}} = \sum_{comp} E_{\mathrm{P},comp} \;&
-            \forall comp \in
-            \text{ components of busses in E\_P if 'base': 'component'}\\
-            E_{\mathrm{P}} = E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
-            \;& \forall comp \in
-            \text{ components of busses in E\_P if 'base': 'bus'}\\
-            E_{\mathrm{F}} = \sum_{comp} E_{\mathrm{F},comp} \;&
-            \forall comp \in
-            \text{ components of busses in E\_F if 'base': 'bus'}\\
-            E_{\mathrm{F}} = E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
-            \;& \forall comp \in
-            \text{ components of busses in E\_F if 'base': 'component'}\\
-            E_{\mathrm{L}} = \sum_{comp} E_{\mathrm{D},comp} \;&
-            \forall comp \in
-            \text{ sinks of network components if parameter exergy='loss'}
-            \end{split}
-
-        The exergy balance of the network must be closed, meaning fuel exergy
-        minus product exergy, exergy destruction and exergy losses must be
-        zero (:math:`\Delta E_\text{max}=0.001`). If the balance is violated a
-        warning message is prompted.
-
-        .. math::
-
-            |E_{\text{F}} - E_{\text{P}} - E_{\text{L}} - E_{\text{D}}| \leq
-            \Delta E_\text{max}\\
-
-            \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
-
-            y_{\text{D},comp} =
-            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
-            y^*_{\text{D},comp} =
-            \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{D}}}
-
-        Example
-        -------
-        In this example a simple clausius rankine cycle is set up and an
-        exergy analysis is performed after simulation of the power plant.
-        Start by defining ambient state and genereral network setup.
-
-        >>> from tespy.components import (CycleCloser, HeatExchangerSimple,
-        ... Merge, Splitter, Valve, Compressor, Pump, Turbine)
-        >>> from tespy.connections import Bus
-        >>> from tespy.connections import Connection
-        >>> from tespy.networks import Network
-
-        >>> Tamb = 20
-        >>> pamb = 1
-        >>> fluids = ['water']
-        >>> nw = Network(fluids=fluids)
-        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
-        ... iterinfo=False)
-
-        In order to show all functionalities available we use a feed water pump
-        that is not driven electrically by a motor but instead internally by
-        an own steam turbine. Therefore we split up the live steam from the
-        steam generator and merge the streams after both steam turbines. For
-        simplicity the steam generator and the condenser are modeled as simple
-        heat exchangers.
-
-        >>> cycle_close = CycleCloser('cycle closer')
-        >>> splitter1 = Splitter('splitter 1')
-        >>> merge1 = Merge('merge 1')
-        >>> turb = Turbine('turbine')
-        >>> fwp_turb = Turbine('feed water pump turbine')
-        >>> condenser = HeatExchangerSimple('condenser')
-        >>> fwp = Pump('pump')
-        >>> steam_generator = HeatExchangerSimple('steam generator')
-
-        >>> fs_in = Connection(cycle_close, 'out1', splitter1, 'in1')
-        >>> fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')
-        >>> fs_t = Connection(splitter1, 'out2', turb, 'in1')
-        >>> fwpt_ws = Connection(fwp_turb, 'out1', merge1, 'in1')
-        >>> t_ws = Connection(turb, 'out1', merge1, 'in2')
-        >>> ws = Connection(merge1, 'out1', condenser, 'in1')
-        >>> cond = Connection(condenser, 'out1', fwp, 'in1')
-        >>> fw = Connection(fwp, 'out1', steam_generator, 'in1')
-        >>> fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
-        >>> nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond,
-        ... fw, fs_out)
-
-        Next step is to set up the busses to later pass them according to the
-        convetions in the list below:
-
-        - E_F for fuel exergy
-        - E_P for product exergy
-        - internal_busses for internal energy transport
-        - E_L for exergy loss streams to the ambient (sources and sinks go
-          here, in case you use e.g. flue gases or air input)
-
-        The first bus is for output power, which is only represented by the
-        main steam turbine. The efficiency is set to 0.97. This bus will
-        represent the product exergy.
-
-        >>> power = Bus('power_output')
-        >>> power.add_comps({'comp': turb, 'char': 0.97})
-
-        The second bus is for driving the feed water pump. The total power of
-        this bus is specified to be 0 in order to make sure, the power genrated
-        by the secondary steam turbine is transferred to the feed water pump.
-        For mechanical efficiency we choose 0.985 for both components, but
-        we need to make sure, the :code:`'base'` of the feed water pump is
-        :code:`'bus'` as the energy from the turbine drives the feed water
-        pump.
-
-        >>> fwp_power = Bus('feed water pump power', P=0)
-        >>> fwp_power.add_comps(
-        ... {'comp': fwp_turb, 'char': 0.985},
-        ... {'comp': fwp, 'char': 0.985, 'base': 'bus'})
-
-        The fuel exergy is the exergy input into the network which is
-        represented by the heat input bus. Here again, as we have an energy
-        input from outside of the network, the :code:`'base'` keyword must be
-        specified to :code:`'bus'`.
-
-        >>> heat = Bus('heat_input')
-        >>> heat.add_comps({'comp': steam_generator, 'base': 'bus'})
-        >>> nw.add_busses(power, fwp_power, heat)
-
-        After setting up the busses, we specify the parameters for components
-        and connections and start the simulation.
-
-        >>> turb.set_attr(eta_s=0.9)
-        >>> fwp_turb.set_attr(eta_s=0.87)
-        >>> condenser.set_attr(pr=0.98)
-        >>> fwp.set_attr(eta_s=0.75)
-        >>> steam_generator.set_attr(pr=0.89)
-        >>> fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
-        >>> cond.set_attr(T=Tamb + 3, x=0)
-        >>> nw.solve('design')
-
-        To evaluate the exergy balance of the network, we simply call the
-        :py:meth:`tespy.networks.network.Network.exergy_analysis` method
-        passing the respective busses as well as the ambient state. To print
-        the results you can subsequently use the
-        :py:meth:`tespy.networks.network.Network.print_exergy_analysis`
-        method. The exergy balance should be closed, if you set up your network
-        analysis. If not, an error is prompted.
-
-        >>> nw.exergy_analysis(pamb=pamb, Tamb=Tamb,
-        ... E_F=[heat], E_P=[power], internal_busses=[fwp_power])
-        >>> abs(round(nw.E_F - nw.E_P - nw.E_L - nw.E_D, 3))
-        0.0
-        >>> ();nw.print_exergy_analysis();() # doctest: +ELLIPSIS
-        (...)
-
-        The component exergy and connection exergy data are stored as
-        dataframes and therefore accessible for further investigation.
-
-        >>> components = nw.component_exergy_data
-        >>> connections = nw.connection_exergy_data
-
-        """
-        pamb_SI = hlp.convert_to_SI('p', pamb, self.p_unit)
-        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.T_unit)
-
-        self.component_exergy_data = pd.DataFrame(
-            columns=['label', 'E_F', 'E_P', 'E_D', 'epsilon', 'y_Dk', 'y*_Dk'])
-
-        self.connection_exergy_data = pd.DataFrame(
-            columns=['label', 'e_PH', 'E_PH'])
-
-        self.E_P = 0
-        self.E_F = 0
-        self.E_D = 0
-        self.E_L = 0
-
-        if len(E_F) == 0:
-            msg = ('Missing fuel exergy E_F of network.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-        elif len(E_P) == 0:
-            msg = ('Missing product exergy E_P of network.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        # physical exergy of connections
-        for conn in self.conns['object']:
-            conn.get_physical_exergy(pamb_SI, Tamb_SI)
-            self.connection_exergy_data.loc[conn] = [
-                conn.label, conn.ex_physical, conn.Ex_physical]
-
-        # exergy balance of components
-
-        for cp in self.comps['object']:
-            cp.exergy_balance(Tamb_SI)
-            self.E_D += cp.E_D
-
-            self.component_exergy_data.loc[cp.label] = [
-                cp.label, cp.E_F, cp.E_P, cp.E_D, cp.epsilon, np.nan, np.nan]
-
-            cp_on_num_busses = 0
-            for b in E_F + E_P + internal_busses + E_L:
-                if cp in b.comps.index:
-                    if cp_on_num_busses > 0:
-                        msg = (
-                            'The component ' + cp.label + ' is on multiple '
-                            'busses in the exergy analysis. Make sure that no '
-                            'component is connected to more than one of the '
-                            'busses passed to the exergy_analysis method.')
-                        logging.error(msg)
-                        raise hlp.TESPyNetworkError(msg)
-
-                    if b.comps.loc[cp, 'base'] == 'bus':
-                        cp_E_P = cp.E_bus
-                        cp_E_F = cp.E_bus / cp.calc_bus_efficiency(b)
-                    else:
-                        cp_E_P = cp.E_bus * cp.calc_bus_efficiency(b)
-                        cp_E_F = cp.E_bus
-
-                    cp_E_D = cp_E_F - cp_E_P
-                    self.E_D += cp_E_D
-                    epsilon = cp_E_P / cp_E_F
-
-                    if b in E_F:
-                        if b.comps.loc[cp, 'base'] == 'bus':
-                            self.E_F += cp_E_F
-                        else:
-                            self.E_F -= cp_E_P
-                    elif b in E_P:
-                        if b.comps.loc[cp, 'base'] == 'bus':
-                            self.E_P -= cp_E_F
-                        else:
-                            self.E_P += cp_E_P
-                    elif b in E_L:
-                        if b.comps.loc[cp, 'base'] == 'bus':
-                            self.E_L -= cp_E_F
-                        else:
-                            self.E_L += cp_E_P
-
-                    cp_on_num_busses += 1
-
-                    label = cp.label + ' on bus ' + b.label
-                    self.component_exergy_data.loc[label] = [
-                        label, cp_E_F, cp_E_P, cp_E_D, epsilon, np.nan, np.nan]
-
-        self.E_D = self.component_exergy_data['E_D'].sum()
-        self.E_F = abs(self.E_F)
-        self.E_P = abs(self.E_P)
-
-        self.epsilon = self.E_P / self.E_F
-
-        # calculate exergy destruction ratios for components/busses
-        self.component_exergy_data['y_Dk'] = (
-            self.component_exergy_data['E_D'] / self.E_F)
-        self.component_exergy_data['y*_Dk'] = (
-            self.component_exergy_data['E_D'] / self.E_D)
-
-        residual = abs(self.E_F - self.E_P - self.E_L - self.E_D)
-        if residual >= err ** 0.5:
-            msg = (
-                'The exergy balance of your network is not closed (residual '
-                'value is ' + str(round(residual, 6)) + ', but should be '
-                'smaller than 1e-3), you should check the component and '
-                'network exergy data and check, if network is properly setup '
-                'for the exergy analysis.')
-            logging.warning(msg)
+            b.P.val = self.results[b.label]['bus value'].sum()
 
 # %% printing and plotting
 
@@ -2763,25 +2482,16 @@ class Network:
         coloring.update(colors)
 
         for cp in self.comps['comp_type'].unique():
-            df = self.comps[self.comps['comp_type'] == cp].copy()
-            df['label'] = df.index
-            df.set_index('object', inplace=True)
-
-            # gather parameters to print for components of type c
-            cols = []
-            for col, data in df.index[0].variables.items():
-                if isinstance(data, dc_cp):
-                    cols += [col]
+            df = self.results[cp].copy()
 
             # are there any parameters to print?
+            cols = df.columns
             if len(cols) > 0:
                 for col in cols:
                     df[col] = df.apply(
-                        Network.print_components, axis=1,
+                        self.print_components, axis=1,
                         args=(col, colored, coloring))
 
-                df.drop(['comp_type'], axis=1, inplace=True)
-                df.set_index('label', inplace=True)
                 df.dropna(how='all', inplace=True)
 
                 if len(df) > 0:
@@ -2791,113 +2501,82 @@ class Network:
                         df, headers='keys', tablefmt='psql', floatfmt='.2e'))
 
         # connection properties
-        df = pd.DataFrame(columns=[
-            'm / (' + self.m_unit + ')',
-            'p / (' + self.p_unit + ')',
-            'h / (' + self.h_unit + ')',
-            'T / (' + self.T_unit + ')'])
-        for c in self.conns['object']:
-            if c.printout:
-                row = (c.source.label + ':' + c.source_id + ' -> ' +
-                       c.target.label + ':' + c.target_id)
+        df = self.results['Connection'].copy()
+        df.drop(
+            ['v', 'vol', 's', 'x'] + [f for f in self.fluids], axis=1,
+            inplace=True)
+        for c in df.index:
+            if not self.get_conn(c).printout:
+                df.drop([c], axis=0, inplace=True)
 
-                row_data = []
-                for var in ['m', 'p', 'h', 'T']:
-                    if c.get_attr(var).val_set and colored:
-                        row_data += [
-                            coloring['set'] + str(c.get_attr(var).val) +
-                            coloring['end']
-                        ]
-                    else:
-                        row_data += [str(c.get_attr(var).val)]
+            elif colored:
+                conn = self.get_conn(c)
+                for col in df.columns:
+                    if conn.get_attr(col).val_set:
+                        df.loc[c, col] = (
+                            coloring['set'] + str(conn.get_attr(col).val) +
+                            coloring['end'])
 
-                df.loc[row] = row_data
         if len(df) > 0:
-            print('##### RESULTS (connections) #####')
+            print('##### RESULTS (Connection) #####')
             print(
                 tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
         for b in self.busses.values():
-            df = pd.DataFrame(columns=[
-                'component', 'comp value', 'bus value', 'efficiency'])
             if b.printout:
-                df['cp'] = b.comps.index
-                df['base'] = b.comps['base'].values
-                df['component'] = df['cp'].apply(lambda x: x.label)
-                df['bus value'] = df['cp'].apply(lambda x: x.calc_bus_value(b))
-                df['efficiency'] = df['cp'].apply(
-                    lambda x: x.calc_bus_efficiency(b))
-                df.loc[df['base'] == 'component', 'comp value'] = (
-                    df['bus value'] / df['efficiency'])
-                df.loc[df['base'] == 'bus', 'comp value'] = (
-                    df['bus value'] * df['efficiency'])
-                df.drop(['cp', 'base'], axis=1, inplace=True)
+                df = self.results[b.label].copy()
+                df.drop(['design value'], axis=1, inplace=True)
                 df.loc['total'] = df.sum()
                 df.loc['total', 'efficiency'] = np.nan
-                df.loc['total', 'component'] = 'total'
-                df.set_index('component', inplace=True)
-                print('##### RESULTS (' + b.label + ') #####')
+                if colored and b.P.is_set:
+                    df.loc['total', 'bus value'] = (
+                        coloring['set'] + str(df.loc['total', 'bus value']) +
+                        coloring['end'])
+                print('##### RESULTS (Bus: ' + b.label + ') #####')
                 print(tabulate(df, headers='keys', tablefmt='psql',
                                floatfmt='.3e'))
 
-    def print_components(c, *args):
+    def print_components(self, c, *args):
+        """
+        Get the print values for the component data.
+
+        Parameters
+        ----------
+        c : pandas.core.series.Series
+            Series containing the component data.
+
+        param : str
+            Component parameter to print.
+
+        colored : booloean
+            Color the printout.
+
+        coloring : dict
+            Coloring information for colored printout.
+
+        Returns
+        ----------
+        value : str
+            String representation of the value to print.
+        """
         param, colored, coloring = args
-        if c.name.printout:
-            val = float(c.name.get_attr(param).val)
+        comp = self.get_comp(c.name)
+        if comp.printout:
+            # select parameter from results DataFrame
+            val = c[param]
             if not colored:
                 return str(val)
             # else part
-            if (val < c.name.get_attr(param).min_val - err or
-                    val > c.name.get_attr(param).max_val + err):
+            if (val < comp.get_attr(param).min_val - err or
+                    val > comp.get_attr(param).max_val + err):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
-            if c.name.get_attr(args[0]).is_var:
+            if comp.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
-            if c.name.get_attr(args[0]).is_set:
+            if comp.get_attr(args[0]).is_set:
                 return coloring['set'] + ' ' + str(val) + ' ' + coloring['end']
             return str(val)
         else:
             return np.nan
-
-    def print_connection_exergy_data(self):
-        r"""Print (specific) physical exergy of the connections to prompt."""
-        print('##### RESULTS (connections) Specific physical exergy and ' +
-              'physical exergy #####')
-        print(tabulate(
-            self.connection_exergy_data, headers='keys',
-            tablefmt='psql', floatfmt='.3e', showindex=False))
-
-    def print_exergy_analysis(self, E_D_min=1000, sort_desc=True):
-        r"""Print the results of the exergy analysis to prompt.
-
-        - The results are sorted beginning with the component having the
-          biggest exergy destruction by default.
-        - Components with an exergy destruction smaller than 1000 W is not
-          printed to prompt by default.
-
-        Parameters
-        ----------
-        E_D_min : float
-            Minimum exergy destruction to be printed to prompt.
-
-        sort_des : boolean
-            Sort the component results descending by exergy destruction.
-        """
-        if sort_desc:
-            df = self.component_exergy_data.sort_values(
-                by=['E_D'], ascending=False)
-
-        print('\n##### RESULTS (components) Exergy analysis #####')
-        print(tabulate(
-            df[df['E_D'] > E_D_min], headers='keys',
-            tablefmt='psql', floatfmt='.3e', showindex=False))
-
-        # print network exergy analysis results
-        df = pd.DataFrame(
-            columns=['E_P', 'E_F', 'E_L', 'E_D', 'epsilon'])
-        row_data = [self.E_P, self.E_F, self.E_L, self.E_D, self.epsilon]
-        df.loc['network'] = row_data
-        print('\n##### RESULTS (network) Exergy analysis #####')
-        print(tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
 # %% saving
 

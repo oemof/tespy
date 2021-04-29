@@ -63,9 +63,6 @@ def convert_to_SI(property, value, unit):
         converters = fluid_property_data['T']['units'][unit]
         return (value + converters[0]) * converters[1]
 
-    elif property == 'Td_bp':
-        return value * fluid_property_data['T']['units'][unit][1]
-
     else:
         return value * fluid_property_data[property]['units'][unit]
 
@@ -94,9 +91,6 @@ def convert_from_SI(property, SI_value, unit):
         converters = fluid_property_data['T']['units'][unit]
         return SI_value / converters[1] - converters[0]
 
-    elif property == 'Td_bp':
-        return SI_value / fluid_property_data['T']['units'][unit][1]
-
     else:
         return SI_value / fluid_property_data[property]['units'][unit]
 
@@ -120,8 +114,8 @@ def latex_unit(unit):
         denominator = unit.split('/')[1].replace(' ', '')
         return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
     else:
-        if unit == 'C':
-            unit = r'^\circ C'
+        if unit == 'C' or unit == 'F':
+            unit = r'^\circ ' + unit
         return r'$\unit[]{' + unit + '}$'
 
 
@@ -732,11 +726,11 @@ def darcy_friction_factor(re, ks, d):
     .. math::
 
         \lambda = \begin{cases}
-        0.03164 \cdot re^{-0.25} & re \leq 10^5\\
+        0.03164 \cdot re^{-0.25} & re \leq 10^4\\
         \left(1.8 \cdot \log \left(re\right) -1.5 \right)^{-2} &
-        10^5 < re < 5 \cdot 10^6\\
+        10^4 < re < 10^6\\
         solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
-        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 5 \cdot 10^6\\
+        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 10^6\\
         \end{cases}
 
     *transition zone and hydraulically rough:*
@@ -757,7 +751,7 @@ def darcy_friction_factor(re, ks, d):
     >>> ks = 5e-5
     >>> d = 0.05
     >>> re_laminar = 2000
-    >>> re_turb_smooth = 20000
+    >>> re_turb_smooth = 5000
     >>> re_turb_trans = 70000
     >>> re_high = 1000000
     >>> d_high = 0.8
@@ -768,7 +762,7 @@ def darcy_friction_factor(re, ks, d):
     >>> darcy_friction_factor(re_laminar, ks, d)
     0.032
     >>> round(darcy_friction_factor(re_turb_smooth, ks, d), 3)
-    0.027
+    0.038
     >>> round(darcy_friction_factor(re_turb_trans, ks, d), 3)
     0.023
     >>> round(darcy_friction_factor(re_turb_trans, ks_rough, d), 3)
@@ -782,7 +776,7 @@ def darcy_friction_factor(re, ks, d):
         return 64 / re
     else:
         if re * ks / d < 65:
-            if re <= 5e4:
+            if re <= 1e4:
                 return blasius(re)
             elif re < 1e6:
                 return hanakov(re)

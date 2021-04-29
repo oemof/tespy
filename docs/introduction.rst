@@ -1,14 +1,15 @@
-.. _tespy_label:
-
-~~~~~~~~~~~
-About TESPy
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Thermal Engineering Systems in Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as power
 plants, district heating systems or heat pumps. It is an external extension
 module within the `Open Energy Modeling Framework <https://oemof.org/>`_ and
 can be used as a standalone package.
+
+.. figure:: api/_images/logo_tespy_big.svg
+    :align: center
 
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of your plant. From that point it is possible to
@@ -99,7 +100,7 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 License
 =======
 
-Copyright (c) 2017-2020 oemof developer group
+Copyright (c) 2017-2021 oemof developer group
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

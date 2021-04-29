@@ -1846,7 +1846,7 @@ def calc_physical_exergy(conn, p0, T0):
     Calculate specific physical exergy.
 
     Physical exergy is allocated to a thermal and a mechanical share according
-    to :cite:`Morosuk2005`.
+    to :cite:`Morosuk2019`.
 
     Parameters
     ----------
@@ -1886,7 +1886,7 @@ def calc_physical_exergy(conn, p0, T0):
 
 def entropy_iteration_IF97(p, h, fluid, output):
     r"""
-    Generate the state of IF97::water via entropy iteration.
+    Calculate state in IF97 back-end via entropy iteration.
 
     Parameters
     ----------

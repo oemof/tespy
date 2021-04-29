@@ -109,49 +109,48 @@ class CombustionEngine(CombustionChamber):
     printout : boolean
         Include this component in the network's results printout.
 
-    lamb : float, tespy.tools.data_containers.ComponentProperties
+    lamb : float, dict
         Air to stoichiometric air ratio, :math:`\lambda/1`.
 
-    ti : float, tespy.tools.data_containers.ComponentProperties
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`),
-        :math:`ti/\text{W}`.
+    ti : float, dict
+        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
 
-    P : str, float, tespy.tools.data_containers.ComponentProperties
+    P : float, dict, :code:`"var"`
         Power output, :math:`P/\text{W}`.
 
-    Q1 : float, tespy.tools.data_containers.ComponentProperties
+    Q1 : float, dict
         Heat output 1, :math:`\dot Q/\text{W}`.
 
-    Q2 : float, tespy.tools.data_containers.ComponentProperties
+    Q2 : float, dict
         Heat output 2, :math:`\dot Q/\text{W}`.
 
-    Qloss : str, float, tespy.tools.data_containers.ComponentProperties
+    Qloss : float, dict, :code:`"var"`
         Heat loss, :math:`\dot Q_{loss}/\text{W}`.
 
-    pr1 : float, tespy.tools.data_containers.ComponentProperties
+    pr1 : float, dict, :code:`"var"`
         Pressure ratio heat outlet 1, :math:`pr/1`.
 
-    pr2 : float, tespy.tools.data_containers.ComponentProperties
+    pr2 : float, dict, :code:`"var"`
         Pressure ratio heat outlet 2, :math:`pr/1`.
 
-    zeta1 : float, tespy.tools.data_containers.ComponentProperties
+    zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient heating loop 1,
-        :math:`\zeta/\frac{1}{\text{m}^4}`.
+        :math:`\zeta_1/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, tespy.tools.data_containers.ComponentProperties
+    zeta2 : float, dict, :code:`"var"`
         Geometry independent friction coefficient heating loop 2,
-        :math:`\zeta/\frac{1}{\text{m}^4}`.
+        :math:`\zeta_2/\frac{1}{\text{m}^4}`.
 
-    tiP_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    tiP_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line linking fuel input to power output.
 
-    Q1_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    Q1_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line linking heat output 1 to power output.
 
-    Q2_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    Q2_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line linking heat output 2 to power output.
 
-    Qloss_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    Qloss_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line linking heat loss to power output.
 
     eta_mech : float

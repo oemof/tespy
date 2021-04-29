@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 import os
 import sys
+from datetime import date
 
 import CoolProp as CP
 import numpy as np
@@ -51,16 +52,13 @@ def document_model(nw, path='report', filename='report.tex', draft=True):
     # prepare filestructure
     if path[-1] != '/' and path[-1] != '\\':
         path += '/'
+
     path = hlp.modify_path_os(path)
-    # creat path, if non existent
+    fig_path = hlp.modify_path_os(path + 'figures/')
+
+    # creat paths, if non existent
     if not os.path.exists(path):
         os.makedirs(path)
-
-    fig_path = path + 'figures'
-    if fig_path[-1] != '/' and fig_path[-1] != '\\':
-        fig_path += '/'
-    fig_path = hlp.modify_path_os(fig_path)
-    # creat path, if non existent
     if not os.path.exists(fig_path):
         os.makedirs(fig_path)
 
@@ -124,6 +122,8 @@ def document_software_info(draft):
     latex += 'Commit:&' + git + r'\\' + '\n'
     latex += 'CoolProp version:&' + CP.__version__ + r'\\' + '\n'
     latex += 'Python version:&' + sys.version + r'\\' + '\n'
+    timestamp = date.today().strftime('%B %d, %Y')
+    latex += 'Documentation generated:&' + timestamp + r'\\' + '\n'
     latex += r'\end{tabular}' + '\n'
     latex += r'\end{table}' + '\n'
 
@@ -227,9 +227,13 @@ def document_connection_params(nw, df, c):
             continue
         equations += generate_latex_eq(
             c, fpd[col]['latex_eq'], fpd[col]['text']) + '\n\n'
+
+        unit = col + '_unit'
+        if col == 'Td_bp':
+            unit = 'T_unit'
         col_header = (
             col.replace('_', r'\_') + ' in ' +
-            hlp.latex_unit(nw.get_attr(col + '_unit')) + ' ('
+            hlp.latex_unit(nw.get_attr(unit)) + ' ('
             r'\ref{eq:Connection_' + fpd[col]['text'] + '})')
         df.rename(columns={col: col_header}, inplace=True)
 

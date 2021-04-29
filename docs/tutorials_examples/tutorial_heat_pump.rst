@@ -57,14 +57,15 @@ Components
 
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From figure 1 you can determine the components of the
-consumer system: condenser, pump and the consumer (HeatExchangerSimple).
-Additionally we need a source and a sink for the consumer and the heat pump
+consumer system: condenser, pump and the consumer (
+:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+). Additionally we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
-first step, so the imports will not need further adjustment
+first step, so the imports will not need further adjustment.
 
 We label the sink for the coolant "valve", as for our next calculation the
 valve (labeled "valve") will be attached there. In this way, the fluid
-properties can be initialised by .csv at the interface-connection, too.
+properties can be initialized by .csv at the interface-connection, too.
 
 .. code-block:: python
 
@@ -153,7 +154,7 @@ consumers heat demand. We marked this setting as "key parameter".
 .. code-block:: python
 
     cd.set_attr(pr1=1, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
-                offdesign=['zeta2', 'kA'])
+                offdesign=['zeta2', 'kA_char'])
     rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     cons.set_attr(pr=0.99, design=['pr'], offdesign=['zeta'])
 
@@ -319,9 +320,9 @@ at a different operation point.
 
     ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
                 kA_char1=kA_char1, kA_char2=kA_char2,
-                design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA'])
+                design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
     su.set_attr(pr1=0.99, pr2=0.99, ttd_u=2, design=['pr1', 'pr2', 'ttd_u'],
-                offdesign=['zeta1', 'zeta2', 'kA'])
+                offdesign=['zeta1', 'zeta2', 'kA_char'])
     pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 
 Next step is the connection parametrization: The pressure in the drum and the
@@ -353,7 +354,7 @@ the superheater's hot side.
 
     # evaporator system cold side
 
-    pu_ev.set_attr(m=Ref(va_dr, 0.75, 0), p0=5)
+    pu_ev.set_attr(m=Ref(va_dr, 0.75, 0))
     su_cp1.set_attr(state='g')
 
     # evaporator system hot side
@@ -382,16 +383,17 @@ Components
 
 This part contains two compressors with an intercooler between them. The cold
 side of the intercooler requires a source and a sink. Again, remember
-redefining the former sink "cp1" to a compressor. We will now replace the
-source for the coolant :code:`c_in` at the condenser with another cycle closer
-:code:`cool_closer`, to make sure the fluid properties after the second
-compressor are identical to the fluid properties at the condenser inlet.
+redefining the former sink :code:`"cp1"` to a compressor. We will now replace
+the source for the coolant :code:`c_in` at the condenser with another cycle
+closer (:code:`cool_closer`), to make sure the fluid properties after the
+second compressor are identical to the fluid properties at the condenser inlet.
 
 .. note::
 
     The intercooling leads to a lower COP but may be necessary depending on
     your temperature level requirement on the consumer's side. In a single
-    stage compression, the outlet temperature of the coolant might be very high.
+    stage compression, the outlet temperature of the coolant might violated
+    technical boundary conditions of the real-world component.
 
 .. code-block:: python
 
@@ -454,14 +456,14 @@ The parametrization of all other components remains identical.
     cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
     he.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-                offdesign=['zeta1', 'zeta2', 'kA'])
+                offdesign=['zeta1', 'zeta2', 'kA_char'])
 
 Regarding the connections, on the hot side after the intercooler we set the
 temperature. For the cold side of the heat exchanger we set the temperature,
 the pressure and the fluid on the inlet flow, at the outlet we specify the
 temperature as a design parameter. In offdesign calculation, this will be a
 result from the given heat transfer coefficient (see parametrisation of
-intercooler, kA is an offdesign parameter). Last, make sure the fluid
+intercooler, kA_char is an offdesign parameter). Last, make sure the fluid
 properties after the compressor outlet are identical to those at the condenser
 inlet using the references.
 
@@ -478,17 +480,17 @@ allowed to set the temperature at the condenser's hot inlet anymore.
 
     # compressor-system
 
-    he_cp2.set_attr(T=40, p0=10, design=['T'])
-    ic_in_he.set_attr(p=1, T=20, fluid={'water': 1, 'NH3': 0})
+    he_cp2.set_attr(T=40, p0=10)
+    ic_in_he.set_attr(p=5, T=20, fluid={'water': 1, 'NH3': 0})
     he_ic_out.set_attr(T=30, design=['T'])
 
 Solve
 +++++
 
 Here again, using the saved results from previous calculations is always
-favorable, but with the manually adjusted starting values, the calculation
-should still converge. If you want to use the previous part to initialise start
-the solver with
+favorable, but with manually adjusted starting values and the :code:`state`
+specifier, the calculation should still converge. If you want to use the
+previous part to initialise start the solver with
 
 .. code-block:: python
 

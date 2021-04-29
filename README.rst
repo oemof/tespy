@@ -7,6 +7,9 @@ plants, district heating systems or heat pumps. It is an external extension
 module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
 can be used as a standalone package.
 
+.. figure:: https://raw.githubusercontent.com/oemof/tespy/9915f013c40fe418947a6e4c1fd0cd0eba45893c/docs/api/_images/logo_tespy_big.svg
+    :align: center
+
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of thermal energy systems. From that point it is possible
 to simulate the offdesign behavior of your plant using underlying
@@ -22,6 +25,16 @@ please fork the TESPy repository to your own github account and make changes
 as described in the github guidelines:
 https://guides.github.com/activities/hello-world/
 
+Key Features
+============
+* **Open** Source
+* **Generic** thermal engineering applications
+* **Automatic** model documentation in LaTeX for high transparency and
+  reproducibility
+* **Extendable** framework for the implementation of custom components and
+  component groups
+* **Postprocessing** features like exergy analysis and fluid property plotting
+
 .. start-badges
 
 .. list-table::
@@ -30,10 +43,9 @@ https://guides.github.com/activities/hello-world/
     * - docs
       - |docs|
     * - tests
-      - |travis| |coveralls|
+      - |pytests| |checks| |packaging| |coveralls|
     * - package
-      - | |version| |wheel| |supported-versions|
-        | |commits-since|
+      - | |version| |wheel| |supported-versions| |commits-since|
     * - reference
       - |joss| |zenodo|
 
@@ -41,9 +53,17 @@ https://guides.github.com/activities/hello-world/
     :target: https://readthedocs.org/projects/tespy
     :alt: Documentation Status
 
-.. |travis| image:: https://api.travis-ci.org/oemof/tespy.svg?branch=master
-    :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/oemof/tespy
+.. |pytests| image:: https://github.com/oemof/tespy/workflows/tox%20pytests/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+pytests%22
+    :alt: tox pytest
+
+.. |checks| image:: https://github.com/oemof/tespy/workflows/tox%20checks/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3A%22tox+checks%22
+    :alt: tox checks
+
+.. |packaging| image:: https://github.com/oemof/tespy/workflows/packaging/badge.svg
+    :target: https://github.com/oemof/tespy/actions?query=workflow%3Apackaging
+    :alt: packaging
 
 .. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=master&service=github
     :alt: Coverage Status
@@ -145,7 +165,7 @@ BibTeX citation::
 License
 =======
 
-Copyright (c) 2017-2020 oemof developer group
+Copyright (c) 2017-2021 oemof developer group
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

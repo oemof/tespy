@@ -1,0 +1,52 @@
+# NB: this name is used in the status badge
+name: tox checks
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 6"  # 5:00 UTC every Saturday
+
+jobs:
+  lint:
+    name: ${{ matrix.toxenv }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toxenv:
+          - clean
+          - check
+          - docs
+
+    steps:
+      - name: Git clone
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ env.default_python || '3.8' }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: "${{ env.default_python || '3.8' }}"
+
+      - name: Pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.toxenv }}-${{ hashFiles('tox.ini', 'setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.toxenv }}-
+            ${{ runner.os }}-pip-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -U setuptools wheel
+          python -m pip install -U tox
+      - name: Run ${{ matrix.toxenv }}
+        run: python -m tox -e ${{ matrix.toxenv }}

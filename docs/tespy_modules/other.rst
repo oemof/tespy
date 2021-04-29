@@ -189,6 +189,7 @@ respectively to calculate the partial derivatives.
             dT_mix_dph(self.conns[1].get_flow()) * 0.5 / (T ** 0.5))
         self.jacobian[self.conns[1]][2] = (
             dT_mix_pdh(self.conns[1].get_flow()) * 0.5 / (T ** 0.5))
+        return self.jacobian
 
 But, what if the analytical derivative is not available? You can make use of
 generic numerical derivatives using the inbuilt method :code:`numeric_deriv`.

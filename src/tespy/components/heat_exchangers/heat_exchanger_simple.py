@@ -90,42 +90,42 @@ class HeatExchangerSimple(Component):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : str, float, tespy.tools.data_containers.ComponentProperties
+    Q : float, dict, :code:`"var"`
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : str, float, tespy.tools.data_containers.ComponentProperties
+    pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : str, float, tespy.tools.data_containers.ComponentProperties
+    zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    D : str, float, tespy.tools.data_containers.ComponentProperties
+    D : float, dict, :code:`"var"`
         Diameter of the pipes, :math:`D/\text{m}`.
 
-    L : str, float, tespy.tools.data_containers.ComponentProperties
+    L : float, dict, :code:`"var"`
         Length of the pipes, :math:`L/\text{m}`.
 
-    ks : str, float, tespy.tools.data_containers.ComponentProperties
+    ks : float, dict, :code:`"var"`
         Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : str, tespy.tools.data_containers.GroupedComponentProperties
+    hydro_group : str, dict
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
 
-    kA : str, float, tespy.tools.data_containers.ComponentProperties
+    kA : float, dict, :code:`"var"`
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.characteristics.CharLine, tespy.tools.data_containers.ComponentCharacteristics
+    kA_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line for heat transfer coefficient.
 
-    Tamb : float, tespy.tools.data_containers.DataContainerSimple
+    Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature unit.
 
-    kA_group : tespy.tools.data_containers.GroupedComponentProperties
+    kA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
 

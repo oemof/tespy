@@ -1,11 +1,84 @@
-v0.4.3 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.4.3 - Grassmann's Graph (April, 29, 2021)
+++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
+- Automatic provision of input data for the sankey diagram class of the
+  `plotly library <https://plotly.com/python/sankey-diagram/>`_ to generate
+  exergy sankey diagrams. For example, the diagram of the solar thermal power
+  plant presented in the thermodynamic analyses section
+
+  .. figure:: api/_images/SEGS_sankey.png
+      :align: center
+      :alt: Example of the sankey diagram
+
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
+- The results of your simulation are much more easy to bulk access: The
+  :py:class:`tespy.networks.network.Network` class provides you with a
+  results dictionary containing DataFrames with all data necessary. The keys
+  of the dictionary are:
+
+  - :code:`'Connection'`
+  - the class names of the different components used, e.g. :code:`'Turbine'` or
+    :code:`'HeatExchanger'`
+  - the labels of the busses, e.g. :code:`'input power'`
+
+  The pandas DataFrame provides you with the SI-values for components and
+  busses as well as all fluid property data of the connections in respective
+  specified unit. For example:
+
+  .. code-block:: python
+
+      mynetwork.results['Connection']
+      mynetwork.results['Turbine']
+
+  (`PR #255 <https://github.com/oemof/tespy/pull/255>`_).
+
+Documentation
+#############
+- An own chapter for the
+  :ref:`exergy analysis toolbox <tespy_analyses_exergy_label>` has been added
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
+
+
+Documentation
+#############
+- Fix some typos in the code of heat pump tutorial
+  (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).
+- Update component parameter data type specifications according to 0.4.x API
+  in docs and add missing parameters in HeatExchanger classes
+  (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).
+- Fix broken links to characteristic map functions of class
+  :py:class:`tespy.components.turbomachinery.compressor.Compressor`
+  (`PR #263 <https://github.com/oemof/tespy/pull/263>`_).
 
 Bug Fixes
 #########
+- Add missing exergy balance method of class Drum
+  (`#1eb92e3 <https://github.com/oemof/tespy/commit/1eb92e3>`_).
+- Add missing specified values of temperature difference to boiling point to
+  connection report
+  (`PR #250 <https://github.com/oemof/tespy/pull/250>`_).
+- Fix Reynolds value ranges for Hanakov and Blasius equations in calculation of
+  Darcy friction factor
+  (`#ce6bef9 <https://github.com/oemof/tespy/commit/ce6bef9>`_).
+
+Other Changes
+#############
+
+- Add a timestamp for the automatic model documentation feature
+  (`PR #248 <https://github.com/oemof/tespy/pull/248>`_).
+- Move from travis to GitHub actions
+  (`PR #249 <https://github.com/oemof/tespy/pull/249>`_).
+- Specified Bus values are now colored in the
+  :py:meth:`tespy.networks.network.Network.print_results` method
+  (`PR #255 <https://github.com/oemof/tespy/pull/255>`_).
+- Remove building figures for characteristics from docs generation
+  (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
 
 Contributors
 ############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@juliusmeier <https://github.com/juliusmeier>`_
+- `@jfreissmann <https://github.com/jfreissmann>`_
+- `@anmartens <https://github.com/anmartens>`_

@@ -156,6 +156,17 @@ a bus and to output the bus value of the component using
 - :code:`mycomponent.calc_bus_efficiency(mybus)`
 - :code:`mycomponent.calc_bus_value(mybus)`
 
+These data are also available in the network's results dictionary and contain
+
+- the bus value,
+- the component value,
+- the efficiency value and
+- the design value of the bus.
+
+.. code-block:: python
+
+    bus_results = mynetwork.results['power output']
+
 .. note::
 
     The available keywords for the dictionary are:
@@ -197,11 +208,11 @@ a bus and to output the bus value of the component using
 
           \dot{E}_\mathrm{bus} = \begin{cases}
           \frac{\dot{E}_\mathrm{component}}{f\left(
-          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
+          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,design}}\right)} &
           \text{'base': 'bus'}\\
           \dot{E}_\mathrm{component} \cdot f\left(
           \frac{\dot{E}_\mathrm{component}}
-          {\dot{E}_\mathrm{component,ref}}\right) &
+          {\dot{E}_\mathrm{component,design}}\right) &
           \text{'base': 'component'}
           \end{cases}
 
@@ -322,6 +333,8 @@ definitions the value of the bus power will differ in part load.
     print('Bus based bus power:', pu.calc_bus_value(bus1))
     print('Component based bus power:', pu.calc_bus_value(bus2))
 
+    # get DataFrame with the bus results
+    bus_results = nw.results['pump power bus based']
 
 .. note::
 

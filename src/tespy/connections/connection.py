@@ -581,10 +581,9 @@ class Connection:
         ----
             .. math::
 
-                e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
-
-                E^\mathrm{T} = \dot{m} \cdot e^\mathrm{T}
-                E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}
+                e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}\\
+                E^\mathrm{T} = \dot{m} \cdot e^\mathrm{T}\\
+                E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}\\
                 E^\mathrm{PH} = \dot{m} \cdot e^\mathrm{PH}
         """
         self.ex_therm, self.ex_mech = fp.calc_physical_exergy(self, p0, T0)

@@ -257,7 +257,7 @@ class Component:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
-            elif key == 'design_path':
+            elif key == 'design_path' or key == 'fkt_group':
                 if isinstance(kwargs[key], str):
                     self.__dict__.update({key: kwargs[key]})
                 elif kwargs[key] is None:

@@ -1,5 +1,6 @@
 # -*- coding: utf-8
 
+from .analyses import ExergyAnalysis  # noqa: F401
 from .characteristics import CharLine  # noqa: F401
 from .characteristics import CharMap  # noqa: F401
 from .characteristics import load_custom_char  # noqa: F401

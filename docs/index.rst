@@ -14,6 +14,7 @@ Contents
     first_steps
     tutorials_examples
     tespy_modules
+    tespy_analyses
     developing_tespy
     whats_new
     zliterature

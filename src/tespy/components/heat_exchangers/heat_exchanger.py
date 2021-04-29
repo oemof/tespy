@@ -933,7 +933,7 @@ class HeatExchanger(Component):
             \dot{E}_\mathrm{out,1}^\mathrm{T}
             & T_\mathrm{in,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            0
+            \text{not defined (nan)}
             & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
             T_\mathrm{in,2}, T_\mathrm{out,2}\\
             \dot{E}_\mathrm{out,2}^\mathrm{T}
@@ -1001,7 +1001,7 @@ class HeatExchanger(Component):
                 self.outl[1].Ex_physical + self.outl[0].Ex_mech)
         elif (self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0 and
               self.inl[1].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
-            self.E_P = 0
+            self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_physical)
         else:

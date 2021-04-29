@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-import os
-import sys
 
-import sphinx_rtd_theme
 from matplotlib import pyplot as plt
 from pkg_resources import resource_filename
 

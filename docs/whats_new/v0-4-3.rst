@@ -5,9 +5,8 @@ New Features
 ############
 - Automatic provision of input data for the sankey diagram class of the
   `plotly library <https://plotly.com/python/sankey-diagram/>`_ to generate
-  exergy sankey diagrams. For example, the diagram of the example presented in
-  the API documentation of class
-  :py:class:`tespy.tools.analyses.ExergyAnalysis`:
+  exergy sankey diagrams. For example, the diagram of the solar thermal power
+  plant presented in the thermodynamic analyses section
 
   .. figure:: api/_images/SEGS_sankey.png
       :align: center

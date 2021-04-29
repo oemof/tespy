@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.4.3 - dev'
+__version__ = '0.4.3 - Grassmann\'s Graph'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

@@ -18,21 +18,23 @@ ambient temperature :cite:`Bejan1996`.
 
 In literature, exergy is defined as follows:
 
-    "An opportunity for doing useful work exists whenever two systems at different states are placed in communication, for in principle
-    work can be developed as the two are allowed to come into equilibrium. When one of the two systems is a suitably idealized system
-    called an environment and the other is some system of interest, exergy is the maximum theoretical useful work
-    (shaft work or electrical work) obtainable as the systems interact to equilibrium, heat transfer occuring with the environment only."
+    *"An opportunity for doing useful work exists whenever two systems at
+    different states are placed in communication, for in principle work can be
+    developed as the two are allowed to come into equilibrium. When one of the
+    two systems is a suitably idealized system called an environment and the
+    other is some system of interest, exergy is the maximum theoretical useful
+    work (shaft work or electrical work) obtainable as the systems interact to
+    equilibrium, heat transfer occuring with the environment only."*
     :cite:`Bejan1996`
 
 Terminology
 -----------
-
 The definitions and nomenclature of the exergy analysis in TESPy are based on
 :cite:`Tsatsaronis2007`. The exergy destruction ratios are described in more
 detail in :cite:`Bejan1996`. Since the current version of the exergy analysis
 in TESPy only focuses on physical exergy and does not include reaction
 processes yet, chemical exergy is not considered. Changes in kinetic and
-potential exergy are neglected and therefore not considered.
+potential exergy are neglected and therefore not considered as well.
 
 .. list-table:: Terminology
     :widths: 20 20 10 50
@@ -322,7 +324,7 @@ Lastly, the analysis also provides an input data generator for plotly's
 Plotting
 ^^^^^^^^
 To use the plotly library, you'll need to install it first. Please check the
-respective documentation on plotly's documentation. Generating a Grassmann
+respective documentation on plotly's documentation. Generating a sankey
 diagram is then easily done:
 
 .. code-block:: python
@@ -340,9 +342,9 @@ diagram is then easily done:
         link=links))
     fig.show()
 
-.. figure:: api/_images/grassmann.png
+.. figure:: api/_images/SEGS_sankey.png
     :align: center
-    :alt: Grassmann diagram of the Soler Energy Generating System (SEGS)
+    :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
 
 The :py:meth:`tespy.tools.analyses.ExergyAnalysis.generate_plotly_sankey_input`
 method provides the links and the corresponding nodes for the diagram. Colors

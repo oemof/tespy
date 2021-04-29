@@ -1,16 +1,17 @@
-v0.4.3 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.4.3 - Grassmann's Graph (April, 29, 2021)
+++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
 - Automatic provision of input data for the sankey diagram class of the
   `plotly library <https://plotly.com/python/sankey-diagram/>`_ to generate
-  Grassmann diagrams. For example, the Grassmann diagram of the example
-  presented in the API documentation of class
+  exergy sankey diagrams. For example, the diagram of the example presented in
+  the API documentation of class
   :py:class:`tespy.tools.analyses.ExergyAnalysis`:
 
-  .. figure:: api/_images/Grassmann.svg
+  .. figure:: api/_images/SEGS_sankey.png
       :align: center
+      :alt: Example of the sankey diagram
 
   (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
 - The results of your simulation are much more easy to bulk access: The

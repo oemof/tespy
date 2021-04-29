@@ -274,13 +274,13 @@ rounding errors).
     analysis is set up correctly, this equation must be True. Otherwise, an
     error will be printed to the console, which means:
 
-    - The simulation of you plant did not converge or
+    - The simulation of your plant did not converge or
     - the exergy analysis has not been set up correctly. You should
       check, if the definition of the exergy streams :code:`E_F`, :code:`E_P`,
       :code:`E_L` and :code:`internal_busses` is correct.
 
-    If you suspect a bug in the calculation, you are welcome submit an issue on
-    our GitHub page.
+    If you suspect a bug in the calculation, you are welcome to submit an issue
+    on our GitHub page.
 
 Printing the results is possible with the
 :py:meth:`tespy.tools.analyses.ExergyAnalysis.print_results` method. The

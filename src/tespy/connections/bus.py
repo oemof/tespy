@@ -326,7 +326,7 @@ class Bus:
         """
         for c in args:
             if isinstance(c, dict):
-                if 'comp' in c.keys():
+                if 'comp' in c:
                     comp = c['comp']
                     # default values
                     if isinstance(comp, Component):

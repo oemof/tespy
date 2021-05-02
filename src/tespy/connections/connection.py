@@ -375,7 +375,7 @@ class Connection:
                 msg = 'Label can only be specified on instance creation.'
                 logging.error(msg)
                 raise TESPyConnectionError(msg)
-            elif key in self.variables.keys() or key in self.variables0:
+            elif key in self.variables or key in self.variables0:
                 # fluid specification
                 try:
                     float(kwargs[key])

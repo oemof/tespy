@@ -362,7 +362,7 @@ class Memorise:
             logging.debug(msg)
 
         for f, back_end in fluids.items():
-            if f not in Memorise.state.keys() and back_end != 'TESPy':
+            if f not in Memorise.state and back_end != 'TESPy':
                 # create CoolProp.AbstractState object
                 try:
                     Memorise.state[f] = CP.AbstractState(back_end, f)
@@ -525,7 +525,7 @@ def T_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.T_ph.keys()
+    memorisation = fl in Memorise.T_ph
     if memorisation:
         a = Memorise.T_ph[fl][:, :-2]
         b = np.array([flow[1], flow[2]] + list(flow[3].values()))
@@ -581,7 +581,7 @@ def T_ph(p, h, fluid):
     T : float
         Temperature T / K.
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
     elif Memorise.back_end[fluid] == 'IF97':
@@ -726,7 +726,7 @@ def T_mix_ps(flow, s, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.T_ps.keys()
+    memorisation = fl in Memorise.T_ps
     if memorisation:
         a = Memorise.T_ps[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
@@ -782,7 +782,7 @@ def T_ps(p, s, fluid):
     T : float
        Temperature T / K.
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['s_pT']
         return newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
     else:
@@ -851,7 +851,7 @@ def h_pT(p, T, fluid, force_gas=False):
     h : float
         Specific enthalpy h / (J/kg).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         return TESPyFluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
         if force_gas:
@@ -944,7 +944,7 @@ def h_ps(p, s, fluid):
     h : float
         Specific enthalpy h / (J/kg).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['s_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, s], 0)
         return TESPyFluid.fluids[fluid].funcs['h_pT'].ev(p, T)
@@ -1178,7 +1178,7 @@ def v_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.v_ph.keys()
+    memorisation = fl in Memorise.v_ph
     if memorisation:
         a = Memorise.v_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
@@ -1226,7 +1226,7 @@ def d_ph(p, h, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['d_pT'].ev(p, T)
@@ -1416,7 +1416,7 @@ def d_pT(p, T, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         return TESPyFluid.fluids[fluid].funcs['d_pT'].ev(p, T)
     else:
         Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
@@ -1454,7 +1454,7 @@ def visc_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.visc_ph.keys()
+    memorisation = fl in Memorise.visc_ph
     if memorisation:
         a = Memorise.visc_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
@@ -1501,7 +1501,7 @@ def visc_ph(p, h, fluid):
     visc : float
         Viscosity visc / Pa s.
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
@@ -1580,7 +1580,7 @@ def visc_pT(p, T, fluid):
     visc : float
         Viscosity visc / Pa s.
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         return TESPyFluid.fluids[fluid].funcs['visc_pT'].ev(p, T)
     else:
         Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
@@ -1618,7 +1618,7 @@ def s_mix_ph(flow, T0=300):
     """
     # check if fluid properties have been calculated before
     fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.s_ph.keys()
+    memorisation = fl in Memorise.s_ph
     if memorisation:
         a = Memorise.s_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
@@ -1666,7 +1666,7 @@ def s_ph(p, h, fluid):
     s : float
         Specific entropy s / (J/(kgK)).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         db = TESPyFluid.fluids[fluid].funcs['h_pT']
         T = newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
@@ -1714,17 +1714,17 @@ def s_mix_pT(flow, T, force_gas=False):
     fluid_comps = {}
 
     tespy_fluids = [
-        s for s in flow[3].keys() if s in TESPyFluid.fluids.keys()]
+        s for s in flow[3].keys() if s in TESPyFluid.fluids]
     for f in tespy_fluids:
         for it, x in TESPyFluid.fluids[f].fluid.items():
-            if it in fluid_comps.keys():
+            if it in fluid_comps:
                 fluid_comps[it] += x * flow[3][f]
             else:
                 fluid_comps[it] = x * flow[3][f]
 
-    fluids = [s for s in flow[3].keys() if s not in TESPyFluid.fluids.keys()]
+    fluids = [s for s in flow[3].keys() if s not in TESPyFluid.fluids]
     for f in fluids:
-        if f in fluid_comps.keys():
+        if f in fluid_comps:
             fluid_comps[f] += flow[3][f]
         else:
             fluid_comps[f] = flow[3][f]
@@ -1762,7 +1762,7 @@ def s_pT(p, T, fluid, force_gas):
     s : float
         Specific entropy s / (J/(kgK)).
     """
-    if fluid in TESPyFluid.fluids.keys():
+    if fluid in TESPyFluid.fluids:
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
         if force_gas:

@@ -345,7 +345,7 @@ class CombustionChamberStoich(CombustionChamber):
 
                 n = {}
                 for el in ['C', 'H', 'O']:
-                    if el in structure.keys():
+                    if el in structure:
                         n[el] = structure[el]
                     else:
                         n[el] = 0
@@ -435,7 +435,7 @@ class CombustionChamberStoich(CombustionChamber):
                     set([a.replace(' ', '') for a in CP.get_aliases(f)]))
 
             if len(fl) == 0:
-                if f in self.fg.keys():
+                if f in self.fg:
                     self.fg[f] += x * m_fuel
                 else:
                     self.fg[f] = x * m_fuel
@@ -445,7 +445,7 @@ class CombustionChamberStoich(CombustionChamber):
                 structure = fluid_structure(f)
                 n = {}
                 for el in ['C', 'H', 'O']:
-                    if el in structure.keys():
+                    if el in structure:
                         n[el] = structure[el]
                     else:
                         n[el] = 0
@@ -464,7 +464,7 @@ class CombustionChamberStoich(CombustionChamber):
 
         for f, x in self.air.val.items():
             if f != self.o2:
-                if f in self.fg.keys():
+                if f in self.fg:
                     self.fg[f] += m_air * x
                 else:
                     self.fg[f] = m_air * x

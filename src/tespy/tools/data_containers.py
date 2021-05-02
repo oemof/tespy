@@ -116,7 +116,7 @@ class DataContainer:
         var = self.attr()
         # specify values
         for key in kwargs:
-            if key in var.keys():
+            if key in var:
                 self.__dict__.update({key: kwargs[key]})
 
             else:

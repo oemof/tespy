@@ -347,7 +347,7 @@ class ExergyAnalysis:
                     'or component groups in the exergy analysis. Found '
                     'component/group with name ' + cp.fkt_group + '.')
                 raise ValueError(msg)
-            elif cp.fkt_group not in self.sankey_data.keys():
+            elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
                     columns=['value', 'cat'])
 

@@ -1,0 +1,21 @@
+v0.4.4 - Someversion (Somemonth, Someday, Someyear)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+
+Documentation
+#############
+
+Bug Fixes
+#########
+
+Other Changes
+#############
+- Check for :code:`key in dictionary` instead of
+  :code:`key in dictionary.keys()` in boolean operations
+  (`PR #264 <https://github.com/oemof/tespy/pull/264>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

@@ -151,7 +151,7 @@ class Component:
         """
         # set specified values
         for key in kwargs:
-            if key in self.variables.keys():
+            if key in self.variables:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)

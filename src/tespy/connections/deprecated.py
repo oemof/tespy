@@ -13,7 +13,7 @@ class PlaceHolderForError:
         msg = (
             'Version 0.4.x introduced PEP 8 conform class names for all '
             'classes used in TESPy. Please refer to '
-            'https://tespy.readthedocs.io/en/master/whats_new.html '
+            'https://tespy.readthedocs.io/en/main/whats_new.html '
             'learn about the changes necessary to adapt your script to the '
             'latest API.'
         )

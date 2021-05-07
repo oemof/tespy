@@ -199,18 +199,14 @@ class CharMap:
     y : ndarray
         A two-dimensional array of the second dimension input of the map.
 
-    z1 : ndarray
-        A two-dimensional array of the first dimension output of the map.
-
-    z2 : ndarray
-        A two-dimensional array of the second dimension output of the map.
+    z : ndarray
+        A two-dimensional array of the output of the map.
 
     Note
     ----
-    This class generates a lookup table from the given input data x, y, z1 and
-    z2, then performs linear interpolation. The output parameters are z1 and z2
-    to be calculated as functions from x and y. The x, y, z1 and z2 values may
-    be specified by the user.
+    This class generates a lookup table from the given input data x, y and z,
+    then performs linear interpolation. The output parameter is z to be
+    calculated as functions from x and y.
     """
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
@@ -264,13 +260,8 @@ class CharMap:
             Second dimension input array of CharMap calculated from first
             dimension input.
 
-        z1arr : ndarray
-            First dimension output array of CharMap calculated from first
-            dimension input.
-
-        z2arr : ndarray
-            Second dimension output array of CharMap calculated from first
-            dimension input.
+        zarr : ndarray
+            Output array of CharMap calculated from first dimension input.
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
@@ -282,8 +273,7 @@ class CharMap:
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
             yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-            zarr = self.z[xpos - 1] + yfrac * (
-                self.z[xpos] - self.z[xpos - 1])
+            zarr = self.z[xpos - 1] + yfrac * (self.z[xpos] - self.z[xpos - 1])
 
         return yarr, zarr
 

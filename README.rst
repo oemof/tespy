@@ -131,7 +131,7 @@ some
 `examples and tutorials <https://tespy.readthedocs.io/en/main/tutorials_examples.html>`_,
 go and check them out. You can download the python scripts of all example plants
 from the
-`tespy_examples <https://github.com/oemof/oemof-examples/tree/main/oemof_examples/tespy>`_
+`tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
 repository.
 
 Citation

@@ -2372,7 +2372,8 @@ class Network:
         """Process the Connection results."""
         cols = (['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x'] + self.fluids)
 
-        self.results['Connection'] = pd.DataFrame(columns=cols)
+        self.results['Connection'] = pd.DataFrame(
+            columns=cols, dtype='float64')
 
         for c in self.conns['object']:
             flow = c.get_flow()

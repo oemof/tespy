@@ -389,6 +389,12 @@ colors can be assigned to these types of streams.
     - The respective value are strings representing colors in the RGBA format,
       e.g. :code:`'rgba(100, 100, 100, 0.5)'`.
 
+.. note::
+
+    Links with negative exergy flow, i.e. when the value of mechanical exergy
+    is negative due to pressure lower than ambient pressure and total exergy
+    is still negative, cannot be displayed by the sankey diagram.
+
 The underlying exergy stream data is saved in a dictionary, if you want to
 handle the data by yourself.
 

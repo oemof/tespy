@@ -156,7 +156,7 @@ def document_connections(nw):
         fluid_dict = data_dict.copy()
 
         data_dict.update(
-            {param: c.get_attr(param).val for param in fpd.keys()
+            {param: c.get_attr(param).val for param in fpd
              if c.get_attr(param).val_set})
 
         conn_data += [data_dict]
@@ -433,7 +433,7 @@ def get_component_mandatory_constraints(cp, component_list, path):
     mandatory_eq = ''
     figures = []
     for label, data in component_list['object'][0].constraints.items():
-        if 'char' in data.keys():
+        if 'char' in data:
             for component in component_list['object']:
                 local_path = (
                     'figures/' + cp + '_CharLine_' + label + '_' +
@@ -508,7 +508,7 @@ def get_component_specifications(cp, component_list, path):
                             {element.replace('_', r'\_'):
                              get_parameter_specification(element_data)})
 
-                    if param in data_dict_gcp.keys():
+                    if param in data_dict_gcp:
                         data_dict_gcp[param] += [gcp_data]
                     else:
                         data_dict_gcp[param] = [gcp_data]
@@ -596,7 +596,7 @@ def document_busses(nw, path):
             else:
 
                 key = (char, cp_data['base'])
-                if key in chars_plotted.keys():
+                if key in chars_plotted:
                     eta = (
                         r'$f\left(X\right)$ (\ref{fig:' +
                         chars_plotted[key]['label'] + '})')

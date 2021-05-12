@@ -1,0 +1,18 @@
+v0.4.3-001 - Grassmann's Graph (May, 12, 2021)
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+- Some minor changes in documentation.
+
+Other Changes
+#############
+- Check for :code:`key in dictionary` instead of
+  :code:`key in dictionary.keys()` in boolean operations
+  (`PR #264 <https://github.com/oemof/tespy/pull/264>`_).
+- Rename GitHub branches: master to main
+  (`Issue #266 <https://github.com/oemof/tespy/issues/265>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

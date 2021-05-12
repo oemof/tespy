@@ -282,8 +282,8 @@ class Network:
         # unit sets
         for prop in fpd.keys():
             unit = prop + '_unit'
-            if unit in kwargs.keys():
-                if kwargs[unit] in fpd[prop]['units'].keys():
+            if unit in kwargs:
+                if kwargs[unit] in fpd[prop]['units']:
                     self.__dict__.update({unit: kwargs[unit]})
                     msg = (
                         'Setting ' + fpd[prop]['text'] +
@@ -298,7 +298,7 @@ class Network:
                     raise ValueError(msg)
 
         for prop in ['m', 'p', 'h']:
-            if prop + '_range' in kwargs.keys():
+            if prop + '_range' in kwargs:
                 if isinstance(kwargs[prop + '_range'], list):
                     self.__dict__.update(
                         {prop + '_range_SI': hlp.convert_to_SI(
@@ -516,7 +516,7 @@ class Network:
                 logging.error(msg)
                 raise TypeError(msg)
 
-            elif c.label in self.user_defined_eq.keys():
+            elif c.label in self.user_defined_eq:
                 msg = (
                     'There is already a UserDefinedEquation with the label ' +
                     c.label + '. The UserDefinedEquation labels must be '
@@ -591,7 +591,7 @@ class Network:
                            str(b) + ') already.')
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
-                elif b.label in self.busses.keys():
+                elif b.label in self.busses:
                     msg = ('Network already has a bus with the name ' +
                            b.label + '.')
                     logging.error(msg)
@@ -806,7 +806,7 @@ class Network:
             if len(self.fluids) == 1:
                 c.fluid.val[self.fluids[0]] = 1
                 c.fluid.val0[self.fluids[0]] = 1
-                if self.fluids[0] in tmp_set.keys():
+                if self.fluids[0] in tmp_set:
                     c.fluid.val_set[self.fluids[0]] = tmp_set[self.fluids[0]]
                 else:
                     c.fluid.val_set[self.fluids[0]] = False
@@ -816,13 +816,13 @@ class Network:
 
             for fluid in self.fluids:
                 # take over values from temporary dicts
-                if fluid in tmp.keys() and fluid in tmp_set.keys():
+                if fluid in tmp and fluid in tmp_set:
                     c.fluid.val[fluid] = tmp[fluid]
                     c.fluid.val0[fluid] = tmp[fluid]
                     c.fluid.val_set[fluid] = tmp_set[fluid]
                 # take over starting values
-                elif fluid in tmp0.keys():
-                    if fluid not in tmp_set.keys():
+                elif fluid in tmp0:
+                    if fluid not in tmp_set:
                         c.fluid.val[fluid] = tmp0[fluid]
                         c.fluid.val0[fluid] = tmp0[fluid]
                         c.fluid.val_set[fluid] = False
@@ -2372,7 +2372,8 @@ class Network:
         """Process the Connection results."""
         cols = (['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x'] + self.fluids)
 
-        self.results['Connection'] = pd.DataFrame(columns=cols)
+        self.results['Connection'] = pd.DataFrame(
+            columns=cols, dtype='float64')
 
         for c in self.conns['object']:
             flow = c.get_flow()
@@ -2423,7 +2424,7 @@ class Network:
 
             key = cp.__class__.__name__
 
-            if key not in self.results.keys():
+            if key not in self.results:
                 cols = [col for col, data in cp.variables.items()
                         if isinstance(data, dc_cp)]
                 self.results[key] = pd.DataFrame(columns=cols, dtype='float64')

@@ -242,7 +242,7 @@ class CombustionChamber(Component):
             self.fuels[f] = {}
             structure = fluid_structure(f)
             for el in ['C', 'H', 'O']:
-                if el in structure.keys():
+                if el in structure:
                     self.fuels[f][el] = structure[el]
                 else:
                     self.fuels[f][el] = 0
@@ -1134,7 +1134,7 @@ class CombustionChamber(Component):
 
         for o in self.outl:
             for fluid, x in o.fluid.val.items():
-                if not o.fluid.val_set[fluid] and fluid in fg.keys():
+                if not o.fluid.val_set[fluid] and fluid in fg:
                     o.fluid.val[fluid] = fg[fluid]
             o.target.propagate_fluid_to_target(o, o.target)
 

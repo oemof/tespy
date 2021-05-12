@@ -313,9 +313,11 @@ class ExergyAnalysis:
 
         # reset data
         self.component_data = pd.DataFrame(
-            columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'])
+            columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64')
         self.bus_data = self.component_data.copy()
-        self.connection_data = pd.DataFrame(columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M'])
+        self.connection_data = pd.DataFrame(
+            columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M'],
+            dtype='float64')
         self.network_data = pd.Series(
             index=['E_F', 'E_P', 'E_D', 'E_L'], dtype='float64')
         self.network_data[:] = 0
@@ -347,7 +349,7 @@ class ExergyAnalysis:
                     'or component groups in the exergy analysis. Found '
                     'component/group with name ' + cp.fkt_group + '.')
                 raise ValueError(msg)
-            elif cp.fkt_group not in self.sankey_data.keys():
+            elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
                     columns=['value', 'cat'])
 
@@ -502,7 +504,8 @@ class ExergyAnalysis:
                                 target_value, cat]
 
         # create overview of component groups
-        self.group_data = pd.DataFrame(columns=['E_F', 'E_P', 'E_D'])
+        self.group_data = pd.DataFrame(
+            columns=['E_F', 'E_P', 'E_D'], dtype='float64')
         for fkt_group in self.component_data['group'].unique():
             self.group_data.loc[fkt_group, 'E_F'] = (
                 self.calculate_group_input_value(fkt_group))

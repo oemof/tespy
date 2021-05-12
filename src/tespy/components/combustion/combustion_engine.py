@@ -1404,7 +1404,7 @@ class CombustionEngine(CombustionChamber):
 
         o = self.outl[2]
         for fluid, x in o.fluid.val.items():
-            if not o.fluid.val_set[fluid] and fluid in fg.keys():
+            if not o.fluid.val_set[fluid] and fluid in fg:
                 o.fluid.val[fluid] = fg[fluid]
         o.target.propagate_fluid_to_target(o, o.target)
 

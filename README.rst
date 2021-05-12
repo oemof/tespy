@@ -65,7 +65,7 @@ Key Features
     :target: https://github.com/oemof/tespy/actions?query=workflow%3Apackaging
     :alt: packaging
 
-.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=master&service=github
+.. |coveralls| image:: https://coveralls.io/repos/oemof/tespy/badge.svg?branch=main&service=github
     :alt: Coverage Status
     :target: https://coveralls.io/r/oemof/tespy
 
@@ -83,7 +83,7 @@ Key Features
 
 .. |commits-since| image:: https://img.shields.io/github/commits-since/oemof/tespy/latest/dev
     :alt: Commits since latest release
-    :target: https://github.com/oemof/tespy/compare/master...dev
+    :target: https://github.com/oemof/tespy/compare/main...dev
 
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2555866.svg
    :alt: Release archive
@@ -128,7 +128,7 @@ Examples
 
 For a short introduction on how TESPy works and how you can use it, we provide
 some
-`examples and tutorials <https://tespy.readthedocs.io/en/master/tutorials_examples.html>`_,
+`examples and tutorials <https://tespy.readthedocs.io/en/main/tutorials_examples.html>`_,
 go and check them out. You can download the python scripts of all example plants
 from the
 `tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_

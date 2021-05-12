@@ -207,7 +207,7 @@ Docstrings
 
 We decided to use the style of the numpydoc docstrings. See the following
 link for an
-`example <https://github.com/numpy/numpy/blob/master/doc/example.py>`_.
+`example <https://github.com/numpy/numpy/blob/main/doc/example.py>`_.
 
 
 Code commenting

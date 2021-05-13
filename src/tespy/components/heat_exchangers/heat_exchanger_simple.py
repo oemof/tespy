@@ -116,7 +116,7 @@ class HeatExchangerSimple(Component):
         used.
 
     kA : float, dict, :code:`"var"`
-        Area independent heat transition coefficient,
+        Area independent heat transfer coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char : tespy.tools.characteristics.CharLine, dict

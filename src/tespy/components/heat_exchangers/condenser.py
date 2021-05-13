@@ -116,11 +116,11 @@ class Condenser(HeatExchanger):
         temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
 
     kA : float, dict
-        Area independent heat transition coefficient,
+        Area independent heat transfer coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char : tespy.tools.data_containers.DataContainerSimple
-        Area independent heat transition coefficient characteristic.
+        Area independent heat transfer coefficient characteristic.
 
     kA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.

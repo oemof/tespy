@@ -180,7 +180,7 @@ class HeatExchanger(Component):
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> document_model(nw)
+    >>> document_model(nw, latex_body=True, include_results=True)
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)
@@ -201,7 +201,7 @@ class HeatExchanger(Component):
             'kA': dc_cp(
                 min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
                 deriv=self.kA_deriv),
-            'td_log': dc_cp(min_val=0),
+            'td_log': dc_cp(min_val=0, func='dummy'),
             'ttd_u': dc_cp(
                 min_val=0, num_eq=1, func=self.ttd_u_func,
                 deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),

@@ -84,6 +84,6 @@ fluid_property_data = {
         'text': 'entropy',
         'SI_unit': 'J / kgK',
         'units': {'J / kgK': 1, 'kJ / kgK': 1e3, 'MJ / kgK': 1e6},
-        'latex_eq': None
+        'latex_eq': r'0 = s_\mathrm{spec} - s\left(p, h \right)'
     }
 }

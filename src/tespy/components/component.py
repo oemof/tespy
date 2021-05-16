@@ -321,6 +321,10 @@ class Component:
         self.vars = {}
         self.num_vars = 0
         self.constraints = OrderedDict(self.get_mandatory_constraints().copy())
+        self.prop_specifications = {}
+        self.var_specifications = {}
+        self.group_specifications = {}
+        self.char_specifications = {}
         self.__dict__.update(self.constraints)
 
         for constraint in self.constraints.values():
@@ -334,8 +338,13 @@ class Component:
                     self.num_vars += 1
                     self.vars[data] = key
 
+                self.prop_specifications[key] = val.is_set
+                self.var_specifications[key] = val.is_var
+
             # component characteristics
             elif isinstance(val, dc_cc):
+                if data.func is not None:
+                    self.char_specifications[key] = val.is_set
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
@@ -345,6 +354,8 @@ class Component:
 
             # component characteristics
             elif isinstance(val, dc_cm):
+                if data.func is not None:
+                    self.char_specifications[key] = val.is_set
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
@@ -371,12 +382,16 @@ class Component:
                     val.set_attr(is_set=False)
                 else:
                     val.set_attr(is_set=False)
+                self.group_specifications[key] = val.is_set
+
+            # grouped component characteristics
+            elif isinstance(val, dc_gcc):
+                self.group_specifications[key] = val.is_set
 
             # component properties
             if data.is_set and data.func is not None:
                 self.num_eq += data.num_eq
 
-            # print(key, data.is_set, self.num_eq)
         # set up Jacobian matrix and residual vector
         self.jacobian = np.zeros((
             self.num_eq,

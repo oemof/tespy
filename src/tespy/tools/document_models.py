@@ -8,13 +8,13 @@ available from its original location tespy/tools/document_models.py
 
 SPDX-License-Identifier: MIT
 """
+import collections
 import os
 import sys
+from copy import deepcopy
 from datetime import date
 
-import collections
 import CoolProp as CP
-from copy import deepcopy
 import numpy as np
 import pandas as pd
 
@@ -22,8 +22,6 @@ from tespy.tools import helpers as hlp
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.logger import check_git_branch
 from tespy.tools.logger import check_version
@@ -187,6 +185,17 @@ def document_software_info(rpt):
         latex += r'\item units' + '\n'
         latex += r'\item cleveref' + '\n'
         latex += r'\item longtable' + '\n'
+        latex += r'\end{itemize}' + '\n'
+        latex += (
+            'Additionally, you will need to make the following '
+            'definitions:\n')
+        latex += r'\begin{itemize}' + '\n'
+        latex += r'\item \textbackslash newcommand\{\textbackslash iftab\}'
+        latex += r'\{\textbackslash fontshape\{sl\}\textbackslash selectfont\}'
+        latex += '\n'
+        latex += r'\item \textbackslash newcommand\{\textbackslash bftab\}'
+        latex += r'\{\textbackslash fontseries\{b\}\textbackslash selectfont\}'
+        latex += '\n'
         latex += r'\end{itemize}' + '\n'
         latex += (
             r'\item To supress these messages, call the model '
@@ -700,21 +709,25 @@ def get_component_specifications(nw, cp, rpt):
     df_data = df_data[
         [col for col in df_data.columns if col not in group_elements]]
 
-    if df_data.size == 0:
+    if len(df_data.index) == 0:
         return ''
 
     # replace column headers
     for col in df_data.columns:
         if any(specs[col]) and col not in group_elements:
-            col_headers[col] = (
-                col.replace('_', r'\_') +
-                r' (\ref{eq:' + cp + '_' + col + '})')
             data = nw.get_comp(row).get_attr(col)
-            equations += data.latex(col, **data.func_params) + '\n\n'
+            if data.latex is None:
+                df_data[col] = np.nan
+            else:
+                col_headers[col] = (
+                    col.replace('_', r'\_') +
+                    r' (\ref{eq:' + cp + '_' + col + '})')
+                equations += data.latex(col, **data.func_params) + '\n\n'
         else:
             col_headers[col] = col.replace('_', r'\_')
 
-        df_data.rename(columns=col_headers, inplace=True)
+    df_data.dropna(how='all', axis=1, inplace=True)
+    df_data.rename(columns=col_headers, inplace=True)
 
     if rpt['include_results']:
         latex = r'\subsubsection{Specifications and results}' + '\n\n'
@@ -1149,7 +1162,7 @@ def get_char_specification(component, param, data, path, group=None):
     latex : str
         LaTeX code for characteristic figures.
     """
-    if isinstance(data, dc_cc) and data.is_set:
+    if isinstance(data, dc_cc):
         return create_latex_CharLine(component, param, data, path, group=group)
-    elif isinstance(data, dc_cm) and data.is_set:
+    elif isinstance(data, dc_cm):
         return create_latex_CharMap(component, param, data, path, group=group)

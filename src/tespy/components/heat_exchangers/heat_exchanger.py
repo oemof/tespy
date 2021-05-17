@@ -180,7 +180,7 @@ class HeatExchanger(Component):
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> document_model(nw, latex_body=True, include_results=True)
+    >>> document_model(nw)
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)

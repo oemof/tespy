@@ -29,7 +29,7 @@ from tespy.tools.logger import check_git_branch
 from tespy.tools.logger import check_version
 
 
-def document_model(nw, path='report', filename='report.tex', **kwargs):
+def document_model(nw, path='report', filename='report.tex', fmt={}):
     """Generate LaTeX documentation for a TESPy model.
 
     - The documentation is stored at path/filename
@@ -46,7 +46,7 @@ def document_model(nw, path='report', filename='report.tex', **kwargs):
     filename : str
         Desired filename for the LaTeX document, default :code:`report.tex`.
 
-    kwargs : dict
+    fmt : dict
         Dictionary for formatting the report, for sample see respective
         section in online documentation.
     """
@@ -64,7 +64,7 @@ def document_model(nw, path='report', filename='report.tex', **kwargs):
         os.makedirs(fig_path)
 
     rpt = set_defaults(nw)
-    rpt = merge_dicts(rpt, kwargs)
+    rpt = merge_dicts(rpt, fmt)
 
     rpt['path'] = path
 
@@ -284,7 +284,7 @@ def document_connections(nw, rpt):
     # if list is empty, all parameters will be included
     if len(rpt['Connection']['params']) > 0:
         for col in conn_data.columns:
-            if col not in rpt['Connection']['params']:
+            if col not in rpt['Connection']['params'] and not any(specs[col]):
                 conn_data[col] = np.nan
 
     df = data_to_df(conn_data)

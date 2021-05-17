@@ -7,10 +7,10 @@ env:
     - SEGFAULT_SIGNALS=all
 matrix:
   include:
-    - python: '3.6'
+    - python: '3.8'
       env:
         - TOXENV=check
-    - python: '3.6'
+    - python: '3.8'
       env:
         - TOXENV=docs
 {%- for env, config in tox_environments|dictsort %}{{ '' }}

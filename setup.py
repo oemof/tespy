@@ -52,7 +52,6 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering',
@@ -62,7 +61,7 @@ setup(
         'Changelog': 'https://tespy.readthedocs.io/en/latest/whats_new.html',
         'Issue Tracker': 'https://github.com/oemof/tespy/issues',
     },
-    python_requires='>=3.6, <3.9',
+    python_requires='>=3.7, <3.9',
     install_requires=[
         'CoolProp>=6.4,<7',
         'matplotlib>=3.2.1,<4',

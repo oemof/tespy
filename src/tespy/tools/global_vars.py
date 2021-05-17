@@ -19,7 +19,8 @@ fluid_property_data = {
         'text': 'mass flow',
         'SI_unit': 'kg / s',
         'units': {'kg / s': 1, 'kg / min': 60, 'kg / h': 3600, 't / h': 3.6},
-        'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}'
+        'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
+        'documentation': {'float_fmt': '{:,.3f}'}
     },
     'v': {
         'text': 'volumetric flow',
@@ -29,7 +30,8 @@ fluid_property_data = {
             'l / s': 1 / 1e3, 'l / min': 1 / 60e3, 'l / h': 1 / 3.6e6
         },
         'latex_eq': (
-            r'0 = \dot{m} \cdot v \left(p,h\right)- \dot{V}_\mathrm{spec}')
+            r'0 = \dot{m} \cdot v \left(p,h\right)- \dot{V}_\mathrm{spec}'),
+        'documentation': {'float_fmt': '{:,.3f}'}
     },
     'p': {
         'text': 'pressure',
@@ -38,7 +40,8 @@ fluid_property_data = {
             'Pa': 1, 'kPa': 1e3, 'psi': 6.8948e3,
             'bar': 1e5, 'atm': 1.01325e5, 'MPa': 1e6
         },
-        'latex_eq': r'0 = p - p_\mathrm{spec}'
+        'latex_eq': r'0 = p - p_\mathrm{spec}',
+        'documentation': {'float_fmt': '{:,.3f}'}
     },
     'h': {
         'text': 'enthalpy',
@@ -48,7 +51,8 @@ fluid_property_data = {
             'cal / kg': 1 / 4.184, 'kcal / kg': 1e3 / 4.184,
             'Wh / kg': 1 / 3.6e3, 'kWh / kg': 1 / 3.6e6
         },
-        'latex_eq': r'0 = h - h_\mathrm{spec}'
+        'latex_eq': r'0 = h - h_\mathrm{spec}',
+        'documentation': {'float_fmt': '{:,.3f}'}
     },
     'T': {
         'text': 'temperature',
@@ -57,7 +61,8 @@ fluid_property_data = {
             'K': [0, 1], 'R': [0, 5 / 9],
             'C': [273.15, 1], 'F': [459.67, 5 / 9]
         },
-        'latex_eq': r'0 = T \left(p, h \right) - T_\mathrm{spec}'
+        'latex_eq': r'0 = T \left(p, h \right) - T_\mathrm{spec}',
+        'documentation': {'float_fmt': '{:,.1f}'}
     },
     'Td_bp': {
         'text': 'temperature difference to boiling point',
@@ -65,25 +70,29 @@ fluid_property_data = {
         'units': {
             'K': 1, 'R': 5 / 9, 'C': 1, 'F': 5 / 9
         },
-        'latex_eq': r'0 = \Delta T_\mathrm{spec}- T_\mathrm{sat}\left(p\right)'
+        'latex_eq': r'0 = \Delta T_\mathrm{spec}- T_\mathrm{sat}\left(p\right)',
+        'documentation': {'float_fmt': '{:,.1f}'}
     },
     'vol': {
         'text': 'specific volume',
         'SI_unit': 'm3 / kg',
         'units': {'m3 / kg': 1, 'l / kg': 1e-3},
         'latex_eq': (
-            r'0 = v\left(p,h\right) \cdot \dot{m} - \dot{V}_\mathrm{spec}')
+            r'0 = v\left(p,h\right) \cdot \dot{m} - \dot{V}_\mathrm{spec}'),
+        'documentation': {'float_fmt': '{:,.3f}'}
     },
     'x': {
         'text': 'vapor mass fraction',
         'SI_unit': '-',
         'units': {'-': 1, '%': 1e-2, 'ppm': 1e-6},
-        'latex_eq': r'0 = h - h\left(p, x_\mathrm{spec}\right)'
+        'latex_eq': r'0 = h - h\left(p, x_\mathrm{spec}\right)',
+        'documentation': {'float_fmt': '{:,.2f}'}
     },
     's': {
         'text': 'entropy',
         'SI_unit': 'J / kgK',
         'units': {'J / kgK': 1, 'kJ / kgK': 1e3, 'MJ / kgK': 1e6},
-        'latex_eq': r'0 = s_\mathrm{spec} - s\left(p, h \right)'
+        'latex_eq': r'0 = s_\mathrm{spec} - s\left(p, h \right)',
+        'documentation': {'float_fmt': '{:,.2f}'}
     }
 }

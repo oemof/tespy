@@ -67,7 +67,7 @@ setup(
         'CoolProp>=6.4,<7',
         'matplotlib>=3.2.1,<4',
         'numpy>=1.13.3,<2',
-        'pandas>=0.19.2,!=1.0.0,<2',
+        'pandas>=1.20.0,<2',
         'scipy>=0.19.1,<2',
         'tabulate>=0.8.2,<0.9'
     ],

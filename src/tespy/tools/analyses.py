@@ -18,7 +18,6 @@ import logging
 
 import numpy as np
 import pandas as pd
-
 from matplotlib import cm
 from tabulate import tabulate
 

@@ -33,6 +33,7 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data as fpd
@@ -178,6 +179,9 @@ class Network:
         self.user_defined_eq = {}
         # bus dictionary
         self.busses = OrderedDict()
+        # results and specification dictionary
+        self.results = {}
+        self.specifications = {}
 
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
@@ -237,6 +241,16 @@ class Network:
 
         # initialise fluid property memorisation function for this network
         fp.Memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
+
+        # set up results dataframe for connections
+        cols = (
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp'] + self.fluids)
+        self.results['Connection'] = pd.DataFrame(
+            columns=cols, dtype='float64')
+        self.specifications['Connection'] = pd.DataFrame(
+            columns=cols, dtype='bool')
+        self.specifications['Ref'] = pd.DataFrame(
+            columns=cols, dtype='bool')
 
     def set_attr(self, **kwargs):
         r"""
@@ -442,6 +456,8 @@ class Network:
             self.conns.loc[c.label] = [
                 c, c.source, c.source_id, c.target, c.target_id]
 
+            self.results['Connection'].loc[c.label] = np.nan
+
             msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)
             # set status "checked" to false, if conneciton is added to network.
@@ -458,7 +474,8 @@ class Network:
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            self.conns = self.conns.drop(c.label)
+            self.conns.drop(c.label, inplace=True)
+            self.results['Connection'].drop(c.label, inplace=True)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
         # set status "checked" to false, if conneciton is deleted from network.
@@ -559,6 +576,12 @@ class Network:
                 msg = 'Added bus ' + b.label + ' to network.'
                 logging.debug(msg)
 
+                self.results[b.label] = pd.DataFrame(
+                    columns=[
+                        'component value', 'bus value', 'efficiency',
+                        'design value'],
+                    dtype='float64')
+
     def del_busses(self, *args):
         r"""
         Remove one or more busses from the network.
@@ -574,6 +597,8 @@ class Network:
                 del self.busses[b.label]
                 msg = 'Deleted bus ' + b.label + ' from network.'
                 logging.debug(msg)
+
+                del self.results[b.label]
 
     def check_busses(self, b):
         r"""
@@ -675,7 +700,8 @@ class Network:
         labels = []
         for comp in comps:
             # this is required for printing and saving
-            self.comps.loc[comp, 'comp_type'] = comp.__class__.__name__
+            comp_type = comp.__class__.__name__
+            self.comps.loc[comp, 'comp_type'] = comp_type
             self.comps.loc[comp, 'label'] = comp.label
             # get incoming and outgoing connections of a component
             sources = self.conns[self.conns['source'] == comp]
@@ -694,6 +720,27 @@ class Network:
             comp.conn_loc = []
             for c in comp.inl + comp.outl:
                 comp.conn_loc += [self.conns.index.get_loc(c.label)]
+
+            if comp_type not in self.results:
+                cols = [col for col, data in comp.variables.items()
+                        if isinstance(data, dc_cp)]
+                self.results[comp_type] = pd.DataFrame(
+                    columns=cols, dtype='float64')
+            if comp_type not in self.specifications:
+                cols, groups, chars = [], [], []
+                for col, data in comp.variables.items():
+                    if isinstance(data, dc_cp):
+                        cols += [col]
+                    elif isinstance(data, dc_gcp) or isinstance(data, dc_gcc):
+                        groups += [col]
+                    elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
+                        chars += [col]
+                self.specifications[comp_type] = {
+                    'groups': pd.DataFrame(columns=groups, dtype='bool'),
+                    'chars': pd.DataFrame(columns=chars, dtype='bool'),
+                    'variables': pd.DataFrame(columns=cols, dtype='bool'),
+                    'properties': pd.DataFrame(columns=cols, dtype='bool')
+                }
 
         self.comps = self.comps.reset_index().set_index('label')
         self.comps.rename(columns={'index': 'object'}, inplace=True)
@@ -762,6 +809,7 @@ class Network:
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns['object']:
+            self.specifications['Connection'].loc[c.label] = False
             if not self.init_previous:
                 c.good_starting_values = False
 
@@ -775,9 +823,11 @@ class Network:
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
                 # set SI value
                 if c.get_attr(key).val_set:
+                    self.specifications['Connection'].loc[c.label, key] = True
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
                 if c.get_attr(key).ref_set:
+                    self.specifications['Ref'].loc[c.label, key] = True
                     if key == 'T':
                         c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
                             'Td_bp', c.get_attr(key).ref.delta,
@@ -797,6 +847,17 @@ class Network:
                     raise hlp.TESPyNetworkError(msg)
             tmp0 = c.fluid.val0
             tmp_set = c.fluid.val_set
+            self.specifications['Connection'].loc[
+                c.label, 'balance'] = c.fluid.balance
+
+            # enter fluid specifications into specification DataFrame
+            for fluid in self.fluids:
+                try:
+                    self.specifications['Connection'].loc[c.label, fluid] = (
+                        c.fluid.val_set[fluid])
+                except KeyError:
+                    pass
+
             c.fluid.val = OrderedDict()
             c.fluid.val0 = OrderedDict()
             c.fluid.val_set = OrderedDict()
@@ -961,6 +1022,31 @@ class Network:
 
             # component initialisation
             cp.comp_init(self)
+            ct = cp.__class__.__name__
+            try:
+                self.specifications[ct]['properties'].loc[cp.label] = (
+                    cp.prop_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['variables'].loc[cp.label] = (
+                    cp.var_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['groups'].loc[cp.label] = (
+                    cp.group_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['chars'].loc[cp.label] = (
+                    cp.char_specifications)
+            except ValueError:
+                pass
+
             # count number of component equations and variables
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
@@ -1181,6 +1267,30 @@ class Network:
 
             # start component initialisation
             cp.comp_init(self)
+            ct = cp.__class__.__name__
+            try:
+                self.specifications[ct]['properties'].loc[cp.label] = (
+                    cp.prop_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['variables'].loc[cp.label] = (
+                    cp.var_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['groups'].loc[cp.label] = (
+                    cp.group_specifications)
+            except ValueError:
+                pass
+
+            try:
+                self.specifications[ct]['chars'].loc[cp.label] = (
+                    cp.char_specifications)
+            except ValueError:
+                pass
             cp.new_design = False
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
@@ -2359,7 +2469,6 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-        self.results = {}
 
         self.process_connections()
         self.process_components()
@@ -2370,11 +2479,6 @@ class Network:
 
     def process_connections(self):
         """Process the Connection results."""
-        cols = (['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x'] + self.fluids)
-
-        self.results['Connection'] = pd.DataFrame(
-            columns=cols, dtype='float64')
-
         for c in self.conns['object']:
             flow = c.get_flow()
             c.good_starting_values = True
@@ -2399,8 +2503,11 @@ class Network:
                 c.vol.val_SI = fp.v_mix_ph(flow, T0=c.T.val_SI)
                 c.v.val_SI = c.vol.val_SI * c.m.val_SI
                 c.s.val_SI = fp.s_mix_ph(flow, T0=c.T.val_SI)
-                if fluid is not None and not c.x.val_set:
-                    c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+                if fluid is not None:
+                    if not c.x.val_set:
+                        c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
+                    if not c.Td_bp.val_set:
+                        c.Td_bp.val_SI = np.nan
 
             for prop in fpd.keys():
                 c.get_attr(prop).val = hlp.convert_from_SI(
@@ -2413,7 +2520,8 @@ class Network:
 
             self.results['Connection'].loc[c.label] = (
                 [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
-                 c.s.val, c.x.val] + [f for f in c.fluid.val.values()])
+                 c.s.val, c.x.val, c.Td_bp.val] +
+                [f for f in c.fluid.val.values()])
 
     def process_components(self):
         """Process the component results."""
@@ -2423,12 +2531,6 @@ class Network:
             cp.check_parameter_bounds()
 
             key = cp.__class__.__name__
-
-            if key not in self.results:
-                cols = [col for col, data in cp.variables.items()
-                        if isinstance(data, dc_cp)]
-                self.results[key] = pd.DataFrame(columns=cols, dtype='float64')
-
             for param in self.results[key].columns:
                 p = cp.get_attr(param)
                 if p.func is not None or (p.func is None and p.is_set):
@@ -2438,11 +2540,6 @@ class Network:
         """Process the bus results."""
         # busses
         for b in self.busses.values():
-            self.results[b.label] = pd.DataFrame(
-                columns=[
-                    'component value', 'bus value', 'efficiency',
-                    'design value'],
-                dtype='float64')
             for cp in b.comps.index:
                 # get components bus func value
                 bus_val = cp.calc_bus_value(b)
@@ -2493,19 +2590,16 @@ class Network:
                         self.print_components, axis=1,
                         args=(col, colored, coloring))
 
-                df.dropna(how='all', inplace=True)
+                df.dropna(how='all', axis=1, inplace=True)
 
-                if len(df) > 0:
+                if df.size > 0:
                     # printout with tabulate
                     print('##### RESULTS (' + cp + ') #####')
                     print(tabulate(
                         df, headers='keys', tablefmt='psql', floatfmt='.2e'))
 
         # connection properties
-        df = self.results['Connection'].copy()
-        df.drop(
-            ['v', 'vol', 's', 'x'] + [f for f in self.fluids], axis=1,
-            inplace=True)
+        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
         for c in df.index:
             if not self.get_conn(c).printout:
                 df.drop([c], axis=0, inplace=True)
@@ -2525,8 +2619,8 @@ class Network:
 
         for b in self.busses.values():
             if b.printout:
-                df = self.results[b.label].copy()
-                df.drop(['design value'], axis=1, inplace=True)
+                df = self.results[b.label].loc[
+                    :, ['component value', 'bus value', 'efficiency']]
                 df.loc['total'] = df.sum()
                 df.loc['total', 'efficiency'] = np.nan
                 if colored and b.P.is_set:

@@ -110,11 +110,11 @@ class HeatExchanger(Component):
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
 
     kA : float, dict
-        Area independent heat transition coefficient,
+        Area independent heat transfer coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
     kA_char : dict
-        Area independent heat transition coefficient characteristic.
+        Area independent heat transfer coefficient characteristic.
 
     kA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.
@@ -201,7 +201,7 @@ class HeatExchanger(Component):
             'kA': dc_cp(
                 min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
                 deriv=self.kA_deriv),
-            'td_log': dc_cp(min_val=0),
+            'td_log': dc_cp(min_val=0, func='dummy'),
             'ttd_u': dc_cp(
                 min_val=0, num_eq=1, func=self.ttd_u_func,
                 deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),

@@ -8,8 +8,10 @@ available from its original location tespy/tools/document_models.py
 
 SPDX-License-Identifier: MIT
 """
+import collections
 import os
 import sys
+from copy import deepcopy
 from datetime import date
 
 import CoolProp as CP
@@ -20,19 +22,16 @@ from tespy.tools import helpers as hlp
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.logger import check_git_branch
 from tespy.tools.logger import check_version
 
 
-def document_model(nw, path='report', filename='report.tex', draft=True):
+def document_model(nw, path='report', filename='report.tex', fmt={}):
     """Generate LaTeX documentation for a TESPy model.
 
     - The documentation is stored at path/filename
     - Generated figures are stored at path/figures/
-    - Disable draft mode to skip on general info at the beginning of the report
 
     Parameters
     ----------
@@ -45,9 +44,9 @@ def document_model(nw, path='report', filename='report.tex', draft=True):
     filename : str
         Desired filename for the LaTeX document, default :code:`report.tex`.
 
-    draft : boolean
-        Add general usage information at beginning of report,
-        default :code:`True`
+    fmt : dict
+        Dictionary for formatting the report, for sample see respective
+        section in online documentation.
     """
     # prepare filestructure
     if path[-1] != '/' and path[-1] != '\\':
@@ -62,33 +61,113 @@ def document_model(nw, path='report', filename='report.tex', draft=True):
     if not os.path.exists(fig_path):
         os.makedirs(fig_path)
 
-    latex = document_software_info(draft)
-    latex += document_connections(nw)
-    latex += document_ude(nw, path)
-    latex += document_components(nw, path)
-    latex += document_busses(nw, path)
+    rpt = set_defaults(nw)
+    rpt = merge_dicts(rpt, fmt)
+
+    rpt['path'] = path
+
+    latex = document_software_info(rpt)
+    latex += document_connections(nw, rpt)
+    latex += document_ude(nw, rpt['path'])
+    latex += document_components(nw, rpt)
+    latex += document_busses(nw, rpt)
+    if rpt['latex_body']:
+        latex += r'\end{document}'
 
     with open(path + filename, 'w') as f:
         f.write(latex)
         f.close()
 
 
-def document_software_info(draft):
+def merge_dicts(dict1, dict2):
+    """Return a new dictionary by merging two dictionaries recursively."""
+
+    result = deepcopy(dict1)
+
+    for key, value in dict2.items():
+        if isinstance(value, collections.Mapping):
+            result[key] = merge_dicts(result.get(key, {}), value)
+        else:
+            result[key] = deepcopy(dict2[key])
+
+    return result
+
+
+def set_defaults(nw):
+    """
+    Set up defaults for report formatting.
+
+    Parameters
+    ----------
+    nw : tespy.networks.network.Network
+        TESPy Network instance.
+
+    Returns
+    -------
+    rpt : dict
+        Dictionary containting the default formatting data.
+    """
+    rpt = {
+        'draft': True,
+        'latex_body': False,
+        'include_results': True,
+        'Bus': {'float_fmt': '{:,.2f}'},
+        'Connection': {
+            key: data['documentation'] for key, data in fpd.items()}
+    }
+
+    classes = [
+        nw.comps[nw.comps['comp_type'] == cp]['object'][0]
+        for cp in nw.comps['comp_type'].unique()]
+
+    for c in classes:
+        rpt[c.__class__.__name__] = {'params': []}
+        rpt[c.__class__.__name__].update({
+            param: {'float_fmt': '{:,.2f}'}
+            for param, data in c.variables.items()
+            if isinstance(data, dc_cp)
+        })
+
+    rpt['Connection']['fluid'] = {
+        'float_fmt': '{:.3f}', 'include_results': True}
+    rpt['Connection']['params'] = ['m', 'p', 'h', 'T', 's']
+    return rpt
+
+
+def document_software_info(rpt):
     """Get software information.
 
     Parameters
     ----------
-    draft : boolean
-        Add general usage information at beginning of report.
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
     latex : str
         LaTeX code for software information.
     """
-    latex = r'\section*{Software Information}' + '\n\n'
+    latex = ''
+    if rpt['latex_body']:
+        latex += (
+            r'\documentclass[]{article}' + '\n'
+            r'\usepackage{geometry}' + '\n'
+            r'\geometry{a4paper, left=20mm, top=20mm,}' + '\n'
+            r'\usepackage{graphicx}' + '\n'
+            r'\usepackage{float}' + '\n'
+            r'\usepackage{hyperref}' + '\n'
+            r'\usepackage{booktabs}' + '\n'
+            r'\usepackage{amsmath}' + '\n'
+            r'\usepackage{units}' + '\n'
+            r'\usepackage{cleveref}' + '\n\n'
+            r'\usepackage{longtable}' + '\n\n'
+            r'\newcommand{\iftab}{\fontshape{sl}\selectfont}' + '\n\n'
+            r'\newcommand{\bftab}{\fontseries{b}\selectfont}' + '\n\n'
+            r'\begin{document}' + '\n\n')
 
-    if draft:
+    latex += r'\section*{Software Information}' + '\n\n'
+
+    if rpt['draft']:
         latex += r'\begin{itemize}' + '\n'
         latex += (
             r'\item Please check, whether your inputs, the equations '
@@ -105,6 +184,18 @@ def document_software_info(draft):
         latex += r'\item amsmath' + '\n'
         latex += r'\item units' + '\n'
         latex += r'\item cleveref' + '\n'
+        latex += r'\item longtable' + '\n'
+        latex += r'\end{itemize}' + '\n'
+        latex += (
+            'Additionally, you will need to make the following '
+            'definitions:\n')
+        latex += r'\begin{itemize}' + '\n'
+        latex += r'\item \textbackslash newcommand\{\textbackslash iftab\}'
+        latex += r'\{\textbackslash fontshape\{sl\}\textbackslash selectfont\}'
+        latex += '\n'
+        latex += r'\item \textbackslash newcommand\{\textbackslash bftab\}'
+        latex += r'\{\textbackslash fontseries\{b\}\textbackslash selectfont\}'
+        latex += '\n'
         latex += r'\end{itemize}' + '\n'
         latex += (
             r'\item To supress these messages, call the model '
@@ -114,6 +205,8 @@ def document_software_info(draft):
     latex += r'\begin{table}[H]' + '\n'
     latex += r'\begin{tabular}{ll}' + '\n'
     version = check_version().replace('_', r'\_')
+    latex += r'\bftab General information&\\' + '\n'
+    latex += r'& \\' + '\n'
     latex += 'TESPy Version:&' + version + r'\\' + '\n'
     try:
         git = check_git_branch().replace('_', r'\_')
@@ -124,6 +217,19 @@ def document_software_info(draft):
     latex += 'Python version:&' + sys.version + r'\\' + '\n'
     timestamp = date.today().strftime('%B %d, %Y')
     latex += 'Documentation generated:&' + timestamp + r'\\' + '\n'
+    latex += r'& \\' + '\n'
+    latex += r'\bftab Parameter highlighting&\\' + '\n'
+    latex += r'& \\' + '\n'
+    latex += r'Variable component parameters:& \iftab italic\\' + '\n'
+    if rpt['include_results']:
+        latex += r'Specified input parameter:& \bftab bold\\' + '\n'
+        latex += r'Results of simulation:& normalfont \\' + '\n'
+        latex += r'& \\' + '\n'
+        latex += (
+            r'\multicolumn{2}{l}{\iftab Equations are displayed for input '
+            r'parameters only.}\\' + '\n')
+    else:
+        latex += r'Specified input parameter:& normalfont \\' + '\n'
     latex += r'\end{tabular}' + '\n'
     latex += r'\end{table}' + '\n'
 
@@ -131,7 +237,7 @@ def document_software_info(draft):
     return latex
 
 
-def document_connections(nw):
+def document_connections(nw, rpt):
     """Document connection specifications.
 
     Parameters
@@ -139,29 +245,37 @@ def document_connections(nw):
     nw : tespy.networks.network.Network
         TESPy model.
 
+    rpt : dict
+        Formatting data for the report.
+
     Returns
     -------
     latex : str
         LaTeX code for all connections.
     """
-    conn_data = []
 
     ref_data = {'m': [], 'p': [], 'h': [], 'T': []}
-    ref_params = ['m', 'p', 'h', 'T']
 
-    fluid_data = []
+    cols = nw.results['Connection'].columns
+    conn_data = nw.results['Connection'].copy().loc[:, ~cols.isin(nw.fluids)]
+    fluid_data = nw.results['Connection'].copy().loc[:, nw.fluids]
 
-    for c in nw.conns['object']:
-        data_dict = {'label': c.label.replace('_', r'\_')}
-        fluid_dict = data_dict.copy()
+    specs = nw.specifications['Connection'].copy()
+    if not rpt['include_results']:
+        conn_data = conn_data[specs]
+        fluid_data = fluid_data[specs]
+    # it is possible to exclude fluid results
+    elif not rpt['Connection']['fluid']['include_results']:
+        fluid_data = fluid_data[specs]
 
-        data_dict.update(
-            {param: c.get_attr(param).val for param in fpd
-             if c.get_attr(param).val_set})
+    ref_spec = nw.specifications['Ref'].dropna(
+        how='all').dropna(how='all', axis=1)
 
-        conn_data += [data_dict]
+    # get some Connection object for equation generator
+    c = nw.get_conn(specs.index[0])
 
-        for param in ref_params:
+    for c in nw.get_conn(ref_spec.index):
+        for param in ref_data.keys():
             if c.get_attr(param).ref_set:
                 ref_dict = {'label': c.label.replace('_', r'\_')}
                 ref_dict.update(
@@ -174,22 +288,23 @@ def document_connections(nw):
 
                 ref_data[param] += [ref_dict]
 
-        fluid_dict.update(
-            {fluid: c.fluid.val[fluid] for fluid in nw.fluids
-             if c.fluid.val_set[fluid]})
-        if c.fluid.balance:
-            fluid_dict.update({'balance': c.fluid.balance})
-
-        fluid_data += [fluid_dict]
-
     latex = r'\section{Connections in ' + nw.mode + ' mode}' + '\n\n'
+
+    # if list is empty, all parameters will be included
+    if len(rpt['Connection']['params']) > 0:
+        for col in conn_data.columns:
+            if col not in rpt['Connection']['params'] and not any(specs[col]):
+                conn_data[col] = np.nan
+
     df = data_to_df(conn_data)
     if len(df) > 0:
-        latex += document_connection_params(nw, df, c)
+        eqs = df[specs].dropna(how='all').dropna(how='all', axis=1).columns
+        latex += document_connection_params(nw, df, specs, eqs, c, rpt)
 
     df = data_to_df(fluid_data)
     if len(df) > 0:
-        latex += document_connection_fluids(df, c)
+        eqs = df[specs].dropna(how='all').dropna(how='all', axis=1).columns
+        latex += document_connection_fluids(df, specs, eqs, c, rpt)
 
     for property, data in ref_data.items():
         df = data_to_df(data)
@@ -199,7 +314,7 @@ def document_connections(nw):
     return latex
 
 
-def document_connection_params(nw, df, c):
+def document_connection_params(nw, df, specs, eqs, c, rpt):
     """Document parameter specification of connections.
 
     Parameters
@@ -210,40 +325,61 @@ def document_connection_params(nw, df, c):
     df : pandas.core.frame.DataFrame
         DataFrame containing the connection parameter data.
 
+    specs : pandas.core.frame.DataFrame
+        DataFrame containing information on model input specifications.
+
+    eqs : list
+        List of parameters to generate equations for.
+
     c : tespy.connections.connection.Connection
         Connection object, required for LaTeX equation generation.
+
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
     latex : str
         LaTeX code for all connections.
     """
-    label = 'Specified connection parameters'
+    if rpt['include_results']:
+        label = 'Connection specifications and results'
+    else:
+        label = 'Specified connection parameters'
     latex = r'\subsection{' + label + '}' + '\n\n'
 
     equations = ''
     for col in df.columns:
-        if col == 'label':
-            continue
-        equations += generate_latex_eq(
-            c, fpd[col]['latex_eq'], fpd[col]['text']) + '\n\n'
-
         unit = col + '_unit'
         if col == 'Td_bp':
             unit = 'T_unit'
         col_header = (
             col.replace('_', r'\_') + ' in ' +
-            hlp.latex_unit(nw.get_attr(unit)) + ' ('
-            r'\ref{eq:Connection_' + fpd[col]['text'] + '})')
+            hlp.latex_unit(nw.get_attr(unit)))
+        if col in eqs:
+            col_header += (
+                r' (\ref{eq:Connection_' + fpd[col]['text'] + '})')
+            equations += generate_latex_eq(
+                c, fpd[col]['latex_eq'], fpd[col]['text']) + '\n\n'
+
+        for row in df.index:
+            fmt = rpt['Connection'][col]['float_fmt']
+            if specs.loc[row, col] and rpt['include_results']:
+                df.loc[row, col] = r'\bftab ' + fmt.format(df.loc[row, col])
+            else:
+                df.loc[row, col] = fmt.format(df.loc[row, col])
+
         df.rename(columns={col: col_header}, inplace=True)
 
-    latex += create_latex_table(df, label)
+    num_col = len(df.columns)
+
+    latex += create_latex_table(df, label, col_fmt='l' + num_col * 'r')
     latex += r'\subsection{Equations applied}' + '\n\n'
     latex += equations
     return latex
 
 
-def document_connection_fluids(df, c):
+def document_connection_fluids(df, specs, eqs, c, rpt):
     """Document fluid specifications of connections.
 
     Parameters
@@ -251,8 +387,17 @@ def document_connection_fluids(df, c):
     df : pandas.core.frame.DataFrame
         DataFrame containing the connection fluid data.
 
+    specs : pandas.core.frame.DataFrame
+        DataFrame containing information on model input specifications.
+
+    eqs : list
+        List of parameters to generate equations for.
+
     c : tespy.connections.connection.Connection
         Connection object, required for LaTeX equation generation.
+
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
@@ -263,10 +408,9 @@ def document_connection_fluids(df, c):
     latex = r'\subsection{' + label + '}' + '\n\n'
 
     equations = ''
-    for col in df.columns:
-        if col == 'label':
-            continue
-        elif col == 'balance':
+    fmt = rpt['Connection']['fluid']['float_fmt']
+    for col in eqs:
+        if col == 'balance':
             eq = r'0=1-\sum x_{fl}\;\forall fl\in\text{network fluids}'
             equations += generate_latex_eq(c, eq, col) + '\n\n'
         else:
@@ -274,12 +418,22 @@ def document_connection_fluids(df, c):
                 r'0 = x_\mathrm{' + col + r'} - x_\mathrm{' +
                 col + ',spec}')
             equations += generate_latex_eq(c, eq, col) + '\n\n'
+
+            for row in df.index:
+                if specs.loc[row, col] and rpt['include_results']:
+                    df.loc[row, col] = r'\bftab ' + fmt.format(
+                        df.loc[row, col])
+                else:
+                    df.loc[row, col] = fmt.format(df.loc[row, col])
+
         col_header = (
             col.replace('_', r'\_') + ' ('
             r'\ref{eq:Connection_' + col + '})')
         df.rename(columns={col: col_header}, inplace=True)
 
-    latex += create_latex_table(df, label)
+    num_col = len(df.columns)
+
+    latex += create_latex_table(df, label, col_fmt='l' + num_col * 'r')
     latex += r'\subsection{Equations applied}' + '\n\n'
     latex += equations
     return latex
@@ -305,9 +459,9 @@ def document_connection_ref(df, property, c):
         LaTeX code for all connections.
     """
     label = fpd[property]['text']
-    caption = 'Referenced values for ' + label
-    latex = r'\subsection{Referenced values for ' + label + '}' + '\n\n'
-    latex += create_latex_table(df, caption)
+    caption = 'Specified reference values for ' + label
+    latex = r'\subsection{Referenced ' + label + '}' + '\n\n'
+    latex += create_latex_table(df, caption, col_fmt='llrr')
 
     latex += r'\subsection{Equation applied}' + '\n\n'
     eq = (
@@ -326,13 +480,16 @@ def document_ude(nw, path):
         TESPy model.
 
     path : str
-        Basepath of the report.
+        Folder for the documentation, default :code:`report`.
 
     Returns
     -------
     latex : str
         LaTeX code for all UserDefinedEquations.
     """
+    if len(nw.user_defined_eq) == 0:
+        return ''
+
     latex = (
         r'\section{User defined equations in ' + nw.mode + ' mode}' + '\n\n')
     for label, ude_data in nw.user_defined_eq.items():
@@ -380,7 +537,7 @@ def document_ude(nw, path):
     return latex
 
 
-def document_components(nw, path):
+def document_components(nw, rpt):
     """Document component specifications.
 
     Parameters
@@ -388,8 +545,8 @@ def document_components(nw, path):
     nw : tespy.networks.network.Network
         TESPy model.
 
-    path : str
-        Basepath of the report.
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
@@ -399,10 +556,10 @@ def document_components(nw, path):
     latex = ''
     for cp in nw.comps['comp_type'].unique():
 
-        component_list = nw.comps[nw.comps['comp_type'] == cp]
-
-        latex += get_component_mandatory_constraints(cp, component_list, path)
-        latex += get_component_specifications(cp, component_list, path)
+        component_list = nw.comps[nw.comps['comp_type'] == cp]['object']
+        latex += get_component_mandatory_constraints(
+            cp, component_list, rpt['path'])
+        latex += get_component_specifications(nw, cp, rpt)
 
     if latex != '':
         latex = (
@@ -422,6 +579,9 @@ def get_component_mandatory_constraints(cp, component_list, path):
     component_list : pandas.core.frame.DataFrame
         DataFrame of the components of Class cp.
 
+    path : str
+        Folder for the documentation, default :code:`report`.
+
     Returns
     -------
     latex : str
@@ -432,9 +592,9 @@ def get_component_mandatory_constraints(cp, component_list, path):
     num_mandatory_eq = 0
     mandatory_eq = ''
     figures = []
-    for label, data in component_list['object'][0].constraints.items():
+    for label, data in component_list[0].constraints.items():
         if 'char' in data:
-            for component in component_list['object']:
+            for component in component_list:
                 local_path = (
                     'figures/' + cp + '_CharLine_' + label + '_' +
                     component.label.replace(' ', '_') + '.pdf')
@@ -461,7 +621,7 @@ def get_component_mandatory_constraints(cp, component_list, path):
     return latex
 
 
-def get_component_specifications(cp, component_list, path):
+def get_component_specifications(nw, cp, rpt):
     """Get latex code for component specifications of component type cp.
 
     Parameters
@@ -472,96 +632,132 @@ def get_component_specifications(cp, component_list, path):
     component_list : pandas.core.frame.DataFrame
         DataFrame of the components of Class cp.
 
-    path : str
-        Basepath of the report.
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
     latex : str
         LaTeX code for component parameter specification.
     """
-    cp_data = []
-    data_dict_gcp = {}
     figures = []
+    col_headers = {}
+    equations = ''
 
-    # loop through all components of type cp in component_list
-    for component in component_list['object']:
-        data_dict = {'label': component.label.replace('_', r'\_')}
-        for param, data in component.variables.items():
-            if data.latex is not None:
-                data_dict[param] = get_parameter_specification(data)
+    result = nw.results[cp].copy()
+    specs = nw.specifications[cp]
 
+    if not rpt['include_results']:
+        result = result[specs['properties'] | specs['variables']]
+    elif len(rpt[cp]['params']) > 0:
+        for col in result.columns:
+            if (col not in rpt[cp]['params']
+                    and not any(specs['properties'][col])
+                    and not any(specs['variables'][col])):
+                result[col] = np.nan
+
+    result = result.dropna(how='all', axis=1)
+    cols = result.columns.tolist()
+
+    for col in cols:
+        fmt = rpt[cp][col]['float_fmt']
+        for row in result.index:
+            if specs['variables'].loc[row, col]:
+                result.loc[row, col] = (
+                    r'\iftab ' + fmt.format(result.loc[row, col]))
+            elif specs['properties'].loc[row, col] and rpt['include_results']:
+                result.loc[row, col] = (
+                    r'\bftab ' + fmt.format(result.loc[row, col]))
+            else:
+                result.loc[row, col] = fmt.format(result.loc[row, col])
+
+    group_data = specs['groups'][specs['groups']].dropna(how='all', axis=1)
+    char_data = specs['chars'][specs['chars']].dropna(how='all', axis=1)
+
+    specs = pd.concat(
+        [specs['properties'] | specs['variables'],
+         specs['groups'], specs['chars']], axis=1)
+
+    df_data = pd.concat([result, group_data, char_data], axis=1)
+
+    for col in char_data.columns:
+        for row in char_data.index:
+            component = nw.get_comp(row)
+            if char_data.loc[row, col]:
+                data = component.get_attr(col)
                 figures += [get_char_specification(
-                    component, param, data, path)]
+                    component, col, data, rpt['path'])]
 
-                # get group parameter specifications
-                if isinstance(data, dc_gcp) and data.is_set:
-                    gcp_data = {'label': component.label.replace('_', r'\_')}
+    data_dict_gcp = {}
+    group_elements = []
+    for col in group_data.columns:
+        for row in group_data.index:
+            component = nw.get_comp(row)
+            if group_data.loc[row, col]:
+                data = component.get_attr(col)
+                for element in data.elements:
+                    element_data = component.get_attr(element)
+                    figures += [get_char_specification(
+                        component, element, element_data, rpt['path'],
+                        group=col)]
 
-                    for element in data.elements:
-                        element_data = component.get_attr(element)
-                        figures += [get_char_specification(
-                            component, element, element_data, path,
-                            group=param)]
+        elements = [el for el in data.elements if el in df_data.columns]
+        data_dict_gcp[col] = df_data[elements]
+        group_elements += data.elements
 
-                        gcp_data.update(
-                            {element.replace('_', r'\_'):
-                             get_parameter_specification(element_data)})
+    # remove gouped parameters from main parameter list
+    df_data = df_data[
+        [col for col in df_data.columns if col not in group_elements]]
 
-                    if param in data_dict_gcp:
-                        data_dict_gcp[param] += [gcp_data]
-                    else:
-                        data_dict_gcp[param] = [gcp_data]
-
-                # get group characteristics figures
-                elif isinstance(data, dc_gcc) and data.is_set:
-                    for element in data.elements:
-                        element_data = component.get_attr(element)
-                        figures += [create_latex_CharLine(
-                            component, element, element_data, path,
-                            group=param)]
-
-        cp_data += [data_dict]
-
-    df_data = pd.DataFrame(cp_data)
-    # drop empty columns
-    df_data.dropna(how='all', axis=1, inplace=True)
-    # if ramaining column is only the label jump to next component class
-    if len(df_data.columns) < 2:
+    if len(df_data.index) == 0:
         return ''
 
-    # get applied equations
-    equations = ''
+    # replace column headers
     for col in df_data.columns:
-        if col == 'label':
-            continue
-        # can use last instance of component for this
-        equations += component.get_attr(col).latex(
-            col, **component.get_attr(col).func_params) + '\n\n'
-        col_header = (
-            col.replace('_', r'\_') + ' ('
-            r'\ref{eq:' + cp + '_' + col + '})')
-        df_data.rename(columns={col: col_header}, inplace=True)
+        if any(specs[col]) and col not in group_elements:
+            data = nw.get_comp(row).get_attr(col)
+            if data.latex is None:
+                df_data[col] = np.nan
+            else:
+                col_headers[col] = (
+                    col.replace('_', r'\_') +
+                    r' (\ref{eq:' + cp + '_' + col + '})')
+                equations += data.latex(col, **data.func_params) + '\n\n'
+        else:
+            col_headers[col] = col.replace('_', r'\_')
 
-    latex = r'\subsubsection{Inputs specified}' + '\n\n'
+    df_data.dropna(how='all', axis=1, inplace=True)
+    df_data.rename(columns=col_headers, inplace=True)
+
+    if rpt['include_results']:
+        latex = r'\subsubsection{Specifications and results}' + '\n\n'
+    else:
+        latex = r'\subsubsection{Inputs specified}' + '\n\n'
 
     caption = 'Parameters of components of type ' + cp
-    latex += create_latex_table(df_data, caption)
+    num_col = len(df_data.columns)
+    latex += create_latex_table(df_data, caption, col_fmt='l' + num_col * 'r')
 
-    # get parameter groups tables
+    # # get parameter groups tables
     for param, data in data_dict_gcp.items():
         df_data_gcp = pd.DataFrame(data)
-        caption = 'Parametergroup ' + param.replace('_', r'\_')
-        latex += create_latex_table(df_data_gcp, caption)
+        if df_data_gcp.size > 0:
+            for col in df_data_gcp.columns:
+                col_headers[col] = col.replace('_', r'\_')
+
+            df_data_gcp.rename(columns=col_headers, inplace=True)
+            caption = 'Parametergroup ' + param.replace('_', r'\_')
+            latex += create_latex_table(df_data_gcp, caption)
 
     # write equations and figures of characteristics applied
-    latex += r'\subsubsection{Equations applied}' + '\n\n'
-    latex += equations
-    latex += place_figures([fig for fig in figures if fig is not None])
+    if equations != '':
+        latex += r'\subsubsection{Equations applied}' + '\n\n'
+        latex += equations
+        latex += place_figures([fig for fig in figures if fig is not None])
     return latex
 
 
-def document_busses(nw, path):
+def document_busses(nw, rpt):
     """Document bus specifications.
 
     Parameters
@@ -569,8 +765,8 @@ def document_busses(nw, path):
     nw : tespy.networks.network.Network
         TESPy model.
 
-    path : str
-        Basepath of the report.
+    rpt : dict
+        Formatting data for the report.
 
     Returns
     -------
@@ -583,18 +779,44 @@ def document_busses(nw, path):
         return ''
 
     chars_plotted = {}
+    fmt = rpt['Bus']['float_fmt']
     for label, b in nw.busses.items():
-        bus_data = []
+        if rpt['include_results']:
+            df = nw.results[label][
+                ['component value', 'bus value', 'efficiency']].copy()
+            df.loc['total'] = df.sum()
+            df.loc['total', 'efficiency'] = np.nan
+            df.loc['total', 'component value'] = (
+                fmt.format(df.loc['total', 'component value']))
+            if b.P.is_set:
+                df.loc['total', 'bus value'] = (
+                    r'\bftab' + fmt.format(
+                        df.loc['total', 'bus value']))
+            else:
+                df.loc['total', 'bus value'] = (
+                    fmt.format(df.loc['total', 'bus value']))
+        else:
+            df = pd.DataFrame(columns=['comp eq', 'bus eq', 'eta ref'])
+
         figures = []
         for cp in b.comps.index:
-            bus_dict = {'label': cp.label.replace('_', r'\_')}
+            if rpt['include_results']:
+                # format cols
+                df.loc[cp.label, 'bus value'] = (
+                    fmt.format(df.loc[cp.label, 'bus value']))
+                df.loc[cp.label, 'component value'] = (
+                    fmt.format(df.loc[cp.label, 'component value']))
+                df.loc[cp.label, 'efficiency'] = (
+                    fmt.format(df.loc[cp.label, 'efficiency']))
 
             cp_data = b.comps.loc[cp]
             char = cp_data['char']
             if np.all(char.y == char.y[0]):
-                eta = '{:.3f}'.format(char.y[0])
+                if rpt['include_results']:
+                    eta = np.nan
+                else:
+                    eta = fmt.format(char.y[0])
             else:
-
                 key = (char, cp_data['base'])
                 if key in chars_plotted:
                     eta = (
@@ -608,7 +830,7 @@ def document_busses(nw, path):
                         'label':
                             'Bus_CharLine_' + cp.label + nw.mode
                     }
-                    figname = path + chars_plotted[key]['path']
+                    figname = rpt['path'] + chars_plotted[key]['path']
                     if nw.mode == 'design':
                         xlabel = (
                             r'Energy flow ratio $X$ ($X=1$ in design mode)')
@@ -632,37 +854,59 @@ def document_busses(nw, path):
 
             comp_eq = cp.bus_func_doc(cp_data)
             if comp_eq is None:
+                df.loc[cp.label, 'comp eq'] = np.nan
+                df.loc[cp.label, 'bus eq'] = np.nan
+                df.loc[cp.label, 'eta ref'] = np.nan
                 continue
 
-            bus_dict[r'$\dot{E}_\mathrm{comp}$'] = '$' + comp_eq + '$'
+            df.loc[cp.label, 'comp eq'] = '$' + comp_eq + '$'
 
             if cp_data['base'] == 'bus':
-                bus_dict[r'$\dot{E}_\mathrm{bus}$'] = (
-                    r'$\frac{\dot{E}_\mathrm{comp}}{\eta}$')
+                eq = r'$\frac{\dot{E}_\mathrm{comp}}{\eta}$'
             else:
-                bus_dict[r'$\dot{E}_\mathrm{bus}$'] = (
-                    r'$\dot{E}_\mathrm{comp} \cdot \eta$')
+                eq = r'$\dot{E}_\mathrm{comp} \cdot \eta$'
 
-            bus_dict[r'$\eta$'] = eta
+            df.loc[cp.label, 'bus eq'] = eq
+            df.loc[cp.label, 'eta ref'] = eta
 
-            bus_data += [bus_dict]
+        if all(df['comp eq'].isnull()):
+            continue
 
-        df = data_to_df(bus_data)
+        # reorder and rename columns
+        if rpt['include_results']:
+            col_order = [
+                'comp eq', 'component value', 'bus eq', 'bus value',
+                'eta ref', 'efficiency']
+            df = df[col_order]
 
-        if len(df) > 0:
-            latex += r'\subsection{Bus ``' + label + '\'\'}\n\n'
-            if b.P.is_set:
-                latex += (
-                    r'Specified total value of energy flow:'
-                    r' $\dot{E}_\mathrm{bus} = \unit[' +
-                    '{:.3f}'.format(b.P.val) + ']{W}$\n\n')
+        rename_dict = {
+            'component value': r'$\dot{E}_\mathrm{comp,result}$',
+            'bus value': r'$\dot{E}_\mathrm{bus,result}$',
+            'efficiency': r'$\eta_\mathrm{result}$',
+            'comp eq': r'$\dot{E}_\mathrm{comp}$',
+            'bus eq': r'$\dot{E}_\mathrm{bus}$',
+            'eta ref': r'$\eta$'
+        }
+        df.rename(columns=rename_dict, inplace=True)
 
-                eq = r'0=\dot{E}_\mathrm{bus} -\sum_i \dot{E}_{\mathrm{bus,}i}'
-                latex += generate_latex_eq(b, eq, 'energy_flow_sum') + '\n\n'
-            else:
-                latex += 'This bus is used for postprocessing only.\n\n'
-            latex += create_latex_table(df, label) + '\n\n'
-            latex += place_figures(figures)
+        df = data_to_df(df)
+
+        latex += r'\subsection{Bus ``' + label + '\'\'}\n\n'
+        if b.P.is_set:
+            latex += (
+                r'Specified total value of energy flow:'
+                r' $\dot{E}_\mathrm{bus} = \unit[' +
+                fmt.format(b.P.val) + ']{W}$\n\n')
+
+            eq = r'0=\dot{E}_\mathrm{bus} -\sum_i \dot{E}_{\mathrm{bus,}i}'
+            latex += generate_latex_eq(b, eq, 'energy_flow_sum') + '\n\n'
+        else:
+            latex += 'This bus is used for postprocessing only.\n\n'
+        num_col = len(df.columns)
+        latex += create_latex_table(
+            df, 'Results overview for bus ' + label,
+            col_fmt='l' + num_col * 'r') + '\n\n'
+        latex += place_figures(figures)
 
     return latex
 
@@ -680,13 +924,17 @@ def data_to_df(data):
     df : pandas.core.frame.DataFrame
         Polished DataFrame.
     """
-    df = pd.DataFrame(data)
+    if not isinstance(data, pd.DataFrame):
+        df = pd.DataFrame(data)
+    else:
+        df = data
     to_drop = [n for n in df.columns if n != 'label']
     df.dropna(subset=to_drop, how='all', axis=0, inplace=True)
+    df.dropna(how='all', axis=1, inplace=True)
     return df
 
 
-def create_latex_table(df, caption):
+def create_latex_table(df, caption, col_fmt=None):
     """Create LaTeX table environment from DataFrame df.
 
     Parameters
@@ -702,13 +950,21 @@ def create_latex_table(df, caption):
     latex : str
         LaTeX code for table.
     """
-    latex = ''
-    latex += r'\begin{table}[H]\begin{center}' + '\n'
+    df['label'] = df.index.astype('str')
+    df['label'] = df['label'].str.replace('_', r'\_')
+    df.set_index('label', inplace=True)
+    try:
+        df.replace({'nan': '-'}, inplace=True)
+    except TypeError:
+        # dataframes with bool data only
+        pass
+    longtable = False
+    if len(df.index) > 60:
+        longtable = True
     with pd.option_context('max_colwidth', 2000):
-        latex += df.to_latex(
-            index=False, escape=False, na_rep='-', float_format='%.3f')
-    latex += r'\caption{' + caption + '}' + '\n'
-    latex += r'\end{center}\end{table}' + '\n\n'
+        latex = df.to_latex(
+            index=True, escape=False, na_rep='-', column_format=col_fmt,
+            longtable=longtable, caption=caption, position='H')
     return latex
 
 
@@ -881,29 +1137,6 @@ def place_figures(figures):
     return latex
 
 
-def get_parameter_specification(data):
-    """Short summary.
-
-    Parameters
-    ----------
-    data : tespy.tools.data_containers.DataContainer
-        Datacontainer holding the parameter's specification information.
-
-    Returns
-    -------
-    value : float, boolean
-        Value for specified component properties, True for characteristics,
-        :code:`np.nan` if parmater is not set.
-    """
-    if data.is_set:
-        if isinstance(data, dc_cp):
-            return data.val
-        else:
-            return True
-    else:
-        return np.nan
-
-
 def get_char_specification(component, param, data, path, group=None):
     """Get CharLine or CharMap plotting latex code.
 
@@ -929,7 +1162,7 @@ def get_char_specification(component, param, data, path, group=None):
     latex : str
         LaTeX code for characteristic figures.
     """
-    if isinstance(data, dc_cc) and data.is_set:
+    if isinstance(data, dc_cc):
         return create_latex_CharLine(component, param, data, path, group=group)
-    elif isinstance(data, dc_cm) and data.is_set:
+    elif isinstance(data, dc_cm):
         return create_latex_CharMap(component, param, data, path, group=group)

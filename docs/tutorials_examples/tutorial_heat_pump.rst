@@ -293,7 +293,7 @@ pressure ratios on hot and cold side as well as the lower terminal temperature
 difference. We use the hot side pressure ratio and the lower terminal
 temperature (similar to pinch point layout for waste heat steam generators)
 difference as design parameters and choose zeta as well as the area independent
-heat transition coefficient as its offdesign parameters.
+heat transfer coefficient as its offdesign parameters.
 
 On top of that, the characteristic function of the evaporator should follow the
 default characteristic line of 'EVAPORATING FLUID' on the cold side and the

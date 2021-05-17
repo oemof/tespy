@@ -16,6 +16,7 @@ simulation with TESPy.
     :local:
     :backlinks: top
 
+.. _tespy_modules_network_label:
 .. include:: tespy_modules/networks.rst
 .. _using_tespy_components_label:
 .. include:: tespy_modules/components.rst

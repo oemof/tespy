@@ -855,7 +855,7 @@ def h_pT(p, T, fluid, force_gas=False):
         return TESPyFluid.fluids[fluid].funcs['h_pT'].ev(p, T)
     else:
         if force_gas:
-            if T < Memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+            if T < get_T_crit(fluid):
                 Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
                 h = Memorise.state[fluid].hmass()
                 Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
@@ -1041,8 +1041,8 @@ def h_mix_pQ(flow, Q):
     try:
         Memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], Q)
     except ValueError:
-        pcrit = Memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
-        Memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, Q)
+        p_crit = get_p_crit(fluid)
+        Memorise.state[fluid].update(CP.PQ_INPUTS, p_crit * 0.99, Q)
 
     return Memorise.state[fluid].hmass()
 
@@ -1083,7 +1083,39 @@ def dh_mix_dpQ(flow, Q):
     lo[1] -= d
     return (h_mix_pQ(up, Q) - h_mix_pQ(lo, Q)) / (2 * d)
 
-# %%
+
+def get_p_crit(fluid):
+    """
+    Get critical point pressure.
+
+    Parameters
+    ----------
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    p_crit : float
+        Critical point pressure.
+    """
+    return Memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
+
+
+def get_T_crit(fluid):
+    """
+    Get critical point temperature.
+
+    Parameters
+    ----------
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    T_crit : float
+        Critical point temperature.
+    """
+    return Memorise.state[fluid].trivial_keyed_output(CP.iT_critical)
 
 
 def T_bp_p(flow):
@@ -1106,9 +1138,9 @@ def T_bp_p(flow):
     This function works for pure fluids only!
     """
     fluid = single_fluid(flow[3])
-    pcrit = Memorise.state[fluid].trivial_keyed_output(CP.iP_critical)
-    if flow[1] > pcrit:
-        Memorise.state[fluid].update(CP.PQ_INPUTS, pcrit * 0.99, 1)
+    p_crit = get_p_crit(fluid)
+    if flow[1] > p_crit:
+        Memorise.state[fluid].update(CP.PQ_INPUTS, p_crit * 0.99, 1)
     else:
         Memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], 1)
     return Memorise.state[fluid].T()
@@ -1766,7 +1798,7 @@ def s_pT(p, T, fluid, force_gas):
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     else:
         if force_gas:
-            if T < Memorise.state[fluid].trivial_keyed_output(CP.iT_critical):
+            if T < get_T_crit(fluid):
                 Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
                 s = Memorise.state[fluid].smass()
                 Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)

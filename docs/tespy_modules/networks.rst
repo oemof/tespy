@@ -577,8 +577,8 @@ have further options:
 - Save the results in structure of .csv-files (:code:`save()`).
 - Generate fluid property diagrams with an external tool.
 
-Model documentation
-^^^^^^^^^^^^^^^^^^^
+Automatic model documentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Using the automatic TESPy model documentation you can create an overview of
 all input parameters, specifications and equations as well as characteristics
 applied in LaTeX format. This enables high
@@ -593,14 +593,36 @@ optional arguments to the method:
 
 - :code:`path`: Basepath, where the LaTeX data and figures are exported to.
 - :code:`filename`: Filename of the report.
-- :code:`draft`: Show or hide the first part of the Software Information
-  section.
+- :code:`rpt_formatter`: A formatting dictionary, for a sample see below.
 
 .. code-block:: python
 
     from tespy.tools import document_model
 
-    document_model(mynetwork)
+    rpt_params = {
+        'latex_body': True,  # adds LaTeX body to compile report out of the box
+        'include_results': True,  # include parameter specification and results
+        'HeatExchanger': {  # for components of class HeatExchanger
+            'params': ['Q', 'ttd_l', 'ttd_u', 'pr1', 'pr2']},  # change columns displayed
+        'Condenser': {  # for components of class HeatExchanger
+            'params': ['Q', 'ttd_l', 'ttd_u', 'pr1', 'pr2']
+            'float_fmt': '{:,.2f}'},  # change float format of data
+        'Connection': {  # for Connection instances
+            'p': {'float_fmt': '{:,.4f}'},  # change float format of pressure
+            's': {'float_fmt': '{:,.4f}'},
+            'h': {'float_fmt': '{:,.2f}'},
+            'params': ['m', 'p', 'h', 's']  # list results of mass flow, ...
+            'fluid': {'include_results': False}  # exclude results of fluid composition
+        },
+        'include_results': True,  # include results
+        'draft': False  # disable draft mode
+    }
+    document_model(mynetwork, rpt_formatter=rpt_params)
+
+.. note::
+
+    Specified values are displayed in any case. The selection of which
+    parameters to show and which to exclude only applies to results.
 
 After having exported the LaTeX code, you can simply use :code:`\input{}`
 in your main LaTeX document to include the documentation of your model. In
@@ -613,6 +635,7 @@ order to compile correctly you need to load the following LaTeX packages:
    -  amsmath
    -  units
    -  cleveref
+   -  longtable
 
 For generating different file formats, like markdown, html or
 restructuredtext, you could try the `pandoc <https://pandoc.org/>`_ library.

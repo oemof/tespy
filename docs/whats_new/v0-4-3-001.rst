@@ -11,7 +11,7 @@ Other Changes
   :code:`key in dictionary.keys()` in boolean operations
   (`PR #264 <https://github.com/oemof/tespy/pull/264>`_).
 - Rename GitHub branches: master to main
-  (`Issue #266 <https://github.com/oemof/tespy/issues/265>`_).
+  (`Issue #266 <https://github.com/oemof/tespy/issues/266>`_).
 
 Contributors
 ############

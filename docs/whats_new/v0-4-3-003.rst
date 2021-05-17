@@ -1,0 +1,18 @@
+v0.4.3-003 - Grassmann's Graph (May, 17, 2021)
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+- Fix typos in the HeatExchanger classes API docs.
+- Add two more examples for exergy analysis setups.
+
+Other Changes
+#############
+- Make it possible to include results in automatic model report, for more
+  information see the corresponding section in the documentation:
+  :ref:`TESPy Networks Postprocessing <tespy_modules_network_label>`
+  (`PR #267 <https://github.com/oemof/tespy/pull/267>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

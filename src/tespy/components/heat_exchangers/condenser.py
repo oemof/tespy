@@ -219,7 +219,7 @@ class Condenser(HeatExchanger):
             'kA': dc_cp(
                 min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
                 deriv=self.kA_deriv),
-            'td_log': dc_cp(min_val=0),
+            'td_log': dc_cp(min_val=0, func='dummy'),
             'ttd_u': dc_cp(
                 min_val=0, num_eq=1, func=self.ttd_u_func,
                 deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),

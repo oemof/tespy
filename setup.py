@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.4.3-003',
+    version='0.4.3-005',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -52,7 +52,6 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering',
@@ -62,12 +61,12 @@ setup(
         'Changelog': 'https://tespy.readthedocs.io/en/latest/whats_new.html',
         'Issue Tracker': 'https://github.com/oemof/tespy/issues',
     },
-    python_requires='>=3.6, <3.9',
+    python_requires='>=3.7, <3.9',
     install_requires=[
         'CoolProp>=6.4,<7',
         'matplotlib>=3.2.1,<4',
         'numpy>=1.13.3,<2',
-        'pandas>=0.19.2,!=1.0.0,<2',
+        'pandas>=1.2.0,<2',
         'scipy>=0.19.1,<2',
         'tabulate>=0.8.2,<0.9'
     ],

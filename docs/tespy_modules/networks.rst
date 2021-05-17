@@ -593,13 +593,13 @@ optional arguments to the method:
 
 - :code:`path`: Basepath, where the LaTeX data and figures are exported to.
 - :code:`filename`: Filename of the report.
-- :code:`rpt_formatter`: A formatting dictionary, for a sample see below.
+- :code:`fmt`: A formatting dictionary, for a sample see below.
 
 .. code-block:: python
 
     from tespy.tools import document_model
 
-    rpt_params = {
+    fmt = {
         'latex_body': True,  # adds LaTeX body to compile report out of the box
         'include_results': True,  # include parameter specification and results
         'HeatExchanger': {  # for components of class HeatExchanger
@@ -617,7 +617,7 @@ optional arguments to the method:
         'include_results': True,  # include results
         'draft': False  # disable draft mode
     }
-    document_model(mynetwork, rpt_formatter=rpt_params)
+    document_model(mynetwork, fmt=fmt)
 
 .. note::
 

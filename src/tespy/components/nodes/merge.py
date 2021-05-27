@@ -402,8 +402,8 @@ class Merge(NodeBase):
 
         .. math::
 
-            \dot{E}_\mathrm{P} = E_\mathrm{out}^\mathrm{PH}\\
-            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
+            \dot{E}_\mathrm{P} = \dot{E}_\mathrm{out}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
         """
         self.E_P = self.outl[0].Ex_physical
         self.E_F = 0

@@ -293,8 +293,8 @@ class Drum(DropletSeparator):
 
         .. math::
 
-            \dot{E}_\mathrm{P} = E_\mathrm{out}^\mathrm{PH}\\
-            \dot{E}_\mathrm{F} = \sum E_{\mathrm{in,}j}^\mathrm{PH}
+            \dot{E}_\mathrm{P} = \sum \dot{E}_{\mathrm{out,}j}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
         """
         self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
         self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical

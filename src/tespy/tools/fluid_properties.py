@@ -821,12 +821,16 @@ def h_mix_pT(flow, T, force_gas=False):
         pp: \text{partial pressure}
     """
     n = molar_mass_flow(flow[3])
-
+    T_tmp = T
     h = 0
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
+            if T > Memorise.value_range[fluid][3]:
+                T_tmp = T
+                T = Memorise.value_range[fluid][3] * 0.99
             h += h_pT(flow[1] * ni / n, T, fluid, force_gas) * x
+            T = T_tmp
 
     return h
 

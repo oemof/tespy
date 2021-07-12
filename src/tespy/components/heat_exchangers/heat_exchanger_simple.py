@@ -868,6 +868,9 @@ class HeatExchangerSimple(Component):
                 td_log = np.nan
 
             self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
+            self.kA.is_result = True
+        else:
+            self.kA.is_result = False
 
     def entropy_balance(self):
         r"""

@@ -1380,6 +1380,16 @@ class Network:
                         'connections.csv of init_path ' + self.init_path + '.')
                     logging.debug(msg)
 
+            if sum(c.fluid.val.values()) == 0:
+                msg = (
+                    'The starting value for the fluid composition of the '
+                    'connection ' + c.label + ' is empty. This might lead to '
+                    'issues in the initialisation and solving process as '
+                    'fluid property functions can not be called. Make sure '
+                    'you specified a fluid composition in all parts of the '
+                    'network.')
+                logging.warning(msg)
+
             for key in ['m', 'p', 'h']:
                 if not c.good_starting_values:
                     self.init_val0(c, key)

@@ -14,6 +14,9 @@ Bug Fixes
 
 Other Changes
 #############
+- Add warning logs for missing fluid composition data in the initialisation
+  process of the network
+  (`PR #278 <https://github.com/oemof/tespy/pull/278>`_).
 
 Contributors
 ############

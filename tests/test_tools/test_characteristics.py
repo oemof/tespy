@@ -62,13 +62,13 @@ def test_custom_CharLine_import():
            str(char_custom.x) + ' must be identical to the x values from '
            'the default characteristic line ' + str(char_original.x) + ' '
            'as these have been duplicated before load.')
-    assert x_cond is True, msg
+    assert x_cond, msg
 
     msg = ('The y values from the custom characteristic line ' +
            str(char_custom.y) + ' must be identical to the y values from '
            'the default characteristic line ' + str(char_original.y) + ' '
            'as these have been duplicated before load.')
-    assert y_cond is True, msg
+    assert y_cond, msg
 
 
 def test_custom_CharMap_import():
@@ -111,19 +111,19 @@ def test_custom_CharMap_import():
            str(char_custom.x) + ' must be identical to the x values from '
            'the default characteristic line ' + str(char_original.x) + ' '
            'as these have been duplicated before load.')
-    assert x_cond is True, msg
+    assert x_cond, msg
 
     msg = ('The y values from the custom characteristic line ' +
            str(char_custom.y) + ' must be identical to the y values from '
            'the default characteristic line ' + str(char_original.y) + ' '
            'as these have been duplicated before load.')
-    assert y_cond is True, msg
+    assert y_cond, msg
 
     msg = ('The z values from the custom characteristic line ' +
            str(char_custom.z) + ' must be identical to the z values from '
            'the default characteristic line ' + str(char_original.z) + ' '
            'as these have been duplicated before load.')
-    assert z_cond is True, msg
+    assert z_cond, msg
 
 
 def test_CharLine_evaluation():

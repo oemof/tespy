@@ -57,7 +57,7 @@ class TestNetworks:
         self.nw.solve('design')
         msg = ('This test must result in a linear dependency of the jacobian '
                'matrix.')
-        assert self.nw.lin_dep is True, msg
+        assert self.nw.lin_dep, msg
 
     def test_Network_no_progress(self):
         """Test no convergence progress."""
@@ -92,7 +92,7 @@ class TestNetworks:
         self.nw.add_conns(a)
         self.nw.check_network()
         msg = ('After the network check, the .checked-property must be True.')
-        assert self.nw.checked is True, msg
+        assert self.nw.checked, msg
 
         self.nw.del_conns(a)
         msg = ('A connection has been deleted, the network consistency check '
@@ -108,7 +108,7 @@ class TestNetworks:
         self.nw.solve('design', init_only=True)
         self.nw.save('tmp')
         msg = ('After the network check, the .checked-property must be True.')
-        assert self.nw.checked is True, msg
+        assert self.nw.checked, msg
 
         self.nw.del_conns(a)
         a = Connection(self.source, 'out1', IF, 'in1')
@@ -116,7 +116,7 @@ class TestNetworks:
         self.nw.add_conns(a, b)
         self.nw.solve('design', init_path='tmp', init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
-        assert self.nw.checked is True, msg
+        assert self.nw.checked, msg
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
@@ -152,7 +152,7 @@ class TestNetworks:
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
-        assert imported_nwk.checked is True, msg
+        assert imported_nwk.checked, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_Network_reader_deleted_chars(self):
@@ -174,7 +174,7 @@ class TestNetworks:
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
-        assert imported_nwk.checked is True, msg
+        assert imported_nwk.checked, msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_Network_missing_data_in_design_case_files(self):
@@ -397,11 +397,11 @@ class TestNetworkIndividualOffdesign:
         assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
 
         msg = ('Parameter eta_s_char must be set for pump one.')
-        assert self.pump1.eta_s_char.is_set is True, msg
+        assert self.pump1.eta_s_char.is_set, msg
 
         msg = ('Parameter v must be set for connection from solar collector1 '
                'to pump1.')
-        assert self.sc1_v1.v.val_set is True, msg
+        assert self.sc1_v1.v.val_set, msg
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)

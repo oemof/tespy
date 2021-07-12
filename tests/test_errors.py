@@ -309,7 +309,7 @@ class TestCombustionChamberStoichErrors:
         self.setup_CombustionChamberStoich_error_tests()
         self.instance.set_attr(air_alias='some alias')
         msg = 'The air_alias has been set, is_set should be True.'
-        assert self.instance.air_alias.is_set is True, msg
+        assert self.instance.air_alias.is_set, msg
 
         self.instance.set_attr(air_alias=None)
         msg = 'The air_alias has been unset, is_set should be False.'

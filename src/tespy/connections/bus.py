@@ -184,7 +184,8 @@ class Bus:
     def __init__(self, label, **kwargs):
 
         self.comps = pd.DataFrame(
-            columns=['param', 'P_ref', 'char', 'efficiency', 'base'])
+            columns=['param', 'P_ref', 'char', 'efficiency', 'base'],
+            dtype='object')
 
         self.label = label
         self.P = dc_simple(val=np.nan, is_set=False)

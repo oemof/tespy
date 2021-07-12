@@ -740,7 +740,7 @@ def get_component_specifications(nw, cp, rpt):
 
     # # get parameter groups tables
     for param, data in data_dict_gcp.items():
-        df_data_gcp = pd.DataFrame(data)
+        df_data_gcp = pd.DataFrame(data, dtype='object')
         if df_data_gcp.size > 0:
             for col in df_data_gcp.columns:
                 col_headers[col] = col.replace('_', r'\_')
@@ -796,7 +796,8 @@ def document_busses(nw, rpt):
                 df.loc['total', 'bus value'] = (
                     fmt.format(df.loc['total', 'bus value']))
         else:
-            df = pd.DataFrame(columns=['comp eq', 'bus eq', 'eta ref'])
+            df = pd.DataFrame(
+                columns=['comp eq', 'bus eq', 'eta ref'], dtype='object')
 
         figures = []
         for cp in b.comps.index:
@@ -925,7 +926,7 @@ def data_to_df(data):
         Polished DataFrame.
     """
     if not isinstance(data, pd.DataFrame):
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(data, dtype='object')
     else:
         df = data
     to_drop = [n for n in df.columns if n != 'label']

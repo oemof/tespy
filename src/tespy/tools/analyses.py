@@ -330,7 +330,8 @@ class ExergyAnalysis:
 
         self.sankey_data = {}
         for label in self.reserved_fkt_groups:
-            self.sankey_data[label] = pd.DataFrame(columns=['value', 'cat'])
+            self.sankey_data[label] = pd.DataFrame(
+                columns=['value', 'cat'], dtype='object')
 
         # exergy balance of components
         for cp in self.nw.comps['object']:
@@ -350,7 +351,7 @@ class ExergyAnalysis:
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
-                    columns=['value', 'cat'])
+                    columns=['value', 'cat'], dtype='object')
 
             self.evaluate_busses(cp)
 

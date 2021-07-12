@@ -279,7 +279,7 @@ class CombustionChamber(Component):
         hf['ethane'] = -84.68
         hf['propane'] = -103.8
         hf['butane'] = -124.51
-        hf['nDodecane'] = -352.1
+        hf['nDodecane'] = -288.1
         hf[self.o2] = 0
         hf[self.co2] = -393.5
         # water (gaseous)

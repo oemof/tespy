@@ -17,6 +17,11 @@ Other Changes
 - Add warning logs for missing fluid composition data in the initialisation
   process of the network
   (`PR #278 <https://github.com/oemof/tespy/pull/278>`_).
+<<<<<<< HEAD
+=======
+- Add Dodecane to the available fuels for combustion
+  (`PR #273 <https://github.com/oemof/tespy/pull/273>`_).
+>>>>>>> pr/273
 
 Contributors
 ############

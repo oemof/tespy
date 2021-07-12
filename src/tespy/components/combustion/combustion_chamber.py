@@ -201,7 +201,8 @@ class CombustionChamber(Component):
     def setup_reaction_parameters(self):
         r"""Setup parameters for reaction (gas name aliases and LHV)."""
         self.fuel_list = []
-        fuels = ['methane', 'ethane', 'propane', 'butane', 'hydrogen']
+        fuels = [
+            'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane']
         for f in fuels:
             self.fuel_list += [x for x in self.nw_fluids if x in [
                 a.replace(' ', '') for a in CP.get_aliases(f)]]
@@ -209,14 +210,15 @@ class CombustionChamber(Component):
         if len(self.fuel_list) == 0:
             msg = ('Your network\'s fluids do not contain any fuels, that are '
                    'available for the component ' + self.label + ' of type ' +
-                   self.component() + '. Available fuels are: ' + str(fuels) +
-                   '.')
+                   self.component() + '. Available fuels are: ' +
+                   ', '.join(fuels) + '.')
             logging.error(msg)
             raise TESPyComponentError(msg)
 
         else:
             msg = ('The fuels for component ' + self.label + ' of type ' +
-                   self.component() + ' are: ' + str(self.fuel_list) + '.')
+                   self.component() + ' are: ' + ', '.join(self.fuel_list) +
+                   '.')
             logging.debug(msg)
 
         for fluid in ['o2', 'co2', 'h2o', 'n2']:
@@ -277,6 +279,7 @@ class CombustionChamber(Component):
         hf['ethane'] = -84.68
         hf['propane'] = -103.8
         hf['butane'] = -124.51
+        hf['nDodecane'] = -288.1
         hf[self.o2] = 0
         hf[self.co2] = -393.5
         # water (gaseous)

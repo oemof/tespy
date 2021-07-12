@@ -278,7 +278,7 @@ class ComponentProperties(DataContainer):
         return {
             'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
-            'val_ref': 1, 'design': np.nan,
+            'val_ref': 1, 'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
             'latex': None}
 

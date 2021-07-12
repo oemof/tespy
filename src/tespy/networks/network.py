@@ -2537,6 +2537,8 @@ class Network:
                 if (p.func is not None or (p.func is None and p.is_set) or
                         p.is_result):
                     self.results[key].loc[cp.label, param] = p.val
+                else:
+                    self.results[key].loc[cp.label, param] = np.nan
 
     def process_busses(self):
         """Process the bus results."""

@@ -99,8 +99,8 @@ class CycleCloser(Component):
     @staticmethod
     def get_variables():
         return {
-            'mass_deviation': dc_cp(val=0, max_val=1e-3),
-            'fluid_deviation': dc_cp(val=0, max_val=1e-5)
+            'mass_deviation': dc_cp(val=0, max_val=1e-3, is_result=True),
+            'fluid_deviation': dc_cp(val=0, max_val=1e-5, is_result=True)
         }
 
     def get_mandatory_constraints(self):

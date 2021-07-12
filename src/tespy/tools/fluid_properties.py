@@ -262,7 +262,7 @@ class TESPyFluid:
         y : ndarray
             Lookup value (enthalpy, entropy, density or viscosity)
         """
-        df = pd.DataFrame(y, columns=x2, index=x1)
+        df = pd.DataFrame(y, columns=x2, index=x1, dtype='float')
         alias = self.alias.replace('::', '_')
         path = './LUT/' + alias + '/'
         if not os.path.exists(path):

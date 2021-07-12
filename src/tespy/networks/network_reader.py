@@ -274,7 +274,8 @@ def load_network(path):
         logging.debug(msg)
 
     except FileNotFoundError:
-        char_lines = pd.DataFrame(columns=['id', 'type', 'x', 'y'])
+        char_lines = pd.DataFrame(
+            columns=['id', 'type', 'x', 'y'], dtype='object')
 
     # load characteristic maps
     fn = path_comps + 'char_map.csv'
@@ -287,10 +288,11 @@ def load_network(path):
                                             'z': ast.literal_eval})
 
     except FileNotFoundError:
-        char_maps = pd.DataFrame(columns=['id', 'type', 'x', 'y', 'z'])
+        char_maps = pd.DataFrame(
+            columns=['id', 'type', 'x', 'y', 'z'], dtype='object')
 
     # load components
-    comps = pd.DataFrame()
+    comps = pd.DataFrame(dtype='object')
 
     files = os.listdir(path_comps)
     for f in files:
@@ -354,7 +356,7 @@ def load_network(path):
         logging.debug(msg)
 
     except FileNotFoundError:
-        busses = pd.DataFrame()
+        busses = pd.DataFrame(dtype='object')
         msg = 'No bus data found!'
         logging.debug(msg)
 

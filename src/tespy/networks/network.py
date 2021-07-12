@@ -174,7 +174,8 @@ class Network:
         """Set default network properties."""
         # connection dataframe
         self.conns = pd.DataFrame(
-            columns=['object', 'source', 'source_id', 'target', 'target_id'])
+            columns=['object', 'source', 'source_id', 'target', 'target_id'],
+            dtype='object')
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -695,7 +696,7 @@ class Network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame()
+        self.comps = pd.DataFrame(dtype='object')
 
         labels = []
         for comp in comps:
@@ -2533,7 +2534,8 @@ class Network:
             key = cp.__class__.__name__
             for param in self.results[key].columns:
                 p = cp.get_attr(param)
-                if p.func is not None or (p.func is None and p.is_set):
+                if (p.func is not None or (p.func is None and p.is_set) or
+                        p.is_result):
                     self.results[key].loc[cp.label, param] = p.val
 
     def process_busses(self):
@@ -2915,7 +2917,8 @@ class Network:
         """
         if len(self.busses) > 0:
             df = pd.DataFrame(
-                {'id': self.busses.values()}, index=self.busses.values())
+                {'id': self.busses.values()}, index=self.busses.values(),
+                dtype='object')
             df['label'] = df.apply(Network.get_props, axis=1, args=('label',))
             df['P'] = df.apply(Network.get_props, axis=1, args=('P', 'val'))
             df['P_set'] = df.apply(Network.get_props, axis=1,
@@ -2955,7 +2958,8 @@ class Network:
         # characteristic line export
         if len(char_lines) > 0:
             # get id and data
-            df = pd.DataFrame({'id': char_lines}, index=char_lines)
+            df = pd.DataFrame(
+                {'id': char_lines}, index=char_lines, dtype='object')
             df['id'] = df.apply(Network.get_id, axis=1)
             df['type'] = df.apply(Network.get_class_base, axis=1)
 
@@ -2971,7 +2975,8 @@ class Network:
 
         if len(char_maps) > 0:
             # get id and data
-            df = pd.DataFrame({'id': char_maps}, index=char_maps)
+            df = pd.DataFrame(
+                {'id': char_maps}, index=char_maps, dtype='object')
             df['id'] = df.apply(Network.get_id, axis=1)
             df['type'] = df.apply(Network.get_class_base, axis=1)
 

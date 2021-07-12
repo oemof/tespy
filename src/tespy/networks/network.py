@@ -2579,24 +2579,33 @@ class Network:
         }
         coloring.update(colors)
 
+        if not hasattr(self, 'results'):
+            msg = (
+                'It is not possible to print the results of a network, that '
+                'has never been solved successfully. Results DataFrames are '
+                'only available after a full simulation run is performed.')
+            raise hlp.TESPyNetworkError(msg)
+
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
 
             # are there any parameters to print?
-            cols = df.columns
-            if len(cols) > 0:
-                for col in cols:
-                    df[col] = df.apply(
-                        self.print_components, axis=1,
-                        args=(col, colored, coloring))
+            if df.size > 0:
+                cols = df.columns
+                if len(cols) > 0:
+                    for col in cols:
+                        df[col] = df.apply(
+                            self.print_components, axis=1,
+                            args=(col, colored, coloring))
 
-                df.dropna(how='all', axis=1, inplace=True)
+                    df.dropna(how='all', inplace=True)
 
-                if df.size > 0:
-                    # printout with tabulate
-                    print('##### RESULTS (' + cp + ') #####')
-                    print(tabulate(
-                        df, headers='keys', tablefmt='psql', floatfmt='.2e'))
+                    if len(df) > 0:
+                        # printout with tabulate
+                        print('##### RESULTS (' + cp + ') #####')
+                        print(tabulate(
+                            df, headers='keys', tablefmt='psql',
+                            floatfmt='.2e'))
 
         # connection properties
         df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]

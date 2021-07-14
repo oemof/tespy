@@ -400,15 +400,90 @@ class Merge(NodeBase):
         ----
         Please note, that the exergy balance accounts for physical exergy only.
 
-        .. math::
+        .. math ::
 
-            \dot{E}_\mathrm{P} = \dot{E}_\mathrm{out}^\mathrm{PH}\\
-            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
+            \dot{E}_\mathrm{P} =
+            \begin{cases}
+            \begin{cases}
+            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
+            e_{\mathrm{in,}i}^\mathrm{PH}\right)
+            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} \geq T_0 \\
+            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
+            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} < T_0 \\
+            \end{cases} & T_\mathrm{out} > T_0\\
+
+            \text{not defined (nan)} & T_\mathrm{out} = T_0\\
+
+            \begin{cases}
+            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
+            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} \geq T_0 \\
+            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
+            e_{\mathrm{in,}i}^\mathrm{PH}\right)
+            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} < T_0 \\
+            \end{cases} & T_\mathrm{out} < T_0\\
+            \end{cases}
+
+            \dot{E}_\mathrm{F} =
+            \begin{cases}
+            \begin{cases}
+            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
+            e_\mathrm{out}^\mathrm{PH}\right)
+            & T_{\mathrm{in,}i} > T_\mathrm{out} \\
+            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
+            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} < T_0 \\
+            \end{cases} & T_\mathrm{out} > T_0\\
+
+            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH} & T_\mathrm{out} = T_0\\
+
+            \begin{cases}
+            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
+            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
+            T_{\mathrm{in,}i} \geq T_0 \\
+            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
+            e_\mathrm{out}^\mathrm{PH}\right)
+            & T_{\mathrm{in,}i} < T_\mathrm{out} \\
+            \end{cases} & T_\mathrm{out} < T_0\\
+            \end{cases}
+
+            \forall i \in \text{merge inlets}
+
+            \dot{E}_\mathrm{bus} = \text{not defined (nan)}
         """
-        self.E_P = self.outl[0].Ex_physical
+        self.E_P = 0
         self.E_F = 0
-        for i in self.inl:
-            self.E_F += i.Ex_physical
+        if self.outl[0].T.val_SI > T0:
+            for i in self.inl:
+                if i.T.val_SI < self.outl[0].T.val_SI:
+                    if i.T.val_SI >= T0:
+                        self.E_P += i.m.val_SI * (
+                            self.outl[0].ex_physical - i.ex_physical)
+                    else:
+                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
+                        self.E_F += i.Ex_physical
+                else:
+                    self.E_F += i.m.val_SI * (
+                        i.ex_physical - self.outl[0].ex_physical)
+        elif self.outl[0].T.val_SI == T0:
+            self.E_P = np.nan
+            for i in self.inl:
+                self.E_F += i.Ex_physical
+        else:
+            for i in self.inl:
+                if i.T.val_SI > self.outl[0].T.val_SI:
+                    if i.T.val_SI >= T0:
+                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
+                        self.E_F += i.Ex_physical
+                    else:
+                        self.E_P += i.m.val_SI * (
+                            self.outl[0].ex_physical - i.ex_physical)
+                else:
+                    self.E_F += i.m.val_SI * (
+                        i.ex_physical - self.outl[0].ex_physical)
 
         self.E_bus = np.nan
         self.E_D = self.E_F - self.E_P

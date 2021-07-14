@@ -8,9 +8,9 @@ available from its original location tespy/tools/document_models.py
 
 SPDX-License-Identifier: MIT
 """
-import collections
 import os
 import sys
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import date
 
@@ -85,7 +85,7 @@ def merge_dicts(dict1, dict2):
     result = deepcopy(dict1)
 
     for key, value in dict2.items():
-        if isinstance(value, collections.Mapping):
+        if isinstance(value, Mapping):
             result[key] = merge_dicts(result.get(key, {}), value)
         else:
             result[key] = deepcopy(dict2[key])

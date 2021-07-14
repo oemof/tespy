@@ -26,33 +26,3 @@ from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401
-
-# ############## deprecated components errors ############## #
-
-from .deprecated import source  # noqa: F401
-from .deprecated import sink  # noqa: F401
-from .deprecated import cycle_closer  # noqa: F401
-from .deprecated import subsystem_interface  # noqa: F401
-from .deprecated import combustion_chamber  # noqa: F401
-from .deprecated import combustion_chamber_stoich  # noqa: F401
-from .deprecated import combustion_engine  # noqa: F401
-from .deprecated import orc_evaporator  # noqa: F401
-from .deprecated import condenser  # noqa: F401
-from .deprecated import desuperheater  # noqa: F401
-from .deprecated import heat_exchanger  # noqa: F401
-from .deprecated import heat_exchanger_simple  # noqa: F401
-from .deprecated import parabolic_trough  # noqa: F401
-from .deprecated import solar_collector  # noqa: F401
-from .deprecated import droplet_separator  # noqa: F401
-from .deprecated import drum  # noqa: F401
-from .deprecated import merge  # noqa: F401
-from .deprecated import node  # noqa: F401
-from .deprecated import separator  # noqa: F401
-from .deprecated import splitter  # noqa: F401
-from .deprecated import pipe  # noqa: F401
-from .deprecated import valve  # noqa: F401
-from .deprecated import water_electrolyzer  # noqa: F401
-from .deprecated import compressor  # noqa: F401
-from .deprecated import pump  # noqa: F401
-from .deprecated import turbine  # noqa: F401
-from .deprecated import subsystem  # noqa: F401

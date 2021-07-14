@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.4.3-005 - Grassmann\'s Graph'
+__version__ = '0.4.4 - Reynolds\' Reminiscence'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

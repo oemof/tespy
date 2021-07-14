@@ -1,5 +1,5 @@
-v0.4.4 - Someversion (July, 12, 2021)
-+++++++++++++++++++++++++++++++++++++
+v0.4.4 - Reynolds' Reminiscence (July, 14, 2021)
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 Documentation
 #############
@@ -11,17 +11,21 @@ Bug Fixes
   (`PR #277 <https://github.com/oemof/tespy/pull/277>`_).
 - Add missing results for some components in the results DataFrame of the
   network (`PR #277 <https://github.com/oemof/tespy/pull/277>`_).
+- Fix exergy balance equation of class merge
+  :py:class:`tespy.components.nodes.merge.Merge.exergy_balance`
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
+- Fix a lot of DeprecationWarnings in pandas
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
 
 Other Changes
 #############
 - Add warning logs for missing fluid composition data in the initialisation
   process of the network
   (`PR #278 <https://github.com/oemof/tespy/pull/278>`_).
-<<<<<<< HEAD
-=======
 - Add Dodecane to the available fuels for combustion
   (`PR #273 <https://github.com/oemof/tespy/pull/273>`_).
->>>>>>> pr/273
+- Add tests for the solar energy generating system
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
 
 Contributors
 ############

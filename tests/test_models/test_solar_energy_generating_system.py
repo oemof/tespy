@@ -413,4 +413,4 @@ class TestSEGS:
             'The exergy product value in the links (' + str(power_links) +
             ') must be equal to the power on the respective bus (' +
             str(power_bus) + ').')
-        assert power_links == power_bus
+        assert power_links == power_bus, msg

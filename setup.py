@@ -72,6 +72,6 @@ setup(
     ],
     extras_require={
         'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',
-                'sphinxcontrib.bibtex', ],
+                'sphinxcontrib.bibtex', 'tox', ],
         'dummy': ['tespy']}
 )

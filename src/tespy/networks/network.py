@@ -252,6 +252,12 @@ class Network:
             columns=cols, dtype='bool')
         self.specifications['Ref'] = pd.DataFrame(
             columns=cols, dtype='bool')
+        self.specifications['lookup'] = {
+            'properties': 'prop_specifications',
+            'chars': 'char_specifications',
+            'variables': 'var_specifications',
+            'groups': 'group_specifications'
+        }
 
     def set_attr(self, **kwargs):
         r"""
@@ -738,7 +744,7 @@ class Network:
                         chars += [col]
                 self.specifications[comp_type] = {
                     'groups': pd.DataFrame(columns=groups, dtype='bool'),
-                    'chars': pd.DataFrame(columns=chars, dtype='bool'),
+                    'chars': pd.DataFrame(columns=chars, dtype='object'),
                     'variables': pd.DataFrame(columns=cols, dtype='bool'),
                     'properties': pd.DataFrame(columns=cols, dtype='bool')
                 }
@@ -965,7 +971,7 @@ class Network:
             for cp in b.comps.index:
                 b.comps.loc[cp, 'P_ref'] = np.nan
 
-        series = pd.Series(dtype=np.float64)
+        series = pd.Series(dtype='float64')
         for cp in self.comps['object']:
             # read design point information of components with
             # local_offdesign activated from their respective design path
@@ -1024,29 +1030,10 @@ class Network:
             # component initialisation
             cp.comp_init(self)
             ct = cp.__class__.__name__
-            try:
-                self.specifications[ct]['properties'].loc[cp.label] = (
-                    cp.prop_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['variables'].loc[cp.label] = (
-                    cp.var_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['groups'].loc[cp.label] = (
-                    cp.group_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['chars'].loc[cp.label] = (
-                    cp.char_specifications)
-            except ValueError:
-                pass
+            for spec in self.specifications[ct].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[ct][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec]))
 
             # count number of component equations and variables
             self.num_comp_vars += cp.num_vars
@@ -1269,29 +1256,11 @@ class Network:
             # start component initialisation
             cp.comp_init(self)
             ct = cp.__class__.__name__
-            try:
-                self.specifications[ct]['properties'].loc[cp.label] = (
-                    cp.prop_specifications)
-            except ValueError:
-                pass
+            for spec in self.specifications[ct].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[ct][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec]))
 
-            try:
-                self.specifications[ct]['variables'].loc[cp.label] = (
-                    cp.var_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['groups'].loc[cp.label] = (
-                    cp.group_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['chars'].loc[cp.label] = (
-                    cp.char_specifications)
-            except ValueError:
-                pass
             cp.new_design = False
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq

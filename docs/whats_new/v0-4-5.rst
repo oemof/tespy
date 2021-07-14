@@ -1,0 +1,17 @@
+v0.4.5 - Someversion (Somemonth, Someday, 2021)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+
+Bug Fixes
+#########
+- Add :code:`is_result` flag to logarithmic temperature difference of heat
+  exchangers.
+
+Other Changes
+#############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

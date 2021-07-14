@@ -401,10 +401,16 @@ class TestSEGS:
             E_L=[self.nw.busses['exergy loss']])
         ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
-        # checksums for links and nodes
         # generate Grassmann diagram
         links, nodes = ean.generate_plotly_sankey_input()
 
-        print(links, nodes)
-
-        assert True is False, 'test'
+        # check if exergy product value in links is equal to total power
+        # output
+        position = links['target'].index(nodes.index('E_P'))
+        power_links = round(links['value'][position], 0)
+        power_bus = round(-self.nw.busses['total output power'].P.val, 0)
+        msg = (
+            'The exergy product value in the links (' + str(power_links) +
+            ') must be equal to the power on the respective bus (' +
+            str(power_bus) + ').')
+        assert power_links == power_bus

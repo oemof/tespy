@@ -14,6 +14,8 @@ Bug Fixes
 - Fix exergy balance equation of class merge
   :py:class:`tespy.components.nodes.merge.Merge.exergy_balance`
   (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
+- Fix a lot of DeprecationWarnings in pandas
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
 
 Other Changes
 #############
@@ -22,6 +24,8 @@ Other Changes
   (`PR #278 <https://github.com/oemof/tespy/pull/278>`_).
 - Add Dodecane to the available fuels for combustion
   (`PR #273 <https://github.com/oemof/tespy/pull/273>`_).
+- Add tests for the solar energy generating system
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
 
 Contributors
 ############

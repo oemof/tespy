@@ -90,40 +90,40 @@ class ExergyAnalysis:
         .. math::
 
             \begin{split}
-            E_{\mathrm{D},comp} = E_{\mathrm{F},comp} - E_{\mathrm{P},comp}
+            \dot{E}_{\mathrm{D},comp} = \dot{E}_{\mathrm{F},comp} - \dot{E}_{\mathrm{P},comp}
             \;& \\
             \varepsilon_{\mathrm{comp}} =
-            \frac{E_{\mathrm{P},comp}}{E_{\mathrm{F},comp}} \;& \\
-            E_{\mathrm{D}} = \sum_{comp} E_{\mathrm{D},comp} \;&
+            \frac{\dot{E}_{\mathrm{P},comp}}{\dot{E}_{\mathrm{F},comp}} \;& \\
+            \dot{E}_{\mathrm{D}} = \sum_{comp} \dot{E}_{\mathrm{D},comp} \;&
             \forall comp \in \text{ network components}\\
-            E_{\mathrm{P}} = \sum_{comp} E_{\mathrm{P},comp} \;&
+            \dot{E}_{\mathrm{P}} = \sum_{comp} \dot{E}_{\mathrm{P},comp} \;&
             \forall comp \in
             \text{ components of busses in E\_P if 'base': 'component'}\\
-            E_{\mathrm{P}} = E_{\mathrm{P}} - \sum_{comp} E_{\mathrm{F},comp}
+            \dot{E}_{\mathrm{P}} = \dot{E}_{\mathrm{P}} - \sum_{comp} \dot{E}_{\mathrm{F},comp}
             \;& \forall comp \in
             \text{ components of busses in E\_P if 'base': 'bus'}\\
-            E_{\mathrm{F}} = \sum_{comp} E_{\mathrm{F},comp} \;&
+            \dot{E}_{\mathrm{F}} = \sum_{comp} \dot{E}_{\mathrm{F},comp} \;&
             \forall comp \in
             \text{ components of busses in E\_F if 'base': 'bus'}\\
-            E_{\mathrm{F}} = E_{\mathrm{F}} - \sum_{comp} E_{\mathrm{P},comp}
+            \dot{E}_{\mathrm{F}} = \dot{E}_{\mathrm{F}} - \sum_{comp} \dot{E}_{\mathrm{P},comp}
             \;& \forall comp \in
             \text{ components of busses in E\_F if 'base': 'component'}\\
-            E_{\mathrm{L}} = \sum_{comp} E_{\mathrm{D},comp} \;&
+            \dot{E}_{\mathrm{L}} = \sum_{comp} \dot{E}_{\mathrm{D},comp} \;&
             \forall comp \in
             \text{ sinks of network components if parameter exergy='loss'}
             \end{split}
 
         The exergy balance of the network must be closed, meaning fuel exergy
         minus product exergy, exergy destruction and exergy losses must be
-        zero (:math:`\Delta E_\text{max}=0.001`). If the balance is violated a
+        zero (:math:`\Delta \dot{E}_\text{max}=0.001`). If the balance is violated a
         warning message is prompted.
 
         .. math::
 
-            |E_{\text{F}} - E_{\text{P}} - E_{\text{L}} - E_{\text{D}}| \leq
-            \Delta E_\text{max}\\
+            |\dot{E}_{\text{F}} - \dot{E}_{\text{P}} - \dot{E}_{\text{L}} - \dot{E}_{\text{D}}| \leq
+            \Delta \dot{E}_\text{max}\\
 
-            \varepsilon = \frac{E_{\text{P}}}{E_{\text{F}}}
+            \varepsilon = \frac{\dot{E}_{\text{P}}}{\dot{E}_{\text{F}}}
 
             y_{\text{D},comp} =
             \frac{\dot{E}_{\text{D},comp}}{\dot{E}_{\text{F}}}\\
@@ -330,7 +330,8 @@ class ExergyAnalysis:
 
         self.sankey_data = {}
         for label in self.reserved_fkt_groups:
-            self.sankey_data[label] = pd.DataFrame(columns=['value', 'cat'])
+            self.sankey_data[label] = pd.DataFrame(
+                columns=['value', 'cat'], dtype='object')
 
         # exergy balance of components
         for cp in self.nw.comps['object']:
@@ -350,7 +351,7 @@ class ExergyAnalysis:
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
-                    columns=['value', 'cat'])
+                    columns=['value', 'cat'], dtype='object')
 
             self.evaluate_busses(cp)
 

@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.4.3-005',
+    version='0.4.4',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -58,7 +58,7 @@ setup(
     ],
     project_urls={
         'Documentation': 'https://tespy.readthedocs.io/',
-        'Changelog': 'https://tespy.readthedocs.io/en/latest/whats_new.html',
+        'Changelog': 'https://tespy.readthedocs.io/en/main/whats_new.html',
         'Issue Tracker': 'https://github.com/oemof/tespy/issues',
     },
     python_requires='>=3.7, <3.9',
@@ -72,6 +72,6 @@ setup(
     ],
     extras_require={
         'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',
-                'sphinxcontrib.bibtex', ],
+                'sphinxcontrib.bibtex', 'tox', ],
         'dummy': ['tespy']}
 )

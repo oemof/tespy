@@ -174,7 +174,8 @@ class Network:
         """Set default network properties."""
         # connection dataframe
         self.conns = pd.DataFrame(
-            columns=['object', 'source', 'source_id', 'target', 'target_id'])
+            columns=['object', 'source', 'source_id', 'target', 'target_id'],
+            dtype='object')
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -251,6 +252,12 @@ class Network:
             columns=cols, dtype='bool')
         self.specifications['Ref'] = pd.DataFrame(
             columns=cols, dtype='bool')
+        self.specifications['lookup'] = {
+            'properties': 'prop_specifications',
+            'chars': 'char_specifications',
+            'variables': 'var_specifications',
+            'groups': 'group_specifications'
+        }
 
     def set_attr(self, **kwargs):
         r"""
@@ -695,7 +702,7 @@ class Network:
         connections. Thus it does not hold any additional information, the
         dataframe is used to simplify the code, only.
         """
-        self.comps = pd.DataFrame()
+        self.comps = pd.DataFrame(dtype='object')
 
         labels = []
         for comp in comps:
@@ -737,7 +744,7 @@ class Network:
                         chars += [col]
                 self.specifications[comp_type] = {
                     'groups': pd.DataFrame(columns=groups, dtype='bool'),
-                    'chars': pd.DataFrame(columns=chars, dtype='bool'),
+                    'chars': pd.DataFrame(columns=chars, dtype='object'),
                     'variables': pd.DataFrame(columns=cols, dtype='bool'),
                     'properties': pd.DataFrame(columns=cols, dtype='bool')
                 }
@@ -964,7 +971,7 @@ class Network:
             for cp in b.comps.index:
                 b.comps.loc[cp, 'P_ref'] = np.nan
 
-        series = pd.Series(dtype=np.float64)
+        series = pd.Series(dtype='float64')
         for cp in self.comps['object']:
             # read design point information of components with
             # local_offdesign activated from their respective design path
@@ -1023,29 +1030,10 @@ class Network:
             # component initialisation
             cp.comp_init(self)
             ct = cp.__class__.__name__
-            try:
-                self.specifications[ct]['properties'].loc[cp.label] = (
-                    cp.prop_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['variables'].loc[cp.label] = (
-                    cp.var_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['groups'].loc[cp.label] = (
-                    cp.group_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['chars'].loc[cp.label] = (
-                    cp.char_specifications)
-            except ValueError:
-                pass
+            for spec in self.specifications[ct].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[ct][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec]))
 
             # count number of component equations and variables
             self.num_comp_vars += cp.num_vars
@@ -1268,29 +1256,11 @@ class Network:
             # start component initialisation
             cp.comp_init(self)
             ct = cp.__class__.__name__
-            try:
-                self.specifications[ct]['properties'].loc[cp.label] = (
-                    cp.prop_specifications)
-            except ValueError:
-                pass
+            for spec in self.specifications[ct].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[ct][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec]))
 
-            try:
-                self.specifications[ct]['variables'].loc[cp.label] = (
-                    cp.var_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['groups'].loc[cp.label] = (
-                    cp.group_specifications)
-            except ValueError:
-                pass
-
-            try:
-                self.specifications[ct]['chars'].loc[cp.label] = (
-                    cp.char_specifications)
-            except ValueError:
-                pass
             cp.new_design = False
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
@@ -1378,6 +1348,16 @@ class Network:
                         'Could not find connection ' + c.label + ' in '
                         'connections.csv of init_path ' + self.init_path + '.')
                     logging.debug(msg)
+
+            if sum(c.fluid.val.values()) == 0:
+                msg = (
+                    'The starting value for the fluid composition of the '
+                    'connection ' + c.label + ' is empty. This might lead to '
+                    'issues in the initialisation and solving process as '
+                    'fluid property functions can not be called. Make sure '
+                    'you specified a fluid composition in all parts of the '
+                    'network.')
+                logging.warning(msg)
 
             for key in ['m', 'p', 'h']:
                 if not c.good_starting_values:
@@ -2533,8 +2513,11 @@ class Network:
             key = cp.__class__.__name__
             for param in self.results[key].columns:
                 p = cp.get_attr(param)
-                if p.func is not None or (p.func is None and p.is_set):
+                if (p.func is not None or (p.func is None and p.is_set) or
+                        p.is_result):
                     self.results[key].loc[cp.label, param] = p.val
+                else:
+                    self.results[key].loc[cp.label, param] = np.nan
 
     def process_busses(self):
         """Process the bus results."""
@@ -2579,24 +2562,33 @@ class Network:
         }
         coloring.update(colors)
 
+        if not hasattr(self, 'results'):
+            msg = (
+                'It is not possible to print the results of a network, that '
+                'has never been solved successfully. Results DataFrames are '
+                'only available after a full simulation run is performed.')
+            raise hlp.TESPyNetworkError(msg)
+
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
 
             # are there any parameters to print?
-            cols = df.columns
-            if len(cols) > 0:
-                for col in cols:
-                    df[col] = df.apply(
-                        self.print_components, axis=1,
-                        args=(col, colored, coloring))
+            if df.size > 0:
+                cols = df.columns
+                if len(cols) > 0:
+                    for col in cols:
+                        df[col] = df.apply(
+                            self.print_components, axis=1,
+                            args=(col, colored, coloring))
 
-                df.dropna(how='all', axis=1, inplace=True)
+                    df.dropna(how='all', inplace=True)
 
-                if df.size > 0:
-                    # printout with tabulate
-                    print('##### RESULTS (' + cp + ') #####')
-                    print(tabulate(
-                        df, headers='keys', tablefmt='psql', floatfmt='.2e'))
+                    if len(df) > 0:
+                        # printout with tabulate
+                        print('##### RESULTS (' + cp + ') #####')
+                        print(tabulate(
+                            df, headers='keys', tablefmt='psql',
+                            floatfmt='.2e'))
 
         # connection properties
         df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
@@ -2906,7 +2898,8 @@ class Network:
         """
         if len(self.busses) > 0:
             df = pd.DataFrame(
-                {'id': self.busses.values()}, index=self.busses.values())
+                {'id': self.busses.values()}, index=self.busses.values(),
+                dtype='object')
             df['label'] = df.apply(Network.get_props, axis=1, args=('label',))
             df['P'] = df.apply(Network.get_props, axis=1, args=('P', 'val'))
             df['P_set'] = df.apply(Network.get_props, axis=1,
@@ -2946,7 +2939,8 @@ class Network:
         # characteristic line export
         if len(char_lines) > 0:
             # get id and data
-            df = pd.DataFrame({'id': char_lines}, index=char_lines)
+            df = pd.DataFrame(
+                {'id': char_lines}, index=char_lines, dtype='object')
             df['id'] = df.apply(Network.get_id, axis=1)
             df['type'] = df.apply(Network.get_class_base, axis=1)
 
@@ -2962,7 +2956,8 @@ class Network:
 
         if len(char_maps) > 0:
             # get id and data
-            df = pd.DataFrame({'id': char_maps}, index=char_maps)
+            df = pd.DataFrame(
+                {'id': char_maps}, index=char_maps, dtype='object')
             df['id'] = df.apply(Network.get_id, axis=1)
             df['type'] = df.apply(Network.get_class_base, axis=1)
 

@@ -101,7 +101,7 @@ class Sink(Component):
         ----
         .. math::
 
-            \dot{E}_\mathrm{bus} = E_\mathrm{in}^\mathrm{PH}
+            \dot{E}_\mathrm{bus} = \dot{E}_\mathrm{in}^\mathrm{PH}
         """
         self.E_P = np.nan
         self.E_F = np.nan

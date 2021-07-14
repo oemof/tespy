@@ -7,7 +7,7 @@ tespy.tools module
     :show-inheritance:
 
 tespy.tools.analyses module
---------------------------
+---------------------------
 
 .. automodule:: tespy.tools.analyses
     :members:

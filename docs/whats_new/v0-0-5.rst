@@ -3,7 +3,8 @@ v0.0.5 (October, 25, 2018)
 
 New Features
 ############
-- added new component: motoric cogeneration unit (`79a1177 <https://github.com/oemof/tespy/commit/79a1177d5db130465676907d9a51b680005bdc7a>`_). An example is provided `here <https://github.com/fwitte/tespy_examples/tree/master/cogeneration_unit>`_.
+- added new component: motoric cogeneration unit (`79a1177 <https://github.com/oemof/tespy/commit/79a1177d5db130465676907d9a51b680005bdc7a>`_).
+  An example is provided `here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion>`_.
 - improved fluid property checks (`8adc76c <https://github.com/oemof/tespy/commit/8adc76c25ef976ed90ac6fba0d8c2f94e43ca7c5>`_).
 - added bus characteristics for modeling variable efficiencys (e.g. for generator, motor, boiler) (`79a1177 <https://github.com/oemof/tespy/commit/79a1177d5db130465676907d9a51b680005bdc7a>`_).
 - isentropic efficiency characteristic for compressor linked to pressure ratio (`85d317d <https://github.com/oemof/tespy/commit/85d317dea8cce8b7f6d149cca90317e6595a2485>`_).
@@ -11,7 +12,8 @@ New Features
 
 Documentation
 #############
-- adapted documentation and (`example code <https://github.com/fwitte/tespy_examples>`_) in regard of new features.
+- adapted documentation and (`example code <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/>`_)
+  in regard of new features.
 - fixed some typos in documentation.
 
 Parameter renaming

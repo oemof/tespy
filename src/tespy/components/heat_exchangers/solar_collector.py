@@ -315,3 +315,6 @@ class SolarCollector(HeatExchangerSimple):
             ))
         if self.energy_group.is_set:
             self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
+            self.Q_loss.is_result = True
+        else:
+            self.Q_loss.is_result = False

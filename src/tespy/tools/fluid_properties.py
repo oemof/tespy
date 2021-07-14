@@ -262,7 +262,7 @@ class TESPyFluid:
         y : ndarray
             Lookup value (enthalpy, entropy, density or viscosity)
         """
-        df = pd.DataFrame(y, columns=x2, index=x1)
+        df = pd.DataFrame(y, columns=x2, index=x1, dtype='float')
         alias = self.alias.replace('::', '_')
         path = './LUT/' + alias + '/'
         if not os.path.exists(path):
@@ -1034,9 +1034,14 @@ def h_mix_pQ(flow, Q):
     """
     fluid = single_fluid(flow[3])
     if fluid is None:
-        msg = 'The function h_mix_pQ can only be used for pure fluids.'
-        logging.error(msg)
-        raise ValueError(msg)
+        if sum(flow[3].values()) == 0:
+            msg = 'The function h_mix_pQ is called without fluid information.'
+            logging.error(msg)
+            raise ValueError(msg)
+        else:
+            msg = 'The function h_mix_pQ can only be used for pure fluids.'
+            logging.error(msg)
+            raise ValueError(msg)
 
     try:
         Memorise.state[fluid].update(CP.PQ_INPUTS, flow[1], Q)

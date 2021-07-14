@@ -12,13 +12,11 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
-
 import ast
 import json
 import logging
 import os
 
-import numpy as np
 import pandas as pd
 
 from tespy.components import CombustionChamber
@@ -274,7 +272,8 @@ def load_network(path):
         logging.debug(msg)
 
     except FileNotFoundError:
-        char_lines = pd.DataFrame(columns=['id', 'type', 'x', 'y'])
+        char_lines = pd.DataFrame(
+            columns=['id', 'type', 'x', 'y'], dtype='object')
 
     # load characteristic maps
     fn = path_comps + 'char_map.csv'
@@ -287,10 +286,11 @@ def load_network(path):
                                             'z': ast.literal_eval})
 
     except FileNotFoundError:
-        char_maps = pd.DataFrame(columns=['id', 'type', 'x', 'y', 'z'])
+        char_maps = pd.DataFrame(
+            columns=['id', 'type', 'x', 'y', 'z'], dtype='object')
 
     # load components
-    comps = pd.DataFrame()
+    comps = pd.DataFrame(dtype='object')
 
     files = os.listdir(path_comps)
     for f in files:
@@ -354,7 +354,7 @@ def load_network(path):
         logging.debug(msg)
 
     except FileNotFoundError:
-        busses = pd.DataFrame()
+        busses = pd.DataFrame(dtype='object')
         msg = 'No bus data found!'
         logging.debug(msg)
 
@@ -411,10 +411,9 @@ def construct_comps(c, *args):
     for key in ['design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign']:
         if key in c:
-            try:
-                if np.isnan(c[key]):
-                    kwargs[key] = None
-            except TypeError:
+            if isinstance(c[key], float):
+                kwargs[key] = None
+            else:
                 kwargs[key] = c[key]
 
     for key, value in instance.variables.items():
@@ -547,10 +546,9 @@ def construct_conns(c, *args):
     for key in ['design', 'offdesign', 'design_path', 'local_design',
                 'local_offdesign', 'label']:
         if key in c:
-            try:
-                if np.isnan(c[key]):
-                    setattr(conn, key, None)
-            except TypeError:
+            if isinstance(c[key], float):
+                setattr(conn, key, None)
+            else:
                 setattr(conn, key, c[key])
 
     # read fluid properties

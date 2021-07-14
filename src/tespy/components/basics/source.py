@@ -101,7 +101,7 @@ class Source(Component):
         ----
         .. math::
 
-            \dot{E}_\mathrm{bus} = E_\mathrm{out}^\mathrm{PH}
+            \dot{E}_\mathrm{bus} = \dot{E}_\mathrm{out}^\mathrm{PH}
         """
         self.E_P = np.nan
         self.E_F = np.nan

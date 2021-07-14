@@ -61,7 +61,7 @@ class TestHeatExchangers:
 
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
-    def test_HeatExhangerSimple(self):
+    def test_HeatExchangerSimple(self):
         """Test component properties of simple heat exchanger."""
         instance = HeatExchangerSimple('heat exchanger')
         self.setup_HeatExchangerSimple_network(instance)
@@ -138,6 +138,27 @@ class TestHeatExchangers:
         msg = ('Value of heat transfer must be ' + str(Q) +
                ', is ' + str(instance.Q.val) + '.')
         assert Q == round(instance.Q.val, 0), msg
+
+        # test kA as network results parameter
+        instance.set_attr(Q=-5e4, Tamb=None)
+        b.set_attr(P=None)
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        kA_network = self.nw.results['HeatExchangerSimple'].loc[
+            instance.label, 'kA']
+        print(kA_network)
+        msg = 'kA value must not be included in network results.'
+        expr = not instance.kA.is_result and np.isnan(kA_network)
+        assert expr, msg
+
+        # test kA as network results parameter
+        instance.set_attr(Tamb=20)
+        self.nw.solve('design')
+        kA_network = self.nw.results['HeatExchangerSimple'].loc[
+            instance.label, 'kA']
+        kA_comp = instance.kA.val
+        msg = 'kA value needs to be identical on network and component level.'
+        assert kA_network == kA_comp, msg
 
     def test_ParabolicTrough(self):
         """Test component properties of parabolic trough."""

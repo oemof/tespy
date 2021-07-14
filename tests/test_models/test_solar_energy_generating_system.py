@@ -9,30 +9,23 @@ tests/test_models/test_solar_energy_generating_system.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
-
-import numpy as np
-import pandas as pd
-
-from tespy.networks import Network
+from tespy.components import Compressor
+from tespy.components import Condenser
+from tespy.components import CycleCloser
+from tespy.components import Drum
+from tespy.components import HeatExchanger
+from tespy.components import Merge
+from tespy.components import ParabolicTrough
+from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.components import Turbine
-from tespy.components import Condenser
-from tespy.components import Pump
-from tespy.components import Merge
 from tespy.components import Splitter
+from tespy.components import Turbine
 from tespy.components import Valve
-from tespy.components import HeatExchanger
-from tespy.components import ParabolicTrough
-from tespy.components import CycleCloser
-from tespy.components import Compressor
-from tespy.components import Drum
-from tespy.connections import Connection
 from tespy.connections import Bus
+from tespy.connections import Connection
 from tespy.connections import Ref
-from tespy.tools import CharLine
-from tespy.tools import document_model
+from tespy.networks import Network
 from tespy.tools import ExergyAnalysis
 
 
@@ -124,7 +117,6 @@ class TestSEGS:
             'Low pressure preheater 2 subcooling', fkt_group='LPP')
         lppre3_sub = HeatExchanger(
             'Low pressure preheater 3 subcooling', fkt_group='LPP')
-
 
         # connections definition
         # power cycle
@@ -218,32 +210,35 @@ class TestSEGS:
 
         # add connections to network
         self.nw.add_conns(
-            c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17,
-            c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c29, c31, c32, c33, c34,
-            c35, c36, c37, c39, c40, c41, c42, c44, c45, c46, c47, c48, c49, c50, c51,
-            c52, c53, c54, c55, c56, c57, c58, c59, c60, c61, c62, c63, c64, c65, c66,
-            c70, c71, c72, c73, c74, c75, c76, c77, c78, c79)
+            c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15,
+            c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c29,
+            c31, c32, c33, c34, c35, c36, c37, c39, c40, c41, c42, c44, c45,
+            c46, c47, c48, c49, c50, c51, c52, c53, c54, c55, c56, c57, c58,
+            c59, c60, c61, c62, c63, c64, c65, c66, c70, c71, c72, c73, c74,
+            c75, c76, c77, c78, c79)
 
         # power bus
         power = Bus('total output power')
-        power.add_comps({'comp': hpt1, 'char': 0.97, 'base': 'component'},
-                        {'comp': hpt2, 'char': 0.97, 'base': 'component'},
-                        {'comp': lpt1, 'char': 0.97, 'base': 'component'},
-                        {'comp': lpt2, 'char': 0.97, 'base': 'component'},
-                        {'comp': lpt3, 'char': 0.97, 'base': 'component'},
-                        {'comp': lpt4, 'char': 0.97, 'base': 'component'},
-                        {'comp': lpt5, 'char': 0.97, 'base': 'component'},
-                        {'comp': fwp, 'char': 0.95, 'base': 'bus'},
-                        {'comp': condpump, 'char': 0.95, 'base': 'bus'},
-                        {'comp': ptpump, 'char': 0.95, 'base': 'bus'},
-                        {'comp': cwp, 'char': 0.95, 'base': 'bus'},
-                        {'comp': fan, 'char': 0.95, 'base': 'bus'})
+        power.add_comps(
+            {'comp': hpt1, 'char': 0.97, 'base': 'component'},
+            {'comp': hpt2, 'char': 0.97, 'base': 'component'},
+            {'comp': lpt1, 'char': 0.97, 'base': 'component'},
+            {'comp': lpt2, 'char': 0.97, 'base': 'component'},
+            {'comp': lpt3, 'char': 0.97, 'base': 'component'},
+            {'comp': lpt4, 'char': 0.97, 'base': 'component'},
+            {'comp': lpt5, 'char': 0.97, 'base': 'component'},
+            {'comp': fwp, 'char': 0.95, 'base': 'bus'},
+            {'comp': condpump, 'char': 0.95, 'base': 'bus'},
+            {'comp': ptpump, 'char': 0.95, 'base': 'bus'},
+            {'comp': cwp, 'char': 0.95, 'base': 'bus'},
+            {'comp': fan, 'char': 0.95, 'base': 'bus'})
 
         heat_input_bus = Bus('heat input')
         heat_input_bus.add_comps({'comp': pt, 'base': 'bus'})
 
         exergy_loss_bus = Bus('exergy loss')
-        exergy_loss_bus.add_comps({'comp': air_in, 'base': 'bus'}, {'comp': air_out})
+        exergy_loss_bus.add_comps(
+            {'comp': air_in, 'base': 'bus'}, {'comp': air_out})
 
         self.nw.add_busses(power, heat_input_bus, exergy_loss_bus)
 
@@ -295,18 +290,18 @@ class TestSEGS:
         c78.set_attr(p=20.34)
         c79.set_attr(p=41.024)
 
-
         # cooling water
-        c62.set_attr(fluid={'TVP1': 0, 'water': 1, 'air': 0}, T=30, p=self.pamb)
+        c62.set_attr(
+            fluid={'TVP1': 0, 'water': 1, 'air': 0}, T=30, p=self.pamb)
         # cooling tower
-        c64.set_attr(fluid={'water': 0, 'TVP1': 0, 'air': 1}, p=self.pamb, T=self.Tamb)
+        c64.set_attr(
+            fluid={'water': 0, 'TVP1': 0, 'air': 1}, p=self.pamb, T=self.Tamb)
         c65.set_attr(p=self.pamb + 0.0005)
         c66.set_attr(p=self.pamb, T=30)
         # power cycle
         c32.set_attr(Td_bp=-2)
         c34.set_attr(x=0.5)
         c1.set_attr(fluid={'water': 1, 'TVP1': 0, 'air': 0}, p=100, T=371)
-
 
         # steam generator pressure values
         c31.set_attr(p=103.56)
@@ -397,4 +392,4 @@ class TestSEGS:
 
         print(links, nodes)
 
-        assert True == False, 'test'
+        assert True is False, 'test'

@@ -12,19 +12,11 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
-import warnings
-# warnings.filterwarnings(
-#     action='error',
-#     category=DeprecationWarning
-# )
-warnings.filterwarnings("error")
-
 import ast
 import json
 import logging
 import os
 
-import numpy as np
 import pandas as pd
 
 from tespy.components import CombustionChamber

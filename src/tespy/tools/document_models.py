@@ -8,9 +8,9 @@ available from its original location tespy/tools/document_models.py
 
 SPDX-License-Identifier: MIT
 """
-from collections.abc import Mapping
 import os
 import sys
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import date
 

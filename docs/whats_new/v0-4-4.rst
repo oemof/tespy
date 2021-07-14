@@ -11,6 +11,9 @@ Bug Fixes
   (`PR #277 <https://github.com/oemof/tespy/pull/277>`_).
 - Add missing results for some components in the results DataFrame of the
   network (`PR #277 <https://github.com/oemof/tespy/pull/277>`_).
+- Fix exergy balance equation of class merge
+  :py:class:`tespy.components.nodes.merge.Merge.exergy_balance`
+  (`PR #280 <https://github.com/oemof/tespy/pull/280>`_).
 
 Other Changes
 #############

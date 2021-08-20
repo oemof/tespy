@@ -19,7 +19,6 @@ import plotly.graph_objects as go
 from fluprodia import FluidPropertyDiagram
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # %% network
 pamb = 1.013    # ambient pressure
@@ -147,26 +146,8 @@ nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path = path)
 print("\n##### DESIGN CALCULATION #####\n")
-nw.print_results()
+#nw.print_results()
 nw.save(path)
-
-# %% exergy analysis
-
-ean = ExergyAnalysis(network=nw, 
-                     E_F=[power, heat_geo], 
-                     E_P=[heat_cons])
-ean.analyse(pamb, Tamb)
-print("\n##### EXERGY ANALYSIS #####\n")
-ean.print_results() 
-links, nodes = ean.generate_plotly_sankey_input()
-fig = go.Figure(go.Sankey(
-    arrangement="snap",
-    node={
-        "label": nodes,
-        'pad': 11,
-        'color': 'orange'},
-    link=links))
-plot(fig, filename='R410A_sankey.html')
 
 # %% plot h_log(p) diagram 
 
@@ -194,31 +175,51 @@ for key in result_dict.keys():
     diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
     diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
     diagram.save('R410A_logph.svg')
+    
+# %% exergy analysis
 
+ean = ExergyAnalysis(network=nw, 
+                     E_F=[power, heat_geo], 
+                     E_P=[heat_cons])
+ean.analyse(pamb, Tamb)
+print("\n##### EXERGY ANALYSIS #####\n")
+ean.print_results() 
+
+# create sankey diagram 
+links, nodes = ean.generate_plotly_sankey_input()
+fig = go.Figure(go.Sankey(
+    arrangement="snap",
+    node={
+        "label": nodes,
+        'pad': 11,
+        'color': 'orange'},
+    link=links))
+plot(fig, filename='R410A_sankey.html')
 
 # %% plot exergy destruction
 
-comps = []
-x= []
+# create data for bar chart 
+comps = ['E_F']
+E_F = ean.network_data.E_F
+# top bar 
+E_D = [0] # no exergy destruction in the top bar 
+E_P = [E_F] # add E_F as the top bar 
 for comp in ean.component_data.index:
-    if ean.component_data.E_D[comp] > 1 :
+    # only plot components with exergy destruction > 1 W
+    if ean.component_data.E_D[comp] > 1 : 
         comps.append(comp)
-        x.append(ean.component_data.E_D[comp])
-y = (comps)
-y_pos = np.arange(len(comps))
-     
-fig, ax = plt.subplots()
-hbars = ax.barh(y_pos, x, align='center')
-ax.set_yticks(y_pos)
-ax.set_yticklabels(y)
-ax.invert_yaxis()  # labels read top-to-bottom
-ax.set_xlabel('E_D')
-ax.set_title('Component Exergy Destruction "R410A"')
-ax.set_xlim(right=200)  # adjust xlim to fit labels
+        E_D.append(ean.component_data.E_D[comp])
+        E_F = E_F-ean.component_data.E_D[comp]
+        E_P.append(E_F)
+comps.append("E_P")
+E_D.append(0)
+E_P.append(E_F)
 
-plt.show()
-fig.savefig('R410A_E_D.svg', bbox_inches='tight')
-
+# create data frame and save data
+df_comps = pd.DataFrame(columns= comps)
+df_comps.loc["E_D"] = E_D
+df_comps.loc["E_P"] = E_P
+df_comps.to_csv('R410A_E_D.csv')
 
 
 # %% further calculations
@@ -356,10 +357,4 @@ for Tgeo in Tgeo_range:
     
 df_cop_Tgeo_Q.to_csv('R410A_cop_Tgeo_Q.csv')
 df_eps_Tgeo_Q.to_csv('R410A_eps_Tgeo_Q.csv')
-
-
-
-
-
-
 

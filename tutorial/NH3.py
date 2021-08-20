@@ -149,23 +149,3 @@ print("\n##### DESIGN CALCULATION #####\n")
 nw.print_results()
 nw.save(path)
 
-# %% exergy analysis
-
-ean = ExergyAnalysis(network=nw, 
-                     E_F=[power, heat_geo], 
-                     E_P=[heat_cons])
-ean.analyse(pamb, Tamb)
-print("\n##### EXERGY ANALYSIS #####\n")
-ean.print_results() 
-links, nodes = ean.generate_plotly_sankey_input()
-fig = go.Figure(go.Sankey(
-    arrangement="snap",
-    node={
-        "label": nodes,
-        'pad': 11,
-        'color': 'orange'},
-    link=links))
-plot(fig, filename='NH3_sankey')
-
-
-

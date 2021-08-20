@@ -10,21 +10,89 @@ colors = ['#00395b', '#74adc1', '#b54036', '#ec6707',
           '#bfbfbf', '#999999', '#010101']
 
 
-# %% figure 1: epsilon depending on ambient Temperature Tamb 
+# %% figure 1: plot component exergy destruction 
+
+# color range for E_F and E_P bars
+E_F_colors = ['#3a9dce', '#f08e2b','#f08e2b','#f08e2b','#f08e2b','#db5252']
+
+# read data
+df_ED_NH3 = pd.read_csv('NH3_E_D.csv', index_col=0)
+df_ED_R410A = pd.read_csv('R410A_E_D.csv', index_col=0)
+
+# get data from dataframes
+y_NH3 = df_ED_NH3.columns.values.tolist()
+y_NH3_pos = np.arange(len(y_NH3))
+E_P_NH3 = df_ED_NH3.loc["E_P"]
+E_D_NH3 = df_ED_NH3.loc["E_D"]
+y_R410A = df_ED_R410A.columns.values.tolist()
+y_R410A_pos = np.arange(len(y_R410A))
+E_P_R410A = df_ED_R410A.loc["E_P"]
+E_D_R410A = df_ED_R410A.loc["E_D"]
+
+# create bar diagram of absolute exergy destruction
+fig, axs = plt.subplots(2,2,constrained_layout=True, 
+                        sharex='row', sharey='row')
+axs[0,0].barh(y_NH3_pos, E_P_NH3, align='center', color = E_F_colors)
+axs[0,0].barh(y_NH3_pos, E_D_NH3, align='center', left=E_P_NH3, label='E_D', 
+            color='#6ed880')
+axs[0,0].set_xlabel('Exergy in W')
+axs[0,0].set_yticks(y_NH3_pos)
+axs[0,0].set_yticklabels(y_NH3)
+axs[0,0].invert_yaxis() 
+axs[0,0].set_title('NH3')
+
+axs[0,1].barh(y_R410A_pos, E_P_R410A, align='center', color = E_F_colors)
+axs[0,1].barh(y_R410A_pos, E_D_R410A, align='center', left=E_P_R410A, 
+            color='#6ed880')
+axs[0,1].set_xlabel('Exergy in W')
+axs[0,1].set_yticks(y_R410A_pos)
+axs[0,1].set_yticklabels(y_R410A)
+axs[0,1].set_title('R410A')
+axs[0,1].set_xlim(right=1000)
+
+# create bar diagram of percentage exergy destruction 
+E_F_NH3 = df_ED_NH3.loc["E_P"][0]
+E_F_R410A = df_ED_R410A.loc["E_P"][0]
+
+
+axs[1,0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color = E_F_colors)
+axs[1,0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center', left=E_P_NH3/E_F_NH3, 
+            color='#6ed880')
+axs[1,0].set_xlabel('$\epsilon$ in %')
+axs[1,0].set_yticks(y_NH3_pos)
+axs[1,0].set_yticklabels(y_NH3)
+axs[1,0].invert_yaxis()  
+
+axs[1,1].barh(y_R410A_pos, E_P_R410A/E_F_R410A, align='center', 
+            color = E_F_colors)
+axs[1,1].barh(y_R410A_pos, E_D_R410A/E_F_R410A, align='center', 
+            left=E_P_R410A/E_F_R410A, color='#6ed880')
+axs[1,1].set_xlabel('$\epsilon$ in %')
+axs[1,1].set_yticks(y_R410A_pos)
+axs[1,1].set_yticklabels(y_R410A)
+axs[1,1].set_xlim(right=1)
+
+fig.suptitle('Component Exergy Destruction', fontsize=14)
+fig.legend(bbox_to_anchor=(0.08, 0, 0.9, .0), loc='center',
+           ncol=3, borderaxespad=0.)
+plt.show()
+fig.savefig('diagram_E_D.svg', bbox_inches='tight')
+
+
+# %% figure 2: epsilon depending on ambient Temperature Tamb 
 #              and mean geothermal temperature Tgeo
 
 Tamb_design = 2.8
 Tgeo_design = 9.5
 
-Tamb_range = np.array([1,4,8,12,16,20])
-Tgeo_range = np.array([11.5, 10.5, 9.5, 8.5, 7.5, 6.5])
+Tamb_range = [1,4,8,12,16,20]
+Tgeo_range = [11.5, 10.5, 9.5, 8.5, 7.5, 6.5]
 
 # read data
 df_eps_Tamb_NH3 = pd.read_csv('NH3_eps_Tamb.csv', index_col=0)
 df_eps_Tgeo_NH3 = pd.read_csv('NH3_eps_Tgeo.csv', index_col=0)
 df_eps_Tamb_R410A = pd.read_csv('R410A_eps_Tamb.csv', index_col=0)
 df_eps_Tgeo_R410A = pd.read_csv('R410A_eps_Tgeo.csv', index_col=0)
-
 
 # create plot
 fig, axs = plt.subplots(1,2,constrained_layout=True, 
@@ -48,11 +116,11 @@ axs[1].set_title('geothermal Temperature')
 axs[1].set_xlabel('$T_{geo}$ in °C ($T_{amb}$ = 2.8°C)')
 axs[1].legend(loc='lower left')
 
-fig.suptitle('Exergetic Efficency depending on Temperature', fontsize=16)
+fig.suptitle('Exergetic Efficency depending on Temperature', fontsize=14)
 fig.savefig('diagram_eps_Tamb_Tgeo.svg', bbox_inches='tight')   
 
 
-# %% figure 2: epsilon and COP depending on mean geothermal temperature Tgeo
+# %% figure 3: epsilon and COP depending on mean geothermal temperature Tgeo
 #              and mean heating system temperature Ths
   
 Ths_range = [42.5, 37.5, 32.5]
@@ -100,7 +168,7 @@ fig.suptitle(
 fig.savefig('diagram_cop_eps_Tgeo_Ths.svg', bbox_inches='tight')    
   
       
-# %% figure 3: epsilon and COP depending on mean geothermal temperature Tgeo 
+# %% figure 4: epsilon and COP depending on mean geothermal temperature Tgeo 
 #              and heating load Q_cond
     
 Q_range = np.array([4.3e3, 4e3, 3.7e3, 3.4e3, 3.1e3, 2.8e3])
@@ -150,17 +218,3 @@ fig.suptitle(
     fontsize=12)
 fig.savefig('diagram_cop_eps_Tgeo_Q.svg',bbox_inches='tight')    
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-

@@ -24,23 +24,16 @@ Note, however, that the heat pump model differs slightly in structure from the
 model in the previous tutorial. All related Python scripts of the fully 
 working GCHP-model are listed in the following:
 
-- GCHP with NH3 (the model only): 
-    :download:`NH3 <../tutorial/NH3.py>`
-- GCHP with R410A (the model only): 
-    :download:`R410A <../tutorial/R410A.py>`
-- GCHP with NH3 (model and post-processing): 
-    :download:`NH3_calculations <../tutorial/NH3_calculations.py>`
-- GCHP with R410A (model and post-processing): 
-    :download:`R410A_calculations <../tutorial/R410A_calculations.py>`
-- Plots of the results of the parameter variations: 
-    :download:`plots <../tutorial/plots.py>`
-
+- GCHP with NH3 (the model only): :download:`NH3 <../tutorial/NH3.py>`
+- GCHP with R410A (the model only): :download:`R410A <../tutorial/R410A.py>`
+- GCHP with NH3 (model and post-processing): :download:`NH3_calculations <../tutorial/NH3_calculations.py>`
+- GCHP with R410A (model and post-processing): :download:`R410A_calculations <../tutorial/R410A_calculations.py>`
+- Plots of the results of the parameter variations: :download:`plots <../tutorial/plots.py>`
 
 .. figure:: api/_images/heat_pump_exergy_flowsheet.svg
     :align: center
     :alt: Topology of the Ground-Coupled Heat Pump (GCHP)
-    
-    
+        
 The figure above shows the topology of the GCHP. In this model, a 
 ground-coupled heat pump is modeled, which is for instance connected to a 
 single-family house with underfloor heating. The heating system represents the 
@@ -63,7 +56,6 @@ and :cite:`Chen2015`. The average outdoor temperature is
 taken from :cite:`Chen2015`.
 
 
-
 TESPy model
 ^^^^^^^^^^^
 
@@ -81,13 +73,6 @@ water is used as the circulating fluid in this network. In fact, some
 geothermal collectors are filled with water, provided that the ground 
 temperature is high enough throughout the year, such as in :cite:`Chen2015`.
 
-The model using NH3 as refrigerant (Referenz NH3 Modell) and the model using 
-R410A as refrigerant (Referenz R410A Modell) differ in the fluid definition 
-and the specification of the starting values only. The definition of the 
-starting values is necessary to obtain a numerical solution for the first 
-calculation without an inital path. In this tutorial, the given code examples 
-are only given for the example with NH3 as refrigerant.
-
 The following parameter specifications were made for the design case 
 calculation:
 
@@ -100,7 +85,14 @@ calculation:
 - temperatures and pressure of heating sytem feed and return flow
 - temperatures and pressure of geothermal heat collector feed and return flow 
 - condenser heat output
- 
+
+The model using NH3 as refrigerant and the model using R410A as refrigerant 
+differ in the fluid definition, the naming of the stored files and the 
+specification of the starting values only. The definition of the starting 
+values is necessary to obtain a numerical solution for the first calculation 
+without an inital path. In this tutorial, the given code examples are shown 
+exemplary for the model with NH3 as refrigerant only.
+
 The units used and the ambient state are defined as follows:
 
 .. code-block:: python
@@ -110,6 +102,9 @@ The units used and the ambient state are defined as follows:
 
     pamb = 1.013
     Tamb = 2.8
+
+For the model using R410A as refrigerant, the fluid definition is accordingly
+:code:`'R410A'` instead of :code:`'NH3'`. 
 
 The temperature of the heating system feed flow is set to 40°C in design 
 calculation. The difference between feed and return flow temperature is kept 
@@ -126,8 +121,90 @@ feed and return flow temperature is kept constant at 3°C. Therefore, the feed
 flow temperature in the design calculation is set to :code:`Tgeo + 1.5°C` and 
 the return flow temperature is set to :code:`Tgeo - 1.5°C`. 
 
-All other specified values of the component and connection parameters can be 
-found in the Python scripts referenced above.
+The complete Python code of the TESPy models is available in the scripts 
+(Referenz Skript NH3 Modell) with NH3 as refrigerant and (Referenz Skript 
+R410A Modell) with R410A as refrigerant. All other specified values of the 
+component and connection parameters can be found in these Python scripts.
+
+In the scripts (Referenz Skript NH3 Berechnungen) and (Referenz Skript R410A Berechnungen), 
+the Phython code of the TESPY models of the GCHP is extended to handle the
+different issues mentioned in the task above. In these two scripts you can 
+find the corresponding Python code for all the issues that will be presented 
+in the next sections of the tutorial. As previously mentioned, the given code 
+examples in the following are only shown exemplary for the GCHP with NH3 as 
+refrigerant. If the scripts differ beyond the mentioned points, it will be 
+pointed out at the respective place of the tutorial.
+
+
+h-log(p)-diagram
+^^^^^^^^^^^^^^^^
+
+To create a fluid property diagram of the GCHP, fluprodia
+(Fluid Property Diagram) can be used. For more information and installation 
+instructions for fluprodia please have a look at the 
+`online documentation <https://fluprodia.readthedocs.io/en/latest/>`_. 
+
+In order to visualise the changes of state of the refrigerant in the GCHP, an 
+h-log-(p) diagram is created in this tutorial. For this purpose, the data for 
+the diagram is first saved in a dictionary :code:`result_dict` using the 
+:code:`get_plotting_data` method of each component that is to be visualised.  
+
+.. code-block:: python
+
+    from fluprodia import FluidPropertyDiagram
+    
+    result_dict = {}
+    result_dict.update({ev.label : ev.get_plotting_data()[2]})
+    result_dict.update({cp.label : cp.get_plotting_data()[1]})
+    result_dict.update({cd.label : cd.get_plotting_data()[1]})
+    result_dict.update({va.label : va.get_plotting_data()[1]})
+    
+.. note::
+
+    The first level key of the nested dictionary returned from the 
+    :code:`get_plotting_data` method contains the connection id of the state 
+    change. Make sure you specify the correct id for the components to be 
+    displayed. A table of the state change and the respective id can be found
+    `here <https://tespy.readthedocs.io/en/main/tespy_modules.html#id5>`_. 
+
+Next, a :code:`FluidPropertyDiagram` instance is created and the units of the 
+diagram are specified. 
+
+.. code-block:: python
+
+    diagram = FluidPropertyDiagram('NH3')
+    diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
+    
+Afterwards, the dictionary can be passed to the :code:`calc_individual_isoline`
+method of the :code:`FluidPropertyDiagram` object. In addition, the axis 
+limits are set. The :code:`calc_isolines` method calculates all isolines of the 
+diagram and the :code:`draw_isolines` method drwas the isolines of the 
+specified type. Finally, the results can be plotted and the diagram can be
+saved with the code shown below. 
+    
+.. code-block:: python
+    
+    for key, data in result_dict.items():
+            result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
+                                                                        
+    diagram.set_limits(x_min=0, x_max=2100, y_min=1e0, y_max=2e2)
+    diagram.calc_isolines()
+    diagram.draw_isolines('logph')
+    
+    for key in result_dict.keys():
+        datapoints = result_dict[key]['datapoints']
+        diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
+        diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
+
+    diagram.save('NH3_logph.svg')
+
+.. figure:: api/_images/NH3_logph.svg
+    :align: center
+    :alt: Fluid Property Diagram (log-p-h) of the GCHP
+
+The resulting fluid property diagram is shown in the figure above. Further 
+examples of creating fluid property diagrams can be found in the fluprodia 
+documentation referenced above. 
 
 
 Exergy analysis
@@ -136,9 +213,9 @@ Exergy analysis
 Analysis setup
 ++++++++++++++
 
-After the network has been built, the exergy analysis can be set up. For this, 
-all exergy flows entering and leaving the network must be defined. The exergy 
-flows are defined as a list of busses as follows: 
+After the network has been built, the exergy analysis can be set up. For this
+purpose, all exergy flows entering and leaving the network must be defined. 
+The exergy flows are defined as a list of busses as follows: 
 - fuel exergy :code:`E_F`
 - product exergy :code:`E_P`
 - exergy loss streams :code:`E_L`
@@ -151,7 +228,7 @@ represents fuel exergy.
 
 The product exergy is the heat supply of the condenser to the heating system,
 which is represented by the heating system bus. The bus consists of the 
-streams :code:`hs_ret` and :code:`hs_feed`. Note, that the :code:`base` 
+streams :code:`hs_ret` and :code:`hs_feed`. Note that the :code:`base` 
 keyword of the stream entering the network :code:`hs_ret` must be set to 
 :code:`bus`. 
 
@@ -247,14 +324,10 @@ method returns a dictionary containing links and nodes for the sankey diagram.
     :alt: Sankey diagram of the Ground-Coupled Heat Pump (GCHP)
 
 In the figure above you can see the sankey diagram which is created by running 
-the script of the GCHP with NH3 as refrigerant (Skript Referenz einfügen). 
-Information about, for example, the colors used or the node order can be found 
-in the tutorial (Referenz Tutorial Exergie). 
+the script of the GCHP with NH3 as refrigerant. Information about, for example, 
+the colors used or the node order can be found in the tutorial 
+(Referenz Tutorial Exergie). 
 
-The full Python code up to this step of the tutorial is available in the 
-scripts (Referenz Skript NH3 Modell) with NH3 as refrigerant and
-(Referenz Skript R410A Modell) with R410A as refrigerant. 
- 
 
 Post-Processing
 ^^^^^^^^^^^^^^^ 
@@ -262,80 +335,97 @@ Post-Processing
 Below, different possibilities of post-processing and visualization of
 the exergy analysis results will be presented. The following issues will be 
 considered: 
-- create an h-log(p) diagram
 - plot exergy destruction
 - varying ambient and geothermal temperature
 - varying geothermal and heating system temperature
 - varying heating load and geothermal temperature
 
-In the scripts (Referenz Skript NH3 Berechnungen) and (Referenz Skript R410A Berechnungen), 
-the Phython code of the first steps of this tutorial is extended to handle the 
-listed post-processing issues. Since these scripts differ almost only in the 
-definition of the fluid, the specification of the starting values and the 
-naming of the stored files, the lines of code from the scripts listed below 
-are as before only shown using NH3 as an example. If the scripts differ beyond 
-the mentioned points, it will be pointed out at the respective place of the 
-tutorial. 
-
-In addition, script (Referenz Skript Plots) includes the python code for 
-creating the plots of the last three issues. The plots in this tutorial are 
-created with `Matplotlib <https://matplotlib.org/>`_. For installation 
-instructions or further documentation please see the Matplotlib documentation.  
+In order to be able to compare the results of the two refrigerants NH3 and 
+R410A, plots of the results of the mentioned issues are created in a separate 
+plot script (Referenz Plot Skript). The plots in this tutorial are created 
+with `Matplotlib <https://matplotlib.org/>`_. For installation instructions 
+or further documentation please see the Matplotlib documentation.  
 
 For the post-processing issues considered, the following additional packages 
 are required:
 
 .. code-block:: python
 
-    from fluprodia import FluidPropertyDiagram
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
 
 
-h-log(p)-diagram
-++++++++++++++++
- 
-
-
 Plot exergy destruction
 +++++++++++++++++++++++
 
-By adding the code below, the exergy destruction of the components is 
-displayed in a block diagram, as shown in the two figures below. Only exergy 
-destruction of components higher than 1 W will be displayed.
+In order to visualise how much exergy of the fuel exergy :code:`E_F` the 
+individual components of the GCHP destroy, the exergy destruction :code:`E_D` 
+can be displayed in a bar chart as shown at the end of this section. 
+
+To create this diagram, the required data for the diagram must first be 
+handled. As shown below, the three lists :code:`comps`, :code:`E_D` and 
+:code:`E_P` are created and first filled with the values for the top bar. A 
+loop is then used to add all component labels to the list :code:`comps` that 
+destroy a noticeable amount of exergy (> 1W).  The list :code:`E_D` contains 
+the corresponding values of the destroyed exergy. List :code:`E_P`, in turn, 
+contains the value of the exergy that remains after subtracting the destroyed 
+exergy from the fuel exergy. 
 
 .. code-block:: python
 
-    comps = []
-    x= []
+    comps = ['E_F']
+    E_F = ean.network_data.E_F
+    E_D = [0] 
+    E_P = [E_F] 
     for comp in ean.component_data.index:
         # only plot components with exergy destruction > 1 W
         if ean.component_data.E_D[comp] > 1 : 
             comps.append(comp)
-            x.append(ean.component_data.E_D[comp])
-    y = (comps)
-    y_pos = np.arange(len(comps))
-         
-    fig, ax = plt.subplots()
-    hbars = ax.barh(y_pos, x, align='center')
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(y)
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('E_D')
-    ax.set_title('Component Exergy Destruction "NH3"')
-    ax.set_xlim(right=200)  # adjust xlim to fit labels
+            E_D.append(ean.component_data.E_D[comp])
+            E_F = E_F-ean.component_data.E_D[comp]
+            E_P.append(E_F)
+    comps.append("E_P")
+    E_D.append(0)
+    E_P.append(E_F)
     
-    plt.show()
-    fig.savefig('NH3_E_D.svg', bbox_inches='tight')
+With regard to the bar chart to be created, the filled lists are then saved in
+a panda dataframe and exported to a :code:`.csv` file. Exporting the data is 
+necessary in order to be able to use the results of the two scripts of the 
+different refrigerants NH3 and R410A in a separate script.   
+    
+.. code-block:: python    
+        
+    df_comps = pd.DataFrame(columns= comps)
+    df_comps.loc["E_D"] = E_D
+    df_comps.loc["E_P"] = E_P
+    df_comps.to_csv('NH3_E_D.csv')
+       
+.. note::
 
-.. figure:: api/_images/NH3_E_D.svg
+    In order to be able to use the data from the data frames in a separate 
+    script for plot creation, all data frames must be saved as a file with 
+    their own individual name.
+    
+In the separate plot script (Referenz Plot Skript) the :code:`.csv` files can 
+now be re-imported to create plots with Matplotlib. The Python code for 
+creating the bar chart is included in the previously referenced plot script 
+and can be found there. For more information on creating plots with 
+Matplotlib, please check the 
+`Matplotlib documentation <https://matplotlib.org/>`_. The resulting bar chart  
+is shown below. 
+    
+.. figure:: api/_images/diagram_E_D.svg
     :align: center
     :alt: Exergy Destruction of the GCHP - NH3
     
-.. figure:: api/_images/R410A_E_D.svg
-    :align: center
-    :alt: Exergy Destruction of the GCHP - R410A
+The bar chart shows how much exergy the individual components of the GCHP 
+destroy in absolute terms and as a percentage of the fuel exergy :code:`E_F`. 
+After deducting the destroyed exergy :code:`E_D`, the product exergy 
+:code:`E_P` remains. Overall, it is noticeable that the GCHP with NH3 requires 
+less fuel exergy than the GCHP with R410A, with the same amount of product 
+exergy. Furthermore, with NH3 the condenser has the highest exergy destruction, 
+whereas with R410A the valve destroys the largest amount of exergy. 
 
 
 Varying ambient and geothermal temperature
@@ -344,8 +434,8 @@ Varying ambient and geothermal temperature
 In order to consider the influence of a change in ambient temperature or 
 geothermal temperature on the exergetic efficiency, offdesign calculations are 
 performed with different values of these parameters. The first step is to 
-create data frames as shown below. The ambient temperature :code:`Tamb` 
-is varied between 1°C and 20°C. The mean geothermal temperature :conde:`Tgeo`
+create dataframes as shown below. The ambient temperature :code:`Tamb` 
+is varied between 1°C and 20°C. The mean geothermal temperature :code:`Tgeo`
 is varied between 11.5°C and 6.5°C. 
 Note that the geothermal temperature :code:`Tgeo` is given as a mean value of 
 the feed an return flow temperatures, as described in the beginning of this 
@@ -366,7 +456,7 @@ tutorial.
 Next, the exergetic efficiency epsilon can be calculated for the different 
 values of :code:`Tamb` in :code:`Tamb_range` by calling the 
 :py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse` method in a loop. The 
-results are saved in the created data frame. 
+results are saved in the created dataframe and exported to a .csv file. 
 
 .. code-block:: python
 
@@ -415,20 +505,26 @@ temperatures is carried out as an offdesign calculation. Again, no new
     df_eps_Tgeo.loc[Tamb_design] = eps_Tgeo
     df_eps_Tgeo.to_csv('NH3_eps_Tgeo.csv')
 
-.. note::
-
-    In order to be able to use the data from the data frames in a separate 
-    script for plot creation, all data frames must be saved as a file with 
-    their own individual name. 
-
 The results of the calculation can be plotted as shown in the following 
-figure. The related python code to create this plot can be found in the script 
-(Referenz Plot Skript). For further documentation please see the 
+figure. The related Python code to create this plot can be found in the plot 
+script (Referenz Plot Skript). For further documentation please see the 
 `Matplotlib documentation <https://matplotlib.org/>`_. 
 
 .. figure:: api/_images/diagram_eps_Tamb_Tgeo.svg
     :align: center
     :alt: Varying Tamb and Tgeo of the GCHP
+    
+It can be recognised that the specified ambient temperature :code:`Tamb` used 
+in the :code:`analyse` method of the :code:`ExergyAnalysis` instance has a 
+considerable influence on the exergetic efficiency epsilon. The closer the 
+ambient temperature is to the temperature of the heating system, the lower the 
+exergetic efficiency. This can be argued from the fact that while :code:`E_F` 
+and :code:`E_P` both decrease with increasing :code:`Tamb`, :code:`E_P` 
+decreases proportionally more than :code:`E_F`. In comparison, it can be seen 
+on the right that with increasing :code:`Tgeo`, and thus decreasing 
+temperature difference between geothermal heat collector and heating system, 
+epsilon increases. This can be explained by the resulting decrease in 
+:code:`E_F` with :code:`E_P` remaining constant.
 
 
 Varying geothermal and heating system temperature
@@ -453,7 +549,7 @@ temperatures.
 The values of :code:`Tgeo` and :code:`Ths` are varied simultaneously within 
 the specified range and again the exergetic efficiency is calculated. In 
 addition, the COP is calculated for each parameter combination. The data is 
-stored in two data frames with the range of :code:`Tgeo` as rows and the range 
+stored in two dataframes with the range of :code:`Tgeo` as rows and the range 
 of :code:`Ths` as columns. 
     
 .. code-block:: python    
@@ -495,6 +591,16 @@ corresponding Python code can likewise be found in the plot script
 .. figure:: api/_images/diagram_cop_eps_Tgeo_Ths.svg
     :align: center
     :alt: Varying Tgeo and Ths of the GCHP
+    
+It can be seen that the GCHP with NH3 has a better exergetic efficiency than 
+with R410A. As in the issue from above, an increasing geothermal heat 
+collector temperature also has a favourable effect on epsilon. The opposite 
+behaviour of epsilon and COP for both refrigerants is remarkable. This can be 
+explained by the fact that at constant heating load :code:`Q`, the required 
+electrical power input increases as the heating system temperature rises. 
+However, :code:`E_F` and :code:`E_P` both increase with increasing heating 
+system temperature. The ratio between these two parameters is such that 
+the exergetic efficiency improves as the heating system temperature rises. 
 
 
 Varying geothermal temperature and heating load
@@ -516,7 +622,10 @@ and (Referenz R410A calculations) instead.
     :alt: Varying Tgeo and Q of the GCHP
 
 The results are shown in the figure above. As before, the Python code for 
-creating the plot can be found in the script (Referenz plot Skript).
+creating the plot can be found in the plot script (Referenz plot Skript).
+The partial load behaviour of the GCHP, which results from the characteristic 
+lines of the efficiencies of the individual components, can be recognised 
+in the curves shown.
 
 
 Conclusion
@@ -534,7 +643,4 @@ exergy analysis (Referenz Tutorial Exergie) and in the API documentation of
 the :py:class:`tespy.tools.analyses.ExergyAnalysis` class. If you are 
 interested in contributing, you are welcome to file an issue at our GitHub 
 page. 
-
-
-
 

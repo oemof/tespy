@@ -14,10 +14,10 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools import ExergyAnalysis
+import numpy as np
 from plotly.offline import plot
 import plotly.graph_objects as go
 from fluprodia import FluidPropertyDiagram
-import numpy as np
 import pandas as pd
 
 # %% network
@@ -146,7 +146,7 @@ nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path = path)
 print("\n##### DESIGN CALCULATION #####\n")
-#nw.print_results()
+nw.print_results()
 nw.save(path)
 
 # %% plot h_log(p) diagram 
@@ -174,7 +174,8 @@ for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
     diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
     diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
-    diagram.save('R410A_logph.svg')
+    
+diagram.save('R410A_logph.svg')
     
 # %% exergy analysis
 

@@ -14,12 +14,11 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools import ExergyAnalysis
+import numpy as np
 from plotly.offline import plot
 import plotly.graph_objects as go
 from fluprodia import FluidPropertyDiagram
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # %% network
 pamb = 1.013    # ambient pressure
@@ -148,7 +147,7 @@ nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path = path)
 print("\n##### DESIGN CALCULATION #####\n")
-#nw.print_results()
+nw.print_results()
 nw.save(path)
 
 # %% plot h_log(p) diagram 
@@ -175,7 +174,8 @@ for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
     diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
     diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
-    diagram.save('NH3_logph.svg')
+    
+diagram.save('NH3_logph.svg')
 
 # %% exergy analysis
 
@@ -251,8 +251,8 @@ for Tamb in Tamb_range:
     i += 1
     ean.analyse(pamb, Tamb)
     eps_Tamb.append(ean.network_data.epsilon) 
-    print("Case %d: Tamb = %.1f °C"%(i,Tamb))
-         
+    print("Case %d: Tamb = %.1f °C"%(i,Tamb))    
+       
 # save to data frame        
 df_eps_Tamb.loc[Tgeo_design] = eps_Tamb
 df_eps_Tamb.to_csv('NH3_eps_Tamb.csv')
@@ -314,7 +314,6 @@ for Tgeo in Tgeo_range:
     
 df_eps_Tgeo_Ths.to_csv('NH3_eps_Tgeo_Ths.csv')
 df_cop_Tgeo_Ths.to_csv('NH3_cop_Tgeo_Ths.csv')
-
 
 
 # %% calculate epsilon and COP depending on: 

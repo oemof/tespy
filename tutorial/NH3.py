@@ -13,9 +13,6 @@ from tespy.connections import Bus
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools import ExergyAnalysis
-from plotly.offline import plot
-import plotly.graph_objects as go
 import numpy as np
 
 # %% network

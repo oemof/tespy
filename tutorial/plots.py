@@ -58,7 +58,7 @@ E_F_R410A = df_ED_R410A.loc["E_P"][0]
 axs[1,0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color = E_F_colors)
 axs[1,0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center', left=E_P_NH3/E_F_NH3, 
             color='#6ed880')
-axs[1,0].set_xlabel('$\epsilon$ in %')
+axs[1,0].set_xlabel('$\epsilon$')
 axs[1,0].set_yticks(y_NH3_pos)
 axs[1,0].set_yticklabels(y_NH3)
 axs[1,0].invert_yaxis()  
@@ -67,7 +67,7 @@ axs[1,1].barh(y_R410A_pos, E_P_R410A/E_F_R410A, align='center',
             color = E_F_colors)
 axs[1,1].barh(y_R410A_pos, E_D_R410A/E_F_R410A, align='center', 
             left=E_P_R410A/E_F_R410A, color='#6ed880')
-axs[1,1].set_xlabel('$\epsilon$ in %')
+axs[1,1].set_xlabel('$\epsilon$')
 axs[1,1].set_yticks(y_R410A_pos)
 axs[1,1].set_yticklabels(y_R410A)
 axs[1,1].set_xlim(right=1)

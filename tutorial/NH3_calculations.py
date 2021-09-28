@@ -45,14 +45,14 @@ gh_in = Source('ground heat feed flow')
 gh_out = Sink('ground heat return flow')
 ghp = Pump('ground heat loop pump')
 
-# heating system 
+# heating system
 hs_feed = Sink('heating system feed flow')
 hs_ret = Source('heating system return flow')
 hsp = Pump('heating system pump')
 
 # %% connections
 
-# heat pump system 
+# heat pump system
 cc_cd = Connection(cc, 'out1', cd, 'in1')
 cd_va = Connection(cd, 'out1', va, 'in1')
 va_ev = Connection(va, 'out1', ev, 'in2')
@@ -75,7 +75,7 @@ nw.add_conns(hs_ret_hsp, hsp_cd, cd_hs_feed)
 
 # %% component parametrization
 
-# condenser 
+# condenser
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
             offdesign=['zeta2', 'kA_char'])
 # evaporator
@@ -88,7 +88,7 @@ ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
 cp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 # heating system pump
 hsp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
-# ground heat loop pump 
+# ground heat loop pump
 ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 
 
@@ -99,9 +99,9 @@ cc_cd.set_attr(fluid={'water': 0, 'NH3': 1})
 ev_cp.set_attr(Td_bp=3)
 
 # geothermal heat collector
-gh_in_ghp.set_attr(T=Tgeo+1.5, p=1.5, fluid={'water': 1, 'NH3': 0},
+gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1, 'NH3': 0},
                    )
-ev_gh_out.set_attr(T=Tgeo-1.5, p=1.5) 
+ev_gh_out.set_attr(T=Tgeo - 1.5, p=1.5)
 
 # heating system
 cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1, 'NH3': 0})
@@ -150,7 +150,7 @@ print("\n##### DESIGN CALCULATION #####\n")
 nw.print_results()
 nw.save(path)
 
-# %% plot h_log(p) diagram 
+# %% plot h_log(p) diagram
 
 # generate plotting data
 result_dict = {}
@@ -174,19 +174,19 @@ for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
     diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
     diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
-    
+
 diagram.save('NH3_logph.svg')
 
 # %% exergy analysis
 
-ean = ExergyAnalysis(network=nw, 
-                     E_F=[power, heat_geo], 
+ean = ExergyAnalysis(network=nw,
+                     E_F=[power, heat_geo],
                      E_P=[heat_cons])
 ean.analyse(pamb, Tamb)
 print("\n##### EXERGY ANALYSIS #####\n")
-ean.print_results() 
+ean.print_results()
 
-# create sankey diagram 
+# create sankey diagram
 links, nodes = ean.generate_plotly_sankey_input()
 fig = go.Figure(go.Sankey(
     arrangement="snap",
@@ -199,15 +199,15 @@ plot(fig, filename='NH3_sankey.html')
 
 # %% plot exergy destruction
 
-# create data for bar chart 
+# create data for bar chart
 comps = ['E_F']
 E_F = ean.network_data.E_F
-# top bar 
-E_D = [0] # no exergy destruction in the top bar 
-E_P = [E_F] # add E_F as the top bar 
+# top bar
+E_D = [0] # no exergy destruction in the top bar
+E_P = [E_F] # add E_F as the top bar
 for comp in ean.component_data.index:
     # only plot components with exergy destruction > 1 W
-    if ean.component_data.E_D[comp] > 1 : 
+    if ean.component_data.E_D[comp] > 1:
         comps.append(comp)
         E_D.append(ean.component_data.E_D[comp])
         E_F = E_F-ean.component_data.E_D[comp]
@@ -228,10 +228,10 @@ print("\n#### FURTHER CALCULATIONS ####\n")
 # switch off iterinfo
 nw.set_attr(iterinfo=False)
 # offdesign test
-nw.solve('offdesign', design_path = path)
+nw.solve('offdesign', design_path=path)
 
 # %% calculate epsilon depending on :
-#    - ambient temperature Tamb  
+#    - ambient temperature Tamb
 #    - mean geothermal temperature Tgeo
 
 Tamb_design = Tamb
@@ -239,10 +239,10 @@ Tgeo_design = Tgeo
 i = 0
 
 # create data ranges and frames
-Tamb_range = [1,4,8,12,16,20]
+Tamb_range = [1, 4, 8, 12, 16, 20]
 Tgeo_range = [11.5, 10.5, 9.5, 8.5, 7.5, 6.5]
-df_eps_Tamb = pd.DataFrame(columns= Tamb_range)
-df_eps_Tgeo = pd.DataFrame(columns= Tgeo_range)
+df_eps_Tamb = pd.DataFrame(columns=Tamb_range)
+df_eps_Tgeo = pd.DataFrame(columns=Tgeo_range)
 
 # calculate epsilon depending on Tamb
 eps_Tamb = []
@@ -250,10 +250,10 @@ print("Varying ambient temperature:\n")
 for Tamb in Tamb_range:
     i += 1
     ean.analyse(pamb, Tamb)
-    eps_Tamb.append(ean.network_data.epsilon) 
-    print("Case %d: Tamb = %.1f °C"%(i,Tamb))    
-       
-# save to data frame        
+    eps_Tamb.append(ean.network_data.epsilon)
+    print("Case %d: Tamb = %.1f °C"%(i, Tamb))
+
+# save to data frame
 df_eps_Tamb.loc[Tgeo_design] = eps_Tamb
 df_eps_Tamb.to_csv('NH3_eps_Tamb.csv')
 
@@ -263,19 +263,19 @@ print("\nVarying mean geothermal temperature:\n")
 for Tgeo in Tgeo_range:
     i += 1
     # set feed and return flow temperatures around mean value Tgeo
-    gh_in_ghp.set_attr(T=Tgeo+1.5)
-    ev_gh_out.set_attr(T=Tgeo-1.5)
+    gh_in_ghp.set_attr(T=Tgeo + 1.5)
+    ev_gh_out.set_attr(T=Tgeo - 1.5)
     nw.solve('offdesign', init_path=path, design_path=path)
-    ean.analyse(pamb, Tamb_design)    
-    eps_Tgeo.append(ean.network_data.epsilon)    
-    print("Case %d: Tgeo = %.1f °C"%(i,Tgeo))
-        
+    ean.analyse(pamb, Tamb_design)
+    eps_Tgeo.append(ean.network_data.epsilon)
+    print("Case %d: Tgeo = %.1f °C"%(i, Tgeo))
+
 # save to data frame
 df_eps_Tgeo.loc[Tamb_design] = eps_Tgeo
 df_eps_Tgeo.to_csv('NH3_eps_Tgeo.csv')
 
 
-# %% calculate epsilon and COP depending on: 
+# %% calculate epsilon and COP depending on:
 #     - mean geothermal temperature Tgeo
 #     - heating system Temperature Ths
 
@@ -302,21 +302,21 @@ for Tgeo in Tgeo_range:
         if Ths == Ths_range[0]:
             nw.solve('offdesign', init_path=path, design_path=path)
         else:
-            nw.solve('offdesign', design_path=path)         
+            nw.solve('offdesign', design_path=path)
         ean.analyse(pamb, Tamb_design)
         epsilon.append(ean.network_data.epsilon)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
         print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C"%(i,Tgeo,Ths))
-                  
-    # save to data frame     
+
+    # save to data frame
     df_eps_Tgeo_Ths.loc[Tgeo] = epsilon
     df_cop_Tgeo_Ths.loc[Tgeo] = cop
-    
+
 df_eps_Tgeo_Ths.to_csv('NH3_eps_Tgeo_Ths.csv')
 df_cop_Tgeo_Ths.to_csv('NH3_cop_Tgeo_Ths.csv')
 
 
-# %% calculate epsilon and COP depending on: 
+# %% calculate epsilon and COP depending on:
 #     - mean geothermal temperature Tgeo
 #     - heating load Q_cond
 
@@ -349,11 +349,11 @@ for Tgeo in Tgeo_range:
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
         epsilon.append(ean.network_data.epsilon)
         print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW"%(i,Tgeo,Q/1000))
-        
-    # save to data frame 
+
+    # save to data frame
     df_cop_Tgeo_Q.loc[Tgeo] = cop
     df_eps_Tgeo_Q.loc[Tgeo] = epsilon
-    
+
 df_cop_Tgeo_Q.to_csv('NH3_cop_Tgeo_Q.csv')
 df_eps_Tgeo_Q.to_csv('NH3_eps_Tgeo_Q.csv')
 

@@ -40,14 +40,14 @@ gh_in = Source('ground heat feed flow')
 gh_out = Sink('ground heat return flow')
 ghp = Pump('ground heat loop pump')
 
-# heating system 
+# heating system
 hs_feed = Sink('heating system feed flow')
 hs_ret = Source('heating system return flow')
 hsp = Pump('heating system pump')
 
 # %% connections
 
-# heat pump system 
+# heat pump system
 cc_cd = Connection(cc, 'out1', cd, 'in1')
 cd_va = Connection(cd, 'out1', va, 'in1')
 va_ev = Connection(va, 'out1', ev, 'in2')
@@ -70,7 +70,7 @@ nw.add_conns(hs_ret_hsp, hsp_cd, cd_hs_feed)
 
 # %% component parametrization
 
-# condenser 
+# condenser
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
             offdesign=['zeta2', 'kA_char'])
 # evaporator
@@ -83,7 +83,7 @@ ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
 cp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 # heating system pump
 hsp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
-# ground heat loop pump 
+# ground heat loop pump
 ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 
 
@@ -94,9 +94,8 @@ cc_cd.set_attr(fluid={'water': 0, 'NH3': 1})
 ev_cp.set_attr(Td_bp=3)
 
 # geothermal heat collector
-gh_in_ghp.set_attr(T=Tgeo+1.5, p=1.5, fluid={'water': 1, 'NH3': 0},
-                   )
-ev_gh_out.set_attr(T=Tgeo-1.5, p=1.5) 
+gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1, 'NH3': 0})
+ev_gh_out.set_attr(T=Tgeo - 1.5, p=1.5)
 
 # heating system
 cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1, 'NH3': 0})
@@ -132,7 +131,7 @@ heat_geo.add_comps({'comp': gh_in, 'base': 'bus'},
 nw.add_busses(power, heat_cons, heat_geo)
 
 
-# %% key paramter
+# %% key parameter
 
 cd.set_attr(Q=-4e3)
 

@@ -13,7 +13,7 @@ colors = ['#00395b', '#74adc1', '#b54036', '#ec6707',
 # %% figure 1: plot component exergy destruction
 
 # color range for E_F and E_P bars
-E_F_colors = ['#3a9dce', '#f08e2b','#f08e2b','#f08e2b','#f08e2b','#db5252']
+E_F_colors = ['#3a9dce', '#f08e2b', '#f08e2b', '#f08e2b', '#f08e2b', '#db5252']
 
 # read data
 df_ED_NH3 = pd.read_csv('NH3_E_D.csv', index_col=0)
@@ -30,20 +30,20 @@ E_P_R410A = df_ED_R410A.loc["E_P"]
 E_D_R410A = df_ED_R410A.loc["E_D"]
 
 # create bar diagram of absolute exergy destruction
-fig, axs = plt.subplots(2,2,constrained_layout=True,
+fig, axs = plt.subplots(2, 2, constrained_layout=True,
                         sharex='row', sharey='row')
-axs[0, 0].barh(y_NH3_pos, E_P_NH3, align='center', color = E_F_colors)
+axs[0, 0].barh(y_NH3_pos, E_P_NH3, align='center', color=E_F_colors)
 axs[0, 0].barh(y_NH3_pos, E_D_NH3, align='center', left=E_P_NH3, label='E_D',
-              color='#6ed880')
+               color='#6ed880')
 axs[0, 0].set_xlabel('Exergy in W')
 axs[0, 0].set_yticks(y_NH3_pos)
 axs[0, 0].set_yticklabels(y_NH3)
 axs[0, 0].invert_yaxis()
 axs[0, 0].set_title('NH3')
 
-axs[0, 1].barh(y_R410A_pos, E_P_R410A, align='center', color = E_F_colors)
+axs[0, 1].barh(y_R410A_pos, E_P_R410A, align='center', color=E_F_colors)
 axs[0, 1].barh(y_R410A_pos, E_D_R410A, align='center', left=E_P_R410A,
-              color='#6ed880')
+               color='#6ed880')
 axs[0, 1].set_xlabel('Exergy in W')
 axs[0, 1].set_yticks(y_R410A_pos)
 axs[0, 1].set_yticklabels(y_R410A)
@@ -55,18 +55,18 @@ E_F_NH3 = df_ED_NH3.loc["E_P"][0]
 E_F_R410A = df_ED_R410A.loc["E_P"][0]
 
 
-axs[1, 0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color = E_F_colors)
-axs[1, 0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center', left=E_P_NH3/E_F_NH3,
-              color='#6ed880')
+axs[1, 0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color=E_F_colors)
+axs[1, 0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center',
+               left=E_P_NH3 / E_F_NH3, color='#6ed880')
 axs[1, 0].set_xlabel('$\epsilon$')
 axs[1, 0].set_yticks(y_NH3_pos)
 axs[1, 0].set_yticklabels(y_NH3)
 axs[1, 0].invert_yaxis()
 
 axs[1, 1].barh(y_R410A_pos, E_P_R410A/E_F_R410A, align='center',
-              color = E_F_colors)
+               color=E_F_colors)
 axs[1, 1].barh(y_R410A_pos, E_D_R410A/E_F_R410A, align='center',
-              left=E_P_R410A/E_F_R410A, color='#6ed880')
+               left=E_P_R410A / E_F_R410A, color='#6ed880')
 axs[1, 1].set_xlabel('$\epsilon$')
 axs[1, 1].set_yticks(y_R410A_pos)
 axs[1, 1].set_yticklabels(y_R410A)
@@ -98,17 +98,17 @@ df_eps_Tgeo_R410A = pd.read_csv('R410A_eps_Tgeo.csv', index_col=0)
 fig, axs = plt.subplots(1, 2, constrained_layout=True,
                         sharex='col', sharey='all')
 axs[0].plot(Tamb_range, df_eps_Tamb_NH3.loc[Tgeo_design], 'x',
-               label='NH3', color=colors[0], markersize=7)
+            label='NH3', color=colors[0], markersize=7)
 axs[0].plot(Tamb_range, df_eps_Tamb_R410A.loc[Tgeo_design], 'x',
-               label='R410A', color=colors[3], markersize=7)
+            label='R410A', color=colors[3], markersize=7)
 axs[0].set_title('ambient Temperature')
 axs[0].set_ylabel('$\epsilon$')
 axs[0].set_ylim([0.25, 0.6])
-axs[0].set_xlabel('$T_{amb}$ in °C ($T_{geo}$ = '+str(Tgeo_design)+'°C)')
+axs[0].set_xlabel('$T_{amb}$ in °C ($T_{geo}$ = ' + str(Tgeo_design) + '°C)')
 axs[0].set_ylabel('$\epsilon$')
 axs[0].legend(loc='lower left')
 
-axs[1].plot(Tgeo_range, df_eps_Tgeo_NH3.loc[Tamb_design],'x',
+axs[1].plot(Tgeo_range, df_eps_Tgeo_NH3.loc[Tamb_design], 'x',
             label='NH3', color=colors[0], markersize=7)
 axs[1].plot(Tgeo_range, df_eps_Tgeo_R410A.loc[Tamb_design], 'x',
             label='R410A', color=colors[3], markersize=7)
@@ -149,12 +149,12 @@ for Tgeo in Tgeo_range:
     i += 1
 
 axs[0, 0].set_ylabel('$\epsilon$')
-axs[0, 0].set_ylim([0.42,0.55])
+axs[0, 0].set_ylim([0.42, 0.55])
 axs[0, 0].set_title('NH3')
 
 axs[1, 0].set_ylabel('COP')
 axs[1, 0].set_xlabel('$T_{heating system}$ in °C')
-axs[1, 0].set_ylim([3.5,6.5])
+axs[1, 0].set_ylim([3.5, 6.5])
 
 axs[0, 1].set_title('R410A')
 
@@ -216,5 +216,4 @@ fig.legend(bbox_to_anchor=(0.08, -0.1, 0.9, .0), loc='lower left',
 fig.suptitle(
     'COP and $\epsilon$ depending on load and geothermal mean temperature',
     fontsize=12)
-fig.savefig('diagram_cop_eps_Tgeo_Q.svg',bbox_inches='tight')
-
+fig.savefig('diagram_cop_eps_Tgeo_Q.svg', bbox_inches='tight')

@@ -153,20 +153,19 @@ nw.save(path)
 
 # generate plotting data
 result_dict = {}
-result_dict.update({ev.label : ev.get_plotting_data()[2]})
-result_dict.update({cp.label : cp.get_plotting_data()[1]})
-result_dict.update({cd.label : cd.get_plotting_data()[1]})
-result_dict.update({va.label : va.get_plotting_data()[1]})
+result_dict.update({ev.label: ev.get_plotting_data()[2]})
+result_dict.update({cp.label: cp.get_plotting_data()[1]})
+result_dict.update({cd.label: cd.get_plotting_data()[1]})
+result_dict.update({va.label: va.get_plotting_data()[1]})
 
 # create plot
 diagram = FluidPropertyDiagram('R410A')
 diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
 
 for key, data in result_dict.items():
-        result_dict[key]['datapoints'] = diagram.calc_individual_isoline(
-                                                                    **data)
-diagram.set_limits(x_min=200, x_max=500, y_min=0.8e1, y_max=0.8e2)
+    result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
 
+diagram.set_limits(x_min=200, x_max=500, y_min=0.8e1, y_max=0.8e2)
 diagram.calc_isolines()
 diagram.draw_isolines('logph')
 
@@ -207,7 +206,7 @@ E_D = [0] # no exergy destruction in the top bar
 E_P = [E_F] # add E_F as the top bar
 for comp in ean.component_data.index:
     # only plot components with exergy destruction > 1 W
-    if ean.component_data.E_D[comp] > 1 :
+    if ean.component_data.E_D[comp] > 1:
         comps.append(comp)
         E_D.append(ean.component_data.E_D[comp])
         E_F = E_F-ean.component_data.E_D[comp]
@@ -231,7 +230,7 @@ nw.set_attr(iterinfo=False)
 # offdesign test
 nw.solve('offdesign', design_path=path)
 
-# %% calculate epsilon depending on :
+# %% calculate epsilon depending on:
 #    - ambient temperature Tamb
 #    - mean geothermal temperature Tgeo
 
@@ -242,8 +241,8 @@ i = 0
 # create data ranges and frames
 Tamb_range = [1, 4, 8, 12, 16, 20]
 Tgeo_range = [11.5, 10.5, 9.5, 8.5, 7.5, 6.5]
-df_eps_Tamb = pd.DataFrame(columns= Tamb_range)
-df_eps_Tgeo = pd.DataFrame(columns= Tgeo_range)
+df_eps_Tamb = pd.DataFrame(columns=Tamb_range)
+df_eps_Tgeo = pd.DataFrame(columns=Tgeo_range)
 
 # calculate epsilon depending on Tamb
 eps_Tamb = []
@@ -252,7 +251,7 @@ for Tamb in Tamb_range:
     i += 1
     ean.analyse(pamb, Tamb)
     eps_Tamb.append(ean.network_data.epsilon)
-    print("Case %d: Tamb = %.1f °C"%(i, Tamb))
+    print("Case %d: Tamb = %.1f °C" % (i, Tamb))
 
 # save to data frame
 df_eps_Tamb.loc[Tgeo_design] = eps_Tamb
@@ -269,7 +268,7 @@ for Tgeo in Tgeo_range:
     nw.solve('offdesign', init_path=path, design_path=path)
     ean.analyse(pamb, Tamb_design)
     eps_Tgeo.append(ean.network_data.epsilon)
-    print("Case %d: Tgeo = %.1f °C"%(i, Tgeo))
+    print("Case %d: Tgeo = %.1f °C" % (i, Tgeo))
 
 # save to data frame
 df_eps_Tgeo.loc[Tamb_design] = eps_Tgeo
@@ -283,8 +282,8 @@ df_eps_Tgeo.to_csv('R410A_eps_Tgeo.csv')
 # create data ranges and frames
 Tgeo_range = [10.5, 8.5, 6.5]
 Ths_range = [42.5, 37.5, 32.5]
-df_eps_Tgeo_Ths = pd.DataFrame(columns= Ths_range)
-df_cop_Tgeo_Ths = pd.DataFrame(columns= Ths_range)
+df_eps_Tgeo_Ths = pd.DataFrame(columns=Ths_range)
+df_cop_Tgeo_Ths = pd.DataFrame(columns=Ths_range)
 
 # calculate epsilon and COP
 print("\nVarying mean geothermal temperature and "+
@@ -307,7 +306,7 @@ for Tgeo in Tgeo_range:
         ean.analyse(pamb, Tamb_design)
         epsilon.append(ean.network_data.epsilon)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
-        print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C"%(i, Tgeo, Ths))
+        print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C" % (i, Tgeo, Ths))
 
     # save to data frame
     df_eps_Tgeo_Ths.loc[Tgeo] = epsilon
@@ -329,8 +328,8 @@ hs_ret_hsp.set_attr(T=35)
 # create data ranges and frames
 Tgeo_range = [10.5, 8.5, 6.5]
 Q_range = np.array([4.3e3, 4e3, 3.7e3, 3.4e3, 3.1e3, 2.8e3])
-df_cop_Tgeo_Q = pd.DataFrame(columns= Q_range)
-df_eps_Tgeo_Q = pd.DataFrame(columns= Q_range)
+df_cop_Tgeo_Q = pd.DataFrame(columns=Q_range)
+df_eps_Tgeo_Q = pd.DataFrame(columns=Q_range)
 
 # calculate epsilon and COP
 print("\nVarying mean geothermal temperature and "+
@@ -350,7 +349,7 @@ for Tgeo in Tgeo_range:
         ean.analyse(pamb, Tamb_design)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
         epsilon.append(ean.network_data.epsilon)
-        print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW"%(i, Tgeo, Q/1000))
+        print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW" % (i, Tgeo, Q/1000))
 
     # save to data frame
     df_cop_Tgeo_Q.loc[Tgeo] = cop
@@ -358,4 +357,3 @@ for Tgeo in Tgeo_range:
 
 df_cop_Tgeo_Q.to_csv('R410A_cop_Tgeo_Q.csv')
 df_eps_Tgeo_Q.to_csv('R410A_eps_Tgeo_Q.csv')
-

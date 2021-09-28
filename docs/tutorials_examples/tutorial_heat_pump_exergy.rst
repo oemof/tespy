@@ -33,7 +33,9 @@ are listed in the following:
 
 .. figure:: api/_images/heat_pump_exergy_flowsheet.svg
     :align: center
-    :alt: Topology of the Ground-Coupled Heat Pump (GCHP)
+    :alt:l Topology of the Ground-Couped Heat Pump (GCHP)
+
+    Figure: Topology of the Ground-Couped Heat Pump (GCHP).
 
 The figure above shows the topology of the GCHP. In this model, a
 ground-coupled heat pump is modeled, which is for instance connected to a
@@ -204,6 +206,8 @@ saved with the code shown below.
     :align: center
     :alt: Fluid Property Diagram (log-p-h) of the GCHP
 
+    Figure: log-p-h diagram of the NH3 GCHP.
+
 The resulting fluid property diagram is shown in the figure above. It can
 easily be seen, that the evaporator slightly overheats the working fluid, while
 the it leaves the condenser in saturated liquid state. The working fluid
@@ -330,9 +334,12 @@ method returns a dictionary containing links and nodes for the sankey diagram.
     plot(fig, filename='NH3_sankey')
 
 
-.. figure:: api/_images/NH3_sankey.html
+.. figure:: api/_images/NH3_sankey.svg
     :align: center
     :alt: Sankey diagram of the Ground-Coupled Heat Pump (GCHP)
+
+    Figure: Sankey diagram of the GCHP (open in
+    new tab to enlarge).
 
 In the figure above you can see the sankey diagram which is created by running
 the script of the GCHP with NH3 as refrigerant. Information about, for example,
@@ -426,7 +433,10 @@ is shown below.
 
 .. figure:: api/_images/diagram_E_D.svg
     :align: center
-    :alt: Exergy Destruction of the GCHP - NH3
+    :alt: Comparison of exergy destruction and exergy efficiency
+
+    Figure: Comparison of exergy destruction and exergy efficiency of both
+    working fluids in design case.
 
 The bar chart shows how much exergy the individual components of the GCHP
 destroy in absolute terms and as a percentage of the fuel exergy :code:`E_F`.
@@ -520,6 +530,8 @@ please see the `Matplotlib documentation <https://matplotlib.org/>`_.
     :align: center
     :alt: Varying Tamb and Tgeo of the GCHP
 
+    Figure: Varying ambient and geothermal temperature.
+
 It can be recognized that the specified ambient temperature :code:`Tamb` used
 in the :code:`analyse` method of the :code:`ExergyAnalysis` instance has a
 considerable influence on the exergetic efficiency epsilon. The closer the
@@ -596,6 +608,8 @@ corresponding Python code can likewise be found in the plot script
     :align: center
     :alt: Varying Tgeo and Ths of the GCHP
 
+    Figure: Varying geothermal and heating system temperature.
+
 It can be seen that the GCHP with NH3 has a better exergetic efficiency than
 with R410A. As in the prior investigation, an increasing geothermal heat
 collector temperature also has a favorable effect on epsilon. The opposite
@@ -623,6 +637,8 @@ instead.
 .. figure:: api/_images/diagram_cop_eps_Tgeo_Q.svg
     :align: center
     :alt: Varying Tgeo and Q of the GCHP
+
+    Figure: Varying geothermal temperature and heat load.
 
 The results are shown in the figure above. As before, the Python code for
 creating the plot can be found in the plot script

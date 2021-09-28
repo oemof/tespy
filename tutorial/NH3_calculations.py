@@ -21,11 +21,11 @@ from fluprodia import FluidPropertyDiagram
 import pandas as pd
 
 # %% network
-pamb = 1.013    # ambient pressure
-Tamb = 2.8      # ambient temperature
+pamb = 1.013  # ambient pressure
+Tamb = 2.8  # ambient temperature
 
-Tgeo = 9.5      # mean geothermal temperature (mean value
-                # of ground feed and return flow)
+# mean geothermal temperature (mean value of ground feed and return flow)
+Tgeo = 9.5
 
 nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
              h_unit='kJ / kg', m_unit='kg / s')

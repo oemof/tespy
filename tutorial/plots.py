@@ -32,45 +32,45 @@ E_D_R410A = df_ED_R410A.loc["E_D"]
 # create bar diagram of absolute exergy destruction
 fig, axs = plt.subplots(2,2,constrained_layout=True,
                         sharex='row', sharey='row')
-axs[0,0].barh(y_NH3_pos, E_P_NH3, align='center', color = E_F_colors)
-axs[0,0].barh(y_NH3_pos, E_D_NH3, align='center', left=E_P_NH3, label='E_D',
+axs[0, 0].barh(y_NH3_pos, E_P_NH3, align='center', color = E_F_colors)
+axs[0, 0].barh(y_NH3_pos, E_D_NH3, align='center', left=E_P_NH3, label='E_D',
               color='#6ed880')
-axs[0,0].set_xlabel('Exergy in W')
-axs[0,0].set_yticks(y_NH3_pos)
-axs[0,0].set_yticklabels(y_NH3)
-axs[0,0].invert_yaxis()
-axs[0,0].set_title('NH3')
+axs[0, 0].set_xlabel('Exergy in W')
+axs[0, 0].set_yticks(y_NH3_pos)
+axs[0, 0].set_yticklabels(y_NH3)
+axs[0, 0].invert_yaxis()
+axs[0, 0].set_title('NH3')
 
-axs[0,1].barh(y_R410A_pos, E_P_R410A, align='center', color = E_F_colors)
-axs[0,1].barh(y_R410A_pos, E_D_R410A, align='center', left=E_P_R410A,
+axs[0, 1].barh(y_R410A_pos, E_P_R410A, align='center', color = E_F_colors)
+axs[0, 1].barh(y_R410A_pos, E_D_R410A, align='center', left=E_P_R410A,
               color='#6ed880')
-axs[0,1].set_xlabel('Exergy in W')
-axs[0,1].set_yticks(y_R410A_pos)
-axs[0,1].set_yticklabels(y_R410A)
-axs[0,1].set_title('R410A')
-axs[0,1].set_xlim(right=1000)
+axs[0, 1].set_xlabel('Exergy in W')
+axs[0, 1].set_yticks(y_R410A_pos)
+axs[0, 1].set_yticklabels(y_R410A)
+axs[0, 1].set_title('R410A')
+axs[0, 1].set_xlim(right=1000)
 
 # create bar diagram of percentage exergy destruction
 E_F_NH3 = df_ED_NH3.loc["E_P"][0]
 E_F_R410A = df_ED_R410A.loc["E_P"][0]
 
 
-axs[1,0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color = E_F_colors)
-axs[1,0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center', left=E_P_NH3/E_F_NH3,
+axs[1, 0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align='center', color = E_F_colors)
+axs[1, 0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align='center', left=E_P_NH3/E_F_NH3,
               color='#6ed880')
-axs[1,0].set_xlabel('$\epsilon$')
-axs[1,0].set_yticks(y_NH3_pos)
-axs[1,0].set_yticklabels(y_NH3)
-axs[1,0].invert_yaxis()
+axs[1, 0].set_xlabel('$\epsilon$')
+axs[1, 0].set_yticks(y_NH3_pos)
+axs[1, 0].set_yticklabels(y_NH3)
+axs[1, 0].invert_yaxis()
 
-axs[1,1].barh(y_R410A_pos, E_P_R410A/E_F_R410A, align='center',
+axs[1, 1].barh(y_R410A_pos, E_P_R410A/E_F_R410A, align='center',
               color = E_F_colors)
-axs[1,1].barh(y_R410A_pos, E_D_R410A/E_F_R410A, align='center',
+axs[1, 1].barh(y_R410A_pos, E_D_R410A/E_F_R410A, align='center',
               left=E_P_R410A/E_F_R410A, color='#6ed880')
-axs[1,1].set_xlabel('$\epsilon$')
-axs[1,1].set_yticks(y_R410A_pos)
-axs[1,1].set_yticklabels(y_R410A)
-axs[1,1].set_xlim(right=1)
+axs[1, 1].set_xlabel('$\epsilon$')
+axs[1, 1].set_yticks(y_R410A_pos)
+axs[1, 1].set_yticklabels(y_R410A)
+axs[1, 1].set_xlim(right=1)
 
 fig.suptitle('Component Exergy Destruction', fontsize=14)
 fig.legend(bbox_to_anchor=(0.08, 0, 0.9, .0), loc='center',
@@ -95,7 +95,7 @@ df_eps_Tamb_R410A = pd.read_csv('R410A_eps_Tamb.csv', index_col=0)
 df_eps_Tgeo_R410A = pd.read_csv('R410A_eps_Tgeo.csv', index_col=0)
 
 # create plot
-fig, axs = plt.subplots(1,2,constrained_layout=True,
+fig, axs = plt.subplots(1, 2, constrained_layout=True,
                         sharex='col', sharey='all')
 axs[0].plot(Tamb_range, df_eps_Tamb_NH3.loc[Tgeo_design], 'x',
                label='NH3', color=colors[0], markersize=7)
@@ -103,7 +103,7 @@ axs[0].plot(Tamb_range, df_eps_Tamb_R410A.loc[Tgeo_design], 'x',
                label='R410A', color=colors[3], markersize=7)
 axs[0].set_title('ambient Temperature')
 axs[0].set_ylabel('$\epsilon$')
-axs[0].set_ylim([0.25,0.6])
+axs[0].set_ylim([0.25, 0.6])
 axs[0].set_xlabel('$T_{amb}$ in °C ($T_{geo}$ = '+str(Tgeo_design)+'°C)')
 axs[0].set_ylabel('$\epsilon$')
 axs[0].legend(loc='lower left')
@@ -133,7 +133,7 @@ df_cop_Tgeo_Ths_R410A = pd.read_csv('R410A_cop_Tgeo_Ths.csv', index_col=0)
 df_eps_Tgeo_Ths_R410A = pd.read_csv('R410A_eps_Tgeo_Ths.csv', index_col=0)
 
 # create plot
-fig, axs = plt.subplots(2,2,constrained_layout=True,
+fig, axs = plt.subplots(2, 2, constrained_layout=True,
                         sharex='all', sharey='row')
 i = 0
 for Tgeo in Tgeo_range:
@@ -181,7 +181,7 @@ df_cop_Tgeo_Q_R410A = pd.read_csv('R410A_cop_Tgeo_Q.csv', index_col=0)
 df_eps_Tgeo_Q_R410A = pd.read_csv('R410A_eps_Tgeo_Q.csv', index_col=0)
 
 # create plot
-fig, axs = plt.subplots(2,2,constrained_layout=True,
+fig, axs = plt.subplots(2, 2, constrained_layout=True,
                         sharex='all', sharey='row')
 
 i = 0
@@ -198,13 +198,13 @@ for Tgeo in Tgeo_range:
     i += 1
 
 axs[0, 0].set_ylabel('$\epsilon$')
-axs[0, 0].set_ylim([0.4,0.55])
+axs[0, 0].set_ylim([0.4, 0.55])
 axs[0, 0].set_title('NH3')
 
 axs[1, 0].set_ylabel('COP')
 axs[1, 0].set_xlabel(r'$Q_{cond}$ in kW')
-axs[1, 0].set_ylim([3,6])
-axs[1, 0].set_xlim([2500,4500])
+axs[1, 0].set_ylim([3, 6])
+axs[1, 0].set_xlim([2500, 4500])
 
 axs[0, 1].set_title('R410A')
 

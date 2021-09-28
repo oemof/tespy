@@ -21,11 +21,11 @@ from fluprodia import FluidPropertyDiagram
 import pandas as pd
 
 # %% network
-pamb = 1.013    # ambient pressure
-Tamb = 2.8      # ambient temperature
+pamb = 1.013  # ambient pressure
+Tamb = 2.8  # ambient temperature
 
-Tgeo = 9.5      # mean geothermal temperature (mean value
-                # of ground feed and return flow)
+# mean geothermal temperature (mean value of ground feed and return flow)
+Tgeo = 9.5
 
 nw = Network(fluids=['water', 'R410A'], T_unit='C', p_unit='bar',
              h_unit='kJ / kg', m_unit='kg / s')
@@ -264,8 +264,8 @@ print("\nVarying mean geothermal temperature:\n")
 for Tgeo in Tgeo_range:
     i += 1
     # set feed and return flow temperatures around mean value Tgeo
-    gh_in_ghp.set_attr(T=Tgeo+1.5)
-    ev_gh_out.set_attr(T=Tgeo-1.5)
+    gh_in_ghp.set_attr(T=Tgeo + 1.5)
+    ev_gh_out.set_attr(T=Tgeo - 1.5)
     nw.solve('offdesign', init_path=path, design_path=path)
     ean.analyse(pamb, Tamb_design)
     eps_Tgeo.append(ean.network_data.epsilon)
@@ -291,15 +291,15 @@ print("\nVarying mean geothermal temperature and "+
       "heating system temperature:\n")
 for Tgeo in Tgeo_range:
     # set feed and return flow temperatures around mean value Tgeo
-    gh_in_ghp.set_attr(T=Tgeo+1.5)
-    ev_gh_out.set_attr(T=Tgeo-1.5)
+    gh_in_ghp.set_attr(T=Tgeo + 1.5)
+    ev_gh_out.set_attr(T=Tgeo - 1.5)
     epsilon = []
     cop = []
     for Ths in Ths_range:
         i += 1
         # set feed and return flow temperatures around mean value Tgeo
-        cd_hs_feed.set_attr(T=Ths+2.5)
-        hs_ret_hsp.set_attr(T=Ths-2.5)
+        cd_hs_feed.set_attr(T=Ths + 2.5)
+        hs_ret_hsp.set_attr(T=Ths - 2.5)
         if Ths == Ths_range[0]:
             nw.solve('offdesign', init_path=path, design_path=path)
         else:
@@ -336,8 +336,8 @@ df_eps_Tgeo_Q = pd.DataFrame(columns= Q_range)
 print("\nVarying mean geothermal temperature and "+
       "heating load:\n")
 for Tgeo in Tgeo_range:
-    gh_in_ghp.set_attr(T=Tgeo+1.5)
-    ev_gh_out.set_attr(T=Tgeo-1.5)
+    gh_in_ghp.set_attr(T=Tgeo + 1.5)
+    ev_gh_out.set_attr(T=Tgeo - 1.5)
     cop = []
     epsilon = []
     for Q in Q_range:
@@ -350,7 +350,7 @@ for Tgeo in Tgeo_range:
         ean.analyse(pamb, Tamb_design)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
         epsilon.append(ean.network_data.epsilon)
-        print("Case %s: Tgeo = %d °C, Q = -%.1f kW"%(i, Tgeo, Q/1000))
+        print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW"%(i, Tgeo, Q/1000))
 
     # save to data frame
     df_cop_Tgeo_Q.loc[Tgeo] = cop

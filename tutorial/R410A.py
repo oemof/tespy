@@ -16,11 +16,11 @@ from tespy.tools.characteristics import load_default_char as ldc
 import numpy as np
 
 # %% network
-pamb = 1.013    # ambient pressure
-Tamb = 2.8      # ambient temperature
+pamb = 1.013  # ambient pressure
+Tamb = 2.8  # ambient temperature
 
-Tgeo = 9.5      # mean geothermal temperature (mean value
-                # of ground feed and return flow)
+# mean geothermal temperature (mean value of ground feed and return flow)
+Tgeo = 9.5
 
 nw = Network(fluids=['water', 'R410A'], T_unit='C', p_unit='bar',
              h_unit='kJ / kg', m_unit='kg / s')
@@ -139,7 +139,7 @@ cd.set_attr(Q=-4e3)
 path = 'R410A'
 nw.solve('design')
 # alternatively use:
-# nw.solve('design', init_path = path)
+# nw.solve('design', init_path=path)
 print("\n##### DESIGN CALCULATION #####\n")
 nw.print_results()
 nw.save(path)

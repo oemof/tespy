@@ -171,8 +171,8 @@ diagram.draw_isolines('logph')
 
 for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
-    diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
-    diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
+    diagram.ax.plot(datapoints['h'], datapoints['p'], color='#ff0000')
+    diagram.ax.scatter(datapoints['h'][0], datapoints['p'][0], color='#ff0000')
 
 diagram.save('R410A_logph.svg')
 
@@ -202,8 +202,8 @@ plot(fig, filename='R410A_sankey.html')
 comps = ['E_F']
 E_F = ean.network_data.E_F
 # top bar
-E_D = [0] # no exergy destruction in the top bar
-E_P = [E_F] # add E_F as the top bar
+E_D = [0]  # no exergy destruction in the top bar
+E_P = [E_F]  # add E_F as the top bar
 for comp in ean.component_data.index:
     # only plot components with exergy destruction > 1 W
     if ean.component_data.E_D[comp] > 1:
@@ -286,7 +286,7 @@ df_eps_Tgeo_Ths = pd.DataFrame(columns=Ths_range)
 df_cop_Tgeo_Ths = pd.DataFrame(columns=Ths_range)
 
 # calculate epsilon and COP
-print("\nVarying mean geothermal temperature and "+
+print("\nVarying mean geothermal temperature and "
       "heating system temperature:\n")
 for Tgeo in Tgeo_range:
     # set feed and return flow temperatures around mean value Tgeo
@@ -315,8 +315,6 @@ for Tgeo in Tgeo_range:
 df_eps_Tgeo_Ths.to_csv('R410A_eps_Tgeo_Ths.csv')
 df_cop_Tgeo_Ths.to_csv('R410A_cop_Tgeo_Ths.csv')
 
-
-
 # %% calculate epsilon and COP depending on:
 #     - mean geothermal temperature Tgeo
 #     - heating load Q_cond
@@ -332,7 +330,7 @@ df_cop_Tgeo_Q = pd.DataFrame(columns=Q_range)
 df_eps_Tgeo_Q = pd.DataFrame(columns=Q_range)
 
 # calculate epsilon and COP
-print("\nVarying mean geothermal temperature and "+
+print("\nVarying mean geothermal temperature and "
       "heating load:\n")
 for Tgeo in Tgeo_range:
     gh_in_ghp.set_attr(T=Tgeo + 1.5)

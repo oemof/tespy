@@ -172,8 +172,8 @@ diagram.draw_isolines('logph')
 
 for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
-    diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
-    diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
+    diagram.ax.plot(datapoints['h'], datapoints['p'], color='#ff0000')
+    diagram.ax.scatter(datapoints['h'][0], datapoints['p'][0], color='#ff0000')
 
 diagram.save('NH3_logph.svg')
 
@@ -306,7 +306,7 @@ for Tgeo in Tgeo_range:
         ean.analyse(pamb, Tamb_design)
         epsilon.append(ean.network_data.epsilon)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
-        print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C" % (i,Tgeo,Ths))
+        print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C" % (i, Tgeo, Ths))
 
     # save to data frame
     df_eps_Tgeo_Ths.loc[Tgeo] = epsilon
@@ -348,7 +348,7 @@ for Tgeo in Tgeo_range:
         ean.analyse(pamb, Tamb_design)
         cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
         epsilon.append(ean.network_data.epsilon)
-        print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW" % (i,Tgeo,Q/1000))
+        print("Case %s: Tgeo = %.1f °C, Q = -%.1f kW" % (i, Tgeo, Q/1000))
 
     # save to data frame
     df_cop_Tgeo_Q.loc[Tgeo] = cop

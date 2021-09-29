@@ -16,6 +16,8 @@ Bug Fixes
 
 Other Changes
 #############
+- LaTeX model report can now be compiled by default
+  (`PR #286 <https://github.com/oemof/tespy/pull/286>`_).
 
 Contributors
 ############

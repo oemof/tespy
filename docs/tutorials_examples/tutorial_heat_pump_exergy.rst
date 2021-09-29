@@ -204,9 +204,9 @@ saved with the code shown below.
 
 .. figure:: api/_images/NH3_logph.svg
     :align: center
-    :alt: Fluid Property Diagram (log-p-h) of the GCHP
+    :alt: Fluid Property Diagram h-log(p) of the GCHP
 
-    Figure: log-p-h diagram of the NH3 GCHP.
+    Figure: h-log(p) diagram of the NH3 GCHP.
 
 The resulting fluid property diagram is shown in the figure above. It can
 easily be seen, that the evaporator slightly overheats the working fluid, while

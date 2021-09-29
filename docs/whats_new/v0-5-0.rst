@@ -1,8 +1,11 @@
-v0.4.5 - Someversion (Somemonth, Someday, 2021)
+v0.5.0 - Someversion (Somemonth, Someday, 2021)
 +++++++++++++++++++++++++++++++++++++++++++++++
 
 Documentation
 #############
+- Add a tutorial for the exergy analysis of a ground-coupled heat pump (GHCP).
+  You can find it on the Tutorials and Examples pages
+  (`PR #282 <https://github.com/oemof/tespy/pull/282>`_).
 
 Bug Fixes
 #########
@@ -15,3 +18,4 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@anmartens <https://github.com/anmartens>`_

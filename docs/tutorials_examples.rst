@@ -73,3 +73,5 @@ with respect to the extraction pressure levels.
 .. include:: tutorials_examples/tutorial_combustion_chamber.rst
 .. _pygmo_tutorial_label:
 .. include:: tutorials_examples/tutorial_pygmo_optimization.rst
+.. _heat_pump_exergy_tutorial_label:
+.. include:: tutorials_examples/tutorial_heat_pump_exergy.rst

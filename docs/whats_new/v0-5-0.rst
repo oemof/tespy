@@ -1,0 +1,25 @@
+v0.5.0 - Davis' Domain (September, 29, 2021)
+++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+- Add a tutorial for the exergy analysis of a ground-coupled heat pump (GHCP).
+  You can find it on the Tutorials and Examples pages
+  (`PR #282 <https://github.com/oemof/tespy/pull/282>`_).
+
+Bug Fixes
+#########
+- Add :code:`is_result` flag to logarithmic temperature difference of heat
+  exchangers.
+- Lift pandas requirement to :code:`pandas>=1.3.0`
+  (`PR #285 <https://github.com/oemof/tespy/pull/285>`_).
+
+Other Changes
+#############
+- LaTeX model report can now be compiled by default
+  (`PR #286 <https://github.com/oemof/tespy/pull/286>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@anmartens <https://github.com/anmartens>`_

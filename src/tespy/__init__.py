@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.4.4 - Reynolds\' Reminiscence'
+__version__ = '0.5.0 - Davis\' Domain'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

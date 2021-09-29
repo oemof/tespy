@@ -4,7 +4,7 @@
 
 The network is the container for every TESPy simulation. The network class
 automatically creates the system of equations describing topology and
-parametrisation of a specific model and solves it.
+parametrization of a specific model and solves it.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -55,7 +55,7 @@ class Network:
         A list of all fluids within the network container.
 
     memorise_fluid_properties : boolean
-        Activate or deactivate fluid property value memorisation. Default
+        Activate or deactivate fluid property value memorization. Default
         state is activated (:code:`True`).
 
     h_range : list
@@ -101,9 +101,9 @@ class Network:
     Unit specification is optional: If not specified the SI unit (first
     element in above lists) will be applied!
 
-    Range specification is optional, too. The value range is used to stabilise
-    the newton algorith. For more information see the "getting started" section
-    in the online-documentation.
+    Range specification is optional, too. The value range is used to stabilize
+    the newton algorithm. For more information see the "getting started"
+    section in the online-documentation.
 
     Example
     -------
@@ -112,7 +112,7 @@ class Network:
     are optional.
 
     Standard value for iterinfo is :code:`True`. This will print out
-    convergence progress to the console. You can suop the printouts by setting
+    convergence progress to the console. You can stop the printouts by setting
     this property to :code:`False`.
 
     >>> from tespy.networks import Network
@@ -467,7 +467,7 @@ class Network:
 
             msg = 'Added connection ' + c.label + ' to network.'
             logging.debug(msg)
-            # set status "checked" to false, if conneciton is added to network.
+            # set status "checked" to false, if connection is added to network.
             self.checked = False
 
     def del_conns(self, *args):
@@ -485,7 +485,7 @@ class Network:
             self.results['Connection'].drop(c.label, inplace=True)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
-        # set status "checked" to false, if conneciton is deleted from network.
+        # set status "checked" to false, if connection is deleted from network.
         self.checked = False
 
     def check_conns(self):
@@ -964,7 +964,7 @@ class Network:
                         c.get_attr(var).val_set = False
 
         # unset design values for busses, count bus equations and
-        # reindex bus dicitonary
+        # reindex bus dictionary
         for b in self.busses.values():
             self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
@@ -1268,7 +1268,7 @@ class Network:
         msg = 'Switched components from design to offdesign.'
         logging.debug(msg)
 
-        # count bus equations and reindex bus dicitonary
+        # count bus equations and reindex bus dictionary
         for b in self.busses.values():
             self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1

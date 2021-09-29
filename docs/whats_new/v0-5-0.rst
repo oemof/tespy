@@ -11,6 +11,8 @@ Bug Fixes
 #########
 - Add :code:`is_result` flag to logarithmic temperature difference of heat
   exchangers.
+- Lift pandas requirement to :code:`pandas>=1.3.0`
+  (`PR #285 <https://github.com/oemof/tespy/pull/285>`_).
 
 Other Changes
 #############

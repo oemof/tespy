@@ -55,7 +55,7 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
     path = hlp.modify_path_os(path)
     fig_path = hlp.modify_path_os(path + 'figures/')
 
-    # creat paths, if non existent
+    # create paths, if non existent
     if not os.path.exists(path):
         os.makedirs(path)
     if not os.path.exists(fig_path):
@@ -109,7 +109,7 @@ def set_defaults(nw):
     """
     rpt = {
         'draft': True,
-        'latex_body': False,
+        'latex_body': True,
         'include_results': True,
         'Bus': {'float_fmt': '{:,.2f}'},
         'Connection': {
@@ -198,8 +198,9 @@ def document_software_info(rpt):
         latex += '\n'
         latex += r'\end{itemize}' + '\n'
         latex += (
-            r'\item To supress these messages, call the model '
-            'documentation with the keyword draft=False.\n')
+            r'\item To suppress these messages, call the model '
+            'documentation with the keyword draft=False in the formatting '
+            'dict.\n')
         latex += r'\end{itemize}' + '\n\n'
 
     latex += r'\begin{table}[H]' + '\n'

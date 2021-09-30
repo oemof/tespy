@@ -31,19 +31,19 @@ are listed in the following:
 - GCHP with R410A (model and post-processing): :download:`R410A_calculations <../tutorial/R410A_calculations.py>`
 - Plots of the results of the parameter variations: :download:`plots <../tutorial/plots.py>`
 
-.. figure:: api/_images/heat_pump_exergy_flowsheet.svg
-    :align: center
-    :alt:l Topology of the Ground-Couped Heat Pump (GCHP)
-
-    Figure: Topology of the Ground-Couped Heat Pump (GCHP).
-
-The figure above shows the topology of the GCHP. In this model, a
+The figure below shows the topology of the GCHP. In this model, a
 ground-coupled heat pump is modeled, which is for instance connected to a
 single-family house with underfloor heating. The heating system represents the
 heat demand of the house. The geothermal heat collector is represented by a
 ground heat feed flow (Source) and return flow (Sink). The heat pump circuit
 consists of the basic components: condenser, expansion valve, evaporator and
 compressor.
+
+.. figure:: api/_images/heat_pump_exergy_flowsheet.svg
+    :align: center
+    :alt: Topology of the Ground-Couped Heat Pump (GCHP)
+
+    Figure: Topology of the Ground-Couped Heat Pump (GCHP).
 
 The input data of the model are based on different literature. In general, the
 model of the GCHP is based on a data sheet of a real heat pump

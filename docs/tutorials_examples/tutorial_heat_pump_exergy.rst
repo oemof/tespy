@@ -18,6 +18,16 @@ refrigerants (NH3 and R410A) are created. Finally, the influence of varying
 different parameters on COP and exergetic efficiency is investigated and
 plotted.
 
+.. note::
+
+    Please note, currently this tutorial is intended to show the user, how to
+    carry out an exergy analysis for a simple system and how to use this
+    toolbox in several investigations of a specific system. While there is a
+    very short description of the setup, methodology and results, an in-depth
+    discussion of the method and the results is not yet provided. If you would
+    like to add this to the documentation you are welcome to contact us via our
+    GitHub.
+
 Since there is an existing tutorial for
 :ref:`creating a heat pump <heat_pump_tutorial_label>`, this tutorial starts
 with the explanations for setting up the exergy analysis. Note, however, that

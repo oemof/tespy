@@ -245,11 +245,13 @@ class Network:
 
         # set up results dataframe for connections
         cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp'] + self.fluids)
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            + self.fluids)
         self.results['Connection'] = pd.DataFrame(
             columns=cols, dtype='float64')
+        # include column for fluid balance in specs dataframe
         self.specifications['Connection'] = pd.DataFrame(
-            columns=cols, dtype='bool')
+            columns=cols + ['balance'], dtype='bool')
         self.specifications['Ref'] = pd.DataFrame(
             columns=cols, dtype='bool')
         self.specifications['lookup'] = {

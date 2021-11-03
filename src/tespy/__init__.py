@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.5.0 - Davis\' Domain'
+__version__ = '0.5.1 - dev'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

@@ -245,11 +245,13 @@ class Network:
 
         # set up results dataframe for connections
         cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp'] + self.fluids)
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            + self.fluids)
         self.results['Connection'] = pd.DataFrame(
             columns=cols, dtype='float64')
+        # include column for fluid balance in specs dataframe
         self.specifications['Connection'] = pd.DataFrame(
-            columns=cols, dtype='bool')
+            columns=cols + ['balance'], dtype='bool')
         self.specifications['Ref'] = pd.DataFrame(
             columns=cols, dtype='bool')
         self.specifications['lookup'] = {
@@ -816,6 +818,7 @@ class Network:
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns['object']:
+            # set all specifications to False
             self.specifications['Connection'].loc[c.label] = False
             if not self.init_previous:
                 c.good_starting_values = False
@@ -830,11 +833,9 @@ class Network:
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
                 # set SI value
                 if c.get_attr(key).val_set:
-                    self.specifications['Connection'].loc[c.label, key] = True
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
                 if c.get_attr(key).ref_set:
-                    self.specifications['Ref'].loc[c.label, key] = True
                     if key == 'T':
                         c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
                             'Td_bp', c.get_attr(key).ref.delta,
@@ -854,16 +855,6 @@ class Network:
                     raise hlp.TESPyNetworkError(msg)
             tmp0 = c.fluid.val0
             tmp_set = c.fluid.val_set
-            self.specifications['Connection'].loc[
-                c.label, 'balance'] = c.fluid.balance
-
-            # enter fluid specifications into specification DataFrame
-            for fluid in self.fluids:
-                try:
-                    self.specifications['Connection'].loc[c.label, fluid] = (
-                        c.fluid.val_set[fluid])
-                except KeyError:
-                    pass
 
             c.fluid.val = OrderedDict()
             c.fluid.val0 = OrderedDict()
@@ -1409,13 +1400,28 @@ class Network:
         c : tespy.connections.connection.Connection
             Connection count parameters of.
         """
-        self.num_conn_eq += [
-            c.m.val_set, c.p.val_set, c.h.val_set, c.T.val_set,
-            c.x.val_set, c.v.val_set, c.Td_bp.val_set].count(True)
-        self.num_conn_eq += [
-            c.m.ref_set, c.p.ref_set, c.h.ref_set, c.T.ref_set].count(True)
-        self.num_conn_eq += list(c.fluid.val_set.values()).count(True)
+        # variables 0 to 9: fluid properties
+        vars = self.specifications['Connection'].columns[:9]
+        row = [c.get_attr(var).val_set for var in vars]
+        self.num_conn_eq += row.count(True)
+        # write information to specifaction dataframe
+        self.specifications['Connection'].loc[c.label, vars] = row
+
+        row = [c.get_attr(var).ref_set for var in vars]
+        self.num_conn_eq += row.count(True)
+        # write refrenced value information to specifaction dataframe
+        self.specifications['Ref'].loc[c.label, vars] = row
+
+        # variables 9 to last but one: fluid mass fractions
+        fluids = self.specifications['Connection'].columns[9:-1]
+        row = [c.fluid.val_set[fluid] for fluid in fluids]
+        self.num_conn_eq += row.count(True)
+        self.specifications['Connection'].loc[c.label, fluids] = row
+
+        # last one: fluid balance specification
         self.num_conn_eq += c.fluid.balance * 1
+        self.specifications['Connection'].loc[
+            c.label, 'balance'] = c.fluid.balance
 
     def init_precalc_properties(self, c):
         """

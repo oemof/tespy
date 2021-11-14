@@ -1,0 +1,18 @@
+v0.5.1 - Someversion (Somemonth, Someday, Someyear)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+
+Bug Fixes
+#########
+- In the first offdesign calculation the connection parameter specifications
+  in the LaTeX report were still reported in design mode
+  (`PR #290 <https://github.com/oemof/tespy/pull/290>`_).
+
+Other Changes
+#############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

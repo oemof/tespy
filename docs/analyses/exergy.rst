@@ -302,8 +302,8 @@ results are printed in five individual tables:
 - connections
 - components
 - busses
-- groups (component groups)
 - network
+- groups (component groups)
 
 By default, all of these tables are printed to the prompt. It is possible to
 deselect the tables, e.g. by passing :code:`groups=False` to the method call.
@@ -315,6 +315,14 @@ deselect the tables, e.g. by passing :code:`groups=False` to the method call.
 For the component related tables, i.e. busses, components and groups, the data
 are sorted descending regarding the exergy destruction value of the individual
 component.
+
+.. note::
+  Please note, that in contrast to the component and bus data, group data do
+  not contain fuel and product exergy as well as exergy efficiency. Instead all
+  exergy streams entering the system borders of the component group and all
+  exergy streams leaving the system borders are calculated. On this basis, a
+  graphical representation of the exergy flows in the network can be generated
+  in the form of a Grassmann diagram.
 
 Accessing the data
 ^^^^^^^^^^^^^^^^^^

@@ -505,18 +505,16 @@ class ExergyAnalysis:
 
         # create overview of component groups
         self.group_data = pd.DataFrame(
-            columns=['E_F', 'E_P', 'E_D'], dtype='float64')
+            columns=['E_in', 'E_out', 'E_D'], dtype='float64')
         for fkt_group in self.component_data['group'].unique():
-            self.group_data.loc[fkt_group, 'E_F'] = (
+            self.group_data.loc[fkt_group, 'E_in'] = (
                 self.calculate_group_input_value(fkt_group))
             self.group_data.loc[fkt_group, 'E_D'] = (
                 self.sankey_data[fkt_group].loc['E_D', 'value'])
 
         # calculate missing values
-        self.group_data['E_P'] = (
-            self.group_data['E_F'] - self.group_data['E_D'])
-        self.group_data['epsilon'] = (
-            self.group_data['E_P'] / self.group_data['E_F'])
+        self.group_data['E_out'] = (
+            self.group_data['E_in'] - self.group_data['E_D'])
         self.group_data['y_Dk'] = (
             self.group_data['E_D'] / self.network_data.loc['E_F'])
         self.group_data['y*_Dk'] = (
@@ -735,18 +733,18 @@ class ExergyAnalysis:
             print(tabulate(
                 df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
-        if groups:
-            df = self.group_data.copy()
-            if sort_desc:
-                df.sort_values(by=['E_D'], ascending=False, inplace=True)
-
-            print('##### RESULTS: Component group exergy analysis #####')
-            print(tabulate(
-                df, headers='keys', tablefmt='psql', floatfmt='.3e'))
-
         if network:
             print('##### RESULTS: Network exergy analysis #####')
             print(tabulate(
                 self.network_data.to_frame().transpose(),
                 headers='keys', tablefmt='psql', floatfmt='.3e',
                 showindex=False))
+
+        if groups:
+            df = self.group_data.copy()
+            if sort_desc:
+                df.sort_values(by=['E_D'], ascending=False, inplace=True)
+
+            print('##### RESULTS: Component group exergy inflows and outflows #####')
+            print(tabulate(
+                df, headers='keys', tablefmt='psql', floatfmt='.3e'))

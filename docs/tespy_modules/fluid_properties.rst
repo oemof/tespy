@@ -45,8 +45,10 @@ cover liquid state only.
 
 Fluid mixtures
 --------------
-CoolProp provides fluid properties for two component mixtures. BUT: These are
-NOT integrated in TESPy! Nevertheless, you can use fluid mixtures for gases.
+CoolProp provides fluid properties for two component mixtures. Through the
+INCOMP backed, these `binary mixtures <http://www.coolprop.org/fluid_properties/Incompressibles.html#id180>`_
+are now also supported by TESPy along with fluid mixtures for gases as
+mentioned below.
 
 Ideal mixtures of gaseous fluids
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -64,9 +66,7 @@ for more information.
 
 Other mixtures
 ^^^^^^^^^^^^^^
-It is **not possible** to use mixtures of liquid and other liquid or gaseous
-fluids **at the moment**! If you try to use a mixture of two liquid or gaseous
-fluids and liquid fluids, e.g. water and methanol or liquid water and air, the
-equations will still be applied, but obviously return bad values. If you have
-ideas for the implementation of new kinds of mixtures we appreciate you
-contacting us.
+Support for arbitrary mixtures of liquid and other liquid or gaseous
+fluids is **not supported at the moment**! However, as mentioned previously, a set
+of mixtures defined in CoolProp is supported. If you have ideas for the
+implementation of new kinds of mixtures we appreciate you contacting us.

@@ -363,10 +363,23 @@ class Memorise:
 
         for f, back_end in fluids.items():
             if f not in Memorise.state and back_end != 'TESPy':
+
+                # split fluid name into label and mass fraction if applicable
+                fluid_name = f
+                mass_fraction = None
+                if "[" in f:
+                    fluid_name = f.split("[")[0]
+                    mass_fraction = float(f[f.index("[") + 1:f.index("]")])
+
                 # create CoolProp.AbstractState object
                 try:
-                    Memorise.state[f] = CP.AbstractState(back_end, f)
+                    Memorise.state[f] = CP.AbstractState(back_end, fluid_name)
                     Memorise.back_end[f] = back_end
+
+                    # set mass fraction if applicable
+                    if mass_fraction is not None:
+                        Memorise.state[f].set_mass_fractions([mass_fraction])
+
                 except ValueError:
                     msg = (
                         'Could not find the fluid "' + f + '" in the fluid '
@@ -388,14 +401,21 @@ class Memorise:
                 except ValueError:
                     pmin = 1e4
                     pmax = 1e8
-                    msg = (
-                        'Could not find values for maximum and minimum '
-                        'pressure.')
-                    logging.warning(msg)
+
+                    # suppress warnings for INCOMP back end
+                    if back_end != 'INCOMP':
+                        msg = (
+                            'Could not find values for maximum and minimum '
+                            'pressure.')
+                        logging.warning(msg)
 
                 # temperature range
                 Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_min)
                 Tmax = Memorise.state[f].trivial_keyed_output(CP.iT_max)
+
+                # update of minimum temperature
+                if mass_fraction is not None:
+                    Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_freeze)
 
                 # value range for fluid properties
                 Memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
@@ -410,10 +430,13 @@ class Memorise:
                     except ValueError:
                         molar_masses[f] = 1
                         gas_constants[f] = 1
-                        msg = (
-                            'Could not find values for molar mass and gas '
-                            'constant.')
-                        logging.warning(msg)
+
+                        # suppress warnings for INCOMP back end
+                        if back_end != 'INCOMP':
+                            msg = (
+                                'Could not find values for molar mass and gas '
+                                'constant.')
+                            logging.warning(msg)
 
                 msg = (
                     'Specifying fluid property ranges for pressure and '
@@ -822,11 +845,16 @@ def h_mix_pT(flow, T, force_gas=False):
     """
     n = molar_mass_flow(flow[3])
 
+    T_tmp = T
     h = 0
     for fluid, x in flow[3].items():
         if x > err:
             ni = x / molar_masses[fluid]
+            if T > Memorise.value_range[fluid][3]:
+                T_tmp = T
+                T = Memorise.value_range[fluid][3] * 0.99
             h += h_pT(flow[1] * ni / n, T, fluid, force_gas) * x
+            T = T_tmp
 
     return h
 

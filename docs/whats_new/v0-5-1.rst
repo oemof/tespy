@@ -9,6 +9,9 @@ Bug Fixes
 - In the first offdesign calculation the connection parameter specifications
   in the LaTeX report were still reported in design mode
   (`PR #290 <https://github.com/oemof/tespy/pull/290>`_).
+- Labels of string representations of numeric labels in components, connections
+  and busses have been misinterpreted as numeric values by the network_reader
+  (`PR #298 <https://github.com/oemof/tespy/pull/298>`_).
 
 Other Changes
 #############

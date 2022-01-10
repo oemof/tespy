@@ -9,42 +9,9 @@ except ImportError:
     )
     raise ImportError(msg)
 
-import numpy as np
 import pandas as pd
-from collections import OrderedDict
 
-from tespy.components.basics.cycle_closer import CycleCloser
-from tespy.components.heat_exchangers.condenser import Condenser
-from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
-from tespy.components.nodes.merge import Merge
-from tespy.components.nodes.splitter import Splitter
-from tespy.components.piping.valve import Valve
-from tespy.components.turbomachinery.pump import Pump
-from tespy.components.turbomachinery.turbine import Turbine
-from tespy.connections.bus import Bus
-from tespy.connections.connection import Connection
-from tespy.networks.network import Network
-
-
-def _nested_OrderedDict(dictionary):
-    """Create a nested OrderedDict from a nested dict.
-
-    Parameters
-    ----------
-    dictionary : dict
-        Nested dict.
-
-    Returns
-    -------
-    dictionary : collections.OrderedDict
-        Nested OrderedDict.
-    """
-    dictionary = OrderedDict(dictionary)
-    for key, value in dictionary.items():
-        if isinstance(value, dict):
-            dictionary[key] = _nested_OrderedDict(value)
-
-    return dictionary
+from tespy.tools.helpers import merge_dicts, nested_OrderedDict
 
 
 class OptimizationProblem:
@@ -79,21 +46,90 @@ class OptimizationProblem:
 
     Note
     ----
+    For the required structure of the input dictionaries see the example in
+    the :py:class:`tespy.tools.optimization.SamplePlant`.
+
     Installation of pygmo via pip is not available for Windows and OSX users
     currently. Please use conda instead or refer to their
     `documentation <https://esa.github.io/pygmo2/>`_.
 
     Example
     -------
-    Add some example code here, maybe refer to some repositories.
+    This example shows the optimization of the thermal efficiency of the
+    `SamplePlant` with respect to the pressure value at the intermediate
+    extration of the turbine.
+
+    >>> from tespy.tools.optimization import OptimizationProblem
+    >>> from tespy.tools._optimization_example import SamplePlant
+    >>> import pygmo as pg
+
+    Create an instance of your plant class, i.e. :code:`plant = SamplePlant()`
+    and the instance of :code:`OptimizationProblem` by passing the plant
+    instance, the variables, the constraints and the objective.
+
+    As the optimization problem can be formulated as unconstrained problem by
+    defining the lower and the upper limits for the variable values, the
+    constraints parameter can be left to its default value. The objective
+    function (:py:meth:`tespy.tools.optimzite.SamplePlant.get_objective`), which
+    returns the same evaluation for any kind of objective (there is only the
+    thermal efficiency in this case), the :code:`objective` keyword does not
+    need to be defined in this example (you could think of defining several
+    objectives here and returning them according to the selected objective).
+
+    As described, the variable in this example is the extraction pressure at the
+    turbine. The upper limit is 50 bar and the lower limit 0.4 bar. Of course,
+    it is possible to use multiple variables and component parameters as
+    variables as well. Just provide them in the same structure as in this
+    example.
+
+    >>> plant = SamplePlant()
+    >>> variables = {"Connections": {"2": {"p": {"min": 0.4, "max": 50}}}}
+    >>> optimize = OptimizationProblem(plant, variables)
+
+    .. note::
+
+        Please note, that the sense of optimization is always minimization,
+        therefore you need to define your objective functions in the appropriate
+        way.
+
+    After selection of an appropriate algorithm (differential evolution is a
+    good fit for this application) we can start the optimization run. For more
+    information on algorithms available in the PyGMO framework and their
+    individual specifications please refer to the respective section in their
+    online documentation:
+    `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`_.
+    Specify the number of individuals (10), the number of generations (15) and
+    call the :py:meth:`tespy.tools.optimize.OptimizationProblem.run` method of
+    your :code:`OptimizationProblem` instance passing the algorithm and the
+    number of individials and generations.
+
+    >>> num_ind = 10
+    >>> num_gen = 15
+
+    >>> algo = pg.de()
+    >>> ();optimize.run(algo, num_ind, num_gen);() # doctest: +ELLIPSIS
+    (...)
+
+    In our sample run, we found an optimal value for the extraction pressure of
+    about 4.45 bar.
     """
 
-    def __init__(self, model, variables, constraints, objective):
+    def __init__(self, model, variables={}, constraints={}, objective="objective"):
         self.model = model
-        # use OrderedDicts to have consistent order of variables,
-        # constraints (and objectives in the future)
-        self.variables = _nested_OrderedDict(variables)
-        self.constraints = _nested_OrderedDict(constraints)
+        default_variables = {"Connections": {}, "Components": {}}
+        default_constraints = {
+            "lower limits": {"Connections": {}, "Components": {}},
+            "upper limits": { "Connections": {}, "Components": {}}
+        }
+        # merge the passed values into the default dictionary structure
+        variables = merge_dicts(variables, default_variables)
+        constraints = merge_dicts(constraints, default_constraints)
+
+        # pygmo creates a vector for the variables and constraints, which has
+        # to be in consistent order. Therefore use OrderedDicts instead of
+        # dictionaries
+        self.variables = nested_OrderedDict(variables)
+        self.constraints = nested_OrderedDict(constraints)
         self.objective = objective
         self.variable_list = []
         self.constraint_list = []
@@ -215,7 +251,7 @@ class OptimizationProblem:
 
         Parameters
         ----------
-        algo : pygmo.algorithm
+        algo : pygmo.core
             PyGMO optimization algorithm.
 
         num_ind : int
@@ -224,7 +260,6 @@ class OptimizationProblem:
         num_gen : int
             Number of generations.
         """
-        print(type(algo))
 
         self.individuals = pd.DataFrame(
             index=range(num_gen * num_ind)
@@ -262,135 +297,3 @@ class OptimizationProblem:
             print(self.objective_list[i] + ': {}'.format(round(pop.champion_f[i], 4)))
         for i in range(len(self.variable_list)):
             print(self.variable_list[i] + ': {}'.format(round(pop.champion_x[i], 4)))
-
-
-class SamplePlant:
-    """Class template for TESPy model usage in optimization module."""
-    def __init__(self):
-
-        self.nw = Network(fluids=['water'])
-        self.nw.set_attr(p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False)
-
-        # main cycle components cycle closer
-        steam_generator = HeatExchangerSimple("steam generator")
-        close_cycle = CycleCloser("cycle closer")
-
-        turbine_hp = Turbine("turbine high pressure")
-        turbine_lp = Turbine("turbine low pressure")
-        extraction = Splitter("steam extraction splitter", num_out=2)
-        preheater = Condenser("feed water preheater")
-        valve = Valve("preheater condensate valve")
-        waste_steam_merge = Merge("waste steam merge")
-
-        condenser = HeatExchangerSimple("main condenser")
-        feed_pump = Pump("feed water pump")
-
-        # Connections
-
-        # main cycle
-        c0 = Connection(steam_generator, "out1", close_cycle, "in1", label="0")
-        c1 = Connection(close_cycle, "out1", turbine_hp, "in1", label="1")
-        c2 = Connection(turbine_hp, "out1", extraction, "in1", label="2")
-        c3 = Connection(extraction, "out1", turbine_lp, "in1", label="3")
-        c4 = Connection(turbine_lp, "out1", waste_steam_merge, "in1", label="4")
-        c5 = Connection(waste_steam_merge, "out1", condenser, "in1", label="5")
-        c6 = Connection(condenser, "out1", feed_pump, "in1", label="6")
-        c7 = Connection(feed_pump, "out1", preheater, "in2", label="7")
-        c8 = Connection(preheater, "out2", steam_generator, "in1", label="8")
-
-        # steam extraction
-        c11 = Connection(extraction, "out2", preheater, "in1", label="11")
-        c12 = Connection(preheater, "out1", valve, "in1", label="12")
-        c13 = Connection(valve, "out1", waste_steam_merge, "in2", label="13")
-
-        self.nw.add_conns(c0, c1, c2, c3, c4, c5, c6, c7, c8, c11, c12, c13)
-
-        # component specifications
-        steam_generator.set_attr(pr=0.92)
-        turbine_hp.set_attr(eta_s=0.9)
-        turbine_lp.set_attr(eta_s=0.9)
-        condenser.set_attr(pr=1)
-        feed_pump.set_attr(eta_s=0.75)
-        preheater.set_attr(ttd_u=5, pr1=1, pr2=0.98)
-
-        # connection specifications
-        c1.set_attr(fluid={'water': 1}, p=100, T=600, m=10)
-        # pressure at connection 2 will be the parameter to optimize
-        c2.set_attr(p=10)
-        c6.set_attr(x=0, T=30)
-
-        power_bus = Bus('power output')
-        power_bus.add_comps(
-            {'comp': turbine_hp, 'char': 0.97},
-            {'comp': turbine_lp, 'char': 0.97},
-            {'comp': feed_pump, 'char': 0.97, 'base': 'bus'}
-        )
-        heat_bus = Bus('heat input')
-        heat_bus.add_comps({'comp': steam_generator})
-        self.nw.add_busses(power_bus, heat_bus)
-
-        self.nw.solve("design")
-        self.stable = "_stable"
-        self.nw.save(self.stable)
-
-    def get_param(self, obj, label, parameter):
-        """Get the value of a parameter in the network's unit system.
-
-        Parameters
-        ----------
-        obj : str
-            Object to get parameter for (Components/Connections).
-
-        label : str
-            Label of the object in the TESPy model.
-
-        parameter : str
-            Name of the parameter of the object.
-
-        Returns
-        -------
-        value : float
-            Value of the parameter.
-        """
-        if obj == 'Components':
-            return self.nw.get_comp(label).get_attr(parameter).val
-        elif obj == 'Connections':
-            return self.nw.get_conn(label).get_attr(parameter).val
-
-    def set_params(self, **kwargs):
-
-        if "Connections" in kwargs:
-            for c, params in kwargs["Connections"].items():
-                self.nw.get_conn(c).set_attr(**params)
-
-        if "Components" in kwargs:
-            for c, params in kwargs["Components"].items():
-                self.nw.get_comp(c).set_attr(**params)
-
-    def solve_model(self, **kwargs):
-
-        self.set_params(**kwargs)
-
-        self.solved = False
-        try:
-            self.nw.solve("design")
-            if self.nw.res[-1] >= 1e-3 or self.nw.lin_dep:
-                self.nw.solve("design", init_only=True, init_path=self.stable)
-            else:
-                # might need more checks here!
-                if any(self.nw.result['Condenser']['Q'] > 0):
-                    self.solved = False
-                else:
-                    self.solved = True
-        except:
-            self.nw.lin_dep = True
-            self.nw.solve("design", init_only=True, init_path=self.stable)
-
-    def get_objective(self):
-        if self.solved:
-            return -(
-                self.nw.busses['power output'].P.val /
-                self.nw.busses['heat bus'].P.val
-            )
-        else:
-            return np.nan

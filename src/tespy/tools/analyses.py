@@ -745,6 +745,6 @@ class ExergyAnalysis:
             if sort_desc:
                 df.sort_values(by=['E_D'], ascending=False, inplace=True)
 
-            print('##### RESULTS: Component group exergy inflows and outflows #####')
+            print('##### RESULTS: Functional groups exergy flows #####')
             print(tabulate(
                 df, headers='keys', tablefmt='psql', floatfmt='.3e'))

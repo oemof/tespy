@@ -37,6 +37,7 @@ processes yet, chemical exergy is not considered. Changes in kinetic and
 potential exergy are neglected and therefore not considered as well.
 
 .. list-table:: Terminology
+
     :widths: 20 20 10 50
     :header-rows: 1
     :class: tight-table
@@ -103,33 +104,35 @@ potential exergy are neglected and therefore not considered as well.
 
 Tutorial
 --------
-In this short tutorial, an exergy analysis is carried out for the Solar Energy
-Generating System (SEGS). The full python script is available on GitHub in
-an individual repository: https://github.com/fwitte/SEGS_exergy.
+In this short tutorial, an exergy analysis is carried out for the so called
+"Solar Energy Generating System" (SEGS). The full python script is available on
+GitHub in an individual repository: https://github.com/fwitte/SEGS_exergy.
 
 Two other full code examples are to be found at:
 
 - Supercritical CO\ :sub:`2` power cycle: https://github.com/fwitte/sCO2_exergy
 - Refrigeration machine: https://github.com/fwitte/refrigeration_cycle_exergy
 
-The SEGS consists of three main systems, the solar field, the steam cycle and
-the cooling water system. In the solar field Therminol VP1 is used as heat
-transfer liquid. In the steam generator and reheater the TVP1 is cooled down to
-evaporate and overheat/reheat the water of the steam cycle. The turbine is
-divided in a high pressure turbine and a low pressure turbine, which are
-further subdivided in 2 stages (high pressure turbine) and 5 stages. In between
-the stages steam is exctracted for preheating. Finally, the main condenser of
-the steam cycle is connected to an air cooling tower. The figure below shows
-the topology of the model.
+SEGS consists of three main systems, the solar field, the steam cycle and the
+cooling water system. In the solar field Therminol VP1 is used as heat transfer
+fluid. In the steam generator and reheater the TVP1 is cooled down to evaporate
+and overheat/reheat the water of the steam cycle. The turbine is divided in a
+high pressure turbine and a low pressure turbine, which are further subdivided
+in 2 parts (high pressure turbine) and 5 parts. In between the stages steam is
+exctracted for preheating. Finally, the main condenser of the steam cycle is
+connected to an air cooling tower. The figure below shows the topology of the
+model.
 
 .. figure:: api/_images/SEGS_flowsheet.svg
+
     :align: center
     :alt: Topology of the Solar Energy Generating System (SEGS)
 
 The input data are based on literature :cite:`Kearney1988`, which provides
 measured data. Some parameters are however taken from a follow-up publication,
 as the original data show some inconsistencies, e.g. higher enthalpy at the low
-pressure turbine's last stage outlet than at its inlet :cite:`Lippke1995`.
+pressure turbine's last stage outlet than at its inlet :cite:`Lippke1995`. As
+mentioned, you can find all data in the respective GitHub repository.
 
 TESPy model
 ^^^^^^^^^^^
@@ -142,9 +145,11 @@ is implemented, calculating the surface area required for the provision of the
 heat input at optimal conditions.
 
 All components are flagged with the :code:`fkt_group` parameter, which will
-automatically create component groups for the exergy analysis sankey diagram.
-The specification of this parameter is not required for the exergy analysis
-itself, but helps to simplify the automatically generated sankey diagram.
+automatically create functional groups (component groups) for the exergy
+analysis Grassmann diagram. The specification of this parameter is not required
+for the exergy analysis itself, but helps to simplify the automatically
+generated diagram. Components not assigned to any functional group will form
+their respective group.
 
 Regarding parameter specification, the following parameters are specified:
 
@@ -303,7 +308,7 @@ results are printed in five individual tables:
 - components
 - busses
 - network
-- groups (component groups)
+- groups (functional groups)
 
 By default, all of these tables are printed to the prompt. It is possible to
 deselect the tables, e.g. by passing :code:`groups=False` to the method call.
@@ -314,9 +319,11 @@ deselect the tables, e.g. by passing :code:`groups=False` to the method call.
 
 For the component related tables, i.e. busses, components and groups, the data
 are sorted descending regarding the exergy destruction value of the individual
-component.
+entry. To merge the bus and component data into one table, use:
+...
 
 .. note::
+
   Please note, that in contrast to the component and bus data, group data do
   not contain fuel and product exergy as well as exergy efficiency. Instead all
   exergy streams entering the system borders of the component group and all
@@ -364,6 +371,7 @@ diagram is then easily done:
     fig.show()
 
 .. figure:: api/_images/SEGS_sankey.png
+
     :align: center
     :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
 
@@ -391,11 +399,12 @@ colors can be assigned to these types of streams.
 
 .. note::
 
-    - The :code:`node_order` must contain all exergy streams, thus including
+    - The :code:`node_order` must contain all exergy streams, thus
 
-      - ALL component group labels
-      - lables of the busses used in the definitions of the analysis
-      - :code:`'E_F'`, :code:`'E_P'`, :code:`'E_D'`, :code:`'E_L'`
+      - ALL component group labels (you can find the labels in the group data
+        results printout),
+      - lables of the busses used in the definitions of the analysis and
+      - :code:`'E_F'`, :code:`'E_P'`, :code:`'E_D'` as well as :code:`'E_L'`
 
     - The colors dictionary works with the following keys:
 

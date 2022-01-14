@@ -1,5 +1,5 @@
-v0.5.1 - Someversion (Somemonth, Someday, Someyear)
-+++++++++++++++++++++++++++++++++++++++++++++++++++
+v0.5.1 - Exciting Exergy (January, 14, 2022)
+++++++++++++++++++++++++++++++++++++++++++++
 
 Documentation
 #############

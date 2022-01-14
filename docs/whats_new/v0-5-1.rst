@@ -3,6 +3,10 @@ v0.5.1 - Someversion (Somemonth, Someday, Someyear)
 
 Documentation
 #############
+- Improvements on the description of the exergy analysis results data.
+  Additional dataframe added, that contains the aggregated component exergy
+  analysis results (component and respective bus exergy data)
+  (`PR #293 <https://github.com/oemof/tespy/pull/293>`_).
 
 Bug Fixes
 #########

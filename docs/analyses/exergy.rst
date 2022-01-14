@@ -302,11 +302,12 @@ rounding errors).
 
 Printing the results is possible with the
 :py:meth:`tespy.tools.analyses.ExergyAnalysis.print_results` method. The
-results are printed in five individual tables:
+results are printed in six individual tables:
 
 - connections
 - components
 - busses
+- aggregation (aggregation of components and the respective busses)
 - network
 - groups (functional groups)
 
@@ -317,10 +318,19 @@ deselect the tables, e.g. by passing :code:`groups=False` to the method call.
 
     ean.print_results(groups=False, connections=False)
 
-For the component related tables, i.e. busses, components and groups, the data
-are sorted descending regarding the exergy destruction value of the individual
-entry. To merge the bus and component data into one table, use:
-...
+For the component related tables, i.e. busses, components, aggregation and
+groups, the data are sorted descending regarding the exergy destruction value
+of the individual entry. The component data contain fuel exergy, product exergy
+and exergy destruction values related to the component itself ignoring losses
+that might occur on the busses, for example, mechanical or electrical
+conversion losses in motors and generators. The bus data contain the respective
+information related to the conversion losses on the busses only. The
+aggregation data contain both, the component and the bus data. For instance,
+a turbine driving a generator will have the electrical energy delivered by the
+generator as product exergy value. The same component's exergy product without
+considering the mechanical or electrical conversion losses is the shaft power
+delivered by the turbine. From the generator's perspective, this is the fuel
+exergy, while the product is the electrical energy.
 
 .. note::
 
@@ -343,6 +353,7 @@ the following code snippet.
     connection_data = ean.connection_data
     bus_data = ean.bus_data
     component_data = ean.component_data
+    aggregation_data = ean.aggregation_data
     network_data = ean.network_data
     group_data = ean.group_data
 

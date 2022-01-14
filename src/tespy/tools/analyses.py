@@ -752,7 +752,7 @@ class ExergyAnalysis:
 
         if busses:
             df = self.bus_data.copy()
-            df = df.loc[:, df.columns != 'group']
+            df = df.loc[:, (df.columns != 'group') & (df.columns != 'base')]
             if sort_desc:
                 df.sort_values(by=['E_D'], ascending=False, inplace=True)
 

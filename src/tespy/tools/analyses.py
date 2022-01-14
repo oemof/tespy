@@ -314,6 +314,7 @@ class ExergyAnalysis:
         self.component_data = pd.DataFrame(
             columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64')
         self.bus_data = self.component_data.copy()
+        self.bus_data['base'] = np.nan
         self.connection_data = pd.DataFrame(
             columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M'],
             dtype='float64')

@@ -34,7 +34,7 @@ setup(
         )
     ),
     author='Francesco Witte',
-    author_email='francesco.witte@hs-flensburg.de',
+    author_email='francesco.witte@dlr.de',
     url='https://github.com/oemof/tespy',
     packages=find_packages('src'),
     package_dir={'': 'src'},

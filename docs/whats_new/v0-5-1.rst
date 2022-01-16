@@ -1,0 +1,25 @@
+v0.5.1 - Exciting Exergy (January, 14, 2022)
+++++++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+- Improvements on the description of the exergy analysis results data.
+  Additional dataframe added, that contains the aggregated component exergy
+  analysis results (component and respective bus exergy data)
+  (`PR #293 <https://github.com/oemof/tespy/pull/293>`_).
+
+Bug Fixes
+#########
+- In the first offdesign calculation the connection parameter specifications
+  in the LaTeX report were still reported in design mode
+  (`PR #290 <https://github.com/oemof/tespy/pull/290>`_).
+- Labels of string representations of numeric labels in components, connections
+  and busses have been misinterpreted as numeric values by the network_reader
+  (`PR #298 <https://github.com/oemof/tespy/pull/298>`_).
+
+Other Changes
+#############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

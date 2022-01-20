@@ -7,6 +7,7 @@ from .basics.subsystem_interface import SubsystemInterface  # noqa: F401
 from .combustion.combustion_chamber import CombustionChamber  # noqa: F401
 from .combustion.combustion_chamber_stoich import CombustionChamberStoich  # noqa: F401
 from .combustion.combustion_engine import CombustionEngine  # noqa: F401
+from .combustion.diabatic import DiabaticCombustionChamber  # noqa: F401
 from .customs.orc_evaporator import ORCEvaporator  # noqa: F401
 from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401

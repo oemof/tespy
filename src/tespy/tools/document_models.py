@@ -60,7 +60,7 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
         os.makedirs(fig_path)
 
     rpt = set_defaults(nw)
-    rpt = merge_dicts(rpt, fmt)
+    rpt = hlp.merge_dicts(rpt, fmt)
 
     rpt['path'] = path
 

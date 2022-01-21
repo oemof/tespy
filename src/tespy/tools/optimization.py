@@ -1,13 +1,7 @@
 try:
     import pygmo as pg
 except ImportError:
-    msg = (
-        "For this function of TESPy pygmo has to be installed. Either use "
-        "pip (Linux users only) or conda to install the latest pygmo "
-        "version. It is also possible to install tespy using the [opt] "
-        "option: pip install tespy[opt]."
-    )
-    raise ImportError(msg)
+    pg = None
 
 import pandas as pd
 
@@ -115,6 +109,15 @@ class OptimizationProblem:
     """
 
     def __init__(self, model, variables={}, constraints={}, objective="objective"):
+        if pg is None:
+            msg = (
+                "For this function of TESPy pygmo has to be installed. Either use "
+                "pip (Linux users only) or conda to install the latest pygmo "
+                "version. It is also possible to install tespy using the [opt] "
+                "option: pip install tespy[opt]."
+            )
+            raise ImportError(msg)
+
         self.model = model
         default_variables = {"Connections": {}, "Components": {}}
         default_constraints = {

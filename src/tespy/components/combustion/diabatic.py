@@ -132,7 +132,11 @@ class DiabaticCombustionChamber(CombustionChamber):
     temperature of the flue gas determines the ratio of oxygen to fuel mass
     flow. In contrast to the simple combustion chamber, this component does
     allow for a pressure drop. Therefore the outlet pressure or the pressure
-    ratio of the combustion chamber must be specified.
+    ratio of the combustion chamber must be specified. Since the component is
+    not adiabatic, an efficiency value :code:`eta` can be supplied to account
+    for heat loss to the ambient. First, we specify :code:`eta=1` and expect
+    identical lambda or outlet temperature as in an adiabatic combustion
+    chamber.
 
     >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
     >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
@@ -142,12 +146,25 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.013
+    2.014
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1206.2
+    1206.6
+
+    Now, if we change the efficiency value, e.g. to 0.9, a total of 10 % of
+    heat respective to the thermal input will be transferred to the ambient.
+    Note, that the heat loss :code:`Q_loss` has a negative value as it is
+    extracted from the system.
+
+    >>> eta = 0.9
+    >>> comb.set_attr(eta=eta)
+    >>> nw.solve('design')
+    >>> round(comb.Q_loss.val, 0)
+    -50000.0
+    >>> round(comb.ti.val * comb.eta.val, 0)
+    450000.0
     """
 
     @staticmethod
@@ -167,9 +184,10 @@ class DiabaticCombustionChamber(CombustionChamber):
                 func=self.pr_func,
                 latex=self.pr_func_doc, num_eq=1),
             'eta': dc_cp(
-                min_val=0, deriv=self.energy_balance_deriv,
+                max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc, num_eq=1)
+                latex=self.energy_balance_func_doc, num_eq=1),
+            'Q_loss': dc_cp(max_val=0)
         }
 
     def get_mandatory_constraints(self):
@@ -439,25 +457,23 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.ti.val = self.calc_ti()
+        CombustionChamber.calc_parameters(self)
 
-        n_h = 0
-        n_c = 0
-        for f in self.fuel_list:
-            n_fuel = 0
-            for i in self.inl:
-                n_fuel += i.m.val_SI * i.fluid.val[f] / molar_masses[f]
-                n_h += n_fuel * self.fuels[f]['H']
-                n_c += n_fuel * self.fuels[f]['C']
+        T_ref = 298.15
+        p_ref = 1e5
 
-        n_oxygen = 0
+        res = 0
         for i in self.inl:
-            n_oxygen += (i.m.val_SI * i.fluid.val[self.o2] /
-                         molar_masses[self.o2])
+            res += i.m.val_SI * (i.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, i.fluid.val], T_ref, force_gas=True))
 
-        n_oxygen_stoich = n_h / 4 + n_c
+        for o in self.outl:
+            res -= o.m.val_SI * (o.h.val_SI - h_mix_pT(
+                [0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
 
-        self.lamb.val = n_oxygen / n_oxygen_stoich
+        self.eta.val = -res / self.ti.val
+        self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
+
 
     # def entropy_balance(self):
     #     r"""

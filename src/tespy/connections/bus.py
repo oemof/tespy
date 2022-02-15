@@ -164,9 +164,9 @@ class Bus:
     >>> round(chp.Q1.val + chp.Q2.val, 0)
     -8899014.0
     >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
-    12476723.0
+    12477089.0
     >>> round(heat_bus.P.val, 0)
-    12476723.0
+    12477089.0
     >>> round(pu.calc_bus_efficiency(power_bus), 2)
     0.98
     >>> power_bus.set_attr(P=-7.5e6)

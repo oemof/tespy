@@ -1750,8 +1750,7 @@ def s_mix_pT(flow, T, force_gas=False):
 
     fluid_comps = {}
 
-    tespy_fluids = [
-        s for s in flow[3].keys() if s in TESPyFluid.fluids]
+    tespy_fluids = [s for s in flow[3].keys() if s in TESPyFluid.fluids]
     for f in tespy_fluids:
         for it, x in TESPyFluid.fluids[f].fluid.items():
             if it in fluid_comps:
@@ -1765,8 +1764,6 @@ def s_mix_pT(flow, T, force_gas=False):
             fluid_comps[f] += flow[3][f]
         else:
             fluid_comps[f] = flow[3][f]
-
-    # print(fluid_comps)
 
     s = 0
     for fluid, x in fluid_comps.items():

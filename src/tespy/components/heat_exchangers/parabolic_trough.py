@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
+from tespy.components.heat_exchangers.simple import HeatExchangerSimple
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp

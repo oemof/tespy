@@ -15,7 +15,7 @@ import logging
 
 import numpy as np
 
-from tespy.components.combustion.combustion_chamber import CombustionChamber
+from tespy.components.combustion.base import CombustionChamber
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp

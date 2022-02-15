@@ -10,7 +10,7 @@ available from its original location tespy/components/piping/pipe.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
+from tespy.components.heat_exchangers.simple import HeatExchangerSimple
 
 
 class Pipe(HeatExchangerSimple):

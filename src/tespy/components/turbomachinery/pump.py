@@ -14,7 +14,7 @@ import logging
 
 import numpy as np
 
-from tespy.components.turbomachinery.turbomachine import Turbomachine
+from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq

@@ -254,6 +254,9 @@ class CombustionChamber(Component):
         r"""
         Calculate the lower heating value of the combustion chamber's fuel.
 
+        - Source for fluids O2, H2O and CO2: :cite:`CODATA1989`
+        - Source for all other fluids: :cite:`CRCHandbook2021`
+
         Parameters
         ----------
         f : str
@@ -275,15 +278,15 @@ class CombustionChamber(Component):
         """
         hf = {}
         hf['hydrogen'] = 0
-        hf['methane'] = -74.85
-        hf['ethane'] = -84.68
+        hf['methane'] = -74.6
+        hf['ethane'] = -84.0
         hf['propane'] = -103.8
-        hf['butane'] = -124.51
-        hf['nDodecane'] = -288.1
+        hf['butane'] = -125.7
+        hf['nDodecane'] = -289.4
         hf[self.o2] = 0
-        hf[self.co2] = -393.5
+        hf[self.co2] = -393.51
         # water (gaseous)
-        hf[self.h2o] = -241.8
+        hf[self.h2o] = -241.826
 
         key = set(list(hf.keys())).intersection(
                 set([a.replace(' ', '')

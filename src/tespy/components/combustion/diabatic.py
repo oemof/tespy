@@ -196,12 +196,6 @@ class DiabaticCombustionChamber(CombustionChamber):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            'reactor_pressure_constraints': {
-                'func': self.inlet_pressure_equality_func,
-                'deriv': self.inlet_pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.inlet_pressure_equality_func_doc,
-                'num_eq': 1},
             'stoichiometry_constraints': {
                 'func': self.stoichiometry_func,
                 'deriv': self.stoichiometry_deriv,
@@ -209,57 +203,6 @@ class DiabaticCombustionChamber(CombustionChamber):
                 'latex': self.stoichiometry_func_doc,
                 'num_eq': self.num_nw_fluids}
         }
-
-    def inlet_pressure_equality_func(self):
-        r"""
-        Equation for inlet pressure equality.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} - p_\mathrm{in,2}
-        """
-
-        return self.inl[0].p.val_SI - self.inl[1].p.val_SI
-
-    def inlet_pressure_equality_func_doc(self, label):
-        r"""
-        Equation for inlet pressure equality.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & p_\mathrm{in,1} - p_\mathrm{in,2}\\' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
-
-    def inlet_pressure_equality_deriv(self):
-        r"""
-        Calculate the partial derivatives for combustion pressure equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((
-            1, self.num_i + self.num_o + self.num_vars, self.num_nw_vars))
-        deriv[0, 0, 1] = 1
-        deriv[0, 1, 1] = -1
-        return deriv
 
     def pr_func(self):
         r"""

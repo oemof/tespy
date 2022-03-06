@@ -13,18 +13,12 @@ SPDX-License-Identifier: MIT
 
 import logging
 
-import CoolProp.CoolProp as CP
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components import CombustionChamber
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.global_vars import molar_masses
-from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import fluid_structure
 
 
 class DiabaticCombustionChamber(CombustionChamber):
@@ -36,12 +30,13 @@ class DiabaticCombustionChamber(CombustionChamber):
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.energy_balance_func`
 
     **Optional Equations**
 
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
+    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
+    - :py:meth:`tespy.components.combustion.base.DiabaticCombustionChamber.pr_func`
 
     Available fuels
 
@@ -61,7 +56,9 @@ class DiabaticCombustionChamber(CombustionChamber):
     .. note::
 
         The fuel and the air components can be connected to either of the
-        inlets.
+        inlets. The pressure of inlet 2 is disconnected from the pressure of
+        inlet 1. A warning is promted, if the pressure at inlet 2 is lower than
+        the pressure at inlet 1.
 
     Parameters
     ----------
@@ -94,6 +91,13 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     ti : float, dict
         Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
+
+    eta : float, dict
+        Combustion thermal efficiency, :math:`\eta`. Heat loss calculation based
+        on share of thermal input.
+
+    pr : float, dict
+        Pressure ratio of outlet 1 to inlet 1, :math:`pr`.
 
     Note
     ----
@@ -235,7 +239,7 @@ class DiabaticCombustionChamber(CombustionChamber):
         """
         latex = (
             r'\begin{split}' + '\n'
-            r'0 = & p_\mathrm{in,1} - p_\mathrm{out,1}\\' + '\n'
+            r'0 = & p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}\\' + '\n'
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
@@ -417,51 +421,9 @@ class DiabaticCombustionChamber(CombustionChamber):
         self.eta.val = -res / self.ti.val
         self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
 
-
-    # def entropy_balance(self):
-    #     r"""
-    #     Calculate entropy balance of combustion chamber.
-
-    #     Note
-    #     ----
-    #     The entropy balance makes the following parameter available:
-
-    #     - :code:`T_mcomb`: Thermodynamic temperature of heat of combustion
-    #     - :code:`S_comb`: Entropy production due to combustion
-    #     - :code:`S_irr`: Entropy production due to irreversibilty
-
-    #     The methodology for entropy analysis of combustion processes is derived
-    #     from :cite:`Tuschy2001`. Similar to the energy balance of a combustion
-    #     reaction, we need to define the same reference state for the entropy
-    #     balance of the combustion. The temperature for the reference state is
-    #     set to 25 °C and reference pressure is 1 bar. As the water in the flue
-    #     gas may be liquid but the thermodynmic temperature of heat of
-    #     combustion refers to the lower heating value, the water is forced to
-    #     gas at the reference point by considering evaporation.
-
-    #     - Reference temperature: 298.15 K.
-    #     - Reference pressure: 1 bar.
-
-    #     .. math::
-
-    #         T_\mathrm{m,comb}= \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
-    #         {\dot{S}_\mathrm{comb}}\\
-    #         \dot{S}_\mathrm{comb}= \dot{m}_\mathrm{fluegas} \cdot
-    #         \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)
-    #         - \sum_{i=1}^2 \dot{m}_{\mathrm{in,}i} \cdot
-    #         \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
-    #         \dot{S}_\mathrm{irr}= 0\\
-    #     """
-    #     T_ref = 298.15
-    #     p_ref = 1e5
-    #     o = self.outl[0]
-    #     self.S_comb = o.m.val_SI * (
-    #         o.s.val_SI -
-    #         s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
-    #     for c in self.inl:
-    #         self.S_comb -= c.m.val_SI * (
-    #             c.s.val_SI -
-    #             s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
-
-    #     self.S_irr = 0
-    #     self.T_mcomb = self.calc_ti() / self.S_comb
+        if self.inl[1].p.val < self.inl[0].p.val:
+            msg = (
+                "The pressure at inlet 2 is lower than the pressure at inlet 1 "
+                "at component " + self.label + "."
+            )
+            logging.warning(msg)

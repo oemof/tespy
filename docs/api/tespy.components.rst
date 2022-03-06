@@ -55,15 +55,23 @@ tespy.components.basics.subsystem_interface module
     :show-inheritance:
 
 tespy.components.combustion.base module
------------------------------------------------------
+---------------------------------------
 
 .. automodule:: tespy.components.combustion.base
     :members:
     :undoc-members:
     :show-inheritance:
 
+tespy.components.combustion.diabatic module
+-------------------------------------------
+
+.. automodule:: tespy.components.combustion.diabatic
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.combustion.stoichiometric module
-------------------------------------------------------------
+-------------------------------------------------
 
 .. automodule:: tespy.components.combustion.stoichiometric
     :members:
@@ -71,7 +79,7 @@ tespy.components.combustion.stoichiometric module
     :show-inheritance:
 
 tespy.components.combustion.engine module
------------------------------------------------------
+-----------------------------------------
 
 .. automodule:: tespy.components.combustion.engine
     :members:
@@ -103,7 +111,7 @@ tespy.components.heat_exchangers.desuperheater module
     :show-inheritance:
 
 tespy.components.heat_exchangers.base module
-------------------------------------------------------
+--------------------------------------------
 
 .. automodule:: tespy.components.heat_exchangers.base
     :members:
@@ -111,7 +119,7 @@ tespy.components.heat_exchangers.base module
     :show-inheritance:
 
 tespy.components.heat_exchangers.simple module
--------------------------------------------------------------
+----------------------------------------------
 
 .. automodule:: tespy.components.heat_exchangers.simple
     :members:
@@ -135,7 +143,7 @@ tespy.components.heat_exchangers.solar_collector module
     :show-inheritance:
 
 tespy.components.nodes.base module
---------------------------------------
+----------------------------------
 
 .. automodule:: tespy.components.nodes.base
     :members:
@@ -233,7 +241,7 @@ tespy.components.turbomachinery.turbine module
     :show-inheritance:
 
 tespy.components.turbomachinery.base module
----------------------------------------------------
+-------------------------------------------
 
 .. automodule:: tespy.components.turbomachinery.base
     :members:

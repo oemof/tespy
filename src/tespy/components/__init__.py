@@ -5,9 +5,9 @@ from .basics.sink import Sink  # noqa: F401
 from .basics.source import Source  # noqa: F401
 from .basics.subsystem_interface import SubsystemInterface  # noqa: F401
 from .combustion.base import CombustionChamber  # noqa: F401
-from .combustion.stoichiometric import CombustionChamberStoich  # noqa: F401
-from .combustion.engine import CombustionEngine  # noqa: F401
 from .combustion.diabatic import DiabaticCombustionChamber  # noqa: F401
+from .combustion.engine import CombustionEngine  # noqa: F401
+from .combustion.stoichiometric import CombustionChamberStoich  # noqa: F401
 from .customs.orc_evaporator import ORCEvaporator  # noqa: F401
 from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401

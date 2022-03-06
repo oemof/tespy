@@ -21,6 +21,9 @@ well as the equations.
 - Combustion
 
     * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
+    * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
+      (Advanced version of combustion chamber, featuring heat losses and
+      pressure drop)
     * :py:class:`Stoichiometric Combustion chamber <tespy.components.combustion.stoichiometric.CombustionChamberStoich>`
     * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
 

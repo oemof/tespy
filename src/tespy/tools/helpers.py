@@ -23,7 +23,6 @@ from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
 
-# %%
 
 def merge_dicts(dict1, dict2):
     """Return a new dictionary by merging two dictionaries recursively."""

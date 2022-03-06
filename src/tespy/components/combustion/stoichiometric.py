@@ -34,15 +34,15 @@ class CombustionChamberStoich(CombustionChamber):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.stoichiometry`
-    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.energy_balance_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.stoichiometric.CombustionChamberStoich.stoichiometry`
+    - :py:meth:`tespy.components.combustion.stoichiometric.CombustionChamberStoich.energy_balance_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.lambda_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich.ti_func`
+    - :py:meth:`tespy.components.combustion.stoichiometric.CombustionChamberStoich.lambda_func`
+    - :py:meth:`tespy.components.combustion.stoichiometric.CombustionChamberStoich.ti_func`
 
     Available fuels
 
@@ -143,7 +143,7 @@ class CombustionChamberStoich(CombustionChamber):
     comes from a strong improvement in terms of calculation speed.
     This example will show the same calculation as presented in the combustion
     chamber example (see
-    :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber`
+    :py:meth:`tespy.components.combustion.base.CombustionChamber`
     ).
 
     >>> from tespy.components import Sink, Source, CombustionChamberStoich

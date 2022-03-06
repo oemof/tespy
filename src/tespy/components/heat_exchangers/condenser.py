@@ -37,18 +37,18 @@ class Condenser(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
     - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - condensate outlet state, function can be disabled by specifying
       :code:`set_attr(subcooling=True)`
       :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.subcooling_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_func`
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - hot side :py:meth:`tespy.components.component.Component.pr_func`
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`

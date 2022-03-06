@@ -32,15 +32,15 @@ class CombustionChamber(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.energy_balance_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.energy_balance_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.ti_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
 
     Available fuels
 

@@ -62,7 +62,7 @@ Bug fixes
 - Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Busses and characteristics are not exported, if none are used in the network. The network_reader can now
   handle missing bus.csv, char_line.csv and char_map.csv (`PR #127 <https://github.com/oemof/tespy/pull/127>`_).
-- Some parameters of class :py:class:`combustion_engine <tespy.components.combustion.combustion_engine>` have been
+- Some parameters of class :py:class:`combustion_engine <tespy.components.combustion.engine>` have been
   printed out twice in the value range check (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
 
 Other changes

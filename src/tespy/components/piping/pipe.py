@@ -26,10 +26,10 @@ class Pipe(HeatExchangerSimple):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hydro_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`
 
     Inlets/Outlets
 

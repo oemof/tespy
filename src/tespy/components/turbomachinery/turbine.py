@@ -35,7 +35,7 @@ class Turbine(Turbomachine):
     **Optional Equations**
 
     - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`

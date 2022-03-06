@@ -46,7 +46,7 @@ class Bus:
     also be used to introduce efficiencies of energy conversion, e.g. in
     motors, generator or boilers. This example takes the combustion engine
     example at
-    :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+    :py:class:`tespy.components.combustion.engine.CombustionEngine`
     and adds a flue gas cooler and a circulation pump for the cooling water.
     Then busses for heat output, thermal input and electricity output are
     implemented.

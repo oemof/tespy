@@ -48,10 +48,10 @@ class HeatExchangerSimple(Component):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hydro_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`
 
     Inlets/Outlets
 
@@ -303,8 +303,8 @@ class HeatExchangerSimple(Component):
         residual : float
             Residual value of corresponding equation:
 
-            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.darcy_func`
-            - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hazen_williams_func`
+            - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.darcy_func`
+            - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hazen_williams_func`
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':

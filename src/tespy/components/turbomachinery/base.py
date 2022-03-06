@@ -30,7 +30,7 @@ class Turbomachine(Component):
     **Optional Equations**
 
     - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.base.base.energy_balance_func`
 
     Inlets/Outlets
 

@@ -38,7 +38,7 @@ class Compressor(Turbomachine):
     **Optional Equations**
 
     - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`

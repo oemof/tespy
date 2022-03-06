@@ -6,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/heat_exchangers/heat_exchanger.py
+tespy/components/heat_exchangers/base.py
 
 SPDX-License-Identifier: MIT
 """

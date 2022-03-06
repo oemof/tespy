@@ -6,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/combustion/combustion_chamber.py
+tespy/components/combustion/diabatic.py
 
 SPDX-License-Identifier: MIT
 """
@@ -36,7 +36,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
     - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.base.DiabaticCombustionChamber.pr_func`
+    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.pr_func`
 
     Available fuels
 

@@ -56,7 +56,7 @@ a heat exchanger. The definition of the parameters available can be found here:
 
 - :py:class:`tespy.components.piping.pipe.Pipe`
 - :py:class:`tespy.components.piping.valve.Valve`
-- :py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+- :py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
 
 .. note::
 

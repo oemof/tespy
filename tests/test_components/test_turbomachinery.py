@@ -18,7 +18,7 @@ from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine
-from tespy.components.turbomachinery.turbomachine import Turbomachine
+from tespy.components.turbomachinery.base import Turbomachine
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine

@@ -6,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/turbomachinery/turbomachine.py
+tespy/components/turbomachinery/base.py
 
 SPDX-License-Identifier: MIT
 """
@@ -30,7 +30,7 @@ class Turbomachine(Component):
     **Optional Equations**
 
     - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.base.base.energy_balance_func`
 
     Inlets/Outlets
 

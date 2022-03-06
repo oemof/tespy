@@ -62,7 +62,7 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
         os.makedirs(fig_path)
 
     rpt = set_defaults(nw)
-    rpt = merge_dicts(rpt, fmt)
+    rpt = hlp.merge_dicts(rpt, fmt)
 
     rpt['path'] = path
 
@@ -77,20 +77,6 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
     with open(path + filename, 'w') as f:
         f.write(latex)
         f.close()
-
-
-def merge_dicts(dict1, dict2):
-    """Return a new dictionary by merging two dictionaries recursively."""
-
-    result = deepcopy(dict1)
-
-    for key, value in dict2.items():
-        if isinstance(value, Mapping):
-            result[key] = merge_dicts(result.get(key, {}), value)
-        else:
-            result[key] = deepcopy(dict2[key])
-
-    return result
 
 
 def set_defaults(nw):

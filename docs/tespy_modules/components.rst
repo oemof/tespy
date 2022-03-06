@@ -20,16 +20,19 @@ well as the equations.
 
 - Combustion
 
-    * :py:class:`Combustion chamber <tespy.components.combustion.combustion_chamber.CombustionChamber>`
-    * :py:class:`Stoichiometric Combustion chamber <tespy.components.combustion.combustion_chamber_stoich.CombustionChamberStoich>`
-    * :py:class:`Combustion engine <tespy.components.combustion.combustion_engine.CombustionEngine>`
+    * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
+    * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
+      (Advanced version of combustion chamber, featuring heat losses and
+      pressure drop)
+    * :py:class:`Stoichiometric Combustion chamber <tespy.components.combustion.stoichiometric.CombustionChamberStoich>`
+    * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
 
 - Heat exchangers
 
-    * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple>`
+    * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.HeatExchangerSimple>`
     * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
     * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
-    * :py:class:`Heat exchanger <tespy.components.heat_exchangers.heat_exchanger.HeatExchanger>`
+    * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
     * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
     * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
 
@@ -335,10 +338,10 @@ Characteristics are available for the following components and parameters:
 
 - combustion engine
 
-    * :py:meth:`tiP_char <tespy.components.combustion.combustion_engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
-    * :py:meth:`Q1_char <tespy.components.combustion.combustion_engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
-    * :py:meth:`Q2_char <tespy.components.combustion.combustion_engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
-    * :py:meth:`Qloss_char <tespy.components.combustion.combustion_engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
+    * :py:meth:`tiP_char <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
+    * :py:meth:`Q1_char <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
+    * :py:meth:`Q2_char <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
+    * :py:meth:`Qloss_char <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
 
 - compressor
 
@@ -348,7 +351,7 @@ Characteristics are available for the following components and parameters:
 
 - heat exchangers:
 
-    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func>`: heat transfer coefficient.
+    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`: heat transfer coefficient.
 
 - pump
 
@@ -357,7 +360,7 @@ Characteristics are available for the following components and parameters:
 
 - simple heat exchangers
 
-    * :py:meth:`kA_char <tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_group_func>`: heat transfer coefficient.
+    * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func>`: heat transfer coefficient.
 
 - turbine
 
@@ -395,7 +398,7 @@ parameters, add these parameters as :code:`ComponentProperties` or
 :code:`ComponentCharacteristics` respectively and add a
 :code:`GroupedComponentProperties` type DataContainer holding the information,
 e.g. like the :code:`hydro_group` parameter of the
-:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
 class shown below.
 
 .. code:: python

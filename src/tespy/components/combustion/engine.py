@@ -6,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/combustion/combustion_engine.py
+tespy/components/combustion/engine.py
 
 SPDX-License-Identifier: MIT
 """
@@ -15,7 +15,7 @@ import logging
 
 import numpy as np
 
-from tespy.components.combustion.combustion_chamber import CombustionChamber
+from tespy.components.combustion.base import CombustionChamber
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -38,23 +38,23 @@ class CombustionEngine(CombustionChamber):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.fluid_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.fluid_func`
       (for cooling water)
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.tiP_char_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q1_char_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q2_char_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Qloss_char_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.energy_balance_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.tiP_char_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_char_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_char_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Qloss_char_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.ti_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q1_func`
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.Q2_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_func`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_func`
 
     - cooling loops:
 
@@ -164,7 +164,7 @@ class CombustionEngine(CombustionChamber):
     Parameters available through entropy balance are listed in the respective
     method:
 
-    - :py:meth:`tespy.components.combustion.combustion_engine.CombustionEngine.entropy_balance`
+    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.entropy_balance`
 
     Example
     -------

@@ -1,0 +1,25 @@
+v0.6.0 - Colored Chemicals (March, 06, 2022)
+++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- A new component is introduced, the DiabaticCombustionChamber:
+  :py:class:`tespy.components.combustion.diabatic.DiabaticCombustionChamber`.
+  In contrast to the adiabatic combustion chamber, the new component implements
+  pressure and heat losses. An example usage can be found in the API reference
+  of the class linked above
+  (`PR #301 <https://github.com/oemof/tespy/pull/301>`_).
+
+Documentation
+#############
+
+Bug Fixes
+#########
+
+Other Changes
+#############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@tub-hofmann <https://github.com/tub-hofmann>`_)

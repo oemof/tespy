@@ -33,7 +33,7 @@ from tespy.tools.helpers import newton
 from tespy.tools.helpers import reverse_2d
 from tespy.tools.helpers import reverse_2d_deriv
 from tespy.tools.helpers import single_fluid
-from tespy.tools.kkh import enthalpy_mass, entropy_mass, T_enthalpy_mass, T_enthalpy_mass_deriv
+# from tespy.tools.kkh import enthalpy_mass, entropy_mass, T_enthalpy_mass, T_enthalpy_mass_deriv
 
 # %%
 
@@ -594,11 +594,11 @@ def T_ph(p, h, fluid):
         return newton(reverse_2d, reverse_2d_deriv, [db, p, h], 0)
     elif Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'T')
-    elif Memorise.back_end[fluid] == 'KKH':
-        return newton(
-            T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
-            val0=700, valmin=273.15, valmax=2000
-        )
+    # elif Memorise.back_end[fluid] == 'KKH':
+    #     return newton(
+    #         T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
+    #         val0=700, valmin=273.15, valmax=2000
+    #     )
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].T()
@@ -1818,12 +1818,12 @@ def s_ph(p, h, fluid):
         return TESPyFluid.fluids[fluid].funcs['s_pT'].ev(p, T)
     elif Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 's')
-    elif Memorise.back_end[fluid] == 'KKH':
-        T = newton(
-            T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
-            val0=700, valmin=273.15, valmax=2000
-        )
-        return entropy_mass(fluid, T)
+    # elif Memorise.back_end[fluid] == 'KKH':
+    #     T = newton(
+    #         T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
+    #         val0=700, valmin=273.15, valmax=2000
+    #     )
+    #     return entropy_mass(fluid, T)
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].smass()

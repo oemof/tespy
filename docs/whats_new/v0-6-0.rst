@@ -21,6 +21,8 @@ Bug Fixes
   term although the entropy values of the mixture components were calculated at
   their respective partial pressure
   (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
+- Fix mass flow multipliers for non SI units
+  (`PR #317 <https://github.com/oemof/tespy/pull/317>`_).
 
 Other Changes
 #############
@@ -29,3 +31,4 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
 - `@tub-hofmann <https://github.com/tub-hofmann>`_)
+- `@nkawerau <https://github.com/nkawerau>`_)

@@ -22,6 +22,7 @@ import CoolProp as CP
 import numpy as np
 import pandas as pd
 from CoolProp.CoolProp import PropsSI as CPPSI
+from CoolProp.CoolProp import get_aliases
 from scipy import interpolate
 
 from tespy.tools.global_vars import err
@@ -361,7 +362,13 @@ class Memorise:
                 ' to memorise lookup tables.')
             logging.debug(msg)
 
+        Memorise.water = None
         for f, back_end in fluids.items():
+
+            # save name for water in memorise
+            if f in get_aliases("H2O"):
+                Memorise.water = f
+
             if f not in Memorise.state and back_end != 'TESPy':
                 # create CoolProp.AbstractState object
                 try:
@@ -492,7 +499,7 @@ Memorise.value_range = {}
 # %%
 
 
-def T_mix_ph(flow, T0=300):
+def T_mix_ph(flow, T0=675):
     r"""
     Calculate the temperature from pressure and enthalpy.
 
@@ -591,7 +598,7 @@ def T_ph(p, h, fluid):
         return Memorise.state[fluid].T()
 
 
-def dT_mix_dph(flow, T0=300):
+def dT_mix_dph(flow, T0=675):
     r"""
     Calculate partial derivate of temperature to pressure.
 
@@ -619,7 +626,7 @@ def dT_mix_dph(flow, T0=300):
     return (T_mix_ph(up, T0=T0) - T_mix_ph(lo, T0=T0)) / (2 * d)
 
 
-def dT_mix_pdh(flow, T0=300):
+def dT_mix_pdh(flow, T0=675):
     r"""
     Calculate partial derivate of temperature to enthalpy.
 
@@ -647,7 +654,7 @@ def dT_mix_pdh(flow, T0=300):
     return (T_mix_ph(up, T0=T0) - T_mix_ph(lo, T0=T0)) / (2 * d)
 
 
-def dT_mix_ph_dfluid(flow, T0=300):
+def dT_mix_ph_dfluid(flow, T0=675):
     r"""
     Calculate partial derivate of temperature to fluid composition.
 
@@ -689,7 +696,7 @@ def dT_mix_ph_dfluid(flow, T0=300):
 # %%
 
 
-def T_mix_ps(flow, s, T0=300):
+def T_mix_ps(flow, s, T0=675):
     r"""
     Calculate the temperature from pressure and entropy.
 
@@ -823,10 +830,40 @@ def h_mix_pT(flow, T, force_gas=False):
     n = molar_mass_flow(flow[3])
 
     h = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            ni = x / molar_masses[fluid]
-            h += h_pT(flow[1] * ni / n, T, fluid, force_gas) * x
+    fluid_name = single_fluid(flow[3])
+    if fluid_name is None:
+
+        x_i = {
+            fluid: y / (molar_masses[fluid] * n)
+            for fluid, y in flow[3].items()
+        }
+
+        water_label = Memorise.water
+        if water_label is not None and not force_gas:
+            y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
+                cond_check(flow[3], x_i, flow[1], n, T)
+            )
+
+        else:
+            y_i_gas = flow[3]
+            y_water_liq = 0
+            x_i_gas = x_i
+
+        for fluid, y in y_i_gas.items():
+            if y > err:
+                if fluid == water_label and y_water_liq > 0:
+                    Memorise.state[fluid].update(CP.QT_INPUTS, 0, T)
+                    h += Memorise.state[fluid].hmass() * y_water_liq
+                    Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                    h += Memorise.state[fluid].hmass() * y * (1 - y_water_liq)
+
+                else:
+                    h += h_pT(
+                        flow[1] * x_i_gas[fluid], T, fluid, force_gas
+                    ) * y * (1 - y_water_liq)
+
+    else:
+        h = h_pT(flow[1], T, fluid_name, force_gas)
 
     return h
 
@@ -889,13 +926,13 @@ def dh_mix_pdT(flow, T):
             \frac{\partial h_{mix}}{\partial T} =
             \frac{h_{mix}(p,T+d)-h_{mix}(p,T-d)}{2 \cdot d}
     """
-    d = 0.1
+    d = 0.001
     return (h_mix_pT(flow, T + d) - h_mix_pT(flow, T - d)) / (2 * d)
 
 # %%
 
 
-def h_mix_ps(flow, s, T0=300):
+def h_mix_ps(flow, s, T0=675):
     r"""
     Calculate the enthalpy from pressure and temperature.
 
@@ -1183,10 +1220,70 @@ def dT_bp_dp(flow):
     lo[1] -= d
     return (T_bp_p(up) - T_bp_p(lo)) / (2 * d)
 
+
+def cond_check(y_i, x_i, p, n, T):
+    """_summary_
+
+    Parameters
+    ----------
+    y_i : dict
+        Mass specific fluid composition.
+    x_i : dict
+        Mole specific fluid composition.
+    p : float
+        Pressure of mass flow.
+    n : float
+        Molar mass flow.
+    T : float
+        Temperatrure of mass flow.
+
+    Returns
+    -------
+    tuple
+        Tuple containing gasphase mass specific and molar specific compositions
+        and overall liquid water mass fraction.
+    """
+    x_i_gas = x_i.copy()
+    y_i_gas = y_i.copy()
+    y_water_liq = 0
+    x_water_liq = 0
+    water_label = Memorise.water
+
+    if T < get_T_crit(water_label):
+        Memorise.state[water_label].update(CP.QT_INPUTS, 1, T)
+        p_sat = Memorise.state[water_label].p()
+
+        pp_water = p * y_i[water_label] / (
+            molar_masses[water_label] * n
+        )
+
+        if p_sat < pp_water:
+            x_water_gas = (1 - x_i[water_label]) / (p / p_sat - 1)
+            x_water_liq = x_i[water_label] - x_water_gas
+            x_gas_sum = 1 - x_water_liq
+
+            x_i_gas = {f: x / x_gas_sum for f, x in x_i.items()}
+            x_i_gas[water_label] = x_water_gas / x_gas_sum
+
+            y_water_liq = x_water_liq * molar_masses[water_label] / (
+                sum([
+                    x * molar_masses[fluid]
+                    for fluid, x in x_i.items()
+                ])
+            )
+
+            M = sum([x * molar_masses[fluid] for fluid, x in x_i_gas.items()])
+            y_i_gas = {
+                fluid: x / M * molar_masses[fluid]
+                for fluid, x in x_i_gas.items()
+            }
+
+    return y_i_gas, x_i_gas, y_water_liq, x_water_liq
+
 # %%
 
 
-def v_mix_ph(flow, T0=300):
+def v_mix_ph(flow, T0=675):
     r"""
     Calculate the specific volume from pressure and enthalpy.
 
@@ -1299,13 +1396,13 @@ def Q_ph(p, h, fluid):
     try:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].Q()
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, AttributeError):
         return np.nan
 
 # %%
 
 
-def dv_mix_dph(flow, T0=300):
+def dv_mix_dph(flow, T0=675):
     r"""
     Calculate partial derivate of specific volume to pressure.
 
@@ -1334,7 +1431,7 @@ def dv_mix_dph(flow, T0=300):
     return (v_mix_ph(up, T0=T0) - v_mix_ph(lo, T0=T0)) / (2 * d)
 
 
-def dv_mix_pdh(flow, T0=300):
+def dv_mix_pdh(flow, T0=675):
     r"""
     Calculate partial derivate of specific volume to enthalpy.
 
@@ -1462,7 +1559,7 @@ def d_pT(p, T, fluid):
 # %%
 
 
-def visc_mix_ph(flow, T0=300):
+def visc_mix_ph(flow, T0=675):
     r"""
     Calculate the dynamic viscorsity from pressure and enthalpy.
 
@@ -1626,7 +1723,7 @@ def visc_pT(p, T, fluid):
 # %%
 
 
-def s_mix_ph(flow, T0=300):
+def s_mix_ph(flow, T0=675):
     r"""
     Calculate the entropy from pressure and enthalpy.
 
@@ -1766,12 +1863,42 @@ def s_mix_pT(flow, T, force_gas=False):
             fluid_comps[f] = flow[3][f]
 
     s = 0
-    for fluid, x in fluid_comps.items():
-        if x > err:
-            pp = flow[1] * x / (molar_masses[fluid] * n)
-            s += s_pT(pp, T, fluid, force_gas) * x
-            s -= (x * gas_constants[fluid] / molar_masses[fluid] *
-                  np.log(pp / flow[1]))
+
+    fluid_name = single_fluid(flow[3])
+    if fluid_name is None:
+
+        x_i = {
+            fluid: y / (molar_masses[fluid] * n)
+            for fluid, y in flow[3].items()
+        }
+
+        water_label = Memorise.water
+        if water_label is not None and not force_gas:
+            y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
+                cond_check(flow[3], x_i, flow[1], n, T)
+            )
+
+        else:
+            y_i_gas = flow[3]
+            y_water_liq = 0
+            x_i_gas = x_i
+
+        for fluid, y in y_i_gas.items():
+            if y > err:
+                if fluid == water_label and y_water_liq > 0:
+                    Memorise.state[water_label].update(CP.QT_INPUTS, 1, T)
+                    s += Memorise.state[water_label].smass() * y * (
+                        1 - y_water_liq
+                    )
+                    Memorise.state[water_label].update(CP.QT_INPUTS, 0, T)
+                    s += Memorise.state[water_label].smass() * y_water_liq
+
+                else:
+                    pp = flow[1] * x_i_gas[fluid]
+                    s += y * (1 - y_water_liq) * s_pT(pp, T, fluid, force_gas)
+
+    else:
+        s = s_pT(flow[1], T, fluid_name, force_gas)
 
     return s
 
@@ -1839,7 +1966,7 @@ def ds_mix_pdT(flow, T):
     return (s_mix_pT(flow, T + d) - s_mix_pT(flow, T - d)) / (2 * d)
 
 
-def isentropic(inflow, outflow, T0=300):
+def isentropic(inflow, outflow, T0=675):
     r"""
     Calculate the enthalpy at the outlet after isentropic process.
 

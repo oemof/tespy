@@ -56,6 +56,8 @@ class TestFluidProperties:
 
         Test the CoolProp pseudo pure fluid dry air properties vs. mixture of
         air components. Check enthalpy, entropy, specific volume, viscosity.
+
+        A CoolProp mixture object could be check as well!
         """
         funcs = {'h': fp.h_mix_pT,
                  's': fp.s_mix_pT,
@@ -93,7 +95,7 @@ class TestFluidProperties:
 
                     # the deviations might have to be checked
                     if p <= 1e6:
-                        d_rel_max = 0.015
+                        d_rel_max = 0.005
                         msg = ('Relative deviation is ' +
                                str(round(d_rel, 4)) + ' at inputs p=' +
                                str(round(p, 0)) + ', T=' + str(round(T, 0)) +
@@ -101,14 +103,6 @@ class TestFluidProperties:
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
                     elif p < 5e6 and T < 500:
-                        d_rel_max = 0.05
-                        msg = ('Relative deviation is ' +
-                               str(round(d_rel, 4)) + ' at inputs p=' +
-                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
-                               ' for function ' + name + ', should be < ' +
-                               str(d_rel_max) + '.')
-                        assert d_rel < d_rel_max, self.errormsg + msg
-                    elif p < 5e6 and T < 1000:
                         d_rel_max = 0.04
                         msg = ('Relative deviation is ' +
                                str(round(d_rel, 4)) + ' at inputs p=' +
@@ -116,7 +110,7 @@ class TestFluidProperties:
                                ' for function ' + name + ', should be < ' +
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
-                    elif p < 5e6 and T < 1500:
+                    elif p < 5e6 and T < 1000:
                         d_rel_max = 0.03
                         msg = ('Relative deviation is ' +
                                str(round(d_rel, 4)) + ' at inputs p=' +
@@ -124,8 +118,16 @@ class TestFluidProperties:
                                ' for function ' + name + ', should be < ' +
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
+                    elif p < 5e6 and T < 1500:
+                        d_rel_max = 0.02
+                        msg = ('Relative deviation is ' +
+                               str(round(d_rel, 4)) + ' at inputs p=' +
+                               str(round(p, 0)) + ', T=' + str(round(T, 0)) +
+                               ' for function ' + name + ', should be < ' +
+                               str(d_rel_max) + '.')
+                        assert d_rel < d_rel_max, self.errormsg + msg
                     elif T < 500:
-                        d_rel_max = 0.1
+                        d_rel_max = 0.09
                         msg = ('Relative deviation is ' +
                                str(round(d_rel, 4)) + ' at inputs p=' +
                                str(round(p, 0)) + ', T=' + str(round(T, 0)) +
@@ -133,7 +135,7 @@ class TestFluidProperties:
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
                     elif T < 1000:
-                        d_rel_max = 0.075
+                        d_rel_max = 0.06
                         msg = ('Relative deviation is ' +
                                str(round(d_rel, 4)) + ' at inputs p=' +
                                str(round(p, 0)) + ', T=' + str(round(T, 0)) +

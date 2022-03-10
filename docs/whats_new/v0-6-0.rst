@@ -1,4 +1,4 @@
-v0.6.0 - Colored Chemicals (March, 06, 2022)
+v0.6.0 - Colored Chemicals (March, 12, 2022)
 ++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
@@ -9,12 +9,18 @@ New Features
   pressure and heat losses. An example usage can be found in the API reference
   of the class linked above
   (`PR #301 <https://github.com/oemof/tespy/pull/301>`_).
+- Gaseous mixtures now check for condensation of water in enthalpy and entropy
+  are functions (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
 
 Documentation
 #############
 
 Bug Fixes
 #########
+- Calculation of entropy for gaseous mixtures included the pressure correction
+  term although the entropy values of the mixture components were calculated at
+  their respective partial pressure
+  (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
 
 Other Changes
 #############

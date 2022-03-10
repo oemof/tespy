@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 err = 1e-6
 molar_masses = {}
 gas_constants = {}
-gas_constants['uni'] = 8.3144598
+gas_constants['uni'] = 8.314462618
 
 fluid_property_data = {
     'm': {

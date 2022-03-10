@@ -18,7 +18,10 @@ fluid_property_data = {
     'm': {
         'text': 'mass flow',
         'SI_unit': 'kg / s',
-        'units': {'kg / s': 1, 'kg / min': 1/60, 'kg / h': 1/3.6e3, 't / h': 1/3.6},
+        'units': {
+            'kg / s': 1, 'kg / min': 1 / 60, 'kg / h': 1 / 3.6e3,
+            't / h': 1 / 3.6, 'g / s': 1 / 1e3
+        },
         'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         'documentation': {'float_fmt': '{:,.3f}'}
     },
@@ -48,8 +51,8 @@ fluid_property_data = {
         'SI_unit': 'J / kg',
         'units': {
             'J / kg': 1, 'kJ / kg': 1e3, 'MJ / kg': 1e6,
-            'cal / kg': 1 / 4.184, 'kcal / kg': 1e3 / 4.184,
-            'Wh / kg': 1 / 3.6e3, 'kWh / kg': 1 / 3.6e6
+            'cal / kg': 4.184, 'kcal / kg': 4.184e3,
+            'Wh / kg': 3.6e3, 'kWh / kg': 3.6e6
         },
         'latex_eq': r'0 = h - h_\mathrm{spec}',
         'documentation': {'float_fmt': '{:,.3f}'}

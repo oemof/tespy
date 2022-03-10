@@ -117,7 +117,7 @@ Examples
 
     from tespy import cmp
     chp = cmp.cogeneration_unit('combined heat and power')
-    IF = cmp.subsys_interface('subsystem interface')  
+    IF = cmp.subsys_interface('subsystem interface')
 
 *tespy 0.2.x*
 

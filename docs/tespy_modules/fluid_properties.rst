@@ -56,17 +56,11 @@ The equations can be found in the
 :py:mod:`fluid_properties <tespy.tools.fluid_properties>` module and are
 applied automatically to the fluid vector.
 
-It is also possible create lookup-tables for fluid mixtures with fixed mass
-fractions of the components, as this reduces the amount of CoolProp fluid
-property calls and speeds up your calculation. Look up the
-:py:class:`TESPyFluid <tespy.tools.fluid_properties.TESPyFluid>` documentation
-for more information.
-
 Other mixtures
 ^^^^^^^^^^^^^^
-It is **not possible** to use mixtures of liquid and other liquid or gaseous
-fluids **at the moment**! If you try to use a mixture of two liquid or gaseous
-fluids and liquid fluids, e.g. water and methanol or liquid water and air, the
-equations will still be applied, but obviously return bad values. If you have
-ideas for the implementation of new kinds of mixtures we appreciate you
-contacting us.
+Apart from partially liquid water in flue gases it is **not possible** to use
+mixtures of liquids and other liquids or gaseous fluids **at the moment**! If
+you try to use a mixture of two liquid or gaseous fluids and liquid fluids,
+e.g. water and methanol, the equations will still be applied, but obviously
+return wrong values. If you have ideas for the implementation of new kinds of
+mixtures we appreciate you contacting us.

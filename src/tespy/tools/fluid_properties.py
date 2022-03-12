@@ -543,8 +543,8 @@ def h_mix_pT(flow, T, force_gas=False):
             for fluid, y in flow[3].items()
         }
 
-        water_label = Memorise.water
-        if water_label is not None and not force_gas:
+        water = Memorise.water
+        if (water is not None and not force_gas and flow[3][water] > err):
             y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
                 cond_check(flow[3], x_i, flow[1], n, T)
             )
@@ -556,7 +556,7 @@ def h_mix_pT(flow, T, force_gas=False):
 
         for fluid, y in y_i_gas.items():
             if y > err:
-                if fluid == water_label and y_water_liq > 0:
+                if fluid == water and y_water_liq > 0:
                     Memorise.state[fluid].update(CP.QT_INPUTS, 0, T)
                     h += Memorise.state[fluid].hmass() * y_water_liq
                     Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
@@ -1514,8 +1514,8 @@ def s_mix_pT(flow, T, force_gas=False):
             for fluid, y in flow[3].items()
         }
 
-        water_label = Memorise.water
-        if water_label is not None and not force_gas:
+        water = Memorise.water
+        if (water is not None and not force_gas and flow[3][water] > err):
             y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
                 cond_check(flow[3], x_i, flow[1], n, T)
             )
@@ -1527,13 +1527,13 @@ def s_mix_pT(flow, T, force_gas=False):
 
         for fluid, y in y_i_gas.items():
             if y > err:
-                if fluid == water_label and y_water_liq > 0:
-                    Memorise.state[water_label].update(CP.QT_INPUTS, 1, T)
-                    s += Memorise.state[water_label].smass() * y * (
+                if fluid == water and y_water_liq > 0:
+                    Memorise.state[water].update(CP.QT_INPUTS, 1, T)
+                    s += Memorise.state[water].smass() * y * (
                         1 - y_water_liq
                     )
-                    Memorise.state[water_label].update(CP.QT_INPUTS, 0, T)
-                    s += Memorise.state[water_label].smass() * y_water_liq
+                    Memorise.state[water].update(CP.QT_INPUTS, 0, T)
+                    s += Memorise.state[water].smass() * y_water_liq
 
                 else:
                     pp = flow[1] * x_i_gas[fluid]

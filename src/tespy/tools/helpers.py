@@ -56,12 +56,6 @@ def nested_OrderedDict(dictionary):
 
     return dictionary
 
-from tespy.tools.global_vars import err
-from tespy.tools.global_vars import fluid_property_data
-from tespy.tools.global_vars import molar_masses
-
-# %%
-
 
 class TESPyNetworkError(Exception):
     """Custom message for network related errors."""

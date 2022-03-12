@@ -9,15 +9,6 @@ tests/test_models/test_gasturbine_model.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
-
-from tespy.components import CombustionChamber
-from tespy.components import Compressor
-from tespy.components import Sink
-from tespy.components import Source
-from tespy.components import Turbine
-from tespy.connections import Connection
-from tespy.networks import Network
 
 
 class TestGasturbine:

@@ -10,8 +10,6 @@ SPDX-License-Identifier: MIT
 """
 import os
 import sys
-from collections.abc import Mapping
-from copy import deepcopy
 from datetime import date
 
 import CoolProp as CP

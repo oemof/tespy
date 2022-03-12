@@ -10,7 +10,6 @@ tests/test_tools/test_fluid_properties.py
 SPDX-License-Identifier: MIT
 """
 import os
-import shutil
 
 import numpy as np
 import pytest
@@ -150,77 +149,6 @@ class TestFluidProperties:
                                ' for function ' + name + ', should be < ' +
                                str(d_rel_max) + '.')
                         assert d_rel < d_rel_max, self.errormsg + msg
-
-
-def test_TESPyFluid_mixture():
-    """
-    Test the mixture of a tespy fluid with a third fluid.
-
-    This test checks the deviation in the calculated values between a mixture
-    calculated with the individual fluids against a mixture of a tespy fluid
-    consisting of two components of the mixture with the third component.
-    """
-    full_mix = {'N2': 0.3333, 'O2': 0.3333, 'Ar': 0.3334}
-    N2 = full_mix['N2'] / (full_mix['N2'] + full_mix['O2'])
-    partial_mix = {'N2': N2, 'O2': 1 - N2}
-    mixture = {'Ar': full_mix['Ar'], 'partial': 1 - full_mix['Ar']}
-
-    Tmin = 250
-    Tmax = 1250
-    pmin = 1e4
-    pmax = 1e7
-
-    # As the tespy fluid is part of a mixture, the minimum pressure for lookup
-    # table creation must be much lower than the actual pressure range tested.
-    fp.TESPyFluid(
-        alias='partial', fluid=partial_mix,
-        p_range=[pmin / 3, pmax], T_range=[Tmin, Tmax])
-
-    flow_mix = [0, 0, 0, mixture]
-    flow_full = [0, 0, 0, full_mix]
-    p_range = np.linspace(pmin, pmax, 40)
-    T_range = np.linspace(Tmin, Tmax, 40)
-    # the backend specification does not matter in this case!
-    fp.Memorise.add_fluids({'partial': 'HEOS'})
-    fp.Memorise.add_fluids({fluid: 'HEOS' for fluid in full_mix.keys()})
-
-    funcs = {
-        'h': fp.h_mix_pT,
-        's': fp.s_mix_pT,
-        'v': fp.v_mix_pT,
-        'visc': fp.visc_mix_pT}
-
-    for name, func in funcs.items():
-        # enthalpy and entropy need reference point definition
-        if name == 'h' or name == 's':
-            p_ref = 1e5
-            T_ref = 500
-            mix_ref = func([0, p_ref, 0, flow_mix[3]], T_ref)
-            full_ref = func([0, p_ref, 0, flow_full[3]], T_ref)
-
-        for p in p_range:
-            flow_mix[1] = p
-            flow_full[1] = p
-            for T in T_range:
-                val_mix = func(flow_mix, T)
-                val_pure = func(flow_full, T)
-
-                # enthalpy and entropy need reference point
-                if name == 'h' or name == 's':
-                    d_rel = abs(((val_mix - mix_ref) -
-                                 (val_pure - full_ref)) /
-                                (val_pure - full_ref))
-                else:
-                    d_rel = abs((val_mix - val_pure) / val_pure)
-
-                msg = (
-                    'Relative deviation is ' + str(round(d_rel, 6)) +
-                    ' at inputs p=' + str(round(p, 0)) + ', T=' +
-                    str(round(T, 0)) + ' for function ' + name +
-                    ', should be < 1e-4.')
-                assert d_rel < 1e-4, msg
-
-    shutil.rmtree('LUT', ignore_errors=True)
 
 
 class TestFluidPropertyBackEnds:

@@ -20,7 +20,6 @@ import os
 import pandas as pd
 
 from tespy.components import CombustionChamber
-from tespy.components import CombustionChamberStoich
 from tespy.components import CombustionEngine
 from tespy.components import Compressor
 from tespy.components import Condenser
@@ -69,7 +68,6 @@ comp_target_classes = {
     'Source': Source,
     'SubsystemInterface': SubsystemInterface,
     'CombustionChamber': CombustionChamber,
-    'CombustionChamberStoich': CombustionChamberStoich,
     'CombustionEngine': CombustionEngine,
     'ORCEvaporator': ORCEvaporator,
     'Condenser': Condenser,

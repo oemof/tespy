@@ -13,23 +13,17 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
-import os
-from collections import OrderedDict
 
 import CoolProp as CP
 import numpy as np
-import pandas as pd
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
-from scipy import interpolate
 
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import molar_mass_flow
 from tespy.tools.helpers import newton
-from tespy.tools.helpers import reverse_2d
-from tespy.tools.helpers import reverse_2d_deriv
 from tespy.tools.helpers import single_fluid
 
 

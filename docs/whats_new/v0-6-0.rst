@@ -1,6 +1,10 @@
 v0.6.0 - Colored Chemicals (March, 12, 2022)
 ++++++++++++++++++++++++++++++++++++++++++++
 
+We have created a place for users of TESPy to exchange ideas and share their
+models and experience. Everyone is invited to get in touch and tune in on our
+`GitHub discussions page<https://github.com/oemof/tespy/discussions>`_.
+
 New Features
 ############
 - A new component is introduced, the DiabaticCombustionChamber:
@@ -14,6 +18,8 @@ New Features
 
 Documentation
 #############
+- Add tutorial for the :code:`DiabaticCombustionChamber`
+  (`PR #321 <https://github.com/oemof/tespy/pull/321>`_).
 
 Bug Fixes
 #########
@@ -26,6 +32,10 @@ Bug Fixes
 
 Other Changes
 #############
+- The component :code:`CombustionChamberStoich` has been removed
+  (`PR #321 <https://github.com/oemof/tespy/pull/321>`_).
+- The fluid property back-end :code:`TESPyFluid` has been removed
+  (`PR #321 <https://github.com/oemof/tespy/pull/321>`_).
 
 Contributors
 ############

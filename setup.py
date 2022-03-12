@@ -67,7 +67,6 @@ setup(
         'matplotlib>=3.2.1,<4',
         'numpy>=1.13.3,<2',
         'pandas>=1.3.0,<2',
-        'scipy>=0.19.1,<2',
         'tabulate>=0.8.2,<0.9'
     ],
     extras_require={

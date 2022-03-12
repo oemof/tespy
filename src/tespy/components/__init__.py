@@ -7,13 +7,12 @@ from .basics.subsystem_interface import SubsystemInterface  # noqa: F401
 from .combustion.base import CombustionChamber  # noqa: F401
 from .combustion.diabatic import DiabaticCombustionChamber  # noqa: F401
 from .combustion.engine import CombustionEngine  # noqa: F401
-from .combustion.stoichiometric import CombustionChamberStoich  # noqa: F401
 from .customs.orc_evaporator import ORCEvaporator  # noqa: F401
+from .heat_exchangers.base import HeatExchanger  # noqa: F401
 from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401
-from .heat_exchangers.base import HeatExchanger  # noqa: F401
-from .heat_exchangers.simple import HeatExchangerSimple  # noqa: F401
 from .heat_exchangers.parabolic_trough import ParabolicTrough  # noqa: F401
+from .heat_exchangers.simple import HeatExchangerSimple  # noqa: F401
 from .heat_exchangers.solar_collector import SolarCollector  # noqa: F401
 from .nodes.droplet_separator import DropletSeparator  # noqa: F401
 from .nodes.drum import Drum  # noqa: F401

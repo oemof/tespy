@@ -250,6 +250,8 @@ class CombustionChamber(Component):
                     self.fuels[f][el] = 0
             self.fuels[f]['LHV'] = self.calc_lhv(f)
 
+        self.fuels["CH4"]["LHV"] = 50.0e6
+
     def calc_lhv(self, f):
         r"""
         Calculate the lower heating value of the combustion chamber's fuel.

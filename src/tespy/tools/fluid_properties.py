@@ -25,6 +25,7 @@ from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import molar_mass_flow
 from tespy.tools.helpers import newton
 from tespy.tools.helpers import single_fluid
+from tespy.tools.kkh import enthalpy_mass, entropy_mass, T_enthalpy_mass, T_enthalpy_mass_deriv
 
 
 class Memorise:
@@ -102,45 +103,56 @@ class Memorise:
             if f in Memorise.state:
                 del Memorise.state[f]
 
-            # create CoolProp.AbstractState object
-            try:
-                Memorise.state[f] = CP.AbstractState(back_end, f)
+            if back_end == 'KKH':
+                # create CoolProp.AbstractState object
+                Memorise.state[f] = None
                 Memorise.back_end[f] = back_end
-            except ValueError:
+                # pressure range
+                pmin = 1e5
+                pmax = 20e5
+
+                # temperature range
+                Tmin = 273.15
+                Tmax = 2000
+
+            else:
+
+                # create CoolProp.AbstractState object
+                try:
+                    Memorise.state[f] = CP.AbstractState(back_end, f)
+                    Memorise.back_end[f] = back_end
+                except ValueError:
+                    msg = (
+                        'Could not find the fluid "' + f + '" in the fluid '
+                        'property database.'
+                    )
+                    logging.warning(msg)
+                    continue
+
                 msg = (
-                    'Could not find the fluid "' + f + '" in the fluid '
-                    'property database.'
-                )
-                logging.warning(msg)
-                continue
+                    'Created CoolProp.AbstractState object for fluid ' +
+                    f + ' with back end ' + back_end + '.')
+                logging.debug(msg)
+                # pressure range
+                try:
+                    pmin = Memorise.state[f].trivial_keyed_output(CP.iP_min)
+                    pmax = Memorise.state[f].trivial_keyed_output(CP.iP_max)
+                except ValueError:
+                    pmin = 1e4
+                    pmax = 1e8
+                    msg = (
+                        'Could not find values for maximum and minimum '
+                        'pressure.')
+                    logging.warning(msg)
 
-            msg = (
-                'Created CoolProp.AbstractState object for fluid ' +
-                f + ' with back end ' + back_end + '.')
-            logging.debug(msg)
-            # pressure range
-            try:
-                pmin = Memorise.state[f].trivial_keyed_output(CP.iP_min)
-                pmax = Memorise.state[f].trivial_keyed_output(CP.iP_max)
-            except ValueError:
-                pmin = 1e4
-                pmax = 1e8
-                msg = (
-                    'Could not find values for maximum and minimum '
-                    'pressure.')
-                logging.warning(msg)
-
-            # temperature range
-            Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_min)
-            Tmax = Memorise.state[f].trivial_keyed_output(CP.iT_max)
-
-            # value range for fluid properties
-            Memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
+                # temperature range
+                Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_min)
+                Tmax = Memorise.state[f].trivial_keyed_output(CP.iT_max)
 
             try:
                 molar_masses[f] = Memorise.state[f].molar_mass()
                 gas_constants[f] = Memorise.state[f].gas_constant()
-            except ValueError:
+            except (ValueError, AttributeError):
                 try:
                     molar_masses[f] = CPPSI('M', f)
                     gas_constants[f] = CPPSI('GAS_CONSTANT', f)
@@ -151,6 +163,9 @@ class Memorise:
                         'Could not find values for molar mass and gas '
                         'constant.')
                     logging.warning(msg)
+
+            # value range for fluid properties
+            Memorise.value_range[f] = [pmin, pmax, Tmin, Tmax]
 
             msg = (
                 'Specifying fluid property ranges for pressure and '
@@ -300,6 +315,11 @@ def T_ph(p, h, fluid):
     """
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'T')
+    elif Memorise.back_end[fluid] == 'KKH':
+        return newton(
+            T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
+            val0=700, valmin=273.15, valmax=2000
+        )
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].T()
@@ -587,16 +607,19 @@ def h_pT(p, T, fluid, force_gas=False):
     h : float
         Specific enthalpy h / (J/kg).
     """
-    if force_gas:
-        if T < get_T_crit(fluid):
-            Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-            h = Memorise.state[fluid].hmass()
-            Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
-            h_sat = Memorise.state[fluid].hmass()
-            return max(h, h_sat)
+    if Memorise.back_end[fluid] == "KKH":
+        return enthalpy_mass(fluid, T)
+    else:
+        if force_gas:
+            if T < get_T_crit(fluid):
+                Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                h = Memorise.state[fluid].hmass()
+                Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                h_sat = Memorise.state[fluid].hmass()
+                return max(h, h_sat)
 
-    Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-    return Memorise.state[fluid].hmass()
+        Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return Memorise.state[fluid].hmass()
 
 
 def dh_mix_pdT(flow, T):
@@ -937,6 +960,8 @@ def cond_check(y_i, x_i, p, n, T):
     x_water_liq = 0
     water_label = Memorise.water
 
+    return y_i_gas, x_i_gas, y_water_liq, x_water_liq
+
     if T < get_T_crit(water_label):
         Memorise.state[water_label].update(CP.QT_INPUTS, 1, T)
         p_sat = Memorise.state[water_label].p()
@@ -1048,6 +1073,8 @@ def d_ph(p, h, fluid):
     """
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'rho')
+    elif Memorise.back_end[fluid] == "KKH":
+        return np.nan
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].rhomass()
@@ -1226,8 +1253,11 @@ def d_pT(p, T, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
-    Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-    return Memorise.state[fluid].rhomass()
+    if Memorise.back_end[fluid] == "KKH":
+        return np.nan
+    else:
+        Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return Memorise.state[fluid].rhomass()
 
 
 def visc_mix_ph(flow, T0=675):
@@ -1462,6 +1492,12 @@ def s_ph(p, h, fluid):
     """
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 's')
+    elif Memorise.back_end[fluid] == 'KKH':
+        T = newton(
+            T_enthalpy_mass, T_enthalpy_mass_deriv, [fluid, h], 0,
+            val0=700, valmin=273.15, valmax=2000
+        )
+        return entropy_mass(fluid, T)
     else:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].smass()
@@ -1559,16 +1595,19 @@ def s_pT(p, T, fluid, force_gas):
     s : float
         Specific entropy s / (J/(kgK)).
     """
-    if force_gas:
-        if T < get_T_crit(fluid):
-            Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-            s = Memorise.state[fluid].smass()
-            Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
-            s_sat = Memorise.state[fluid].smass()
-            return max(s, s_sat)
+    if Memorise.back_end[fluid] == "KKH":
+        return entropy_mass(fluid, T)
+    else:
+        if force_gas:
+            if T < get_T_crit(fluid):
+                Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+                s = Memorise.state[fluid].smass()
+                Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
+                s_sat = Memorise.state[fluid].smass()
+                return max(s, s_sat)
 
-    Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-    return Memorise.state[fluid].smass()
+        Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
+        return Memorise.state[fluid].smass()
 
 
 def ds_mix_pdT(flow, T):

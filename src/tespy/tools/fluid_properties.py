@@ -1678,6 +1678,74 @@ def calc_physical_exergy(conn, p0, T0):
     return ex_therm, ex_mech
 
 
+def calc_chemical_exergy(conn, p0, T0, Chem_Ex):
+    """
+    Calculate specific chemical exergy.
+
+    Parameters
+    ----------
+    conn : tespy.connections.connection.Connection
+        Connection to calculate specific chemical exergy for.
+
+    p0 : float
+        Ambient pressure p0 / Pa.
+
+    T0 : float
+        Ambient temperature T0 / K.
+
+    Chem_Ex : dict
+        Lookup table for standard specific chemical exergy.
+
+    Returns
+    -------
+    e_ch : float
+        Specific chemical exergy in J / kg.
+    """
+    fluid_name = single_fluid(conn.fluid.val)
+
+    if fluid_name is None:
+
+        n = molar_mass_flow(conn.fluid.val)
+        x = {
+                fluid: y / (molar_masses[fluid] * n)
+                for fluid, y in conn.fluid.val.items()
+            }
+
+        molar_mass_mixture = sum(
+            [x * molar_masses[fluid] for fluid, x in x.items()]
+        )
+
+        y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
+            cond_check(conn.fluid.val, x, p0, n, T0)
+        )
+
+    else:
+
+        fluid_aliases = CP.CoolProp.get_aliases(fluid_name)
+        y = [Chem_Ex[k][Chem_Ex[k][4]] for k in fluid_aliases if k in Chem_Ex]
+        return y[0] / molar_masses[fluid_name] * 1e3
+
+    ex_cond = 0
+    ex_dry = 0
+    for fluid, x in x_i_gas.items():
+        if x == 0:
+            continue
+
+        fluid_aliases = CP.CoolProp.get_aliases(fluid)
+        if fluid in CP.CoolProp.get_aliases('H2O') and x_water_liq > 0:
+
+            y = [Chem_Ex[k][2] for k in fluid_aliases if k in Chem_Ex]
+            ex_cond += x_water_liq * y[0]
+
+        y = [Chem_Ex[k][3] for k in fluid_aliases if k in Chem_Ex]
+        ex_dry += x * y[0] + T0 * gas_constants['uni'] * 1e-3 * x * np.log(x)
+
+    ex_chemical = ex_cond + ex_dry * (1 - x_water_liq)
+    ex_chemical *= 1 / molar_mass_mixture
+
+    return ex_chemical * 1e3 # Data from Chem_Ex are in kJ / mol
+
+
 def entropy_iteration_IF97(p, h, fluid, output):
     r"""
     Calculate state in IF97 back-end via entropy iteration.

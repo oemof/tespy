@@ -567,7 +567,6 @@ class Connection:
     def get_physical_exergy(self, p0, T0):
         r"""
         Get the value of a connection's specific physical exergy.
-        Calcute physical exergy of connection
 
         Parameters
         ----------
@@ -592,6 +591,30 @@ class Connection:
 
         self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
+
+    def get_chemical_exergy(self, p0, T0, Chem_Ex):
+        r"""
+        Get the value of a connection's specific chemical exergy.
+
+        Parameters
+        ----------
+        p0 : float
+            Ambient pressure p0 / Pa.
+
+        T0 : float
+            Ambient temperature T0 / K.
+
+        Chem_Ex : dict
+            Lookup table for standard specific chemical exergy.
+
+        Note
+        ----
+            .. math::
+
+                E^\mathrm{CH} = \dot{m} \cdot e^\mathrm{CH}
+        """
+        self.ex_chemical = fp.calc_chemical_exergy(self, p0, T0, Chem_Ex)
+        self.Ex_chemical = self.m.val_SI * self.ex_chemical
 
 
 class Ref:

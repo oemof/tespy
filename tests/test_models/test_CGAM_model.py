@@ -131,7 +131,10 @@ class TestCGAM:
                 for key, value in c.fluid.val.items()
             }
             molarflow_sum = sum(molarflow.values())
-            molar = {key: value / molarflow_sum for key, value in molarflow.items()}
+            molar = {
+                key: value / molarflow_sum
+                for key, value in molarflow.items()
+            }
 
             self.result.loc[idx, molar.keys()] = molar
 
@@ -139,8 +142,8 @@ class TestCGAM:
         self.result.loc["EXP", "P"] = tur.P.val
 
     def test_ebsilon(self):
-
-        path =  os.path.dirname(__file__)
+        """Test the deviation with to an Ebsilon model"""
+        path = os.path.dirname(__file__)
         ebsilon = pd.read_csv(path + "/cgam-ebsilon-results.csv", index_col=0)
         tespy = self.result.loc[ebsilon.index, ebsilon.columns]
 

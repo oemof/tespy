@@ -1287,6 +1287,9 @@ class Network:
             if any(c.fluid.val_set.values()):
                 c.target.propagate_fluid_to_target(c, c.target)
                 c.source.propagate_fluid_to_source(c, c.source)
+            if any(c.fluid.val0.values()):
+                c.target.propagate_fluid_to_target(c, c.target)
+                c.source.propagate_fluid_to_source(c, c.source)
 
         # fluid starting value generation for components
         for cp in self.comps['object']:

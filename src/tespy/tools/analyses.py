@@ -23,6 +23,7 @@ from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
+from tespy.tools.Chem_Ex_libs.libChemExAhrendts import Chem_Ex
 
 # %%
 
@@ -30,11 +31,11 @@ from tespy.tools.global_vars import err
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""
 
-    def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[]):
+    def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[], Chem_Ex=Chem_Ex ,chemical=False):
         r"""
         Parameters
         ----------
-        E_F : float
+        E_F : list
             List containing busses which represent fuel exergy input of the
             network, e.g. heat exchangers of the steam generator.
 
@@ -316,7 +317,7 @@ class ExergyAnalysis:
         self.bus_data = self.component_data.copy()
         self.bus_data['base'] = np.nan
         self.connection_data = pd.DataFrame(
-            columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M'],
+            columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M', 'e_CH', 'E_CH'],
             dtype='float64')
         self.network_data = pd.Series(
             index=['E_F', 'E_P', 'E_D', 'E_L'], dtype='float64')
@@ -325,9 +326,16 @@ class ExergyAnalysis:
         # physical exergy of connections
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
+            conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
             self.connection_data.loc[conn.label] = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
-                conn.Ex_physical, conn.Ex_therm, conn.Ex_mech]
+                conn.Ex_physical, conn.Ex_therm, conn.Ex_mech,
+                conn.ex_chemical, conn.Ex_chemical]
+        
+        # for conn in self.nw.conns['object']:
+        #     conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
+        #     self.connection_data.loc[conn.label] = [
+        #         conn.ex_chemical, conn.Ex_chemical]
 
         self.sankey_data = {}
         for label in self.reserved_fkt_groups:

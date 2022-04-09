@@ -332,10 +332,6 @@ class ExergyAnalysis:
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech,
                 conn.ex_chemical, conn.Ex_chemical]
         
-        # for conn in self.nw.conns['object']:
-        #     conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
-        #     self.connection_data.loc[conn.label] = [
-        #         conn.ex_chemical, conn.Ex_chemical]
 
         self.sankey_data = {}
         for label in self.reserved_fkt_groups:
@@ -359,11 +355,12 @@ class ExergyAnalysis:
                     'component/group with name ' + cp.fkt_group + '.')
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
+               # print(cp)
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
                     columns=['value', 'cat'], dtype='object')
-
+                
             self.evaluate_busses(cp)
-
+       
         self.network_data.loc['E_D'] = (
             self.component_data['E_D'].sum() + self.bus_data['E_D'].sum())
         self.network_data.loc['E_F'] = abs(self.network_data.loc['E_F'])
@@ -374,6 +371,7 @@ class ExergyAnalysis:
 
         # calculate exergy destruction ratios for components/busses
         E_F = self.network_data.loc['E_F']
+       
         E_D = self.network_data.loc['E_D']
 
         for d in [self.component_data, self.bus_data, self.aggregation_data]:
@@ -525,6 +523,7 @@ class ExergyAnalysis:
                         target_group = self.component_data.loc[
                             conn.target.label, 'group']
                         target_value = conn.Ex_physical
+                        target_value += conn.Ex_chemical
                         cat = hlp.single_fluid(conn.fluid.val)
                         if cat is None:
                             cat = 'mix'
@@ -536,8 +535,9 @@ class ExergyAnalysis:
                                 target_value, cat]
 
         # create overview of component groups
-        self.group_data = pd.DataFrame(
+            self.group_data = pd.DataFrame(
             columns=['E_in', 'E_out', 'E_D'], dtype='float64')
+        
         for fkt_group in self.component_data['group'].unique():
             self.group_data.loc[fkt_group, 'E_in'] = (
                 self.calculate_group_input_value(fkt_group))
@@ -558,7 +558,6 @@ class ExergyAnalysis:
         for fkt_group, data in self.sankey_data.items():
             if group_label in data.index:
                 value += data.loc[group_label, 'value']
-
         return value
 
     def single_group_input(self, group_label, group_data):
@@ -569,7 +568,7 @@ class ExergyAnalysis:
                 inputs += [fkt_group]
             if len(inputs) > 1:
                 return inputs
-
+        
         return inputs
 
     def remove_transit_groups(self, group_data):
@@ -637,7 +636,7 @@ class ExergyAnalysis:
             diagram.
         """
         group_data = self.sankey_data.copy()
-
+       
         for fkt_group, data in self.sankey_data.items():
             group_data[fkt_group] = group_data[fkt_group][
                 data['value'].abs() >= display_thresold]
@@ -696,7 +695,7 @@ class ExergyAnalysis:
             'value': [],
             'color': []
         }
-
+        #print(group_data)
         for fkt_group, data in group_data.items():
             source_id = node_order.index(fkt_group)
             links['source'] += [source_id for i in range(len(data))]

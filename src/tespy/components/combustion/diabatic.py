@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import logging
+import numpy as np
 
 from tespy.components import CombustionChamber
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -367,5 +368,6 @@ class DiabaticCombustionChamber(CombustionChamber):
          
          self.E_D= self.E_F - self.E_P
          self.epsilon= self.E_P/self.E_F
+         self.E_bus= np.nan
          
          

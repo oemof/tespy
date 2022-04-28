@@ -29,6 +29,8 @@ Bug Fixes
   (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
 - Fix mass flow multipliers for non SI units
   (`PR #317 <https://github.com/oemof/tespy/pull/317>`_).
+- Fix call to wrong (hard coded) key for molecular mass of hydrogen
+  (`PR #332 <https://github.com/oemof/tespy/pull/332>`_).
 
 Other Changes
 #############
@@ -40,5 +42,6 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
-- `@tub-hofmann <https://github.com/tub-hofmann>`_)
-- `@nkawerau <https://github.com/nkawerau>`_)
+- `@tub-hofmann <https://github.com/tub-hofmann>`_
+- `@nkawerau <https://github.com/nkawerau>`_
+- `@BenPortner <https://github.com/BenPortner>`_

@@ -309,7 +309,7 @@ class WaterElectrolyzer(Component):
         hf['H2O'] = -286000
         hf['H2'] = 0
         hf['O2'] = 0
-        M = molar_masses['H2']
+        M = CP.PropsSI("M", "hydrogen")
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
 
         return e0

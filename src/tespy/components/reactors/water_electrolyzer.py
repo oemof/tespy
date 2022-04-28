@@ -310,7 +310,7 @@ class WaterElectrolyzer(Component):
         hf['H2'] = 0
         hf['O2'] = 0
         M = molar_masses[self.h2]
-        e0 = -(2 * hf['H2O'] - 2 * hf['H2'] + hf['O2']) / (2 * M)
+        e0 = -(2 * hf['H2O'] - 2 * hf['H2'] - hf['O2']) / (2 * M)
 
         return e0
 

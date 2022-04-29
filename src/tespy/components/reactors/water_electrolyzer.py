@@ -132,7 +132,6 @@ class WaterElectrolyzer(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> import numpy as np
     >>> fluid_list = ['O2', 'H2O', 'H2']
     >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
     ... v_unit='l / s', iterinfo=False)
@@ -179,7 +178,7 @@ class WaterElectrolyzer(Component):
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 1)
     0.8
-    >>> el_cmp.set_attr(v=np.nan)
+    >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.66)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 2)

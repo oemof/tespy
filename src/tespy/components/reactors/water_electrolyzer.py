@@ -102,7 +102,8 @@ class WaterElectrolyzer(Component):
         :math:`e/(\text{J}/\text{m}^3)`.
 
     eta : float, dict
-        Electrolysis efficiency (referring to H2 higher heating value), :math:`\eta/1`.
+        Electrolysis efficiency (referring to H2 higher heating value),
+        :math:`\eta/1`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
         Electrolysis efficiency characteristic line.

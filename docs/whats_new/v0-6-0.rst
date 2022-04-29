@@ -31,6 +31,9 @@ Bug Fixes
   (`PR #317 <https://github.com/oemof/tespy/pull/317>`_).
 - Fix call to wrong (hard coded) key for molecular mass of hydrogen
   (`PR #332 <https://github.com/oemof/tespy/pull/332>`_).
+- Fix some typos in the documentation of the class
+  :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
+  (`PR #335 <https://github.com/oemof/tespy/pull/335>`_).
 
 Other Changes
 #############

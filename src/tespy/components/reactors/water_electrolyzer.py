@@ -57,7 +57,7 @@ class WaterElectrolyzer(Component):
     Inlets/Outlets
 
     - in1 (cooling inlet), in2 (feed water inlet)
-    - out1 (cooling outlet), out2 (hydrogen outlet), out3 (oxigen outlet)
+    - out1 (cooling outlet), out2 (oxygen outlet), out3 (hydrogen outlet)
 
     Image
 
@@ -102,7 +102,8 @@ class WaterElectrolyzer(Component):
         :math:`e/(\text{J}/\text{m}^3)`.
 
     eta : float, dict
-        Electrolysis efficiency, :math:`\eta/1`.
+        Electrolysis efficiency (referring to H2 higher heating value),
+        :math:`\eta/1`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
         Electrolysis efficiency characteristic line.
@@ -130,7 +131,6 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> import shutil
     >>> fluid_list = ['O2', 'H2O', 'H2']
     >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
@@ -178,7 +178,7 @@ class WaterElectrolyzer(Component):
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 1)
     0.8
-    >>> el_cmp.set_attr(v=np.nan)
+    >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.66)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 2)

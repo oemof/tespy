@@ -57,7 +57,7 @@ class WaterElectrolyzer(Component):
     Inlets/Outlets
 
     - in1 (cooling inlet), in2 (feed water inlet)
-    - out1 (cooling outlet), out2 (hydrogen outlet), out3 (oxigen outlet)
+    - out1 (cooling outlet), out2 (oxygen outlet), out3 (hydrogen outlet)
 
     Image
 

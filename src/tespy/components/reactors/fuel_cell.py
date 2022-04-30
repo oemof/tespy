@@ -15,9 +15,126 @@ from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 
 class FuelCell(Component):
-    
+    r"""
+    The fuel cell produces power by oxidation of hydrogen.
+
+    //TODO: equation references
+
+    **Mandatory Equations**
+
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.fluid_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.mass_flow_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func`
+
+    **Optional Equations**
+
+    - cooling loop:
+
+      - :py:meth:`tespy.components.component.Component.zeta_func`
+      - :py:meth:`tespy.components.component.Component.pr_func`
+
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_consumption_func`
+
+    Inlets/Outlets
+
+    - in1 (cooling inlet), in2 (feed water inlet)
+    - out1 (cooling outlet), out2 (hydrogen outlet), out3 (oxygen outlet)
+
+    //TODO: add image
+
+    Image
+
+    .. image:: _images/FuelCell.svg
+       :alt: alternative text
+       :align: center
+
+    //TODO: update parameter list
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings : boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout : boolean
+        Include this component in the network's results printout.
+
+    P : float, dict, :code:`"var"`
+        Power input, :math:`P/\text{W}`.
+
+    Q : float, dict
+        Heat output of cooling, :math:`Q/\text{W}`
+
+    e : float, dict, :code:`"var"`
+        Electrolysis specific energy consumption,
+        :math:`e/(\text{J}/\text{m}^3)`.
+
+    eta : float, dict
+        Electrolysis efficiency, :math:`\eta/1`.
+
+    eta_char : tespy.tools.characteristics.CharLine, dict
+        Electrolysis efficiency characteristic line.
+
+    pr : float, dict, :code:`"var"`
+        Cooling loop pressure ratio, :math:`pr/1`.
+
+    zeta : float, dict, :code:`"var"`
+        Geometry independent friction coefficient for cooling loop pressure
+        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    Note
+    ----
+    Other than usual components, the fuel cell has the fluid composition
+    built into its equations for the feed hydrogen and oxygen inlets as well
+    as the water outlet. Thus, the user must not specify the fluid composition
+    at these connections!
+
+    \\TODO: complete example
+
+    Example
+    -------
+    Some initial description.
+
+    >>> from tespy.components import (Sink, Source, FuelCell)
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools import ComponentCharacteristics as dc_cc
+    >>> import shutil
+    >>> fluid_list = ['O2', 'H2O', 'H2']
+    >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
+    ... v_unit='l / s', iterinfo=False)
+    >>> fc = FuelCell('fuel cell')
+    >>> fc.component()
+    'fuel cell'
+
+    Maybe some words in between
+
+    """
+    @staticmethod
     def component():
-        return 'Fuel Cell'
+        return 'fuel cell'
 
 # %% Variables
 
@@ -45,7 +162,6 @@ class FuelCell(Component):
             func=self.specific_energy_consumption_func,
             latex=self.specific_energy_consumption_func_doc)
         }
-
 
 # %% Mandatory constraints
 
@@ -79,9 +195,9 @@ class FuelCell(Component):
 
     def outlets(self):
         return ['out1','out2']
- 
-# %% Equations and derivatives    
- 
+
+# %% Equations and derivatives
+
     def comp_init(self, nw):
 
         if not self.P.is_set:
@@ -113,16 +229,17 @@ class FuelCell(Component):
 
         Component.comp_init(self, nw)
 
-
-
     def calc_e0(self):
         r"""
         Calculate the specific energy output of the fuel cell.
+
         Returns
         -------
         val : float
             Specific energy.
+
             .. math::
+
                 e0 = \frac{\sum_i {\Delta H_f^0}_i -
                 \sum_j {\Delta H_f^0}_j }
                 {M_{H_2}}\\
@@ -139,29 +256,30 @@ class FuelCell(Component):
 
         return e0
 
-
-
     def eta_func(self):
         r"""
         Equation for efficiency.
+
         Returns
         -------
         residual : float
             Residual value of equation.
+
             .. math::
+
                 0 = P - \eta \cdot \dot{m}_{H_2,in} \cdot e_0
         """
         return self.P.val - self.eta.val * self.inl[2].m.val_SI * self.e0
 
-
-
     def eta_func_doc(self, label):
         r"""
         Equation for efficiency.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -170,15 +288,15 @@ class FuelCell(Component):
         latex = r'0 = P - \eta \cdot \dot{m}_\mathrm{H_2,in,3} \cdot e_0'
         return generate_latex_eq(self, latex, label)
 
-
-
     def eta_deriv(self, increment_filter, k):
         r"""
         Partial derivatives for efficiency function.
+
         Parameters
         ----------
         increment_filter : ndarray
             Matrix for filtering non-changing variables.
+
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
@@ -188,30 +306,31 @@ class FuelCell(Component):
         if self.P.is_var:
             self.jacobian[k, 5 + self.P.var_pos, 0] = 1
 
-
-
     def heat_func(self):
         r"""
         Equation for heat output.
+
         Returns
         -------
         residual : float
             Residual value of equation.
+
             .. math::
+
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
         return self.Q.val + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-
-
     def heat_func_doc(self, label):
         r"""
         Equation for heat output.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -222,14 +341,15 @@ class FuelCell(Component):
             r'h_\mathrm{in,1}\right)')
         return generate_latex_eq(self, latex, label)
 
-
     def heat_deriv(self, increment_filter, k):
         r"""
         Partial derivatives for heat output function.
+
         Parameters
         ----------
         increment_filter : ndarray
             Matrix for filtering non-changing variables.
+
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
@@ -237,27 +357,30 @@ class FuelCell(Component):
         self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
         self.jacobian[k, 3, 2] = self.inl[0].m.val_SI
 
-
     def specific_energy_consumption_func(self):
         r"""
         Equation for specific energy consumption.
+
         Returns
         -------
         residual : float
             Residual value of equation.
+
             .. math::
+
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
         return self.P.val - self.inl[2].m.val_SI * self.e.val
 
-
     def specific_energy_consumption_func_doc(self, label):
         r"""
         Equation for specific energy consumption.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -266,14 +389,15 @@ class FuelCell(Component):
         latex = r'0=P - \dot{m}_\mathrm{H_2,in} \cdot e'
         return generate_latex_eq(self, latex, label)
 
-
     def specific_energy_consumption_deriv(self, increment_filter, k):
         r"""
         Partial derivatives for specific energy consumption function.
+
         Parameters
         ----------
         increment_filter : ndarray
             Matrix for filtering non-changing variables.
+
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
@@ -285,15 +409,17 @@ class FuelCell(Component):
         if self.e.is_var:
             self.jacobian[k, 5 + self.e.var_pos, 0] = -self.inl[2].m.val_SI
 
-
     def energy_balance_func(self):
         r"""
         Calculate the residual in energy balance.
+
         Returns
         -------
         residual : float
             Residual value of energy balance equation.
+
             .. math::
+
                 \begin{split}
                 0=&P + \dot{m}_\mathrm{out,2}\cdot\left(h_\mathrm{out,2}-
                 h_\mathrm{out,2,ref}\right)\\
@@ -304,19 +430,21 @@ class FuelCell(Component):
                 & -\dot{m}_\mathrm{in,3} \cdot \left( h_\mathrm{in,3} -
                 h_\mathrm{in,3,ref} - e_0\right)\\
                 \end{split}
+
             - Reference temperature: 298.15 K.
             - Reference pressure: 1 bar.
         """
         return self.P.val - self.calc_P()
 
-
     def energy_balance_func_doc(self, label):
         r"""
         Calculate the residual in energy balance.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -338,14 +466,15 @@ class FuelCell(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-
     def energy_balance_deriv(self, increment_filter, k):
         r"""
         Partial derivatives for reactor energy balance.
+
         Parameters
         ----------
         increment_filter : ndarray
             Matrix for filtering non-changing variables.
+
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
@@ -379,16 +508,17 @@ class FuelCell(Component):
         if self.P.is_var:
             self.jacobian[k, 5 + self.P.var_pos, 0] = 1
 
-
-
     def fluid_func(self):
         r"""
         Equations for fluid composition.
+
         Returns
         -------
         residual : list
             Residual values of equation.
+
             .. math::
+
                 0  = x_\mathrm{i,in,1} - x_\mathrm{i,out,1}
                 \forall i \in \text{network fluids}
                 0 = \begin{cases}
@@ -425,20 +555,20 @@ class FuelCell(Component):
 
         return residual
 
-
     def fluid_func_doc(self, label):
         r"""
         Equations for fluid composition.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
             LaTeX code of equations applied.
         """
-        
         latex = (
             r'\begin{split}' + '\n'
             r'0 = &x_\mathrm{i,in,1} - x_\mathrm{i,out,1}\\' + '\n'
@@ -458,10 +588,10 @@ class FuelCell(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-
     def fluid_deriv(self):
         r"""
         Calculate the partial derivatives for cooling loop fluid balance.
+
         Returns
         -------
         deriv : ndarray
@@ -507,15 +637,17 @@ class FuelCell(Component):
 
         return deriv
 
-
     def mass_flow_func(self):
         r"""
         Equations for mass conservation.
+
         Returns
         -------
         residual : list
             Residual values of equation.
+
             .. math::
+
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
                 0=O_2\cdot\dot{m}_\mathrm{H_{2}O,out,1}-
                 \dot{m}_\mathrm{O_2,in,2}\\
@@ -533,14 +665,15 @@ class FuelCell(Component):
         residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
         return residual
 
-
     def mass_flow_func_doc(self, label):
         r"""
         Equations for mass conservation.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -557,10 +690,10 @@ class FuelCell(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-
     def mass_flow_deriv(self):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
+
         Returns
         -------
         deriv : ndarray
@@ -581,15 +714,17 @@ class FuelCell(Component):
 
         return deriv
 
-
     def reactor_pressure_func(self):
         r"""
         Equations for reactor pressure balance.
+
         Returns
         -------
         residual : list
             Residual values of equation.
+
             .. math::
+
                 0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
                 0 = p_\mathrm{in,3} - p_\mathrm{out,2}
         """
@@ -597,14 +732,15 @@ class FuelCell(Component):
             self.outl[1].p.val_SI - self.inl[1].p.val_SI,
             self.outl[1].p.val_SI - self.inl[2].p.val_SI]
 
-
     def reactor_pressure_func_doc(self, label):
         r"""
         Equations for reactor pressure balance.
+
         Parameters
         ----------
         label : str
             Label for equation.
+
         Returns
         -------
         latex : str
@@ -617,10 +753,10 @@ class FuelCell(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-
     def reactor_pressure_deriv(self):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
+
         Returns
         -------
         deriv : ndarray
@@ -636,29 +772,33 @@ class FuelCell(Component):
 
         return deriv
 
-
     def calc_P(self):
         r"""
-        Calculate fuel cell power input
+        Calculate fuel cell power input.
+
         Returns
         -------
         P : float
             Value of power input.
+
             .. math::
+
                 \begin{split}
                 P = & +\dot{m}_{in,2} \cdot \left( h_{in,2} - h_{in,2,ref}
                 \right)\\
                 & + \dot{m}_{in,3} \cdot \left( h_{in,3} - h_{in,3,ref} - e_0
                 \right)\\
                 & - \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1} \right)\\
-                & - \dot{m}_{out,2} \cdot \left( h_{out,2} - h_{out,2,ref} \right)\\
+                & - \dot{m}_{out,2} \cdot \left( h_{out,2} - h_{out,2,ref}
+                \right)\\
                 \end{split}
+
         Note
         ----
         The temperature for the reference state is set to 25 °C, thus
         the feed water must be liquid as proposed in the calculation of
-        the minimum specific energy consumption for electrolysis:
-        :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.calc_e0`.
+        the minimum specific energy consumption for oxidation:
+        :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.
@@ -674,14 +814,13 @@ class FuelCell(Component):
         h_refo2 = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
 
         val = (self.inl[2].m.val_SI * (self.inl[2].h.val_SI - h_refh2 - self.e0)
-               + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2) 
+               + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2)
                - self.inl[0].m.val_SI * (
                    self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
                - self.outl[1].m.val_SI * (
                   self.outl[1].h.val_SI - h_refh2o))
-               
-        return val
 
+        return val
 
     def initialise_fluids(self):
         #Set values to pure fluid on gas inlets and water outlet.
@@ -698,17 +837,22 @@ class FuelCell(Component):
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
+
         Parameters
         ----------
         c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
+
         key : str
             Fluid property to retrieve.
+
         Returns
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
+
             .. math::
+
                 val = \begin{cases}
                 5  \cdot 10^5 & \text{key = 'p'}\\
                 h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
@@ -721,22 +865,25 @@ class FuelCell(Component):
             T = 50 + 273.15
             return h_mix_pT(flow, T)
 
-
-
     def initialise_target(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at inlet.
+
         Parameters
         ----------
         c : tespy.connections.connection.Connection
             Connection to perform initialisation on.
+
         key : str
             Fluid property to retrieve.
+
         Returns
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
+
             .. math::
+
                 val = \begin{cases}
                 5  \cdot 10^5 & \text{key = 'p'}\\
                 h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
@@ -749,14 +896,15 @@ class FuelCell(Component):
             T = 20 + 273.15
             return h_mix_pT(flow, T)
 
-
     def propagate_fluid_to_target(self, inconn, start):
         r"""
         Propagate the fluids towards connection's target in recursion.
+
         Parameters
         ----------
         inconn : tespy.connections.connection.Connection
             Connection to initialise.
+
         start : tespy.components.component.Component
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
@@ -771,14 +919,15 @@ class FuelCell(Component):
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-
     def propagate_fluid_to_source(self, outconn, start):
         r"""
         Propagate the fluids towards connection's source in recursion.
+
         Parameters
         ----------
         outconn : tespy.connections.connection.Connection
             Connection to initialise.
+
         start : tespy.components.component.Component
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
@@ -793,7 +942,6 @@ class FuelCell(Component):
 
             inconn.source.propagate_fluid_to_source(inconn, start)
 
-
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         self.Q.val = - self.inl[0].m.val_SI * (
@@ -804,6 +952,9 @@ class FuelCell(Component):
 
         i = self.inl[0].get_flow()
         o = self.outl[0].get_flow()
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            ))
+        self.zeta.val = (
+            (i[1] - o[1]) * np.pi ** 2 / (
+                4 * i[0] ** 2 *
+                (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
+            )
+        )

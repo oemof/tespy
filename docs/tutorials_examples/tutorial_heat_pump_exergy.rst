@@ -35,11 +35,11 @@ the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
 
-- GCHP with NH3 (the model only): :download:`NH3 <../tutorial/NH3.py>`
-- GCHP with R410A (the model only): :download:`R410A <../tutorial/R410A.py>`
-- GCHP with NH3 (model and post-processing): :download:`NH3_calculations <../tutorial/NH3_calculations.py>`
-- GCHP with R410A (model and post-processing): :download:`R410A_calculations <../tutorial/R410A_calculations.py>`
-- Plots of the results of the parameter variations: :download:`plots <../tutorial/plots.py>`
+- GCHP with NH3 (the model only): :download:`NH3 </../tutorial/NH3.py>`
+- GCHP with R410A (the model only): :download:`R410A </../tutorial/R410A.py>`
+- GCHP with NH3 (model and post-processing): :download:`NH3_calculations </../tutorial/NH3_calculations.py>`
+- GCHP with R410A (model and post-processing): :download:`R410A_calculations </../tutorial/R410A_calculations.py>`
+- Plots of the results of the parameter variations: :download:`plots </../tutorial/plots.py>`
 
 The figure below shows the topology of the GCHP. In this model, a
 ground-coupled heat pump is modeled, which is for instance connected to a
@@ -49,7 +49,7 @@ ground heat feed flow (Source) and return flow (Sink). The heat pump circuit
 consists of the basic components: condenser, expansion valve, evaporator and
 compressor.
 
-.. figure:: api/_images/heat_pump_exergy_flowsheet.svg
+.. figure:: /api/_images/heat_pump_exergy_flowsheet.svg
     :align: center
     :alt: Topology of the Ground-Couped Heat Pump (GCHP)
 
@@ -133,14 +133,14 @@ flow temperature in the design calculation is set to :code:`Tgeo + 1.5°C` and
 the return flow temperature is set to :code:`Tgeo - 1.5°C`.
 
 The complete Python code of the TESPy models is available in the scripts
-:download:`NH3.py <../tutorial/NH3.py>` with NH3 as refrigerant and
-:download:`R410A.py <../tutorial/R410A.py>` with R410A as refrigerant. All
+:download:`NH3.py </../tutorial/NH3.py>` with NH3 as refrigerant and
+:download:`R410A.py </../tutorial/R410A.py>` with R410A as refrigerant. All
 other specified values of the component and connection parameters can be found
 in these Python scripts.
 
 In the scripts
-:download:`NH3_calculations.py <../tutorial/NH3_calculations.py>` and
-:download:`R410A_calculations.py <../tutorial/R410A_calculations.py>`,
+:download:`NH3_calculations.py </../tutorial/NH3_calculations.py>` and
+:download:`R410A_calculations.py </../tutorial/R410A_calculations.py>`,
 the Python code of the TESPy models of the GCHP is extended to handle the
 different tasks mentioned in the introduction. In these two scripts you can
 find the corresponding Python code for all calculations that will be presented
@@ -212,7 +212,7 @@ saved with the code shown below.
 
     diagram.save('NH3_logph.svg')
 
-.. figure:: api/_images/NH3_logph.svg
+.. figure:: /api/_images/NH3_logph.svg
     :align: center
     :alt: Fluid Property Diagram h-log(p) of the GCHP
 
@@ -344,7 +344,7 @@ method returns a dictionary containing links and nodes for the sankey diagram.
     plot(fig, filename='NH3_sankey')
 
 
-.. figure:: api/_images/NH3_sankey.svg
+.. figure:: /api/_images/NH3_sankey.svg
     :align: center
     :alt: Sankey diagram of the Ground-Coupled Heat Pump (GCHP)
 
@@ -369,7 +369,7 @@ considered:
 
 In order to be able to compare the results of the two refrigerants NH3 and
 R410A, plots of the results of the mentioned issues are created in a separate
-plot script :download:`plots.py <../tutorial/plots.py>`. The plots in this
+plot script :download:`plots.py </../tutorial/plots.py>`. The plots in this
 tutorial are created with `Matplotlib <https://matplotlib.org/>`_. For
 installation instructions or further documentation please see the Matplotlib
 documentation.
@@ -433,7 +433,7 @@ different refrigerants NH3 and R410A in a separate script.
     script for plot creation, all data frames must be saved as a file with
     their own individual name.
 
-In the separate plot script (:download:`plots.py <../tutorial/plots.py>`) the :code:`.csv` files can
+In the separate plot script (:download:`plots.py </../tutorial/plots.py>`) the :code:`.csv` files can
 now be re-imported to create plots with Matplotlib. The Python code for
 creating the bar chart is included in the previously referenced plot script
 and can be found there. For more information on creating plots with
@@ -441,7 +441,7 @@ Matplotlib, please check the
 `Matplotlib documentation <https://matplotlib.org/>`_. The resulting bar chart
 is shown below.
 
-.. figure:: api/_images/diagram_E_D.svg
+.. figure:: /api/_images/diagram_E_D.svg
     :align: center
     :alt: Comparison of exergy destruction and exergy efficiency
 
@@ -533,10 +533,10 @@ temperatures is carried out as an offdesign calculation. Again, no new
 
 The results of the calculation can be plotted as shown in the following
 figure. The related Python code to create this plot can be found in the plot
-script (:download:`plots.py <../tutorial/plots.py>`). For further documentation
+script (:download:`plots.py </../tutorial/plots.py>`). For further documentation
 please see the `Matplotlib documentation <https://matplotlib.org/>`_.
 
-.. figure:: api/_images/diagram_eps_Tamb_Tgeo.svg
+.. figure:: /api/_images/diagram_eps_Tamb_Tgeo.svg
     :align: center
     :alt: Varying Tamb and Tgeo of the GCHP
 
@@ -612,9 +612,9 @@ of :code:`Ths` as columns.
 
 The results of this calculation are shown in the following figure. The
 corresponding Python code can likewise be found in the plot script
-(:download:`plots.py <../tutorial/plots.py>`).
+(:download:`plots.py </../tutorial/plots.py>`).
 
-.. figure:: api/_images/diagram_cop_eps_Tgeo_Ths.svg
+.. figure:: /api/_images/diagram_cop_eps_Tgeo_Ths.svg
     :align: center
     :alt: Varying Tgeo and Ths of the GCHP
 
@@ -644,7 +644,7 @@ similarity to the previous parameter variation, the corresponding Python code
 is not presented, but can be found in the scripts linked at the beginning
 instead.
 
-.. figure:: api/_images/diagram_cop_eps_Tgeo_Q.svg
+.. figure:: /api/_images/diagram_cop_eps_Tgeo_Q.svg
     :align: center
     :alt: Varying Tgeo and Q of the GCHP
 
@@ -652,7 +652,7 @@ instead.
 
 The results are shown in the figure above. As before, the Python code for
 creating the plot can be found in the plot script
-(:download:`plots.py <../tutorial/plots.py>`).
+(:download:`plots.py </../tutorial/plots.py>`).
 The partial load behavior of the GCHP, which results from the characteristic
 lines of the efficiencies of the individual components, can be recognized
 in the curves shown.

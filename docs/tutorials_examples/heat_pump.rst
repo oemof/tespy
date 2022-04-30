@@ -11,7 +11,7 @@ from the tutorial to this example.
 You will find the source code `in this repository
 <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/heat_pump>`_.
 
-.. figure:: api/_images/heat_pump_example.svg
+.. figure:: /api/_images/heat_pump_example.svg
     :align: center
 
     Figure: Topology of the heat pump unit.
@@ -32,12 +32,12 @@ Obviously, the heat pump using air performs much worse. This is mainly to the
 high power consumption of the fan, as for the same amount of heat to be
 transferred, a much higher volume has to be moved.
 
-.. figure:: api/_images/heat_pump_COP_water.svg
+.. figure:: /api/_images/heat_pump_COP_water.svg
     :align: center
 
     Figure: COP of the heat pump using water as heat source.
 
-.. figure:: api/_images/heat_pump_COP_air.svg
+.. figure:: /api/_images/heat_pump_COP_air.svg
     :align: center
 
     Figure: COP of the heat pump using air as heat source.

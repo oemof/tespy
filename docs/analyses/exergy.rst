@@ -122,7 +122,7 @@ exctracted for preheating. Finally, the main condenser of the steam cycle is
 connected to an air cooling tower. The figure below shows the topology of the
 model.
 
-.. figure:: api/_images/SEGS_flowsheet.svg
+.. figure:: /api/_images/SEGS_flowsheet.svg
     :align: center
     :alt: Topology of the Solar Energy Generating System (SEGS)
 
@@ -379,7 +379,7 @@ diagram is then easily done:
         link=links))
     fig.show()
 
-.. figure:: api/_images/SEGS_sankey.png
+.. figure:: /api/_images/SEGS_sankey.png
     :align: center
     :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
 

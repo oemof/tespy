@@ -7,7 +7,7 @@ turbine condenser, the district heating water extracts energy from the waste
 heat of the waste heat steam generator. You will find the source code
 `here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combined_cycle_chp>`__.
 
-.. figure:: api/_images/cc_bp.svg
+.. figure:: /api/_images/cc_bp.svg
     :align: center
 
     Figure: Topology of the chp unit.

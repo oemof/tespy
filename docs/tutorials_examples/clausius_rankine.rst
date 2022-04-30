@@ -6,7 +6,7 @@ The process flow diagram is shown in the image below, the source code can be
 found at the TESPy `examples repository
 <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine>`__.
 
-.. figure:: api/_images/basic.svg
+.. figure:: /api/_images/basic.svg
     :align: center
 
     Figure: Topology of the basic clausius rankine cycle.

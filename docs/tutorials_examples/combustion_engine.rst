@@ -9,7 +9,7 @@ input of the combustion engine by characteristic lines, which usually are
 provided by the manufacturer. TESPy provides a set of predefined
 characteristics (documented in the :py:class:`<tespy.data>` module).
 
-.. figure:: api/_images/CombustionEngine.svg
+.. figure:: /api/_images/CombustionEngine.svg
     :align: center
 
     Figure: Topology of the combustion engine.

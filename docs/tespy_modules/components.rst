@@ -50,6 +50,7 @@ well as the equations.
 
 - Reactors
 
+    * :py:class:`Fuel cell <tespy.components.reactors.fuel_cell.FuelCell>`
     * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
 
 - Turbomachinery

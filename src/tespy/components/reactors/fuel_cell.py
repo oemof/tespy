@@ -4,15 +4,12 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import dT_mix_dph
-from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
+
 
 class FuelCell(Component):
     r"""
@@ -140,27 +137,27 @@ class FuelCell(Component):
 
     def get_variables(self):
         return {
-        'P': dc_cp(max_val=0),
-        'Q': dc_cp(
-            max_val=0, num_eq=1,
-            deriv=self.heat_deriv, func=self.heat_func,
-            latex=self.heat_func_doc),
-        'pr': dc_cp(
-            max_val=1, num_eq=1,
-            deriv=self.pr_deriv, func=self.pr_func,
-            func_params={'pr': 'pr'}, latex=self.pr_func_doc),
-        'zeta': dc_cp(
-            min_val=0, num_eq=1,
-            deriv=self.zeta_deriv, func=self.zeta_func,
-            func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
-        'eta': dc_cp(
-            min_val=0, max_val=1, num_eq=1, latex=self.eta_func_doc,
-            deriv=self.eta_deriv, func=self.eta_func),
-        'e': dc_cp(
-            max_val=0, num_eq=1,
-            deriv=self.specific_energy_consumption_deriv,
-            func=self.specific_energy_consumption_func,
-            latex=self.specific_energy_consumption_func_doc)
+            'P': dc_cp(max_val=0),
+            'Q': dc_cp(
+                max_val=0, num_eq=1,
+                deriv=self.heat_deriv, func=self.heat_func,
+                latex=self.heat_func_doc),
+            'pr': dc_cp(
+                max_val=1, num_eq=1,
+                deriv=self.pr_deriv, func=self.pr_func,
+                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'zeta': dc_cp(
+                min_val=0, num_eq=1,
+                deriv=self.zeta_deriv, func=self.zeta_func,
+                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+            'eta': dc_cp(
+                min_val=0, max_val=1, num_eq=1, latex=self.eta_func_doc,
+                deriv=self.eta_deriv, func=self.eta_func),
+            'e': dc_cp(
+                max_val=0, num_eq=1,
+                deriv=self.specific_energy_consumption_deriv,
+                func=self.specific_energy_consumption_func,
+                latex=self.specific_energy_consumption_func_doc)
         }
 
 # %% Mandatory constraints
@@ -191,10 +188,10 @@ class FuelCell(Component):
 # %% Inlets and outlets
 
     def inlets(self):
-        return ['in1','in2','in3']
+        return ['in1', 'in2', 'in3']
 
     def outlets(self):
-        return ['out1','out2']
+        return ['out1', 'out2']
 
 # %% Equations and derivatives
 
@@ -300,7 +297,7 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        #derivative for m_H2,in:
+        # derivative for m_H2,in:
         self.jacobian[k, 2, 0] = -self.eta.val * self.e0
         # derivatives for variable P:
         if self.P.is_var:
@@ -353,7 +350,9 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = -(self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+        self.jacobian[k, 0, 0] = -(
+            self.inl[0].h.val_SI - self.outl[0].h.val_SI
+        )
         self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
         self.jacobian[k, 3, 2] = self.inl[0].m.val_SI
 
@@ -813,12 +812,16 @@ class FuelCell(Component):
         h_refh2 = h_mix_pT([1, p_ref, 0, self.inl[2].fluid.val], T_ref)
         h_refo2 = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
 
-        val = (self.inl[2].m.val_SI * (self.inl[2].h.val_SI - h_refh2 - self.e0)
-               + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2)
-               - self.inl[0].m.val_SI * (
-                   self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
-               - self.outl[1].m.val_SI * (
-                  self.outl[1].h.val_SI - h_refh2o))
+        val = (
+            self.inl[2].m.val_SI * (
+                self.inl[2].h.val_SI - h_refh2 - self.e0
+            )
+            + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2)
+            - self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            )
+            - self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refh2o)
+        )
 
         return val
 

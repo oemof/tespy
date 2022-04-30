@@ -15,6 +15,11 @@ New Features
   (`PR #301 <https://github.com/oemof/tespy/pull/301>`_).
 - Gaseous mixtures now check for condensation of water in enthalpy and entropy
   are functions (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
+- A new component FuelCell is available:
+  :py:class:`tespy.components.reactors.fuel_cell.FuelCell`. It is analogously
+  defined to the WaterElectrolyzer
+  :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
+  (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
 
 Documentation
 #############
@@ -42,3 +47,4 @@ Contributors
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
 - `@tub-hofmann <https://github.com/tub-hofmann>`_)
 - `@nkawerau <https://github.com/nkawerau>`_)
+- `@matbock <https://github.com/matbock>`_

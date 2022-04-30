@@ -20,6 +20,8 @@ Documentation
 #############
 - Add tutorial for the :code:`DiabaticCombustionChamber`
   (`PR #321 <https://github.com/oemof/tespy/pull/321>`_).
+- Fix a lot of bugs in the docs
+  (`PR #337 <https://github.com/oemof/tespy/pull/337>`_).
 
 Bug Fixes
 #########

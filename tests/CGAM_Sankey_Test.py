@@ -58,9 +58,9 @@ nwk.add_conns(#amb_in_ac,ac_in_aph,
 # power.add_comps({'comp': ac, 'base': 'bus'}, {'comp': exp})
 
 E_Fu= Bus('exergy_Fuel')
-E_Fu.add_comps({'comp':ch4, 'base':'bus'})
+E_Fu.add_comps({'comp':ch4, 'base':'bus'},{'comp':amb, 'base':'bus'})
 E_Pro=Bus('exergy_Product')
-E_Pro.add_comps({'comp':flueout},{'comp':amb, 'base':'bus'})
+E_Pro.add_comps({'comp':flueout})
 
 nwk.add_busses(E_Fu, E_Pro)
 #amb_in_ac.set_attr(fluid=air, T=298.15, p=1.013)
@@ -91,7 +91,10 @@ ean.print_results()
 # for c in nwk.conns["object"]:
 #     c.get_physical_exergy(1.013e5, 298.15)
 #     c.get_chemical_exergy(1.013e5, 298.15, Chem_Ex)
-    
+# for k,v in ean.sankey_data.items():
+#     print(v)
+#     print(k) 
+  # print(ean.sankey_data)
     
 links, nodes = ean.generate_plotly_sankey_input()  
 
@@ -99,13 +102,15 @@ links['value'] = [val / links['value'][0] for val in links['value']]
 
 fig = go.Figure(data=[go.Sankey(
     
-     arrangement="snap",
-     textfont={"family": "Linux Libertine O"},
-     node={
-         "label": nodes,
-         'pad':11,
-         'color': orange},
-     link=links)])
+      arrangement="snap",
+      textfont={"family": "Linux Libertine O"},
+      node={
+          "label": nodes,
+          'pad':11,
+          'color': 'orange'},
+      link=links)])
 fig.show()
+
+
     
     

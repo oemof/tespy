@@ -585,12 +585,20 @@ class ExergyAnalysis:
         """
         for fkt_group in group_data.copy().keys():
             source_groups = self.single_group_input(fkt_group, group_data)
+            print(fkt_group)
+            print(source_groups)
+            print(group_data[fkt_group])
             if len(source_groups) == 1 and len(group_data[fkt_group]) == 1:
+                
                 source_group = source_groups[0]
                 target_group = group_data[fkt_group].index[0]
+                
                 target_value = group_data[fkt_group].loc[target_group]
-                group_data[source_group].loc[target_group] = target_value
-                group_data[source_group].loc[target_group] = target_value
+                if target_group in group_data[source_group].index:
+                    group_data[source_group].loc[target_group, 'value'] += target_value['value']
+                    group_data[source_group].loc[target_group, 'cat'] = group_data[source_group].loc[target_group, 'cat']
+                else:
+                    group_data[source_group].loc[target_group] = target_value
                 group_data[source_group].drop(fkt_group, inplace=True)
                 del group_data[fkt_group]
                 # recursive call in case multiple components are attached in
@@ -661,8 +669,13 @@ class ExergyAnalysis:
                     'nodes: "' + '", "'.join(missing) + '".')
                 logging.error(msg)
                 raise ValueError(msg)
-
-        cmap = cm.get_cmap('Set1')(np.linspace(0.0, 1.0, 10))
+                
+        num_fluids = len(self.nw.fluids)
+        num_colors = 4 + num_fluids + len(self.internal_busses) 
+        if num_fluids > 1: 
+            num_colors += 1
+        
+        cmap = cm.get_cmap('Set1')(np.linspace(0.0, 1.0, num_colors + 1))
         cmap[:, 0:3] *= 255
         cmap[:, 3] *= 0.75
         rgba_list = []
@@ -674,21 +687,21 @@ class ExergyAnalysis:
                 str(cmap[i, 2]) + ', ' +
                 str(cmap[i, 3]) + ')']
 
-        cls = {}
-        cls['E_P'] = rgba_list[0]
-        cls['E_F'] = rgba_list[1]
-        cls['E_D'] = rgba_list[2]
-        cls['E_L'] = rgba_list[3]
+        colordict = {}
+        colordict['E_P'] = rgba_list[0]
+        colordict['E_F'] = rgba_list[1]
+        colordict['E_D'] = rgba_list[2]
+        colordict['E_L'] = rgba_list[3]
         i = 4
         for f in self.nw.fluids:
-            cls[f] = rgba_list[i]
+            colordict[f] = rgba_list[i]
             i += 1
         for b in self.internal_busses:
-            cls[b.label] = rgba_list[i]
+            colordict[b.label] = rgba_list[i]
             i += 1
 
-        cls.update(colors)
-
+        colordict.update(colors)
+        colordict['mix']=rgba_list[i+1]
         links = {
             'source': [],
             'target': [],
@@ -705,7 +718,7 @@ class ExergyAnalysis:
                 data.loc[target, 'value'] for target in data.index]
             # connection colors
             for cat in data['cat']:
-                links['color'].append(cls[cat])
+                links['color'].append(colordict[cat])
 
         return links, node_order
 

@@ -5,7 +5,7 @@ Another example for chp units, this one is a combined cycle power plant using a
 backpressure steam turbine. Additionally to the heat extraction at the steam
 turbine condenser, the district heating water extracts energy from the waste
 heat of the waste heat steam generator. You will find the source code
-`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combined_cycle_chp>`_.
+`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combined_cycle_chp>`__.
 
 .. figure:: api/_images/cc_bp.svg
     :align: center

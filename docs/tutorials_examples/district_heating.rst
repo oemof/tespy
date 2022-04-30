@@ -5,7 +5,7 @@ The district heating system is a great example for the usage of flexible
 user-defined subsystems. The example system and data are based on the district
 heating system Hamburg Wilhelmsburg :cite:`Lorenzen2014`. The source code for
 this example can be found
-`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/district_heating>`_.
+`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/district_heating>`__.
 Although the structure of the system (see the Figure below) does not seem very
 complex, it has more than 120 components. But we can easily determine repeating
 structures for the consumers and this is, where the subsystems come in place.

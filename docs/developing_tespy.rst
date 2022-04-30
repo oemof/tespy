@@ -190,8 +190,9 @@ problem in development you want to discuss, please create an issue:
 * addressing other developers
 
 If you want to address other developers you can use @name-of-developer, or
-use e.g. @tespy to address a team. `Here <https://github.com/orgs/oemof/teams>`_
-you can find an overview over existing teams on different subjects and their members.
+use e.g. @tespy to address a team.
+`Here <https://github.com/orgs/oemof/teams>`__ you can find an overview over
+existing teams on different subjects and their members.
 
 Look at the existing issues to get an idea on the usage of issues.
 

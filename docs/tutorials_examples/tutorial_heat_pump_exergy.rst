@@ -179,7 +179,7 @@ visualized.
     :code:`get_plotting_data` method contains the connection id of the state
     change. Make sure you specify the correct id for the components to be
     displayed. A table of the state change and the respective id can be found
-    `here <https://tespy.readthedocs.io/en/main/tespy_modules.html#id5>`_.
+    :ref:`here <FluProDia_label>`.
 
 Next, a :code:`FluidPropertyDiagram` instance is created and the units of the
 diagram are specified.
@@ -639,7 +639,7 @@ efficiency and the COP of the GCHP is examined. The investigation is carried
 out in the same way as the variation of :code:`Tgeo` and :code:`Ths` described
 above. In contrast to the previous investigation, :code:`Q` is varied here
 instead of :code:`Ths`. The range of :code:`Q` varies between 4.3 and 2.8 kW.
-The rated load was previously set at 4 W in the design calculation. Due to the
+The rated load was previously set at 4 kW in the design calculation. Due to the
 similarity to the previous parameter variation, the corresponding Python code
 is not presented, but can be found in the scripts linked at the beginning
 instead.

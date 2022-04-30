@@ -29,7 +29,7 @@ which are accessible by specifying the corresponding bus parameter:
 - QLOSS (heat losses) and
 - P (power output).
 
-If you want to add a bus to the example from the tespy_examples repository,
+If you want to add a bus to the example from the TESPy examples repository,
 your code could look like this:
 
 .. code-block:: python

@@ -22,8 +22,8 @@ following tutorial is intended to show the usage of PyGMO in combination with
 TESPy to **maximize the cycle efficiency of a power plant with two**
 **extractions.**
 
-The source code can be found at the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/efficiency_optimization>`_.
+The source code can be found at the TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/efficiency_optimization>`__.
 
 .. figure:: api/_images/power_plant_two_extractions.svg
     :align: center

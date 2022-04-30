@@ -22,7 +22,7 @@ New features
         coloring['err'] = '\033[0m'
         coloring['var'] = '\033[0m'
 
-  See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`_ for a
+  See `here <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>`__ for a
   list of available codes
   (`PR #205 <https://github.com/oemof/tespy/pull/205>`_).
 

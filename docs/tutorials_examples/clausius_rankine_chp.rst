@@ -5,7 +5,7 @@ We have set up a simple combined heat and power unit for this example. A
 backpressure steam turbine is operated with steam extraction for preheating
 purposes.
 You will find the source code `here
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine_chp>`_.
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine_chp>`__.
 
 .. figure:: api/_images/chp.svg
     :align: center

@@ -18,8 +18,8 @@ others:
 * the COP of a heat pump dependent on load, ambient temperature and heat
   delivering fluid (air vs. water).
 
-You can find all examples in the
-`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
+You can find all examples in the TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`__
 on github. Additional small examples can be found in the API-documentation.
 
 * :py:mod:`Components <tespy.components>`

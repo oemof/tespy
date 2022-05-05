@@ -1997,6 +1997,8 @@ def get_mass_flow_properties(mol): # mol -> kmol/h
     component_molar_mass = Memorise.thermosteam['mixture'].MWs[
                            Memorise.thermosteam['H2O_index']:Memorise.thermosteam['KOH_index'] + 1]  # g/mol
     component_amount_of_substance = mol[Memorise.thermosteam['H2O_index']:Memorise.thermosteam['KOH_index'] + 1] * (1/3.6) # mol/s
+    if component_amount_of_substance.sum() == 0:
+        return [0, 0, 0]
     component_mass = component_molar_mass * component_amount_of_substance # g/s
     component_mass_no_water = list(component_mass) # g/s
     component_mass_no_water.pop(0)
@@ -2008,6 +2010,8 @@ def get_mass_flow_properties(mol): # mol -> kmol/h
 
 def Vl(mol, T, P=None):  # m3
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
+    if mass_concentration_no_water == 0:
+        return 0
     overall_molar_mass = get_mass_flow_properties(mol)[1] # g/mol
     rho = ec.Laliberte_density(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])  # kg/m3
 
@@ -2017,13 +2021,16 @@ def Vl(mol, T, P=None):  # m3
 
 def mul(mol, T, P=None):  # Pa*s
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
-
+    if mass_concentration_no_water == 0:
+        return 0
     mu = ec.Laliberte_viscosity(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])
     return mu
 
 
 def Cnl(mol, T, P=None):  # J/(mol*K)
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
+    if mass_concentration_no_water == 0:
+        return 0
     overall_molar_mass = get_mass_flow_properties(mol)[1] / 1000 # kg/mol
     Cp = ec.Laliberte_heat_capacity(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])  # J/(kg*K)
 
@@ -2032,6 +2039,8 @@ def Cnl(mol, T, P=None):  # J/(mol*K)
 
 def Hl(mol, T, P=None): # J / K
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
+    if mass_concentration_no_water == 0:
+        return 0
     mass_flow = get_mass_flow_properties(mol)[2] # kg/s
     #Cp = lambda T: ec.Laliberte_heat_capacity(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])* mass_flow # [J/(K*s)]
 

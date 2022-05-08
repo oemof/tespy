@@ -367,10 +367,10 @@ def T_mix_ph(flow, T0=675):
             else:
                 Memorise.thermosteam['stream'].set_flow(mass_fraction * flow[0], "kg/s", ("l", fluid))
 
-        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "kJ/hr")
+        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "J/s")
         Memorise.thermosteam['stream'].set_property("P", flow[1], "Pa")
 
-        val = Memorise.thermosteam['stream'].T # [K]
+        val = Memorise.thermosteam['stream'].T  # [K]
 
         if memorisation:
             # memorise the newly calculated value
@@ -663,7 +663,7 @@ def h_mix_pT(flow, T, force_gas=False):
         Memorise.thermosteam['stream'].set_property("T", T, "K")
         Memorise.thermosteam['stream'].set_property("P", flow[1], "Pa")
 
-        val = (Memorise.thermosteam['stream'].H / flow[0])  # [J/kg]
+        val = (Memorise.thermosteam['stream'].H / flow[0]) / 3.6  # [J/kg]
 
         return val
 
@@ -1157,7 +1157,7 @@ def v_mix_ph(flow, T0=675):
             else:
                 Memorise.thermosteam['stream'].set_flow(mass_fraction * flow[0], "kg/s", ("l", fluid))
 
-        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "kJ/hr")
+        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "J/s")
         Memorise.thermosteam['stream'].set_property("P", flow[1], "Pa")
 
         val = Memorise.thermosteam['stream'].F_vol / Memorise.thermosteam['stream'].F_mass  # [m3/kg]
@@ -1452,7 +1452,7 @@ def visc_mix_ph(flow, T0=675):
             else:
                 Memorise.thermosteam['stream'].set_flow(mass_fraction * flow[0], "kg/s", ("l", fluid))
 
-        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "kJ/hr")
+        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "J/s")
         Memorise.thermosteam['stream'].set_property("P", flow[1], "Pa")
 
         val = Memorise.thermosteam['stream'].mu
@@ -1639,7 +1639,7 @@ def s_mix_ph(flow, T0=675):
             else:
                 Memorise.thermosteam['stream'].set_flow(mass_fraction * flow[0], "kg/s", ("l", fluid))
 
-        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "kJ/hr")
+        Memorise.thermosteam['stream'].set_property("H", flow[2] * flow[0], "J/s")
         Memorise.thermosteam['stream'].set_property("P", flow[1], "Pa")
 
         val = (Memorise.thermosteam['stream'].S / Memorise.thermosteam['stream'].F_mass) * 1000  # [J/(kg*K)]
@@ -1999,20 +1999,20 @@ def get_mass_flow_properties(mol): # mol -> kmol/h
     component_amount_of_substance = mol[Memorise.thermosteam['H2O_index']:Memorise.thermosteam['KOH_index'] + 1] * (1/3.6) # mol/s
     if component_amount_of_substance.sum() == 0:
         return [0, 0, 0]
-    component_mass = component_molar_mass * component_amount_of_substance # g/s
-    component_mass_no_water = list(component_mass) # g/s
+    component_mass = component_molar_mass * component_amount_of_substance  # g/s
+    component_mass_no_water = list(component_mass)  # g/s
     component_mass_no_water.pop(0)
 
     mass_concentration_no_water = component_mass_no_water / component_mass.sum()
     overall_molar_mass = component_mass.sum() / component_amount_of_substance.sum()  # g/mol
-    mass_flow = component_mass.sum() / 1000 # kg/s
+    mass_flow = component_mass.sum() / 1000  # kg/s
     return [mass_concentration_no_water, overall_molar_mass, mass_flow]
 
-def Vl(mol, T, P=None):  # m3
+def Vl(mol, T, P=None):  # m3/mol
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
     if mass_concentration_no_water == 0:
         return 0
-    overall_molar_mass = get_mass_flow_properties(mol)[1] # g/mol
+    overall_molar_mass = get_mass_flow_properties(mol)[1]  # g/mol
     rho = ec.Laliberte_density(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])  # kg/m3
 
     V = tmo.functional.rho_to_V(rho, overall_molar_mass)
@@ -2031,23 +2031,54 @@ def Cnl(mol, T, P=None):  # J/(mol*K)
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
     if mass_concentration_no_water == 0:
         return 0
-    overall_molar_mass = get_mass_flow_properties(mol)[1] / 1000 # kg/mol
+    overall_molar_mass = get_mass_flow_properties(mol)[1] / 1000  # kg/mol
     Cp = ec.Laliberte_heat_capacity(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])  # J/(kg*K)
 
     Cn = Cp * overall_molar_mass
     return Cn
 
-def Hl(mol, T, P=None): # J / K
+def Hl(mol, T, P=None): # kJ/hr
     mass_concentration_no_water = get_mass_flow_properties(mol)[0]
     if mass_concentration_no_water == 0:
         return 0
-    mass_flow = get_mass_flow_properties(mol)[2] # kg/s
-    #Cp = lambda T: ec.Laliberte_heat_capacity(T, mass_concentration_no_water, Memorise.thermosteam['CASs_no_water'])* mass_flow # [J/(K*s)]
+    mass_flow = get_mass_flow_properties(mol)[2]  # kg/s
 
-    #H = integrate.quad(Cp, 298.15, T)[0]
-    H = 3000 * mass_flow * (T-298.15)
-    return H # [J/s]
+    H = specific_enthalpy_aqueous_KOH(mass_concentration_no_water, T) * mass_flow * 3600
+    return H
 
+def specific_enthalpy_aqueous_KOH(mass_concentration_KOH, temperature):  # kJ/kg
+    """This is the least square optimized fit function for specific enthalpy aqueous KOH with
+    10 optimized parameters and the form
+    z = a0 + a1*x + a2*y + a3*x*y + a4*x^2 + a5*y^2 + a6*x^2*y + a7*x*y^2 + a8*x^3 + a9*y^3
+
+    a{n}: optimized parameters (popt)
+    x: mass_concentration_KOH
+    y: temperaturey in K"""
+
+    popt = [-9.34646135e+02,
+            1.82675112e+00,
+            1.15209445e+03,
+            -3.40984358e+00,
+            5.81633339e-03,
+            -8.10768218e+02,
+            -1.59166304e-03,
+            2.78661679e+00,
+            -4.76835588e-06,
+            -2.34694188e+01]
+
+    h = (
+        popt[0]
+        + popt[1] * temperature
+        + popt[2] * mass_concentration_KOH
+        + popt[3] * temperature * mass_concentration_KOH
+        + popt[4] * temperature**2
+        + popt[5] * mass_concentration_KOH**2
+        + popt[6] * temperature**2 * mass_concentration_KOH
+        + popt[7] * temperature * mass_concentration_KOH**2
+        + popt[8] * temperature ** 3
+        + popt[9] * mass_concentration_KOH ** 3
+    )
+    return h[0]
 
 # according to Gilliam et al., 2006, A review  of specific conductivities of
 # potassium hydroxide solutions for various concentrations and temperatures

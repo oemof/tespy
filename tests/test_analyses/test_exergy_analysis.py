@@ -509,7 +509,6 @@ class TestCompression:
         # solve network
         self.nw.solve('design')
 
-
     def test_larger_T0(self):
         self.nw.get_conn('1').set_attr(T=self.Tamb + 10)
         self.nw.solve('design')
@@ -551,6 +550,7 @@ class TestCompression:
             ').')
         assert E_D_agg == E_D_nw, msg
 
+
 class TestExpansion:
 
     def setup(self):
@@ -588,7 +588,6 @@ class TestExpansion:
 
         # solve network
         self.nw.solve('design')
-
 
     def test_larger_T0(self):
         self.nw.get_conn('2').set_attr(T=self.Tamb + 10)

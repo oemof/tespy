@@ -359,7 +359,9 @@ class ExergyAnalysis:
         # create a table that includes exergy destruction attributed to the
         # components
         bus_based = self.bus_data[self.bus_data['base'] == 'bus'].index
-        component_based = self.bus_data[self.bus_data['base'] == 'component'].index
+        component_based = self.bus_data[
+            self.bus_data['base'] == 'component'
+        ].index
 
         # add aggregated components with respective buses data
         self.aggregation_data = self.component_data.copy()

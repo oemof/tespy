@@ -29,6 +29,9 @@ Bug Fixes
   (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
 - Fix mass flow multipliers for non SI units
   (`PR #317 <https://github.com/oemof/tespy/pull/317>`_).
+- Fix an error in the aggregated results of components and busses in the exergy
+  analysis in case the temperature at turbomachinery is less than or equal to
+  ambient temperature (`PR #340 <https://github.com/oemof/tespy/pull/340>`_).
 
 Other Changes
 #############

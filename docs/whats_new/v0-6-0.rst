@@ -36,6 +36,9 @@ Bug Fixes
 - Fix some typos in the documentation of the class
   :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
   (`PR #335 <https://github.com/oemof/tespy/pull/335>`_).
+- Fix an error in the aggregated results of components and busses in the exergy
+  analysis in case the temperature at turbomachinery is less than or equal to
+  ambient temperature (`PR #340 <https://github.com/oemof/tespy/pull/340>`_).
 
 Other Changes
 #############

@@ -2043,7 +2043,8 @@ def Hl(mol, T, P=None): # kJ/hr
         return 0
     mass_flow = get_mass_flow_properties(mol)[2]  # kg/s
 
-    H = specific_enthalpy_aqueous_KOH(mass_concentration_no_water, T) * mass_flow * 3600
+    # H = specific_enthalpy_aqueous_KOH(mass_concentration_no_water, T) * mass_flow * 3600
+    H = 3000 * mass_flow * (T - 298.15) * 3.6
     return H
 
 def specific_enthalpy_aqueous_KOH(mass_concentration_KOH, temperature):  # kJ/kg

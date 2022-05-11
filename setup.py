@@ -68,7 +68,8 @@ setup(
         'numpy>=1.13.3,<2',
         'pandas>=1.3.0,<2',
         'tabulate>=0.8.2,<0.9',
-        'pyromat>=2.1.10'
+        'pyromat>=2.1.10',
+        'pyvalem>=2.5.6',
     ],
     extras_require={
         'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',

@@ -15,15 +15,12 @@ class FuelCell(Component):
     r"""
     The fuel cell produces power by oxidation of hydrogen.
 
-    //TODO: equation references
-
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.fluid_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.mass_flow_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.fluid_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.mass_flow_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
 
     **Optional Equations**
 
@@ -32,15 +29,14 @@ class FuelCell(Component):
       - :py:meth:`tespy.components.component.Component.zeta_func`
       - :py:meth:`tespy.components.component.Component.pr_func`
 
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_consumption_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.specific_energy_consumption_func`
 
     Inlets/Outlets
 
-    - in1 (cooling inlet), in2 (feed water inlet)
-    - out1 (cooling outlet), out2 (hydrogen outlet), out3 (oxygen outlet)
+    - in1 (cooling inlet), in2 (hydrogen inlet), in3 (oxygen inlet)
+    - out1 (cooling outlet), out2 (water outlet)
 
     //TODO: add image
 
@@ -49,8 +45,6 @@ class FuelCell(Component):
     .. image:: _images/FuelCell.svg
        :alt: alternative text
        :align: center
-
-    //TODO: update parameter list
 
     Parameters
     ----------
@@ -90,9 +84,6 @@ class FuelCell(Component):
 
     eta : float, dict
         Electrolysis efficiency, :math:`\eta/1`.
-
-    eta_char : tespy.tools.characteristics.CharLine, dict
-        Electrolysis efficiency characteristic line.
 
     pr : float, dict, :code:`"var"`
         Cooling loop pressure ratio, :math:`pr/1`.
@@ -519,15 +510,15 @@ class FuelCell(Component):
             .. math::
 
                 0  = x_\mathrm{i,in,1} - x_\mathrm{i,out,1}
-                \forall i \in \text{network fluids}
+                \forall i \in \text{network fluids}\\
                 0 = \begin{cases}
                     1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\
                     x_\mathrm{i,in2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
+                \end{cases} \forall i \in \text{network fluids}\\
                 0 = \begin{cases}
                     1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\
                     x_\mathrm{i,out,2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
+                \end{cases} \forall i \in \text{network fluids}\\
                 0 = \begin{cases}
                     1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\
                     x_\mathrm{i,out,3} & \text{else}

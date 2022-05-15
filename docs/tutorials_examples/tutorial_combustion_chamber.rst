@@ -6,27 +6,28 @@ Combustion Chamber Tutorial
     :local:
     :backlinks: top
 
-There are two different types of combustion chambers available. The combustion
-chamber can handle varying fluid compositions for the air and the fuel and
-calculates the fluid composition of the flue gas. Thus, it is possible to e.g.
-specify the oxygen mass fraction in the flue gas in a calculation. In
-contrast, the stoichiometric combustion chamber uses fuel and air as pseudo
-pure gases for the input at calculates a mixture of stoichiometric flue gas
-and air at the outlet. The sacrifice of flexibility for parametrisation results
-in a faster solution process. Thus, if the air composition and the fuel
-composition are known prior to calculation, it is always recommended to use the
-stoichiometric combustion chamber. We provide a tutorial for both components,
-where you learn how they work, and what the differences are.
+There are two different types of combustion chambers available:
 
-Combustion chamber
-^^^^^^^^^^^^^^^^^^
+- :py:class:`tespy.components.combustion.base.CombustionChamber` and
+- :py:class:`tespy.components.combustion.diabatic.DiabaticCombustionChamber`.
+
+Both can handle varying fluid compositions for the air and the fuel and
+calculates the fluid composition of the flue gas. Thus, it is possible to e.g.
+specify the oxygen mass fraction in the flue gas in a calculation. The
+difference between the components lies in the fact, that the
+:code:`CombustionChamber` does **not consider heat or pressure losses**, while
+:code:`DiabaticCombustionChamber` does so. We provide a tutorial for both
+components, where you learn how they work, and what the differences are.
+
+CombustionChamber
+^^^^^^^^^^^^^^^^^
 
 The combustion chamber is an important component within thermal power plants,
 but unfortunately is the reason for many issues, as the solving algorithm is
 very sensitive to small changes e.g. the fluid composition. We will
 demonstrate how to handle the combustion chamber in a very small, simple
-example. You can download the full code from the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber.py>`_.
+example. You can download the full code from the TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber.py>`__.
 
 First of all you need to define the network containing all fluid components
 used for the combustion chamber. **These are at least the fuel, oxygen,
@@ -158,40 +159,50 @@ hydrogen to the fuel mixture.
     nw.solve('design')
     nw.print_results()
 
-Stoichiometric combustion chamber
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DiabaticCombustionChamber
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The example for the stoichiometric combustion chamber can as well be taken from
-the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber_stoich.py>`_.
+The example for the diabatic combustion chamber can as well be taken from the
+TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/diabatic_combustion_chamber.py>`__.
 
-Again, the network must have the information, which fluids will be part of the
-fluid vector. In contrast to the normal combustion chamber, you will need the
-following fluids: **Air, Fuel and Flue Gas**. For this tutorial we will call
-them: **"myAir", "myFuel" and "myFuel_fg"**. Do not forget to specify the
-value range for pressure. This is a very important step for this specific
-component, we will explain later, why it is.
+The setup of the network, connections and components is identical to the
+first setup, therefore we skip over that part in this section. Note, that
+instead of :code:`CombustionChamber` we are importing the component
+:code:`DiabaticCombustionChamber`. Since heat losses and pressure losses are
+considered in this component, we have to make additional assumptions to
+simulate it. First, we will make run the simulation with inputs in a way, that
+the outcome is identical to the behavior of the adiabatic version without
+pressure losses as described above.
+
+As in the example above, we also specify thermal input and lambda, as well as
+identical parameters for the connections. Furthermore, we specify the efficiency
+:code:`eta` of the component, which determines the heat loss as ratio of the
+thermal input. :code:`eta=1` means, no heat losses, thus adiabatic behavior.
+On top of that, we set the pressure ratio :code:`pr`, which describes the
+ratio of the pressure at the outlet to the pressure at **the inlet 1**. The
+pressure value at the inlet 2 is detached from the other pressure values, it
+must be a result of a different parameter specification. In this example, we
+set it directly. To match the inputs of the first tutorial, we set
+:code:`pr=1` and :code:`p=1` for connection :code:`sf_comb`.
+
+.. note::
+
+    A warning message is promted at the end of the simulation, if the pressure
+    of the inlet 2 is lower or equal to the pressure of inlet 1.
 
 .. code-block:: python
 
     from tespy.networks import Network
+    from tespy.components import Sink, Source, DiabaticCombustionChamber
+    from tespy.connections import Connection
 
-    # define full fluid list for the network's variable space
-    fluid_list = ['myAir', 'myFuel', 'myFuel_fg']
+    # %% network
 
-    # define unit systems and fluid property ranges
-    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[1, 10])
+    fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O', 'H2']
+    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
 
-The components required are then the same as in the first tutorial, the
-stoichiometric combustion chamber's class is called
-"combustion_chamber_stoich". As components there are two sources required, one
-for the fresh air, one for the fuel, a sink for the flue gas and the combustion
-chamber. Connect the components and add the connections to your network
-afterwards.
-
-.. code-block:: python
-
-    from tespy.components import Sink, Source, CombustionChamberStoich
+    # %% components
 
     # sinks & sources
     amb = Source('ambient')
@@ -199,11 +210,9 @@ afterwards.
     fg = Sink('flue gas outlet')
 
     # combustion chamber
-    comb = CombustionChamberStoich('stoichiometric combustion chamber')
+    comb = DiabaticCombustionChamber(label='combustion chamber')
 
-.. code-block:: python
-
-    from tespy.connections import Connection
+    # %% connections
 
     amb_comb = Connection(amb, 'out1', comb, 'in1')
     sf_comb = Connection(sf, 'out1', comb, 'in2')
@@ -211,78 +220,38 @@ afterwards.
 
     nw.add_conns(sf_comb, amb_comb, comb_fg)
 
-The basic parametrisation of the stoichiometric combustion chamber is different
-compared to the normal combustion chamber: We need to specify the air and the
-fuel composition, and additionally, aliases for the these fluids. Since air and
-fuel usually are mixtures of different gases, **TESPy will create lookup**
-**tables for the fluid properties of the specified air and fuel composition**
-**and a third lookup table for the flue gas**. TESPy will therefore calculate
-the stoichiometric flue gas composition. The fluids will then be accessible
-with the following aliases:
+    # set combustion chamber air to stoichometric air ratio, thermal input
+    # and efficiency
+    comb.set_attr(lamb=3, ti=2e6, eta=1, pr=1)
 
-- :code:`"youraliasforair"`
-- :code:`"youraliasforfuel"`
-- :code:`"youraliasforfuel_fg"`
+    # %% connection parameters
 
-The creation of the lookup tables will use your network's settings:
-**The fluid properties will be calculated within the network's specified**
-**value range for pressure.**
+    amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
+                                        'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314,
+                                        'H2': 0})
 
-A folder called "LUT" will be created in your working directory containing all
-fluid property lookup tables. As the creation of the lookup tables does take
-some time, it is possible, to read the fluid properties from that folder: You
-need to specify the path variable, like this: :code:`path='./LUT'`.
-
-There are some important things to keep in mind, when reading the fluid
-properties from path:
-
-- **Do not specify the path in case**
-
-    - you change the pressure range
-    - you change the air or the fuel composition.
-
-- **If you use more than one combustion chamber** do not use identical aliases,
-  if the fluid compositions are not identical.
-
-As in the example above, we also specify thermal input and lambda, as well as
-identical parameters for the connections. Thus the results should be exactly
-the same.
-
-.. code-block:: python
-
-    # for the first calculation run
-    comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-                  air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-                       'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-                  fuel_alias='myFuel', air_alias='myAir',
-                  lamb=3, ti=20000)
-
-    # if there are existing lookup tables
-    comb.set_attr(fuel={'CH4': 0.96, 'CO2': 0.04},
-                  air={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0,
-                       'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314},
-                  fuel_alias='myFuel', air_alias='myAir', path='./LUT',
-                  lamb=3, ti=20000)
-
-.. code-block:: python
-
-    # air from abient (ambient pressure and temperature), air composition must
-    # be stated component wise.
-    amb_comb.set_attr(T=20, p=1, fluid={'myAir': 1, 'myFuel': 0,
-                                        'myFuel_fg': 0})
-
-    # fuel, pressure must not be stated, as pressure is the same at all inlets
-    # and outlets of the combustion chamber
-    sf_comb.set_attr(T=25, fluid={'myAir': 0, 'myFuel': 1,
-                                  'myFuel_fg': 0})
-
-Finally run the code:
-
-.. code-block:: python
+    sf_comb.set_attr(p=1, T=25, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,'O2': 0,
+                                       'H2O': 0, 'CH4': 0.95, 'H2': 0.05})
 
     # %% solving
 
-    mode = 'design'
-    nw.solve(mode=mode)
+    nw.solve('design')
     nw.print_results()
-    nw.save('combustion')
+
+Now, consider heat loss of the surface of the component. This is simply done by
+specifying the value for :code:`eta`. We assume 4 % of thermal input as heat
+loss and set that value accordingly. Furthermore, the pressure of the fuel is
+set to 1.5 bar. The air inlet pressure will be the result of the specified
+pressure ratio and the outlet pressure assuming 2 % pressure losses. All
+other parameters stay untouched.
+
+.. code-block:: python
+
+    comb.set_attr(eta=0.96, pr=0.98)
+
+    amb_comb.set_attr(p=None)
+    sf_comb.set_attr(p=1.5)
+    comb_fg.set_attr(p=1.0)
+
+    nw.solve('design')
+    nw.print_results()

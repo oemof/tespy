@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.heat_exchangers.heat_exchanger_simple import HeatExchangerSimple
+from tespy.components.heat_exchangers.simple import HeatExchangerSimple
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
@@ -34,8 +34,8 @@ class ParabolicTrough(HeatExchangerSimple):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
     - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_group_func`
 
     Inlets/Outlets

@@ -13,7 +13,7 @@ This tutorial introduces you in how to model a heat pump in TESPy. You can see
 the plants topology in the figure. Also, you will find a fully working model in
 the last chapter of this tutorial.
 
-.. figure:: api/_images/tutorial_heat_pump.svg
+.. figure:: /api/_images/tutorial_heat_pump.svg
     :align: center
 
     Figure: Topology of the heat pump.
@@ -58,7 +58,7 @@ Components
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From figure 1 you can determine the components of the
 consumer system: condenser, pump and the consumer (
-:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
 ). Additionally we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment.
@@ -506,8 +506,8 @@ have a time series of required heat flow of your consumer, you can loop over
 the series and perform offdesign calculation adjusting the heat flow every
 time. Of course, this is possible with every offdesign parameter. We provide
 the scripts after each of the three steps of the tutorial:
-:download:`Step 1 <../tutorial/step_1.py>`,
-:download:`Step 2 <../tutorial/step_2.py>`,
-:download:`Step 3 <../tutorial/step_3.py>`.
+:download:`Step 1 </../tutorial/step_1.py>`,
+:download:`Step 2 </../tutorial/step_2.py>`,
+:download:`Step 3 </../tutorial/step_3.py>`.
 
 Have fun working with TESPy!

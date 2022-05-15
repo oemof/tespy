@@ -6,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/combustion/combustion_chamber.py
+tespy/components/combustion/base.py
 
 SPDX-License-Identifier: MIT
 """
@@ -32,15 +32,15 @@ class CombustionChamber(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.combustion_pressure_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.energy_balance_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.energy_balance_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.combustion_chamber.CombustionChamber.ti_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
 
     Available fuels
 
@@ -139,12 +139,12 @@ class CombustionChamber(Component):
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
-    2.013
+    2.014
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=np.nan)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1206.2
+    1206.6
     """
 
     @staticmethod
@@ -254,6 +254,9 @@ class CombustionChamber(Component):
         r"""
         Calculate the lower heating value of the combustion chamber's fuel.
 
+        - Source for fluids O2, H2O and CO2: :cite:`CODATA1989`
+        - Source for all other fluids: :cite:`CRCHandbook2021`
+
         Parameters
         ----------
         f : str
@@ -275,15 +278,15 @@ class CombustionChamber(Component):
         """
         hf = {}
         hf['hydrogen'] = 0
-        hf['methane'] = -74.85
-        hf['ethane'] = -84.68
+        hf['methane'] = -74.6
+        hf['ethane'] = -84.0
         hf['propane'] = -103.8
-        hf['butane'] = -124.51
-        hf['nDodecane'] = -288.1
+        hf['butane'] = -125.7
+        hf['nDodecane'] = -289.4
         hf[self.o2] = 0
-        hf[self.co2] = -393.5
+        hf[self.co2] = -393.51
         # water (gaseous)
-        hf[self.h2o] = -241.8
+        hf[self.h2o] = -241.826
 
         key = set(list(hf.keys())).intersection(
                 set([a.replace(' ', '')

@@ -27,7 +27,7 @@ API Changes
   repository have been adjusted accordingly
   (`PR #237 <https://github.com/oemof/tespy/pull/237>`_).
 - The definition of power and heat transfer of the components
-  :py:class:`tespy.components.combustion.combustion_engine.CombustionEngine`
+  :py:class:`tespy.components.combustion.engine.CombustionEngine`
   and :py:class:`tespy.components.customs.orc_evaporator.ORCEvaporator` as well
   as the heat loss values of the components
   :py:class:`tespy.components.heat_exchangers.solar_collector.SolarCollector`
@@ -140,12 +140,12 @@ New Features
 
   The diagrams could look like this:
 
-  .. figure:: api/_images/logph_diagram_states.svg
+  .. figure:: /api/_images/logph_diagram_states.svg
       :align: center
 
       Figure: logph diagram of NH3 with a simple heat pump cycle.
 
-  .. figure:: api/_images/Ts_diagram_states.svg
+  .. figure:: /api/_images/Ts_diagram_states.svg
       :align: center
 
       Figure: Ts diagram of NH3 with a simple heat pump cycle.
@@ -234,8 +234,8 @@ Other Changes
   (`#7adff43a <https://github.com/oemof/tespy/commit/7adff43>`_).
 
 - For improved convergence stability of the methods
-  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_group_func` and
-  :py:meth:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple.kA_char_group_func`,
+  :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func` and
+  :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`,
   the logarithmic temperature difference is calculated based on the mean
   temperature difference between ambient and inlet and outlet temperature, if
   the terminal temperature differences do not have the same sign

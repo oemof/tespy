@@ -11,7 +11,7 @@ tespy/components/heat_exchangers/desuperheater.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.heat_exchangers.heat_exchanger import HeatExchanger
+from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -25,16 +25,16 @@ class Desuperheater(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
     - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.kA_char_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_u_func`
-    - :py:meth:`tespy.components.heat_exchangers.heat_exchanger.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - hot side :py:meth:`tespy.components.component.Component.pr_func`
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`

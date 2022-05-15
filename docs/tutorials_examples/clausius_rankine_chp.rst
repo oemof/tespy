@@ -5,9 +5,9 @@ We have set up a simple combined heat and power unit for this example. A
 backpressure steam turbine is operated with steam extraction for preheating
 purposes.
 You will find the source code `here
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine_chp>`_.
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/clausius_rankine_chp>`__.
 
-.. figure:: api/_images/chp.svg
+.. figure:: /api/_images/chp.svg
     :align: center
 
     Figure: Topology of the chp unit.
@@ -23,7 +23,7 @@ in order to achieve better and faster convergence.
 The results are saved to .csv-files and the following plot of backpressure
 lines will be created.
 
-.. figure:: api/_images/chp_PQ.svg
+.. figure:: /api/_images/chp_PQ.svg
     :align: center
 
     Figure: Backpressure lines of a CHP unit.

@@ -3,10 +3,10 @@ Solar collector
 
 This example shows how you can use a solarthermal collector in TESPy.
 The process flow diagram is shown in the image below, the source code can be
-found at the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/solar_collector>`_.
+found at the TESPy `examples repository
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/solar_collector>`__.
 
-.. figure:: api/_images/SolarCollector.svg
+.. figure:: /api/_images/SolarCollector.svg
     :align: center
 
     Figure: Topology of the solar collector.
@@ -15,7 +15,7 @@ The solarthermal collector is used to transfer heat from the solar radiation to
 the collector fluid. The TESPy component
 :py:class:`tespy.components.heat_exchangers.solar_collector.SolarCollector`
 inherits from the
-:py:class:`tespy.components.heat_exchangers.heat_exchanger_simple.HeatExchangerSimple`
+:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
 component. An energy balance is applied according to the
 :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func`
 method, which takes the collector's

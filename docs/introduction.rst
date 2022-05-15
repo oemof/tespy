@@ -8,7 +8,7 @@ plants, district heating systems or heat pumps. It is an external extension
 module within the `Open Energy Modeling Framework <https://oemof.org/>`_ and
 can be used as a standalone package.
 
-.. figure:: api/_images/logo_tespy_big.svg
+.. figure:: /api/_images/logo_tespy_big.svg
     :align: center
 
 With the TESPy package you are able to calculate stationary operation in order

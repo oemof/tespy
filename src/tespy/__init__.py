@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-__version__ = '0.5.1 - Exciting Exergy'
+__version__ = '0.6.0 - Colored Chemicals'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

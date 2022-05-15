@@ -15,7 +15,6 @@ import shutil
 from pytest import raises
 
 from tespy.components import CombustionChamber
-from tespy.components import CombustionChamberStoich
 from tespy.components import CombustionEngine
 from tespy.components import Compressor
 from tespy.components import Merge
@@ -37,8 +36,6 @@ from tespy.tools.characteristics import load_custom_char
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.fluid_properties import Memorise
-from tespy.tools.fluid_properties import TESPyFluid
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
@@ -286,91 +283,6 @@ def test_CombustionChamber_missing_oxygen():
     nw.add_conns(c1, c2, c3)
     with raises(TESPyComponentError):
         nw.solve('design', init_only=True)
-
-
-##############################################################################
-# CombustionChamberStoich
-
-
-class TestCombustionChamberStoichErrors:
-
-    def setup_CombustionChamberStoich_error_tests(self):
-        Memorise.add_fluids({'CH4': 'HEOS', 'O2': 'HEOS', 'N2': 'HEOS'})
-        self.nw = Network(['fuel', 'fuel_fg', 'Air'], p_range=[1e4, 1e6])
-        label = 'combustion chamber'
-        self.instance = CombustionChamberStoich(label)
-        c1 = Connection(Source('air'), 'out1', self.instance, 'in1')
-        c2 = Connection(Source('fuel'), 'out1', self.instance, 'in2')
-        c3 = Connection(self.instance, 'out1', Sink('flue gas'), 'in1')
-        self.nw.add_conns(c1, c2, c3)
-
-    def test_cc_stoich_unset_alias(self):
-        """This test unsets the alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(air_alias='some alias')
-        msg = 'The air_alias has been set, is_set should be True.'
-        assert self.instance.air_alias.is_set, msg
-
-        self.instance.set_attr(air_alias=None)
-        msg = 'The air_alias has been unset, is_set should be False.'
-        assert self.instance.air_alias.is_set is False, msg
-
-    def test_cc_stoich_missing_fuel(self):
-        """Test missing fuel composition."""
-        self.setup_CombustionChamberStoich_error_tests()
-        with raises(TESPyComponentError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_missing_fuel_alias(self):
-        """Test missing fuel alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1})
-        with raises(TESPyComponentError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_bad_fuel_alias(self):
-        """Test bad name for fuel alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1},
-                               air={'N2': 0.76, 'O2': 0.24},
-                               fuel_alias='TESPy::fuel',
-                               air_alias='myair')
-        with raises(ValueError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_missing_air(self):
-        """Test missing air composition."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel')
-        with raises(TESPyComponentError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_missing_air_alias(self):
-        """Test missing air alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
-                               air={'N2': 0.76, 'O2': 0.24})
-        with raises(TESPyComponentError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_bad_air_alias(self):
-        """Test bad name for air alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
-                               air={'Ar': 0.76, 'O2': 0.24},
-                               air_alias='TESPy::air')
-        with raises(ValueError):
-            self.nw.solve('design', init_only=True)
-
-    def test_cc_stoich_missing_oxygen(self):
-        """Test bad name for air alias."""
-        self.setup_CombustionChamberStoich_error_tests()
-        self.instance.set_attr(fuel={'CH4': 1}, fuel_alias='fuel',
-                               air={'N2': 1}, air_alias='myair')
-        with raises(TESPyComponentError):
-            self.nw.solve('design', init_only=True)
-
-        shutil.rmtree('LUT', ignore_errors=True)
 
 ##############################################################################
 # combustion_engine
@@ -737,19 +649,6 @@ def test_missing_CharMap_files():
             shutil.copy(src=tmp_path + '/' + f, dst=path)
 
         shutil.rmtree(tmp_path, ignore_errors=True)
-
-##############################################################################
-# test errors of tespy fluid class
-
-
-def test_TESPyFluid_alias_type():
-    with raises(TypeError):
-        TESPyFluid(5, {'water': 1}, [0, 1], [0, 1])
-
-
-def test_TESPyFluid_alias_value():
-    with raises(ValueError):
-        TESPyFluid('IDGAS::water', {'water': 1}, [0, 1], [0, 1])
 
 
 ##############################################################################

@@ -204,7 +204,7 @@ class Network:
         # generic value range
         self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
-        self.h_range_SI = np.array([1e3, 7e6])
+        self.h_range_SI = np.array([-1e8, 1e8])
 
         for prop in ['m', 'p', 'h']:
             limits = self.get_attr(prop + '_range_SI')
@@ -2051,9 +2051,9 @@ class Network:
                 c.h.val_SI = self.h_range_SI[1]
                 logging.debug(self.property_range_message(c, 'h'))
 
-            # temperature
-            if c.T.val_set and not c.h.val_set:
-                self.solve_check_temperature(c)
+            # # temperature
+            # if c.T.val_set and not c.h.val_set:
+            #     self.solve_check_temperature(c)
 
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:

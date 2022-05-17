@@ -37,6 +37,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.fluid_properties import h_mix_pT
 
 # Only require cupy if Cuda shall be used
 try:
@@ -1382,14 +1383,10 @@ class Network:
                     not c.h.val_set):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
                         (c.state.val == 'g' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 1)
-                    if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.001
+                    c.h.val_SI = fp.get_vapor_enthalpy_close_to_two_phase_region(c.get_flow())
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
                       (c.state.val == 'l' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 0)
-                    if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.999
+                    c.h.val_SI = fp.get_liquid_enthalpy_close_to_two_phase_region(c.get_flow())
 
         msg = 'Generic fluid property specification complete.'
         logging.debug(msg)
@@ -1478,7 +1475,7 @@ class Network:
                     if key == 'p':
                         c.get_attr(key).val0 = 1e5
                     elif key == 'h':
-                        c.get_attr(key).val0 = 1e6
+                        c.get_attr(key).val0 = h_mix_pT(c.get_flow(), T=30+273.15)
 
                 elif val_s == 0:
                     c.get_attr(key).val0 = val_t
@@ -1995,22 +1992,29 @@ class Network:
                 logging.debug(self.property_range_message(c, 'h'))
 
             elif c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.9999
+                if hmax < 0:
+                    c.h.val_SI = hmax * 1.0001
+                else:
+                    c.h.val_SI = hmin * 0.9999
                 logging.debug(self.property_range_message(c, 'h'))
 
             if ((c.Td_bp.val_set or c.state.is_set) and
                     not c.h.val_set and self.iter < 3):
+
+                # make sure state is gaseous
                 if (c.Td_bp.val_SI > 0 or
                         (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.get_flow(), 1)
                     if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.01
+                        c.h.val_SI = fp.get_vapor_enthalpy_close_to_two_phase_region(c.get_flow())
                         logging.debug(self.property_range_message(c, 'h'))
+
+                # make sure state is liquid
                 elif (c.Td_bp.val_SI < 0 or
                       (c.state.val == 'l' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.get_flow(), 0)
                     if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.99
+                        c.h.val_SI = fp.get_liquid_enthalpy_close_to_two_phase_region(c.get_flow())
                         logging.debug(self.property_range_message(c, 'h'))
 
         elif self.iter < 4 and not c.good_starting_values:

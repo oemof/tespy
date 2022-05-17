@@ -1775,3 +1775,52 @@ def entropy_iteration_IF97(p, h, fluid, output):
         return Memorise.state[fluid].rhomass()
     else:
         return Memorise.state[fluid].viscosity()
+
+
+def get_liquid_enthalpy_close_to_two_phase_region(flow, tol=1e-3):
+    """
+    Get an enthalpy that corresponds to liquid state but is close to two-phase region.
+
+    Parameters
+    ----------
+    flow: list
+        Fluid property vector containing mass flow, pressure, enthalpy and
+        fluid composition.
+    tol: float
+        Tolerance by which enthalpy is corrected to make sure state is liquid
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    """
+    h = h_mix_pQ(flow, Q=0)
+    if h > 0:
+        return h * (1-tol)
+    else:
+        return h * (1+tol)
+
+def get_vapor_enthalpy_close_to_two_phase_region(flow, tol=1e-3):
+    """
+    Get an enthalpy that corresponds to gaseous state but is close to two-phase region.
+
+    Parameters
+    ----------
+    flow: list
+        Fluid property vector containing mass flow, pressure, enthalpy and
+        fluid composition.
+    tol: float
+        Tolerance by which enthalpy is corrected to make sure state is gaseous
+
+    Returns
+    -------
+    h : float
+        Specific enthalpy h / (J/kg).
+
+    """
+    h = h_mix_pQ(flow, Q=1)
+    if h > 0:
+        return h * (1+tol)
+    else:
+        return h * (1-tol)

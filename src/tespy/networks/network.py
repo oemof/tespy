@@ -1823,7 +1823,7 @@ class Network:
             print(msg)
 
     def matrix_inversion(self):
-        """Invert matrix of derivatives and caluclate increment."""
+        """Invert matrix of derivatives and calculate increment."""
         self.lin_dep = True
         try:
             # Let the matrix inversion be computed by the GPU if use_cuda in

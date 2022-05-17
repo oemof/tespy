@@ -550,7 +550,7 @@ class Compressor(Turbomachine):
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     @staticmethod
-    def initialise_Source(c, key):
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
